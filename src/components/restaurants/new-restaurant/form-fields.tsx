@@ -19,6 +19,7 @@ interface FormTextInputProps {
   autoComplete?: string;
   leftAddon?: ReactNode;
   rightAddon?: ReactNode;
+  inputRef?: (element: HTMLInputElement | null) => void;
 }
 
 interface FormSelectInputProps {
@@ -51,9 +52,11 @@ export function FormTextInput({
   autoComplete,
   leftAddon,
   rightAddon,
+  inputRef,
 }: FormTextInputProps) {
   const error = getErrorMessage(errors, name);
   const hasError = Boolean(error);
+  const inputRegistration = register(name);
 
   return (
     <div className="space-y-1.5">
@@ -77,7 +80,11 @@ export function FormTextInput({
           autoComplete={autoComplete}
           placeholder={placeholder}
           className="h-12 w-full bg-transparent px-3 text-base text-[#101827] placeholder:text-[#a0acb7] focus:outline-none"
-          {...register(name)}
+          {...inputRegistration}
+          ref={(element) => {
+            inputRegistration.ref(element);
+            inputRef?.(element);
+          }}
         />
 
         {rightAddon ? <div className="mr-3">{rightAddon}</div> : null}

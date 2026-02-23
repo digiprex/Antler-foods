@@ -3,12 +3,21 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuthenticationStatus, useSignUpEmailPassword } from '@nhost/react';
+import {
+  useAuthenticationStatus,
+  useSignUpEmailPassword,
+  useUserData,
+} from '@nhost/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { AuthInput } from './auth-input';
-import { DEFAULT_AUTH_REDIRECT, LOGIN_ROUTE } from '@/lib/auth/routes';
+import {
+  DEFAULT_AUTH_REDIRECT,
+  LOGIN_ROUTE,
+  getRoleDashboardRoute,
+} from '@/lib/auth/routes';
 import { isNhostConfigured } from '@/lib/nhost';
+import { getUserRole } from '@/lib/auth/get-user-role';
 import { signupSchema, type SignupFormValues } from '@/lib/validation/auth';
 
 export function SignupForm() {
@@ -18,14 +27,15 @@ export function SignupForm() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const { isAuthenticated, isLoading: isStatusLoading } =
     useAuthenticationStatus();
+  const user = useUserData();
   const { signUpEmailPassword, isLoading, error, needsEmailVerification } =
     useSignUpEmailPassword();
 
   useEffect(() => {
-    if (!isStatusLoading && isAuthenticated) {
-      router.replace(DEFAULT_AUTH_REDIRECT);
+    if (!isStatusLoading && isAuthenticated && user) {
+      router.replace(getRoleDashboardRoute(getUserRole(user)));
     }
-  }, [isAuthenticated, isStatusLoading, router]);
+  }, [isAuthenticated, isStatusLoading, router, user]);
 
   useEffect(() => {
     return () => {
@@ -83,8 +93,9 @@ export function SignupForm() {
       : 'Redirecting to dashboard...';
     setSuccessMessage(`Account created successfully. ${verificationHint}`);
 
+    const nextRoute = getRoleDashboardRoute(getUserRole(result.user));
     redirectTimer.current = setTimeout(() => {
-      router.replace(DEFAULT_AUTH_REDIRECT);
+      router.replace(nextRoute || DEFAULT_AUTH_REDIRECT);
     }, 700);
   });
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type FieldErrors, type UseFormRegister } from "react";
+import { useState } from "react";
+import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import { FormSelectInput, FormTextInput } from "./form-fields";
 import type { NewRestaurantFormValues } from "./schema";
 

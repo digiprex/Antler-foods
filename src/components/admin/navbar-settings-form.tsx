@@ -1,7 +1,7 @@
 /**
- * Simplified Navbar Settings Form
- * 
- * A clean form interface for configuring navbar settings:
+ * Navbar Settings Form
+ *
+ * Enhanced interface for configuring navbar settings:
  * - Layout/Type selection
  * - Position
  * - Background color
@@ -16,6 +16,7 @@
 import { useState, useEffect } from 'react';
 import { useNavbarConfig, useUpdateNavbarConfig } from '@/hooks/use-navbar-config';
 import Navbar from '@/components/navbar';
+import Toast from '@/components/ui/toast';
 import styles from './navbar-settings-form.module.css';
 
 export default function NavbarSettingsForm() {
@@ -31,6 +32,11 @@ export default function NavbarSettingsForm() {
   const [orderButtonText, setOrderButtonText] = useState('Order Online');
   const [orderButtonHref, setOrderButtonHref] = useState('/order');
   const [restaurantId] = useState<string>('92e9160e-0afa-4f78-824f-b28e32885353');
+  
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
   // Initialize form with fetched config
   useEffect(() => {
@@ -49,11 +55,14 @@ export default function NavbarSettingsForm() {
     e.preventDefault();
 
     if (!restaurantId) {
-      alert('Restaurant ID not found. Please refresh the page.');
+      setToastMessage('Restaurant ID not found. Please refresh the page.');
+      setToastType('error');
+      setShowToast(true);
       return;
     }
 
     try {
+      // Show immediate success feedback without waiting for refetch
       await updateNavbar({
         restaurant_id: restaurantId,
         layout: layout as any,
@@ -68,11 +77,15 @@ export default function NavbarSettingsForm() {
           : undefined,
       });
 
-      alert('Navbar settings saved successfully!');
-      refetch();
+      setToastMessage('Navbar settings saved successfully!');
+      setToastType('success');
+      setShowToast(true);
+      // Removed refetch() - no need to fetch again since we already have the latest data
     } catch (err) {
       console.error('Failed to update navbar:', err);
-      alert('Failed to save settings. Please try again.');
+      setToastMessage('Failed to save settings. Please try again.');
+      setToastType('error');
+      setShowToast(true);
     }
   };
 
@@ -86,15 +99,28 @@ export default function NavbarSettingsForm() {
 
   return (
     <div className={styles.container}>
+      {/* Toast Notification */}
+      {showToast && (
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setShowToast(false)}
+        />
+      )}
+
       <div className={styles.splitLayout}>
         {/* Settings Form - Left Side */}
         <div className={styles.formSection}>
           <div className={styles.formHeader}>
-            <h1 className={styles.formTitle}>Navigation Bar</h1>
+            <div>
+              <h1 className={styles.formTitle}>Navigation Bar Settings</h1>
+              <p className={styles.formSubtitle}>Customize your website navigation</p>
+            </div>
             <button
               type="button"
               className={styles.closeButton}
               onClick={() => window.history.back()}
+              aria-label="Close"
             >
               ✕
             </button>
@@ -102,127 +128,212 @@ export default function NavbarSettingsForm() {
 
           {fetchError && (
             <div className={styles.errorMessage}>
-              Error loading settings: {fetchError}
+              <span className={styles.errorIcon}>⚠</span>
+              <span>Error loading settings: {fetchError}</span>
             </div>
           )}
 
           {updateError && (
             <div className={styles.errorMessage}>
-              Error saving settings: {updateError}
+              <span className={styles.errorIcon}>⚠</span>
+              <span>Error saving settings: {updateError}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className={styles.form}>
-            {/* Type/Layout */}
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Type:</label>
-              <select
-                value={layout}
-                onChange={(e) => setLayout(e.target.value)}
-                className={styles.select}
-              >
-                <option value="default">Option 1 - Default</option>
-                <option value="centered">Option 2 - Centered</option>
-                <option value="logo-center">Option 3 - Logo Center</option>
-                <option value="bordered-centered">Option 4 - Bordered Centered</option>
-                <option value="stacked">Option 5 - Stacked</option>
-                <option value="split">Option 6 - Split</option>
-              </select>
-            </div>
+            {/* Layout Section */}
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}>⚙</span>
+                Layout Configuration
+              </h3>
 
-            {/* Position */}
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Position:</label>
-              <select
-                value={position}
-                onChange={(e) => setPosition(e.target.value)}
-                className={styles.select}
-              >
-                <option value="absolute">Absolute</option>
-                <option value="fixed">Fixed</option>
-              </select>
-            </div>
-
-            {/* Background Color */}
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Background Color:</label>
-              <div className={styles.colorInputGroup}>
-                <input
-                  type="color"
-                  value={bgColor}
-                  onChange={(e) => setBgColor(e.target.value)}
-                  className={styles.colorInput}
-                />
-                <button
-                  type="button"
-                  onClick={() => setBgColor('#ffffff')}
-                  className={styles.clearButton}
+              {/* Type/Layout */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Layout Type
+                  <span className={styles.labelHint}>Choose a navigation style</span>
+                </label>
+                <select
+                  value={layout}
+                  onChange={(e) => setLayout(e.target.value)}
+                  className={styles.select}
                 >
-                  ✕
-                </button>
+                  <option value="default">Default - Standard Navigation</option>
+                  <option value="centered">Centered - All Items Center</option>
+                  <option value="logo-center">Logo Center - Logo in Middle</option>
+                  <option value="bordered-centered">Bordered Centered - With Border</option>
+                  <option value="stacked">Stacked - Vertical Layout</option>
+                  <option value="split">Split - Left & Right Aligned</option>
+                </select>
+              </div>
+
+              {/* Position */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Position
+                  <span className={styles.labelHint}>Scroll behavior</span>
+                </label>
+                <div className={styles.radioGroup}>
+                  <label className={styles.radioLabel}>
+                    <input
+                      type="radio"
+                      value="absolute"
+                      checked={position === 'absolute'}
+                      onChange={(e) => setPosition(e.target.value)}
+                      className={styles.radioInput}
+                    />
+                    <span className={styles.radioButton}></span>
+                    <span className={styles.radioText}>
+                      <strong>Absolute</strong>
+                      <small>Scrolls with page</small>
+                    </span>
+                  </label>
+                  <label className={styles.radioLabel}>
+                    <input
+                      type="radio"
+                      value="fixed"
+                      checked={position === 'fixed'}
+                      onChange={(e) => setPosition(e.target.value)}
+                      className={styles.radioInput}
+                    />
+                    <span className={styles.radioButton}></span>
+                    <span className={styles.radioText}>
+                      <strong>Fixed</strong>
+                      <small>Stays at top</small>
+                    </span>
+                  </label>
+                </div>
               </div>
             </div>
 
-            {/* Text Color */}
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Text Color:</label>
-              <div className={styles.colorInputGroup}>
-                <input
-                  type="color"
-                  value={textColor}
-                  onChange={(e) => setTextColor(e.target.value)}
-                  className={styles.colorInput}
-                />
-                <button
-                  type="button"
-                  onClick={() => setTextColor('#000000')}
-                  className={styles.clearButton}
-                >
-                  ✕
-                </button>
+            {/* Styling Section */}
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}>🎨</span>
+                Colors & Styling
+              </h3>
+
+              {/* Background Color */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Background Color
+                  <span className={styles.labelHint}>Navbar background</span>
+                </label>
+                <div className={styles.colorInputGroup}>
+                  <input
+                    type="color"
+                    value={bgColor}
+                    onChange={(e) => setBgColor(e.target.value)}
+                    className={styles.colorInput}
+                  />
+                  <input
+                    type="text"
+                    value={bgColor}
+                    onChange={(e) => setBgColor(e.target.value)}
+                    className={styles.colorHexInput}
+                    placeholder="#ffffff"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setBgColor('#ffffff')}
+                    className={styles.clearButton}
+                    title="Reset to default"
+                  >
+                    ↺
+                  </button>
+                </div>
+              </div>
+
+              {/* Text Color */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Text Color
+                  <span className={styles.labelHint}>Link and text color</span>
+                </label>
+                <div className={styles.colorInputGroup}>
+                  <input
+                    type="color"
+                    value={textColor}
+                    onChange={(e) => setTextColor(e.target.value)}
+                    className={styles.colorInput}
+                  />
+                  <input
+                    type="text"
+                    value={textColor}
+                    onChange={(e) => setTextColor(e.target.value)}
+                    className={styles.colorHexInput}
+                    placeholder="#000000"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setTextColor('#000000')}
+                    className={styles.clearButton}
+                    title="Reset to default"
+                  >
+                    ↺
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Online Ordering Button Toggle */}
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Online Ordering Button:</label>
-              <label className={styles.toggleSwitch}>
-                <input
-                  type="checkbox"
-                  checked={showOrderButton}
-                  onChange={(e) => setShowOrderButton(e.target.checked)}
-                  className={styles.toggleInput}
-                />
-                <span className={styles.toggleSlider}></span>
-              </label>
-            </div>
+            {/* CTA Button Section */}
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}>🔘</span>
+                Call-to-Action Button
+              </h3>
 
-            {/* Order Online Button Text (shown when toggle is on) */}
-            {showOrderButton && (
-              <>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Order Online Button:</label>
+              {/* Online Ordering Button Toggle */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Show CTA Button
+                  <span className={styles.labelHint}>Display action button</span>
+                </label>
+                <label className={styles.toggleSwitch}>
                   <input
-                    type="text"
-                    value={orderButtonText}
-                    onChange={(e) => setOrderButtonText(e.target.value)}
-                    className={styles.textInput}
-                    placeholder="Order Online"
+                    type="checkbox"
+                    checked={showOrderButton}
+                    onChange={(e) => setShowOrderButton(e.target.checked)}
+                    className={styles.toggleInput}
                   />
+                  <span className={styles.toggleSlider}></span>
+                </label>
+              </div>
+
+              {/* Order Online Button Text (shown when toggle is on) */}
+              {showOrderButton && (
+                <div className={styles.buttonSettings}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                      Button Text
+                      <span className={styles.labelHint}>What the button says</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={orderButtonText}
+                      onChange={(e) => setOrderButtonText(e.target.value)}
+                      className={styles.textInput}
+                      placeholder="Order Online"
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                      Button Link
+                      <span className={styles.labelHint}>Where it navigates</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={orderButtonHref}
+                      onChange={(e) => setOrderButtonHref(e.target.value)}
+                      className={styles.textInput}
+                      placeholder="/order"
+                    />
+                  </div>
                 </div>
-                
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Button Link:</label>
-                  <input
-                    type="text"
-                    value={orderButtonHref}
-                    onChange={(e) => setOrderButtonHref(e.target.value)}
-                    className={styles.textInput}
-                    placeholder="/order"
-                  />
-                </div>
-              </>
-            )}
+              )}
+            </div>
 
             {/* Save Button */}
             <div className={styles.formActions}>
@@ -231,7 +342,17 @@ export default function NavbarSettingsForm() {
                 disabled={updating}
                 className={styles.saveButton}
               >
-                {updating ? 'Saving...' : 'Save'}
+                {updating ? (
+                  <>
+                    <span className={styles.spinner}></span>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <span>💾</span>
+                    Save Changes
+                  </>
+                )}
               </button>
             </div>
           </form>
@@ -239,36 +360,44 @@ export default function NavbarSettingsForm() {
 
         {/* Preview - Right Side */}
         <div className={styles.previewSection}>
-          <h2 className={styles.previewTitle}>Preview</h2>
-          <div className={styles.previewContainer}>
-            <Navbar
-              key={`${bgColor}-${textColor}-${showOrderButton}`}
-              restaurantName={config?.restaurantName || 'Restaurant Name'}
-              logoUrl={config?.logoUrl}
-              leftNavItems={config?.leftNavItems || [
-                { label: 'Menu', href: '#menu' },
-                { label: 'About', href: '#about' },
-                { label: 'Contact', href: '#contact' },
-              ]}
-              rightNavItems={config?.rightNavItems || []}
-              ctaButton={
-                showOrderButton
-                  ? {
-                      label: orderButtonText,
-                      href: orderButtonHref,
-                    }
-                  : undefined
-              }
-              layout={layout as any}
-              position="relative"
-              bgColor={bgColor}
-              textColor={textColor}
-              buttonBgColor="#000000"
-              buttonTextColor="#ffffff"
-            />
+          <div className={styles.previewHeader}>
+            <h2 className={styles.previewTitle}>Live Preview</h2>
+            <span className={styles.previewBadge}>Updates in real-time</span>
+          </div>
+          <div className={styles.previewWrapper}>
+            <div className={styles.previewDevice}>
+              <div className={styles.previewContainer}>
+                <Navbar
+                  key={`${bgColor}-${textColor}-${showOrderButton}`}
+                  restaurantName={config?.restaurantName || 'Restaurant Name'}
+                  logoUrl={config?.logoUrl}
+                  leftNavItems={config?.leftNavItems || [
+                    { label: 'Menu', href: '#menu' },
+                    { label: 'About', href: '#about' },
+                    { label: 'Contact', href: '#contact' },
+                  ]}
+                  rightNavItems={config?.rightNavItems || []}
+                  ctaButton={
+                    showOrderButton
+                      ? {
+                          label: orderButtonText,
+                          href: orderButtonHref,
+                        }
+                      : undefined
+                  }
+                  layout={layout as any}
+                  position="relative"
+                  bgColor={bgColor}
+                  textColor={textColor}
+                  buttonBgColor="#000000"
+                  buttonTextColor="#ffffff"
+                />
+              </div>
+            </div>
           </div>
           <p className={styles.previewNote}>
-            This is how your navbar will appear on the website
+            <span className={styles.previewIcon}>👁</span>
+            Preview shows how your navbar will appear on the website
           </p>
         </div>
       </div>

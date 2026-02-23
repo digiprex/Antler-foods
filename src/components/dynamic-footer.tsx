@@ -135,10 +135,15 @@ export default function DynamicFooter({
       showPoweredBy={config.showPoweredBy}
       showSocialMedia={config.showSocialMedia}
       showLocations={config.showLocations}
+      showNewsletter={config.showNewsletter}
+      newsletterTitle={config.newsletterTitle}
+      newsletterPlaceholder={config.newsletterPlaceholder}
       layout={config.layout}
       bgColor={config.bgColor}
       textColor={config.textColor}
       linkColor={config.linkColor}
+      copyrightBgColor={config.copyrightBgColor}
+      copyrightTextColor={config.copyrightTextColor}
     />
   );
 }

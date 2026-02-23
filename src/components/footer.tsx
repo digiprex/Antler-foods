@@ -34,6 +34,8 @@ export default function Footer(props: FooterProps) {
     bgColor = '#1f2937',
     textColor = '#f9fafb',
     linkColor = '#9ca3af',
+    copyrightBgColor = '#000000',
+    copyrightTextColor = '#ffffff',
     logoUrl,
   } = props;
 
@@ -422,6 +424,8 @@ export default function Footer(props: FooterProps) {
     '--footer-bg-color': bgColor,
     '--footer-text-color': textColor,
     '--footer-link-color': linkColor,
+    '--copyright-bg-color': copyrightBgColor,
+    '--copyright-text-color': copyrightTextColor,
   } as React.CSSProperties;
 
   // Determine footer class based on layout

@@ -31,9 +31,10 @@ export default function FooterSettingsForm() {
   const [bgColor, setBgColor] = useState('#1f2937');
   const [textColor, setTextColor] = useState('#f9fafb');
   const [linkColor, setLinkColor] = useState('#9ca3af');
+  const [copyrightBgColor, setCopyrightBgColor] = useState('#000000');
+  const [copyrightTextColor, setCopyrightTextColor] = useState('#ffffff');
   const [showNewsletter, setShowNewsletter] = useState(false);
   const [showSocialMedia, setShowSocialMedia] = useState(true);
-  const [showLocations, setShowLocations] = useState(true);
   const [restaurantId] = useState<string>('92e9160e-0afa-4f78-824f-b28e32885353');
 
   // Toast state
@@ -52,9 +53,10 @@ export default function FooterSettingsForm() {
       setBgColor(config.bgColor || '#1f2937');
       setTextColor(config.textColor || '#f9fafb');
       setLinkColor(config.linkColor || '#9ca3af');
+      setCopyrightBgColor(config.copyrightBgColor || '#000000');
+      setCopyrightTextColor(config.copyrightTextColor || '#ffffff');
       setShowNewsletter(config.showNewsletter || false);
       setShowSocialMedia(config.showSocialMedia !== false);
-      setShowLocations(config.showLocations !== false);
     }
   }, [config]);
 
@@ -80,9 +82,10 @@ export default function FooterSettingsForm() {
         bgColor,
         textColor,
         linkColor,
+        copyrightBgColor,
+        copyrightTextColor,
         showNewsletter,
         showSocialMedia,
-        showLocations,
         columns: config?.columns || [],
         socialLinks: config?.socialLinks || [],
       });
@@ -210,22 +213,6 @@ export default function FooterSettingsForm() {
                   <span className={styles.toggleSlider}></span>
                 </label>
               </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Show Locations
-                  <span className={styles.labelHint}>Display location information</span>
-                </label>
-                <label className={styles.toggleSwitch}>
-                  <input
-                    type="checkbox"
-                    checked={showLocations}
-                    onChange={(e) => setShowLocations(e.target.checked)}
-                    className={styles.toggleInput}
-                  />
-                  <span className={styles.toggleSlider}></span>
-                </label>
-              </div>
             </div>
 
             {/* Styling Section */}
@@ -324,6 +311,66 @@ export default function FooterSettingsForm() {
                   </button>
                 </div>
               </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Copyright Background
+                  <span className={styles.labelHint}>Copyright section background</span>
+                </label>
+                <div className={styles.colorInputGroup}>
+                  <input
+                    type="color"
+                    value={copyrightBgColor}
+                    onChange={(e) => setCopyrightBgColor(e.target.value)}
+                    className={styles.colorInput}
+                  />
+                  <input
+                    type="text"
+                    value={copyrightBgColor}
+                    onChange={(e) => setCopyrightBgColor(e.target.value)}
+                    className={styles.colorHexInput}
+                    placeholder="#000000"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCopyrightBgColor('#000000')}
+                    className={styles.clearButton}
+                    title="Reset to default"
+                  >
+                    ↺
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Copyright Text Color
+                  <span className={styles.labelHint}>Copyright section text</span>
+                </label>
+                <div className={styles.colorInputGroup}>
+                  <input
+                    type="color"
+                    value={copyrightTextColor}
+                    onChange={(e) => setCopyrightTextColor(e.target.value)}
+                    className={styles.colorInput}
+                  />
+                  <input
+                    type="text"
+                    value={copyrightTextColor}
+                    onChange={(e) => setCopyrightTextColor(e.target.value)}
+                    className={styles.colorHexInput}
+                    placeholder="#ffffff"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCopyrightTextColor('#ffffff')}
+                    className={styles.clearButton}
+                    title="Reset to default"
+                  >
+                    ↺
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Additional Options */}
@@ -395,12 +442,13 @@ export default function FooterSettingsForm() {
                   ]}
                   columns={config?.columns || []}
                   showSocialMedia={showSocialMedia}
-                  showLocations={showLocations}
                   showNewsletter={showNewsletter}
                   layout={layout as any}
                   bgColor={bgColor}
                   textColor={textColor}
                   linkColor={linkColor}
+                  copyrightBgColor={copyrightBgColor}
+                  copyrightTextColor={copyrightTextColor}
                 />
               </div>
             </div>

@@ -3,10 +3,11 @@
 // Base footer styles with CSS variables
 .footer {
   width: 100%;
-  padding: 3rem 0 1rem;
+  padding: 3rem 0 0;
   position: relative;
   background-color: var(--footer-bg-color, #1f2937);
   color: var(--footer-text-color, #f9fafb);
+  overflow: hidden;
 }
 
 .container {
@@ -444,12 +445,15 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding-top: 2rem;
+  padding: 1.5rem 2rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   margin-top: 2rem;
+  margin-left: -2rem;
+  margin-right: -2rem;
+  margin-bottom: -1rem;
   font-size: 0.875rem;
-  opacity: 0.8;
-  color: var(--footer-text-color, #f9fafb);
+  background-color: var(--copyright-bg-color, transparent);
+  color: var(--copyright-text-color, var(--footer-text-color, #f9fafb));
 }
 
 .copyright {
@@ -660,12 +664,13 @@
   border-radius: 4px;
   font-size: 0.9375rem;
   color: var(--footer-text-color, #333);
-  background-color: white;
-  transition: border-color 0.2s ease;
+  background-color: rgba(255, 255, 255, 0.5);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 
   &:focus {
     outline: none;
-    border-color: var(--footer-text-color, #333);
+    border-color: rgba(0, 0, 0, 0.4);
+    background-color: rgba(255, 255, 255, 0.7);
   }
 
   &::placeholder {
@@ -731,9 +736,14 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding-top: 1.5rem;
+  padding: 1.5rem 2rem;
+  margin-top: 2rem;
+  margin-left: -2rem;
+  margin-right: -2rem;
+  margin-bottom: -1rem;
   font-size: 0.875rem;
-  color: var(--footer-text-color, #333);
+  background-color: var(--copyright-bg-color, transparent);
+  color: var(--copyright-text-color, var(--footer-text-color, #333));
 }
 
 .bottomBarRestaurant .copyright {

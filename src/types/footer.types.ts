@@ -60,6 +60,8 @@ export interface FooterConfig {
   textColor?: string;
   linkColor?: string;
   borderColor?: string;
+  copyrightBgColor?: string;
+  copyrightTextColor?: string;
 
   // Additional options
   showNewsletter?: boolean;
@@ -123,6 +125,8 @@ export const DEFAULT_FOOTER_CONFIG: FooterConfig = {
   textColor: "#333333",
   linkColor: "#666666",
   borderColor: "#374151",
+  copyrightBgColor: "#000000",
+  copyrightTextColor: "#ffffff",
   showNewsletter: false,
   newsletterTitle: "Subscribe to our newsletter",
   newsletterPlaceholder: "Enter your email",

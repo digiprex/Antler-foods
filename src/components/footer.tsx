@@ -448,22 +448,22 @@ export default function Footer(props: FooterProps) {
     >
       <div className={styles.container}>
         {renderLayout()}
-
-        {/* Bottom Bar */}
-        {layout === 'restaurant' ? (
-          <div className={styles.bottomBarRestaurant}>
-            <div className={styles.copyright}>
-              {copyrightText || `© ${new Date().getFullYear()} All Rights Reserved`}
-            </div>
-          </div>
-        ) : (
-          <div className={styles.bottomBar}>
-            <div className={styles.copyright}>
-              {copyrightText || `© ${new Date().getFullYear()} ${restaurantName}. All rights reserved.`}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Bottom Bar - Outside container for full width */}
+      {layout === 'restaurant' ? (
+        <div className={styles.bottomBarRestaurant}>
+          <div className={styles.copyright}>
+            {copyrightText || `© ${new Date().getFullYear()} All Rights Reserved`}
+          </div>
+        </div>
+      ) : (
+        <div className={styles.bottomBar}>
+          <div className={styles.copyright}>
+            {copyrightText || `© ${new Date().getFullYear()} ${restaurantName}. All rights reserved.`}
+          </div>
+        </div>
+      )}
 
       {/* Scroll to Top Button (Fixed) */}
       <button

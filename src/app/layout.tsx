@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import ConditionalNavbar from "../components/conditional-navbar";
+import ConditionalFooter from "../components/conditional-footer";
 
 export const metadata: Metadata = {
   title: "Antler Foods Dashboard",
@@ -25,6 +26,7 @@ export default function RootLayout({
         <Providers>
           <ConditionalNavbar />
           {children}
+          <ConditionalFooter />
         </Providers>
       </body>
     </html>

@@ -6,6 +6,12 @@ import ConditionalNavbar from "../components/conditional-navbar";
 export const metadata: Metadata = {
   title: "Antler Foods Dashboard",
   description: "Antler Foods auth and dashboard foundation with Nhost.",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
 };
 
 export default function RootLayout({

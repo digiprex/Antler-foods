@@ -10,7 +10,12 @@ import {
 } from "@nhost/react";
 import { usePathname, useRouter } from "next/navigation";
 import { getRoleFromHasuraClaims, getUserRole } from "@/lib/auth/get-user-role";
-import { LOGIN_ROUTE, UNAUTHORIZED_ROUTE } from "@/lib/auth/routes";
+import {
+  LOGIN_ROUTE,
+  UNAUTHORIZED_ROUTE,
+  resolveRoleSegmentFromPath,
+  toRoleRouteSegment,
+} from "@/lib/auth/routes";
 import { IconRail, type DashboardRailTab } from "./icon-rail";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
@@ -19,16 +24,25 @@ interface DashboardLayoutProps {
   children: ReactNode;
 }
 
-function resolveActiveRailTab(pathname: string): DashboardRailTab {
-  if (pathname.startsWith("/dashboard/reservations")) {
+function resolveActiveRailTab(pathname: string, baseDashboardPath: string): DashboardRailTab {
+  if (pathname.startsWith(`${baseDashboardPath}/reservations`)) {
     return "reservations";
   }
 
-  if (pathname.startsWith("/dashboard/team")) {
+  if (pathname.startsWith(`${baseDashboardPath}/team`)) {
     return "team";
   }
 
   return "home";
+}
+
+function resolveDashboardBasePath(pathname: string) {
+  const roleSegment = resolveRoleSegmentFromPath(pathname);
+  if (roleSegment) {
+    return `/${roleSegment}/dashboard`;
+  }
+
+  return "/dashboard";
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -38,13 +52,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const hasuraClaims = useHasuraClaims();
   const roleFromClaims = getRoleFromHasuraClaims(hasuraClaims);
   const roleFromUser = user ? getUserRole(user) : null;
-  const role = roleFromClaims ?? roleFromUser;
+  const role = roleFromClaims && roleFromClaims !== "user" ? roleFromClaims : roleFromUser;
   const { isAuthenticated, isLoading: isStatusLoading } = useAuthenticationStatus();
   const { signOut } = useSignOut();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [claimsWaitElapsed, setClaimsWaitElapsed] = useState(false);
+  const roleRouteSegment = toRoleRouteSegment(role);
+  const expectedRoleRouteSegment = resolveRoleSegmentFromPath(pathname);
+  const dashboardBasePath = useMemo(() => resolveDashboardBasePath(pathname), [pathname]);
 
-  const activeTab = useMemo(() => resolveActiveRailTab(pathname), [pathname]);
+  const activeTab = useMemo(
+    () => resolveActiveRailTab(pathname, dashboardBasePath),
+    [dashboardBasePath, pathname],
+  );
 
   useEffect(() => {
     if (!isAuthenticated || roleFromClaims) {
@@ -57,9 +77,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [isAuthenticated, roleFromClaims]);
 
   const isRoleResolved = Boolean(
-    roleFromClaims ||
+    (roleFromClaims && roleFromClaims !== "user") ||
       (roleFromUser && roleFromUser !== "user") ||
-      (claimsWaitElapsed && roleFromUser),
+      (claimsWaitElapsed && roleFromUser !== null),
   );
 
   useEffect(() => {
@@ -77,10 +97,33 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       return;
     }
 
-    if (role !== "admin") {
+    if (!roleRouteSegment) {
       router.replace(UNAUTHORIZED_ROUTE);
+      return;
     }
-  }, [isAuthenticated, isRoleResolved, isStatusLoading, pathname, role, router]);
+
+    if (expectedRoleRouteSegment && expectedRoleRouteSegment !== roleRouteSegment) {
+      const wrongPrefix = `/${expectedRoleRouteSegment}/dashboard`;
+      const nextSuffix = pathname.startsWith(wrongPrefix)
+        ? pathname.slice(wrongPrefix.length)
+        : "";
+      router.replace(`/${roleRouteSegment}/dashboard${nextSuffix}`);
+      return;
+    }
+
+    if (pathname.startsWith("/dashboard")) {
+      const nextSuffix = pathname.slice("/dashboard".length);
+      router.replace(`/${roleRouteSegment}/dashboard${nextSuffix}`);
+    }
+  }, [
+    expectedRoleRouteSegment,
+    isAuthenticated,
+    isRoleResolved,
+    isStatusLoading,
+    pathname,
+    roleRouteSegment,
+    router,
+  ]);
 
   const onLogout = async () => {
     setIsLoggingOut(true);
@@ -99,7 +142,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     );
   }
 
-  if (!isAuthenticated || role !== "admin") {
+  if (!isAuthenticated || !roleRouteSegment) {
     return null;
   }
 
@@ -108,8 +151,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-[#f3f5f6]">
       <div className="flex min-h-screen">
-        <IconRail activeTab={activeTab} />
-        <Sidebar activeTab={activeTab} pathname={pathname} />
+        <IconRail activeTab={activeTab} dashboardBasePath={dashboardBasePath} />
+        <Sidebar activeTab={activeTab} pathname={pathname} dashboardBasePath={dashboardBasePath} />
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar userLabel={userLabel} onLogout={onLogout} isLoggingOut={isLoggingOut} />
           <main className="flex-1 p-6 md:p-8">{children}</main>

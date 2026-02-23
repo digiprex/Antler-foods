@@ -7,7 +7,7 @@ export default function UnauthorizedPage() {
       <div className="w-full max-w-xl rounded-2xl border border-[#d7e2e6] bg-white p-8 shadow-soft">
         <h1 className="text-3xl font-semibold text-[#111827]">Unauthorized</h1>
         <p className="mt-3 text-[#5f6c78]">
-          You do not have admin access for this dashboard.
+          You do not have access to this dashboard.
         </p>
         <Link
           href={LOGIN_ROUTE}

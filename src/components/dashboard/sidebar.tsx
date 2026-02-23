@@ -5,18 +5,19 @@ import type { DashboardRailTab } from "./icon-rail";
 interface SidebarProps {
   activeTab: DashboardRailTab;
   pathname: string;
+  dashboardBasePath: string;
 }
 
 const HOME_MENU_ITEMS = [
-  { href: "/dashboard/home", label: "Home", icon: <HomeIcon /> },
-  { href: "/dashboard/customer-base", label: "Customer Base", icon: <UsersIcon /> },
-  { href: "/dashboard/new-restaurant", label: "New restaurant", icon: <StoreIcon /> },
-  { href: "/dashboard/restaurants", label: "Restaurants", icon: <ShopIcon /> },
-  { href: "/dashboard/sales", label: "Sales", icon: <SalesIcon /> },
-  { href: "/dashboard/reports", label: "Reports", icon: <ReportsIcon /> },
+  { href: "/home", label: "Home", icon: <HomeIcon /> },
+  { href: "/customer-base", label: "Customer Base", icon: <UsersIcon /> },
+  { href: "/new-restaurant", label: "New restaurant", icon: <StoreIcon /> },
+  { href: "/restaurants", label: "Restaurants", icon: <ShopIcon /> },
+  { href: "/sales", label: "Sales", icon: <SalesIcon /> },
+  { href: "/reports", label: "Reports", icon: <ReportsIcon /> },
 ] as const;
 
-export function Sidebar({ activeTab, pathname }: SidebarProps) {
+export function Sidebar({ activeTab, pathname, dashboardBasePath }: SidebarProps) {
   const isHomeTab = activeTab === "home";
 
   return (
@@ -40,11 +41,11 @@ export function Sidebar({ activeTab, pathname }: SidebarProps) {
         <nav className="space-y-2 px-3 py-4">
           {HOME_MENU_ITEMS.map((item) => (
             <NavItem
-              key={item.href}
-              href={item.href}
+              key={`${dashboardBasePath}${item.href}`}
+              href={`${dashboardBasePath}${item.href}`}
               label={item.label}
               icon={item.icon}
-              active={pathname === item.href}
+              active={pathname === `${dashboardBasePath}${item.href}`}
             />
           ))}
         </nav>

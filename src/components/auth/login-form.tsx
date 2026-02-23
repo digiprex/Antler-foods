@@ -6,14 +6,17 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   useAuthenticationStatus,
   useSignInEmailPassword,
+  useUserData,
 } from '@nhost/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { AuthInput } from './auth-input';
 import {
   DEFAULT_AUTH_REDIRECT,
+  getRoleDashboardRoute,
 } from '@/lib/auth/routes';
 import { isNhostConfigured } from '@/lib/nhost';
+import { getUserRole } from '@/lib/auth/get-user-role';
 import { sanitizeNextPath } from '@/lib/auth/sanitize-next-path';
 import { loginSchema, type LoginFormValues } from '@/lib/validation/auth';
 
@@ -23,6 +26,7 @@ export function LoginForm() {
   const [formError, setFormError] = useState<string | null>(null);
   const { isAuthenticated, isLoading: isStatusLoading } =
     useAuthenticationStatus();
+  const user = useUserData();
   const { signInEmailPassword, isLoading, error, needsEmailVerification } =
     useSignInEmailPassword();
 
@@ -32,10 +36,10 @@ export function LoginForm() {
   );
 
   useEffect(() => {
-    if (!isStatusLoading && isAuthenticated) {
-      router.replace(redirectPath || DEFAULT_AUTH_REDIRECT);
+    if (!isStatusLoading && isAuthenticated && user) {
+      router.replace(redirectPath || getRoleDashboardRoute(getUserRole(user)));
     }
-  }, [isAuthenticated, isStatusLoading, redirectPath, router]);
+  }, [isAuthenticated, isStatusLoading, redirectPath, router, user]);
 
   const {
     register,
@@ -68,7 +72,8 @@ export function LoginForm() {
       return;
     }
 
-    router.replace(redirectPath || DEFAULT_AUTH_REDIRECT);
+    const signedInRole = getUserRole(result.user);
+    router.replace(redirectPath || getRoleDashboardRoute(signedInRole) || DEFAULT_AUTH_REDIRECT);
   });
 
   return (

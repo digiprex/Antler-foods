@@ -4,6 +4,7 @@ export type DashboardRailTab = "home" | "reservations" | "team";
 
 interface IconRailProps {
   activeTab: DashboardRailTab;
+  dashboardBasePath: string;
 }
 
 const RAIL_TABS: Array<{
@@ -15,34 +16,35 @@ const RAIL_TABS: Array<{
   {
     key: "home",
     label: "Home",
-    href: "/dashboard/new-restaurant",
+    href: "/new-restaurant",
     icon: <StoreIcon />,
   },
   {
     key: "reservations",
     label: "Reservations",
-    href: "/dashboard/reservations",
+    href: "/reservations",
     icon: <ReservationIcon />,
   },
   {
     key: "team",
     label: "Team",
-    href: "/dashboard/team",
+    href: "/team",
     icon: <TeamIcon />,
   },
 ];
 
-export function IconRail({ activeTab }: IconRailProps) {
+export function IconRail({ activeTab, dashboardBasePath }: IconRailProps) {
   return (
     <aside className="flex min-h-screen w-16 flex-col items-center border-r border-[#d7e2e6] bg-[#f6f7f7] py-4">
       <div className="flex w-full flex-col gap-2">
         {RAIL_TABS.map((tab) => {
           const isActive = tab.key === activeTab;
+          const href = `${dashboardBasePath}${tab.href}`;
 
           return (
             <div key={tab.key} className="group relative flex justify-center">
               <Link
-                href={tab.href}
+                href={href}
                 aria-label={tab.label}
                 className={`inline-flex h-12 w-12 items-center justify-center rounded-xl transition ${
                   isActive

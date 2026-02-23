@@ -19,12 +19,31 @@ import {
   type NewRestaurantFormValues,
 } from "./schema";
 import { Stepper } from "./stepper";
+import { insertRestaurant, updateRestaurant } from "@/lib/graphql/queries";
+import { nhost } from "@/lib/nhost";
 
 type WizardStep = 1 | 2 | 3;
+const IS_DEV = process.env.NODE_ENV !== "production";
+
+function debugLog(label: string, data?: unknown) {
+  if (!IS_DEV) {
+    return;
+  }
+
+  if (typeof data === "undefined") {
+    console.info(`[restaurant-wizard] ${label}`);
+    return;
+  }
+
+  console.info(`[restaurant-wizard] ${label}`, data);
+}
 
 export function NewRestaurantWizard() {
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [createdRestaurantId, setCreatedRestaurantId] = useState<string | null>(null);
+  const [isSavingStepOne, setIsSavingStepOne] = useState(false);
 
   const {
     control,
@@ -34,14 +53,25 @@ export function NewRestaurantWizard() {
     setError,
     setFocus,
     getValues,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<NewRestaurantFormValues>({
     resolver: zodResolver(newRestaurantSchema),
     mode: "onTouched",
     reValidateMode: "onChange",
     defaultValues: {
-      ownerProfileMode: "new",
+      ownerProfileMode: "create",
       existingBusinessProfile: "",
+      googlePlaceId: "",
+      googlePlaceName: "",
+      googleLat: null,
+      googleLng: null,
+      selectedCuisineTypeIds: [],
+      selectedCuisineTypeLabels: [],
+      selectedServiceModelId: "",
+      selectedServiceModelName: "",
+      isPartOfFranchise: false,
+      importMenu: false,
       businessType: "",
       restaurantName: "",
       legalName: "",
@@ -68,7 +98,7 @@ export function NewRestaurantWizard() {
 
   const setStepErrors = (
     fieldNames: readonly string[],
-    issues: Array<{ path: (string | number)[]; message: string }>,
+    issues: Array<{ path: PropertyKey[]; message: string }>,
   ) => {
     const availableFields = new Set(fieldNames);
     let firstInvalidField: FieldPath<NewRestaurantFormValues> | null = null;
@@ -102,37 +132,111 @@ export function NewRestaurantWizard() {
     const result = (step === 1 ? stepOneSchema : stepTwoSchema).safeParse(values);
 
     if (result.success) {
-      return true;
+      return {
+        isValid: true as const,
+        issues: [] as Array<{ path: string; message: string }>,
+      };
     }
 
     setStepErrors(fields, result.error.issues);
-    return false;
+    return {
+      isValid: false as const,
+      issues: result.error.issues
+        .map((issue) => {
+          const path = issue.path[0];
+          return {
+            path: typeof path === "string" ? path : "unknown",
+            message: issue.message,
+          };
+        })
+        .filter((issue) => issue.path !== "unknown"),
+    };
   };
 
   const onContinue = async () => {
     setSuccessMessage(null);
+    setErrorMessage(null);
+    debugLog("continue:clicked", { currentStep });
 
     if (currentStep === 1) {
-      const isValid = await validateStep(1);
+      const validation = await validateStep(1);
 
-      if (isValid) {
+      if (!validation.isValid) {
+        const message = validation.issues[0]?.message ?? "Please complete required fields in step 1.";
+        setErrorMessage(message);
+        debugLog("continue:step1-blocked-by-validation", validation.issues);
+        return;
+      }
+
+      const values = getValues();
+      debugLog("continue:step1-values", values);
+      if (values.ownerProfileMode === "existing") {
         setCurrentStep(2);
+        return;
+      }
+
+      try {
+        setIsSavingStepOne(true);
+
+        const accessToken = await nhost.auth.getAccessToken();
+        if (!accessToken) {
+          setErrorMessage("Your session has expired. Please login again and retry.");
+          debugLog("continue:step1-missing-access-token");
+          return;
+        }
+
+        const payload = buildRestaurantPayload(values);
+        if (!payload.user_id) {
+          debugLog("continue:step1-user-id-missing-in-payload");
+        }
+        console.log("[restaurant-wizard] step1 continue payload", payload);
+        debugLog("continue:step1-payload", payload);
+        if (createdRestaurantId) {
+          await updateRestaurant(createdRestaurantId, payload);
+          console.log("[restaurant-wizard] step1 continue updated", { createdRestaurantId });
+          debugLog("continue:step1-updated-existing-row", { createdRestaurantId });
+        } else {
+          const inserted = await insertRestaurant(payload);
+          console.log("[restaurant-wizard] step1 continue insert result", inserted);
+          debugLog("continue:step1-insert-result", inserted);
+          if (inserted.primaryKey) {
+            setCreatedRestaurantId(inserted.primaryKey);
+          }
+        }
+
+        setSuccessMessage("Restaurant step 1 details saved.");
+        setCurrentStep(2);
+      } catch (caughtError) {
+        console.error("[restaurant-wizard] step1 continue failed", caughtError);
+        const message =
+          caughtError instanceof Error
+            ? caughtError.message
+            : "Failed to save restaurant details from step 1.";
+        setErrorMessage(message);
+      } finally {
+        setIsSavingStepOne(false);
       }
 
       return;
     }
 
     if (currentStep === 2) {
-      const isValid = await validateStep(2);
+      const validation = await validateStep(2);
 
-      if (isValid) {
+      if (validation.isValid) {
         setCurrentStep(3);
+        return;
       }
+
+      const message = validation.issues[0]?.message ?? "Please complete required fields in step 2.";
+      setErrorMessage(message);
+      debugLog("continue:step2-blocked-by-validation", validation.issues);
     }
   };
 
   const onStepSelect = async (nextStep: WizardStep) => {
     setSuccessMessage(null);
+    setErrorMessage(null);
 
     if (nextStep === currentStep) {
       return;
@@ -161,12 +265,50 @@ export function NewRestaurantWizard() {
 
   const onBack = () => {
     setSuccessMessage(null);
+    setErrorMessage(null);
     setCurrentStep((step) => (step > 1 ? ((step - 1) as WizardStep) : step));
   };
 
-  const onCreateRestaurant = handleSubmit((values) => {
-    console.log("New restaurant payload:", values);
-    setSuccessMessage("Restaurant draft captured successfully.");
+  const onCreateRestaurant = handleSubmit(async (values) => {
+    setSuccessMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const accessToken = await nhost.auth.getAccessToken();
+      if (!accessToken) {
+        setErrorMessage("Your session has expired. Please login again and retry.");
+        debugLog("submit:missing-access-token");
+        return;
+      }
+
+      const payload = buildRestaurantPayload(values);
+      if (!payload.user_id) {
+        debugLog("submit:user-id-missing-in-payload");
+      }
+      console.log("[restaurant-wizard] submit payload", payload);
+      debugLog("submit:payload", payload);
+      if (createdRestaurantId) {
+        await updateRestaurant(createdRestaurantId, payload);
+        console.log("[restaurant-wizard] submit updated", { createdRestaurantId });
+        debugLog("submit:updated-existing-row", { createdRestaurantId });
+      } else {
+        const inserted = await insertRestaurant(payload);
+        console.log("[restaurant-wizard] submit insert result", inserted);
+        debugLog("submit:insert-result", inserted);
+        if (inserted.primaryKey) {
+          setCreatedRestaurantId(inserted.primaryKey);
+        }
+      }
+
+      setSuccessMessage("Restaurant saved successfully.");
+    } catch (caughtError) {
+      console.error("[restaurant-wizard] submit failed", caughtError);
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Failed to create restaurant.";
+      setErrorMessage(message);
+    }
   });
 
   return (
@@ -189,8 +331,22 @@ export function NewRestaurantWizard() {
           </div>
         ) : null}
 
+        {errorMessage ? (
+          <div className="rounded-xl border border-[#f2c7c7] bg-[#fff5f5] px-4 py-3 text-sm text-[#b33838]">
+            {errorMessage}
+          </div>
+        ) : null}
+
         {currentStep === 1 ? (
-          <StepRestaurantInfo control={control} register={register} errors={errors} />
+          <StepRestaurantInfo
+            control={control}
+            register={register}
+            setValue={setValue}
+            errors={errors}
+            onContinueFromPanel={onContinue}
+            isContinuingFromPanel={isSavingStepOne}
+            panelErrorMessage={errorMessage}
+          />
         ) : null}
 
         {currentStep === 2 ? (
@@ -216,9 +372,10 @@ export function NewRestaurantWizard() {
             <button
               type="button"
               onClick={onContinue}
-              className="rounded-xl bg-[#60c783] px-6 py-2 text-[18px] font-semibold text-white transition hover:bg-[#55bb77]"
+              disabled={currentStep === 1 && isSavingStepOne}
+              className="rounded-xl bg-[#60c783] px-6 py-2 text-[18px] font-semibold text-white transition hover:bg-[#55bb77] disabled:cursor-not-allowed disabled:bg-[#c7d8ce]"
             >
-              Continue
+              {currentStep === 1 && isSavingStepOne ? "Saving..." : "Continue"}
             </button>
           ) : (
             <button
@@ -227,11 +384,46 @@ export function NewRestaurantWizard() {
               disabled={!isStepOneComplete || !isStepTwoComplete || isSubmitting}
               className="rounded-xl bg-[#60c783] px-6 py-2 text-[18px] font-semibold text-white transition hover:bg-[#55bb77] disabled:cursor-not-allowed disabled:bg-[#c7d8ce] disabled:text-[#f4f7f5]"
             >
-              {isSubmitting ? "Creating..." : "Create restaurant"}
+              {isSubmitting ? "Submitting..." : "Submit restaurant"}
             </button>
           )}
         </div>
       </div>
     </div>
   );
+}
+
+function buildRestaurantPayload(values: NewRestaurantFormValues) {
+  const currentUser = nhost.auth.getUser();
+  const selectedCuisineValues =
+    values.selectedCuisineTypeLabels.length > 0
+      ? values.selectedCuisineTypeLabels
+      : values.selectedCuisineTypeIds;
+  const trimmedRestaurantName = values.restaurantName.trim();
+  const trimmedLegalName = values.legalName.trim();
+  const trimmedContactPhone = values.contactPhone.trim();
+  const trimmedContactEmail = values.contactEmail.trim();
+  const payload: Record<string, unknown> = {
+    name: trimmedRestaurantName,
+    service_model:
+      values.selectedServiceModelName?.trim() || values.selectedServiceModelId || "",
+    cuisine_types: selectedCuisineValues,
+    user_id: currentUser?.id ?? null,
+    // Keep step-1 save compatible with schemas where these columns are NOT NULL.
+    phone_number: trimmedContactPhone || "",
+    email: trimmedContactEmail || "",
+    sms_name: trimmedLegalName || trimmedRestaurantName || "",
+    poc_phone_number: trimmedContactPhone || "",
+    poc_email: trimmedContactEmail || "",
+    poc_name: trimmedLegalName || trimmedRestaurantName || "",
+  };
+
+  const gmbLink = values.googlePlaceId
+    ? `https://www.google.com/maps/place/?q=place_id:${values.googlePlaceId}`
+    : "";
+  if (gmbLink) {
+    payload.gmb_link = gmbLink;
+  }
+
+  return payload;
 }

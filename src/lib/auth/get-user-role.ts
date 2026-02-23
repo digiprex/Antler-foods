@@ -1,8 +1,8 @@
 import type { User } from "@nhost/nhost-js";
 
-export type AppRole = "admin" | "manager" | "client" | "user";
+export type AppRole = "admin" | "manager" | "owner" | "client" | "user";
 
-const ALLOWED_ROLES = new Set<AppRole>(["admin", "manager", "client", "user"]);
+const ALLOWED_ROLES = new Set<AppRole>(["admin", "manager", "owner", "client", "user"]);
 
 function toRole(value: unknown): AppRole | null {
   if (typeof value !== "string") {

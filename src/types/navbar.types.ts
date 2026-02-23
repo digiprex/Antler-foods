@@ -20,6 +20,7 @@ export interface CTAButton {
 
 export interface NavbarConfig {
   id?: string;
+  restaurant_id?: string; // Restaurant ID for database operations
   // Logo configuration
   logoUrl?: string;
   restaurantName: string;

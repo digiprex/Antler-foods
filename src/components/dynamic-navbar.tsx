@@ -5,6 +5,7 @@
  * the navbar with dynamic logo, menu items, and CTA button.
  * 
  * Features:
+ * - Automatically detects restaurant_id from website domain
  * - Dynamic logo (URL or restaurant name initials)
  * - Dynamic menu items (left and right navigation)
  * - Dynamic CTA button (e.g., "Order Online")
@@ -58,20 +59,26 @@ export default function DynamicNavbar({
     // Fetch navbar configuration from API
     async function fetchNavbarConfig() {
       try {
-        const response = await fetch(apiEndpoint);
+        // Use static restaurant_id for now
+        const restaurantId = '92e9160e-0afa-4f78-824f-b28e32885353';
         
-        if (!response.ok) {
-          throw new Error(`API returned ${response.status}: ${response.statusText}`);
+        // Fetch navbar config using restaurant_id
+        const navbarResponse = await fetch(`${apiEndpoint}?restaurant_id=${restaurantId}`, {
+          cache: 'no-store',
+        });
+        
+        if (!navbarResponse.ok) {
+          throw new Error(`API returned ${navbarResponse.status}: ${navbarResponse.statusText}`);
         }
         
-        const data = await response.json();
+        const navbarData = await navbarResponse.json();
         
         // Validate response structure
-        if (data.success && data.data) {
+        if (navbarData.success && navbarData.data) {
           // Merge with defaults to ensure all required fields are present
-          setConfig({ ...DEFAULT_NAVBAR_CONFIG, ...data.data });
+          setConfig({ ...DEFAULT_NAVBAR_CONFIG, ...navbarData.data });
         } else {
-          throw new Error(data.error || 'Invalid API response structure');
+          throw new Error(navbarData.error || 'Invalid API response structure');
         }
       } catch (err) {
         console.error('Failed to fetch navbar config:', err);

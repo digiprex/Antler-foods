@@ -30,6 +30,7 @@ export default function NavbarSettingsForm() {
   const [showOrderButton, setShowOrderButton] = useState(true);
   const [orderButtonText, setOrderButtonText] = useState('Order Online');
   const [orderButtonHref, setOrderButtonHref] = useState('/order');
+  const [restaurantId] = useState<string>('92e9160e-0afa-4f78-824f-b28e32885353');
 
   // Initialize form with fetched config
   useEffect(() => {
@@ -47,8 +48,14 @@ export default function NavbarSettingsForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!restaurantId) {
+      alert('Restaurant ID not found. Please refresh the page.');
+      return;
+    }
+
     try {
       await updateNavbar({
+        restaurant_id: restaurantId,
         layout: layout as any,
         position: position as any,
         bgColor,

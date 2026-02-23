@@ -1,0 +1,620 @@
+// SCSS Variables for navbar layout
+$navbar-padding-mobile: 1.5rem;
+$navbar-padding-desktop: 3rem;
+$navbar-gap: 2rem;
+$logo-font-size-mobile: 1.5rem;
+$logo-font-size-desktop: 1.875rem;
+$nav-link-font-size: 0.75rem;
+$nav-link-color: rgb(107 114 128);
+$nav-link-hover-color: black;
+$cta-bg-color: black;
+$cta-text-color: white;
+$cta-hover-bg-color: rgb(31 41 55);
+
+.navbar {
+  position: var(--navbar-position, relative);
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--navbar-z-index, 1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $navbar-padding-mobile;
+  background-color: var(--navbar-bg-color, white);
+  color: var(--navbar-text-color, black);
+  border-bottom: 1px solid rgb(249 250 251);
+  transition: padding 0.3s ease;
+
+  @media (min-width: 768px) {
+    padding: $navbar-padding-mobile $navbar-padding-desktop;
+  }
+
+  // Reduce padding when scrolled
+  &.scrolled {
+    padding: 0.75rem $navbar-padding-mobile;
+
+    @media (min-width: 768px) {
+      padding: 0.75rem $navbar-padding-desktop;
+    }
+  }
+}
+
+.leftSection {
+  display: flex;
+  align-items: center;
+  flex: 1;
+
+  @media (min-width: 768px) {
+    flex: 0;
+  }
+}
+
+.brandLogo {
+  display: none;
+  font-family: serif;
+  font-size: $logo-font-size-desktop;
+  font-style: italic;
+  letter-spacing: -0.05em;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+  }
+}
+
+.brandLogoMobile {
+  display: flex;
+  align-items: center;
+  font-family: serif;
+  font-size: $logo-font-size-mobile;
+  font-style: italic;
+  letter-spacing: -0.05em;
+}
+
+.centerSection {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+// Centered layout variant
+.navbarCentered {
+  .centerSection {
+    @media (min-width: 768px) {
+      display: flex;
+    }
+  }
+
+  .leftSection {
+    @media (min-width: 768px) {
+      flex: 1;
+    }
+  }
+
+  .rightSection {
+    @media (min-width: 768px) {
+      flex: 1;
+    }
+  }
+}
+
+.desktopNavCentered {
+  display: none;
+  gap: $navbar-gap;
+
+  @media (min-width: 768px) {
+    display: flex;
+  }
+
+  // Hide mobile logo on desktop when nav items are shown
+  & ~ .brandLogoMobile {
+    @media (min-width: 768px) {
+      display: none;
+    }
+  }
+}
+
+// Logo center layout variant
+.navbarLogoCenter {
+  .centerSection {
+    @media (min-width: 768px) {
+      display: flex;
+    }
+  }
+
+  .leftSection {
+    @media (min-width: 768px) {
+      flex: 1;
+    }
+  }
+
+  .rightSection {
+    @media (min-width: 768px) {
+      flex: 1;
+    }
+  }
+}
+
+.desktopNavLeft {
+  display: none;
+  gap: $navbar-gap;
+
+  @media (min-width: 768px) {
+    display: flex;
+  }
+}
+
+.brandLogoCenter {
+  display: none;
+  font-family: serif;
+  font-size: $logo-font-size-desktop;
+  font-style: italic;
+  letter-spacing: -0.05em;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+  }
+
+  // Hide mobile logo on desktop when center logo is shown
+  & ~ .brandLogoMobile {
+    @media (min-width: 768px) {
+      display: none;
+    }
+  }
+}
+
+// Stacked layout variant
+.navbarStacked {
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem $navbar-padding-mobile;
+
+  @media (min-width: 768px) {
+    padding: 2rem $navbar-padding-desktop;
+    gap: 1.5rem;
+  }
+}
+
+.menuButtonStacked {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  color: black;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 10;
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:hover {
+    opacity: 0.7;
+  }
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+.stackedContainer {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    display: flex;
+  }
+}
+
+.stackedLogo {
+  font-family: serif;
+  font-size: $logo-font-size-desktop;
+  font-style: italic;
+  letter-spacing: -0.05em;
+  display: flex;
+  align-items: center;
+}
+
+.stackedNav {
+  display: flex;
+  align-items: center;
+  gap: $navbar-gap;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.stackedLogoMobile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: serif;
+  font-size: $logo-font-size-mobile;
+  font-style: italic;
+  letter-spacing: -0.05em;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+// Split layout variant (items left, logo center, text and button right)
+.navbarSplit {
+  .centerSection {
+    @media (min-width: 768px) {
+      display: flex;
+    }
+  }
+
+  .leftSection {
+    @media (min-width: 768px) {
+      flex: 1;
+      justify-content: flex-start;
+    }
+  }
+
+  .rightSection {
+    @media (min-width: 768px) {
+      flex: 1;
+      justify-content: flex-end;
+    }
+  }
+}
+
+.additionalText {
+  display: none;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: $nav-link-font-size;
+  font-weight: 700;
+  color: $nav-link-color;
+  white-space: nowrap;
+
+  @media (min-width: 768px) {
+    display: inline-block;
+  }
+}
+
+// Logo left items left layout variant (logo and items on left, button on right)
+.navbarLogoLeftItemsLeft {
+  .leftSection {
+    @media (min-width: 768px) {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: $navbar-gap;
+    }
+  }
+
+  .rightSection {
+    @media (min-width: 768px) {
+      flex: 0;
+    }
+  }
+
+  .centerSection {
+    @media (min-width: 768px) {
+      display: none;
+    }
+  }
+}
+
+// Bordered centered layout variant (logo left, items center, button right with border)
+.navbarBorderedCentered {
+  border-radius: 0;
+
+  .centerSection {
+    @media (min-width: 768px) {
+      display: flex;
+    }
+  }
+
+  .leftSection {
+    @media (min-width: 768px) {
+      flex: 1;
+    }
+  }
+
+  .rightSection {
+    @media (min-width: 768px) {
+      flex: 1;
+    }
+  }
+}
+
+// Only show border and margin when position is relative or static (not fixed or absolute)
+.withBorder {
+  border: var(--border-width, 2px) solid var(--border-color, #000000);
+  margin: 1rem;
+
+  @media (min-width: 768px) {
+    margin: 1.5rem 2rem;
+  }
+}
+
+// Margin for bordered layout when position is absolute (no border, just margin)
+.absoluteMargin {
+  margin: 20px;
+}
+
+.logoImage {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  transition: height 0.3s ease;
+
+  @media (max-width: 767px) {
+    height: 32px;
+  }
+
+  .scrolled & {
+    height: 32px;
+
+    @media (max-width: 767px) {
+      height: 28px;
+    }
+  }
+}
+
+.logoInitials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: black;
+  color: white;
+  font-weight: 700;
+  font-size: 1rem;
+  border-radius: 0.25rem;
+  font-family: sans-serif;
+  font-style: normal;
+  letter-spacing: 0;
+  transition: all 0.3s ease;
+
+  @media (max-width: 767px) {
+    width: 32px;
+    height: 32px;
+    font-size: 0.875rem;
+  }
+
+  .scrolled & {
+    width: 32px;
+    height: 32px;
+    font-size: 0.875rem;
+
+    @media (max-width: 767px) {
+      width: 28px;
+      height: 28px;
+      font-size: 0.75rem;
+    }
+  }
+}
+
+.desktopNav {
+  display: none;
+  gap: $navbar-gap;
+
+  @media (min-width: 768px) {
+    display: flex;
+  }
+}
+
+.navLink {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: $nav-link-font-size;
+  font-weight: 700;
+  color: $nav-link-color;
+  transition: color 0.2s;
+
+  &:hover {
+    color: $nav-link-hover-color;
+  }
+}
+
+.menuButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  color: black;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:hover {
+    opacity: 0.7;
+  }
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+.rightSection {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+
+  @media (min-width: 768px) {
+    gap: $navbar-gap;
+    flex: 0;
+  }
+}
+
+.bagLink {
+  display: none;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: $nav-link-font-size;
+  font-weight: 700;
+  color: $nav-link-color;
+  transition: color 0.2s;
+
+  @media (min-width: 768px) {
+    display: block;
+
+    &:hover {
+      color: $nav-link-hover-color;
+    }
+  }
+}
+
+.ctaButton {
+  display: none;
+  padding: 0.625rem 1.5rem;
+  background-color: var(--button-bg-color, $cta-bg-color);
+  color: var(--button-text-color, $cta-text-color);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: $nav-link-font-size;
+  font-weight: 700;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: $cta-hover-bg-color;
+  }
+
+  @media (min-width: 768px) {
+    display: inline-block;
+  }
+}
+
+// Mobile Sidebar
+.sidebar {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  transition: all 0.5s ease-in-out;
+
+  &.open {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  &.closed {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+.sidebarOverlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+
+.sidebarContent {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+}
+
+.closeButton {
+  position: absolute;
+  top: 2rem;
+  left: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  color: black;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:hover {
+    opacity: 0.7;
+  }
+}
+
+.sidebarLink {
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-weight: 300;
+  color: rgb(31 41 55);
+  transition: color 0.2s;
+
+  &:hover {
+    color: black;
+  }
+}
+
+.sidebarCta {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  margin-top: 1rem;
+  background-color: var(--button-bg-color, $cta-bg-color);
+  color: var(--button-text-color, $cta-text-color);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: $cta-hover-bg-color;
+  }
+}
+
+.sidebarBrand {
+  padding-top: 2rem;
+  font-style: italic;
+  font-family: serif;
+  font-size: 1.25rem;
+}

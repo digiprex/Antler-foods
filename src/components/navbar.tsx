@@ -63,7 +63,7 @@ export default function Navbar({
   leftNavItems = DEFAULT_LEFT_NAV_ITEMS,
   rightNavItems = DEFAULT_RIGHT_NAV_ITEMS,
   bagCount = 0,
-  ctaButton = DEFAULT_CTA_BUTTON,
+  ctaButton,
   position = 'absolute',
   zIndex = 1,
   bgColor = 'white',
@@ -174,9 +174,11 @@ export default function Navbar({
                   {item.label}
                 </a>
               ))}
-              <a href={ctaButton.href} className={styles.ctaButton}>
-                {ctaButton.label}
-              </a>
+              {ctaButton && (
+                <a href={ctaButton.href} className={styles.ctaButton}>
+                  {ctaButton.label}
+                </a>
+              )}
             </div>
           </div>
 
@@ -209,9 +211,11 @@ export default function Navbar({
               </a>
             ))}
             
-            <a href={ctaButton.href} className={styles.sidebarCta}>
-              {ctaButton.label}
-            </a>
+            {ctaButton && (
+              <a href={ctaButton.href} className={styles.sidebarCta}>
+                {ctaButton.label}
+              </a>
+            )}
             
             <div className={styles.sidebarBrand}>{brandDisplay}</div>
           </div>
@@ -329,9 +333,11 @@ export default function Navbar({
           {layout === 'split' && additionalText && (
             <span className={styles.additionalText}>{additionalText}</span>
           )}
-          <a href={ctaButton.href} className={styles.ctaButton}>
-            {ctaButton.label}
-          </a>
+          {ctaButton && (
+            <a href={ctaButton.href} className={styles.ctaButton}>
+              {ctaButton.label}
+            </a>
+          )}
         </div>
       </nav>
 
@@ -358,9 +364,11 @@ export default function Navbar({
             </a>
           ))}
           
-          <a href={ctaButton.href} className={styles.sidebarCta}>
-            {ctaButton.label}
-          </a>
+          {ctaButton && (
+            <a href={ctaButton.href} className={styles.sidebarCta}>
+              {ctaButton.label}
+            </a>
+          )}
           
           <div className={styles.sidebarBrand}>{brandDisplay}</div>
         </div>

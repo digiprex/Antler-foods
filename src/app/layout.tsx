@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
-import Navbar from "@/components/navbar";
+import ConditionalNavbar from "../components/conditional-navbar";
 
 export const metadata: Metadata = {
   title: "Antler Foods Dashboard",
@@ -17,7 +17,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Providers>
-          <Navbar />
+          <ConditionalNavbar />
           {children}
         </Providers>
       </body>

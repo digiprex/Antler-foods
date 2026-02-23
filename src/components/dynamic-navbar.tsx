@@ -1,0 +1,136 @@
+/**
+ * Dynamic Navbar Component
+ * 
+ * This component fetches navbar configuration from a database/API and renders
+ * the navbar with dynamic logo, menu items, and CTA button.
+ * 
+ * Features:
+ * - Dynamic logo (URL or restaurant name initials)
+ * - Dynamic menu items (left and right navigation)
+ * - Dynamic CTA button (e.g., "Order Online")
+ * - All styling and layout options configurable via API
+ * - Fallback to default values if API fails
+ * - Loading state handling
+ */
+
+'use client';
+
+import { useEffect, useState } from 'react';
+import Navbar from './navbar';
+import { NavbarConfig, DEFAULT_NAVBAR_CONFIG } from '@/types/navbar.types';
+
+interface DynamicNavbarProps {
+  /**
+   * API endpoint to fetch navbar configuration
+   * Default: '/api/navbar-config'
+   */
+  apiEndpoint?: string;
+  
+  /**
+   * Whether to show loading state
+   * Default: false (renders nothing while loading)
+   */
+  showLoadingSkeleton?: boolean;
+  
+  /**
+   * Override configuration (useful for testing or static pages)
+   */
+  overrideConfig?: Partial<NavbarConfig>;
+}
+
+export default function DynamicNavbar({
+  apiEndpoint = '/api/navbar-config',
+  showLoadingSkeleton = false,
+  overrideConfig,
+}: DynamicNavbarProps) {
+  const [config, setConfig] = useState<NavbarConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // If override config is provided, use it directly
+    if (overrideConfig) {
+      setConfig({ ...DEFAULT_NAVBAR_CONFIG, ...overrideConfig });
+      setLoading(false);
+      return;
+    }
+
+    // Fetch navbar configuration from API
+    async function fetchNavbarConfig() {
+      try {
+        const response = await fetch(apiEndpoint);
+        
+        if (!response.ok) {
+          throw new Error(`API returned ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        // Validate response structure
+        if (data.success && data.data) {
+          // Merge with defaults to ensure all required fields are present
+          setConfig({ ...DEFAULT_NAVBAR_CONFIG, ...data.data });
+        } else {
+          throw new Error(data.error || 'Invalid API response structure');
+        }
+      } catch (err) {
+        console.error('Failed to fetch navbar config:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        
+        // Fallback to default configuration
+        setConfig(DEFAULT_NAVBAR_CONFIG);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchNavbarConfig();
+  }, [apiEndpoint, overrideConfig]);
+
+  // Loading state
+  if (loading) {
+    if (showLoadingSkeleton) {
+      return (
+        <div 
+          style={{
+            height: '80px',
+            backgroundColor: '#f3f4f6',
+            animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          }}
+        />
+      );
+    }
+    return null;
+  }
+
+  // Error state (still render with defaults)
+  if (error) {
+    console.warn('Navbar using default configuration due to error:', error);
+  }
+
+  // Render navbar with fetched or default configuration
+  if (!config) {
+    return null;
+  }
+
+  return (
+    <Navbar
+      logoUrl={config.logoUrl}
+      restaurantName={config.restaurantName}
+      leftNavItems={config.leftNavItems}
+      rightNavItems={config.rightNavItems}
+      ctaButton={config.ctaButton}
+      layout={config.layout}
+      position={config.position}
+      zIndex={config.zIndex}
+      bgColor={config.bgColor}
+      textColor={config.textColor}
+      buttonBgColor={config.buttonBgColor}
+      buttonTextColor={config.buttonTextColor}
+      borderColor={config.borderColor}
+      borderWidth={config.borderWidth}
+      bagCount={config.bagCount}
+      additionalText={config.additionalText}
+    />
+  );
+}

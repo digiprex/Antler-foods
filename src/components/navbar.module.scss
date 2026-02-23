@@ -424,11 +424,11 @@ $cta-hover-bg-color: rgb(31 41 55);
   letter-spacing: 0.1em;
   font-size: $nav-link-font-size;
   font-weight: 700;
-  color: $nav-link-color;
+  color: var(--navbar-text-color, $nav-link-color);
   transition: color 0.2s;
 
   &:hover {
-    color: $nav-link-hover-color;
+    color: var(--navbar-text-color, $nav-link-hover-color);
   }
 }
 

@@ -1,19 +1,16 @@
 /**
- * Hero Settings Page
+ * Pages Settings Page
  *
- * Dashboard-integrated interface for configuring hero section settings.
- * Access: /admin/hero-settings
+ * Dashboard-integrated interface for managing website pages.
+ * Access: /admin/pages-settings
  *
  * Features:
  * - Dashboard layout with sidebar and navbar
  * - Restaurant selection requirement
- * - Layout selection (10 different layouts)
- * - Content configuration (headline, subheadline, description)
- * - Button configuration (primary and secondary)
- * - Media settings (image, video, background)
- * - Styling options (colors, spacing, alignment)
- * - Feature cards management
- * - Live preview
+ * - Pages list with CRUD operations
+ * - Page status management
+ * - SEO metadata management
+ * - Visibility controls (navbar/footer)
  *
  * TODO: Add authentication before deploying to production
  */
@@ -22,9 +19,9 @@
 
 import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
-import HeroSettingsForm from '@/components/admin/hero-settings-form';
+import PagesListPage from '@/components/admin/pages-list';
 
-export default function HeroSettingsPage() {
+export default function PagesSettingsPage() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
@@ -32,16 +29,24 @@ export default function HeroSettingsPage() {
   return (
     <DashboardLayout>
       {restaurantId && restaurantName ? (
-        <HeroSettingsForm />
+        <div className="p-6">
+          <div className="mb-6">
+            <div className="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+              <span>Restaurant:</span>
+              <span className="font-medium text-gray-900">{restaurantName}</span>
+            </div>
+          </div>
+          <PagesListPage />
+        </div>
       ) : (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="text-6xl mb-4">🎨</div>
+            <div className="text-6xl mb-4">🏪</div>
             <h2 className="text-xl font-semibold text-[#111827] mb-2">
               Select a Restaurant
             </h2>
             <p className="text-[#6b7280] max-w-md">
-              Please add or select a restaurant from the sidebar.
+              Please add or select a restaurant from the sidebar to manage pages.
             </p>
           </div>
         </div>

@@ -1186,3 +1186,305 @@ function isMissingFieldInType(message: string, field: string, typeName: string) 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
+// Pages GraphQL queries
+export const GetPages = /* GraphQL */ `
+  query GetPages($restaurant_id: uuid, $website_id: uuid) {
+    pages(
+      where: {
+        is_deleted: { _eq: false }
+        restaurant_id: { _eq: $restaurant_id }
+        website_id: { _eq: $website_id }
+      }
+      order_by: { created_at: desc }
+    ) {
+      page_id
+      url_slug
+      name
+      created_at
+      updated_at
+      is_deleted
+      meta_title
+      meta_description
+      restaurant_id
+      website_id
+      is_system_page
+      show_on_navbar
+      show_on_footer
+      keywords
+      og_image
+      published
+    }
+  }
+`;
+
+export const GetPageById = /* GraphQL */ `
+  query GetPageById($page_id: uuid!) {
+    pages_by_pk(page_id: $page_id) {
+      page_id
+      url_slug
+      name
+      created_at
+      updated_at
+      is_deleted
+      meta_title
+      meta_description
+      restaurant_id
+      website_id
+      is_system_page
+      show_on_navbar
+      show_on_footer
+      keywords
+      og_image
+      published
+    }
+  }
+`;
+
+export const InsertPage = /* GraphQL */ `
+  mutation InsertPage($object: pages_insert_input!) {
+    insert_pages_one(object: $object) {
+      page_id
+      url_slug
+      name
+      created_at
+      updated_at
+      is_deleted
+      meta_title
+      meta_description
+      restaurant_id
+      website_id
+      is_system_page
+      show_on_navbar
+      show_on_footer
+      keywords
+      og_image
+      published
+    }
+  }
+`;
+
+export const UpdatePage = /* GraphQL */ `
+  mutation UpdatePage($page_id: uuid!, $set: pages_set_input!) {
+    update_pages_by_pk(pk_columns: { page_id: $page_id }, _set: $set) {
+      page_id
+      url_slug
+      name
+      updated_at
+    }
+  }
+`;
+
+export const DeletePage = /* GraphQL */ `
+  mutation DeletePage($page_id: uuid!) {
+    update_pages_by_pk(
+      pk_columns: { page_id: $page_id }
+      _set: { is_deleted: true, updated_at: "now()" }
+    ) {
+      page_id
+    }
+  }
+`;
+
+// Pages query response interfaces
+interface PagesQueryResponse {
+  pages: Array<{
+    page_id: string;
+    url_slug: string;
+    name: string;
+    created_at: string;
+    updated_at: string;
+    is_deleted: boolean;
+    meta_title?: string | null;
+    meta_description?: string | null;
+    restaurant_id?: string | null;
+    website_id?: string | null;
+    is_system_page: boolean;
+    show_on_navbar: boolean;
+    show_on_footer: boolean;
+    keywords?: Record<string, any> | null;
+    og_image?: string | null;
+    published: boolean;
+  }>;
+}
+
+interface PageByIdQueryResponse {
+  pages_by_pk: {
+    page_id: string;
+    url_slug: string;
+    name: string;
+    created_at: string;
+    updated_at: string;
+    is_deleted: boolean;
+    meta_title?: string | null;
+    meta_description?: string | null;
+    restaurant_id?: string | null;
+    website_id?: string | null;
+    is_system_page: boolean;
+    show_on_navbar: boolean;
+    show_on_footer: boolean;
+    keywords?: Record<string, any> | null;
+    og_image?: string | null;
+    published: boolean;
+  } | null;
+}
+
+interface InsertPageResponse {
+  insert_pages_one: {
+    page_id: string;
+    url_slug: string;
+    name: string;
+    created_at: string;
+    updated_at: string;
+    is_deleted: boolean;
+    meta_title?: string | null;
+    meta_description?: string | null;
+    restaurant_id?: string | null;
+    website_id?: string | null;
+    is_system_page: boolean;
+    show_on_navbar: boolean;
+    show_on_footer: boolean;
+    keywords?: Record<string, any> | null;
+    og_image?: string | null;
+    published: boolean;
+  } | null;
+}
+
+interface UpdatePageResponse {
+  update_pages_by_pk: {
+    page_id: string;
+    url_slug: string;
+    name: string;
+    updated_at: string;
+  } | null;
+}
+
+interface DeletePageResponse {
+  update_pages_by_pk: {
+    page_id: string;
+  } | null;
+}
+
+// Pages API functions
+export async function getPages(restaurantId?: string, websiteId?: string) {
+  const data = await fetchGraphQL<PagesQueryResponse>(GetPages, {
+    restaurant_id: restaurantId || null,
+    website_id: websiteId || null,
+  });
+
+  return data.pages.map((page) => ({
+    page_id: page.page_id,
+    url_slug: page.url_slug,
+    name: page.name,
+    created_at: page.created_at,
+    updated_at: page.updated_at,
+    is_deleted: page.is_deleted,
+    meta_title: page.meta_title || undefined,
+    meta_description: page.meta_description || undefined,
+    restaurant_id: page.restaurant_id || undefined,
+    website_id: page.website_id || undefined,
+    is_system_page: page.is_system_page,
+    show_on_navbar: page.show_on_navbar,
+    show_on_footer: page.show_on_footer,
+    keywords: page.keywords || null,
+    og_image: page.og_image || undefined,
+    published: page.published,
+  }));
+}
+
+export async function getPageById(pageId: string) {
+  if (!pageId?.trim()) {
+    throw new Error("Page ID is required.");
+  }
+
+  const data = await fetchGraphQL<PageByIdQueryResponse>(GetPageById, {
+    page_id: pageId,
+  });
+
+  const page = data.pages_by_pk;
+  if (!page) {
+    return null;
+  }
+
+  return {
+    page_id: page.page_id,
+    url_slug: page.url_slug,
+    name: page.name,
+    created_at: page.created_at,
+    updated_at: page.updated_at,
+    is_deleted: page.is_deleted,
+    meta_title: page.meta_title || undefined,
+    meta_description: page.meta_description || undefined,
+    restaurant_id: page.restaurant_id || undefined,
+    website_id: page.website_id || undefined,
+    is_system_page: page.is_system_page,
+    show_on_navbar: page.show_on_navbar,
+    show_on_footer: page.show_on_footer,
+    keywords: page.keywords || null,
+    og_image: page.og_image || undefined,
+    published: page.published,
+  };
+}
+
+export async function insertPage(payload: Record<string, unknown>) {
+  const data = await fetchGraphQL<InsertPageResponse>(InsertPage, {
+    object: payload,
+  });
+
+  const page = data.insert_pages_one;
+  if (!page) {
+    throw new Error("Failed to create page. No page returned in response.");
+  }
+
+  return {
+    page_id: page.page_id,
+    url_slug: page.url_slug,
+    name: page.name,
+    created_at: page.created_at,
+    updated_at: page.updated_at,
+    is_deleted: page.is_deleted,
+    meta_title: page.meta_title || undefined,
+    meta_description: page.meta_description || undefined,
+    restaurant_id: page.restaurant_id || undefined,
+    website_id: page.website_id || undefined,
+    is_system_page: page.is_system_page,
+    show_on_navbar: page.show_on_navbar,
+    show_on_footer: page.show_on_footer,
+    keywords: page.keywords || null,
+    og_image: page.og_image || undefined,
+    published: page.published,
+  };
+}
+
+export async function updatePage(pageId: string, payload: Record<string, unknown>) {
+  if (!pageId?.trim()) {
+    throw new Error("Page ID is required to update page.");
+  }
+
+  const data = await fetchGraphQL<UpdatePageResponse>(UpdatePage, {
+    page_id: pageId,
+    set: payload,
+  });
+
+  if (!data.update_pages_by_pk) {
+    throw new Error("Failed to update page.");
+  }
+
+  return data.update_pages_by_pk;
+}
+
+export async function deletePage(pageId: string) {
+  if (!pageId?.trim()) {
+    throw new Error("Page ID is required to delete page.");
+  }
+
+  const data = await fetchGraphQL<DeletePageResponse>(DeletePage, {
+    page_id: pageId,
+  });
+
+  if (!data.update_pages_by_pk) {
+    throw new Error("Failed to delete page.");
+  }
+
+  return data.update_pages_by_pk;
+}

@@ -59,6 +59,9 @@ export default function NavbarSettingsForm() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
+  // Preview visibility state
+  const [showPreview, setShowPreview] = useState(false);
+
   // Initialize form with fetched config
   useEffect(() => {
     if (config) {
@@ -129,26 +132,29 @@ export default function NavbarSettingsForm() {
         />
       )}
 
-      <div className={styles.splitLayout}>
-        {/* Settings Form - Left Side */}
+      <div className={styles.singleLayout}>
+        {/* Settings Form */}
         <div className={styles.formSection}>
           <div className={styles.formHeader}>
             <div>
               <h1 className={styles.formTitle}>Navigation Bar Settings</h1>
               <p className={styles.formSubtitle}>Customize your website navigation</p>
-              <p className={styles.formSubtitle}>
-                Restaurant:{' '}
-                {restaurantNameFromQuery || restaurantId}
-              </p>
+              {restaurantNameFromQuery && (
+                <p className={styles.formSubtitle}>
+                  Restaurant: {restaurantNameFromQuery}
+                </p>
+              )}
             </div>
-            <button
-              type="button"
-              className={styles.closeButton}
-              onClick={() => window.history.back()}
-              aria-label="Close"
-            >
-              ✕
-            </button>
+            <div className={styles.headerActions}>
+              <button
+                type="button"
+                onClick={() => setShowPreview(!showPreview)}
+                className={styles.previewToggleButton}
+                title={showPreview ? 'Hide Preview' : 'Show Live Preview'}
+              >
+                {showPreview ? '👁️‍🗨️' : '👁️'} {showPreview ? 'Hide' : 'Show'} Preview
+              </button>
+            </div>
           </div>
 
           {fetchError && (
@@ -181,7 +187,7 @@ export default function NavbarSettingsForm() {
                 </label>
                 <select
                   value={layout}
-                  onChange={(e) => setLayout(e.target.value)}
+                  onChange={(e) => setLayout(e.target.value as any)}
                   className={styles.select}
                 >
                   <option value="default">Default - Standard Navigation</option>
@@ -205,7 +211,7 @@ export default function NavbarSettingsForm() {
                       type="radio"
                       value="absolute"
                       checked={position === 'absolute'}
-                      onChange={(e) => setPosition(e.target.value)}
+                      onChange={(e) => setPosition(e.target.value as any)}
                       className={styles.radioInput}
                     />
                     <span className={styles.radioButton}></span>
@@ -219,7 +225,7 @@ export default function NavbarSettingsForm() {
                       type="radio"
                       value="fixed"
                       checked={position === 'fixed'}
-                      onChange={(e) => setPosition(e.target.value)}
+                      onChange={(e) => setPosition(e.target.value as any)}
                       className={styles.radioInput}
                     />
                     <span className={styles.radioButton}></span>
@@ -383,49 +389,64 @@ export default function NavbarSettingsForm() {
           </form>
         </div>
 
-        {/* Preview - Right Side */}
-        <div className={styles.previewSection}>
-          <div className={styles.previewHeader}>
-            <h2 className={styles.previewTitle}>Live Preview</h2>
-            <span className={styles.previewBadge}>Updates in real-time</span>
-          </div>
-          <div className={styles.previewWrapper}>
-            <div className={styles.previewDevice}>
-              <div className={styles.previewContainer}>
-                <Navbar
-                  key={`${bgColor}-${textColor}-${showOrderButton}`}
-                  restaurantName={config?.restaurantName || 'Restaurant Name'}
-                  logoUrl={config?.logoUrl}
-                  leftNavItems={config?.leftNavItems || [
-                    { label: 'Menu', href: '#menu' },
-                    { label: 'About', href: '#about' },
-                    { label: 'Contact', href: '#contact' },
-                  ]}
-                  rightNavItems={config?.rightNavItems || []}
-                  ctaButton={
-                    showOrderButton
-                      ? {
-                          label: orderButtonText,
-                          href: orderButtonHref,
-                        }
-                      : undefined
-                  }
-                  layout={layout}
-                  position="relative"
-                  bgColor={bgColor}
-                  textColor={textColor}
-                  buttonBgColor="#000000"
-                  buttonTextColor="#ffffff"
-                />
+      </div>
+
+      {/* Preview Modal Popup */}
+      {showPreview && (
+        <div className={styles.previewModal}>
+          <div className={styles.previewModalOverlay} onClick={() => setShowPreview(false)} />
+          <div className={styles.previewModalContent}>
+            <div className={styles.previewModalHeader}>
+              <h2 className={styles.previewModalTitle}>Navbar Live Preview</h2>
+              <div className={styles.previewModalActions}>
+                <span className={styles.previewBadge}>Updates in real-time</span>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className={styles.previewModalClose}
+                  aria-label="Close preview"
+                >
+                  ✕
+                </button>
               </div>
             </div>
+            <div className={styles.previewModalBody}>
+              <div className={styles.previewDevice}>
+                <div className={styles.previewContainer}>
+                  <Navbar
+                    key={`${bgColor}-${textColor}-${showOrderButton}`}
+                    restaurantName={config?.restaurantName || 'Restaurant Name'}
+                    logoUrl={config?.logoUrl}
+                    leftNavItems={config?.leftNavItems || [
+                      { label: 'Menu', href: '#menu' },
+                      { label: 'About', href: '#about' },
+                      { label: 'Contact', href: '#contact' },
+                    ]}
+                    rightNavItems={config?.rightNavItems || []}
+                    ctaButton={
+                      showOrderButton
+                        ? {
+                            label: orderButtonText,
+                            href: orderButtonHref,
+                          }
+                        : undefined
+                    }
+                    layout={layout}
+                    position="relative"
+                    bgColor={bgColor}
+                    textColor={textColor}
+                    buttonBgColor="#000000"
+                    buttonTextColor="#ffffff"
+                  />
+                </div>
+              </div>
+              <p className={styles.previewNote}>
+                <span className={styles.previewIcon}>👁</span>
+                Preview shows how your navbar will appear on the website
+              </p>
+            </div>
           </div>
-          <p className={styles.previewNote}>
-            <span className={styles.previewIcon}>👁</span>
-            Preview shows how your navbar will appear on the website
-          </p>
         </div>
-      </div>
+      )}
     </div>
   );
 }

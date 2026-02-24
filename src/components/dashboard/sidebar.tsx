@@ -6,6 +6,7 @@ interface SidebarProps {
   activeTab: DashboardRailTab;
   pathname: string;
   dashboardBasePath: string;
+  websiteBasePath: string;
   isOpen: boolean;
   selectedRestaurant: RestaurantSearchSelection | null;
   onRestaurantSelect: (restaurant: RestaurantSearchSelection | null) => void;
@@ -24,6 +25,7 @@ export function Sidebar({
   activeTab,
   pathname,
   dashboardBasePath,
+  websiteBasePath,
   isOpen,
   selectedRestaurant,
   onRestaurantSelect,
@@ -34,12 +36,18 @@ export function Sidebar({
   const websiteMenuItems = selectedRestaurant
     ? [
         {
-          href: buildWebsiteSettingsHref('/admin/navbar-settings', selectedRestaurant),
+          href: buildWebsiteSettingsHref(
+            `${websiteBasePath}/navbar-settings`,
+            selectedRestaurant,
+          ),
           label: 'Navbar settings',
           icon: <NavbarIcon />,
         },
         {
-          href: buildWebsiteSettingsHref('/admin/footer-settings', selectedRestaurant),
+          href: buildWebsiteSettingsHref(
+            `${websiteBasePath}/footer-settings`,
+            selectedRestaurant,
+          ),
           label: 'Footer settings',
           icon: <FooterIcon />,
         },

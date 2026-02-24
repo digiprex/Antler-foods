@@ -5,7 +5,7 @@
 
 export interface SocialLink {
   id?: string;
-  platform: 'facebook' | 'instagram' | 'twitter' | 'linkedin' | 'youtube' | 'tiktok';
+  platform: 'facebook' | 'instagram' | 'twitter' | 'linkedin' | 'youtube' | 'tiktok' | 'gmb' | 'doordash' | 'grubhub' | 'ubereats' | 'yelp';
   url: string;
   order?: number;
 }

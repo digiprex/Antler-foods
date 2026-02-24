@@ -23,6 +23,7 @@ const RESTAURANT_ID = '92e9160e-0afa-4f78-824f-b28e32885353';
 /**
  * GraphQL query to fetch footer configuration from templates
  * Searches by restaurant_id and category, excludes deleted templates
+ * Also fetches email and phone_number from the restaurant table
  */
 const GET_FOOTER_CONFIG = `
   query GetFooterConfig($restaurant_id: uuid!) {
@@ -44,6 +45,30 @@ const GET_FOOTER_CONFIG = `
       restaurant_id
       template_id
       updated_at
+    }
+    restaurants(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        is_deleted: {_eq: false}
+      }
+    ) {
+      name
+      email
+      phone_number
+      address
+      city
+      state
+      country
+      postal_code
+      insta_link
+      fb_link
+      yt_link
+      tiktok_link
+      gmb_link
+      doordash_link
+      grubhub_link
+      ubereats_link
+      yelp_link
     }
   }
 `;
@@ -133,14 +158,61 @@ export async function GET(request: Request) {
       restaurant_id: restaurantId,
     });
 
+    // Extract name, email, phone, address and social links from restaurant table
+    const restaurantData = data.restaurants?.[0];
+    const restaurantName = restaurantData?.name || '';
+    const restaurantEmail = restaurantData?.email || '';
+    const restaurantPhone = restaurantData?.phone_number || '';
+    
+    // Build complete address from restaurant table fields
+    const addressParts = [];
+    if (restaurantData?.address) addressParts.push(restaurantData.address);
+    if (restaurantData?.city) addressParts.push(restaurantData.city);
+    if (restaurantData?.state) addressParts.push(restaurantData.state);
+    if (restaurantData?.postal_code) addressParts.push(restaurantData.postal_code);
+    if (restaurantData?.country) addressParts.push(restaurantData.country);
+    const restaurantAddress = addressParts.join(', ');
+    
+    // Build social links from restaurant table
+    const socialLinks = [];
+    let order = 1;
+    if (restaurantData?.fb_link) {
+      socialLinks.push({ platform: 'facebook' as const, url: restaurantData.fb_link, order: order++ });
+    }
+    if (restaurantData?.insta_link) {
+      socialLinks.push({ platform: 'instagram' as const, url: restaurantData.insta_link, order: order++ });
+    }
+    if (restaurantData?.yt_link) {
+      socialLinks.push({ platform: 'youtube' as const, url: restaurantData.yt_link, order: order++ });
+    }
+    if (restaurantData?.tiktok_link) {
+      socialLinks.push({ platform: 'tiktok' as const, url: restaurantData.tiktok_link, order: order++ });
+    }
+    if (restaurantData?.gmb_link) {
+      socialLinks.push({ platform: 'gmb' as const, url: restaurantData.gmb_link, order: order++ });
+    }
+    if (restaurantData?.doordash_link) {
+      socialLinks.push({ platform: 'doordash' as const, url: restaurantData.doordash_link, order: order++ });
+    }
+    if (restaurantData?.grubhub_link) {
+      socialLinks.push({ platform: 'grubhub' as const, url: restaurantData.grubhub_link, order: order++ });
+    }
+    if (restaurantData?.ubereats_link) {
+      socialLinks.push({ platform: 'ubereats' as const, url: restaurantData.ubereats_link, order: order++ });
+    }
+    if (restaurantData?.yelp_link) {
+      socialLinks.push({ platform: 'yelp' as const, url: restaurantData.yelp_link, order: order++ });
+    }
+
     if (!data.templates || data.templates.length === 0) {
       // Return default config if template doesn't exist
+      // Use restaurant name, email, phone, address and social links if available
       const defaultConfig: FooterConfig = {
-        restaurantName: 'Antler Foods',
+        restaurantName: restaurantName || 'Antler Foods',
         aboutContent: 'Experience fine dining at its best',
-        email: 'hello@antlerfoods.com',
-        phone: '+1 (555) 123-4567',
-        address: '123 Main Street, City, State 12345',
+        email: restaurantEmail || 'hello@antlerfoods.com',
+        phone: restaurantPhone || '+1 (555) 123-4567',
+        address: restaurantAddress || '123 Main Street, City, State 12345',
         columns: [
           {
             title: 'Quick Links',
@@ -152,7 +224,7 @@ export async function GET(request: Request) {
             order: 1,
           },
         ],
-        socialLinks: [
+        socialLinks: socialLinks.length > 0 ? socialLinks : [
           { platform: 'facebook', url: 'https://facebook.com', order: 1 },
           { platform: 'instagram', url: 'https://instagram.com', order: 2 },
         ],
@@ -180,14 +252,15 @@ export async function GET(request: Request) {
     const template = data.templates[0];
 
     // Transform template structure to FooterConfig
+    // Use name, email, phone, address and social links from restaurant table, fallback to template config
     const config: FooterConfig = {
-      restaurantName: template.config?.restaurantName || 'Antler Foods',
+      restaurantName: restaurantName || template.config?.restaurantName || 'Antler Foods',
       aboutContent: template.config?.aboutContent || '',
-      email: template.config?.email || '',
-      phone: template.config?.phone || '',
-      address: template.config?.address || '',
+      email: restaurantEmail || template.config?.email || '',
+      phone: restaurantPhone || template.config?.phone || '',
+      address: restaurantAddress || template.config?.address || '',
       columns: template.menu_items || [],
-      socialLinks: template.config?.socialLinks || [],
+      socialLinks: socialLinks.length > 0 ? socialLinks : (template.config?.socialLinks || []),
       copyrightText: template.config?.copyrightText || `© ${new Date().getFullYear()} Antler Foods. All rights reserved.`,
       showPoweredBy: template.config?.showPoweredBy !== false,
       layout: template.name,
@@ -254,19 +327,15 @@ export async function POST(request: Request) {
     }
 
     // Transform FooterConfig to template structure
+    // Note: restaurantName, email, phone, address and socialLinks are not saved in config - they come from restaurant table
     const name = body.layout || 'columns-3';
     const config = {
-      restaurantName: body.restaurantName,
       aboutContent: body.aboutContent,
-      email: body.email,
-      phone: body.phone,
-      address: body.address,
       bgColor: body.bgColor,
       textColor: body.textColor,
       linkColor: body.linkColor,
       copyrightBgColor: body.copyrightBgColor,
       copyrightTextColor: body.copyrightTextColor,
-      socialLinks: body.socialLinks || [],
       copyrightText: body.copyrightText,
       showPoweredBy: body.showPoweredBy,
       showNewsletter: body.showNewsletter,
@@ -292,15 +361,13 @@ export async function POST(request: Request) {
     const template = insertedData.insert_templates_one;
 
     // Transform back to FooterConfig
+    // Note: restaurantName, email, phone, address and socialLinks will be fetched from restaurant table on next GET request
     const responseConfig: FooterConfig = {
-      restaurantName: template.config?.restaurantName || 'Antler Foods',
+      restaurantName: '', // Will be fetched from restaurant table
       aboutContent: template.config?.aboutContent,
-      email: template.config?.email,
-      phone: template.config?.phone,
-      address: template.config?.address,
       layout: template.name,
       columns: template.menu_items,
-      socialLinks: template.config?.socialLinks || [],
+      socialLinks: [], // Will be fetched from restaurant table
       bgColor: template.config?.bgColor,
       textColor: template.config?.textColor,
       linkColor: template.config?.linkColor,

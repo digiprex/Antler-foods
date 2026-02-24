@@ -54,7 +54,9 @@ function resolveDashboardBasePath(pathname: string) {
 }
 
 function isWebsitePath(pathname: string) {
-  return /^\/(admin|owner|manager)\/website(\/|$)/.test(pathname);
+  // Treat the legacy "pages-settings" route as part of the Website workspace
+  // so the sidebar stays in the Website tab when navigating there.
+  return /^\/(admin|owner|manager)\/(website|pages-settings)(\/|$)/.test(pathname);
 }
 
 function buildWebsiteHref(

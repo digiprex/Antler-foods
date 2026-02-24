@@ -10,7 +10,7 @@ interface PagesListProps {
   websiteId?: string;
 }
 
-export function PagesList({ restaurantId, websiteId }: PagesListProps) {
+export function PagesList({ restaurantId }: PagesListProps) {
   const [pages, setPages] = useState<PageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,13 +18,13 @@ export function PagesList({ restaurantId, websiteId }: PagesListProps) {
 
   useEffect(() => {
     loadPages();
-  }, [restaurantId, websiteId]);
+  }, [restaurantId]);
 
   const loadPages = async () => {
     try {
       setLoading(true);
       setError(null);
-      const pagesData = await getPages(restaurantId, websiteId);
+      const pagesData = await getPages(restaurantId);
       setPages(pagesData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load pages');
@@ -211,12 +211,10 @@ export function PagesList({ restaurantId, websiteId }: PagesListProps) {
 export default function PagesListPage() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
-  const websiteId = searchParams.get('website_id');
 
   return (
     <PagesList 
       restaurantId={restaurantId || undefined} 
-      websiteId={websiteId || undefined} 
     />
   );
 }

@@ -8,7 +8,6 @@ export interface PageItem {
   meta_title?: string;
   meta_description?: string;
   restaurant_id?: string;
-  website_id?: string;
   is_system_page: boolean;
   show_on_navbar: boolean;
   show_on_footer: boolean;
@@ -23,7 +22,6 @@ export interface CreatePageInput {
   meta_title?: string;
   meta_description?: string;
   restaurant_id?: string;
-  website_id?: string;
   is_system_page?: boolean;
   show_on_navbar?: boolean;
   show_on_footer?: boolean;
@@ -38,7 +36,6 @@ export interface UpdatePageInput {
   meta_title?: string;
   meta_description?: string;
   restaurant_id?: string;
-  website_id?: string;
   is_system_page?: boolean;
   show_on_navbar?: boolean;
   show_on_footer?: boolean;

@@ -1189,12 +1189,11 @@ function escapeRegExp(value: string) {
 
 // Pages GraphQL queries
 export const GetPages = /* GraphQL */ `
-  query GetPages($restaurant_id: uuid, $website_id: uuid) {
-    pages(
+  query GetPages($restaurant_id: uuid) {
+    web_pages(
       where: {
         is_deleted: { _eq: false }
         restaurant_id: { _eq: $restaurant_id }
-        website_id: { _eq: $website_id }
       }
       order_by: { created_at: desc }
     ) {
@@ -1207,7 +1206,6 @@ export const GetPages = /* GraphQL */ `
       meta_title
       meta_description
       restaurant_id
-      website_id
       is_system_page
       show_on_navbar
       show_on_footer
@@ -1220,7 +1218,7 @@ export const GetPages = /* GraphQL */ `
 
 export const GetPageById = /* GraphQL */ `
   query GetPageById($page_id: uuid!) {
-    pages_by_pk(page_id: $page_id) {
+    web_pages_by_pk(page_id: $page_id) {
       page_id
       url_slug
       name
@@ -1230,7 +1228,6 @@ export const GetPageById = /* GraphQL */ `
       meta_title
       meta_description
       restaurant_id
-      website_id
       is_system_page
       show_on_navbar
       show_on_footer
@@ -1242,8 +1239,8 @@ export const GetPageById = /* GraphQL */ `
 `;
 
 export const InsertPage = /* GraphQL */ `
-  mutation InsertPage($object: pages_insert_input!) {
-    insert_pages_one(object: $object) {
+  mutation InsertPage($object: web_pages_insert_input!) {
+    insert_web_pages_one(object: $object) {
       page_id
       url_slug
       name
@@ -1253,7 +1250,6 @@ export const InsertPage = /* GraphQL */ `
       meta_title
       meta_description
       restaurant_id
-      website_id
       is_system_page
       show_on_navbar
       show_on_footer
@@ -1265,8 +1261,8 @@ export const InsertPage = /* GraphQL */ `
 `;
 
 export const UpdatePage = /* GraphQL */ `
-  mutation UpdatePage($page_id: uuid!, $set: pages_set_input!) {
-    update_pages_by_pk(pk_columns: { page_id: $page_id }, _set: $set) {
+  mutation UpdatePage($page_id: uuid!, $set: web_pages_set_input!) {
+    update_web_pages_by_pk(pk_columns: { page_id: $page_id }, _set: $set) {
       page_id
       url_slug
       name
@@ -1277,7 +1273,7 @@ export const UpdatePage = /* GraphQL */ `
 
 export const DeletePage = /* GraphQL */ `
   mutation DeletePage($page_id: uuid!) {
-    update_pages_by_pk(
+    update_web_pages_by_pk(
       pk_columns: { page_id: $page_id }
       _set: { is_deleted: true, updated_at: "now()" }
     ) {
@@ -1288,7 +1284,7 @@ export const DeletePage = /* GraphQL */ `
 
 // Pages query response interfaces
 interface PagesQueryResponse {
-  pages: Array<{
+  web_pages: Array<{
     page_id: string;
     url_slug: string;
     name: string;
@@ -1298,7 +1294,6 @@ interface PagesQueryResponse {
     meta_title?: string | null;
     meta_description?: string | null;
     restaurant_id?: string | null;
-    website_id?: string | null;
     is_system_page: boolean;
     show_on_navbar: boolean;
     show_on_footer: boolean;
@@ -1309,7 +1304,7 @@ interface PagesQueryResponse {
 }
 
 interface PageByIdQueryResponse {
-  pages_by_pk: {
+  web_pages_by_pk: {
     page_id: string;
     url_slug: string;
     name: string;
@@ -1319,7 +1314,6 @@ interface PageByIdQueryResponse {
     meta_title?: string | null;
     meta_description?: string | null;
     restaurant_id?: string | null;
-    website_id?: string | null;
     is_system_page: boolean;
     show_on_navbar: boolean;
     show_on_footer: boolean;
@@ -1330,7 +1324,7 @@ interface PageByIdQueryResponse {
 }
 
 interface InsertPageResponse {
-  insert_pages_one: {
+  insert_web_pages_one: {
     page_id: string;
     url_slug: string;
     name: string;
@@ -1340,7 +1334,6 @@ interface InsertPageResponse {
     meta_title?: string | null;
     meta_description?: string | null;
     restaurant_id?: string | null;
-    website_id?: string | null;
     is_system_page: boolean;
     show_on_navbar: boolean;
     show_on_footer: boolean;
@@ -1351,7 +1344,7 @@ interface InsertPageResponse {
 }
 
 interface UpdatePageResponse {
-  update_pages_by_pk: {
+  update_web_pages_by_pk: {
     page_id: string;
     url_slug: string;
     name: string;
@@ -1360,19 +1353,18 @@ interface UpdatePageResponse {
 }
 
 interface DeletePageResponse {
-  update_pages_by_pk: {
+  update_web_pages_by_pk: {
     page_id: string;
   } | null;
 }
 
 // Pages API functions
-export async function getPages(restaurantId?: string, websiteId?: string) {
+export async function getPages(restaurantId?: string) {
   const data = await fetchGraphQL<PagesQueryResponse>(GetPages, {
     restaurant_id: restaurantId || null,
-    website_id: websiteId || null,
   });
 
-  return data.pages.map((page) => ({
+  return data.web_pages.map((page) => ({
     page_id: page.page_id,
     url_slug: page.url_slug,
     name: page.name,
@@ -1382,7 +1374,6 @@ export async function getPages(restaurantId?: string, websiteId?: string) {
     meta_title: page.meta_title || undefined,
     meta_description: page.meta_description || undefined,
     restaurant_id: page.restaurant_id || undefined,
-    website_id: page.website_id || undefined,
     is_system_page: page.is_system_page,
     show_on_navbar: page.show_on_navbar,
     show_on_footer: page.show_on_footer,
@@ -1401,7 +1392,7 @@ export async function getPageById(pageId: string) {
     page_id: pageId,
   });
 
-  const page = data.pages_by_pk;
+  const page = data.web_pages_by_pk;
   if (!page) {
     return null;
   }
@@ -1416,7 +1407,6 @@ export async function getPageById(pageId: string) {
     meta_title: page.meta_title || undefined,
     meta_description: page.meta_description || undefined,
     restaurant_id: page.restaurant_id || undefined,
-    website_id: page.website_id || undefined,
     is_system_page: page.is_system_page,
     show_on_navbar: page.show_on_navbar,
     show_on_footer: page.show_on_footer,
@@ -1431,7 +1421,7 @@ export async function insertPage(payload: Record<string, unknown>) {
     object: payload,
   });
 
-  const page = data.insert_pages_one;
+  const page = data.insert_web_pages_one;
   if (!page) {
     throw new Error("Failed to create page. No page returned in response.");
   }
@@ -1446,7 +1436,6 @@ export async function insertPage(payload: Record<string, unknown>) {
     meta_title: page.meta_title || undefined,
     meta_description: page.meta_description || undefined,
     restaurant_id: page.restaurant_id || undefined,
-    website_id: page.website_id || undefined,
     is_system_page: page.is_system_page,
     show_on_navbar: page.show_on_navbar,
     show_on_footer: page.show_on_footer,
@@ -1466,11 +1455,11 @@ export async function updatePage(pageId: string, payload: Record<string, unknown
     set: payload,
   });
 
-  if (!data.update_pages_by_pk) {
+  if (!data.update_web_pages_by_pk) {
     throw new Error("Failed to update page.");
   }
 
-  return data.update_pages_by_pk;
+  return data.update_web_pages_by_pk;
 }
 
 export async function deletePage(pageId: string) {
@@ -1482,9 +1471,9 @@ export async function deletePage(pageId: string) {
     page_id: pageId,
   });
 
-  if (!data.update_pages_by_pk) {
+  if (!data.update_web_pages_by_pk) {
     throw new Error("Failed to delete page.");
   }
 
-  return data.update_pages_by_pk;
+  return data.update_web_pages_by_pk;
 }

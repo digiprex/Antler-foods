@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import FileUpload from '@/components/ui/file-upload';
 import { insertPage, updatePage, getPageById } from '@/lib/graphql/queries';
 import type { PageItem, CreatePageInput, UpdatePageInput } from '@/types/pages.types';
 
@@ -66,12 +67,28 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
         return;
       }
 
+      // Normalize keywords to comma-separated string for the form
+      let keywordsString = '';
+      if (page.keywords) {
+        if (Array.isArray(page.keywords)) {
+          keywordsString = page.keywords.join(', ');
+        } else if (page.keywords.tags && Array.isArray(page.keywords.tags)) {
+          keywordsString = page.keywords.tags.join(', ');
+        } else {
+          try {
+            keywordsString = JSON.stringify(page.keywords);
+          } catch {
+            keywordsString = String(page.keywords);
+          }
+        }
+      }
+
       setFormData({
         name: page.name,
         url_slug: page.url_slug,
         meta_title: page.meta_title || '',
         meta_description: page.meta_description || '',
-        keywords: page.keywords ? JSON.stringify(page.keywords, null, 2) : '',
+        keywords: keywordsString,
         og_image: page.og_image || '',
         published: page.published,
         show_on_navbar: page.show_on_navbar,
@@ -115,14 +132,7 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
       return 'URL slug can only contain lowercase letters, numbers, and hyphens';
     }
 
-    // Validate keywords JSON if provided
-    if (formData.keywords.trim()) {
-      try {
-        JSON.parse(formData.keywords);
-      } catch {
-        return 'Keywords must be valid JSON format';
-      }
-    }
+    // No strict validation for comma-separated keywords; optional
 
     return null;
   };
@@ -151,9 +161,17 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
         show_on_navbar: formData.show_on_navbar,
         show_on_footer: formData.show_on_footer,
         is_system_page: formData.is_system_page,
-        restaurant_id: restaurantId
+          restaurant_id: restaurantId
 
       };
+
+        // Convert comma-separated keywords into JSON payload { tags: [...] }
+        const keywordsPayload = formData.keywords.trim()
+          ? { tags: formData.keywords.split(',').map((s) => s.trim()).filter(Boolean) }
+          : null;
+
+        // attach keywordsPayload (or null) to payload
+        (payload as any).keywords = keywordsPayload;
 
       let result: PageItem;
       
@@ -296,16 +314,16 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
             </div>
 
             <div>
-              <label htmlFor="og_image" className="block text-sm font-medium text-gray-700 mb-2">
-                Open Graph Image URL
-              </label>
-              <input
-                type="url"
-                id="og_image"
-                value={formData.og_image}
-                onChange={(e) => handleInputChange('og_image', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="https://example.com/image.jpg"
+              {/* <label className="block text-sm font-medium text-gray-700 mb-2">Open Graph Image</label> */}
+              <FileUpload
+                accept="image"
+                currentUrl={formData.og_image || undefined}
+                onUpload={(media) => handleInputChange('og_image', media.url)}
+                onRemove={() => handleInputChange('og_image', '')}
+                label="Open Graph Image"
+                description="Upload an image for social previews. We'll compress and upload it for you."
+                restaurantId={restaurantId || ''}
+                disabled={!restaurantId}
               />
             </div>
 
@@ -371,18 +389,7 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                 </label>
               </div>
 
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="is_system_page"
-                  checked={formData.is_system_page}
-                  onChange={(e) => handleInputChange('is_system_page', e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="is_system_page" className="ml-2 block text-sm text-gray-700">
-                  System Page
-                </label>
-              </div>
+              {/* System Page flag removed from UI */}
             </div>
           </div>
 

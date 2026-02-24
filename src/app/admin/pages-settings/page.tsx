@@ -30,12 +30,6 @@ export default function PagesSettingsPage() {
     <DashboardLayout>
       {restaurantId && restaurantName ? (
         <div className="p-6">
-          <div className="mb-6">
-            <div className="flex items-center space-x-2 text-sm text-gray-500 mb-2">
-              <span>Restaurant:</span>
-              <span className="font-medium text-gray-900">{restaurantName}</span>
-            </div>
-          </div>
           <PagesListPage />
         </div>
       ) : (

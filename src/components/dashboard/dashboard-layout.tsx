@@ -16,7 +16,7 @@ import {
   resolveRoleSegmentFromPath,
   toRoleRouteSegment,
 } from '@/lib/auth/routes';
-import { IconRail, type DashboardRailTab } from './icon-rail';
+import type { DashboardRailTab } from './icon-rail';
 import type { RestaurantSearchSelection } from './search-box';
 import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
@@ -256,12 +256,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-[#f3f5f6]">
       <div className="flex min-h-screen">
-        <IconRail
-          activeTab={activeTab}
-          dashboardBasePath={dashboardBasePath}
-          selectedRestaurant={selectedRestaurant}
-          onSelectWebsiteTab={onSelectWebsiteTab}
-        />
         <Sidebar
           activeTab={activeTab}
           pathname={pathname}

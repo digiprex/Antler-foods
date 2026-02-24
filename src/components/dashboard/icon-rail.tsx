@@ -8,6 +8,7 @@ interface IconRailProps {
   dashboardBasePath: string;
   selectedRestaurant: RestaurantSearchSelection | null;
   onSelectWebsiteTab: () => void;
+  isSidebarOpen?: boolean;
 }
 
 const RAIL_TABS: Array<{
@@ -41,8 +42,10 @@ export function IconRail({
   dashboardBasePath,
   selectedRestaurant,
   onSelectWebsiteTab,
+  isSidebarOpen,
 }: IconRailProps) {
   const hasWebsiteTab = Boolean(selectedRestaurant);
+  const showIcons = !isSidebarOpen; // show icons on the rail only when the main sidebar is collapsed
 
   return (
     <aside className="flex min-h-screen w-16 flex-col items-center border-r border-[#d7e2e6] bg-[#f6f7f7] py-4">
@@ -62,7 +65,7 @@ export function IconRail({
                     : "text-[#111827] hover:bg-[#edf2f5]"
                 }`}
               >
-                {tab.icon}
+                {showIcons ? tab.icon : <span className="h-2 w-2 rounded-full bg-transparent" />}
               </Link>
               <span className="pointer-events-none absolute left-[calc(100%+12px)] top-1/2 z-20 -translate-y-1/2 rounded-md bg-[#1f2937] px-2 py-1 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100">
                 {tab.label}
@@ -83,7 +86,7 @@ export function IconRail({
                   : "text-[#111827] hover:bg-[#edf2f5]"
               }`}
             >
-              <WebsiteIcon />
+              {showIcons ? <WebsiteIcon /> : <span className="h-2 w-2 rounded-full bg-transparent" />}
             </button>
             <span className="pointer-events-none absolute left-[calc(100%+12px)] top-1/2 z-20 -translate-y-1/2 rounded-md bg-[#1f2937] px-2 py-1 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100">
               Website

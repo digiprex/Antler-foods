@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getPages, deletePage } from '@/lib/graphql/queries';
+import { PageForm } from './page-form';
 import type { PageItem } from '@/types/pages.types';
 
 interface PagesListProps {
@@ -15,6 +16,7 @@ export function PagesList({ restaurantId }: PagesListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     loadPages();
@@ -46,6 +48,37 @@ export function PagesList({ restaurantId }: PagesListProps) {
       setError(err instanceof Error ? err.message : 'Failed to delete page');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleView = async (page: PageItem) => {
+    if (!page.restaurant_id) {
+      alert('No restaurant associated with this page');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/restaurant-staging?restaurant_id=${encodeURIComponent(page.restaurant_id)}`);
+      if (!res.ok) throw new Error('Failed to fetch restaurant staging domain');
+      const data = await res.json();
+      if (!data.success || !data.data) throw new Error(data.error || 'No staging domain');
+
+      let domain = data.data.staging_domain;
+      if (!domain) {
+        alert('Staging domain not configured for this restaurant');
+        return;
+      }
+
+      // Ensure protocol
+      if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
+        domain = `https://${domain}`;
+      }
+
+      const url = `${domain.replace(/\/$/, '')}/${page.url_slug.replace(/^\//, '')}`;
+      window.open(url, '_blank');
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : 'Failed to open page');
     }
   };
 
@@ -85,10 +118,31 @@ export function PagesList({ restaurantId }: PagesListProps) {
           <h1 className="text-2xl font-bold text-gray-900">Pages</h1>
           <p className="text-gray-600">Manage your website pages</p>
         </div>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+        >
           + Create Page
         </button>
       </div>
+
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setShowCreateModal(false)} />
+          <div className="relative w-full max-w-3xl bg-white rounded-lg shadow-lg max-h-[90vh] overflow-auto">
+            <div className="p-4">
+              <PageForm
+                onCancel={() => setShowCreateModal(false)}
+                onSuccess={async () => {
+                  setShowCreateModal(false);
+                  await loadPages();
+                }}
+                restaurantId={restaurantId}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {pages.length === 0 ? (
         <div className="text-center py-12">
@@ -183,7 +237,7 @@ export function PagesList({ restaurantId }: PagesListProps) {
                         <button className="text-blue-600 hover:text-blue-900">
                           Edit
                         </button>
-                        <button className="text-gray-400 hover:text-gray-600">
+                        <button onClick={() => handleView(page)} className="text-gray-400 hover:text-gray-600">
                           View
                         </button>
                         {!page.is_system_page && (

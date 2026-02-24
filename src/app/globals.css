@@ -15,6 +15,19 @@ body {
 
 body {
   @apply bg-surface font-sans text-ink antialiased;
+  cursor: default;
+}
+
+* {
+  cursor: inherit;
+}
+
+input, textarea, select, button, a {
+  cursor: pointer;
+}
+
+input[type="text"], input[type="email"], input[type="password"], input[type="url"], textarea {
+  cursor: text;
 }
 
 @layer components {

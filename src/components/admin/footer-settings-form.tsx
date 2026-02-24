@@ -61,6 +61,9 @@ export default function FooterSettingsForm() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
+  // Preview visibility state
+  const [showPreview, setShowPreview] = useState(false);
+
   // Initialize form with fetched config
   useEffect(() => {
     if (config) {
@@ -135,26 +138,37 @@ export default function FooterSettingsForm() {
         />
       )}
 
-      <div className={styles.splitLayout}>
-        {/* Settings Form - Left Side */}
+      <div className={styles.singleLayout}>
+        {/* Settings Form */}
         <div className={styles.formSection}>
           <div className={styles.formHeader}>
             <div>
               <h1 className={styles.formTitle}>Footer Settings</h1>
               <p className={styles.formSubtitle}>Customize your website footer</p>
-              <p className={styles.formSubtitle}>
-                Restaurant:{' '}
-                {restaurantNameFromQuery || restaurantId}
-              </p>
+              {restaurantNameFromQuery && (
+                <p className={styles.formSubtitle}>
+                  Restaurant: {restaurantNameFromQuery}
+                </p>
+              )}
             </div>
-            <button
-              type="button"
-              className={styles.closeButton}
-              onClick={() => window.history.back()}
-              aria-label="Close"
-            >
-              ✕
-            </button>
+            <div className={styles.headerActions}>
+              <button
+                type="button"
+                onClick={() => setShowPreview(!showPreview)}
+                className={styles.previewToggleButton}
+                title={showPreview ? 'Hide Preview' : 'Show Live Preview'}
+              >
+                {showPreview ? '👁️‍🗨️' : '👁️'} {showPreview ? 'Hide' : 'Show'} Preview
+              </button>
+              <button
+                type="button"
+                className={styles.closeButton}
+                onClick={() => window.history.back()}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           {fetchError && (
@@ -186,7 +200,7 @@ export default function FooterSettingsForm() {
                 </label>
                 <select
                   value={layout}
-                  onChange={(e) => setLayout(e.target.value)}
+                  onChange={(e) => setLayout(e.target.value as any)}
                   className={styles.select}
                 >
                   <option value="default">Three Section (Brand | Location | Contact)</option>
@@ -439,45 +453,60 @@ export default function FooterSettingsForm() {
           </form>
         </div>
 
-        {/* Preview - Right Side */}
-        <div className={styles.previewSection}>
-          <div className={styles.previewHeader}>
-            <h2 className={styles.previewTitle}>Live Preview</h2>
-            <span className={styles.previewBadge}>Updates in real-time</span>
-          </div>
-          <div className={styles.previewWrapper}>
-            <div className={styles.previewDevice}>
-              <div className={styles.previewContainer}>
-                <Footer
-                  restaurantName={config?.restaurantName || 'Antler Foods'}
-                  aboutContent={aboutContent}
-                  email={email}
-                  phone={phone}
-                  address={address}
-                  socialLinks={config?.socialLinks || [
-                    { platform: 'facebook', url: 'https://facebook.com', order: 1 },
-                    { platform: 'instagram', url: 'https://instagram.com', order: 2 },
-                    { platform: 'twitter', url: 'https://twitter.com', order: 3 },
-                  ]}
-                  columns={config?.columns || []}
-                  showSocialMedia={showSocialMedia}
-                  showNewsletter={showNewsletter}
-                  layout={layout}
-                  bgColor={bgColor}
-                  textColor={textColor}
-                  linkColor={linkColor}
-                  copyrightBgColor={copyrightBgColor}
-                  copyrightTextColor={copyrightTextColor}
-                />
+      </div>
+
+      {/* Preview Modal Popup */}
+      {showPreview && (
+        <div className={styles.previewModal}>
+          <div className={styles.previewModalOverlay} onClick={() => setShowPreview(false)} />
+          <div className={styles.previewModalContent}>
+            <div className={styles.previewModalHeader}>
+              <h2 className={styles.previewModalTitle}>Footer Live Preview</h2>
+              <div className={styles.previewModalActions}>
+                <span className={styles.previewBadge}>Updates in real-time</span>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className={styles.previewModalClose}
+                  aria-label="Close preview"
+                >
+                  ✕
+                </button>
               </div>
             </div>
+            <div className={styles.previewModalBody}>
+              <div className={styles.previewDevice}>
+                <div className={styles.previewContainer}>
+                  <Footer
+                    restaurantName={config?.restaurantName || 'Antler Foods'}
+                    aboutContent={aboutContent}
+                    email={email}
+                    phone={phone}
+                    address={address}
+                    socialLinks={config?.socialLinks || [
+                      { platform: 'facebook', url: 'https://facebook.com', order: 1 },
+                      { platform: 'instagram', url: 'https://instagram.com', order: 2 },
+                      { platform: 'twitter', url: 'https://twitter.com', order: 3 },
+                    ]}
+                    columns={config?.columns || []}
+                    showSocialMedia={showSocialMedia}
+                    showNewsletter={showNewsletter}
+                    layout={layout}
+                    bgColor={bgColor}
+                    textColor={textColor}
+                    linkColor={linkColor}
+                    copyrightBgColor={copyrightBgColor}
+                    copyrightTextColor={copyrightTextColor}
+                  />
+                </div>
+              </div>
+              <p className={styles.previewNote}>
+                <span className={styles.previewIcon}>👁</span>
+                Preview shows how your footer will appear on the website
+              </p>
+            </div>
           </div>
-          <p className={styles.previewNote}>
-            <span className={styles.previewIcon}>👁</span>
-            Preview shows how your footer will appear on the website
-          </p>
         </div>
-      </div>
+      )}
     </div>
   );
 }

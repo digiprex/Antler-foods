@@ -155,7 +155,7 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
         url_slug: formData.url_slug.trim(),
         meta_title: formData.meta_title.trim() || undefined,
         meta_description: formData.meta_description.trim() || undefined,
-        keywords: formData.keywords.trim() ? JSON.parse(formData.keywords) : null,
+        // keywords will be set below (converted from comma-separated string)
         og_image: formData.og_image.trim() || undefined,
         published: formData.published,
         show_on_navbar: formData.show_on_navbar,
@@ -329,18 +329,18 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
 
             <div>
               <label htmlFor="keywords" className="block text-sm font-medium text-gray-700 mb-2">
-                Keywords (JSON)
+                Keywords (comma-separated)
               </label>
               <textarea
                 id="keywords"
                 value={formData.keywords}
                 onChange={(e) => handleInputChange('keywords', e.target.value)}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                placeholder='{"tags": ["restaurant", "food"], "category": "about"}'
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="restaurant, food, about"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Optional JSON object for additional metadata
+                Optional comma-separated tags (converted to JSON on save)
               </p>
             </div>
           </div>

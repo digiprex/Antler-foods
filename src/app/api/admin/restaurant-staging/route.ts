@@ -52,7 +52,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ success: false, error: 'Restaurant not found' }, { status: 404 });
         }
 
-        return NextResponse.json({ success: true, data: { staging_domain: rest.staging_domain || null } });
+        return NextResponse.json({ success: true, data: { staging_domain: rest.staging_domain || null, name: rest.name || null } });
     } catch (err) {
         return NextResponse.json({ success: false, error: err instanceof Error ? err.message : String(err) }, { status: 500 });
     }

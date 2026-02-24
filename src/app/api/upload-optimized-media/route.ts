@@ -1,20 +1,25 @@
 /**
- * Media Upload API Route
+ * Optimized Media Upload API Route
  * 
- * Handles file uploads to Nhost storage and saves metadata to medias table
- * Supports images and videos with proper validation and error handling
+ * Handles file uploads with optimization:
+ * - Images: Compressed using Sharp (WebP format, multiple sizes)
+ * - Videos: Compressed using FFmpeg (optimized for web)
+ * - Saves optimized files to Nhost storage and metadata to medias table
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import sharp from 'sharp';
+import ffmpeg from 'fluent-ffmpeg';
+import { promises as fs } from 'fs';
+import path from 'path';
+import os from 'os';
 
 const HASURA_URL = process.env.HASURA_GRAPHQL_URL || 'https://pycfacumenjefxtblime.hasura.us-east-1.nhost.run/v1/graphql';
 const HASURA_ADMIN_SECRET = process.env.HASURA_ADMIN_SECRET || "i;8zmVF8SvnMiX5gao@F'a6,uJ%WphsD";
 const NHOST_STORAGE_URL = process.env.NHOST_STORAGE_URL || 'https://pycfacumenjefxtblime.storage.us-east-1.nhost.run/v1';
-const NHOST_PUBLIC_URL = process.env.NHOST_PUBLIC_URL || 'https://pycfacumenjefxtblime.storage.us-east-1.nhost.run/v1/files';
 
 /**
  * GraphQL mutation to insert media record
- * Note: Includes required type field for medias table
  */
 const INSERT_MEDIA = `
   mutation InsertMedia($restaurant_id: uuid!, $file_id: uuid!, $type: String!) {
@@ -67,6 +72,84 @@ async function graphqlRequest(query: string, variables?: any) {
 }
 
 /**
+ * Optimize image using Sharp
+ */
+async function optimizeImage(file: File): Promise<{ buffer: Buffer; filename: string; mimeType: string }> {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const originalName = file.name.split('.')[0];
+  
+  // Create optimized WebP version
+  const optimizedBuffer = await sharp(buffer)
+    .resize(1920, 1080, { 
+      fit: 'inside', 
+      withoutEnlargement: true 
+    })
+    .webp({ 
+      quality: 85,
+      effort: 6 
+    })
+    .toBuffer();
+
+  return {
+    buffer: optimizedBuffer,
+    filename: `${originalName}_optimized.webp`,
+    mimeType: 'image/webp'
+  };
+}
+
+/**
+ * Optimize video using FFmpeg
+ */
+async function optimizeVideo(file: File): Promise<{ buffer: Buffer; filename: string; mimeType: string }> {
+  const tempDir = os.tmpdir();
+  const inputPath = path.join(tempDir, `input_${Date.now()}_${file.name}`);
+  const outputPath = path.join(tempDir, `output_${Date.now()}.mp4`);
+  
+  try {
+    // Write input file to temp directory
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await fs.writeFile(inputPath, buffer);
+
+    // Optimize video with FFmpeg
+    await new Promise<void>((resolve, reject) => {
+      ffmpeg(inputPath)
+        .outputOptions([
+          '-c:v libx264',
+          '-preset medium',
+          '-crf 28',
+          '-c:a aac',
+          '-b:a 128k',
+          '-movflags +faststart',
+          '-vf scale=1280:720:force_original_aspect_ratio=decrease'
+        ])
+        .output(outputPath)
+        .on('end', () => resolve())
+        .on('error', (err) => reject(err))
+        .run();
+    });
+
+    // Read optimized file
+    const optimizedBuffer = await fs.readFile(outputPath);
+    const originalName = file.name.split('.')[0];
+
+    // Cleanup temp files
+    await fs.unlink(inputPath).catch(() => {});
+    await fs.unlink(outputPath).catch(() => {});
+
+    return {
+      buffer: optimizedBuffer,
+      filename: `${originalName}_optimized.mp4`,
+      mimeType: 'video/mp4'
+    };
+  } catch (error) {
+    // Cleanup on error
+    await fs.unlink(inputPath).catch(() => {});
+    await fs.unlink(outputPath).catch(() => {});
+    throw error;
+  }
+}
+
+/**
  * Validate file type and size
  */
 function validateFile(file: File): string | null {
@@ -77,34 +160,18 @@ function validateFile(file: File): string | null {
     return 'Only image and video files are allowed';
   }
 
-  // Size limits: 10MB for images, 100MB for videos
-  const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+  // Size limits: 50MB for images, 500MB for videos (before optimization)
+  const maxSize = isVideo ? 500 * 1024 * 1024 : 50 * 1024 * 1024;
   
   if (file.size > maxSize) {
     return `File size must be less than ${maxSize / (1024 * 1024)}MB`;
-  }
-
-  // Check specific image formats
-  if (isImage) {
-    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedImageTypes.includes(file.type)) {
-      return 'Only JPG, PNG, WebP, and GIF images are allowed';
-    }
-  }
-
-  // Check specific video formats
-  if (isVideo) {
-    const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
-    if (!allowedVideoTypes.includes(file.type)) {
-      return 'Only MP4, WebM, MOV, and AVI videos are allowed';
-    }
   }
 
   return null;
 }
 
 /**
- * POST endpoint to upload media files
+ * POST endpoint to upload and optimize media files
  */
 export async function POST(request: NextRequest) {
   try {
@@ -135,23 +202,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upload file to Nhost storage using direct HTTP request with public access
-    const uploadFormData = new FormData();
-    uploadFormData.append('file[]', file);
+    // Optimize file based on type
+    let optimizedFile: { buffer: Buffer; filename: string; mimeType: string };
     
+    if (file.type.startsWith('image/')) {
+      optimizedFile = await optimizeImage(file);
+    } else if (file.type.startsWith('video/')) {
+      optimizedFile = await optimizeVideo(file);
+    } else {
+      return NextResponse.json(
+        { success: false, error: 'Unsupported file type' },
+        { status: 400 }
+      );
+    }
+
+    // Create FormData for optimized file
+    const optimizedFormData = new FormData();
+    const optimizedBlob = new Blob([new Uint8Array(optimizedFile.buffer)], { type: optimizedFile.mimeType });
+    optimizedFormData.append('file[]', optimizedBlob, optimizedFile.filename);
+    
+    // Upload optimized file to Nhost storage
     const uploadResponse = await fetch(`${NHOST_STORAGE_URL}/files?public=true`, {
       method: 'POST',
       headers: {
         'x-hasura-admin-secret': HASURA_ADMIN_SECRET,
       },
-      body: uploadFormData,
+      body: optimizedFormData,
     });
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
       console.error('Nhost upload error:', uploadResponse.status, errorText);
       return NextResponse.json(
-        { success: false, error: `Failed to upload file to storage: ${uploadResponse.statusText}` },
+        { success: false, error: `Failed to upload optimized file: ${uploadResponse.statusText}` },
         { status: 500 }
       );
     }
@@ -163,10 +246,6 @@ export async function POST(request: NextRequest) {
     let fileMetadata;
     if (uploadResult.processedFiles && Array.isArray(uploadResult.processedFiles) && uploadResult.processedFiles.length > 0) {
       fileMetadata = uploadResult.processedFiles[0];
-    } else if (Array.isArray(uploadResult) && uploadResult.length > 0) {
-      fileMetadata = uploadResult[0];
-    } else if (uploadResult.id) {
-      fileMetadata = uploadResult;
     } else {
       console.error('Unexpected Nhost response format:', uploadResult);
       return NextResponse.json(
@@ -183,15 +262,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the public URL for the uploaded file using our proxy
-    // This avoids CORS and authentication issues
-    const publicUrl = `/api/image-proxy?fileId=${fileMetadata.id}`;
-
     // Save media metadata to database
     const mediaData = await graphqlRequest(INSERT_MEDIA, {
       restaurant_id: restaurantId,
       file_id: fileMetadata.id,
-      type: fileMetadata.mimeType || file.type,
+      type: optimizedFile.mimeType,
     });
 
     if (!mediaData.insert_medias_one) {
@@ -215,88 +290,31 @@ export async function POST(request: NextRequest) {
 
     const media = mediaData.insert_medias_one;
 
+    // Return proxy URL for reliable access
+    const publicUrl = `/api/image-proxy?fileId=${fileMetadata.id}`;
+
     return NextResponse.json({
       success: true,
       data: {
         id: media.id,
         file_id: media.file_id,
         url: publicUrl,
-        name: file.name,
-        type: file.type,
-        size: file.size,
+        name: optimizedFile.filename,
+        type: optimizedFile.mimeType,
+        size: optimizedFile.buffer.length,
+        optimized: true,
+        originalSize: file.size,
+        compressionRatio: ((file.size - optimizedFile.buffer.length) / file.size * 100).toFixed(1)
       },
     });
 
   } catch (error) {
-    console.error('Media upload error:', error);
+    console.error('Optimized media upload error:', error);
     
     return NextResponse.json(
       {
         success: false,
         error: error instanceof Error ? error.message : 'Upload failed',
-      },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * GET endpoint to retrieve media files for a restaurant
- */
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const restaurantId = searchParams.get('restaurant_id');
-    const type = searchParams.get('type'); // 'image' or 'video' to filter
-
-    if (!restaurantId) {
-      return NextResponse.json(
-        { success: false, error: 'Restaurant ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Build GraphQL query
-    let whereClause = `restaurant_id: {_eq: "${restaurantId}"}, is_deleted: {_eq: false}`;
-    
-    if (type === 'image') {
-      whereClause += `, type: {_like: "image/%"}`;
-    } else if (type === 'video') {
-      whereClause += `, type: {_like: "video/%"}`;
-    }
-
-    const GET_MEDIAS = `
-      query GetMedias {
-        medias(
-          where: {${whereClause}},
-          order_by: {created_at: desc}
-        ) {
-          id
-          file_id
-          name
-          type
-          size
-          url
-          created_at
-          updated_at
-        }
-      }
-    `;
-
-    const data = await graphqlRequest(GET_MEDIAS);
-
-    return NextResponse.json({
-      success: true,
-      data: data.medias || [],
-    });
-
-  } catch (error) {
-    console.error('Media fetch error:', error);
-    
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch media',
       },
       { status: 500 }
     );

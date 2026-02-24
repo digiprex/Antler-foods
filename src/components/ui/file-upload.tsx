@@ -132,7 +132,7 @@ export default function FileUpload({
       formData.append('file', file);
       formData.append('restaurant_id', restaurantId);
 
-      const response = await fetch('/api/upload-media', {
+      const response = await fetch('/api/upload-optimized-media', {
         method: 'POST',
         body: formData,
       });

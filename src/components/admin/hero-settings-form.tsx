@@ -140,6 +140,128 @@ export default function HeroSettingsForm() {
     }) : null);
   };
 
+  // Render layout preview with placeholder content
+  const renderLayoutPreview = (layoutType: string) => {
+    const previewStyle = {
+      width: '100%',
+      height: '60px',
+      background: '#f8f9fa',
+      border: '1px solid #e9ecef',
+      borderRadius: '4px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '8px',
+      color: '#6c757d',
+      position: 'relative' as const,
+      overflow: 'hidden' as const,
+    };
+
+    const textBlock = {
+      width: '40%',
+      height: '20px',
+      background: '#dee2e6',
+      borderRadius: '2px',
+      margin: '2px',
+    };
+
+    const imageBlock = {
+      width: '30%',
+      height: '35px',
+      background: '#adb5bd',
+      borderRadius: '2px',
+      margin: '2px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '12px',
+    };
+
+    switch (layoutType) {
+      case 'split':
+        return (
+          <div style={previewStyle}>
+            <div style={textBlock}></div>
+            <div style={imageBlock}>📷</div>
+          </div>
+        );
+      
+      case 'split-reverse':
+        return (
+          <div style={previewStyle}>
+            <div style={imageBlock}>📷</div>
+            <div style={textBlock}></div>
+          </div>
+        );
+      
+      case 'video-background':
+        return (
+          <div style={{...previewStyle, background: '#343a40', color: '#fff'}}>
+            <div style={{position: 'absolute', top: '2px', right: '2px', fontSize: '10px'}}>🎥</div>
+            <div style={{...textBlock, background: 'rgba(255,255,255,0.2)'}}></div>
+          </div>
+        );
+      
+      case 'side-by-side':
+        return (
+          <div style={previewStyle}>
+            <div style={{...textBlock, width: '45%'}}></div>
+            <div style={{...imageBlock, width: '45%'}}>📷</div>
+          </div>
+        );
+      
+      case 'offset':
+        return (
+          <div style={previewStyle}>
+            <div style={{...textBlock, position: 'absolute', left: '5px', top: '10px', width: '35%'}}></div>
+            <div style={{...imageBlock, position: 'absolute', right: '5px', top: '15px', width: '40%'}}>📷</div>
+          </div>
+        );
+      
+      case 'with-features':
+        return (
+          <div style={previewStyle}>
+            <div style={{...textBlock, width: '60%', height: '15px'}}></div>
+            <div style={{display: 'flex', gap: '2px', marginTop: '2px'}}>
+              <div style={{width: '15px', height: '8px', background: '#ffc107', borderRadius: '1px'}}></div>
+              <div style={{width: '15px', height: '8px', background: '#ffc107', borderRadius: '1px'}}></div>
+              <div style={{width: '15px', height: '8px', background: '#ffc107', borderRadius: '1px'}}></div>
+            </div>
+          </div>
+        );
+      
+      case 'minimal':
+        return (
+          <div style={previewStyle}>
+            <div style={{...textBlock, width: '50%', height: '12px'}}></div>
+          </div>
+        );
+      
+      case 'full-height':
+        return (
+          <div style={{...previewStyle, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#fff'}}>
+            <div style={{...textBlock, background: 'rgba(255,255,255,0.3)', width: '50%'}}></div>
+            <div style={{position: 'absolute', bottom: '2px', right: '2px', fontSize: '8px'}}>⬇</div>
+          </div>
+        );
+      
+      case 'centered-large':
+        return (
+          <div style={previewStyle}>
+            <div style={{...textBlock, width: '70%', height: '25px'}}></div>
+          </div>
+        );
+      
+      case 'default':
+      default:
+        return (
+          <div style={previewStyle}>
+            <div style={{...textBlock, width: '60%', height: '18px'}}></div>
+          </div>
+        );
+    }
+  };
+
   if (loading) {
     return (
       <div className={styles.container}>
@@ -215,7 +337,7 @@ export default function HeroSettingsForm() {
                       onClick={() => updateConfig({ layout: option.value as any })}
                     >
                       <div className={styles.layoutPreview}>
-                        {option.name}
+                        {renderLayoutPreview(option.value)}
                       </div>
                       <div className={styles.layoutName}>{option.name}</div>
                       <div className={styles.layoutDescription}>{option.description}</div>
@@ -709,15 +831,6 @@ export default function HeroSettingsForm() {
           <div className={styles.previewWrapper}>
            <div className={styles.previewDevice}>
              <div className={styles.previewContainer}>
-               {/* Debug info - remove in production */}
-               {process.env.NODE_ENV === 'development' && (
-                 <div style={{ fontSize: '10px', color: '#666', padding: '4px', background: '#f0f0f0', marginBottom: '8px' }}>
-                   Debug: Layout={formConfig.layout}<br/>
-                   Image URL: {formConfig.image?.url || 'None'}<br/>
-                   Video URL: {formConfig.videoUrl || 'None'}<br/>
-                   Background: {formConfig.backgroundImage || 'None'}
-                 </div>
-               )}
                <Hero
                  key={`${formConfig.layout}-${formConfig.image?.url}-${formConfig.videoUrl}-${formConfig.backgroundImage}-${Date.now()}`}
                  {...formConfig}

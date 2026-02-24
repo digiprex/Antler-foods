@@ -1,14 +1,18 @@
 import Link from "next/link";
+import type { RestaurantSearchSelection } from "./search-box";
 
-export type DashboardRailTab = "home" | "reservations" | "team";
+export type DashboardRailTab = "home" | "reservations" | "team" | "website";
 
 interface IconRailProps {
   activeTab: DashboardRailTab;
   dashboardBasePath: string;
+  selectedRestaurant: RestaurantSearchSelection | null;
+  onSelectWebsiteTab: () => void;
+  onSelectStandardTab: () => void;
 }
 
 const RAIL_TABS: Array<{
-  key: DashboardRailTab;
+  key: Exclude<DashboardRailTab, "website">;
   label: string;
   href: string;
   icon: JSX.Element;
@@ -33,7 +37,15 @@ const RAIL_TABS: Array<{
   },
 ];
 
-export function IconRail({ activeTab, dashboardBasePath }: IconRailProps) {
+export function IconRail({
+  activeTab,
+  dashboardBasePath,
+  selectedRestaurant,
+  onSelectWebsiteTab,
+  onSelectStandardTab,
+}: IconRailProps) {
+  const hasWebsiteTab = Boolean(selectedRestaurant);
+
   return (
     <aside className="flex min-h-screen w-16 flex-col items-center border-r border-[#d7e2e6] bg-[#f6f7f7] py-4">
       <div className="flex w-full flex-col gap-2">
@@ -46,6 +58,7 @@ export function IconRail({ activeTab, dashboardBasePath }: IconRailProps) {
               <Link
                 href={href}
                 aria-label={tab.label}
+                onClick={onSelectStandardTab}
                 className={`inline-flex h-12 w-12 items-center justify-center rounded-xl transition ${
                   isActive
                     ? "bg-[#e6f5ec] text-[#5dc67d]"
@@ -60,6 +73,26 @@ export function IconRail({ activeTab, dashboardBasePath }: IconRailProps) {
             </div>
           );
         })}
+
+        {hasWebsiteTab ? (
+          <div className="group relative mt-2 flex justify-center">
+            <button
+              type="button"
+              onClick={onSelectWebsiteTab}
+              aria-label="Website"
+              className={`inline-flex h-12 w-12 items-center justify-center rounded-xl transition ${
+                activeTab === "website"
+                  ? "bg-[#e6f5ec] text-[#5dc67d]"
+                  : "text-[#111827] hover:bg-[#edf2f5]"
+              }`}
+            >
+              <WebsiteIcon />
+            </button>
+            <span className="pointer-events-none absolute left-[calc(100%+12px)] top-1/2 z-20 -translate-y-1/2 rounded-md bg-[#1f2937] px-2 py-1 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100">
+              Website
+            </span>
+          </div>
+        ) : null}
       </div>
     </aside>
   );
@@ -121,6 +154,26 @@ function TeamIcon() {
       <circle cx="16.5" cy="9" r="2.5" />
       <path d="M3.5 18a5.5 5.5 0 0 1 11 0" />
       <path d="M14 18a4 4 0 0 1 7.5-1.8" />
+    </svg>
+  );
+}
+
+function WebsiteIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="8" />
+      <path d="M4 12h16" />
+      <path d="M12 4a12 12 0 0 1 0 16" />
+      <path d="M12 4a12 12 0 0 0 0 16" />
     </svg>
   );
 }

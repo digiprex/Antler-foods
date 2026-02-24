@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import { getRestaurants, type RestaurantListItem } from "@/lib/graphql/queries";
+import { useEffect, useMemo, useState } from 'react';
+import { getRestaurants, type RestaurantListItem } from '@/lib/graphql/queries';
 
 export function RestaurantsListPage() {
   const [restaurants, setRestaurants] = useState<RestaurantListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     let isActive = true;
@@ -29,7 +29,9 @@ export function RestaurantsListPage() {
         }
 
         const message =
-          error instanceof Error ? error.message : "Unable to load restaurants.";
+          error instanceof Error
+            ? error.message
+            : 'Unable to load restaurants.';
         setErrorMessage(message);
       } finally {
         if (isActive) {
@@ -57,9 +59,9 @@ export function RestaurantsListPage() {
         restaurant.serviceModel,
         restaurant.email,
         restaurant.phoneNumber,
-        restaurant.cuisineTypes.join(" "),
+        restaurant.cuisineTypes.join(' '),
       ]
-        .join(" ")
+        .join(' ')
         .toLowerCase();
 
       return searchText.includes(normalizedSearchTerm);
@@ -86,13 +88,15 @@ export function RestaurantsListPage() {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Search restaurants..."
-              className="h-11 w-full rounded-xl border border-[#d4e0e6] px-4 text-sm text-[#1f2937] placeholder:text-[#8b9baa] focus:border-[#7fcf99] focus:outline-none focus:ring-2 focus:ring-[#d9f0e2]"
+              className="h-11 w-full rounded-xl border border-[#d4e0e6] px-4 text-sm text-[#1f2937] placeholder:text-[#8b9baa] focus:border-[#667eea] focus:outline-none focus:ring-2 focus:ring-[#ede9fe]"
             />
           </div>
         </div>
 
         {isLoading ? (
-          <p className="px-6 py-5 text-sm text-[#5f6c78]">Loading restaurants...</p>
+          <p className="px-6 py-5 text-sm text-[#5f6c78]">
+            Loading restaurants...
+          </p>
         ) : null}
 
         {errorMessage ? (
@@ -118,20 +122,24 @@ export function RestaurantsListPage() {
                   {filteredRestaurants.map((restaurant) => (
                     <tr key={restaurant.id} className="align-top">
                       <td className="px-6 py-4">
-                        <p className="font-semibold text-[#111827]">{restaurant.name}</p>
-                        <p className="text-xs text-[#7a8996]">ID: {restaurant.id}</p>
+                        <p className="font-semibold text-[#111827]">
+                          {restaurant.name}
+                        </p>
+                        <p className="text-xs text-[#7a8996]">
+                          ID: {restaurant.id}
+                        </p>
                       </td>
                       <td className="px-6 py-4 text-sm text-[#334155]">
-                        {restaurant.serviceModel || "N/A"}
+                        {restaurant.serviceModel || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-sm text-[#334155]">
                         {restaurant.cuisineTypes.length
-                          ? restaurant.cuisineTypes.join(", ")
-                          : "N/A"}
+                          ? restaurant.cuisineTypes.join(', ')
+                          : 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-sm text-[#334155]">
-                        <p>{restaurant.phoneNumber || "N/A"}</p>
-                        <p>{restaurant.email || "N/A"}</p>
+                        <p>{restaurant.phoneNumber || 'N/A'}</p>
+                        <p>{restaurant.email || 'N/A'}</p>
                       </td>
                       <td className="px-6 py-4 text-sm text-[#334155]">
                         {formatDate(restaurant.createdAt)}
@@ -144,8 +152,8 @@ export function RestaurantsListPage() {
           ) : (
             <p className="px-6 py-5 text-sm text-[#5f6c78]">
               {restaurants.length
-                ? "No restaurants match your search."
-                : "No restaurants found in the restaurants table."}
+                ? 'No restaurants match your search.'
+                : 'No restaurants found in the restaurants table.'}
             </p>
           )
         ) : null}
@@ -156,7 +164,7 @@ export function RestaurantsListPage() {
 
 function formatDate(value: string | null) {
   if (!value) {
-    return "N/A";
+    return 'N/A';
   }
 
   const parsedDate = new Date(value);

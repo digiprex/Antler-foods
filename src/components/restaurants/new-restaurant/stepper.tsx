@@ -1,32 +1,28 @@
-"use client";
+'use client';
 
-type WizardStep = 1 | 2 | 3;
+type WizardStep = 1 | 2;
 
 interface StepperProps {
   currentStep: WizardStep;
   isStepOneComplete: boolean;
-  isStepTwoComplete: boolean;
   onStepSelect: (step: WizardStep) => void;
 }
 
 const STEPS: Array<{ step: WizardStep; label: string }> = [
-  { step: 1, label: "Restaurant info" },
-  { step: 2, label: "Business info" },
-  { step: 3, label: "Additional Restaurants" },
+  { step: 1, label: 'Restaurant info' },
+  { step: 2, label: 'Business info' },
 ];
 
 export function Stepper({
   currentStep,
   isStepOneComplete,
-  isStepTwoComplete,
   onStepSelect,
 }: StepperProps) {
   return (
     <div className="flex flex-wrap items-center gap-3 md:gap-5">
       {STEPS.map((item, index) => {
         const isCompleted =
-          (item.step === 1 && currentStep > 1 && isStepOneComplete) ||
-          (item.step === 2 && currentStep > 2 && isStepTwoComplete);
+          item.step === 1 && currentStep > 1 && isStepOneComplete;
         const isActive = currentStep === item.step;
 
         return (
@@ -34,14 +30,18 @@ export function Stepper({
             <button
               type="button"
               onClick={() => onStepSelect(item.step)}
-              className="inline-flex items-center gap-3 rounded-lg px-1 py-0.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7ed19a]"
+              className="inline-flex items-center gap-3 rounded-lg px-1 py-0.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#667eea]"
             >
-              <StepCircle step={item.step} isCompleted={isCompleted} isActive={isActive} />
+              <StepCircle
+                step={item.step}
+                isCompleted={isCompleted}
+                isActive={isActive}
+              />
               <span
                 className={
                   isCompleted || isActive
-                    ? "text-[17px] font-medium text-[#111827]"
-                    : "text-[17px] text-[#78838d]"
+                    ? 'text-[17px] font-medium text-[#111827]'
+                    : 'text-[17px] text-[#78838d]'
                 }
               >
                 {item.label}
@@ -51,9 +51,9 @@ export function Stepper({
             {index < STEPS.length - 1 ? (
               <div
                 className={`h-px w-16 md:w-20 ${
-                  isConnectorActive(item.step, currentStep, isStepOneComplete, isStepTwoComplete)
-                    ? "bg-[#86d8a3]"
-                    : "bg-[#dde5e9]"
+                  isConnectorActive(item.step, currentStep, isStepOneComplete)
+                    ? 'bg-[#8b9dff]'
+                    : 'bg-[#dde5e9]'
                 }`}
               />
             ) : null}
@@ -71,35 +71,39 @@ interface StepCircleProps {
 }
 
 function StepCircle({ step, isCompleted, isActive }: StepCircleProps) {
-  const baseStyles = "inline-flex h-10 w-10 items-center justify-center rounded-full text-lg";
+  const baseStyles =
+    'inline-flex h-10 w-10 items-center justify-center rounded-full text-lg';
 
   if (isCompleted) {
     return (
-      <span className={`${baseStyles} bg-[#dff3e4] text-[#59bf7d]`}>
+      <span className={`${baseStyles} bg-[#ede9fe] text-[#667eea]`}>
         <CheckIcon />
       </span>
     );
   }
 
   if (isActive) {
-    return <span className={`${baseStyles} bg-[#60c783] font-semibold text-white`}>{step}</span>;
+    return (
+      <span className={`${baseStyles} bg-[#667eea] font-semibold text-white`}>
+        {step}
+      </span>
+    );
   }
 
-  return <span className={`${baseStyles} bg-[#eceef0] font-semibold text-[#626f79]`}>{step}</span>;
+  return (
+    <span className={`${baseStyles} bg-[#eceef0] font-semibold text-[#626f79]`}>
+      {step}
+    </span>
+  );
 }
 
 function isConnectorActive(
   leftStep: WizardStep,
   currentStep: WizardStep,
   isStepOneComplete: boolean,
-  isStepTwoComplete: boolean,
 ) {
   if (leftStep === 1) {
     return currentStep > 1 && isStepOneComplete;
-  }
-
-  if (leftStep === 2) {
-    return currentStep > 2 && isStepTwoComplete;
   }
 
   return false;

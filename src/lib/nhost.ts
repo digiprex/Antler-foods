@@ -7,6 +7,7 @@ const NHOST_REFRESH_TOKEN_KEY = "nhostRefreshToken";
 const NHOST_REFRESH_TOKEN_ID_KEY = "nhostRefreshTokenId";
 const NHOST_ACCESS_TOKEN_EXPIRY_KEY = "nhostRefreshTokenExpiresAt";
 const NHOST_BACKEND_FINGERPRINT_KEY = "nhostAuthBackendFingerprint";
+const NHOST_SESSION_COOKIE_KEY = "nhostSession";
 
 function isBrowser() {
   return typeof window !== "undefined";
@@ -41,6 +42,14 @@ export function clearNhostStoredSession() {
   } catch {
     // Ignore storage access errors in restricted environments.
   }
+
+  // @nhost/nextjs uses cookie storage in browser. Clear those keys too.
+  [NHOST_REFRESH_TOKEN_KEY, NHOST_REFRESH_TOKEN_ID_KEY, NHOST_ACCESS_TOKEN_EXPIRY_KEY, NHOST_SESSION_COOKIE_KEY].forEach(
+    (cookieKey) => {
+      document.cookie = `${cookieKey}=; Max-Age=0; path=/; SameSite=Strict`;
+      document.cookie = `${cookieKey}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Strict`;
+    },
+  );
 }
 
 function reconcileNhostSessionWithCurrentBackend() {

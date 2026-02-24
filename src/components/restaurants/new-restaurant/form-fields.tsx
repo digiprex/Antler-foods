@@ -1,12 +1,8 @@
-"use client";
+'use client';
 
-import type { HTMLInputTypeAttribute, ReactNode } from "react";
-import type {
-  FieldErrors,
-  FieldPath,
-  UseFormRegister,
-} from "react-hook-form";
-import type { NewRestaurantFormValues } from "./schema";
+import type { HTMLInputTypeAttribute, ReactNode } from 'react';
+import type { FieldErrors, FieldPath, UseFormRegister } from 'react-hook-form';
+import type { NewRestaurantFormValues } from './schema';
 
 interface FormTextInputProps {
   label: string;
@@ -48,7 +44,7 @@ export function FormTextInput({
   errors,
   placeholder,
   required = false,
-  type = "text",
+  type = 'text',
   autoComplete,
   leftAddon,
   rightAddon,
@@ -63,10 +59,10 @@ export function FormTextInput({
       <FieldLabel label={label} required={required} />
       <div
         className={cx(
-          "flex min-h-12 items-center rounded-xl border bg-white",
+          'flex min-h-12 items-center rounded-xl border bg-white',
           hasError
-            ? "border-[#e57373] shadow-[0_0_0_2px_rgba(229,115,115,0.08)]"
-            : "border-[#d4e0e6]",
+            ? 'border-[#e57373] shadow-[0_0_0_2px_rgba(229,115,115,0.08)]'
+            : 'border-[#d4e0e6]',
         )}
       >
         {leftAddon ? (
@@ -111,10 +107,10 @@ export function FormSelectInput({
       {label ? <FieldLabel label={label} required={required} /> : null}
       <div
         className={cx(
-          "relative min-h-12 rounded-xl border bg-white",
+          'relative min-h-12 rounded-xl border bg-white',
           hasError
-            ? "border-[#e57373] shadow-[0_0_0_2px_rgba(229,115,115,0.08)]"
-            : "border-[#d4e0e6]",
+            ? 'border-[#e57373] shadow-[0_0_0_2px_rgba(229,115,115,0.08)]'
+            : 'border-[#d4e0e6]',
         )}
       >
         <select
@@ -150,11 +146,18 @@ export function FormRadioOption({
 }: FormRadioOptionProps) {
   return (
     <label className="flex cursor-pointer items-center gap-2 text-[17px] font-medium text-[#1c2a39]">
-      <input type="radio" value={value} className="sr-only" {...register(name)} />
+      <input
+        type="radio"
+        value={value}
+        className="sr-only"
+        {...register(name)}
+      />
       <span
         className={cx(
-          "inline-flex h-5 w-5 items-center justify-center rounded-full border",
-          checked ? "border-[#60c783] text-[#60c783]" : "border-[#d3dee5] text-transparent",
+          'inline-flex h-5 w-5 items-center justify-center rounded-full border',
+          checked
+            ? 'border-[#667eea] text-[#667eea]'
+            : 'border-[#d3dee5] text-transparent',
         )}
       >
         <span className="h-2.5 w-2.5 rounded-full bg-current" />
@@ -178,8 +181,8 @@ export function AddRestaurantCard() {
     <button
       type="button"
       className={cx(
-        "flex min-h-[130px] w-full max-w-[370px] items-center justify-center rounded-2xl border border-[#d4e0e6] bg-white",
-        "text-[20px] font-semibold text-[#111827] transition hover:border-[#b7c8d2] hover:bg-[#f9fcfd]",
+        'flex min-h-[130px] w-full max-w-[370px] items-center justify-center rounded-2xl border border-[#d4e0e6] bg-white',
+        'text-[20px] font-semibold text-[#111827] transition hover:border-[#b7c8d2] hover:bg-[#f9fcfd]',
       )}
     >
       + Add restaurant
@@ -208,8 +211,10 @@ function getErrorMessage(
   errors: FieldErrors<NewRestaurantFormValues>,
   name: FieldPath<NewRestaurantFormValues>,
 ) {
-  const field = (errors as Record<string, { message?: unknown } | undefined>)[name];
-  return typeof field?.message === "string" ? field.message : undefined;
+  const field = (errors as Record<string, { message?: unknown } | undefined>)[
+    name
+  ];
+  return typeof field?.message === 'string' ? field.message : undefined;
 }
 
 function ChevronDownIcon() {
@@ -230,5 +235,5 @@ function ChevronDownIcon() {
 }
 
 function cx(...classNames: Array<string | false | null | undefined>) {
-  return classNames.filter(Boolean).join(" ");
+  return classNames.filter(Boolean).join(' ');
 }

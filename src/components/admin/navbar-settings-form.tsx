@@ -14,24 +14,45 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useNavbarConfig, useUpdateNavbarConfig } from '@/hooks/use-navbar-config';
+import type { NavbarConfig } from '@/types/navbar.types';
 import Navbar from '@/components/navbar';
 import Toast from '@/components/ui/toast';
 import styles from './navbar-settings-form.module.css';
 
+const DEFAULT_RESTAURANT_ID = '92e9160e-0afa-4f78-824f-b28e32885353';
+
 export default function NavbarSettingsForm() {
-  const { config, loading, error: fetchError, refetch } = useNavbarConfig();
+  const searchParams = useSearchParams();
+  const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
+  const restaurantNameFromQuery =
+    searchParams.get('restaurant_name')?.trim() ?? '';
+  const restaurantId = restaurantIdFromQuery || DEFAULT_RESTAURANT_ID;
+  const configApiEndpoint = useMemo(
+    () =>
+      `/api/navbar-config?restaurant_id=${encodeURIComponent(restaurantId)}`,
+    [restaurantId],
+  );
+
+  const { config, loading, error: fetchError } = useNavbarConfig({
+    apiEndpoint: configApiEndpoint,
+  });
   const { updateNavbar, updating, error: updateError } = useUpdateNavbarConfig();
 
   // Form state
-  const [layout, setLayout] = useState<string>('bordered-centered');
-  const [position, setPosition] = useState<string>('absolute');
+  const [layout, setLayout] = useState<NonNullable<NavbarConfig['layout']>>(
+    'bordered-centered',
+  );
+  const [position, setPosition] = useState<
+    NonNullable<NavbarConfig['position']>
+  >('absolute');
   const [bgColor, setBgColor] = useState('#ffffff');
   const [textColor, setTextColor] = useState('#000000');
   const [showOrderButton, setShowOrderButton] = useState(true);
   const [orderButtonText, setOrderButtonText] = useState('Order Online');
   const [orderButtonHref, setOrderButtonHref] = useState('/order');
-  const [restaurantId] = useState<string>('92e9160e-0afa-4f78-824f-b28e32885353');
   
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -65,8 +86,8 @@ export default function NavbarSettingsForm() {
       // Show immediate success feedback without waiting for refetch
       await updateNavbar({
         restaurant_id: restaurantId,
-        layout: layout as any,
-        position: position as any,
+        layout,
+        position,
         bgColor,
         textColor,
         ctaButton: showOrderButton
@@ -115,6 +136,10 @@ export default function NavbarSettingsForm() {
             <div>
               <h1 className={styles.formTitle}>Navigation Bar Settings</h1>
               <p className={styles.formSubtitle}>Customize your website navigation</p>
+              <p className={styles.formSubtitle}>
+                Restaurant:{' '}
+                {restaurantNameFromQuery || restaurantId}
+              </p>
             </div>
             <button
               type="button"
@@ -385,7 +410,7 @@ export default function NavbarSettingsForm() {
                         }
                       : undefined
                   }
-                  layout={layout as any}
+                  layout={layout}
                   position="relative"
                   bgColor={bgColor}
                   textColor={textColor}

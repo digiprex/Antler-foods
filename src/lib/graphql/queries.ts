@@ -28,6 +28,34 @@ export interface RestaurantListItem {
   isDeleted: boolean | null;
 }
 
+export interface RestaurantDraftItem {
+  id: string;
+  franchiseId: string | null;
+  name: string;
+  serviceModel: string;
+  cuisineTypes: string[];
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  postalCode: string;
+  businessType: string;
+  contactName: string;
+  phoneNumber: string;
+  email: string;
+  legalName: string;
+  pocPhoneNumber: string;
+  pocEmail: string;
+  googlePlaceId: string;
+  gmbLink: string;
+  isDeleted: boolean | null;
+}
+
+export interface FranchiseListItem {
+  id: string;
+  name: string;
+}
+
 type CuisineCategoryVariant = {
   idField: string;
   labelField: string;
@@ -105,6 +133,44 @@ export const GetServiceModels = /* GraphQL */ `
       id
       name
       description
+    }
+  }
+`;
+
+export const ListFranchises = /* GraphQL */ `
+  query ListFranchises {
+    franchises(where: { is_deleted: { _eq: false } }, order_by: { name: asc }) {
+      id
+      name
+    }
+  }
+`;
+
+export const InsertFranchise = /* GraphQL */ `
+  mutation InsertFranchise($object: franchises_insert_input!) {
+    insert_franchises_one(object: $object) {
+      id
+      name
+    }
+  }
+`;
+
+export const UpdateFranchiseBusinessInfo = /* GraphQL */ `
+  mutation UpdateFranchiseBusinessInfo($id: uuid!, $set: franchises_set_input!) {
+    update_franchises_by_pk(pk_columns: { id: $id }, _set: $set) {
+      id
+    }
+  }
+`;
+
+export const UpdateFranchiseOwner = /* GraphQL */ `
+  mutation UpdateFranchiseOwner($id: uuid!, $ownerUserId: uuid!) {
+    update_franchises_by_pk(
+      pk_columns: { id: $id }
+      _set: { owner_user_id: $ownerUserId }
+    ) {
+      id
+      owner_user_id
     }
   }
 `;
@@ -261,6 +327,96 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
   },
 ];
 
+type RestaurantDraftVariant = {
+  idField: string;
+  query: string;
+};
+
+const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
+  {
+    idField: "restaurant_id",
+    query: /* GraphQL */ `
+      query GetRestaurantDraftByRestaurantId($restaurantId: uuid!) {
+        restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
+          restaurant_id
+          franchise_id
+          name
+          address
+          city
+          state
+          country
+          postal_code
+          business_type
+          service_model
+          cuisine_types
+          phone_number
+          email
+          sms_name
+          poc_name
+          poc_phone_number
+          poc_email
+          google_place_id
+          gmb_link
+          is_deleted
+        }
+      }
+    `,
+  },
+  {
+    idField: "id",
+    query: /* GraphQL */ `
+      query GetRestaurantDraftById($restaurantId: uuid!) {
+        restaurants(where: { id: { _eq: $restaurantId } }, limit: 1) {
+          id
+          franchise_id
+          name
+          address
+          city
+          state
+          country
+          postal_code
+          business_type
+          service_model
+          cuisine_types
+          phone_number
+          email
+          sms_name
+          poc_name
+          poc_phone_number
+          poc_email
+          google_place_id
+          gmb_link
+          is_deleted
+        }
+      }
+    `,
+  },
+  {
+    idField: "restaurant_id",
+    query: /* GraphQL */ `
+      query GetRestaurantDraftMinimalByRestaurantId($restaurantId: uuid!) {
+        restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
+          restaurant_id
+          franchise_id
+          name
+        }
+      }
+    `,
+  },
+  {
+    idField: "id",
+    query: /* GraphQL */ `
+      query GetRestaurantDraftMinimalById($restaurantId: uuid!) {
+        restaurants(where: { id: { _eq: $restaurantId } }, limit: 1) {
+          id
+          franchise_id
+          name
+        }
+      }
+    `,
+  },
+];
+
 interface CuisineCategoriesQueryResponse {
   cuisine_types_categories: Array<Record<string, unknown>>;
 }
@@ -277,6 +433,13 @@ interface ServiceModelsQueryResponse {
   }>;
 }
 
+interface FranchisesListQueryResponse {
+  franchises: Array<{
+    id?: string | null;
+    name?: string | null;
+  }>;
+}
+
 interface RestaurantsListQueryResponse {
   restaurants: Array<Record<string, unknown>>;
 }
@@ -285,8 +448,22 @@ interface InsertRestaurantResponse {
   insert_restaurants_one: Record<string, unknown> | null;
 }
 
+interface InsertFranchiseResponse {
+  insert_franchises_one: {
+    id?: string | null;
+    name?: string | null;
+  } | null;
+}
+
 interface UpdateRestaurantResponse {
   update_restaurants_by_pk: Record<string, unknown> | null;
+}
+
+interface UpdateFranchiseResponse {
+  update_franchises_by_pk: {
+    id?: string | null;
+    owner_user_id?: string | null;
+  } | null;
 }
 
 export interface InsertRestaurantResult {
@@ -348,6 +525,23 @@ export async function getServiceModels() {
   }));
 }
 
+export async function getFranchises() {
+  const data = await fetchGraphQL<FranchisesListQueryResponse>(ListFranchises);
+
+  return data.franchises
+    .map((item) => {
+      if (typeof item.id !== "string" || !item.id.trim()) {
+        return null;
+      }
+
+      return {
+        id: item.id,
+        name: normalizeText(item.name, "Unnamed franchise"),
+      } satisfies FranchiseListItem;
+    })
+    .filter((item): item is FranchiseListItem => Boolean(item));
+}
+
 export async function getRestaurants() {
   const errorMessages = new Set<string>();
 
@@ -383,6 +577,40 @@ export async function getRestaurants() {
   }
 
   throw new Error(`Unable to load restaurants. ${Array.from(errorMessages).join(" | ")}`);
+}
+
+export async function getRestaurantDraftById(restaurantId: string) {
+  if (!restaurantId?.trim()) {
+    throw new Error("Restaurant draft id is required.");
+  }
+
+  const errorMessages = new Set<string>();
+
+  for (const variant of RESTAURANT_DRAFT_VARIANTS) {
+    try {
+      const data = await fetchGraphQL<RestaurantsListQueryResponse>(variant.query, {
+        restaurantId,
+      });
+      const parsed = parseRestaurantDraft(data.restaurants, variant.idField);
+
+      if (!parsed) {
+        return null;
+      }
+
+      if (parsed.isDeleted) {
+        return null;
+      }
+
+      return parsed;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown query error";
+      errorMessages.add(message);
+    }
+  }
+
+  throw new Error(
+    `Unable to load restaurant draft. ${Array.from(errorMessages).join(" | ")}`,
+  );
 }
 
 async function fetchCuisineCategories() {
@@ -536,6 +764,44 @@ function parseRestaurants(rows: Array<Record<string, unknown>>, idField: string)
     .filter((item): item is RestaurantListItem => Boolean(item));
 }
 
+function parseRestaurantDraft(rows: Array<Record<string, unknown>>, idField: string) {
+  const firstRow = rows[0];
+  if (!firstRow) {
+    return null;
+  }
+
+  const rawId = firstRow[idField];
+  if (typeof rawId !== "string" || !rawId.trim()) {
+    return null;
+  }
+
+  return {
+    id: rawId,
+    franchiseId:
+      typeof firstRow.franchise_id === "string" && firstRow.franchise_id.trim()
+        ? firstRow.franchise_id
+        : null,
+    name: normalizeText(firstRow.name, ""),
+    address: normalizeText(firstRow.address, ""),
+    city: normalizeText(firstRow.city, ""),
+    state: normalizeText(firstRow.state, ""),
+    country: normalizeText(firstRow.country, ""),
+    postalCode: normalizeText(firstRow.postal_code, ""),
+    businessType: normalizeText(firstRow.business_type, ""),
+    contactName: normalizeText(firstRow.poc_name, ""),
+    serviceModel: normalizeText(firstRow.service_model, ""),
+    cuisineTypes: normalizeCuisineTypes(firstRow.cuisine_types),
+    phoneNumber: normalizeText(firstRow.phone_number, ""),
+    email: normalizeText(firstRow.email, ""),
+    legalName: normalizeText(firstRow.sms_name, ""),
+    pocPhoneNumber: normalizeText(firstRow.poc_phone_number, ""),
+    pocEmail: normalizeText(firstRow.poc_email, ""),
+    googlePlaceId: normalizeText(firstRow.google_place_id, ""),
+    gmbLink: normalizeText(firstRow.gmb_link, ""),
+    isDeleted: typeof firstRow.is_deleted === "boolean" ? firstRow.is_deleted : null,
+  } satisfies RestaurantDraftItem;
+}
+
 function normalizeCuisineTypes(value: unknown) {
   if (Array.isArray(value)) {
     return value
@@ -548,6 +814,66 @@ function normalizeCuisineTypes(value: unknown) {
   }
 
   return [];
+}
+
+export async function insertFranchise(payload: Record<string, unknown>) {
+  const data = await fetchGraphQL<InsertFranchiseResponse>(InsertFranchise, {
+    object: payload,
+  });
+  const row = data.insert_franchises_one;
+
+  if (!row || typeof row.id !== "string" || !row.id.trim()) {
+    throw new Error("Failed to create franchise. Missing franchise id in response.");
+  }
+
+  return {
+    id: row.id,
+    name: normalizeText(row.name, "Unnamed franchise"),
+  } satisfies FranchiseListItem;
+}
+
+export async function updateFranchiseBusinessInfo(
+  id: string,
+  set: Record<string, unknown>,
+) {
+  if (!id?.trim()) {
+    throw new Error("Franchise id is required.");
+  }
+
+  const data = await fetchGraphQL<UpdateFranchiseResponse>(
+    UpdateFranchiseBusinessInfo,
+    {
+      id,
+      set,
+    },
+  );
+
+  if (!data.update_franchises_by_pk) {
+    throw new Error("Failed to update franchise business info.");
+  }
+
+  return data.update_franchises_by_pk;
+}
+
+export async function updateFranchiseOwner(id: string, ownerUserId: string) {
+  if (!id?.trim()) {
+    throw new Error("Franchise id is required.");
+  }
+
+  if (!ownerUserId?.trim()) {
+    throw new Error("Owner user id is required.");
+  }
+
+  const data = await fetchGraphQL<UpdateFranchiseResponse>(UpdateFranchiseOwner, {
+    id,
+    ownerUserId,
+  });
+
+  if (!data.update_franchises_by_pk) {
+    throw new Error("Failed to assign owner to franchise.");
+  }
+
+  return data.update_franchises_by_pk;
 }
 
 export async function insertRestaurant(payload: Record<string, unknown>): Promise<InsertRestaurantResult> {

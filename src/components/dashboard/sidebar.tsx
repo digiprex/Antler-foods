@@ -1,32 +1,71 @@
-import { NavItem } from "./nav-item";
-import { SearchBox } from "./search-box";
-import type { DashboardRailTab } from "./icon-rail";
+import { NavItem } from './nav-item';
+import { SearchBox, type RestaurantSearchSelection } from './search-box';
+import type { DashboardRailTab } from './icon-rail';
 
 interface SidebarProps {
   activeTab: DashboardRailTab;
   pathname: string;
   dashboardBasePath: string;
+  isOpen: boolean;
+  selectedRestaurant: RestaurantSearchSelection | null;
+  onRestaurantSelect: (restaurant: RestaurantSearchSelection | null) => void;
 }
 
 const HOME_MENU_ITEMS = [
-  { href: "/home", label: "Home", icon: <HomeIcon /> },
-  { href: "/customer-base", label: "Customer Base", icon: <UsersIcon /> },
-  { href: "/new-restaurant", label: "New restaurant", icon: <StoreIcon /> },
-  { href: "/restaurants", label: "Restaurants", icon: <ShopIcon /> },
-  { href: "/sales", label: "Sales", icon: <SalesIcon /> },
-  { href: "/reports", label: "Reports", icon: <ReportsIcon /> },
+  { href: '/home', label: 'Home', icon: <HomeIcon /> },
+  { href: '/customer-base', label: 'Customer Base', icon: <UsersIcon /> },
+  { href: '/new-restaurant', label: 'New restaurant', icon: <StoreIcon /> },
+  { href: '/restaurants', label: 'Restaurants', icon: <ShopIcon /> },
+  { href: '/sales', label: 'Sales', icon: <SalesIcon /> },
+  { href: '/reports', label: 'Reports', icon: <ReportsIcon /> },
 ] as const;
 
-export function Sidebar({ activeTab, pathname, dashboardBasePath }: SidebarProps) {
-  const isHomeTab = activeTab === "home";
+export function Sidebar({
+  activeTab,
+  pathname,
+  dashboardBasePath,
+  isOpen,
+  selectedRestaurant,
+  onRestaurantSelect,
+}: SidebarProps) {
+  const isHomeTab = activeTab === 'home';
+  const isWebsiteTab = activeTab === 'website';
+
+  const websiteMenuItems = selectedRestaurant
+    ? [
+        {
+          href: buildWebsiteSettingsHref('/admin/navbar-settings', selectedRestaurant),
+          label: 'Navbar settings',
+          icon: <NavbarIcon />,
+        },
+        {
+          href: buildWebsiteSettingsHref('/admin/footer-settings', selectedRestaurant),
+          label: 'Footer settings',
+          icon: <FooterIcon />,
+        },
+      ]
+    : [];
 
   return (
-    <aside className="min-h-screen w-[330px] border-r border-[#d7e2e6] bg-[#f8fafb]">
-      <SearchBox />
+    <aside
+      className={`min-h-screen w-[330px] border-r border-[#d7e2e6] bg-[#f8fafb] transition-all duration-300 ease-in-out ${
+        isOpen ? 'translate-x-0' : '-translate-x-full absolute'
+      }`}
+    >
+      <SearchBox
+        selectedRestaurant={selectedRestaurant}
+        onRestaurantSelect={onRestaurantSelect}
+      />
       <div className="border-b border-[#d7e2e6] px-5 py-4">
         <div className="flex items-center justify-between">
           <h2 className="text-[24px] font-semibold text-[#101827]">
-            {isHomeTab ? "Home" : activeTab === "reservations" ? "Reservations" : "Team"}
+            {isHomeTab
+              ? 'Home'
+              : isWebsiteTab
+                ? 'Website'
+              : activeTab === 'reservations'
+                ? 'Reservations'
+                : 'Team'}
           </h2>
           <button
             type="button"
@@ -49,15 +88,62 @@ export function Sidebar({ activeTab, pathname, dashboardBasePath }: SidebarProps
             />
           ))}
         </nav>
+      ) : isWebsiteTab ? (
+        <div className="space-y-3 px-3 py-4">
+          {selectedRestaurant ? (
+            <div className="rounded-xl border border-[#d8e3e8] bg-white px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96]">
+                Selected restaurant
+              </p>
+              <p className="mt-1 text-[15px] font-semibold text-[#111827]">
+                {selectedRestaurant.name}
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-[#d8e3e8] bg-white px-4 py-3 text-sm text-[#60707c]">
+              Select a restaurant from the search box to manage website settings.
+            </div>
+          )}
+
+          {websiteMenuItems.length ? (
+            <nav className="space-y-2">
+              {websiteMenuItems.map((item) => (
+                <NavItem
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  active={pathname === extractPathFromHref(item.href)}
+                />
+              ))}
+            </nav>
+          ) : null}
+        </div>
       ) : (
         <div className="px-5 py-6 text-sm text-[#637280]">
-          {activeTab === "reservations"
-            ? "Reservations workspace placeholder."
-            : "Team workspace placeholder."}
+          {activeTab === 'reservations'
+            ? 'Reservations workspace placeholder.'
+            : 'Team workspace placeholder.'}
         </div>
       )}
     </aside>
   );
+}
+
+function buildWebsiteSettingsHref(
+  basePath: string,
+  selectedRestaurant: RestaurantSearchSelection,
+) {
+  const params = new URLSearchParams({
+    restaurant_id: selectedRestaurant.id,
+    restaurant_name: selectedRestaurant.name,
+  });
+
+  return `${basePath}?${params.toString()}`;
+}
+
+function extractPathFromHref(href: string) {
+  return href.split('?')[0] || href;
 }
 
 function HomeIcon() {
@@ -173,6 +259,44 @@ function ReportsIcon() {
       <path d="M15 3v4h4" />
       <path d="M9 12h6" />
       <path d="M9 16h6" />
+    </svg>
+  );
+}
+
+function NavbarIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 7h18" />
+      <path d="M3 12h18" />
+      <path d="M3 17h12" />
+    </svg>
+  );
+}
+
+function FooterIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 6h16v12H4z" />
+      <path d="M4 14h16" />
+      <path d="M8 18h8" />
     </svg>
   );
 }

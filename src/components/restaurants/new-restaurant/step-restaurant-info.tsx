@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   useWatch,
   type Control,
@@ -8,11 +8,16 @@ import {
   type UseFormRegister,
   type UseFormSetValue,
 } from 'react-hook-form';
-import { useGooglePlacesAutocomplete } from '@/hooks/useGooglePlacesAutocomplete';
+import {
+  useGooglePlacesAutocomplete,
+  type SelectedGooglePlace,
+} from '@/hooks/useGooglePlacesAutocomplete';
 import {
   getCuisineCategories,
+  getFranchises,
   getServiceModels,
   type CuisineTypeCategory,
+  type FranchiseListItem,
   type ServiceModel,
 } from '@/lib/graphql/queries';
 import { FormSelectInput, FormTextInput, HelperCallout } from './form-fields';
@@ -23,16 +28,8 @@ interface StepRestaurantInfoProps {
   register: UseFormRegister<NewRestaurantFormValues>;
   setValue: UseFormSetValue<NewRestaurantFormValues>;
   errors: FieldErrors<NewRestaurantFormValues>;
-  onContinueFromPanel?: () => void | Promise<void>;
-  isContinuingFromPanel?: boolean;
-  panelErrorMessage?: string | null;
+  openRegistrationPanelToken?: number;
 }
-
-const EXISTING_BUSINESS_OPTIONS = [
-  { value: 'luis-pizza', label: 'Luis Pizza GmbH' },
-  { value: 'sunset-kitchen', label: 'Sunset Kitchen Group' },
-  { value: 'urban-bites', label: 'Urban Bites Co.' },
-];
 
 const COUNTRY_OPTIONS = [
   { value: 'United States', label: 'United States' },
@@ -48,113 +45,190 @@ const STATE_OPTIONS = [
   { value: 'FL', label: 'FL' },
 ];
 
+const ENABLE_EXISTING_FRANCHISE = false;
+
 export function StepRestaurantInfo({
   control,
   register,
   setValue,
   errors,
-  onContinueFromPanel,
-  isContinuingFromPanel = false,
-  panelErrorMessage = null,
+  openRegistrationPanelToken = 0,
 }: StepRestaurantInfoProps) {
   const [categories, setCategories] = useState<CuisineTypeCategory[]>([]);
   const [serviceModels, setServiceModels] = useState<ServiceModel[]>([]);
+  const [franchises, setFranchises] = useState<FranchiseListItem[]>([]);
   const [isMetadataLoading, setIsMetadataLoading] = useState(true);
+  const [isFranchisesLoading, setIsFranchisesLoading] = useState(true);
   const [metadataError, setMetadataError] = useState<string | null>(null);
+  const [franchiseError, setFranchiseError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [franchiseSearchTerm, setFranchiseSearchTerm] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
   >({});
   const [isRegistrationPanelOpen, setIsRegistrationPanelOpen] = useState(false);
 
-  const ownerMode =
+  const mode =
     useWatch({
       control,
       name: 'ownerProfileMode',
     }) ?? 'create';
+
   const selectedCuisineTypeIds = useWatch({
     control,
     name: 'selectedCuisineTypeIds',
     defaultValue: [] as string[],
   });
+
   const selectedServiceModelId =
     useWatch({
       control,
       name: 'selectedServiceModelId',
     }) ?? '';
+
   const restaurantNameValue =
     useWatch({
       control,
       name: 'restaurantName',
     }) ?? '';
+
+  const franchiseNameValue =
+    useWatch({
+      control,
+      name: 'franchiseName',
+    }) ?? '';
+
+  const selectedFranchiseId =
+    useWatch({
+      control,
+      name: 'selectedFranchiseId',
+    }) ?? '';
+
   const selectedCountry =
     useWatch({
       control,
       name: 'country',
     }) ?? '';
+
   const selectedState =
     useWatch({
       control,
       name: 'state',
     }) ?? '';
 
-  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const googleMapsApiKey =
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ?? '';
+  const hasGoogleMapsApiKey = googleMapsApiKey.length > 0;
+
+  const applySelectedPlaceToForm = useCallback(
+    (place: SelectedGooglePlace) => {
+      const normalizedCountry = normalizeCountryName(place.country);
+
+      setValue('restaurantName', place.name, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+
+      setValue('googlePlaceId', place.placeId, {
+        shouldDirty: true,
+        shouldValidate: false,
+      });
+      setValue('googlePlaceName', place.name, {
+        shouldDirty: true,
+        shouldValidate: false,
+      });
+      setValue('googleLat', place.lat, {
+        shouldDirty: true,
+        shouldValidate: false,
+      });
+      setValue('googleLng', place.lng, {
+        shouldDirty: true,
+        shouldValidate: false,
+      });
+
+      if (place.address) {
+        setValue('address', place.address, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+      if (place.city) {
+        setValue('city', place.city, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+      if (place.postalCode) {
+        setValue('postalCode', place.postalCode, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+      if (normalizedCountry) {
+        setValue('country', normalizedCountry, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+      if (place.state) {
+        setValue('state', place.state.toUpperCase(), {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+    },
+    [setValue],
+  );
+
   const {
     setContainerElement,
     selectedPlace,
     clearSelectedPlace,
-    isReady: isPlacesReady,
-    error: placesError,
+    isReady: isGooglePlacesReady,
+    error: googlePlacesError,
   } = useGooglePlacesAutocomplete({
-    apiKey: mapsApiKey,
-    placeholder: 'Enter restaurant name',
+    apiKey: hasGoogleMapsApiKey ? googleMapsApiKey : undefined,
+    onPlaceSelected: applySelectedPlaceToForm,
+    onPlaceCleared: () => {
+      setValue('googlePlaceId', '', {
+        shouldDirty: true,
+        shouldValidate: false,
+      });
+      setValue('googlePlaceName', '', {
+        shouldDirty: true,
+        shouldValidate: false,
+      });
+      setValue('googleLat', null, {
+        shouldDirty: true,
+        shouldValidate: false,
+      });
+      setValue('googleLng', null, {
+        shouldDirty: true,
+        shouldValidate: false,
+      });
+    },
     onInputValueChange: (value) => {
       setValue('restaurantName', value, {
         shouldDirty: true,
         shouldValidate: true,
       });
-    },
-    onPlaceSelected: (place) => {
-      setValue('restaurantName', place.name, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      setValue('address', place.address, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      setValue('city', place.city, { shouldDirty: true, shouldValidate: true });
-      setValue('postalCode', place.postalCode, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      setValue('country', place.country, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      setValue('state', place.state, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      setValue('googlePlaceId', place.placeId, { shouldDirty: true });
-      setValue('googlePlaceName', place.name, { shouldDirty: true });
-      setValue('googleLat', place.lat);
-      setValue('googleLng', place.lng);
-    },
-    onPlaceCleared: () => {
-      setValue('restaurantName', '', {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      setValue('address', '', { shouldDirty: true, shouldValidate: true });
-      setValue('city', '', { shouldDirty: true, shouldValidate: true });
-      setValue('postalCode', '', { shouldDirty: true, shouldValidate: true });
-      setValue('country', '', { shouldDirty: true, shouldValidate: true });
-      setValue('state', '', { shouldDirty: true, shouldValidate: true });
-      setValue('googlePlaceId', '');
-      setValue('googlePlaceName', '');
-      setValue('googleLat', null);
-      setValue('googleLng', null);
+
+      if (!selectedPlace) {
+        return;
+      }
+
+      const normalizedInput = value.trim().toLowerCase();
+      const normalizedSelectedName = selectedPlace.name.trim().toLowerCase();
+      if (!normalizedInput || !normalizedSelectedName) {
+        return;
+      }
+
+      // Keep place id while autocomplete text still references selected place.
+      if (normalizedInput.includes(normalizedSelectedName)) {
+        return;
+      }
+
+      clearSelectedPlace();
     },
   });
 
@@ -210,17 +284,85 @@ export function StepRestaurantInfo({
   }, []);
 
   useEffect(() => {
-    if (!isRegistrationPanelOpen) {
+    let isActive = true;
+
+    if (!ENABLE_EXISTING_FRANCHISE) {
+      setIsFranchisesLoading(false);
+      return () => {
+        isActive = false;
+      };
+    }
+
+    const loadFranchises = async () => {
+      try {
+        setIsFranchisesLoading(true);
+        setFranchiseError(null);
+        const fetchedFranchises = await getFranchises();
+
+        if (!isActive) {
+          return;
+        }
+
+        setFranchises(fetchedFranchises);
+      } catch (caughtError) {
+        if (!isActive) {
+          return;
+        }
+
+        const message =
+          caughtError instanceof Error
+            ? caughtError.message
+            : 'Unable to load franchises.';
+        setFranchiseError(message);
+      } finally {
+        if (isActive) {
+          setIsFranchisesLoading(false);
+        }
+      }
+    };
+
+    void loadFranchises();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (ENABLE_EXISTING_FRANCHISE || mode !== 'existing') {
       return;
     }
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    setValue('ownerProfileMode', 'create', {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    setValue('selectedFranchiseId', '', {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+  }, [mode, setValue]);
 
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isRegistrationPanelOpen]);
+  useEffect(() => {
+    if (!openRegistrationPanelToken) {
+      return;
+    }
+
+    setIsRegistrationPanelOpen(true);
+  }, [openRegistrationPanelToken]);
+
+  useEffect(() => {
+    if (
+      mode === 'create' &&
+      !franchiseNameValue.trim() &&
+      restaurantNameValue.trim()
+    ) {
+      setValue('franchiseName', restaurantNameValue, {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
+    }
+  }, [franchiseNameValue, mode, restaurantNameValue, setValue]);
 
   const selectedCuisineLookup = useMemo(() => {
     const lookup = new Map<string, string>();
@@ -259,31 +401,53 @@ export function StepRestaurantInfo({
       .filter((category): category is CuisineTypeCategory => category !== null);
   }, [categories, searchTerm]);
 
+  const filteredFranchises = useMemo(() => {
+    const normalizedSearch = franchiseSearchTerm.trim().toLowerCase();
+    if (!normalizedSearch) {
+      return franchises;
+    }
+
+    return franchises.filter((franchise) =>
+      franchise.name.toLowerCase().includes(normalizedSearch),
+    );
+  }, [franchiseSearchTerm, franchises]);
+
   const countryOptions = useMemo(
     () => mergeSelectOptions(COUNTRY_OPTIONS, selectedCountry),
     [selectedCountry],
   );
+
   const stateOptions = useMemo(
     () => mergeSelectOptions(STATE_OPTIONS, selectedState),
     [selectedState],
   );
+
   const serviceModelError =
     typeof errors.selectedServiceModelId?.message === 'string'
       ? errors.selectedServiceModelId.message
       : undefined;
+
   const restaurantNameError =
     typeof errors.restaurantName?.message === 'string'
       ? errors.restaurantName.message
       : undefined;
+
+  const selectedFranchiseError =
+    typeof errors.selectedFranchiseId?.message === 'string'
+      ? errors.selectedFranchiseId.message
+      : undefined;
+
   const restaurantNameRegistration = register('restaurantName');
-  const shouldUseManualRestaurantNameInput = Boolean(placesError);
 
   const onChooseCreateRestaurant = () => {
     setValue('ownerProfileMode', 'create', {
       shouldDirty: true,
       shouldValidate: true,
     });
-    setValue('existingBusinessProfile', '');
+    setValue('selectedFranchiseId', '', {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
     setIsRegistrationPanelOpen(true);
   };
 
@@ -300,6 +464,7 @@ export function StepRestaurantInfo({
     const updatedCuisineTypeIds = isSelected
       ? selectedCuisineTypeIds.filter((id) => id !== cuisineTypeId)
       : [...selectedCuisineTypeIds, cuisineTypeId];
+
     const updatedCuisineTypeLabels = updatedCuisineTypeIds
       .map((id) => selectedCuisineLookup.get(id))
       .filter((label): label is string => Boolean(label));
@@ -308,6 +473,7 @@ export function StepRestaurantInfo({
       shouldDirty: true,
       shouldValidate: true,
     });
+
     setValue('selectedCuisineTypeLabels', updatedCuisineTypeLabels, {
       shouldDirty: true,
       shouldValidate: true,
@@ -319,6 +485,7 @@ export function StepRestaurantInfo({
       shouldDirty: true,
       shouldValidate: true,
     });
+
     setValue('selectedServiceModelName', serviceModel.name, {
       shouldDirty: true,
       shouldValidate: true,
@@ -330,10 +497,12 @@ export function StepRestaurantInfo({
       shouldDirty: true,
       shouldValidate: true,
     });
+
     setValue('selectedCuisineTypeLabels', [], {
       shouldDirty: true,
       shouldValidate: true,
     });
+
     setSearchTerm('');
   };
 
@@ -342,10 +511,18 @@ export function StepRestaurantInfo({
       shouldDirty: true,
       shouldValidate: true,
     });
+
     setValue('googlePlaceId', '');
     setValue('googlePlaceName', '');
     setValue('googleLat', null);
     setValue('googleLng', null);
+  };
+
+  const onFranchiseChange = (franchiseId: string) => {
+    setValue('selectedFranchiseId', franchiseId, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
   };
 
   useEffect(() => {
@@ -360,6 +537,7 @@ export function StepRestaurantInfo({
     const cuisineLabels = selectedCuisineTypeIds
       .map((id) => selectedCuisineLookup.get(id))
       .filter((label): label is string => Boolean(label));
+
     setValue('selectedCuisineTypeLabels', cuisineLabels, {
       shouldValidate: false,
       shouldDirty: false,
@@ -372,10 +550,16 @@ export function StepRestaurantInfo({
         <h3 className="text-[22px] font-semibold tracking-tight text-[#111827]">
           Restaurant Setup
         </h3>
-        <HelperCallout>
-          Choose whether you want to add a new restaurant entry or use an
-          existing restaurant profile.
-        </HelperCallout>
+        {ENABLE_EXISTING_FRANCHISE ? (
+          <HelperCallout>
+            Choose whether you are creating a new franchise with its first
+            restaurant or adding this restaurant to an existing franchise.
+          </HelperCallout>
+        ) : (
+          <HelperCallout>
+            Create a new franchise with its first restaurant.
+          </HelperCallout>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -385,446 +569,435 @@ export function StepRestaurantInfo({
             onClick={onChooseCreateRestaurant}
             className={cx(
               'rounded-xl border px-4 py-2 text-sm font-semibold transition',
-              ownerMode === 'create'
-                ? 'border-[#66c98a] bg-[#dff3e5] text-[#2f874f]'
+              mode === 'create'
+                ? 'border-[#667eea] bg-[#ede9fe] text-[#5b21b6]'
                 : 'border-[#d3e0e6] bg-white text-[#334155] hover:bg-[#f6faf8]',
             )}
           >
             + Add new restaurant
           </button>
-          <button
-            type="button"
-            onClick={onChooseExistingRestaurant}
-            className={cx(
-              'rounded-xl border px-4 py-2 text-sm font-semibold transition',
-              ownerMode === 'existing'
-                ? 'border-[#66c98a] bg-[#dff3e5] text-[#2f874f]'
-                : 'border-[#d3e0e6] bg-white text-[#334155] hover:bg-[#f6faf8]',
-            )}
-          >
-            Existing restaurant
-          </button>
+          {ENABLE_EXISTING_FRANCHISE ? (
+            <button
+              type="button"
+              onClick={onChooseExistingRestaurant}
+              className={cx(
+                'rounded-xl border px-4 py-2 text-sm font-semibold transition',
+                mode === 'existing'
+                  ? 'border-[#667eea] bg-[#ede9fe] text-[#5b21b6]'
+                  : 'border-[#d3e0e6] bg-white text-[#334155] hover:bg-[#f6faf8]',
+              )}
+            >
+              Existing franchise
+            </button>
+          ) : null}
         </div>
 
-        {ownerMode === 'existing' ? (
-          <div className="max-w-sm">
-            <FormSelectInput
-              label=""
-              name="existingBusinessProfile"
-              register={register}
-              errors={errors}
-              placeholder="Search business..."
-              options={EXISTING_BUSINESS_OPTIONS}
-            />
-          </div>
-        ) : (
-          <p className="text-sm text-[#647384]">
-            Click <span className="font-semibold">+ Add new restaurant</span> to
-            open the registration panel.
-          </p>
-        )}
-      </div>
+        {ENABLE_EXISTING_FRANCHISE && mode === 'existing' ? (
+          <>
+            <div className="max-w-md space-y-2">
+              <label className="block text-base font-medium text-[#111827]">
+                <span className="mr-1 text-[#ef5350]">*</span>
+                Select existing franchise
+              </label>
 
-      {ownerMode === 'create' ? (
-        <>
-          <div
-            aria-hidden={!isRegistrationPanelOpen}
-            onClick={() => setIsRegistrationPanelOpen(false)}
-            className={cx(
-              'fixed inset-0 z-40 bg-[#0f172a]/25 transition-opacity duration-300',
-              isRegistrationPanelOpen
-                ? 'opacity-100'
-                : 'pointer-events-none opacity-0',
-            )}
-          />
+              <input type="hidden" {...register('selectedFranchiseId')} />
 
-          <aside
-            aria-hidden={!isRegistrationPanelOpen}
-            className={cx(
-              'fixed inset-y-0 left-0 z-50 w-full overflow-y-auto bg-[#eef3f5] transition-transform duration-300 ease-out',
-              isRegistrationPanelOpen
-                ? 'translate-x-0'
-                : 'pointer-events-none -translate-x-full',
-            )}
-          >
-            <div className="sticky top-0 z-10 flex items-center border-b border-[#d7e2e6] bg-white/95 px-4 py-3 backdrop-blur">
-              <button
-                type="button"
-                onClick={() => setIsRegistrationPanelOpen(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#d8e3e8] text-[#4c6073] transition hover:bg-[#f4f8fa]"
-                aria-label="Close add restaurant panel"
+              <div className="rounded-xl border border-[#d4e0e6] bg-white px-3 py-2">
+                <div className="flex items-center gap-2 text-[#8fa0ad]">
+                  <SearchIcon />
+                  <input
+                    type="text"
+                    value={franchiseSearchTerm}
+                    onChange={(event) =>
+                      setFranchiseSearchTerm(event.target.value)
+                    }
+                    placeholder="Search franchise"
+                    className="h-7 w-full bg-transparent text-sm text-[#111827] placeholder:text-[#9badba] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <select
+                value={selectedFranchiseId}
+                onChange={(event) => onFranchiseChange(event.target.value)}
+                className={cx(
+                  'h-12 w-full rounded-xl border bg-white px-3 text-base text-[#101827] focus:outline-none',
+                  selectedFranchiseError
+                    ? 'border-[#e57373] shadow-[0_0_0_2px_rgba(229,115,115,0.08)]'
+                    : 'border-[#d4e0e6]',
+                )}
               >
-                <PanelCloseIcon />
-              </button>
-              <h4 className="ml-3 text-[22px] font-semibold tracking-tight text-[#111827]">
-                Add New Restaurant
-              </h4>
+                <option value="">Select franchise</option>
+                {filteredFranchises.map((franchise) => (
+                  <option key={franchise.id} value={franchise.id}>
+                    {franchise.name}
+                  </option>
+                ))}
+              </select>
+
+              {isFranchisesLoading ? (
+                <p className="text-xs text-[#647384]">Loading franchises...</p>
+              ) : null}
+
+              {franchiseError ? (
+                <p className="text-xs text-[#d83f3f]">{franchiseError}</p>
+              ) : null}
+
+              {selectedFranchiseError ? (
+                <p className="text-xs text-[#d83f3f]">
+                  {selectedFranchiseError}
+                </p>
+              ) : null}
             </div>
 
-            <div className="mx-auto w-full max-w-[980px] px-6 py-7 md:px-10">
-              <div className="space-y-7 rounded-2xl border border-[#d7e2e6] bg-[#f8fafb] p-6">
-                <div className="space-y-5">
-                  <div>
-                    <h5 className="text-[22px] font-semibold text-[#111827]">
-                      Basic Information
-                    </h5>
-                    <p className="text-[16px] text-[#556678]">
-                      Enter the restaurant&apos;s basic details and contact
-                      information
-                    </p>
-                  </div>
+            <button
+              type="button"
+              onClick={() => setIsRegistrationPanelOpen(true)}
+              className="inline-flex rounded-lg border border-[#d3e0e6] bg-white px-3 py-1.5 text-sm font-medium text-[#334155] hover:bg-[#f7fafc]"
+            >
+              Open restaurant registration panel
+            </button>
+          </>
+        ) : null}
+      </div>
 
-                  <div className="space-y-1.5">
-                    <label className="block text-base font-medium text-[#111827]">
-                      <span className="mr-1 text-[#ef5350]">*</span>
-                      Restaurant name
-                    </label>
-                    <input type="hidden" {...restaurantNameRegistration} />
-                    <div
-                      className={cx(
-                        'flex min-h-12 items-center rounded-xl border bg-white',
-                        restaurantNameError
-                          ? 'border-[#e57373] shadow-[0_0_0_2px_rgba(229,115,115,0.08)]'
-                          : 'border-[#d4e0e6]',
-                      )}
-                    >
-                      <div className="ml-3 flex items-center gap-2 border-r border-[#d6e0e5] pr-3">
-                        <StoreIcon />
-                      </div>
-                      {shouldUseManualRestaurantNameInput ? (
-                        <input
-                          type="text"
-                          value={restaurantNameValue}
-                          onChange={(event) =>
-                            onManualRestaurantNameChange(event.target.value)
-                          }
-                          placeholder="Enter restaurant name"
-                          className="w-full bg-transparent px-3 py-3 text-[16px] text-[#111827] placeholder:text-[#8ea0af] focus:outline-none"
-                        />
-                      ) : (
-                        <div
-                          ref={setContainerElement}
-                          className="w-full px-2 py-1"
-                        />
-                      )}
+      {isRegistrationPanelOpen ? (
+        <section className="space-y-5 rounded-2xl border border-[#d7e2e6] bg-[#f8fafb] p-6">
+          <div className="flex items-center justify-between border-b border-[#d7e2e6] pb-4">
+            <h4 className="text-[22px] font-semibold tracking-tight text-[#111827]">
+              Add New Restaurant
+            </h4>
+            <button
+              type="button"
+              onClick={() => setIsRegistrationPanelOpen(false)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#d8e3e8] text-[#4c6073] transition hover:bg-[#f4f8fa]"
+              aria-label="Close add restaurant form"
+            >
+              <PanelCloseIcon />
+            </button>
+          </div>
+
+          <div className="space-y-7">
+            <div className="space-y-5">
+              <div>
+                <h5 className="text-[22px] font-semibold text-[#111827]">
+                  Basic Information
+                </h5>
+                <p className="text-[16px] text-[#556678]">
+                  Enter the restaurant location details and registration data.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-base font-medium text-[#111827]">
+                  <span className="mr-1 text-[#ef5350]">*</span>
+                  Restaurant name
+                </label>
+                <input type="hidden" {...restaurantNameRegistration} />
+                {hasGoogleMapsApiKey && !googlePlacesError ? (
+                  <div
+                    className={cx(
+                      'flex min-h-12 items-center rounded-xl border bg-white px-3 py-2',
+                      restaurantNameError
+                        ? 'border-[#e57373] shadow-[0_0_0_2px_rgba(229,115,115,0.08)]'
+                        : 'border-[#d4e0e6]',
+                    )}
+                  >
+                    <div className="mr-3 flex items-center gap-2 border-r border-[#d6e0e5] pr-3">
+                      <StoreIcon />
                     </div>
-                    {restaurantNameError ? (
-                      <p className="text-xs text-[#d83f3f]">
-                        {restaurantNameError}
-                      </p>
-                    ) : null}
+                    <div ref={setContainerElement} className="w-full" />
                   </div>
+                ) : (
+                  <div
+                    className={cx(
+                      'flex min-h-12 items-center rounded-xl border bg-white',
+                      restaurantNameError
+                        ? 'border-[#e57373] shadow-[0_0_0_2px_rgba(229,115,115,0.08)]'
+                        : 'border-[#d4e0e6]',
+                    )}
+                  >
+                    <div className="ml-3 flex items-center gap-2 border-r border-[#d6e0e5] pr-3">
+                      <StoreIcon />
+                    </div>
+                    <input
+                      type="text"
+                      value={restaurantNameValue}
+                      onChange={(event) =>
+                        onManualRestaurantNameChange(event.target.value)
+                      }
+                      placeholder="Enter restaurant name"
+                      className="w-full bg-transparent px-3 py-3 text-[16px] text-[#111827] placeholder:text-[#8ea0af] focus:outline-none"
+                    />
+                  </div>
+                )}
+                {restaurantNameError ? (
+                  <p className="text-xs text-[#d83f3f]">
+                    {restaurantNameError}
+                  </p>
+                ) : null}
+              </div>
 
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-[#526274]">
-                    <span>Can&apos;t find the place in the list?</span>
-                    <button
-                      type="button"
-                      onClick={onResetPlaceCategories}
-                      className="font-medium text-[#49bb76] hover:text-[#34a560]"
-                    >
-                      Reset place categories
-                    </button>
-                    {shouldUseManualRestaurantNameInput ? (
+              <div className="flex flex-wrap items-center gap-2 text-sm text-[#526274]">
+                <span>Can&apos;t find the place in the list?</span>
+                <button
+                  type="button"
+                  onClick={onResetPlaceCategories}
+                  className="font-medium text-[#667eea] hover:text-[#5b21b6]"
+                >
+                  Reset place categories
+                </button>
+                {hasGoogleMapsApiKey ? (
+                  <>
+                    {isGooglePlacesReady && !googlePlacesError ? (
+                      <span className="text-[#667eea]">
+                        Google Places enabled. Select a place to autofill
+                        details.
+                      </span>
+                    ) : null}
+                    {!isGooglePlacesReady && !googlePlacesError ? (
+                      <span className="text-[#64748b]">
+                        Loading Google Places...
+                      </span>
+                    ) : null}
+                    {googlePlacesError ? (
                       <span className="text-[#b45309]">
-                        Google Places unavailable. Enter details manually.
+                        Google Places unavailable right now. Enter details
+                        manually.
                       </span>
                     ) : null}
-                    {!isPlacesReady && mapsApiKey && !placesError ? (
-                      <span className="text-[#8a97a3]">
-                        (Loading places...)
-                      </span>
-                    ) : null}
-                  </div>
-
-                  {selectedPlace && !shouldUseManualRestaurantNameInput ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-[#cde7d7] bg-[#edf8f1] px-3 py-2 text-sm text-[#2d7a4b]">
-                      <span className="truncate">
-                        Selected google place: {selectedPlace.name}
-                      </span>
+                    {selectedPlace ? (
                       <button
                         type="button"
                         onClick={clearSelectedPlace}
-                        aria-label="Clear selected google place"
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[#9dcbb0] text-[#2d7a4b] transition hover:bg-[#e1f4e8]"
+                        className="font-medium text-[#4b5563] hover:text-[#1f2937]"
+                      >
+                        Clear selected place
+                      </button>
+                    ) : null}
+                  </>
+                ) : (
+                  <span className="text-[#b45309]">
+                    Google Places is disabled for now. Enter details manually.
+                  </span>
+                )}
+              </div>
+
+              <FormTextInput
+                label="Address"
+                name="address"
+                register={register}
+                errors={errors}
+                required
+                placeholder="Street + number"
+              />
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <FormTextInput
+                  label="City"
+                  name="city"
+                  register={register}
+                  errors={errors}
+                  required
+                  placeholder="City"
+                />
+                <FormTextInput
+                  label="Postal code"
+                  name="postalCode"
+                  register={register}
+                  errors={errors}
+                  required
+                  placeholder="Postal code"
+                />
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <FormSelectInput
+                  label="Country"
+                  name="country"
+                  register={register}
+                  errors={errors}
+                  required
+                  placeholder="Select country"
+                  options={countryOptions}
+                />
+                <FormSelectInput
+                  label="State"
+                  name="state"
+                  register={register}
+                  errors={errors}
+                  required
+                  placeholder="Select state"
+                  options={stateOptions}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h5 className="text-[22px] font-semibold text-[#111827]">
+                  Food Categories &amp; Cuisine Types
+                </h5>
+                <p className="text-[16px] text-[#556678]">
+                  Select all food categories and cuisine types that apply to
+                  this restaurant.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-[#d3dfe6] bg-white px-3 py-2">
+                <div className="flex items-center gap-2 text-[#8fa0ad]">
+                  <SearchIcon />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    placeholder="Search cuisine types"
+                    className="h-7 w-full bg-transparent text-sm text-[#111827] placeholder:text-[#9badba] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {selectedCuisineTypeIds.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {selectedCuisineTypeIds.map((id) => (
+                    <span
+                      key={id}
+                      className="inline-flex items-center gap-1 rounded-full bg-[#ede9fe] px-3 py-1 text-sm font-medium text-[#5b21b6]"
+                    >
+                      {selectedCuisineLookup.get(id) ?? 'Cuisine'}
+                      <button
+                        type="button"
+                        onClick={() => onCuisineTypeToggle(id)}
+                        className="rounded-full p-0.5 hover:bg-[#ddd6fe]"
+                        aria-label="Remove cuisine selection"
                       >
                         <CloseIcon />
                       </button>
-                    </div>
-                  ) : null}
-
-                  {placesError ? (
-                    <p className="text-sm text-[#cf4545]">{placesError}</p>
-                  ) : null}
-
-                  <FormTextInput
-                    label="Address"
-                    name="address"
-                    register={register}
-                    errors={errors}
-                    required
-                    placeholder="Street + number"
-                  />
-
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <FormTextInput
-                      label="City"
-                      name="city"
-                      register={register}
-                      errors={errors}
-                      required
-                      placeholder="City"
-                    />
-                    <FormTextInput
-                      label="Postal code"
-                      name="postalCode"
-                      register={register}
-                      errors={errors}
-                      required
-                      placeholder="Postal code"
-                    />
-                  </div>
-
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <FormSelectInput
-                      label="Country"
-                      name="country"
-                      register={register}
-                      errors={errors}
-                      required
-                      placeholder="Select country"
-                      options={countryOptions}
-                    />
-                    <FormSelectInput
-                      label="State"
-                      name="state"
-                      register={register}
-                      errors={errors}
-                      required
-                      placeholder="Select state"
-                      options={stateOptions}
-                    />
-                  </div>
-
-                  {/* <label className="flex items-center gap-3 text-[16px] text-[#1f2937]">
-                    <input
-                      type="checkbox"
-                      {...register('isPartOfFranchise')}
-                      className="h-5 w-5 rounded border-[#cbd8e0] text-[#66c98a] focus:ring-[#66c98a]"
-                    />
-                    Restaurant is part of the franchise
-                  </label> */}
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h5 className="text-[22px] font-semibold text-[#111827]">
-                      Food Categories &amp; Cuisine Types
-                    </h5>
-                    <p className="text-[16px] text-[#556678]">
-                      Select all food categories and cuisine types that apply to
-                      this restaurant
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-[#d3dfe6] bg-white px-3 py-2">
-                    <div className="flex items-center gap-2 text-[#8fa0ad]">
-                      <SearchIcon />
-                      <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                        placeholder="Search cuisine types"
-                        className="h-7 w-full bg-transparent text-sm text-[#111827] placeholder:text-[#9badba] focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {selectedCuisineTypeIds.length ? (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedCuisineTypeIds.map((id) => (
-                        <span
-                          key={id}
-                          className="inline-flex items-center gap-1 rounded-full bg-[#e3f4e9] px-3 py-1 text-sm font-medium text-[#2f874f]"
-                        >
-                          {selectedCuisineLookup.get(id) ?? 'Cuisine'}
-                          <button
-                            type="button"
-                            onClick={() => onCuisineTypeToggle(id)}
-                            className="rounded-full p-0.5 hover:bg-[#cdecd8]"
-                            aria-label="Remove cuisine selection"
-                          >
-                            <CloseIcon />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  <div className="overflow-hidden rounded-xl border border-[#d3dfe6] bg-white">
-                    {isMetadataLoading ? (
-                      <p className="px-4 py-3 text-sm text-[#7a8997]">
-                        Loading cuisines and service models...
-                      </p>
-                    ) : null}
-
-                    {metadataError ? (
-                      <p className="px-4 py-3 text-sm text-[#cf4545]">
-                        {metadataError}
-                      </p>
-                    ) : null}
-
-                    {!isMetadataLoading &&
-                    !metadataError &&
-                    !filteredCategories.length ? (
-                      <p className="px-4 py-3 text-sm text-[#7a8997]">
-                        No cuisine categories found.
-                      </p>
-                    ) : null}
-
-                    {filteredCategories.map((category) => {
-                      const isExpanded =
-                        expandedCategories[category.id] ?? false;
-
-                      return (
-                        <div
-                          key={category.id}
-                          className="border-b border-[#dce5eb] last:border-b-0"
-                        >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExpandedCategories((previous) => ({
-                                ...previous,
-                                [category.id]: !isExpanded,
-                              }))
-                            }
-                            className="flex w-full items-center gap-3 px-4 py-3 text-left text-[18px] font-medium text-[#16202a] hover:bg-[#f7fafb]"
-                          >
-                            <ChevronRightIcon isExpanded={isExpanded} />
-                            {category.label}
-                          </button>
-
-                          {isExpanded ? (
-                            <div className="grid gap-3 border-t border-[#e1e8ed] p-4 md:grid-cols-3">
-                              {category.cuisineTypes.map((type) => {
-                                const isSelected =
-                                  selectedCuisineTypeIds.includes(type.id);
-
-                                return (
-                                  <button
-                                    key={type.id}
-                                    type="button"
-                                    onClick={() => onCuisineTypeToggle(type.id)}
-                                    className={cx(
-                                      'rounded-lg border px-3 py-2 text-left text-sm transition',
-                                      isSelected
-                                        ? 'border-[#62c986] bg-[#dff3e5] text-[#2f874f]'
-                                        : 'border-[#d5e0e7] bg-white text-[#1f2937] hover:bg-[#f8fbfc]',
-                                    )}
-                                  >
-                                    {type.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h5 className="text-[22px] font-semibold text-[#111827]">
-                      Restaurant Type &amp; Service Model
-                    </h5>
-                    <p className="text-[16px] text-[#556678]">
-                      Choose the format that best describes this
-                      restaurant&apos;s service style
-                    </p>
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {serviceModels.map((serviceModel) => {
-                      const isSelected =
-                        selectedServiceModelId === serviceModel.id;
-
-                      return (
-                        <button
-                          key={serviceModel.id}
-                          type="button"
-                          onClick={() => onServiceModelSelect(serviceModel)}
-                          className={cx(
-                            'rounded-xl border p-4 text-left transition',
-                            isSelected
-                              ? 'border-[#66c98a] bg-[#dff3e5]'
-                              : 'border-[#d5e0e7] bg-white hover:bg-[#f9fbfc]',
-                          )}
-                        >
-                          <p className="text-[16px] font-semibold text-[#111827]">
-                            {serviceModel.name}
-                          </p>
-                          {serviceModel.description ? (
-                            <p className="mt-1 text-sm text-[#5b6b79]">
-                              {serviceModel.description}
-                            </p>
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {serviceModelError ? (
-                    <p className="text-xs text-[#d83f3f]">
-                      {serviceModelError}
-                    </p>
-                  ) : null}
-                </div>
-
-                {/* <div className="space-y-4">
-                  <h5 className="text-[22px] font-semibold text-[#111827]">Additional Options</h5>
-                  <button
-                    type="button"
-                    onClick={() => setValue("importMenu", !importMenu, { shouldDirty: true })}
-                    className="inline-flex items-center gap-3 text-[16px] font-medium text-[#16202a]"
-                  >
-                    <span
-                      className={cx(
-                        "relative inline-flex h-7 w-12 rounded-full transition",
-                        importMenu ? "bg-[#66c98a]" : "bg-[#cfd7dd]",
-                      )}
-                    >
-                      <span
-                        className={cx(
-                          "absolute top-1 h-5 w-5 rounded-full bg-white transition",
-                          importMenu ? "left-6" : "left-1",
-                        )}
-                      />
                     </span>
-                    Import menu
-                  </button>
-                </div> */}
-
-                <div className="flex items-center justify-end border-t border-[#d7e2e6] pt-5">
-                  {panelErrorMessage ? (
-                    <p className="mr-auto rounded-lg border border-[#f2c7c7] bg-[#fff5f5] px-3 py-2 text-xs text-[#b33838]">
-                      {panelErrorMessage}
-                    </p>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => void onContinueFromPanel?.()}
-                    disabled={isContinuingFromPanel}
-                    className="rounded-xl bg-[#60c783] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#55bb77] disabled:cursor-not-allowed disabled:bg-[#c7d8ce]"
-                  >
-                    {isContinuingFromPanel ? "Saving..." : "Continue"}
-                  </button>
+                  ))}
                 </div>
+              ) : null}
+
+              <div className="overflow-hidden rounded-xl border border-[#d3dfe6] bg-white">
+                {isMetadataLoading ? (
+                  <p className="px-4 py-3 text-sm text-[#7a8997]">
+                    Loading cuisines and service models...
+                  </p>
+                ) : null}
+
+                {metadataError ? (
+                  <p className="px-4 py-3 text-sm text-[#cf4545]">
+                    {metadataError}
+                  </p>
+                ) : null}
+
+                {!isMetadataLoading &&
+                !metadataError &&
+                !filteredCategories.length ? (
+                  <p className="px-4 py-3 text-sm text-[#7a8997]">
+                    No cuisine categories found.
+                  </p>
+                ) : null}
+
+                {filteredCategories.map((category) => {
+                  const isExpanded = expandedCategories[category.id] ?? false;
+
+                  return (
+                    <div
+                      key={category.id}
+                      className="border-b border-[#dce5eb] last:border-b-0"
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedCategories((previous) => ({
+                            ...previous,
+                            [category.id]: !isExpanded,
+                          }))
+                        }
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-[18px] font-medium text-[#16202a] hover:bg-[#f7fafb]"
+                      >
+                        <ChevronRightIcon isExpanded={isExpanded} />
+                        {category.label}
+                      </button>
+
+                      {isExpanded ? (
+                        <div className="grid gap-3 border-t border-[#e1e8ed] p-4 md:grid-cols-3">
+                          {category.cuisineTypes.map((type) => {
+                            const isSelected = selectedCuisineTypeIds.includes(
+                              type.id,
+                            );
+
+                            return (
+                              <button
+                                key={type.id}
+                                type="button"
+                                onClick={() => onCuisineTypeToggle(type.id)}
+                                className={cx(
+                                  'rounded-lg border px-3 py-2 text-left text-sm transition',
+                                  isSelected
+                                    ? 'border-[#667eea] bg-[#ede9fe] text-[#5b21b6]'
+                                    : 'border-[#d5e0e7] bg-white text-[#1f2937] hover:bg-[#f8fbfc]',
+                                )}
+                              >
+                                {type.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          </aside>
-        </>
+
+            <div className="space-y-4">
+              <div>
+                <h5 className="text-[22px] font-semibold text-[#111827]">
+                  Restaurant Type &amp; Service Model
+                </h5>
+                <p className="text-[16px] text-[#556678]">
+                  Choose the format that best describes this restaurant&apos;s
+                  service style.
+                </p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                {serviceModels.map((serviceModel) => {
+                  const isSelected = selectedServiceModelId === serviceModel.id;
+
+                  return (
+                    <button
+                      key={serviceModel.id}
+                      type="button"
+                      onClick={() => onServiceModelSelect(serviceModel)}
+                      className={cx(
+                        'rounded-xl border p-4 text-left transition',
+                        isSelected
+                          ? 'border-[#667eea] bg-[#ede9fe]'
+                          : 'border-[#d5e0e7] bg-white hover:bg-[#f9fbfc]',
+                      )}
+                    >
+                      <p className="text-[16px] font-semibold text-[#111827]">
+                        {serviceModel.name}
+                      </p>
+                      {serviceModel.description ? (
+                        <p className="mt-1 text-sm text-[#5b6b79]">
+                          {serviceModel.description}
+                        </p>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {serviceModelError ? (
+                <p className="text-xs text-[#d83f3f]">{serviceModelError}</p>
+              ) : null}
+            </div>
+          </div>
+        </section>
       ) : null}
     </div>
   );
@@ -842,6 +1015,29 @@ function mergeSelectOptions(
   }
 
   return [{ value: selectedValue, label: selectedValue }, ...options];
+}
+
+function normalizeCountryName(value: string) {
+  const normalized = value.trim();
+  if (!normalized) {
+    return '';
+  }
+
+  const code = normalized.toUpperCase();
+  if (code === 'US' || code === 'USA') {
+    return 'United States';
+  }
+  if (code === 'DE') {
+    return 'Germany';
+  }
+  if (code === 'GB' || code === 'UK') {
+    return 'United Kingdom';
+  }
+  if (code === 'IN') {
+    return 'India';
+  }
+
+  return normalized;
 }
 
 function StoreIcon() {

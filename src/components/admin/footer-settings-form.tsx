@@ -13,17 +13,37 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useFooterConfig, useUpdateFooterConfig } from '@/hooks/use-footer-config';
+import type { FooterConfig } from '@/types/footer.types';
 import Footer from '@/components/footer';
 import Toast from '@/components/ui/toast';
 import styles from './footer-settings-form.module.css';
 
+const DEFAULT_RESTAURANT_ID = '92e9160e-0afa-4f78-824f-b28e32885353';
+
 export default function FooterSettingsForm() {
-  const { config, loading, error: fetchError } = useFooterConfig();
+  const searchParams = useSearchParams();
+  const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
+  const restaurantNameFromQuery =
+    searchParams.get('restaurant_name')?.trim() ?? '';
+  const restaurantId = restaurantIdFromQuery || DEFAULT_RESTAURANT_ID;
+  const configApiEndpoint = useMemo(
+    () =>
+      `/api/footer-config?restaurant_id=${encodeURIComponent(restaurantId)}`,
+    [restaurantId],
+  );
+
+  const { config, loading, error: fetchError } = useFooterConfig({
+    apiEndpoint: configApiEndpoint,
+  });
   const { updateFooter, updating, error: updateError } = useUpdateFooterConfig();
 
   // Form state
-  const [layout, setLayout] = useState<string>('columns-3');
+  const [layout, setLayout] = useState<NonNullable<FooterConfig['layout']>>(
+    'columns-3',
+  );
   const [aboutContent, setAboutContent] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -35,7 +55,6 @@ export default function FooterSettingsForm() {
   const [copyrightTextColor, setCopyrightTextColor] = useState('#ffffff');
   const [showNewsletter, setShowNewsletter] = useState(false);
   const [showSocialMedia, setShowSocialMedia] = useState(true);
-  const [restaurantId] = useState<string>('92e9160e-0afa-4f78-824f-b28e32885353');
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -123,6 +142,10 @@ export default function FooterSettingsForm() {
             <div>
               <h1 className={styles.formTitle}>Footer Settings</h1>
               <p className={styles.formSubtitle}>Customize your website footer</p>
+              <p className={styles.formSubtitle}>
+                Restaurant:{' '}
+                {restaurantNameFromQuery || restaurantId}
+              </p>
             </div>
             <button
               type="button"
@@ -428,9 +451,9 @@ export default function FooterSettingsForm() {
                 <Footer
                   restaurantName={config?.restaurantName || 'Antler Foods'}
                   aboutContent={aboutContent}
-                  email={config?.email}
-                  phone={config?.phone}
-                  address={config?.address}
+                  email={email}
+                  phone={phone}
+                  address={address}
                   socialLinks={config?.socialLinks || [
                     { platform: 'facebook', url: 'https://facebook.com', order: 1 },
                     { platform: 'instagram', url: 'https://instagram.com', order: 2 },
@@ -439,7 +462,7 @@ export default function FooterSettingsForm() {
                   columns={config?.columns || []}
                   showSocialMedia={showSocialMedia}
                   showNewsletter={showNewsletter}
-                  layout={layout as any}
+                  layout={layout}
                   bgColor={bgColor}
                   textColor={textColor}
                   linkColor={linkColor}

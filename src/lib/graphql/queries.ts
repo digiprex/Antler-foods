@@ -127,7 +127,7 @@ const CUISINE_TYPE_VARIANTS: CuisineTypeVariant[] = [
   },
 ];
 
-export const GetServiceModels = /* GraphQL */ `
+export const GetServiceModels = `
   query GetServiceModels {
     service_model(where: { is_deleted: { _eq: false } }, order_by: { name: asc }) {
       id
@@ -137,7 +137,7 @@ export const GetServiceModels = /* GraphQL */ `
   }
 `;
 
-export const ListFranchises = /* GraphQL */ `
+export const ListFranchises = `
   query ListFranchises {
     franchises(where: { is_deleted: { _eq: false } }, order_by: { name: asc }) {
       id
@@ -146,7 +146,7 @@ export const ListFranchises = /* GraphQL */ `
   }
 `;
 
-export const InsertFranchise = /* GraphQL */ `
+export const InsertFranchise = `
   mutation InsertFranchise($object: franchises_insert_input!) {
     insert_franchises_one(object: $object) {
       id
@@ -155,7 +155,7 @@ export const InsertFranchise = /* GraphQL */ `
   }
 `;
 
-export const UpdateFranchiseBusinessInfo = /* GraphQL */ `
+export const UpdateFranchiseBusinessInfo = `
   mutation UpdateFranchiseBusinessInfo($id: uuid!, $set: franchises_set_input!) {
     update_franchises_by_pk(pk_columns: { id: $id }, _set: $set) {
       id
@@ -163,7 +163,7 @@ export const UpdateFranchiseBusinessInfo = /* GraphQL */ `
   }
 `;
 
-export const UpdateFranchiseOwner = /* GraphQL */ `
+export const UpdateFranchiseOwner = `
   mutation UpdateFranchiseOwner($id: uuid!, $ownerUserId: uuid!) {
     update_franchises_by_pk(
       pk_columns: { id: $id }
@@ -175,10 +175,31 @@ export const UpdateFranchiseOwner = /* GraphQL */ `
   }
 `;
 
+const DELETE_RESTAURANT_GOOGLE_REVIEWS = `
+  mutation DeleteRestaurantGoogleReviews($restaurantId: uuid!) {
+    delete_reviews(
+      where: {
+        restaurant_id: { _eq: $restaurantId }
+        source: { _eq: "google" }
+      }
+    ) {
+      affected_rows
+    }
+  }
+`;
+
+const INSERT_reviews = `
+  mutation InsertRestaurantReviews($objects: [reviews_insert_input!]!) {
+    insert_reviews(objects: $objects) {
+      affected_rows
+    }
+  }
+`;
+
 const INSERT_RESTAURANT_VARIANTS = [
   {
     outputField: "restaurant_id",
-    query: /* GraphQL */ `
+    query: `
       mutation InsertRestaurantWithRestaurantId($object: restaurants_insert_input!) {
         insert_restaurants_one(object: $object) {
           restaurant_id
@@ -188,7 +209,7 @@ const INSERT_RESTAURANT_VARIANTS = [
   },
   {
     outputField: "id",
-    query: /* GraphQL */ `
+    query: `
       mutation InsertRestaurantWithId($object: restaurants_insert_input!) {
         insert_restaurants_one(object: $object) {
           id
@@ -198,7 +219,7 @@ const INSERT_RESTAURANT_VARIANTS = [
   },
   {
     outputField: "__typename",
-    query: /* GraphQL */ `
+    query: `
       mutation InsertRestaurantFallback($object: restaurants_insert_input!) {
         insert_restaurants_one(object: $object) {
           __typename
@@ -211,7 +232,7 @@ const INSERT_RESTAURANT_VARIANTS = [
 const UPDATE_RESTAURANT_VARIANTS = [
   {
     pkField: "restaurant_id",
-    query: /* GraphQL */ `
+    query: `
       mutation UpdateRestaurantByRestaurantId($restaurantId: uuid!, $changes: restaurants_set_input!) {
         update_restaurants_by_pk(pk_columns: { restaurant_id: $restaurantId }, _set: $changes) {
           __typename
@@ -221,7 +242,7 @@ const UPDATE_RESTAURANT_VARIANTS = [
   },
   {
     pkField: "id",
-    query: /* GraphQL */ `
+    query: `
       mutation UpdateRestaurantById($restaurantId: uuid!, $changes: restaurants_set_input!) {
         update_restaurants_by_pk(pk_columns: { id: $restaurantId }, _set: $changes) {
           __typename
@@ -239,7 +260,7 @@ type RestaurantsListVariant = {
 const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
   {
     idField: "restaurant_id",
-    query: /* GraphQL */ `
+    query: `
       query GetRestaurantsWithRestaurantId {
         restaurants(order_by: { created_at: desc }) {
           restaurant_id
@@ -256,7 +277,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
   },
   {
     idField: "id",
-    query: /* GraphQL */ `
+    query: `
       query GetRestaurantsWithId {
         restaurants(order_by: { created_at: desc }) {
           id
@@ -273,7 +294,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
   },
   {
     idField: "restaurant_id",
-    query: /* GraphQL */ `
+    query: `
       query GetRestaurantsWithoutCreatedAt {
         restaurants {
           restaurant_id
@@ -289,7 +310,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
   },
   {
     idField: "id",
-    query: /* GraphQL */ `
+    query: `
       query GetRestaurantsWithoutCreatedAtWithId {
         restaurants {
           id
@@ -305,7 +326,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
   },
   {
     idField: "restaurant_id",
-    query: /* GraphQL */ `
+    query: `
       query GetRestaurantsMinimalWithRestaurantId {
         restaurants {
           restaurant_id
@@ -316,7 +337,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
   },
   {
     idField: "id",
-    query: /* GraphQL */ `
+    query: `
       query GetRestaurantsMinimalWithId {
         restaurants {
           id
@@ -335,7 +356,7 @@ type RestaurantDraftVariant = {
 const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
   {
     idField: "restaurant_id",
-    query: /* GraphQL */ `
+    query: `
       query GetRestaurantDraftByRestaurantId($restaurantId: uuid!) {
         restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
           restaurant_id
@@ -364,7 +385,7 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
   },
   {
     idField: "id",
-    query: /* GraphQL */ `
+    query: `
       query GetRestaurantDraftById($restaurantId: uuid!) {
         restaurants(where: { id: { _eq: $restaurantId } }, limit: 1) {
           id
@@ -393,7 +414,7 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
   },
   {
     idField: "restaurant_id",
-    query: /* GraphQL */ `
+    query: `
       query GetRestaurantDraftMinimalByRestaurantId($restaurantId: uuid!) {
         restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
           restaurant_id
@@ -405,7 +426,7 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
   },
   {
     idField: "id",
-    query: /* GraphQL */ `
+    query: `
       query GetRestaurantDraftMinimalById($restaurantId: uuid!) {
         restaurants(where: { id: { _eq: $restaurantId } }, limit: 1) {
           id
@@ -466,9 +487,34 @@ interface UpdateFranchiseResponse {
   } | null;
 }
 
+interface DeleteRestaurantReviewsResponse {
+  delete_reviews: {
+    affected_rows?: number | null;
+  } | null;
+}
+
+interface InsertRestaurantReviewsResponse {
+  insert_reviews: {
+    affected_rows?: number | null;
+  } | null;
+}
+
 export interface InsertRestaurantResult {
   primaryKey: string | null;
   row: Record<string, unknown>;
+}
+
+export interface RestaurantReviewUpsertInput {
+  source: string;
+  external_review_id?: string | null;
+  rating: number;
+  author_name?: string | null;
+  review_text?: string | null;
+  author_url?: string | null;
+  review_url?: string | null;
+  published_at?: string | null;
+  is_hidden?: boolean;
+  created_by_user_id?: string | null;
 }
 
 const IS_DEV = process.env.NODE_ENV !== "production";
@@ -666,7 +712,7 @@ async function fetchCuisineTypes() {
 }
 
 function buildCuisineCategoriesQuery(variant: CuisineCategoryVariant) {
-  return /* GraphQL */ `
+  return `
     query GetCuisineTypeCategoriesVariant {
       cuisine_types_categories {
         ${variant.idField}
@@ -677,7 +723,7 @@ function buildCuisineCategoriesQuery(variant: CuisineCategoryVariant) {
 }
 
 function buildCuisineTypesQuery(variant: CuisineTypeVariant) {
-  return /* GraphQL */ `
+  return `
     query GetCuisineTypesVariant {
       cuisine_types {
         ${variant.idField}
@@ -694,6 +740,29 @@ function normalizeText(value: unknown, fallback: string) {
   }
 
   return fallback;
+}
+
+function normalizeNullableText(value: unknown) {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  return null;
+}
+
+function normalizeRating(value: unknown) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return 5;
+  }
+
+  const rounded = Math.round(value);
+  if (rounded < 1) {
+    return 1;
+  }
+  if (rounded > 5) {
+    return 5;
+  }
+  return rounded;
 }
 
 function parseCuisineCategories(
@@ -948,8 +1017,7 @@ export async function insertRestaurant(payload: Record<string, unknown>): Promis
   }
 
   throw new Error(
-    `Failed to create restaurant after schema fallback attempts.${
-      lastGraphQlError ? ` Last GraphQL error: ${lastGraphQlError}` : ""
+    `Failed to create restaurant after schema fallback attempts.${lastGraphQlError ? ` Last GraphQL error: ${lastGraphQlError}` : ""
     }`,
   );
 }
@@ -1024,10 +1092,56 @@ export async function updateRestaurant(
   }
 
   throw new Error(
-    `Failed to update restaurant after schema fallback attempts.${
-      lastGraphQlError ? ` Last GraphQL error: ${lastGraphQlError}` : ""
+    `Failed to update restaurant after schema fallback attempts.${lastGraphQlError ? ` Last GraphQL error: ${lastGraphQlError}` : ""
     }`,
   );
+}
+
+export async function replaceRestaurantGoogleReviews(
+  restaurantId: string,
+  reviews: RestaurantReviewUpsertInput[],
+) {
+  if (!restaurantId?.trim()) {
+    throw new Error("Restaurant id is required to save reviews.");
+  }
+
+  await fetchGraphQL<DeleteRestaurantReviewsResponse>(
+    DELETE_RESTAURANT_GOOGLE_REVIEWS,
+    {
+      restaurantId,
+    },
+  );
+
+  if (!reviews.length) {
+    return {
+      affectedRows: 0,
+    };
+  }
+
+  const objects = reviews.map((review) => ({
+    restaurant_id: restaurantId,
+    source: review.source || "google",
+    external_review_id: normalizeNullableText(review.external_review_id),
+    rating: normalizeRating(review.rating),
+    author_name: normalizeNullableText(review.author_name),
+    review_text: normalizeNullableText(review.review_text),
+    author_url: normalizeNullableText(review.author_url),
+    review_url: normalizeNullableText(review.review_url),
+    published_at: normalizeNullableText(review.published_at),
+    is_hidden: Boolean(review.is_hidden),
+    created_by_user_id: normalizeNullableText(review.created_by_user_id),
+  }));
+
+  const data = await fetchGraphQL<InsertRestaurantReviewsResponse>(
+    INSERT_reviews,
+    {
+      objects,
+    },
+  );
+
+  return {
+    affectedRows: Number(data.insert_reviews?.affected_rows ?? 0),
+  };
 }
 
 function removeFieldsFromObject(object: Record<string, unknown>, fields: string[]) {

@@ -20,6 +20,7 @@ import {
   getRestaurantDraftById,
   insertFranchise,
   insertRestaurant,
+  replaceRestaurantGoogleReviews,
   updateFranchiseOwner,
   updateRestaurant,
 } from '@/lib/graphql/queries';
@@ -424,6 +425,26 @@ export function NewRestaurantWizard() {
       shouldDirty: false,
       shouldValidate: false,
     });
+
+    const trimmedGooglePlaceId = values.googlePlaceId.trim();
+    if (trimmedGooglePlaceId) {
+      try {
+        const currentUser = nhost.auth.getUser();
+        await syncGoogleReviewsForRestaurant({
+          restaurantId,
+          placeId: trimmedGooglePlaceId,
+          createdByUserId: currentUser?.id ?? null,
+        });
+      } catch (caughtError) {
+        const reason =
+          caughtError instanceof Error ? caughtError.message : 'Unknown error';
+        debugLog('reviews:sync-failed', {
+          restaurantId,
+          placeId: trimmedGooglePlaceId,
+          reason,
+        });
+      }
+    }
 
     setSuccessMessage('Restaurant step 1 details saved.');
     setCurrentStep(2);
@@ -942,6 +963,105 @@ function resolveRestaurantId(
   }
 
   return null;
+}
+
+type GooglePlaceReviewPayload = {
+  source?: unknown;
+  external_review_id?: unknown;
+  rating?: unknown;
+  author_name?: unknown;
+  review_text?: unknown;
+  author_url?: unknown;
+  review_url?: unknown;
+  published_at?: unknown;
+};
+
+async function syncGoogleReviewsForRestaurant({
+  restaurantId,
+  placeId,
+  createdByUserId,
+}: {
+  restaurantId: string;
+  placeId: string;
+  createdByUserId: string | null;
+}) {
+  const response = await fetch('/api/google/place-reviews', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ placeId }),
+    cache: 'no-store',
+  });
+
+  const payload = (await safeParseJson(response)) as {
+    reviews?: unknown;
+    error?: unknown;
+    message?: unknown;
+  } | null;
+
+  if (!response.ok) {
+    const message =
+      (payload &&
+        (typeof payload.error === 'string'
+          ? payload.error
+          : typeof payload.message === 'string'
+            ? payload.message
+            : null)) ||
+      `Failed to fetch reviews for place id ${placeId}.`;
+    throw new Error(message);
+  }
+
+  const rawReviews = Array.isArray(payload?.reviews)
+    ? (payload?.reviews as GooglePlaceReviewPayload[])
+    : [];
+
+  const reviews = rawReviews
+    .map((rawReview) => ({
+      source:
+        typeof rawReview.source === 'string' && rawReview.source.trim()
+          ? rawReview.source.trim()
+          : 'google',
+      external_review_id:
+        typeof rawReview.external_review_id === 'string' &&
+        rawReview.external_review_id.trim()
+          ? rawReview.external_review_id.trim()
+          : null,
+      rating:
+        typeof rawReview.rating === 'number' && !Number.isNaN(rawReview.rating)
+          ? Math.max(1, Math.min(5, Math.round(rawReview.rating)))
+          : 5,
+      author_name:
+        typeof rawReview.author_name === 'string' && rawReview.author_name.trim()
+          ? rawReview.author_name.trim()
+          : null,
+      review_text:
+        typeof rawReview.review_text === 'string' && rawReview.review_text.trim()
+          ? rawReview.review_text.trim()
+          : null,
+      author_url:
+        typeof rawReview.author_url === 'string' && rawReview.author_url.trim()
+          ? rawReview.author_url.trim()
+          : null,
+      review_url:
+        typeof rawReview.review_url === 'string' && rawReview.review_url.trim()
+          ? rawReview.review_url.trim()
+          : null,
+      published_at:
+        typeof rawReview.published_at === 'string' && rawReview.published_at.trim()
+          ? rawReview.published_at.trim()
+          : null,
+      is_hidden: false,
+      created_by_user_id: createdByUserId,
+    }))
+    .filter(
+      (review) =>
+        Boolean(review.external_review_id) ||
+        Boolean(review.review_text) ||
+        Boolean(review.author_name),
+    );
+
+  await replaceRestaurantGoogleReviews(restaurantId, reviews);
 }
 
 async function safeParseJson(response: Response) {

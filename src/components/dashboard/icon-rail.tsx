@@ -8,7 +8,6 @@ interface IconRailProps {
   dashboardBasePath: string;
   selectedRestaurant: RestaurantSearchSelection | null;
   onSelectWebsiteTab: () => void;
-  onSelectStandardTab: () => void;
 }
 
 const RAIL_TABS: Array<{
@@ -42,7 +41,6 @@ export function IconRail({
   dashboardBasePath,
   selectedRestaurant,
   onSelectWebsiteTab,
-  onSelectStandardTab,
 }: IconRailProps) {
   const hasWebsiteTab = Boolean(selectedRestaurant);
 
@@ -58,7 +56,6 @@ export function IconRail({
               <Link
                 href={href}
                 aria-label={tab.label}
-                onClick={onSelectStandardTab}
                 className={`inline-flex h-12 w-12 items-center justify-center rounded-xl transition ${
                   isActive
                     ? "bg-[#e6f5ec] text-[#5dc67d]"

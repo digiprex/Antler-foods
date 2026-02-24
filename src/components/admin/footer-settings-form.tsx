@@ -92,12 +92,9 @@ export default function FooterSettingsForm() {
     try {
       await updateFooter({
         restaurant_id: restaurantId,
-        layout,
-        restaurantName: config?.restaurantName || 'Antler Foods',
+        layout: layout as any,
         aboutContent,
-        email,
-        phone,
-        address,
+        // restaurantName, email, phone, address and socialLinks are not saved here - they come from restaurant table
         bgColor,
         textColor,
         linkColor,
@@ -106,7 +103,6 @@ export default function FooterSettingsForm() {
         showNewsletter,
         showSocialMedia,
         columns: config?.columns || [],
-        socialLinks: config?.socialLinks || [],
       });
 
       setToastMessage('Footer settings saved successfully!');

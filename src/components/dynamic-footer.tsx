@@ -48,6 +48,7 @@ export default function DynamicFooter({
   const [config, setConfig] = useState<FooterConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [restaurantId, setRestaurantId] = useState<string>('92e9160e-0afa-4f78-824f-b28e32885353');
 
   useEffect(() => {
     // If override config is provided, use it directly
@@ -144,6 +145,7 @@ export default function DynamicFooter({
       linkColor={config.linkColor}
       copyrightBgColor={config.copyrightBgColor}
       copyrightTextColor={config.copyrightTextColor}
+      restaurant_id={restaurantId}
     />
   );
 }

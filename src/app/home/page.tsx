@@ -1,70 +1,41 @@
 /**
  * Home Page
- * 
- * Static page demonstrating the dynamic navbar in action
+ *
+ * Dynamic page demonstrating the dynamic navbar and hero in action
  */
+
+import DynamicHero from '@/components/dynamic-hero';
 
 export default function HomePage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       {/* Navbar is automatically rendered by ConditionalNavbar in root layout */}
       
-      {/* Hero Section */}
-      <section style={{ 
-        paddingTop: '120px', 
-        paddingBottom: '80px',
-        textAlign: 'center',
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '120px 2rem 80px'
-      }}>
-        <h1 style={{ 
-          fontSize: '3rem', 
-          fontWeight: 'bold', 
-          marginBottom: '1.5rem',
-          color: '#1a1a1a'
-        }}>
-          Welcome to Antler Foods
-        </h1>
-        <p style={{ 
-          fontSize: '1.25rem', 
-          color: '#666',
-          marginBottom: '2rem',
-          maxWidth: '600px',
-          margin: '0 auto 2rem'
-        }}>
-          Experience the finest dining with our carefully curated menu and exceptional service.
-        </p>
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-          <a 
-            href="/menu" 
-            style={{
-              padding: '0.75rem 2rem',
-              backgroundColor: '#000',
-              color: '#fff',
-              borderRadius: '0.25rem',
-              textDecoration: 'none',
-              fontWeight: '600'
-            }}
-          >
-            View Menu
-          </a>
-          <a 
-            href="/order" 
-            style={{
-              padding: '0.75rem 2rem',
-              backgroundColor: '#fff',
-              color: '#000',
-              border: '2px solid #000',
-              borderRadius: '0.25rem',
-              textDecoration: 'none',
-              fontWeight: '600'
-            }}
-          >
-            Order Online
-          </a>
-        </div>
-      </section>
+      {/* Dynamic Hero Section */}
+      <DynamicHero
+        restaurantId="92e9160e-0afa-4f78-824f-b28e32885353"
+        showLoading={true}
+        fallbackConfig={{
+          headline: "Welcome to Antler Foods",
+          subheadline: "Experience culinary excellence",
+          description: "Experience the finest dining with our carefully curated menu and exceptional service.",
+          primaryButton: {
+            label: 'View Menu',
+            href: '/menu',
+            variant: 'primary'
+          },
+          secondaryButton: {
+            label: 'Order Online',
+            href: '/order',
+            variant: 'outline'
+          },
+          layout: 'centered-large',
+          bgColor: '#ffffff',
+          textColor: '#000000',
+          textAlign: 'center',
+          minHeight: '600px'
+        }}
+      />
 
       {/* Features Section */}
       <section style={{ 

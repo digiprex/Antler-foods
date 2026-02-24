@@ -12,6 +12,7 @@ import styles from './footer.module.scss';
 
 interface FooterProps extends Partial<FooterConfig> {
   // Allow component to accept all FooterConfig properties as optional
+  restaurant_id?: string;
 }
 
 export default function Footer(props: FooterProps) {
@@ -37,10 +38,13 @@ export default function Footer(props: FooterProps) {
     copyrightBgColor = '#000000',
     copyrightTextColor = '#ffffff',
     logoUrl,
+    restaurant_id,
   } = props;
 
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [newsletterMessage, setNewsletterMessage] = useState('');
 
   // Show scroll to top button when scrolled down
   useEffect(() => {
@@ -56,12 +60,64 @@ export default function Footer(props: FooterProps) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle newsletter subscription
-    console.log('Newsletter subscription:', newsletterEmail);
-    setNewsletterEmail('');
-    // You can add actual API call here
+    
+    // Validate restaurant_id is available
+    if (!restaurant_id) {
+      setNewsletterStatus('error');
+      setNewsletterMessage('Unable to subscribe. Restaurant ID is missing.');
+      return;
+    }
+
+    setNewsletterStatus('loading');
+    setNewsletterMessage('');
+
+    try {
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: newsletterEmail,
+          restaurant_id: restaurant_id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setNewsletterStatus('success');
+        setNewsletterMessage(data.message || 'Successfully subscribed to newsletter!');
+        setNewsletterEmail('');
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          setNewsletterStatus('idle');
+          setNewsletterMessage('');
+        }, 5000);
+      } else {
+        setNewsletterStatus('error');
+        setNewsletterMessage(data.error || 'Failed to subscribe. Please try again.');
+        
+        // Clear error message after 5 seconds
+        setTimeout(() => {
+          setNewsletterStatus('idle');
+          setNewsletterMessage('');
+        }, 5000);
+      }
+    } catch (error) {
+      console.error('Newsletter subscription error:', error);
+      setNewsletterStatus('error');
+      setNewsletterMessage('An error occurred. Please try again later.');
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setNewsletterStatus('idle');
+        setNewsletterMessage('');
+      }, 5000);
+    }
   };
 
   // Social media icons mapping - SVG components
@@ -194,9 +250,18 @@ export default function Footer(props: FooterProps) {
               placeholder={newsletterPlaceholder}
               className={styles.newsletterInput}
               required
+              disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
             />
-            <button type="submit" className={styles.newsletterButton}>
-              Subscribe
+            <button
+              type="submit"
+              className={styles.newsletterButton}
+              disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
+              style={{
+                backgroundColor: newsletterStatus === 'success' ? '#10b981' : undefined,
+                cursor: newsletterStatus === 'success' ? 'default' : undefined,
+              }}
+            >
+              {newsletterStatus === 'loading' ? 'Subscribing...' : newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
             </button>
           </form>
         </div>
@@ -259,9 +324,18 @@ export default function Footer(props: FooterProps) {
                 placeholder={newsletterPlaceholder}
                 className={styles.newsletterInputCentered}
                 required
+                disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
               />
-              <button type="submit" className={styles.newsletterButtonCentered}>
-                Subscribe
+              <button
+                type="submit"
+                className={styles.newsletterButtonCentered}
+                disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
+                style={{
+                  backgroundColor: newsletterStatus === 'success' ? '#10b981' : undefined,
+                  cursor: newsletterStatus === 'success' ? 'default' : undefined,
+                }}
+              >
+                {newsletterStatus === 'loading' ? 'Subscribing...' : newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
               </button>
             </form>
           </div>
@@ -414,9 +488,18 @@ export default function Footer(props: FooterProps) {
                 placeholder={newsletterPlaceholder}
                 className={styles.newsletterInput}
                 required
+                disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
               />
-              <button type="submit" className={styles.newsletterButton}>
-                Subscribe
+              <button
+                type="submit"
+                className={styles.newsletterButton}
+                disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
+                style={{
+                  backgroundColor: newsletterStatus === 'success' ? '#10b981' : undefined,
+                  cursor: newsletterStatus === 'success' ? 'default' : undefined,
+                }}
+              >
+                {newsletterStatus === 'loading' ? 'Subscribing...' : newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
               </button>
             </form>
           </div>

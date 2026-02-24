@@ -160,14 +160,6 @@ export default function FooterSettingsForm() {
               >
                 {showPreview ? '👁️‍🗨️' : '👁️'} {showPreview ? 'Hide' : 'Show'} Preview
               </button>
-              <button
-                type="button"
-                className={styles.closeButton}
-                onClick={() => window.history.back()}
-                aria-label="Close"
-              >
-                ✕
-              </button>
             </div>
           </div>
 

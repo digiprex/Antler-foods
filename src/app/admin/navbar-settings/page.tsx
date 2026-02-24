@@ -30,17 +30,7 @@ export default function NavbarSettingsPage() {
   return (
     <DashboardLayout>
       {restaurantId && restaurantName ? (
-        <div>
-          <div className="mb-6 rounded-xl border border-[#d8e3e8] bg-white px-6 py-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96]">
-              Configuring navbar for
-            </p>
-            <p className="mt-1 text-lg font-semibold text-[#111827]">
-              {restaurantName}
-            </p>
-          </div>
-          <NavbarSettingsForm />
-        </div>
+        <NavbarSettingsForm />
       ) : (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">

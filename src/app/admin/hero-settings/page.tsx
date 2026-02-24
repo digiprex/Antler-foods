@@ -32,17 +32,7 @@ export default function HeroSettingsPage() {
   return (
     <DashboardLayout>
       {restaurantId && restaurantName ? (
-        <div>
-          <div className="mb-6 rounded-xl border border-[#d8e3e8] bg-white px-6 py-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96]">
-              Configuring hero section for
-            </p>
-            <p className="mt-1 text-lg font-semibold text-[#111827]">
-              {restaurantName}
-            </p>
-          </div>
-          <HeroSettingsForm />
-        </div>
+        <HeroSettingsForm />
       ) : (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">

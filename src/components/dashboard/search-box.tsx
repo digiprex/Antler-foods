@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { getRestaurants } from '@/lib/graphql/queries';
 
 export interface RestaurantSearchSelection {
@@ -15,6 +16,7 @@ export function SearchBox({
   selectedRestaurant,
   onRestaurantSelect,
 }: SearchBoxProps) {
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [searchValue, setSearchValue] = useState(selectedRestaurant?.name ?? '');
   const [restaurants, setRestaurants] = useState<RestaurantSearchSelection[]>([]);
@@ -125,15 +127,33 @@ export function SearchBox({
             placeholder="Search restaurant..."
             className="w-full bg-transparent text-base text-[#5f6c78] outline-none placeholder:text-[#7a8792]"
           />
-          <div className="ml-4 h-7 w-px bg-[#d0d8dd]" />
-          <button
-            type="button"
-            onClick={() => setIsOpen((previous) => !previous)}
-            className="ml-2 text-[#b1bac2]"
-            aria-label="Toggle restaurant suggestions"
-          >
-            <ChevronDownIcon />
-          </button>
+          {selectedRestaurant ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchValue('');
+                onRestaurantSelect(null);
+                setIsOpen(false);
+                router.push('/');
+              }}
+              className="ml-2 text-[#b1bac2]"
+              aria-label="Clear selected restaurant"
+            >
+              <ClearIcon />
+            </button>
+          ) : (
+            <>
+              <div className="ml-4 h-7 w-px bg-[#d0d8dd]" />
+              <button
+                type="button"
+                onClick={() => setIsOpen((previous) => !previous)}
+                className="ml-2 text-[#b1bac2]"
+                aria-label="Toggle restaurant suggestions"
+              >
+                <ChevronDownIcon />
+              </button>
+            </>
+          )}
         </div>
 
         {isOpen ? (
@@ -191,6 +211,24 @@ function ChevronDownIcon() {
       strokeLinejoin="round"
     >
       <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function ClearIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   );
 }

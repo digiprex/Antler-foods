@@ -16,7 +16,7 @@ import {
   resolveRoleSegmentFromPath,
   toRoleRouteSegment,
 } from '@/lib/auth/routes';
-import { IconRail, type DashboardRailTab } from './icon-rail';
+import type { DashboardRailTab } from './icon-rail';
 import type { RestaurantSearchSelection } from './search-box';
 import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
@@ -54,7 +54,9 @@ function resolveDashboardBasePath(pathname: string) {
 }
 
 function isWebsitePath(pathname: string) {
-  return /^\/(admin|owner|manager)\/website(\/|$)/.test(pathname);
+  // Treat the legacy "pages-settings" route as part of the Website workspace
+  // so the sidebar stays in the Website tab when navigating there.
+  return /^\/(admin|owner|manager)\/(website|pages-settings)(\/|$)/.test(pathname);
 }
 
 function buildWebsiteHref(
@@ -254,12 +256,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-[#f3f5f6]">
       <div className="flex min-h-screen">
-        <IconRail
-          activeTab={activeTab}
-          dashboardBasePath={dashboardBasePath}
-          selectedRestaurant={selectedRestaurant}
-          onSelectWebsiteTab={onSelectWebsiteTab}
-        />
         <Sidebar
           activeTab={activeTab}
           pathname={pathname}

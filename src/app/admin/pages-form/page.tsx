@@ -1,16 +1,15 @@
 /**
- * Pages Settings Page
+ * Page Form Page
  *
- * Dashboard-integrated interface for managing website pages.
- * Access: /admin/pages-settings
+ * Dashboard-integrated interface for creating and editing pages.
+ * Access: /admin/pages-form
  *
  * Features:
- * - Dashboard layout with sidebar and navbar
- * - Restaurant selection requirement
- * - Pages list with CRUD operations
- * - Page status management
+ * - Create new pages
+ * - Edit existing pages
+ * - Form validation
  * - SEO metadata management
- * - Visibility controls (navbar/footer)
+ * - Visibility controls
  *
  * TODO: Add authentication before deploying to production
  */
@@ -19,10 +18,11 @@
 
 import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
-import PagesListPage from '@/components/admin/pages-list';
+import { PageForm } from '@/components/admin/page-form';
 
-export default function PagesSettingsPage() {
+export default function PageFormPage() {
   const searchParams = useSearchParams();
+  const pageId = searchParams.get('page_id');
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
 
@@ -30,7 +30,16 @@ export default function PagesSettingsPage() {
     <DashboardLayout>
       {restaurantId && restaurantName ? (
         <div className="p-6">
-          <PagesListPage />
+          <div className="mb-6">
+            <div className="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+              <span>Restaurant:</span>
+              <span className="font-medium text-gray-900">{restaurantName}</span>
+            </div>
+          </div>
+          <PageForm
+            pageId={pageId || undefined}
+            restaurantId={restaurantId}
+          />
         </div>
       ) : (
         <div className="flex items-center justify-center min-h-[400px]">

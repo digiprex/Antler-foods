@@ -5,6 +5,8 @@
  */
 
 import DynamicHero from '@/components/dynamic-hero';
+import DynamicFAQ from '@/components/dynamic-faq';
+import DynamicFaw from '@/components/dynamic-faw';
 
 export default function HomePage() {
   return (
@@ -37,82 +39,28 @@ export default function HomePage() {
         }}
       />
 
-      {/* Features Section */}
-      <section style={{ 
-        backgroundColor: '#fff',
-        padding: '80px 2rem',
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ 
-            fontSize: '2rem', 
-            fontWeight: 'bold', 
-            textAlign: 'center',
-            marginBottom: '3rem',
-            color: '#1a1a1a'
-          }}>
-            Why Choose Us
-          </h2>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: '2rem'
-          }}>
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <div style={{ 
-                fontSize: '3rem', 
-                marginBottom: '1rem'
-              }}>🍽️</div>
-              <h3 style={{ 
-                fontSize: '1.25rem', 
-                fontWeight: '600',
-                marginBottom: '0.5rem',
-                color: '#1a1a1a'
-              }}>
-                Fresh Ingredients
-              </h3>
-              <p style={{ color: '#666' }}>
-                We source only the finest, freshest ingredients for our dishes.
-              </p>
-            </div>
-            
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <div style={{ 
-                fontSize: '3rem', 
-                marginBottom: '1rem'
-              }}>👨‍🍳</div>
-              <h3 style={{ 
-                fontSize: '1.25rem', 
-                fontWeight: '600',
-                marginBottom: '0.5rem',
-                color: '#1a1a1a'
-              }}>
-                Expert Chefs
-              </h3>
-              <p style={{ color: '#666' }}>
-                Our experienced chefs bring passion and creativity to every plate.
-              </p>
-            </div>
-            
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <div style={{ 
-                fontSize: '3rem', 
-                marginBottom: '1rem'
-              }}>⭐</div>
-              <h3 style={{ 
-                fontSize: '1.25rem', 
-                fontWeight: '600',
-                marginBottom: '0.5rem',
-                color: '#1a1a1a'
-              }}>
-                Top Rated
-              </h3>
-              <p style={{ color: '#666' }}>
-                Consistently rated as one of the best restaurants in the area.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Features Section (Font Awesome UI) */}
+      <DynamicFaw
+        restaurantId="92e9160e-0afa-4f78-824f-b28e32885353"
+        urlSlug="home"
+        categoryKey="faw"
+        fallbackConfig={{
+          title: 'Why Choose Us',
+          items: [
+            { id: '1', icon: 'fa-solid fa-utensils', title: 'Fresh Ingredients', text: 'We source only the finest, freshest ingredients for our dishes.' },
+            { id: '2', icon: 'fa-solid fa-hat-chef', title: 'Expert Chefs', text: 'Our experienced chefs bring passion and creativity to every plate.' },
+            { id: '3', icon: 'fa-solid fa-star', title: 'Top Rated', text: 'Consistently rated as one of the best restaurants in the area.' },
+          ],
+          bgColor: '#fff',
+          textColor: '#1a1a1a'
+        }}
+      />
+
+      {/* FAQ Section */}
+      <DynamicFAQ
+        restaurantId="92e9160e-0afa-4f78-824f-b28e32885353"
+        showLoading={true}
+      />
 
       {/* CTA Section */}
       <section style={{ 

@@ -40,7 +40,7 @@ export default function FooterSettingsPage() {
               Select a Restaurant
             </h2>
             <p className="text-[#6b7280] max-w-md">
-              Please select a restaurant from the sidebar to configure footer settings.
+              Please add or select a restaurant from the sidebar.
             </p>
           </div>
         </div>

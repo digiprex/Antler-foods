@@ -1,4 +1,5 @@
 import { NavItem } from './nav-item';
+import { useState } from 'react';
 import { SearchBox, type RestaurantSearchSelection } from './search-box';
 import type { DashboardRailTab } from './icon-rail';
 
@@ -12,14 +13,7 @@ interface SidebarProps {
   onRestaurantSelect: (restaurant: RestaurantSearchSelection | null) => void;
 }
 
-const HOME_MENU_ITEMS = [
-  { href: '/home', label: 'Home', icon: <HomeIcon /> },
-  { href: '/customer-base', label: 'Customer Base', icon: <UsersIcon /> },
-  { href: '/new-restaurant', label: 'New restaurant', icon: <StoreIcon /> },
-  { href: '/restaurants', label: 'Restaurants', icon: <ShopIcon /> },
-  { href: '/sales', label: 'Sales', icon: <SalesIcon /> },
-  { href: '/reports', label: 'Reports', icon: <ReportsIcon /> },
-] as const;
+
 
 export function Sidebar({
   activeTab,
@@ -32,37 +26,60 @@ export function Sidebar({
 }: SidebarProps) {
   const isHomeTab = activeTab === 'home';
   const isWebsiteTab = activeTab === 'website';
+  
+  // Static grouped menu structure matching requested layout
+  const HOME_MENU_ITEMS = [
+    { href: '/home', label: 'Home', icon: <HomeIcon /> },
+    { href: '/new-restaurant', label: 'New Restaurant', icon: <StoreIcon /> },
+    { href: '/restaurants', label: 'Restaurants', icon: <ShopIcon /> },
+  ];
 
-  const websiteMenuItems = selectedRestaurant
+  const RESTAURANT_MENU_ITEMS = [
+    { href: '/sales', label: 'Sales', icon: <SalesIcon /> },
+    { href: '/menu', label: 'Manage Menu', icon: <MenuIcon /> },
+    { href: '/information', label: 'Information', icon: <InfoIcon /> },
+    { href: '/reviews', label: 'Reviews', icon: <UsersIcon /> },
+    { href: '/assets', label: 'Assets', icon: <AssetsIcon /> },
+    { href: '/opening-hours', label: 'Opening Hours', icon: <ClockIcon /> },
+    { href: '/locations', label: 'Locations', icon: <LocationIcon /> },
+  ];
+
+  const WEBSITE_MENU_ITEMS = selectedRestaurant
     ? [
-        {
-          href: buildWebsiteSettingsHref(
-            `${websiteBasePath}/navbar-settings`,
-            selectedRestaurant,
-          ),
-          label: 'Navbar settings',
-          icon: <NavbarIcon />,
-        },
-        {
-          href: buildWebsiteSettingsHref(
-            `${websiteBasePath}/footer-settings`,
-            selectedRestaurant,
-          ),
-          label: 'Footer settings',
-          icon: <FooterIcon />,
-        },
         {
           href: buildWebsiteSettingsHref('/admin/pages-settings', selectedRestaurant),
           label: 'Pages',
           icon: <PagesIcon />,
         },
+        {
+          href: buildWebsiteSettingsHref(`${websiteBasePath}/navbar-settings`, selectedRestaurant),
+          label: 'Navbar Settings',
+          icon: <NavbarIcon />,
+        },
+        {
+          href: buildWebsiteSettingsHref(`${websiteBasePath}/footer-settings`, selectedRestaurant),
+          label: 'Footer Settings',
+          icon: <FooterIcon />,
+        },
       ]
     : [];
 
+  const MARKETING_MENU_ITEMS = [
+    { href: '/marketing', label: 'Marketing', icon: <MarketingIcon /> },
+  ];
+
+  const RESERVATION_MENU_ITEMS = [
+    { href: '/reservations', label: 'Reservation', icon: <ReservationIcon /> },
+  ];
+
+  const CATERING_MENU_ITEMS = [
+    { href: '/catering', label: 'Catering', icon: <CateringIcon /> },
+  ];
+
   return (
     <aside
-      className={`min-h-screen w-[330px] border-r border-[#d7e2e6] bg-[#f8fafb] transition-all duration-300 ease-in-out ${
-        isOpen ? 'translate-x-0' : '-translate-x-full absolute'
+      className={`min-h-screen border-r border-[#d7e2e6] bg-[#f8fafb] transition-all duration-200 ease-in-out ${
+        isOpen ? 'w-[330px]' : 'w-16'
       }`}
     >
       <SearchBox
@@ -71,15 +88,11 @@ export function Sidebar({
       />
       <div className="border-b border-[#d7e2e6] px-5 py-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-[24px] font-semibold text-[#101827]">
-            {isHomeTab
-              ? 'Home'
-              : isWebsiteTab
-                ? 'Website'
-              : activeTab === 'reservations'
-                ? 'Reservations'
-                : 'Team'}
-          </h2>
+          {isOpen ? (
+            <h2 className="text-[24px] font-semibold text-[#101827]">Menu</h2>
+          ) : (
+            <div className="h-6" />
+          )}
           <button
             type="button"
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#cdd8de] bg-[#f1f4f6] text-[#a6b2bb]"
@@ -89,56 +102,125 @@ export function Sidebar({
         </div>
       </div>
 
-      {isHomeTab ? (
-        <nav className="space-y-2 px-3 py-4">
-          {HOME_MENU_ITEMS.map((item) => (
-            <NavItem
-              key={`${dashboardBasePath}${item.href}`}
-              href={`${dashboardBasePath}${item.href}`}
-              label={item.label}
-              icon={item.icon}
-              active={pathname === `${dashboardBasePath}${item.href}`}
-            />
-          ))}
-        </nav>
-      ) : isWebsiteTab ? (
-        <div className="space-y-3 px-3 py-4">
-          {/* {selectedRestaurant ? (
-            <div className="rounded-xl border border-[#d8e3e8] bg-white px-4 py-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96]">
-                Selected restaurant
-              </p>
-              <p className="mt-1 text-[15px] font-semibold text-[#111827]">
-                {selectedRestaurant.name}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-[#d8e3e8] bg-white px-4 py-3 text-sm text-[#60707c]">
-              Select a restaurant from the search box to manage website settings.
-            </div>
-          )} */}
+      <div className="space-y-4 px-3 py-4">
+        {/* Home Section */}
+        <div>
+          {isOpen && (
+            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Home</p>
+          )}
+          <nav className="space-y-2">
+            {HOME_MENU_ITEMS.map((item) => (
+              <NavItem
+                key={`${dashboardBasePath}${item.href}`}
+                href={`${dashboardBasePath}${item.href}`}
+                label={item.label}
+                icon={item.icon}
+                active={pathname === `${dashboardBasePath}${item.href}`}
+                collapsed={!isOpen}
+              />
+            ))}
+          </nav>
+        </div>
 
-          {websiteMenuItems.length ? (
-            <nav className="space-y-2">
-              {websiteMenuItems.map((item) => (
+        {/* Restaurant Section */}
+        <div>
+          {isOpen && (
+            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Restaurant</p>
+          )}
+          <nav className="space-y-2">
+            {RESTAURANT_MENU_ITEMS.map((item) => (
+              <NavItem
+                key={`${dashboardBasePath}${item.href}`}
+                href={`${dashboardBasePath}${item.href}`}
+                label={item.label}
+                icon={item.icon}
+                active={pathname === `${dashboardBasePath}${item.href}`}
+                collapsed={!isOpen}
+              />
+            ))}
+          </nav>
+        </div>
+
+        {/* Website Section */}
+        <div>
+          {isOpen && (
+            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Website</p>
+          )}
+          <nav className="space-y-2">
+            {WEBSITE_MENU_ITEMS.length ? (
+              WEBSITE_MENU_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
                   href={item.href}
                   label={item.label}
                   icon={item.icon}
                   active={pathname === extractPathFromHref(item.href)}
+                  collapsed={!isOpen}
                 />
-              ))}
-            </nav>
-          ) : null}
+              ))
+            ) : (
+              isOpen ? (
+                <div className="text-sm text-[#60707c]">Select a restaurant to manage website settings.</div>
+              ) : null
+            )}
+          </nav>
         </div>
-      ) : (
-        <div className="px-5 py-6 text-sm text-[#637280]">
-          {activeTab === 'reservations'
-            ? 'Reservations workspace placeholder.'
-            : 'Team workspace placeholder.'}
+
+        {/* Marketing / Reservation / Catering */}
+        <div>
+          {isOpen && (
+            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Marketing</p>
+          )}
+          <nav className="space-y-2">
+            {MARKETING_MENU_ITEMS.map((item) => (
+              <NavItem
+                key={`${dashboardBasePath}${item.href}`}
+                href={`${dashboardBasePath}${item.href}`}
+                label={item.label}
+                icon={item.icon}
+                active={pathname === `${dashboardBasePath}${item.href}`}
+                collapsed={!isOpen}
+              />
+            ))}
+          </nav>
         </div>
-      )}
+
+        <div>
+          {isOpen && (
+            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Reservation</p>
+          )}
+          <nav className="space-y-2">
+            {RESERVATION_MENU_ITEMS.map((item) => (
+              <NavItem
+                key={`${dashboardBasePath}${item.href}`}
+                href={`${dashboardBasePath}${item.href}`}
+                label={item.label}
+                icon={item.icon}
+                active={pathname === `${dashboardBasePath}${item.href}`}
+                collapsed={!isOpen}
+              />
+            ))}
+          </nav>
+        </div>
+
+        <div>
+          {isOpen && (
+            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Catering</p>
+          )}
+          <nav className="space-y-2">
+            {CATERING_MENU_ITEMS.map((item) => (
+              <NavItem
+                key={`${dashboardBasePath}${item.href}`}
+                href={`${dashboardBasePath}${item.href}`}
+                label={item.label}
+                icon={item.icon}
+                active={pathname === `${dashboardBasePath}${item.href}`}
+                collapsed={!isOpen}
+              />
+            ))}
+          </nav>
+        </div>
+      </div>
     </aside>
   );
 }
@@ -331,6 +413,95 @@ function PagesIcon() {
       <line x1="16" y1="13" x2="8" y2="13" />
       <line x1="16" y1="17" x2="8" y2="17" />
       <polyline points="10,9 9,9 8,9" />
+    </svg>
+  );
+}
+
+function ReservationIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 12h14" />
+      <path d="M8 7h8" />
+      <path d="M7 12v5" />
+      <path d="M17 12v5" />
+      <path d="M9 17h6" />
+    </svg>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18" />
+      <path d="M3 12h18" />
+      <path d="M3 18h18" />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4" />
+      <path d="M12 8h.01" />
+    </svg>
+  );
+}
+
+function AssetsIcon() {
+  return (
+    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M7 3v18" />
+      <path d="M17 3v18" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v6l4 2" />
+    </svg>
+  );
+}
+
+function LocationIcon() {
+  return (
+    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+function MarketingIcon() {
+  return (
+    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 11h4l9-6v14l-9-6H3v-2z" />
+      <path d="M17 8l4-2v10l-4-2" />
+    </svg>
+  );
+}
+
+function CateringIcon() {
+  return (
+    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 2v12" />
+      <path d="M12 2v12" />
+      <path d="M16 2v12" />
+      <path d="M3 18h18" />
     </svg>
   );
 }

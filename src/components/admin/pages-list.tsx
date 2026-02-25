@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { getPages, deletePage } from '@/lib/graphql/queries';
+import { PageForm } from './page-form';
 import type { PageItem } from '@/types/pages.types';
 
 interface PagesListProps {
@@ -10,21 +11,24 @@ interface PagesListProps {
   websiteId?: string;
 }
 
-export function PagesList({ restaurantId, websiteId }: PagesListProps) {
+export function PagesList({ restaurantId }: PagesListProps) {
   const [pages, setPages] = useState<PageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     loadPages();
-  }, [restaurantId, websiteId]);
+  }, [restaurantId]);
 
   const loadPages = async () => {
     try {
       setLoading(true);
       setError(null);
-      const pagesData = await getPages(restaurantId, websiteId);
+      const pagesData = await getPages(restaurantId);
       setPages(pagesData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load pages');
@@ -33,19 +37,81 @@ export function PagesList({ restaurantId, websiteId }: PagesListProps) {
     }
   };
 
-  const handleDelete = async (pageId: string) => {
-    if (!confirm('Are you sure you want to delete this page?')) {
-      return;
-    }
+  const handleDelete = (pageId: string) => {
+    // open confirmation modal
+    setConfirmDeleteId(pageId);
+  };
 
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return;
+    const pageId = confirmDeleteId;
     try {
       setDeletingId(pageId);
+      setConfirmDeleteId(null);
       await deletePage(pageId);
       await loadPages(); // Reload the list
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete page');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const cancelDelete = () => setConfirmDeleteId(null);
+
+  const handleView = async (page: PageItem) => {
+    if (!page.restaurant_id) {
+      alert('No restaurant associated with this page');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/restaurant-staging?restaurant_id=${encodeURIComponent(page.restaurant_id)}`);
+      if (!res.ok) throw new Error('Failed to fetch restaurant staging domain');
+      const data = await res.json();
+      if (!data.success || !data.data) throw new Error(data.error || 'No staging domain');
+
+      let domain = data.data.staging_domain;
+      if (!domain) {
+        alert('Staging domain not configured for this restaurant');
+        return;
+      }
+
+      // Ensure protocol
+      if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
+        domain = `https://${domain}`;
+      }
+
+      const url = `${domain.replace(/\/$/, '')}/${page.url_slug.replace(/^\//, '')}`;
+      window.open(url, '_blank');
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : 'Failed to open page');
+    }
+  };
+
+  const handleEdit = async (page: PageItem) => {
+    if (!page.restaurant_id) {
+      alert('No restaurant associated with this page');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/restaurant-staging?restaurant_id=${encodeURIComponent(page.restaurant_id)}`);
+      if (!res.ok) throw new Error('Failed to fetch restaurant');
+      const data = await res.json();
+      if (!data.success || !data.data) throw new Error(data.error || 'Restaurant not found');
+
+      const name = data.data.name || '';
+      const params = new URLSearchParams();
+      params.set('restaurant_id', page.restaurant_id);
+      if (name) params.set('restaurant_name', name);
+      params.set('page_id', page.page_id);
+
+      router.push(`/admin/page-settings?${params.toString()}`);
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : 'Failed to navigate to settings selector');
     }
   };
 
@@ -85,10 +151,48 @@ export function PagesList({ restaurantId, websiteId }: PagesListProps) {
           <h1 className="text-2xl font-bold text-gray-900">Pages</h1>
           <p className="text-gray-600">Manage your website pages</p>
         </div>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+        >
           + Create Page
         </button>
       </div>
+
+      {showCreateModal && (
+        <div className="fixed inset-0 z-70 flex items-center justify-center p-6">
+          <div className="fixed inset-0 bg-black/40 z-60" onClick={() => setShowCreateModal(false)} />
+          <div className="relative w-full max-w-3xl bg-white rounded-lg shadow-lg max-h-[90vh] overflow-auto z-70">
+            <div className="p-4">
+              <PageForm
+                onCancel={() => setShowCreateModal(false)}
+                onSuccess={async () => {
+                  setShowCreateModal(false);
+                  await loadPages();
+                }}
+                restaurantId={restaurantId}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-6">
+          <div className="fixed inset-0 bg-black/40" onClick={cancelDelete} />
+          <div className="relative w-full max-w-md bg-white rounded-lg shadow-lg">
+            <div className="p-6">
+              <h3 className="text-lg font-medium text-gray-900">Confirm Delete</h3>
+              <p className="text-sm text-gray-600 mt-2">Are you sure you want to delete this page? This action can be undone by restoring the record in the database.</p>
+              <div className="mt-6 flex justify-end space-x-3">
+                <button onClick={cancelDelete} className="px-4 py-2 bg-white border border-gray-300 rounded-lg">Cancel</button>
+                <button onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg">Confirm Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {pages.length === 0 ? (
         <div className="text-center py-12">
@@ -180,10 +284,10 @@ export function PagesList({ restaurantId, websiteId }: PagesListProps) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900">
+                        <button onClick={() => handleEdit(page)} className="text-blue-600 hover:text-blue-900">
                           Edit
                         </button>
-                        <button className="text-gray-400 hover:text-gray-600">
+                        <button onClick={() => handleView(page)} className="text-gray-400 hover:text-gray-600">
                           View
                         </button>
                         {!page.is_system_page && (
@@ -211,12 +315,10 @@ export function PagesList({ restaurantId, websiteId }: PagesListProps) {
 export default function PagesListPage() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
-  const websiteId = searchParams.get('website_id');
 
   return (
     <PagesList 
       restaurantId={restaurantId || undefined} 
-      websiteId={websiteId || undefined} 
     />
   );
 }

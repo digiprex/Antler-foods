@@ -42,6 +42,30 @@ export default function PageSettingsSelector() {
             <div className="text-lg font-semibold">FAQ Settings</div>
             <div className="text-sm text-gray-500 mt-1">Manage frequently asked questions for this page</div>
           </button>
+
+          <button
+            className="p-4 bg-white rounded-lg shadow hover:shadow-md text-left"
+            onClick={() => router.push(`/admin/gallery-settings?${paramsString}`)}
+          >
+            <div className="text-lg font-semibold">Gallery Settings</div>
+            <div className="text-sm text-gray-500 mt-1">Configure image gallery layout and content for this page</div>
+          </button>
+
+          <button
+            className="p-4 bg-white rounded-lg shadow hover:shadow-md text-left"
+            onClick={() => router.push(`/admin/review-settings?${paramsString}`)}
+          >
+            <div className="text-lg font-semibold">Review Settings</div>
+            <div className="text-sm text-gray-500 mt-1">Configure customer reviews display and layout for this page</div>
+          </button>
+
+          <button
+            className="p-4 bg-white rounded-lg shadow hover:shadow-md text-left"
+            onClick={() => router.push(`/admin/youtube-settings?${paramsString}`)}
+          >
+            <div className="text-lg font-semibold">YouTube Settings</div>
+            <div className="text-sm text-gray-500 mt-1">Configure YouTube video display and layout for this page</div>
+          </button>
         </div>
 
       </div>

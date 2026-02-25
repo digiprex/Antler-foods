@@ -17,8 +17,7 @@ import type { FooterConfig, FooterConfigResponse } from '@/types/footer.types';
 const HASURA_URL = process.env.HASURA_GRAPHQL_URL || 'https://pycfacumenjefxtblime.hasura.us-east-1.nhost.run/v1/graphql';
 const HASURA_ADMIN_SECRET = process.env.HASURA_ADMIN_SECRET || "i;8zmVF8SvnMiX5gao@F'a6,uJ%WphsD";
 
-// Static restaurant ID for testing
-const RESTAURANT_ID = '92e9160e-0afa-4f78-824f-b28e32885353';
+// Restaurant ID must be provided dynamically via query parameters or domain lookup
 
 /**
  * GraphQL query to fetch footer configuration from templates
@@ -150,13 +149,77 @@ async function graphqlRequest(query: string, variables?: any) {
  */
 export async function GET(request: Request) {
   try {
-    // Get restaurant_id from query params or use default
+    // Get restaurant_id from query params - required parameter
     const { searchParams } = new URL(request.url);
-    const restaurantId = searchParams.get('restaurant_id') || RESTAURANT_ID;
+    let restaurantId = searchParams.get('restaurant_id');
+    const domain = searchParams.get('domain') || request.headers.get('host');
+    const urlSlug = searchParams.get('url_slug');
+    let pageId = searchParams.get('page_id');
+
+    // If domain is provided but no restaurantId, fetch restaurantId from domain
+    if (domain && !searchParams.get('restaurant_id')) {
+      try {
+        console.log('[Footer Config] Looking up domain:', domain);
+
+        const GET_RESTAURANT_BY_DOMAIN = `
+          query GetRestaurantByDomain($domain: String!) {
+            restaurants(
+              where: {
+                _or: [
+                  { custom_domain: { _eq: $domain } },
+                  { staging_domain: { _eq: $domain } }
+                ],
+                is_deleted: { _eq: false }
+              },
+              limit: 1
+            ) {
+              restaurant_id
+              custom_domain
+              staging_domain
+              is_deleted
+            }
+          }
+        `;
+
+        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, {
+          domain: domain,
+        });
+
+        if (domainData.restaurants && domainData.restaurants.length > 0) {
+          const restaurant = domainData.restaurants[0];
+          if (!restaurant.is_deleted) {
+            restaurantId = restaurant.restaurant_id;
+            console.log('[Footer Config] Found restaurant for domain:', domain, '->', restaurantId);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching restaurant ID by domain:', error);
+        // Continue without restaurant ID - will be validated below
+      }
+    }
+
+    // Validate that restaurant_id is provided
+    if (!restaurantId) {
+      const errorResponse = {
+        success: false,
+        data: {
+          restaurantName: 'Antler Foods',
+          columns: [],
+          socialLinks: [],
+        } as FooterConfig,
+        error: 'restaurant_id is required. Provide it as a query parameter or ensure the domain is properly configured.'
+      };
+      return NextResponse.json(errorResponse, { status: 400 });
+    }
+
+    // Footer is global for the restaurant - always use general template (no page_id)
+    console.log('[Footer Config] Using restaurant_id:', restaurantId);
 
     const data = await graphqlRequest(GET_FOOTER_CONFIG, {
       restaurant_id: restaurantId,
     });
+
+    console.log('[Footer Config] Template query result (restaurant-wide):', JSON.stringify(data, null, 2));
 
     // Extract name, email, phone, address and social links from restaurant table
     const restaurantData = data.restaurants?.[0];
@@ -205,48 +268,13 @@ export async function GET(request: Request) {
     }
 
     if (!data.templates || data.templates.length === 0) {
-      // Return default config if template doesn't exist
-      // Use restaurant name, email, phone, address and social links if available
-      const defaultConfig: FooterConfig = {
-        restaurantName: restaurantName || 'Antler Foods',
-        aboutContent: 'Experience fine dining at its best',
-        email: restaurantEmail || 'hello@antlerfoods.com',
-        phone: restaurantPhone || '+1 (555) 123-4567',
-        address: restaurantAddress || '123 Main Street, City, State 12345',
-        columns: [
-          {
-            title: 'Quick Links',
-            links: [
-              { label: 'Menu', href: '/menu', order: 1 },
-              { label: 'About', href: '/about', order: 2 },
-              { label: 'Contact', href: '/contact', order: 3 },
-            ],
-            order: 1,
-          },
-        ],
-        socialLinks: socialLinks.length > 0 ? socialLinks : [
-          { platform: 'facebook', url: 'https://facebook.com', order: 1 },
-          { platform: 'instagram', url: 'https://instagram.com', order: 2 },
-        ],
-        copyrightText: `© ${new Date().getFullYear()} Antler Foods. All rights reserved.`,
-        showPoweredBy: true,
-        layout: 'columns-3',
-        bgColor: '#1f2937',
-        textColor: '#f9fafb',
-        linkColor: '#9ca3af',
-        copyrightBgColor: '#000000',
-        copyrightTextColor: '#ffffff',
-        showNewsletter: false,
-        showSocialMedia: true,
-        showLocations: true,
+      // Return 404 if no footer template exists - don't show footer
+      const response = {
+        success: false,
+        data: null,
+        error: 'No footer configuration found'
       };
-
-      const response: FooterConfigResponse = {
-        success: true,
-        data: defaultConfig,
-      };
-
-      return NextResponse.json(response);
+      return NextResponse.json(response, { status: 404 });
     }
 
     const template = data.templates[0];
@@ -254,7 +282,7 @@ export async function GET(request: Request) {
     // Transform template structure to FooterConfig
     // Use name, email, phone, address and social links from restaurant table, fallback to template config
     const config: FooterConfig = {
-      restaurantName: restaurantName || template.config?.restaurantName || 'Antler Foods',
+      restaurantName: restaurantName || template.config?.restaurantName || 'Restaurant',
       aboutContent: template.config?.aboutContent || '',
       email: restaurantEmail || template.config?.email || '',
       phone: restaurantPhone || template.config?.phone || '',
@@ -286,7 +314,7 @@ export async function GET(request: Request) {
     const errorResponse: FooterConfigResponse = {
       success: false,
       data: {
-        restaurantName: 'Antler Foods',
+        restaurantName: 'Restaurant',
         columns: [],
         socialLinks: [],
       } as FooterConfig,

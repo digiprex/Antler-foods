@@ -67,7 +67,7 @@ export interface NavbarConfigResponse {
  * Default configuration values
  */
 export const DEFAULT_NAVBAR_CONFIG: NavbarConfig = {
-  restaurantName: "Maison de Noir",
+  restaurantName: "Restaurant",
   leftNavItems: [
     { label: 'Collection', href: '#collection', order: 1 },
     { label: 'Archive', href: '#archive', order: 2 },
@@ -79,7 +79,7 @@ export const DEFAULT_NAVBAR_CONFIG: NavbarConfig = {
   },
   layout: 'bordered-centered',
   position: 'absolute',
-  zIndex: 1,
+  zIndex: 1000,
   bgColor: 'white',
   textColor: 'black',
   buttonBgColor: 'black',

@@ -34,22 +34,6 @@ export default function PageSettingsSelector() {
             <div className="text-lg font-semibold">Hero Settings</div>
             <div className="text-sm text-gray-500 mt-1">Configure hero content and media for this page</div>
           </button>
-
-          <button
-            className="p-4 bg-white rounded-lg shadow hover:shadow-md text-left"
-            onClick={() => router.push(`/admin/navbar-settings?${paramsString}`)}
-          >
-            <div className="text-lg font-semibold">Navbar Settings</div>
-            <div className="text-sm text-gray-500 mt-1">Adjust navigation entries and visibility for this page</div>
-          </button>
-
-          <button
-            className="p-4 bg-white rounded-lg shadow hover:shadow-md text-left"
-            onClick={() => router.push(`/admin/footer-settings?${paramsString}`)}
-          >
-            <div className="text-lg font-semibold">Footer Settings</div>
-            <div className="text-sm text-gray-500 mt-1">Manage footer links and visibility for this page</div>
-          </button>
           
           <button
             className="p-4 bg-white rounded-lg shadow hover:shadow-md text-left"

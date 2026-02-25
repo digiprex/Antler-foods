@@ -48,7 +48,6 @@ export default function DynamicFooter({
   const [config, setConfig] = useState<FooterConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [restaurantId, setRestaurantId] = useState<string>('92e9160e-0afa-4f78-824f-b28e32885353');
 
   useEffect(() => {
     // If override config is provided, use it directly
@@ -61,20 +60,27 @@ export default function DynamicFooter({
     // Fetch footer configuration from API
     async function fetchFooterConfig() {
       try {
-        // Use static restaurant_id for now
-        const restaurantId = '92e9160e-0afa-4f78-824f-b28e32885353';
-        
-        // Fetch footer config using restaurant_id
-        const footerResponse = await fetch(`${apiEndpoint}?restaurant_id=${restaurantId}`, {
+        // Get current domain for dynamic restaurant resolution
+        const domain = window.location.host;
+
+        // Fetch footer config using domain (API will resolve restaurant_id)
+        const footerResponse = await fetch(`${apiEndpoint}?domain=${domain}`, {
           cache: 'no-store',
         });
-        
+
+        // Treat 404 as "no footer template" - don't render footer
+        if (footerResponse.status === 404) {
+          setConfig(null);
+          setLoading(false);
+          return;
+        }
+
         if (!footerResponse.ok) {
           throw new Error(`API returned ${footerResponse.status}: ${footerResponse.statusText}`);
         }
-        
+
         const footerData = await footerResponse.json();
-        
+
         // Validate response structure
         if (footerData.success && footerData.data) {
           // Merge with defaults to ensure all required fields are present
@@ -85,9 +91,9 @@ export default function DynamicFooter({
       } catch (err) {
         console.error('Failed to fetch footer config:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
-        
-        // Fallback to default configuration
-        setConfig(DEFAULT_FOOTER_CONFIG);
+
+        // Don't render footer if there's an error
+        setConfig(null);
       } finally {
         setLoading(false);
       }
@@ -145,7 +151,6 @@ export default function DynamicFooter({
       linkColor={config.linkColor}
       copyrightBgColor={config.copyrightBgColor}
       copyrightTextColor={config.copyrightTextColor}
-      restaurant_id={restaurantId}
     />
   );
 }

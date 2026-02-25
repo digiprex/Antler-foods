@@ -12,19 +12,27 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const HASURA_ENDPOINT = process.env.HASURA_GRAPHQL_ENDPOINT;
-const HASURA_ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
-const RESTAURANT_ID = process.env.RESTAURANT_ID || '92e9160e-0afa-4f78-824f-b28e32885353';
+const HASURA_ENDPOINT = process.env.HASURA_GRAPHQL_ENDPOINT || process.env.HASURA_GRAPHQL_URL;
+const HASURA_ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET || process.env.HASURA_ADMIN_SECRET;
+// Restaurant ID should be provided dynamically via query parameters - no static fallback
 
 /**
  * GraphQL request helper
  */
 async function graphqlRequest(query: string, variables: Record<string, any> = {}) {
-  const response = await fetch(HASURA_ENDPOINT!, {
+  if (!HASURA_ENDPOINT) {
+    throw new Error('HASURA_GRAPHQL_ENDPOINT or HASURA_GRAPHQL_URL environment variable is not set');
+  }
+
+  if (!HASURA_ADMIN_SECRET) {
+    throw new Error('HASURA_GRAPHQL_ADMIN_SECRET or HASURA_ADMIN_SECRET environment variable is not set');
+  }
+
+  const response = await fetch(HASURA_ENDPOINT, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-hasura-admin-secret': HASURA_ADMIN_SECRET!,
+      'x-hasura-admin-secret': HASURA_ADMIN_SECRET,
     },
     body: JSON.stringify({
       query,
@@ -110,9 +118,16 @@ const GET_PAGE_TEMPLATES = `
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const restaurantId = searchParams.get('restaurant_id') || RESTAURANT_ID;
+    let restaurantId = searchParams.get('restaurant_id');
+    
+    if (!restaurantId) {
+      return NextResponse.json(
+        { success: false, error: 'restaurant_id is required as a query parameter' },
+        { status: 400 }
+      );
+    }
     const urlSlug = searchParams.get('url_slug');
-    const domain = searchParams.get('domain'); // For future use
+    const domain = searchParams.get('domain') || request.headers.get('host');
 
     if (!urlSlug) {
       return NextResponse.json(
@@ -123,6 +138,21 @@ export async function GET(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // If domain is provided but no restaurantId, fetch restaurantId from domain
+    if (domain && !searchParams.get('restaurant_id')) {
+      try {
+        // Import the function dynamically to avoid circular dependencies
+        const { getRestaurantIdByDomain } = await import('@/lib/graphql/queries');
+        const domainRestaurantId = await getRestaurantIdByDomain(domain);
+        if (domainRestaurantId) {
+          restaurantId = domainRestaurantId;
+        }
+      } catch (error) {
+        console.error('Error fetching restaurant ID by domain:', error);
+        // Continue with default restaurant ID
+      }
     }
 
     // Step 1: Get page details by URL slug

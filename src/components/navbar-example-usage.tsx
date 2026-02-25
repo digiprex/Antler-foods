@@ -52,7 +52,7 @@ export function Example2_ManualFetching() {
         console.error('Failed to fetch navbar config:', error);
         // Set default values if API fails
         setConfig({
-          restaurantName: 'Maison de Noir',
+          restaurantName: 'Restaurant',
           leftNavItems: [
             { label: 'Menu', href: '/menu' },
             { label: 'About', href: '/about' },

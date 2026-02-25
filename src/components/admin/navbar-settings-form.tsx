@@ -22,14 +22,24 @@ import Navbar from '@/components/navbar';
 import Toast from '@/components/ui/toast';
 import styles from './navbar-settings-form.module.css';
 
-const DEFAULT_RESTAURANT_ID = '92e9160e-0afa-4f78-824f-b28e32885353';
+// Restaurant ID should be provided dynamically - no default static ID
 
 export default function NavbarSettingsForm() {
   const searchParams = useSearchParams();
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
   const restaurantNameFromQuery =
     searchParams.get('restaurant_name')?.trim() ?? '';
-  const restaurantId = restaurantIdFromQuery || DEFAULT_RESTAURANT_ID;
+  const restaurantId = restaurantIdFromQuery || '';
+  
+  // Validate that restaurant ID is provided
+  if (!restaurantId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
+      </div>
+    );
+  }
   const configApiEndpoint = useMemo(
     () =>
       `/api/navbar-config?restaurant_id=${encodeURIComponent(restaurantId)}`,

@@ -1187,6 +1187,74 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// Domain to Restaurant ID lookup
+// Checks if domain matches EITHER staging_domain OR custom_domain (not both)
+export const GetRestaurantByDomain = /* GraphQL */ `
+  query GetRestaurantByDomain($domain: String!) {
+    restaurants(
+      where: {
+        _or: [
+          { custom_domain: { _eq: $domain } },
+          { staging_domain: { _eq: $domain } }
+        ],
+        is_deleted: { _eq: false }
+      },
+      limit: 1
+    ) {
+      restaurant_id
+      custom_domain
+      staging_domain
+      is_deleted
+    }
+  }
+`;
+
+interface RestaurantByDomainResponse {
+  restaurants: Array<{
+    restaurant_id: string;
+    custom_domain: string | null;
+    staging_domain: string | null;
+    is_deleted: boolean;
+  }>;
+}
+
+export async function getRestaurantIdByDomain(domain: string): Promise<string | null> {
+  if (!domain?.trim()) {
+    console.log('[getRestaurantIdByDomain] Empty domain provided');
+    return null;
+  }
+
+  try {
+    console.log('[getRestaurantIdByDomain] Looking up domain:', domain);
+    
+    // Don't remove port - match exactly what's in database
+    // If database has localhost:3000, we should match localhost:3000
+    const data = await fetchGraphQL<RestaurantByDomainResponse>(GetRestaurantByDomain, {
+      domain: domain,
+    });
+
+    console.log('[getRestaurantIdByDomain] GraphQL response:', data);
+
+    const restaurants = data.restaurants;
+    if (!restaurants.length) {
+      console.log('[getRestaurantIdByDomain] No restaurants found for domain:', domain);
+      return null;
+    }
+
+    const restaurant = restaurants[0];
+    if (restaurant.is_deleted) {
+      console.log('[getRestaurantIdByDomain] Restaurant found but is deleted:', restaurant.restaurant_id);
+      return null;
+    }
+
+    console.log('[getRestaurantIdByDomain] Found restaurant:', restaurant.restaurant_id);
+    return restaurant.restaurant_id;
+  } catch (error) {
+    console.error('Error fetching restaurant ID by domain:', error);
+    return null;
+  }
+}
+
 // Pages GraphQL queries
 export const GetPages = /* GraphQL */ `
   query GetPages($restaurant_id: uuid) {
@@ -1219,6 +1287,35 @@ export const GetPages = /* GraphQL */ `
 export const GetPageById = /* GraphQL */ `
   query GetPageById($page_id: uuid!) {
     web_pages_by_pk(page_id: $page_id) {
+      page_id
+      url_slug
+      name
+      created_at
+      updated_at
+      is_deleted
+      meta_title
+      meta_description
+      restaurant_id
+      is_system_page
+      show_on_navbar
+      show_on_footer
+      keywords
+      og_image
+      published
+    }
+  }
+`;
+
+export const GetPageBySlug = /* GraphQL */ `
+  query GetPageBySlug($url_slug: String!, $restaurant_id: uuid) {
+    web_pages(
+      where: {
+        url_slug: { _eq: $url_slug }
+        is_deleted: { _eq: false }
+        restaurant_id: { _eq: $restaurant_id }
+      }
+      limit: 1
+    ) {
       page_id
       url_slug
       name
@@ -1321,6 +1418,26 @@ interface PageByIdQueryResponse {
     og_image?: string | null;
     published: boolean;
   } | null;
+}
+
+interface PageBySlugQueryResponse {
+  web_pages: Array<{
+    page_id: string;
+    url_slug: string;
+    name: string;
+    created_at: string;
+    updated_at: string;
+    is_deleted: boolean;
+    meta_title?: string | null;
+    meta_description?: string | null;
+    restaurant_id?: string | null;
+    is_system_page: boolean;
+    show_on_navbar: boolean;
+    show_on_footer: boolean;
+    keywords?: Record<string, any> | null;
+    og_image?: string | null;
+    published: boolean;
+  }>;
 }
 
 interface InsertPageResponse {
@@ -1476,4 +1593,50 @@ export async function deletePage(pageId: string) {
   }
 
   return data.update_web_pages_by_pk;
+}
+
+export async function getPageBySlug(urlSlug: string, restaurantId?: string, domain?: string) {
+  if (!urlSlug?.trim()) {
+    throw new Error("URL slug is required.");
+  }
+
+  let finalRestaurantId = restaurantId;
+
+  // If domain is provided but no restaurantId, fetch restaurantId from domain
+  if (domain && !restaurantId) {
+    const domainRestaurantId = await getRestaurantIdByDomain(domain);
+    if (!domainRestaurantId) {
+      throw new Error(`No restaurant found for domain: ${domain}`);
+    }
+    finalRestaurantId = domainRestaurantId;
+  }
+
+  const data = await fetchGraphQL<PageBySlugQueryResponse>(GetPageBySlug, {
+    url_slug: urlSlug,
+    restaurant_id: finalRestaurantId || null,
+  });
+
+  const pages = data.web_pages;
+  if (!pages.length) {
+    return null;
+  }
+
+  const page = pages[0];
+  return {
+    page_id: page.page_id,
+    url_slug: page.url_slug,
+    name: page.name,
+    created_at: page.created_at,
+    updated_at: page.updated_at,
+    is_deleted: page.is_deleted,
+    meta_title: page.meta_title || undefined,
+    meta_description: page.meta_description || undefined,
+    restaurant_id: page.restaurant_id || undefined,
+    is_system_page: page.is_system_page,
+    show_on_navbar: page.show_on_navbar,
+    show_on_footer: page.show_on_footer,
+    keywords: page.keywords || null,
+    og_image: page.og_image || undefined,
+    published: page.published,
+  };
 }

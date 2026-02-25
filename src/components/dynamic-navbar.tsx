@@ -59,20 +59,27 @@ export default function DynamicNavbar({
     // Fetch navbar configuration from API
     async function fetchNavbarConfig() {
       try {
-        // Use static restaurant_id for now
-        const restaurantId = '92e9160e-0afa-4f78-824f-b28e32885353';
-        
-        // Fetch navbar config using restaurant_id
-        const navbarResponse = await fetch(`${apiEndpoint}?restaurant_id=${restaurantId}`, {
+        // Get current domain for dynamic restaurant resolution
+        const domain = window.location.host;
+
+        // Fetch navbar config using domain (API will resolve restaurant_id)
+        const navbarResponse = await fetch(`${apiEndpoint}?domain=${domain}`, {
           cache: 'no-store',
         });
-        
+
+        // Treat 404 as "no navbar template" - don't render navbar
+        if (navbarResponse.status === 404) {
+          setConfig(null);
+          setLoading(false);
+          return;
+        }
+
         if (!navbarResponse.ok) {
           throw new Error(`API returned ${navbarResponse.status}: ${navbarResponse.statusText}`);
         }
-        
+
         const navbarData = await navbarResponse.json();
-        
+
         // Validate response structure
         if (navbarData.success && navbarData.data) {
           // Merge with defaults to ensure all required fields are present
@@ -83,9 +90,9 @@ export default function DynamicNavbar({
       } catch (err) {
         console.error('Failed to fetch navbar config:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
-        
-        // Fallback to default configuration
-        setConfig(DEFAULT_NAVBAR_CONFIG);
+
+        // Don't render navbar if there's an error
+        setConfig(null);
       } finally {
         setLoading(false);
       }

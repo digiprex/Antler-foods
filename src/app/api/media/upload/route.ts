@@ -81,25 +81,43 @@ export async function POST(request: NextRequest) {
       const hasuraUrl = new URL(HASURA_ENDPOINT);
       const hostname = hasuraUrl.hostname;
       if (hostname.includes('.nhost.run')) {
-        storageUrl = `https://${hostname.replace('graphql', 'storage')}`;
+        // Extract subdomain from graphql URL
+        const subdomain = hostname.split('.')[0];
+        const region = hostname.split('.')[2]; // e.g., 'eu-central-1'
+        storageUrl = `https://${subdomain}.storage.${region}.nhost.run`;
         console.log('[Media Upload] Derived storage URL:', storageUrl);
       }
     }
 
+    console.log('[Media Upload] Using storage URL:', storageUrl);
+    console.log('[Media Upload] File details:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    });
+
     if (!storageUrl) {
+      console.error('[Media Upload] Storage URL not configured');
       return NextResponse.json(
-        { success: false, error: 'Storage URL not configured' },
+        {
+          success: false,
+          error: 'Storage URL not configured. Please set NEXT_PUBLIC_NHOST_STORAGE_URL or ensure HASURA_GRAPHQL_ENDPOINT is set correctly.',
+        },
         { status: 500 }
       );
     }
 
     // Upload file to Nhost Storage
+    // Nhost expects 'file[]' as the field name for file uploads
     const uploadFormData = new FormData();
-    uploadFormData.append('file', file);
+    uploadFormData.append('file[]', file);
 
-    console.log('[Media Upload] Uploading to Nhost Storage:', `${storageUrl}/v1/files`);
+    const uploadUrl = `${storageUrl}/v1/files`;
+    console.log('[Media Upload] Uploading to:', uploadUrl);
+    console.log('[Media Upload] Using admin secret:', HASURA_ADMIN_SECRET ? 'SET' : 'NOT SET');
+    console.log('[Media Upload] Form field name: file[]');
 
-    const uploadResponse = await fetch(`${storageUrl}/v1/files`, {
+    const uploadResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
         'x-hasura-admin-secret': HASURA_ADMIN_SECRET,
@@ -109,9 +127,34 @@ export async function POST(request: NextRequest) {
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
-      console.error('[Media Upload] Nhost upload failed:', errorText);
+      console.error('[Media Upload] Nhost upload failed:');
+      console.error('  Status:', uploadResponse.status, uploadResponse.statusText);
+      console.error('  URL:', uploadUrl);
+      console.error('  Response:', errorText);
+
+      let errorMessage = 'Failed to upload file to storage';
+      let errorDetails = errorText;
+
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error) {
+          errorMessage = `Nhost Error: ${errorJson.error}`;
+        }
+        if (errorJson.code === 'not-found') {
+          errorMessage += ' - The storage endpoint was not found. Please check your Nhost configuration.';
+          errorDetails = `Attempted URL: ${uploadUrl}\n\nPlease verify:\n1. NEXT_PUBLIC_NHOST_STORAGE_URL is set correctly in .env.local\n2. Your Nhost project has storage enabled\n3. The subdomain and region match your Nhost project`;
+        }
+      } catch (e) {
+        // Error text is not JSON, use as-is
+      }
+
       return NextResponse.json(
-        { success: false, error: 'Failed to upload file to storage', details: errorText },
+        {
+          success: false,
+          error: errorMessage,
+          details: errorDetails,
+          url: uploadUrl,
+        },
         { status: 500 }
       );
     }

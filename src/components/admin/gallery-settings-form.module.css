@@ -272,20 +272,25 @@
 }
 
 .dangerButton {
-  background: transparent;
+  background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
   border: none;
-  padding: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 1.25rem;
+  line-height: 1;
+  border-radius: 4px;
+  font-weight: 400;
 }
 
 .dangerButton:hover {
   color: #dc2626;
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(239, 68, 68, 0.2);
 }
 
 /* Images Grid */
 .imagesGrid {
   display: grid;
+  grid-template-columns: repeat(5, 1fr);
   gap: 1rem;
 }
 
@@ -304,7 +309,7 @@
 
 .imageCardHeader {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: 0.75rem;
 }
@@ -627,6 +632,10 @@
   .mediaGrid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
+
+  .imagesGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 480px) {
@@ -648,5 +657,45 @@
 
   .mediaGrid {
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+
+  .imagesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Toast Notification */
+.toast {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 10000;
+  animation: slideIn 0.3s ease-out;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toast.success {
+  background-color: #10b981;
+}
+
+.toast.error {
+  background-color: #ef4444;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
   }
 }

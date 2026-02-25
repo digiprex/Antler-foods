@@ -56,7 +56,7 @@ export interface GalleryConfigResponse {
 }
 
 export const DEFAULT_GALLERY_CONFIG: GalleryConfig = {
-  title: 'Our Gallery',
+  title: '',
   subtitle: '',
   description: '',
   images: [],

@@ -22,6 +22,7 @@ import { useState, useEffect } from 'react';
 import type { GalleryConfig } from '@/types/gallery.types';
 import { DEFAULT_GALLERY_CONFIG } from '@/types/gallery.types';
 import styles from '@/components/admin/gallery-settings-form.module.css';
+import Gallery from '@/components/gallery';
 
 export default function GallerySettingsPage() {
   const router = useRouter();
@@ -34,11 +35,13 @@ export default function GallerySettingsPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showMediaModal, setShowMediaModal] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<any[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<Set<string>>(new Set());
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     if (restaurantId) {
@@ -127,13 +130,16 @@ export default function GallerySettingsPage() {
       const data = await response.json();
 
       if (data.success) {
-        alert('Gallery settings saved successfully!');
+        setToast({ message: 'Gallery settings saved successfully!', type: 'success' });
+        setTimeout(() => setToast(null), 3000);
       } else {
-        alert('Error saving settings: ' + data.error);
+        setToast({ message: 'Error saving settings: ' + data.error, type: 'error' });
+        setTimeout(() => setToast(null), 3000);
       }
     } catch (error) {
       console.error('Error saving gallery config:', error);
-      alert('Error saving settings');
+      setToast({ message: 'Error saving settings', type: 'error' });
+      setTimeout(() => setToast(null), 3000);
     } finally {
       setSaving(false);
     }
@@ -173,7 +179,7 @@ export default function GallerySettingsPage() {
     const newImages = selectedFiles.map(media => ({
       url: media.file?.url || '',
       alt: media.file?.name || '',
-      title: media.file?.name || '',
+      title: '',
       description: '',
     }));
 
@@ -230,7 +236,6 @@ export default function GallerySettingsPage() {
       // Refresh media list
       if (uploadedMedia.length > 0) {
         await fetchMediaFiles();
-        alert(`Successfully uploaded ${uploadedMedia.length} image(s)`);
       }
 
     } finally {
@@ -277,6 +282,13 @@ export default function GallerySettingsPage() {
                     </p>
                   )}
                 </div>
+                <button
+                  onClick={() => setShowPreview(true)}
+                  className={`${styles.button} ${styles.secondaryButton}`}
+                  disabled={config.images.length === 0}
+                >
+                  👁️ Preview Gallery
+                </button>
               </div>
 
               {loading ? (
@@ -300,6 +312,19 @@ export default function GallerySettingsPage() {
                         onChange={(e) => setConfig({ ...config, title: e.target.value })}
                         className={styles.textInput}
                         placeholder="Our Gallery"
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>
+                        Sub Heading
+                        <span className={styles.labelHint}>Optional subtitle text</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={config.subtitle || ''}
+                        onChange={(e) => setConfig({ ...config, subtitle: e.target.value })}
+                        className={styles.textInput}
+                        placeholder="Explore our collection"
                       />
                     </div>
                     <div className={styles.formGroup}>
@@ -376,12 +401,11 @@ export default function GallerySettingsPage() {
                       {config.images.map((image, index) => (
                         <div key={index} className={styles.imageCard}>
                           <div className={styles.imageCardHeader}>
-                            <h4 className={styles.imageCardTitle}>Image {index + 1}</h4>
                             <button
                               onClick={() => removeImage(index)}
                               className={`${styles.button} ${styles.dangerButton}`}
                             >
-                              Remove
+                              ×
                             </button>
                           </div>
                           {image.url && (
@@ -394,23 +418,9 @@ export default function GallerySettingsPage() {
                           <div className={styles.imageInputs}>
                             <input
                               type="text"
-                              placeholder="Image URL"
-                              value={image.url}
-                              onChange={(e) => updateImage(index, 'url', e.target.value)}
-                              className={styles.textInput}
-                            />
-                            <input
-                              type="text"
-                              placeholder="Alt text"
+                              placeholder="Alt text (optional)"
                               value={image.alt}
                               onChange={(e) => updateImage(index, 'alt', e.target.value)}
-                              className={styles.textInput}
-                            />
-                            <input
-                              type="text"
-                              placeholder="Title (optional)"
-                              value={image.title || ''}
-                              onChange={(e) => updateImage(index, 'title', e.target.value)}
                               className={styles.textInput}
                             />
                           </div>
@@ -653,6 +663,51 @@ export default function GallerySettingsPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className={styles.modal} onClick={() => setShowPreview(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1400px' }}>
+            {/* Modal Header */}
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>
+                Gallery Preview
+              </h2>
+              <button
+                onClick={() => setShowPreview(false)}
+                className={styles.modalCloseButton}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className={styles.modalBody}>
+              <Gallery {...config} />
+            </div>
+
+            {/* Modal Footer */}
+            <div className={styles.modalFooter}>
+              <button
+                onClick={() => setShowPreview(false)}
+                className={`${styles.button} ${styles.secondaryButton}`}
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`${styles.toast} ${toast.type === 'success' ? styles.success : styles.error}`}>
+          <span style={{ fontSize: '1.25rem' }}>
+            {toast.type === 'success' ? '✓' : '✕'}
+          </span>
+          {toast.message}
         </div>
       )}
     </DashboardLayout>

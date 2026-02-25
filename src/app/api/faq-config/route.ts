@@ -184,20 +184,44 @@ export async function GET(request: Request) {
     // Get restaurant_id from query params or use default
       const { searchParams } = new URL(request.url);
       const restaurantId = searchParams.get('restaurant_id') || RESTAURANT_ID;
-      const pageId = searchParams.get('page_id') || null;
-      const urlSlug = searchParams.get('url_slug') || null;
+      let pageId = searchParams.get('page_id') || null;
+      let urlSlug = searchParams.get('url_slug') || null;
+
+      // If url_slug not supplied, try to derive from referer header (useful when called from a page)
+      if (!urlSlug) {
+        try {
+          const referer = request.headers.get('referer') || request.headers.get('referrer') || null;
+          if (referer) {
+            const parsedRef = new URL(referer);
+            // prefer the last non-empty segment as slug
+            const segments = parsedRef.pathname.split('/').filter(Boolean);
+            if (segments.length > 0) {
+              urlSlug = segments[segments.length - 1];
+            }
+          }
+        } catch (e) {
+          // ignore parse errors
+        }
+      }
 
       let finalPageId = pageId;
 
-      // If url_slug is provided, get the page_id from it
+      // Debug logging
+      // eslint-disable-next-line no-console
+      console.log('FAQ GET params -> page_id:', pageId, 'url_slug:', urlSlug);
+
+      // If url_slug is provided (either via query or referer), get the page_id from it
       if (urlSlug && !pageId) {
         const pageData = await graphqlRequest(GET_PAGE_BY_SLUG, {
           restaurant_id: restaurantId,
           url_slug: urlSlug
         });
-        
+
         if (pageData.web_pages && pageData.web_pages.length > 0) {
           finalPageId = pageData.web_pages[0].page_id;
+          // Log resolved page id
+          // eslint-disable-next-line no-console
+          console.log('Resolved page_id from url_slug', urlSlug, '->', finalPageId);
         } else {
           // Return error if page not found for the given url_slug
           const response = {

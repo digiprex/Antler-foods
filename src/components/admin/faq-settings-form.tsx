@@ -36,6 +36,7 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
   const restaurantNameFromQuery = searchParams.get('restaurant_name') || undefined;
   const domainParamRaw = searchParams.get('domain') || searchParams.get('staging_domain') || searchParams.get('url') || null;
   const urlSlugFromParams = searchParams.get('url_slug') || searchParams.get('slug') || searchParams.get('path') || null;
+  const pageIdFromParams = searchParams.get('page_id') || searchParams.get('page') || null;
   const [resolvedPageId, setResolvedPageId] = useState<string | null>(pageId || null);
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
   const finalRestaurantId = restaurantIdFromQuery || restaurantId || DEFAULT_RESTAURANT_ID;
@@ -86,6 +87,11 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
   useEffect(() => {
     if (pageId) {
       setResolvedPageId(pageId);
+      return;
+    }
+
+    if (pageIdFromParams) {
+      setResolvedPageId(pageIdFromParams);
       return;
     }
 

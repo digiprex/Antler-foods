@@ -1,18 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   useAuthenticationStatus,
-  useSignUpEmailPassword,
   useUserData,
 } from '@nhost/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { AuthInput } from './auth-input';
 import {
-  DEFAULT_AUTH_REDIRECT,
   LOGIN_ROUTE,
   getRoleDashboardRoute,
 } from '@/lib/auth/routes';
@@ -22,28 +20,18 @@ import { signupSchema, type SignupFormValues } from '@/lib/validation/auth';
 
 export function SignupForm() {
   const router = useRouter();
-  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { isAuthenticated, isLoading: isStatusLoading } =
     useAuthenticationStatus();
   const user = useUserData();
-  const { signUpEmailPassword, isLoading, error, needsEmailVerification } =
-    useSignUpEmailPassword();
 
   useEffect(() => {
     if (!isStatusLoading && isAuthenticated && user) {
       router.replace(getRoleDashboardRoute(getUserRole(user)));
     }
   }, [isAuthenticated, isStatusLoading, router, user]);
-
-  useEffect(() => {
-    return () => {
-      if (redirectTimer.current) {
-        clearTimeout(redirectTimer.current);
-      }
-    };
-  }, []);
 
   const {
     register,
@@ -72,31 +60,38 @@ export function SignupForm() {
       return;
     }
 
-    const displayName = `${values.firstName} ${values.lastName}`.trim();
-    const result = await signUpEmailPassword(values.email, values.password, {
-      displayName,
-      metadata: {
-        firstName: values.firstName,
-        lastName: values.lastName,
-        phoneNumber: values.phone,
-        role: 'client',
-      },
-    });
+    setIsSubmitting(true);
 
-    if (result.error) {
-      setFormError(result.error.message ?? 'Unable to create account.');
-      return;
+    try {
+      const response = await fetch('/api/auth/signup-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: values.firstName,
+          lastName: values.lastName,
+          email: values.email,
+          phoneNumber: values.phone,
+          password: values.password,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+
+      if (!response.ok) {
+        setFormError(payload?.error ?? 'Unable to create account.');
+        return;
+      }
+
+      setSuccessMessage(
+        'Account created. Please verify your email, then log in.',
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const verificationHint = needsEmailVerification
-      ? 'Please verify your email from inbox if required.'
-      : 'Redirecting to dashboard...';
-    setSuccessMessage(`Account created successfully. ${verificationHint}`);
-
-    const nextRoute = getRoleDashboardRoute(getUserRole(result.user));
-    redirectTimer.current = setTimeout(() => {
-      router.replace(nextRoute || DEFAULT_AUTH_REDIRECT);
-    }, 700);
   });
 
   return (
@@ -155,9 +150,9 @@ export function SignupForm() {
         />
       </div>
 
-      {formError || error ? (
+      {formError ? (
         <p className="rounded-lg border border-[#f4c7c7] bg-[#fff2f2] px-3.5 py-2.5 text-xs text-[#a93737]">
-          {formError ?? error?.message}
+          {formError}
         </p>
       ) : null}
 
@@ -170,9 +165,9 @@ export function SignupForm() {
       <button
         type="submit"
         className="auth-primary-btn w-full"
-        disabled={isLoading}
+        disabled={isSubmitting}
       >
-        {isLoading ? 'Creating account...' : 'Sign up'}
+        {isSubmitting ? 'Creating account...' : 'Sign up'}
       </button>
 
       <p className="pt-1 text-center text-sm text-[#5f6b73]">

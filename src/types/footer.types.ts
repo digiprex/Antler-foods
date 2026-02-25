@@ -88,7 +88,7 @@ export interface FooterConfigResponse {
  * Default configuration values
  */
 export const DEFAULT_FOOTER_CONFIG: FooterConfig = {
-  restaurantName: "Maison de Noir",
+  restaurantName: "Restaurant",
   aboutContent: "Experience fine dining at its best",
   email: "hello@maisonnoir.com",
   phone: "+1 (555) 123-4567",
@@ -118,7 +118,7 @@ export const DEFAULT_FOOTER_CONFIG: FooterConfig = {
     { platform: "instagram", url: "https://instagram.com", order: 2 },
     { platform: "twitter", url: "https://twitter.com", order: 3 },
   ],
-  copyrightText: `© ${new Date().getFullYear()} Maison de Noir. All rights reserved.`,
+  copyrightText: `© ${new Date().getFullYear()} Restaurant. All rights reserved.`,
   showPoweredBy: false,
   layout: "restaurant",
   bgColor: "#f5f5f5",

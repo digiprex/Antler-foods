@@ -156,7 +156,6 @@ export async function GET(request: Request) {
     const urlSlug = searchParams.get('url_slug');
     let pageId = searchParams.get('page_id');
 
-    console.log(restaurantId, domain, "shishfisf")
     // If domain is provided but no restaurantId, fetch restaurantId from domain
     if (domain && !searchParams.get('restaurant_id')) {
       try {
@@ -240,48 +239,13 @@ export async function GET(request: Request) {
     }
 
     if (!data.templates || data.templates.length === 0) {
-      // Return default config if template doesn't exist
-      // Use restaurant name, email, phone, address and social links if available
-      const defaultConfig: FooterConfig = {
-        restaurantName: restaurantName || 'Antler Foods',
-        aboutContent: 'Experience fine dining at its best',
-        email: restaurantEmail || 'hello@antlerfoods.com',
-        phone: restaurantPhone || '+1 (555) 123-4567',
-        address: restaurantAddress || '123 Main Street, City, State 12345',
-        columns: [
-          {
-            title: 'Quick Links',
-            links: [
-              { label: 'Menu', href: '/menu', order: 1 },
-              { label: 'About', href: '/about', order: 2 },
-              { label: 'Contact', href: '/contact', order: 3 },
-            ],
-            order: 1,
-          },
-        ],
-        socialLinks: socialLinks.length > 0 ? socialLinks : [
-          { platform: 'facebook', url: 'https://facebook.com', order: 1 },
-          { platform: 'instagram', url: 'https://instagram.com', order: 2 },
-        ],
-        copyrightText: `© ${new Date().getFullYear()} Antler Foods. All rights reserved.`,
-        showPoweredBy: true,
-        layout: 'columns-3',
-        bgColor: '#1f2937',
-        textColor: '#f9fafb',
-        linkColor: '#9ca3af',
-        copyrightBgColor: '#000000',
-        copyrightTextColor: '#ffffff',
-        showNewsletter: false,
-        showSocialMedia: true,
-        showLocations: true,
+      // Return 404 if no footer template exists - don't show footer
+      const response = {
+        success: false,
+        data: null,
+        error: 'No footer configuration found'
       };
-
-      const response: FooterConfigResponse = {
-        success: true,
-        data: defaultConfig,
-      };
-
-      return NextResponse.json(response);
+      return NextResponse.json(response, { status: 404 });
     }
 
     const template = data.templates[0];
@@ -289,7 +253,7 @@ export async function GET(request: Request) {
     // Transform template structure to FooterConfig
     // Use name, email, phone, address and social links from restaurant table, fallback to template config
     const config: FooterConfig = {
-      restaurantName: restaurantName || template.config?.restaurantName || 'Antler Foods',
+      restaurantName: restaurantName || template.config?.restaurantName || 'Restaurant',
       aboutContent: template.config?.aboutContent || '',
       email: restaurantEmail || template.config?.email || '',
       phone: restaurantPhone || template.config?.phone || '',
@@ -321,7 +285,7 @@ export async function GET(request: Request) {
     const errorResponse: FooterConfigResponse = {
       success: false,
       data: {
-        restaurantName: 'Antler Foods',
+        restaurantName: 'Restaurant',
         columns: [],
         socialLinks: [],
       } as FooterConfig,

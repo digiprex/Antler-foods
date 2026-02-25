@@ -59,11 +59,11 @@ export default function DynamicNavbar({
     // Fetch navbar configuration from API
     async function fetchNavbarConfig() {
       try {
-        // Use static restaurant_id for now
-        const restaurantId = '92e9160e-0afa-4f78-824f-b28e32885353';
+        // Get current domain for dynamic restaurant resolution
+        const domain = window.location.host;
         
-        // Fetch navbar config using restaurant_id
-        const navbarResponse = await fetch(`${apiEndpoint}?restaurant_id=${restaurantId}`, {
+        // Fetch navbar config using domain (API will resolve restaurant_id)
+        const navbarResponse = await fetch(`${apiEndpoint}?domain=${domain}`, {
           cache: 'no-store',
         });
         

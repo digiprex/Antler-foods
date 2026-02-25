@@ -44,6 +44,15 @@ const GET_NAVBAR_CONFIG = `
       template_id
       updated_at
     }
+    restaurants(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        is_deleted: {_eq: false}
+      }
+    ) {
+      name
+      restaurant_id
+    }
   }
 `;
 
@@ -151,7 +160,7 @@ export async function GET(request: Request) {
       const errorResponse = {
         success: false,
         data: {
-          restaurantName: 'Antler Foods',
+          restaurantName: 'Restaurant',
           leftNavItems: [],
           rightNavItems: [],
           ctaButton: {
@@ -171,41 +180,24 @@ export async function GET(request: Request) {
 
     console.log('[Navbar Config] Template query result (restaurant-wide):', JSON.stringify(data, null, 2));
 
+    // Get restaurant name from database
+    const restaurantName = data.restaurants?.[0]?.name || 'Restaurant';
+
     if (!data.templates || data.templates.length === 0) {
-      // Return default config if template doesn't exist
-      const defaultConfig: NavbarConfig = {
-        restaurantName: 'Antler Foods',
-        leftNavItems: [
-          { label: 'Menu', href: '/menu', order: 1 },
-          { label: 'About', href: '/about', order: 2 },
-          { label: 'Contact', href: '/contact', order: 3 },
-        ],
-        rightNavItems: [],
-        ctaButton: {
-          label: 'Order Online',
-          href: '/order',
-        },
-        layout: 'bordered-centered',
-        position: 'absolute',
-        bgColor: '#ffffff',
-        textColor: '#000000',
-        buttonBgColor: '#000000',
-        buttonTextColor: '#ffffff',
+      // Return 404 if no navbar template exists - don't show navbar
+      const response = {
+        success: false,
+        data: null,
+        error: 'No navbar configuration found'
       };
-
-      const response: NavbarConfigResponse = {
-        success: true,
-        data: defaultConfig,
-      };
-
-      return NextResponse.json(response);
+      return NextResponse.json(response, { status: 404 });
     }
 
     const template = data.templates[0]; // Get most recent non-deleted template
     
     // Transform template structure to NavbarConfig
     const config: NavbarConfig = {
-      restaurantName: 'Antler Foods', // TODO: Get from restaurant table
+      restaurantName: restaurantName, // Get from restaurant table
       layout: template.name, // name field contains layout type
       leftNavItems: template.menu_items || [],
       rightNavItems: [],
@@ -229,7 +221,7 @@ export async function GET(request: Request) {
     const errorResponse: NavbarConfigResponse = {
       success: false,
       data: {
-        restaurantName: 'Antler Foods',
+        restaurantName: 'Restaurant',
         leftNavItems: [],
         rightNavItems: [],
         ctaButton: {
@@ -305,7 +297,7 @@ export async function POST(request: Request) {
     
     // Transform back to NavbarConfig
     const responseConfig: NavbarConfig = {
-      restaurantName: 'Antler Foods',
+      restaurantName: 'Restaurant', // Note: POST doesn't fetch restaurant name, should be handled by GET
       layout: template.name,
       leftNavItems: template.menu_items,
       rightNavItems: [],

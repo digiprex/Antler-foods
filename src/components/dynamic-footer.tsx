@@ -48,7 +48,6 @@ export default function DynamicFooter({
   const [config, setConfig] = useState<FooterConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [restaurantId, setRestaurantId] = useState<string>('92e9160e-0afa-4f78-824f-b28e32885353');
 
   useEffect(() => {
     // If override config is provided, use it directly
@@ -61,11 +60,11 @@ export default function DynamicFooter({
     // Fetch footer configuration from API
     async function fetchFooterConfig() {
       try {
-        // Use static restaurant_id for now
-        const restaurantId = '92e9160e-0afa-4f78-824f-b28e32885353';
+        // Get current domain for dynamic restaurant resolution
+        const domain = window.location.host;
         
-        // Fetch footer config using restaurant_id
-        const footerResponse = await fetch(`${apiEndpoint}?restaurant_id=${restaurantId}`, {
+        // Fetch footer config using domain (API will resolve restaurant_id)
+        const footerResponse = await fetch(`${apiEndpoint}?domain=${domain}`, {
           cache: 'no-store',
         });
         
@@ -145,7 +144,6 @@ export default function DynamicFooter({
       linkColor={config.linkColor}
       copyrightBgColor={config.copyrightBgColor}
       copyrightTextColor={config.copyrightTextColor}
-      restaurant_id={restaurantId}
     />
   );
 }

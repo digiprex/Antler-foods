@@ -29,8 +29,8 @@ interface DynamicHeroProps {
   showLoading?: boolean;
 }
 
-export default function DynamicHero({ 
-  restaurantId = '92e9160e-0afa-4f78-824f-b28e32885353', // Default restaurant ID
+export default function DynamicHero({
+  restaurantId, // Restaurant ID should be provided dynamically
   fallbackConfig,
   showLoading = true
 }: DynamicHeroProps) {

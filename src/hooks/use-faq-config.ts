@@ -4,7 +4,7 @@
  * Custom hook for fetching and updating FAQ configuration from the API
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface FAQ {
   id: string;
@@ -36,11 +36,11 @@ export function useFAQConfig({ apiEndpoint }: UseFAQConfigProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchConfig = async () => {
+  const fetchConfig = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch(apiEndpoint);
 
       // Treat 404 as "no configuration yet" (not an error)
@@ -67,11 +67,11 @@ export function useFAQConfig({ apiEndpoint }: UseFAQConfigProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiEndpoint]);
 
   useEffect(() => {
     fetchConfig();
-  }, [apiEndpoint]);
+  }, [fetchConfig]);
 
   const refetch = () => {
     fetchConfig();

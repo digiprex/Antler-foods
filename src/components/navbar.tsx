@@ -33,7 +33,7 @@ export interface NavbarProps {
 }
 
 // Default dynamic values
-const DEFAULT_RESTAURANT_NAME = "Maison de Noir";
+const DEFAULT_RESTAURANT_NAME = "Restaurant";
 
 const DEFAULT_LEFT_NAV_ITEMS: NavItem[] = [
   { label: 'Collection', href: '#collection' },

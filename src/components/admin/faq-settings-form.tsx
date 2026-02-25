@@ -29,7 +29,7 @@ interface FAQ {
   answer: string;
 }
 
-const DEFAULT_RESTAURANT_ID = '92e9160e-0afa-4f78-824f-b28e32885353';
+// Restaurant ID should be provided dynamically - no default static ID
 
 export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) {
   const searchParams = useSearchParams();
@@ -39,7 +39,17 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
   const pageIdFromParams = searchParams.get('page_id') || searchParams.get('page') || null;
   const [resolvedPageId, setResolvedPageId] = useState<string | null>(pageId || null);
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
-  const finalRestaurantId = restaurantIdFromQuery || restaurantId || DEFAULT_RESTAURANT_ID;
+  const finalRestaurantId = restaurantIdFromQuery || restaurantId || '';
+  
+  // Validate that restaurant ID is provided
+  if (!finalRestaurantId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID is required. Please provide it via URL parameter or props.</p>
+      </div>
+    );
+  }
   
   const configApiEndpoint = useMemo(
     () => `/api/faq-config?restaurant_id=${encodeURIComponent(finalRestaurantId)}`,

@@ -45,8 +45,19 @@ export default function HeroSettingsForm() {
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
 
-  // Static restaurant ID for testing
-  const restaurantId = '92e9160e-0afa-4f78-824f-b28e32885353';
+  // Get restaurant ID from URL parameters
+  const searchParams = new URLSearchParams(window.location.search);
+  const restaurantId = searchParams.get('restaurant_id') || '';
+  
+  // Validate that restaurant ID is provided
+  if (!restaurantId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
+      </div>
+    );
+  }
 
   // Layout options
   const layoutOptions = [

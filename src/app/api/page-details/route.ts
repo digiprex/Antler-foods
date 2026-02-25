@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const HASURA_ENDPOINT = process.env.HASURA_GRAPHQL_ENDPOINT;
 const HASURA_ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
-const RESTAURANT_ID = process.env.RESTAURANT_ID || '92e9160e-0afa-4f78-824f-b28e32885353';
+// Restaurant ID should be provided dynamically via query parameters - no static fallback
 
 /**
  * GraphQL request helper
@@ -110,7 +110,14 @@ const GET_PAGE_TEMPLATES = `
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    let restaurantId = searchParams.get('restaurant_id') || RESTAURANT_ID;
+    let restaurantId = searchParams.get('restaurant_id');
+    
+    if (!restaurantId) {
+      return NextResponse.json(
+        { success: false, error: 'restaurant_id is required as a query parameter' },
+        { status: 400 }
+      );
+    }
     const urlSlug = searchParams.get('url_slug');
     const domain = searchParams.get('domain') || request.headers.get('host');
 

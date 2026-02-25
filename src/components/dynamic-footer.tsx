@@ -62,18 +62,25 @@ export default function DynamicFooter({
       try {
         // Get current domain for dynamic restaurant resolution
         const domain = window.location.host;
-        
+
         // Fetch footer config using domain (API will resolve restaurant_id)
         const footerResponse = await fetch(`${apiEndpoint}?domain=${domain}`, {
           cache: 'no-store',
         });
-        
+
+        // Treat 404 as "no footer template" - don't render footer
+        if (footerResponse.status === 404) {
+          setConfig(null);
+          setLoading(false);
+          return;
+        }
+
         if (!footerResponse.ok) {
           throw new Error(`API returned ${footerResponse.status}: ${footerResponse.statusText}`);
         }
-        
+
         const footerData = await footerResponse.json();
-        
+
         // Validate response structure
         if (footerData.success && footerData.data) {
           // Merge with defaults to ensure all required fields are present
@@ -84,9 +91,9 @@ export default function DynamicFooter({
       } catch (err) {
         console.error('Failed to fetch footer config:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
-        
-        // Fallback to default configuration
-        setConfig(DEFAULT_FOOTER_CONFIG);
+
+        // Don't render footer if there's an error
+        setConfig(null);
       } finally {
         setLoading(false);
       }

@@ -46,7 +46,6 @@ export default function DynamicFAQ({
       ? `/api/faq-config?restaurant_id=${restaurantId}&url_slug=${urlSlug}`
       : `/api/faq-config?restaurant_id=${restaurantId}`;
 
-    console.log('[DynamicFAQ] Using API endpoint:', endpoint);
     return endpoint;
   }, [restaurantId]);
 

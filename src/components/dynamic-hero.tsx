@@ -70,8 +70,6 @@ export default function DynamicHero({
 
   // Show error state with fallback
   if (error && !config) {
-    console.warn('Failed to load hero configuration:', error);
-    
     // Use fallback configuration if provided
     if (fallbackConfig) {
       return <Hero {...fallbackConfig} />;

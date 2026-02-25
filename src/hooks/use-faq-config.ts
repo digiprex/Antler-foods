@@ -63,7 +63,6 @@ export function useFAQConfig({ apiEndpoint }: UseFAQConfigProps) {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
-      console.error('Error fetching FAQ config:', err);
     } finally {
       setLoading(false);
     }
@@ -127,7 +126,6 @@ export function useUpdateFAQConfig() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
-      console.error('Error updating FAQ config:', err);
       throw err;
     } finally {
       setUpdating(false);

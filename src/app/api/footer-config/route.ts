@@ -159,11 +159,38 @@ export async function GET(request: Request) {
     // If domain is provided but no restaurantId, fetch restaurantId from domain
     if (domain && !searchParams.get('restaurant_id')) {
       try {
-        // Import the function dynamically to avoid circular dependencies
-        const { getRestaurantIdByDomain } = await import('@/lib/graphql/queries');
-        const domainRestaurantId = await getRestaurantIdByDomain(domain);
-        if (domainRestaurantId) {
-          restaurantId = domainRestaurantId;
+        console.log('[Footer Config] Looking up domain:', domain);
+
+        const GET_RESTAURANT_BY_DOMAIN = `
+          query GetRestaurantByDomain($domain: String!) {
+            restaurants(
+              where: {
+                _or: [
+                  { custom_domain: { _eq: $domain } },
+                  { staging_domain: { _eq: $domain } }
+                ],
+                is_deleted: { _eq: false }
+              },
+              limit: 1
+            ) {
+              restaurant_id
+              custom_domain
+              staging_domain
+              is_deleted
+            }
+          }
+        `;
+
+        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, {
+          domain: domain,
+        });
+
+        if (domainData.restaurants && domainData.restaurants.length > 0) {
+          const restaurant = domainData.restaurants[0];
+          if (!restaurant.is_deleted) {
+            restaurantId = restaurant.restaurant_id;
+            console.log('[Footer Config] Found restaurant for domain:', domain, '->', restaurantId);
+          }
         }
       } catch (error) {
         console.error('Error fetching restaurant ID by domain:', error);
@@ -186,6 +213,8 @@ export async function GET(request: Request) {
     }
 
     // Footer is global for the restaurant - always use general template (no page_id)
+    console.log('[Footer Config] Using restaurant_id:', restaurantId);
+
     const data = await graphqlRequest(GET_FOOTER_CONFIG, {
       restaurant_id: restaurantId,
     });

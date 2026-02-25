@@ -148,11 +148,18 @@ export default function Navbar({
         <nav className={navbarClass} style={navbarStyle}>
           {/* Mobile menu button */}
           <button onClick={toggleSidebar} className={styles.menuButtonStacked} aria-label="Menu">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
+            {isSidebarOpen ? (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            ) : (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            )}
           </button>
 
           {/* Stacked layout container */}
@@ -230,11 +237,18 @@ export default function Navbar({
         {/* Left Section - Menu button (mobile) / Nav Items or Logo (desktop) */}
         <div className={styles.leftSection}>
           <button onClick={toggleSidebar} className={styles.menuButton} aria-label="Menu">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
+            {isSidebarOpen ? (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            ) : (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            )}
           </button>
           {layout === 'logo-center' || layout === 'split' ? (
             <div className={styles.desktopNavLeft}>

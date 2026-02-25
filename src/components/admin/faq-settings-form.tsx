@@ -198,24 +198,52 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
   };
 
   const renderPreviewContent = () => {
-    if (faqs.length === 0) {
-      return (
-        <div className="text-sm text-gray-500 p-4 text-center">
-          No FAQs to preview. Add some FAQs to see how they will appear.
-        </div>
-      );
-    }
-
-    const previewStyle = { 
-      backgroundColor: bgColor, 
+    const previewStyle = {
+      backgroundColor: bgColor,
       color: textColor,
       padding: '1.5rem',
       borderRadius: '8px'
     };
 
+    const headerSection = (
+      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+        {title && (
+          <h2 style={{
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            marginBottom: subtitle ? '0.5rem' : '0',
+            color: textColor
+          }}>
+            {title}
+          </h2>
+        )}
+        {subtitle && (
+          <p style={{
+            fontSize: '0.95rem',
+            color: textColor,
+            opacity: 0.8
+          }}>
+            {subtitle}
+          </p>
+        )}
+      </div>
+    );
+
+    if (faqs.length === 0) {
+      return (
+        <div style={previewStyle}>
+          {headerSection}
+          <div style={{ fontSize: '0.875rem', color: textColor, opacity: 0.5, textAlign: 'center', padding: '1rem' }}>
+            No FAQs to preview. Add some FAQs to see how they will appear.
+          </div>
+        </div>
+      );
+    }
+
     if (layout === 'grid') {
       return (
         <div style={previewStyle}>
+          {headerSection}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {faqs.map((f) => (
               <div key={f.id} className="p-3 border rounded" style={{ background: 'rgba(255,255,255,0.1)' }}>
@@ -231,6 +259,7 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
     if (layout === 'list') {
       return (
         <div style={previewStyle}>
+          {headerSection}
           <div className="space-y-4">
             {faqs.map((f) => (
               <div key={f.id}>
@@ -246,6 +275,7 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
     // accordion layout
     return (
       <div style={previewStyle}>
+        {headerSection}
         <div className="space-y-2">
           {faqs.map((f) => (
             <details key={f.id} className="border rounded p-3" style={{ background: 'rgba(255,255,255,0.1)' }}>
@@ -352,6 +382,44 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
                     Grid
                   </button>
                 </div>
+              </div>
+            </div>
+
+            {/* Content Section */}
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}>📝</span>
+                Content
+              </h3>
+
+              {/* Title */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Section Title
+                  <span className={styles.labelHint}>Main heading for the FAQ section</span>
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className={styles.textInput}
+                  placeholder="Frequently Asked Questions"
+                />
+              </div>
+
+              {/* Subtitle */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Section Subtitle
+                  <span className={styles.labelHint}>Subheading text below the title</span>
+                </label>
+                <input
+                  type="text"
+                  value={subtitle}
+                  onChange={(e) => setSubtitle(e.target.value)}
+                  className={styles.textInput}
+                  placeholder="Find answers to common questions"
+                />
               </div>
             </div>
 

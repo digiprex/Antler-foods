@@ -17,8 +17,7 @@ import type { NavbarConfig, NavbarConfigResponse } from '@/types/navbar.types';
 const HASURA_URL = process.env.HASURA_GRAPHQL_URL || 'https://pycfacumenjefxtblime.hasura.us-east-1.nhost.run/v1/graphql';
 const HASURA_ADMIN_SECRET = process.env.HASURA_ADMIN_SECRET || "i;8zmVF8SvnMiX5gao@F'a6,uJ%WphsD";
 
-// Static restaurant ID for testing
-const RESTAURANT_ID = '92e9160e-0afa-4f78-824f-b28e32885353';
+// Restaurant ID must be provided dynamically via query parameters or domain lookup
 
 /**
  * GraphQL query to fetch navbar configuration from templates
@@ -125,13 +124,52 @@ async function graphqlRequest(query: string, variables?: any) {
  */
 export async function GET(request: Request) {
   try {
-    // Get restaurant_id from query params or use default
+    // Get restaurant_id from query params - required parameter
     const { searchParams } = new URL(request.url);
-    const restaurantId = searchParams.get('restaurant_id') || RESTAURANT_ID;
+    let restaurantId = searchParams.get('restaurant_id');
+    const domain = searchParams.get('domain') || request.headers.get('host');
+    const urlSlug = searchParams.get('url_slug');
+    let pageId = searchParams.get('page_id');
 
+    // If domain is provided but no restaurantId, fetch restaurantId from domain
+    if (domain && !searchParams.get('restaurant_id')) {
+      try {
+        // Import the function dynamically to avoid circular dependencies
+        const { getRestaurantIdByDomain } = await import('@/lib/graphql/queries');
+        const domainRestaurantId = await getRestaurantIdByDomain(domain);
+        if (domainRestaurantId) {
+          restaurantId = domainRestaurantId;
+        }
+      } catch (error) {
+        console.error('Error fetching restaurant ID by domain:', error);
+        // Continue without restaurant ID - will be validated below
+      }
+    }
+
+    // Validate that restaurant_id is provided
+    if (!restaurantId) {
+      const errorResponse = {
+        success: false,
+        data: {
+          restaurantName: 'Antler Foods',
+          leftNavItems: [],
+          rightNavItems: [],
+          ctaButton: {
+            label: 'Order Online',
+            href: '/order',
+          },
+        },
+        error: 'restaurant_id is required. Provide it as a query parameter or ensure the domain is properly configured.'
+      };
+      return NextResponse.json(errorResponse, { status: 400 });
+    }
+
+    // Navbar is global for the restaurant - always use general template (no page_id)
     const data = await graphqlRequest(GET_NAVBAR_CONFIG, {
       restaurant_id: restaurantId,
     });
+
+    console.log('[Navbar Config] Template query result (restaurant-wide):', JSON.stringify(data, null, 2));
 
     if (!data.templates || data.templates.length === 0) {
       // Return default config if template doesn't exist

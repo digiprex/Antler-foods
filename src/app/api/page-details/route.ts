@@ -110,9 +110,9 @@ const GET_PAGE_TEMPLATES = `
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const restaurantId = searchParams.get('restaurant_id') || RESTAURANT_ID;
+    let restaurantId = searchParams.get('restaurant_id') || RESTAURANT_ID;
     const urlSlug = searchParams.get('url_slug');
-    const domain = searchParams.get('domain'); // For future use
+    const domain = searchParams.get('domain') || request.headers.get('host');
 
     if (!urlSlug) {
       return NextResponse.json(
@@ -123,6 +123,21 @@ export async function GET(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // If domain is provided but no restaurantId, fetch restaurantId from domain
+    if (domain && !searchParams.get('restaurant_id')) {
+      try {
+        // Import the function dynamically to avoid circular dependencies
+        const { getRestaurantIdByDomain } = await import('@/lib/graphql/queries');
+        const domainRestaurantId = await getRestaurantIdByDomain(domain);
+        if (domainRestaurantId) {
+          restaurantId = domainRestaurantId;
+        }
+      } catch (error) {
+        console.error('Error fetching restaurant ID by domain:', error);
+        // Continue with default restaurant ID
+      }
     }
 
     // Step 1: Get page details by URL slug

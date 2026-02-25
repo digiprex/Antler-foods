@@ -36,7 +36,16 @@ export default function DynamicFAQ({
   showLoading = false, 
   fallbackConfig = {} 
 }: DynamicFAQProps) {
-  const apiEndpoint = `/api/faq-config?restaurant_id=${restaurantId}`;
+  // Build API endpoint with restaurant_id and auto-detected url_slug
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+  const pathSegments = currentPath.split('/').filter(Boolean);
+  const urlSlug = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : '';
+  
+  const apiEndpoint = urlSlug
+    ? `/api/faq-config?restaurant_id=${restaurantId}&url_slug=${urlSlug}`
+    : `/api/faq-config?restaurant_id=${restaurantId}`;
+    
+  console.log('[DynamicFAQ] Using API endpoint:', apiEndpoint);
   const { config: fetchedConfig, loading, error, refetch } = useFAQConfig({ apiEndpoint });
 
   // Default configuration structure (no default FAQs)

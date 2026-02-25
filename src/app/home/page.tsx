@@ -1,21 +1,111 @@
+'use client';
+
 /**
  * Home Page
  *
  * Dynamic page demonstrating the dynamic navbar and hero in action
+ * Automatically resolves restaurant ID from domain
  */
 
+import { useEffect, useState } from 'react';
 import DynamicHero from '@/components/dynamic-hero';
 import DynamicFAQ from '@/components/dynamic-faq';
-import DynamicFaw from '@/components/dynamic-faw';
 
 export default function HomePage() {
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Get restaurant ID from domain and fetch page_id for the home page
+    const fetchRestaurantData = async () => {
+      try {
+        setLoading(true);
+        
+        // Get current domain
+        const domain = window.location.host;
+        
+        // Resolve restaurant ID from domain using hero config API (which has domain resolution built-in)
+        // Don't encode the domain since it should match exactly what's in the database
+        // Also pass the URL slug to get page_id
+        const heroResponse = await fetch(`/api/hero-config?domain=${domain}&url_slug=home`);
+        
+        if (!heroResponse.ok) {
+          throw new Error('Failed to resolve restaurant from domain');
+        }
+        
+        const heroData = await heroResponse.json();
+        
+        if (!heroData.success) {
+          throw new Error(heroData.error || 'Failed to get restaurant configuration');
+        }
+        
+        // Extract restaurant_id from hero config response
+        const resolvedRestaurantId = heroData.data?.restaurant_id;
+        
+        if (!resolvedRestaurantId) {
+          throw new Error('No restaurant found for this domain');
+        }
+        
+        setRestaurantId(resolvedRestaurantId);
+        console.log('Successfully resolved restaurant from domain:', domain, '->', resolvedRestaurantId);
+        
+        // Page lookup is now handled by the hero config API itself
+        console.log('Page lookup will be handled by configuration APIs');
+        
+      } catch (error) {
+        console.error('Error fetching restaurant data:', error);
+        setError(error instanceof Error ? error.message : 'Unknown error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRestaurantData();
+  }, []);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f9fafb',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <h2>Loading...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error || !restaurantId) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f9fafb',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center', color: '#dc2626' }}>
+          <h2>Error</h2>
+          <p>{error || 'No restaurant found for this domain'}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       {/* Navbar is automatically rendered by ConditionalNavbar in root layout */}
       
       {/* Dynamic Hero Section */}
       <DynamicHero
-        restaurantId="92e9160e-0afa-4f78-824f-b28e32885353"
+        restaurantId={restaurantId}
         showLoading={true}
         fallbackConfig={{
           headline: "Welcome to Antler Foods",
@@ -39,78 +129,14 @@ export default function HomePage() {
         }}
       />
 
-      {/* Features Section (Font Awesome UI) */}
-      <DynamicFaw
-        restaurantId="92e9160e-0afa-4f78-824f-b28e32885353"
-        urlSlug="home"
-        categoryKey="faw"
-        fallbackConfig={{
-          title: 'Why Choose Us',
-          items: [
-            { id: '1', icon: 'fa-solid fa-utensils', title: 'Fresh Ingredients', text: 'We source only the finest, freshest ingredients for our dishes.' },
-            { id: '2', icon: 'fa-solid fa-hat-chef', title: 'Expert Chefs', text: 'Our experienced chefs bring passion and creativity to every plate.' },
-            { id: '3', icon: 'fa-solid fa-star', title: 'Top Rated', text: 'Consistently rated as one of the best restaurants in the area.' },
-          ],
-          bgColor: '#fff',
-          textColor: '#1a1a1a'
-        }}
-      />
 
       {/* FAQ Section */}
       <DynamicFAQ
-        restaurantId="92e9160e-0afa-4f78-824f-b28e32885353"
+        restaurantId={restaurantId}
         showLoading={true}
       />
 
-      {/* CTA Section */}
-      <section style={{ 
-        padding: '80px 2rem',
-        textAlign: 'center',
-        backgroundColor: '#000',
-        color: '#fff'
-      }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <h2 style={{ 
-            fontSize: '2rem', 
-            fontWeight: 'bold', 
-            marginBottom: '1rem'
-          }}>
-            Ready to Experience Great Food?
-          </h2>
-          <p style={{ 
-            fontSize: '1.125rem', 
-            marginBottom: '2rem',
-            opacity: 0.9
-          }}>
-            Order online now or visit us at one of our locations.
-          </p>
-          <a 
-            href="/order" 
-            style={{
-              padding: '0.75rem 2rem',
-              backgroundColor: '#fff',
-              color: '#000',
-              borderRadius: '0.25rem',
-              textDecoration: 'none',
-              fontWeight: '600',
-              display: 'inline-block'
-            }}
-          >
-            Order Now
-          </a>
-        </div>
-      </section>
 
-      {/* Footer */}
-      <footer style={{ 
-        padding: '2rem',
-        textAlign: 'center',
-        backgroundColor: '#f9fafb',
-        color: '#666',
-        fontSize: '0.875rem'
-      }}>
-        <p>© 2026 Antler Foods. All rights reserved.</p>
-      </footer>
     </div>
   );
 }

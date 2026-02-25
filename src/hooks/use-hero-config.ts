@@ -117,6 +117,15 @@ export function useHeroConfig(
       if (restaurantId) {
         url.searchParams.set('restaurant_id', restaurantId);
       }
+      
+      // Automatically detect URL slug from current page
+      const currentPath = window.location.pathname;
+      const pathSegments = currentPath.split('/').filter(Boolean);
+      if (pathSegments.length > 0) {
+        const urlSlug = pathSegments[pathSegments.length - 1];
+        url.searchParams.set('url_slug', urlSlug);
+        console.log('[useHeroConfig] Auto-detected url_slug:', urlSlug);
+      }
 
       const response = await fetch(url.toString());
 

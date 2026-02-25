@@ -44,10 +44,18 @@ function resolveActiveRailTab(
   return 'home';
 }
 
-function resolveDashboardBasePath(pathname: string) {
+function resolveDashboardBasePath(pathname: string, userRole: string | null) {
   const roleSegment = resolveRoleSegmentFromPath(pathname);
   if (roleSegment) {
     return `/dashboard/${roleSegment}`;
+  }
+
+  // Handle admin paths like /admin/navbar-settings
+  if (pathname.startsWith('/admin/') && userRole) {
+    const roleRouteSegment = toRoleRouteSegment(userRole as any);
+    if (roleRouteSegment) {
+      return `/dashboard/${roleRouteSegment}`;
+    }
   }
 
   return '/dashboard';
@@ -56,7 +64,8 @@ function resolveDashboardBasePath(pathname: string) {
 function isWebsitePath(pathname: string) {
   // Treat the legacy "pages-settings" route as part of the Website workspace
   // so the sidebar stays in the Website tab when navigating there.
-  return /^\/dashboard\/(admin|owner|manager)\/(website|pages-settings)(\/|$)/.test(pathname);
+  return /^\/dashboard\/(admin|owner|manager)\/(website|pages-settings)(\/|$)/.test(pathname) ||
+         /^\/admin\/(pages-settings|navbar-settings|popup-settings|youtube-settings|footer-settings|hero-settings|gallery-settings|faq-settings|review-settings)(\/|$)/.test(pathname);
 }
 
 function buildWebsiteHref(
@@ -92,8 +101,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const roleRouteSegment = toRoleRouteSegment(role);
   const expectedRoleRouteSegment = resolveRoleSegmentFromPath(pathname);
   const dashboardBasePath = useMemo(
-    () => resolveDashboardBasePath(pathname),
-    [pathname],
+    () => resolveDashboardBasePath(pathname, role),
+    [pathname, role],
   );
   const websiteBasePath = useMemo(
     () => (roleRouteSegment ? `/${roleRouteSegment}/website` : '/website'),

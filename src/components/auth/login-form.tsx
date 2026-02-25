@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   useAuthenticationStatus,
+  useHasuraClaims,
   useSignInEmailPassword,
   useUserData,
 } from '@nhost/react';
@@ -16,7 +17,7 @@ import {
   getRoleDashboardRoute,
 } from '@/lib/auth/routes';
 import { isNhostConfigured } from '@/lib/nhost';
-import { getUserRole } from '@/lib/auth/get-user-role';
+import { getRoleFromHasuraClaims, getUserRole } from '@/lib/auth/get-user-role';
 import { sanitizeNextPath } from '@/lib/auth/sanitize-next-path';
 import { loginSchema, type LoginFormValues } from '@/lib/validation/auth';
 
@@ -27,6 +28,8 @@ export function LoginForm() {
   const { isAuthenticated, isLoading: isStatusLoading } =
     useAuthenticationStatus();
   const user = useUserData();
+  const hasuraClaims = useHasuraClaims();
+  const roleFromClaims = getRoleFromHasuraClaims(hasuraClaims);
   const { signInEmailPassword, isLoading, error, needsEmailVerification } =
     useSignInEmailPassword();
 
@@ -36,10 +39,31 @@ export function LoginForm() {
   );
 
   useEffect(() => {
-    if (!isStatusLoading && isAuthenticated && user) {
-      router.replace(redirectPath || getRoleDashboardRoute(getUserRole(user)));
+    if (isStatusLoading || !isAuthenticated) {
+      return;
     }
-  }, [isAuthenticated, isStatusLoading, redirectPath, router, user]);
+
+    const resolvedRole =
+      roleFromClaims && roleFromClaims !== 'user'
+        ? roleFromClaims
+        : user
+          ? getUserRole(user)
+          : null;
+
+    router.replace(
+      redirectPath ||
+      (resolvedRole
+        ? getRoleDashboardRoute(resolvedRole)
+        : DEFAULT_AUTH_REDIRECT),
+    );
+  }, [
+    isAuthenticated,
+    isStatusLoading,
+    redirectPath,
+    roleFromClaims,
+    router,
+    user,
+  ]);
 
   const {
     register,

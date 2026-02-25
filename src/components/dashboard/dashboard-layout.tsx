@@ -10,6 +10,7 @@ import {
 } from '@nhost/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getRoleFromHasuraClaims, getUserRole } from '@/lib/auth/get-user-role';
+import { nhost } from '@/lib/nhost';
 import {
   LOGIN_ROUTE,
   UNAUTHORIZED_ROUTE,
@@ -24,6 +25,8 @@ import { Topbar } from './topbar';
 interface DashboardLayoutProps {
   children: ReactNode;
 }
+
+const AUTH_BOOTSTRAP_TIMEOUT_MS = 1800;
 
 function resolveActiveRailTab(
   pathname: string,
@@ -68,16 +71,12 @@ function isWebsitePath(pathname: string) {
          /^\/admin\/(pages-settings|navbar-settings|popup-settings|youtube-settings|footer-settings|hero-settings|gallery-settings|faq-settings|review-settings)(\/|$)/.test(pathname);
 }
 
-function buildWebsiteHref(
-  websiteBasePath: string,
-  selectedRestaurant: RestaurantSearchSelection,
-) {
-  const params = new URLSearchParams({
-    restaurant_id: selectedRestaurant.id,
-    restaurant_name: selectedRestaurant.name,
-  });
+function isMyInfoPath(pathname: string) {
+  return /^\/dashboard\/(admin|owner|manager)\/my-info(\/|$)/.test(pathname);
+}
 
-  return `${websiteBasePath}?${params.toString()}`;
+function isRestaurantScopedPath(pathname: string) {
+  return isWebsitePath(pathname) || isMyInfoPath(pathname);
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -95,6 +94,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { signOut } = useSignOut();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [claimsWaitElapsed, setClaimsWaitElapsed] = useState(false);
+  const [isAuthBootstrapReady, setIsAuthBootstrapReady] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedRestaurant, setSelectedRestaurant] =
     useState<RestaurantSearchSelection | null>(null);
@@ -105,7 +105,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     [pathname, role],
   );
   const websiteBasePath = useMemo(
-    () => (roleRouteSegment ? `/${roleRouteSegment}/website` : '/website'),
+    () =>
+      roleRouteSegment
+        ? `/dashboard/${roleRouteSegment}/website`
+        : '/website',
     [roleRouteSegment],
   );
 
@@ -115,6 +118,33 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   const activeTab = pathBasedTab;
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const settleInitialAuthState = async () => {
+      try {
+        await Promise.race([
+          nhost.auth.isAuthenticatedAsync(),
+          new Promise<void>((resolve) =>
+            setTimeout(resolve, AUTH_BOOTSTRAP_TIMEOUT_MS),
+          ),
+        ]);
+      } catch {
+        // Ignore bootstrap errors and let auth guards handle redirects.
+      } finally {
+        if (!isCancelled) {
+          setIsAuthBootstrapReady(true);
+        }
+      }
+    };
+
+    void settleInitialAuthState();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const queryRestaurantId = searchParams.get('restaurant_id')?.trim() ?? '';
@@ -157,7 +187,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   useEffect(() => {
-    if (isStatusLoading) {
+    if (!isAuthBootstrapReady || isStatusLoading) {
       return;
     }
 
@@ -181,8 +211,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       expectedRoleRouteSegment !== roleRouteSegment
     ) {
       const nextPathname = pathname.replace(
-        new RegExp(`^/${expectedRoleRouteSegment}(?=/|$)`),
-        `/${roleRouteSegment}`,
+        new RegExp(`^/dashboard/${expectedRoleRouteSegment}(?=/|$)`),
+        `/dashboard/${roleRouteSegment}`,
       );
       router.replace(nextPathname || `/dashboard/${roleRouteSegment}`);
       return;
@@ -200,6 +230,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [
     expectedRoleRouteSegment,
+    isAuthBootstrapReady,
     isAuthenticated,
     isRoleResolved,
     isStatusLoading,
@@ -219,16 +250,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     setIsSidebarOpen((prev) => !prev);
   };
 
-  const onSelectWebsiteTab = () => {
-    if (!selectedRestaurant) {
-      return;
-    }
-    router.push(buildWebsiteHref(websiteBasePath, selectedRestaurant));
-  };
-
   const onRestaurantSelect = (restaurant: RestaurantSearchSelection | null) => {
     setSelectedRestaurant(restaurant);
-    if (!isWebsitePath(pathname)) {
+    if (!isRestaurantScopedPath(pathname)) {
       return;
     }
 
@@ -246,7 +270,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     router.replace(nextUrl, { scroll: false });
   };
 
-  if (isStatusLoading || (isAuthenticated && !isRoleResolved)) {
+  if (
+    !isAuthBootstrapReady ||
+    isStatusLoading ||
+    (isAuthenticated && !isRoleResolved)
+  ) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f3f5f6]">
         <div className="rounded-xl border border-[#d7e2e6] bg-white px-5 py-3 text-sm text-[#5a6670]">

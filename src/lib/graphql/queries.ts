@@ -208,16 +208,6 @@ const INSERT_RESTAURANT_VARIANTS = [
     `,
   },
   {
-    outputField: "id",
-    query: `
-      mutation InsertRestaurantWithId($object: restaurants_insert_input!) {
-        insert_restaurants_one(object: $object) {
-          id
-        }
-      }
-    `,
-  },
-  {
     outputField: "__typename",
     query: `
       mutation InsertRestaurantFallback($object: restaurants_insert_input!) {
@@ -235,16 +225,6 @@ const UPDATE_RESTAURANT_VARIANTS = [
     query: `
       mutation UpdateRestaurantByRestaurantId($restaurantId: uuid!, $changes: restaurants_set_input!) {
         update_restaurants_by_pk(pk_columns: { restaurant_id: $restaurantId }, _set: $changes) {
-          __typename
-        }
-      }
-    `,
-  },
-  {
-    pkField: "id",
-    query: `
-      mutation UpdateRestaurantById($restaurantId: uuid!, $changes: restaurants_set_input!) {
-        update_restaurants_by_pk(pk_columns: { id: $restaurantId }, _set: $changes) {
           __typename
         }
       }
@@ -276,23 +256,6 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
     `,
   },
   {
-    idField: "id",
-    query: `
-      query GetRestaurantsWithId {
-        restaurants(order_by: { created_at: desc }) {
-          id
-          name
-          service_model
-          cuisine_types
-          phone_number
-          email
-          created_at
-          is_deleted
-        }
-      }
-    `,
-  },
-  {
     idField: "restaurant_id",
     query: `
       query GetRestaurantsWithoutCreatedAt {
@@ -309,38 +272,11 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
     `,
   },
   {
-    idField: "id",
-    query: `
-      query GetRestaurantsWithoutCreatedAtWithId {
-        restaurants {
-          id
-          name
-          service_model
-          cuisine_types
-          phone_number
-          email
-          is_deleted
-        }
-      }
-    `,
-  },
-  {
     idField: "restaurant_id",
     query: `
       query GetRestaurantsMinimalWithRestaurantId {
         restaurants {
           restaurant_id
-          name
-        }
-      }
-    `,
-  },
-  {
-    idField: "id",
-    query: `
-      query GetRestaurantsMinimalWithId {
-        restaurants {
-          id
           name
         }
       }
@@ -384,52 +320,11 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
     `,
   },
   {
-    idField: "id",
-    query: `
-      query GetRestaurantDraftById($restaurantId: uuid!) {
-        restaurants(where: { id: { _eq: $restaurantId } }, limit: 1) {
-          id
-          franchise_id
-          name
-          address
-          city
-          state
-          country
-          postal_code
-          business_type
-          service_model
-          cuisine_types
-          phone_number
-          email
-          sms_name
-          poc_name
-          poc_phone_number
-          poc_email
-          google_place_id
-          gmb_link
-          is_deleted
-        }
-      }
-    `,
-  },
-  {
     idField: "restaurant_id",
     query: `
       query GetRestaurantDraftMinimalByRestaurantId($restaurantId: uuid!) {
         restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
           restaurant_id
-          franchise_id
-          name
-        }
-      }
-    `,
-  },
-  {
-    idField: "id",
-    query: `
-      query GetRestaurantDraftMinimalById($restaurantId: uuid!) {
-        restaurants(where: { id: { _eq: $restaurantId } }, limit: 1) {
-          id
           franchise_id
           name
         }

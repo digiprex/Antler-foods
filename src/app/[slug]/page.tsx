@@ -12,6 +12,7 @@ import { useParams } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import DynamicHero from '@/components/dynamic-hero';
 import DynamicFAQ from '@/components/dynamic-faq';
+import DynamicGallery from '@/components/dynamic-gallery';
 
 export default function DynamicPage() {
   const params = useParams();
@@ -154,6 +155,12 @@ export default function DynamicPage() {
 
       {/* Dynamic FAQ Section */}
       <DynamicFAQ
+        restaurantId={restaurantId}
+        showLoading={true}
+      />
+
+      {/* Dynamic Gallery Section */}
+      <DynamicGallery
         restaurantId={restaurantId}
         showLoading={true}
       />

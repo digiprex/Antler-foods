@@ -52,12 +52,12 @@ export function Sidebar({
           icon: <PagesIcon />,
         },
         {
-          href: buildWebsiteSettingsHref(`${websiteBasePath}/navbar-settings`, selectedRestaurant),
+          href: buildWebsiteSettingsHref('/admin/navbar-settings', selectedRestaurant),
           label: 'Navbar Settings',
           icon: <NavbarIcon />,
         },
         {
-          href: buildWebsiteSettingsHref(`${websiteBasePath}/footer-settings`, selectedRestaurant),
+          href: buildWebsiteSettingsHref('/admin/footer-settings', selectedRestaurant),
           label: 'Footer Settings',
           icon: <FooterIcon />,
         },

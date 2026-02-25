@@ -53,12 +53,17 @@ export function Sidebar({
         },
         {
           href: buildWebsiteSettingsHref('/admin/navbar-settings', selectedRestaurant),
-          label: 'Navbar Settings',
+          label: 'Navbar',
           icon: <NavbarIcon />,
         },
         {
+          href: buildWebsiteSettingsHref('/admin/popup-settings', selectedRestaurant),
+          label: 'Popup',
+          icon: <span style={{ fontSize: '1.25rem' }}>🔔</span>,
+        },
+        {
           href: buildWebsiteSettingsHref('/admin/footer-settings', selectedRestaurant),
-          label: 'Footer Settings',
+          label: 'Footer',
           icon: <FooterIcon />,
         },
       ]

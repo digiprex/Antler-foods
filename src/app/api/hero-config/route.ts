@@ -68,7 +68,7 @@ const MARK_AS_DELETED = `
  * GraphQL mutation to insert new template
  */
 const INSERT_TEMPLATE = `
-  mutation InsertTemplate($restaurant_id: uuid!, $name: String!, $category: String!, $config: jsonb!, $menu_items: jsonb!) {
+  mutation InsertTemplate($restaurant_id: uuid!, $name: String!, $category: String!, $config: jsonb!, $menu_items: jsonb!, $page_id: uuid) {
     insert_templates_one(
       object: {
         restaurant_id: $restaurant_id,
@@ -76,6 +76,7 @@ const INSERT_TEMPLATE = `
         category: $category,
         config: $config,
         menu_items: $menu_items,
+        page_id: $page_id,
         is_deleted: false
       }
     ) {
@@ -85,6 +86,7 @@ const INSERT_TEMPLATE = `
       category
       config
       menu_items
+      page_id
       created_at
       updated_at
     }
@@ -374,45 +376,73 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
+
     // Get restaurant_id - must be provided in request body
     const restaurantId = body.restaurant_id;
-    
+
     if (!restaurantId) {
       throw new Error('restaurant_id is required in request body');
     }
-    
-    // Step 1: Get current template to mark as deleted
-    const currentData = await graphqlRequest(GET_HERO_CONFIG, {
-      restaurant_id: restaurantId,
-    });
-    
+
+    // Get page_id directly from request body
+    const pageId = body.page_id || null;
+
+    // Step 1: Get current template to mark as deleted (consider page_id if provided)
+    const currentData = pageId
+      ? await graphqlRequest(`
+          query GetHeroConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
+            templates(
+              where: {
+                restaurant_id: {_eq: $restaurant_id},
+                page_id: {_eq: $page_id},
+                category: {_eq: "Hero"},
+                is_deleted: {_eq: false}
+              },
+              order_by: {created_at: desc},
+              limit: 1
+            ) {
+              template_id
+              category
+              page_id
+            }
+          }
+        `, {
+          restaurant_id: restaurantId,
+          page_id: pageId,
+        })
+      : await graphqlRequest(GET_HERO_CONFIG, {
+          restaurant_id: restaurantId,
+        });
+
     // Step 2: Mark current template as deleted (if exists)
     if (currentData.templates && currentData.templates.length > 0) {
       const currentTemplate = currentData.templates[0];
-      
+
       await graphqlRequest(MARK_AS_DELETED, {
         template_id: currentTemplate.template_id,
       });
     }
-    
+
     // Prepare hero configuration
-    const { restaurant_id, layout, ...configData } = body;
+    const { restaurant_id, layout, page_id: _pageId, ...configData } = body;
     const name = layout || 'centered-large'; // layout goes to name field
-    
-    // The entire hero config (except layout) goes into the config field
+
+    // The entire hero config (except layout, page_id) goes into the config field
     const config = {
       ...configData,
       restaurant_id: restaurantId,
     };
 
-    // Step 3: Insert new template
+    console.log('[Hero Config POST] Saving hero with page_id:', pageId);
+
+    // Step 3: Insert new template with page_id
     const insertedData = await graphqlRequest(INSERT_TEMPLATE, {
       restaurant_id: restaurantId,
       name: name,
       category: 'Hero',
       config: config,
       menu_items: [], // Hero doesn't use menu_items
+      page_id: pageId,
     });
 
     if (!insertedData.insert_templates_one) {

@@ -28,11 +28,12 @@ export default function HeroSettingsPage() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
+  const pageId = searchParams.get('page_id');
 
   return (
     <DashboardLayout>
       {restaurantId && restaurantName ? (
-        <HeroSettingsForm />
+        <HeroSettingsForm pageId={pageId || undefined} />
       ) : (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">

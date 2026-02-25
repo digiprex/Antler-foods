@@ -52,8 +52,15 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
   }
   
   const configApiEndpoint = useMemo(
-    () => `/api/faq-config?restaurant_id=${encodeURIComponent(finalRestaurantId)}`,
-    [finalRestaurantId],
+    () => {
+      const params = new URLSearchParams({ restaurant_id: finalRestaurantId });
+      const currentPageId = pageId || resolvedPageId;
+      if (currentPageId) {
+        params.append('page_id', currentPageId);
+      }
+      return `/api/faq-config?${params.toString()}`;
+    },
+    [finalRestaurantId, pageId, resolvedPageId],
   );
 
   const { config, loading: fetchLoading, error: fetchError } = useFAQConfig({

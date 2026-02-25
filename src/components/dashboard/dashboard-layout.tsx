@@ -47,7 +47,7 @@ function resolveActiveRailTab(
 function resolveDashboardBasePath(pathname: string) {
   const roleSegment = resolveRoleSegmentFromPath(pathname);
   if (roleSegment) {
-    return `/${roleSegment}/dashboard`;
+    return `/dashboard/${roleSegment}`;
   }
 
   return '/dashboard';
@@ -56,7 +56,7 @@ function resolveDashboardBasePath(pathname: string) {
 function isWebsitePath(pathname: string) {
   // Treat the legacy "pages-settings" route as part of the Website workspace
   // so the sidebar stays in the Website tab when navigating there.
-  return /^\/(admin|owner|manager)\/(website|pages-settings)(\/|$)/.test(pathname);
+  return /^\/dashboard\/(admin|owner|manager)\/(website|pages-settings)(\/|$)/.test(pathname);
 }
 
 function buildWebsiteHref(
@@ -175,19 +175,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         new RegExp(`^/${expectedRoleRouteSegment}(?=/|$)`),
         `/${roleRouteSegment}`,
       );
-      router.replace(nextPathname || `/${roleRouteSegment}/dashboard`);
+      router.replace(nextPathname || `/dashboard/${roleRouteSegment}`);
       return;
     }
 
-    if (pathname.startsWith('/dashboard')) {
+    if (pathname.startsWith('/dashboard') && !pathname.startsWith('/dashboard/')) {
       const nextSuffix = pathname.slice('/dashboard'.length);
-      router.replace(`/${roleRouteSegment}/dashboard${nextSuffix}`);
+      router.replace(`/dashboard/${roleRouteSegment}${nextSuffix}`);
       return;
     }
 
     if (pathname.startsWith('/website')) {
       const nextSuffix = pathname.slice('/website'.length);
-      router.replace(`/${roleRouteSegment}/website${nextSuffix}`);
+      router.replace(`/dashboard/${roleRouteSegment}/website${nextSuffix}`);
     }
   }, [
     expectedRoleRouteSegment,

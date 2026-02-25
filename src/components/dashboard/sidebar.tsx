@@ -24,7 +24,7 @@ export function Sidebar({
   selectedRestaurant,
   onRestaurantSelect,
 }: SidebarProps) {
-  const isHomeTab = activeTab === 'home';
+  const [isMyInfoOpen, setIsMyInfoOpen] = useState(true);
   const isWebsiteTab = activeTab === 'website';
   
   // Static grouped menu structure matching requested layout
@@ -44,20 +44,57 @@ export function Sidebar({
     { href: '/locations', label: 'Locations', icon: <LocationIcon /> },
   ];
 
+  const MY_INFO_MENU_ITEMS = selectedRestaurant
+    ? [
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/my-info/profile`,
+            selectedRestaurant,
+          ),
+          label: 'Profile',
+          icon: <ProfileIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/my-info/gallery`,
+            selectedRestaurant,
+          ),
+          label: 'Gallery',
+          icon: <GalleryIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/my-info/business-information`,
+            selectedRestaurant,
+          ),
+          label: 'Business Information',
+          icon: <BusinessInfoIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/my-info/google-profile`,
+            selectedRestaurant,
+          ),
+          label: 'Google profile',
+          icon: <GoogleProfileIcon />,
+        },
+      ]
+    : [];
+
   const WEBSITE_MENU_ITEMS = selectedRestaurant
     ? [
         {
-          href: buildWebsiteSettingsHref('/admin/pages-settings', selectedRestaurant),
+          href: buildRestaurantScopedHref('/admin/pages-settings', selectedRestaurant),
           label: 'Pages',
           icon: <PagesIcon />,
         },
         {
-          href: buildWebsiteSettingsHref(`${websiteBasePath}/navbar-settings`, selectedRestaurant),
+          href: buildRestaurantScopedHref(`${websiteBasePath}/navbar-settings`, selectedRestaurant),
           label: 'Navbar Settings',
           icon: <NavbarIcon />,
         },
         {
-          href: buildWebsiteSettingsHref(`${websiteBasePath}/footer-settings`, selectedRestaurant),
+          href: buildRestaurantScopedHref(`${websiteBasePath}/footer-settings`, selectedRestaurant),
           label: 'Footer Settings',
           icon: <FooterIcon />,
         },
@@ -141,10 +178,62 @@ export function Sidebar({
           </nav>
         </div>
 
+        {/* My Info Section */}
+        {isOpen ? (
+          <div>
+            <button
+              type="button"
+              onClick={() => setIsMyInfoOpen((previous) => !previous)}
+              className="flex w-full items-center justify-between rounded-xl px-5 py-3 text-left text-[20px] text-[#111827] transition hover:bg-[#f3f6f4]"
+            >
+              <span className="flex items-center gap-3">
+                <span className="text-[#1f2937]">
+                  <ProfileIcon />
+                </span>
+                <span className="leading-tight">My info</span>
+              </span>
+              <span
+                className={`transition-transform ${
+                  isMyInfoOpen ? 'rotate-180' : ''
+                }`}
+              >
+                <ChevronDownSmallIcon />
+              </span>
+            </button>
+
+            {isMyInfoOpen ? (
+              <nav className="mt-1 space-y-2 pl-4">
+                {MY_INFO_MENU_ITEMS.length ? (
+                  MY_INFO_MENU_ITEMS.map((item) => (
+                    <NavItem
+                      key={item.href}
+                      href={item.href}
+                      label={item.label}
+                      icon={item.icon}
+                      active={pathname === extractPathFromHref(item.href)}
+                      collapsed={!isOpen}
+                    />
+                  ))
+                ) : (
+                  <div className="px-5 text-sm text-[#60707c]">
+                    Select a restaurant to manage My info.
+                  </div>
+                )}
+              </nav>
+            ) : null}
+          </div>
+        ) : null}
+
         {/* Website Section */}
         <div>
           {isOpen && (
-            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Website</p>
+            <p
+              className={`mb-2 text-xs font-medium uppercase tracking-wide ${
+                isWebsiteTab ? 'text-[#5dc67d]' : 'text-[#7c8a96]'
+              }`}
+            >
+              Website
+            </p>
           )}
           <nav className="space-y-2">
             {WEBSITE_MENU_ITEMS.length ? (
@@ -225,7 +314,7 @@ export function Sidebar({
   );
 }
 
-function buildWebsiteSettingsHref(
+function buildRestaurantScopedHref(
   basePath: string,
   selectedRestaurant: RestaurantSearchSelection,
 ) {
@@ -239,6 +328,97 @@ function buildWebsiteSettingsHref(
 
 function extractPathFromHref(href: string) {
   return href.split('?')[0] || href;
+}
+
+function ChevronDownSmallIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function ProfileIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="7.5" r="3.5" />
+      <path d="M5 20a7 7 0 0 1 14 0" />
+    </svg>
+  );
+}
+
+function GalleryIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="10" r="1.5" />
+      <path d="m21 16-5-5-6 6" />
+    </svg>
+  );
+}
+
+function BusinessInfoIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M8 7h8" />
+      <path d="M8 11h8" />
+      <path d="M8 15h5" />
+    </svg>
+  );
+}
+
+function GoogleProfileIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 20a8 8 0 1 1 7.7-10h-7.7v4h4.4a4.5 4.5 0 1 1-4.4-6" />
+    </svg>
+  );
 }
 
 function HomeIcon() {
@@ -334,26 +514,6 @@ function SalesIcon() {
       <path d="M11 20V4" />
       <path d="M17 20v-7" />
       <path d="M3 20h18" />
-    </svg>
-  );
-}
-
-function ReportsIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-6 w-6"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M6 3h9l4 4v14H6z" />
-      <path d="M15 3v4h4" />
-      <path d="M9 12h6" />
-      <path d="M9 16h6" />
     </svg>
   );
 }

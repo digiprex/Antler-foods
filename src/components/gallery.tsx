@@ -28,6 +28,7 @@ export default function Gallery({
   enableLightbox = true,
 }: GalleryProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   if (images.length === 0) {
     return null;
@@ -90,59 +91,251 @@ export default function Gallery({
           </div>
         )}
 
-        {/* Gallery Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${columns}, 1fr)`,
-          gap,
-        }}>
-          {images.map((image, index) => (
-            <div
-              key={image.id || index}
-              style={{
-                cursor: enableLightbox ? 'pointer' : 'default',
-                overflow: 'hidden',
-                borderRadius: '0.5rem',
-                position: 'relative',
-                aspectRatio: getAspectRatioClass(),
-              }}
-              onClick={() => openLightbox(index)}
-            >
-              <img
-                src={image.url}
-                alt={image.alt}
+        {/* Gallery Layout */}
+        {layout === 'masonry' ? (
+          // Masonry Layout - Pinterest style with CSS columns
+          <div style={{
+            columnCount: columns,
+            columnGap: gap,
+            width: '100%',
+          }}>
+            {images.map((image, index) => (
+              <div
+                key={image.id || index}
                 style={{
+                  cursor: enableLightbox ? 'pointer' : 'default',
+                  overflow: 'hidden',
+                  borderRadius: '0.5rem',
+                  position: 'relative',
+                  marginBottom: gap,
+                  breakInside: 'avoid',
+                  pageBreakInside: 'avoid',
+                  display: 'block',
                   width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  transition: 'transform 0.3s ease',
                 }}
-                onMouseEnter={(e) => {
-                  if (enableLightbox) {
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                }}
-              />
-              {showCaptions && (image.title || image.description) && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)',
-                  padding: '1rem',
-                  color: 'white',
-                }}>
-                  {image.title && <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>{image.title}</div>}
-                  {image.description && <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>{image.description}</div>}
-                </div>
-              )}
+                onClick={() => openLightbox(index)}
+              >
+                <img
+                  src={image.url}
+                  alt={image.alt}
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    display: 'block',
+                    borderRadius: '0.5rem',
+                    transition: 'transform 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (enableLightbox) {
+                      e.currentTarget.style.transform = 'scale(1.02)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                />
+                {showCaptions && (image.title || image.description) && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '0.5rem',
+                    left: '0.5rem',
+                    right: '0.5rem',
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    borderRadius: '0.375rem',
+                    padding: '0.75rem',
+                    color: 'white',
+                  }}>
+                    {image.title && <div style={{ fontWeight: 'bold', marginBottom: '0.25rem', fontSize: '0.875rem' }}>{image.title}</div>}
+                    {image.description && <div style={{ fontSize: '0.75rem', opacity: 0.9 }}>{image.description}</div>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : layout === 'carousel' ? (
+          // Carousel Layout - Multi-item slider
+          <div style={{ position: 'relative' }}>
+            <div style={{
+              overflow: 'hidden',
+              position: 'relative',
+              borderRadius: '0.5rem',
+            }}>
+              <div style={{
+                display: 'flex',
+                transition: 'transform 0.5s ease',
+                transform: `translateX(-${currentSlide * (100 / columns)}%)`,
+                gap,
+              }}>
+                {images.map((image, index) => (
+                  <div
+                    key={image.id || index}
+                    style={{
+                      minWidth: `calc((100% - ${gap} * ${columns - 1}) / ${columns})`,
+                      cursor: enableLightbox ? 'pointer' : 'default',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      borderRadius: '0.5rem',
+                    }}
+                    onClick={() => openLightbox(index)}
+                  >
+                    <img
+                      src={image.url}
+                      alt={image.alt}
+                      style={{
+                        width: '100%',
+                        height: '400px',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
+                    {showCaptions && (image.title || image.description) && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)',
+                        padding: '1rem',
+                        color: 'white',
+                      }}>
+                        {image.title && <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>{image.title}</div>}
+                        {image.description && <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>{image.description}</div>}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
+
+            {/* Carousel Navigation */}
+            {images.length > columns && (
+              <>
+                <button
+                  onClick={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
+                  disabled={currentSlide === 0}
+                  style={{
+                    position: 'absolute',
+                    left: '-1.25rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    border: 'none',
+                    color: '#000',
+                    fontSize: '2rem',
+                    cursor: currentSlide === 0 ? 'not-allowed' : 'pointer',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '0.5rem',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                    zIndex: 10,
+                    opacity: currentSlide === 0 ? 0.4 : 1,
+                  }}
+                >
+                  ‹
+                </button>
+                <button
+                  onClick={() => setCurrentSlide((prev) => Math.min(images.length - columns, prev + 1))}
+                  disabled={currentSlide >= images.length - columns}
+                  style={{
+                    position: 'absolute',
+                    right: '-1.25rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    border: 'none',
+                    color: '#000',
+                    fontSize: '2rem',
+                    cursor: currentSlide >= images.length - columns ? 'not-allowed' : 'pointer',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '0.5rem',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                    zIndex: 10,
+                    opacity: currentSlide >= images.length - columns ? 0.4 : 1,
+                  }}
+                >
+                  ›
+                </button>
+
+                {/* Dots Indicator */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  marginTop: '1.5rem',
+                }}>
+                  {Array.from({ length: Math.ceil((images.length - columns + 1)) }).map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentSlide(index)}
+                      style={{
+                        width: currentSlide === index ? '2rem' : '0.75rem',
+                        height: '0.75rem',
+                        borderRadius: '0.375rem',
+                        border: 'none',
+                        background: currentSlide === index ? textColor : 'rgba(0, 0, 0, 0.2)',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                      }}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          // Grid Layout (default)
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${columns}, 1fr)`,
+            gap,
+          }}>
+            {images.map((image, index) => (
+              <div
+                key={image.id || index}
+                style={{
+                  cursor: enableLightbox ? 'pointer' : 'default',
+                  overflow: 'hidden',
+                  borderRadius: '0.5rem',
+                  position: 'relative',
+                  aspectRatio: getAspectRatioClass(),
+                }}
+                onClick={() => openLightbox(index)}
+              >
+                <img
+                  src={image.url}
+                  alt={image.alt}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    transition: 'transform 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (enableLightbox) {
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                />
+                {showCaptions && (image.title || image.description) && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)',
+                    padding: '1rem',
+                    color: 'white',
+                  }}>
+                    {image.title && <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>{image.title}</div>}
+                    {image.description && <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>{image.description}</div>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Lightbox */}
         {enableLightbox && lightboxIndex !== null && (

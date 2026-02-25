@@ -382,6 +382,40 @@ export default function GallerySettingsPage() {
                     </div>
                   </div>
 
+                  {/* Styling Options */}
+                  <div className={styles.section}>
+                    <h3 className={styles.sectionTitle}>
+                      <span className={styles.sectionIcon}>🎨</span>
+                      Styling Options
+                    </h3>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>
+                        Background Color
+                        <span className={styles.labelHint}>Gallery background color</span>
+                      </label>
+                      <input
+                        type="color"
+                        value={config.bgColor || '#ffffff'}
+                        onChange={(e) => setConfig({ ...config, bgColor: e.target.value })}
+                        className={styles.textInput}
+                        style={{ height: '50px', cursor: 'pointer' }}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>
+                        Text Color
+                        <span className={styles.labelHint}>Title and text color</span>
+                      </label>
+                      <input
+                        type="color"
+                        value={config.textColor || '#000000'}
+                        onChange={(e) => setConfig({ ...config, textColor: e.target.value })}
+                        className={styles.textInput}
+                        style={{ height: '50px', cursor: 'pointer' }}
+                      />
+                    </div>
+                  </div>
+
                   {/* Images */}
                   <div className={styles.section}>
                     <div className={styles.formGroup}>

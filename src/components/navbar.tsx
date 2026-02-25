@@ -65,7 +65,7 @@ export default function Navbar({
   bagCount = 0,
   ctaButton,
   position = 'absolute',
-  zIndex = 1,
+  zIndex = 1000,
   bgColor = 'white',
   textColor = 'black',
   buttonBgColor = 'black',

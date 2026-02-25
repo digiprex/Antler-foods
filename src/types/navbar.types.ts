@@ -79,7 +79,7 @@ export const DEFAULT_NAVBAR_CONFIG: NavbarConfig = {
   },
   layout: 'bordered-centered',
   position: 'absolute',
-  zIndex: 1,
+  zIndex: 1000,
   bgColor: 'white',
   textColor: 'black',
   buttonBgColor: 'black',

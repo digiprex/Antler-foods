@@ -25,6 +25,7 @@ import {
   buildRestaurantInformationPath,
   parseRestaurantScopeFromPath,
 } from '@/lib/restaurants/route-utils';
+import { emitDashboardRouteLoadingStart } from '@/components/dashboard/route-loading-events';
 
 type RestaurantScope = {
   id: string;
@@ -76,7 +77,7 @@ type GoogleExternalMediaItem = {
   preview_url: string;
 };
 
-type MyInfoTabKey = 'brand' | 'address' | 'google-profile';
+type MyInfoTabKey = 'brand' | 'address' | 'opening-hours' | 'google-profile';
 
 const BUSINESS_TYPE_OPTIONS = [
   'Restaurant',
@@ -104,6 +105,12 @@ const MY_INFO_TABS: Array<{
     icon: <AddressTabIcon />,
   },
   {
+    key: 'opening-hours',
+    label: 'Opening Hours',
+    segment: 'opening-hours',
+    icon: <OpeningHoursTabIcon />,
+  },
+  {
     key: 'google-profile',
     label: 'Google profile',
     segment: 'google-profile',
@@ -117,6 +124,59 @@ interface GooglePhotosApiResponse {
   error?: string;
 }
 
+type OpeningHoursProfileRecord = {
+  opening_hour_id: string;
+  source: 'google' | 'manual';
+  timezone: string;
+  is_24x7: boolean;
+  notes: string | null;
+  synced_at: string | null;
+};
+
+type OpeningHoursSlotRecord = {
+  opening_hour_slot_id: string;
+  day_of_week: number;
+  slot_order: number;
+  is_closed: boolean;
+  open_time: string | null;
+  close_time: string | null;
+};
+
+interface OpeningHoursApiResponse {
+  success: boolean;
+  data?: {
+    profile: OpeningHoursProfileRecord | null;
+    slots: OpeningHoursSlotRecord[];
+    has_google_place_id: boolean;
+    google_sync_error?: string | null;
+  };
+  message?: string;
+  error?: string;
+}
+
+type DayScheduleSlotState = {
+  id: string;
+  openTime: string;
+  closeTime: string;
+};
+
+type DayScheduleState = {
+  dayOfWeek: number;
+  label: string;
+  closed: boolean;
+  slots: DayScheduleSlotState[];
+};
+
+const OPENING_HOURS_DAYS: Array<{ dayOfWeek: number; label: string }> = [
+  { dayOfWeek: 1, label: 'Monday' },
+  { dayOfWeek: 2, label: 'Tuesday' },
+  { dayOfWeek: 3, label: 'Wednesday' },
+  { dayOfWeek: 4, label: 'Thursday' },
+  { dayOfWeek: 5, label: 'Friday' },
+  { dayOfWeek: 6, label: 'Saturday' },
+  { dayOfWeek: 7, label: 'Sunday' },
+];
+
 function resolveDashboardBasePath(pathname: string) {
   const match = pathname.match(/^\/dashboard\/[^/]+/);
   return match ? match[0] : '/dashboard';
@@ -126,6 +186,8 @@ function useMyInfoTabLinks() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const paramsString = searchParams.toString();
+  const fallbackRestaurantId = searchParams.get('restaurant_id')?.trim() ?? '';
+  const fallbackRestaurantName = searchParams.get('restaurant_name')?.trim() ?? 'restaurant';
   const restaurantScope = useMemo(
     () => parseRestaurantScopeFromPath(pathname),
     [pathname],
@@ -154,6 +216,14 @@ function useMyInfoTabLinks() {
           },
           'address',
         ),
+        'opening-hours': buildRestaurantInformationPath(
+          restaurantScope.roleSegment,
+          {
+            id: restaurantScope.restaurantId,
+            name: restaurantScope.restaurantNameFromSlug,
+          },
+          'opening-hours',
+        ),
         'google-profile': buildRestaurantInformationPath(
           restaurantScope.roleSegment,
           {
@@ -165,13 +235,53 @@ function useMyInfoTabLinks() {
       } satisfies Record<MyInfoTabKey, string>;
     }
 
-    const entries = MY_INFO_TABS.map((tab) => {
-      const path = `${dashboardBasePath}/my-info/${tab.segment}`;
-      return [tab.key, paramsString ? `${path}?${paramsString}` : path] as const;
-    });
+    const fallbackRestaurant = {
+      id: fallbackRestaurantId,
+      name: fallbackRestaurantName,
+    };
 
-    return Object.fromEntries(entries) as Record<MyInfoTabKey, string>;
-  }, [dashboardBasePath, paramsString, restaurantScope]);
+    if (fallbackRestaurant.id) {
+      return {
+        brand: buildRestaurantInformationPath(
+          dashboardBasePath.split('/')[2] || 'admin',
+          fallbackRestaurant,
+          'brand',
+        ),
+        address: buildRestaurantInformationPath(
+          dashboardBasePath.split('/')[2] || 'admin',
+          fallbackRestaurant,
+          'address',
+        ),
+        'opening-hours': buildRestaurantInformationPath(
+          dashboardBasePath.split('/')[2] || 'admin',
+          fallbackRestaurant,
+          'opening-hours',
+        ),
+        'google-profile': buildRestaurantInformationPath(
+          dashboardBasePath.split('/')[2] || 'admin',
+          fallbackRestaurant,
+          'google-profile',
+        ),
+      } satisfies Record<MyInfoTabKey, string>;
+    }
+
+    const fallbackPath = paramsString
+      ? `${dashboardBasePath}/restaurants?${paramsString}`
+      : `${dashboardBasePath}/restaurants`;
+
+    return {
+      brand: fallbackPath,
+      address: fallbackPath,
+      'opening-hours': fallbackPath,
+      'google-profile': fallbackPath,
+    };
+  }, [
+    dashboardBasePath,
+    fallbackRestaurantId,
+    fallbackRestaurantName,
+    paramsString,
+    restaurantScope,
+  ]);
 }
 
 function MyInfoWorkspaceShell({
@@ -182,6 +292,15 @@ function MyInfoWorkspaceShell({
   children: ReactNode;
 }) {
   const tabLinks = useMyInfoTabLinks();
+  const pathname = usePathname();
+  const [pendingTab, setPendingTab] = useState<MyInfoTabKey | null>(null);
+
+  useEffect(() => {
+    if (!pendingTab) {
+      return;
+    }
+    setPendingTab(null);
+  }, [pathname, pendingTab]);
 
   return (
     <section className="grid gap-6">
@@ -197,15 +316,27 @@ function MyInfoWorkspaceShell({
               <Link
                 key={tab.key}
                 href={tabLinks[tab.key]}
+                onClick={() => {
+                  if (isActive) {
+                    return;
+                  }
+
+                  setPendingTab(tab.key);
+                  emitDashboardRouteLoadingStart();
+                }}
                 className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
                   isActive
                     ? 'border-[#9eb7ff] bg-[#eef3ff] text-[#12203d]'
                     : 'border-[#dfe7ec] text-[#5d6b77] hover:bg-[#f8fafb]'
                 }`}
               >
-                <span className={isActive ? 'text-[#2f4fb6]' : 'text-[#7b8a96]'}>
-                  {tab.icon}
-                </span>
+                {pendingTab === tab.key ? (
+                  <PurpleDotSpinner size="inline" />
+                ) : (
+                  <span className={isActive ? 'text-[#2f4fb6]' : 'text-[#7b8a96]'}>
+                    {tab.icon}
+                  </span>
+                )}
                 <span>{tab.label}</span>
               </Link>
             );
@@ -308,8 +439,9 @@ function LoadingCard({ title }: { title: string }) {
   return (
     <section className="space-y-5">
       <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">{title}</h1>
-      <div className="rounded-3xl border border-[#d7e2e6] bg-white p-8 text-lg text-[#5f6c78]">
-        Loading restaurant data...
+      <div className="flex items-center gap-3 rounded-3xl border border-[#d7e2e6] bg-white p-8 text-lg text-[#5f6c78]">
+        <PurpleDotSpinner size="sm" />
+        <span>Loading restaurant data...</span>
       </div>
     </section>
   );
@@ -1025,6 +1157,1092 @@ export function MyInfoAddressPage() {
       </form>
     </MyInfoWorkspaceShell>
   );
+}
+
+export function MyInfoOpeningHoursPage() {
+  const restaurant = useRestaurantScope();
+  const [isLoading, setIsLoading] = useState(Boolean(restaurant));
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [notice, setNotice] = useState<SaveNotice | null>(null);
+  const [source, setSource] = useState<'google' | 'manual'>('manual');
+  const [timezone, setTimezone] = useState(getBrowserTimezone());
+  const [is24x7, setIs24x7] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [syncedAt, setSyncedAt] = useState<string | null>(null);
+  const [hasGooglePlaceId, setHasGooglePlaceId] = useState(false);
+  const [daySchedules, setDaySchedules] = useState<DayScheduleState[]>(
+    buildDefaultDaySchedule,
+  );
+  const timezoneOptions = useMemo(() => getTimezoneOptions(), []);
+
+  const fetchWithAuth = useCallback(
+    async (input: RequestInfo | URL, init: RequestInit = {}) => {
+      const accessToken = await nhost.auth.getAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session has expired. Please login again.');
+      }
+
+      const headers = new Headers(init.headers);
+      headers.set('Authorization', `Bearer ${accessToken}`);
+
+      return fetch(input, {
+        ...init,
+        headers,
+      });
+    },
+    [],
+  );
+
+  const applyOpeningHoursState = useCallback(
+    (
+      profile: OpeningHoursProfileRecord | null,
+      slots: OpeningHoursSlotRecord[] | undefined,
+    ) => {
+      const safeTimezone = profile?.timezone || timezone || getBrowserTimezone();
+      setTimezone(
+        timezoneOptions.includes(safeTimezone) ? safeTimezone : getBrowserTimezone(),
+      );
+      const resolvedSource = profile?.source === 'google' ? 'google' : 'manual';
+      setSource(resolvedSource);
+      setIs24x7(Boolean(profile?.is_24x7));
+      setNotes(profile?.notes || '');
+      setSyncedAt(profile?.synced_at || null);
+      setDaySchedules(
+        buildScheduleFromSlots(
+          slots || [],
+          Boolean(profile?.is_24x7),
+        ),
+      );
+    },
+    [timezone, timezoneOptions],
+  );
+
+  const loadOpeningHours = useCallback(async () => {
+    if (!restaurant?.id) {
+      setIsLoading(false);
+      setHasGooglePlaceId(false);
+      setSource('manual');
+      setIs24x7(false);
+      setNotes('');
+      setSyncedAt(null);
+      setDaySchedules(buildDefaultDaySchedule());
+      return;
+    }
+
+    setIsLoading(true);
+    setNotice(null);
+
+    try {
+      const response = await fetchWithAuth(
+        `/api/restaurants/${encodeURIComponent(restaurant.id)}/opening-hours`,
+        {
+          cache: 'no-store',
+        },
+      );
+      const payload = (await response.json()) as OpeningHoursApiResponse;
+
+      if (!response.ok || !payload.success || !payload.data) {
+        throw new Error(payload.error || 'Failed to load opening hours.');
+      }
+
+      setHasGooglePlaceId(Boolean(payload.data.has_google_place_id));
+      applyOpeningHoursState(payload.data.profile, payload.data.slots);
+
+      if (payload.data.google_sync_error && !payload.data.profile) {
+        setNotice({
+          tone: 'error',
+          message: payload.data.google_sync_error,
+        });
+      }
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Failed to load opening hours.';
+      setNotice({
+        tone: 'error',
+        message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [applyOpeningHoursState, fetchWithAuth, restaurant?.id]);
+
+  useEffect(() => {
+    void loadOpeningHours();
+  }, [loadOpeningHours]);
+
+  const setDayClosed = (dayOfWeek: number, closed: boolean) => {
+    setDaySchedules((previous) =>
+      previous.map((day) => {
+        if (day.dayOfWeek !== dayOfWeek) {
+          return day;
+        }
+
+        if (closed) {
+          return {
+            ...day,
+            closed: true,
+          };
+        }
+
+        return {
+          ...day,
+          closed: false,
+          slots:
+            day.slots.length > 0
+              ? day.slots
+              : [
+                  {
+                    id: createScheduleSlotId(day.dayOfWeek),
+                    openTime: '09:00',
+                    closeTime: '17:00',
+                  },
+                ],
+        };
+      }),
+    );
+  };
+
+  const addBreakSlot = (dayOfWeek: number) => {
+    setDaySchedules((previous) =>
+      previous.map((day) => {
+        if (day.dayOfWeek !== dayOfWeek || day.slots.length >= 5) {
+          return day;
+        }
+
+        return {
+          ...day,
+          closed: false,
+          slots: [
+            ...day.slots,
+            {
+              id: createScheduleSlotId(day.dayOfWeek),
+              openTime: '17:00',
+              closeTime: '21:00',
+            },
+          ],
+        };
+      }),
+    );
+  };
+
+  const removeBreakSlot = (dayOfWeek: number, slotId: string) => {
+    setDaySchedules((previous) =>
+      previous.map((day) => {
+        if (day.dayOfWeek !== dayOfWeek) {
+          return day;
+        }
+
+        const filtered = day.slots.filter((slot) => slot.id !== slotId);
+        return {
+          ...day,
+          slots: filtered,
+          closed: filtered.length === 0 ? true : day.closed,
+        };
+      }),
+    );
+  };
+
+  const updateBreakSlotTime = (
+    dayOfWeek: number,
+    slotId: string,
+    field: 'openTime' | 'closeTime',
+    value: string,
+  ) => {
+    setDaySchedules((previous) =>
+      previous.map((day) => {
+        if (day.dayOfWeek !== dayOfWeek) {
+          return day;
+        }
+
+        return {
+          ...day,
+          slots: day.slots.map((slot) =>
+            slot.id === slotId
+              ? {
+                  ...slot,
+                  [field]: value,
+                }
+              : slot,
+          ),
+        };
+      }),
+    );
+  };
+
+  const handleSaveManual = async () => {
+    if (!restaurant?.id) {
+      return;
+    }
+
+    const validationMessage = validateScheduleForSubmit(daySchedules, is24x7);
+    if (validationMessage) {
+      setNotice({
+        tone: 'error',
+        message: validationMessage,
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    setNotice(null);
+
+    try {
+      const response = await fetchWithAuth(
+        `/api/restaurants/${encodeURIComponent(restaurant.id)}/opening-hours`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'save_manual',
+            timezone,
+            is_24x7: is24x7,
+            notes: notes.trim() || null,
+            slots: scheduleToApiSlots(daySchedules, is24x7),
+          }),
+        },
+      );
+      const payload = (await response.json()) as OpeningHoursApiResponse;
+
+      if (!response.ok || !payload.success || !payload.data) {
+        throw new Error(payload.error || 'Failed to save opening hours.');
+      }
+
+      applyOpeningHoursState(payload.data.profile, payload.data.slots);
+      setNotice({
+        tone: 'success',
+        message: payload.message || 'Opening hours saved.',
+      });
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Failed to save opening hours.';
+      setNotice({
+        tone: 'error',
+        message,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleGoogleSync = async () => {
+    if (!restaurant?.id) {
+      return;
+    }
+
+    if (!hasGooglePlaceId) {
+      setNotice({
+        tone: 'error',
+        message: 'Google Place ID is missing for this restaurant.',
+      });
+      return;
+    }
+
+    setIsSyncing(true);
+    setNotice(null);
+
+    try {
+      const response = await fetchWithAuth(
+        `/api/restaurants/${encodeURIComponent(restaurant.id)}/opening-hours`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'sync_google',
+            timezone,
+          }),
+        },
+      );
+      const payload = (await response.json()) as OpeningHoursApiResponse;
+
+      if (!response.ok || !payload.success || !payload.data) {
+        throw new Error(payload.error || 'Failed to sync opening hours from Google.');
+      }
+
+      applyOpeningHoursState(payload.data.profile, payload.data.slots);
+      setNotice({
+        tone: 'success',
+        message: payload.message || 'Opening hours synced from Google.',
+      });
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Failed to sync opening hours from Google.';
+      setNotice({
+        tone: 'error',
+        message,
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  if (!restaurant) {
+    return (
+      <MyInfoWorkspaceShell activeTab="opening-hours">
+        <SelectionRequiredCard target="Opening Hours" />
+      </MyInfoWorkspaceShell>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <MyInfoWorkspaceShell activeTab="opening-hours">
+        <LoadingCard title="Opening Hours" />
+      </MyInfoWorkspaceShell>
+    );
+  }
+
+  return (
+    <MyInfoWorkspaceShell activeTab="opening-hours">
+      <Header
+        title="Opening Hours"
+        subtitle="Sync from Google or manage manual day-wise timing slots with break time."
+        restaurantName={restaurant.name}
+      />
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]">
+        <section className="space-y-5 rounded-3xl border border-[#d7e2e6] bg-white p-6">
+          <FormMessage notice={notice} />
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-[#111827]">* Timezone</span>
+              <select
+                value={timezone}
+                onChange={(event) => setTimezone(event.target.value)}
+                className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#667eea] focus:ring-2 focus:ring-[#ddd6fe]"
+              >
+                {timezoneOptions.map((entry) => (
+                  <option key={entry} value={entry}>
+                    {entry}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex items-center justify-between rounded-xl border border-[#d2dde2] px-4 py-3">
+              <span className="text-sm font-medium text-[#111827]">Open 24 x 7</span>
+              <input
+                type="checkbox"
+                checked={is24x7}
+                onChange={(event) => setIs24x7(event.target.checked)}
+                className="h-4 w-4 accent-[#6f4cf6]"
+              />
+            </label>
+          </div>
+
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-[#111827]">Notes</span>
+            <textarea
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              rows={2}
+              placeholder="Optional notes for operations."
+              className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#667eea] focus:ring-2 focus:ring-[#ddd6fe]"
+            />
+          </label>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void handleSaveManual()}
+              disabled={isSaving || isSyncing}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#6f4cf6] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5e3de1] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isSaving ? <PurpleDotSpinner size="inline" /> : null}
+              {isSaving ? 'Saving...' : 'Save manual hours'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void handleGoogleSync()}
+              disabled={!hasGooglePlaceId || isSaving || isSyncing}
+              className="inline-flex items-center gap-2 rounded-xl border border-[#9eb7ff] px-5 py-2.5 text-sm font-semibold text-[#3f51b5] transition hover:bg-[#eef3ff] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSyncing ? <PurpleDotSpinner size="inline" /> : null}
+              {isSyncing ? 'Syncing...' : 'Sync from Google'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void loadOpeningHours()}
+              disabled={isSaving || isSyncing}
+              className="inline-flex items-center rounded-xl border border-[#d2dde2] px-4 py-2.5 text-sm font-semibold text-[#3c4a56] transition hover:bg-[#f7fafc] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              Refresh
+            </button>
+          </div>
+        </section>
+
+        <aside className="space-y-3 rounded-3xl border border-[#d7e2e6] bg-white p-6">
+          <h2 className="text-lg font-semibold text-[#111827]">Profile status</h2>
+          <dl className="space-y-2 text-sm text-[#5f6c78]">
+            <div className="flex items-center justify-between gap-2">
+              <dt>Source</dt>
+              <dd className="rounded-full bg-[#ede9fe] px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-[#5b21b6]">
+                {source}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <dt>Timezone</dt>
+              <dd className="font-medium text-[#111827]">{timezone}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <dt>Mode</dt>
+              <dd className="font-medium text-[#111827]">
+                {is24x7 ? 'Open 24 x 7' : 'Custom slots'}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <dt>Google profile</dt>
+              <dd className={hasGooglePlaceId ? 'text-[#1f8b4c]' : 'text-[#a72b2b]'}>
+                {hasGooglePlaceId ? 'Connected' : 'Not connected'}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <dt>Last Google sync</dt>
+              <dd className="font-medium text-[#111827]">
+                {syncedAt ? new Date(syncedAt).toLocaleString() : 'Not synced yet'}
+              </dd>
+            </div>
+          </dl>
+        </aside>
+      </div>
+
+      <section className="space-y-4 rounded-3xl border border-[#d7e2e6] bg-white p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-2xl font-semibold text-[#111827]">Weekly schedule</h2>
+          <p className="text-xs font-medium text-[#6c7a87]">
+            12-hour format. Add break slots and overnight ranges (example: 11:00 AM to 2:00 AM).
+          </p>
+        </div>
+
+        {is24x7 ? (
+          <div className="rounded-2xl border border-[#d7d2fe] bg-[#f5f3ff] p-4 text-sm text-[#4c2fc5]">
+            Restaurant is marked as open 24 x 7. Turn this off to manage day-wise slots.
+          </div>
+        ) : null}
+
+        <div className="space-y-3">
+          {daySchedules.map((day) => (
+            <article
+              key={day.dayOfWeek}
+              className={cx(
+                'rounded-2xl border p-4',
+                day.closed ? 'border-[#e3e8ee] bg-[#f9fbfd]' : 'border-[#d7d2fe] bg-[#fcfbff]',
+              )}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="text-base font-semibold text-[#111827]">{day.label}</h3>
+                <label className="inline-flex items-center gap-2 text-sm font-medium text-[#4b5563]">
+                  <input
+                    type="checkbox"
+                    checked={day.closed}
+                    disabled={is24x7}
+                    onChange={(event) => setDayClosed(day.dayOfWeek, event.target.checked)}
+                    className="h-4 w-4 accent-[#6f4cf6]"
+                  />
+                  Closed
+                </label>
+              </div>
+
+              {!day.closed ? (
+                <div className="mt-3 space-y-2">
+                  {day.slots.map((slot, index) => {
+                    const slotHint = isOvernightRange(slot.openTime, slot.closeTime)
+                      ? 'Overnight hours (closes next day)'
+                      : day.slots.length > 1
+                        ? `Session ${index + 1}`
+                        : '';
+
+                    return (
+                      <div
+                        key={slot.id}
+                        className="grid gap-2 rounded-xl border border-[#dde4ea] bg-white p-3 md:grid-cols-[1fr_1fr_auto]"
+                      >
+                        <div>
+                          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[#748493]">
+                            Open
+                          </p>
+                          <TwelveHourTimeInput
+                            value={slot.openTime}
+                            onChange={(value) =>
+                              updateBreakSlotTime(day.dayOfWeek, slot.id, 'openTime', value)
+                            }
+                          />
+                        </div>
+                        <div>
+                          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[#748493]">
+                            Close
+                          </p>
+                          <TwelveHourTimeInput
+                            value={slot.closeTime}
+                            onChange={(value) =>
+                              updateBreakSlotTime(day.dayOfWeek, slot.id, 'closeTime', value)
+                            }
+                          />
+                        </div>
+                        <div className="flex items-end justify-end">
+                          <button
+                            type="button"
+                            onClick={() => removeBreakSlot(day.dayOfWeek, slot.id)}
+                            disabled={day.slots.length === 1}
+                            className="inline-flex items-center rounded-lg border border-[#f3c5c5] px-3 py-2 text-xs font-semibold text-[#c73a3a] transition hover:bg-[#fff4f4] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        {slotHint ? (
+                          <p className="md:col-span-3 text-[11px] text-[#748493]">
+                            {slotHint}
+                          </p>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+
+                  <button
+                    type="button"
+                    onClick={() => addBreakSlot(day.dayOfWeek)}
+                    disabled={day.slots.length >= 5}
+                    className="inline-flex items-center rounded-lg border border-[#cfd9ff] px-3 py-1.5 text-xs font-semibold text-[#3f51b5] transition hover:bg-[#eff3ff] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Add break slot
+                  </button>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-[#6b7b88]">Closed for this day.</p>
+              )}
+            </article>
+          ))}
+        </div>
+      </section>
+    </MyInfoWorkspaceShell>
+  );
+}
+
+function getBrowserTimezone() {
+  const resolved =
+    typeof Intl !== 'undefined'
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : null;
+  return typeof resolved === 'string' && resolved.trim() ? resolved.trim() : 'UTC';
+}
+
+function getTimezoneOptions() {
+  const fallback = [
+    'UTC',
+    getBrowserTimezone(),
+    'America/New_York',
+    'America/Chicago',
+    'America/Denver',
+    'America/Los_Angeles',
+    'Asia/Kolkata',
+    'Europe/London',
+  ];
+  const intlWithSupported = Intl as typeof Intl & {
+    supportedValuesOf?: (key: 'timeZone') => string[];
+  };
+  const supported =
+    typeof intlWithSupported.supportedValuesOf === 'function'
+      ? intlWithSupported.supportedValuesOf('timeZone')
+      : [];
+
+  return Array.from(new Set([...fallback, ...supported])).sort((a, b) =>
+    a.localeCompare(b),
+  );
+}
+
+function createScheduleSlotId(dayOfWeek: number) {
+  return `day-${dayOfWeek}-${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+}
+
+function buildDefaultDaySchedule() {
+  return OPENING_HOURS_DAYS.map((day) => ({
+    dayOfWeek: day.dayOfWeek,
+    label: day.label,
+    closed: true,
+    slots: [
+      {
+        id: createScheduleSlotId(day.dayOfWeek),
+        openTime: '09:00',
+        closeTime: '17:00',
+      },
+    ],
+  })) satisfies DayScheduleState[];
+}
+
+function normalizeSlotTimeForUi(value: string | null | undefined) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const match = value.trim().match(/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/);
+  if (!match) {
+    return null;
+  }
+  return `${match[1]}:${match[2]}`;
+}
+
+function buildScheduleFromSlots(
+  slots: OpeningHoursSlotRecord[],
+  is24x7: boolean,
+): DayScheduleState[] {
+  if (is24x7) {
+    return OPENING_HOURS_DAYS.map((day) => ({
+      dayOfWeek: day.dayOfWeek,
+      label: day.label,
+      closed: false,
+      slots: [
+        {
+          id: createScheduleSlotId(day.dayOfWeek),
+          openTime: '00:00',
+          closeTime: '23:59',
+        },
+      ],
+    }));
+  }
+
+  const slotsByDay = new Map<number, DayScheduleSlotState[]>();
+  OPENING_HOURS_DAYS.forEach((day) => slotsByDay.set(day.dayOfWeek, []));
+
+  for (const slot of slots) {
+    if (!slot || slot.day_of_week < 1 || slot.day_of_week > 7 || slot.is_closed) {
+      continue;
+    }
+
+    const openTime = normalizeSlotTimeForUi(slot.open_time);
+    const closeTime = normalizeSlotTimeForUi(slot.close_time);
+    if (!openTime || !closeTime) {
+      continue;
+    }
+
+    const entry = slotsByDay.get(slot.day_of_week) ?? [];
+    entry.push({
+      id: slot.opening_hour_slot_id || createScheduleSlotId(slot.day_of_week),
+      openTime,
+      closeTime,
+    });
+    slotsByDay.set(slot.day_of_week, entry);
+  }
+
+  slotsByDay.forEach((entry, dayOfWeek) => {
+    slotsByDay.set(
+      dayOfWeek,
+      entry.slice().sort((a, b) => toMinutes(a.openTime) - toMinutes(b.openTime)),
+    );
+  });
+
+  const consumedByDay = new Map<number, Set<string>>();
+  const mergedOvernightByDay = new Map<number, DayScheduleSlotState[]>();
+  OPENING_HOURS_DAYS.forEach((day) => {
+    consumedByDay.set(day.dayOfWeek, new Set<string>());
+    mergedOvernightByDay.set(day.dayOfWeek, []);
+  });
+
+  for (const day of OPENING_HOURS_DAYS) {
+    const nextDayOfWeek = getNextDayOfWeek(day.dayOfWeek);
+    const currentDaySlots = slotsByDay.get(day.dayOfWeek) ?? [];
+    const nextDaySlots = slotsByDay.get(nextDayOfWeek) ?? [];
+    const currentConsumed = consumedByDay.get(day.dayOfWeek) ?? new Set<string>();
+    const nextConsumed = consumedByDay.get(nextDayOfWeek) ?? new Set<string>();
+    const overnightSlots = mergedOvernightByDay.get(day.dayOfWeek) ?? [];
+
+    const lateSlots = currentDaySlots.filter(
+      (slot) => slot.closeTime === '23:59' && !currentConsumed.has(slot.id),
+    );
+    const earlySlots = nextDaySlots.filter(
+      (slot) => slot.openTime === '00:00' && !nextConsumed.has(slot.id),
+    );
+
+    while (lateSlots.length > 0 && earlySlots.length > 0) {
+      const lateSlot = lateSlots.shift();
+      const earlySlot = earlySlots.shift();
+      if (!lateSlot || !earlySlot) {
+        break;
+      }
+
+      currentConsumed.add(lateSlot.id);
+      nextConsumed.add(earlySlot.id);
+      overnightSlots.push({
+        id: `${lateSlot.id}--overnight--${earlySlot.id}`,
+        openTime: lateSlot.openTime,
+        closeTime: earlySlot.closeTime,
+      });
+    }
+
+    consumedByDay.set(day.dayOfWeek, currentConsumed);
+    consumedByDay.set(nextDayOfWeek, nextConsumed);
+    mergedOvernightByDay.set(day.dayOfWeek, overnightSlots);
+  }
+
+  return OPENING_HOURS_DAYS.map((day) => {
+    const consumed = consumedByDay.get(day.dayOfWeek) ?? new Set<string>();
+    const mergedOvernight = mergedOvernightByDay.get(day.dayOfWeek) ?? [];
+    const openSlots = [
+      ...mergedOvernight,
+      ...(slotsByDay.get(day.dayOfWeek) ?? []).filter((slot) => !consumed.has(slot.id)),
+    ].sort((a, b) => toMinutes(a.openTime) - toMinutes(b.openTime));
+
+    if (!openSlots.length) {
+      return {
+        dayOfWeek: day.dayOfWeek,
+        label: day.label,
+        closed: true,
+        slots: [
+          {
+            id: createScheduleSlotId(day.dayOfWeek),
+            openTime: '09:00',
+            closeTime: '17:00',
+          },
+        ],
+      };
+    }
+
+    return {
+      dayOfWeek: day.dayOfWeek,
+      label: day.label,
+      closed: false,
+      slots: openSlots,
+    };
+  });
+}
+
+function toApiTimeValue(value: string) {
+  const match = value.trim().match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  if (!match) {
+    return null;
+  }
+  return `${match[1]}:${match[2]}:00`;
+}
+
+function toMinutes(value: string) {
+  const match = value.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  if (!match) {
+    return NaN;
+  }
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function getNextDayOfWeek(dayOfWeek: number) {
+  return dayOfWeek === 7 ? 1 : dayOfWeek + 1;
+}
+
+function isOvernightRange(openTime: string, closeTime: string) {
+  const openMinutes = toMinutes(openTime);
+  const closeMinutes = toMinutes(closeTime);
+  return (
+    Number.isFinite(openMinutes) &&
+    Number.isFinite(closeMinutes) &&
+    closeMinutes < openMinutes
+  );
+}
+
+type DayInterval = {
+  start: number;
+  end: number;
+};
+
+function getDayLabel(dayOfWeek: number) {
+  return OPENING_HOURS_DAYS.find((entry) => entry.dayOfWeek === dayOfWeek)?.label || `Day ${dayOfWeek}`;
+}
+
+function buildDailyIntervalsFromSchedules(daySchedules: DayScheduleState[]) {
+  const intervalsByDay = new Map<number, DayInterval[]>();
+  OPENING_HOURS_DAYS.forEach((day) => intervalsByDay.set(day.dayOfWeek, []));
+
+  daySchedules.forEach((day) => {
+    if (day.closed) {
+      return;
+    }
+
+    if (!day.slots.length) {
+      throw new Error(`${day.label}: add at least one slot or mark the day as closed.`);
+    }
+
+    day.slots.forEach((slot) => {
+      const openTime = toApiTimeValue(slot.openTime);
+      const closeTime = toApiTimeValue(slot.closeTime);
+
+      if (!openTime || !closeTime) {
+        throw new Error(
+          `${day.label}: invalid time format. Please choose time again in 12-hour picker.`,
+        );
+      }
+
+      const openMinutes = toMinutes(slot.openTime);
+      const closeMinutes = toMinutes(slot.closeTime);
+
+      if (!Number.isFinite(openMinutes) || !Number.isFinite(closeMinutes)) {
+        throw new Error(
+          `${day.label}: invalid time format. Please choose time again in 12-hour picker.`,
+        );
+      }
+
+      if (openMinutes === closeMinutes) {
+        throw new Error(`${day.label}: open and close time cannot be the same.`);
+      }
+
+      const dayIntervals = intervalsByDay.get(day.dayOfWeek) ?? [];
+      if (closeMinutes > openMinutes) {
+        dayIntervals.push({
+          start: openMinutes,
+          end: closeMinutes,
+        });
+        intervalsByDay.set(day.dayOfWeek, dayIntervals);
+        return;
+      }
+
+      dayIntervals.push({
+        start: openMinutes,
+        end: 1440,
+      });
+      intervalsByDay.set(day.dayOfWeek, dayIntervals);
+
+      const nextDay = getNextDayOfWeek(day.dayOfWeek);
+      const nextIntervals = intervalsByDay.get(nextDay) ?? [];
+      nextIntervals.push({
+        start: 0,
+        end: closeMinutes,
+      });
+      intervalsByDay.set(nextDay, nextIntervals);
+    });
+  });
+
+  return intervalsByDay;
+}
+
+function normalizeAndValidateIntervalsForDay(dayOfWeek: number, intervals: DayInterval[]) {
+  const sorted = intervals
+    .slice()
+    .filter((entry) => entry.start < entry.end)
+    .sort((a, b) => a.start - b.start);
+
+  const merged: DayInterval[] = [];
+  sorted.forEach((interval) => {
+    const previous = merged[merged.length - 1];
+    if (!previous) {
+      merged.push({ ...interval });
+      return;
+    }
+
+    if (interval.start < previous.end) {
+      throw new Error(`${getDayLabel(dayOfWeek)}: slots overlap. Adjust break timings.`);
+    }
+
+    if (interval.start === previous.end) {
+      previous.end = interval.end;
+      return;
+    }
+
+    merged.push({ ...interval });
+  });
+
+  if (merged.length > 5) {
+    throw new Error(`${getDayLabel(dayOfWeek)}: maximum 5 break slots allowed.`);
+  }
+
+  return merged;
+}
+
+function minutesToApiTimeValue(minutes: number) {
+  const bounded = Math.max(0, Math.min(1440, minutes));
+  if (bounded >= 1440) {
+    return '23:59:59';
+  }
+
+  const hour = Math.floor(bounded / 60);
+  const minute = bounded % 60;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+}
+
+function validateScheduleForSubmit(daySchedules: DayScheduleState[], is24x7: boolean) {
+  if (is24x7) {
+    return null;
+  }
+
+  try {
+    const intervalsByDay = buildDailyIntervalsFromSchedules(daySchedules);
+    for (const day of OPENING_HOURS_DAYS) {
+      const intervals = intervalsByDay.get(day.dayOfWeek) ?? [];
+      normalizeAndValidateIntervalsForDay(day.dayOfWeek, intervals);
+    }
+  } catch (caughtError) {
+    return caughtError instanceof Error
+      ? caughtError.message
+      : 'Invalid schedule. Please review opening hours.';
+  }
+
+  return null;
+}
+
+function scheduleToApiSlots(daySchedules: DayScheduleState[], is24x7: boolean) {
+  if (is24x7) {
+    return [];
+  }
+
+  const intervalsByDay = buildDailyIntervalsFromSchedules(daySchedules);
+
+  const rows: Array<{
+    day_of_week: number;
+    slot_order: number;
+    is_closed: boolean;
+    open_time: string | null;
+    close_time: string | null;
+  }> = [];
+
+  OPENING_HOURS_DAYS.forEach((day) => {
+    const normalizedIntervals = normalizeAndValidateIntervalsForDay(
+      day.dayOfWeek,
+      intervalsByDay.get(day.dayOfWeek) ?? [],
+    );
+
+    if (!normalizedIntervals.length) {
+      rows.push({
+        day_of_week: day.dayOfWeek,
+        slot_order: 1,
+        is_closed: true,
+        open_time: null,
+        close_time: null,
+      });
+      return;
+    }
+
+    normalizedIntervals.forEach((slot, index) => {
+      rows.push({
+        day_of_week: day.dayOfWeek,
+        slot_order: index + 1,
+        is_closed: false,
+        open_time: minutesToApiTimeValue(slot.start),
+        close_time: minutesToApiTimeValue(slot.end),
+      });
+    });
+  });
+
+  return rows;
+}
+
+function TwelveHourTimeInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (nextValue: string) => void;
+}) {
+  const parsed = parseTwelveHourTime(value);
+  const hourOptions = Array.from({ length: 12 }, (_, index) => String(index + 1));
+  const minuteOptions = Array.from({ length: 60 }, (_, index) =>
+    String(index).padStart(2, '0'),
+  );
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <select
+        value={String(parsed.hour12)}
+        onChange={(event) =>
+          onChange(
+            fromTwelveHourParts(
+              Number(event.target.value),
+              parsed.minute,
+              parsed.meridiem,
+            ),
+          )
+        }
+        className="rounded-lg border border-[#d2dde2] px-2 py-1 text-sm text-[#111827] outline-none focus:border-[#667eea] focus:ring-2 focus:ring-[#ddd6fe]"
+      >
+        {hourOptions.map((hour) => (
+          <option key={hour} value={hour}>
+            {hour}
+          </option>
+        ))}
+      </select>
+
+      <span className="text-sm text-[#6b7280]">:</span>
+
+      <select
+        value={String(parsed.minute).padStart(2, '0')}
+        onChange={(event) =>
+          onChange(
+            fromTwelveHourParts(
+              parsed.hour12,
+              Number(event.target.value),
+              parsed.meridiem,
+            ),
+          )
+        }
+        className="rounded-lg border border-[#d2dde2] px-2 py-1 text-sm text-[#111827] outline-none focus:border-[#667eea] focus:ring-2 focus:ring-[#ddd6fe]"
+      >
+        {minuteOptions.map((minute) => (
+          <option key={minute} value={minute}>
+            {minute}
+          </option>
+        ))}
+      </select>
+
+      <select
+        value={parsed.meridiem}
+        onChange={(event) =>
+          onChange(
+            fromTwelveHourParts(
+              parsed.hour12,
+              parsed.minute,
+              event.target.value === 'PM' ? 'PM' : 'AM',
+            ),
+          )
+        }
+        className="rounded-lg border border-[#d2dde2] px-2 py-1 text-sm text-[#111827] outline-none focus:border-[#667eea] focus:ring-2 focus:ring-[#ddd6fe]"
+      >
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  );
+}
+
+function parseTwelveHourTime(value: string) {
+  const match = value.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  if (!match) {
+    return {
+      hour12: 9,
+      minute: 0,
+      meridiem: 'AM' as const,
+    };
+  }
+
+  const hour24 = Number(match[1]);
+  const minute = Number(match[2]);
+  const meridiem: 'AM' | 'PM' = hour24 >= 12 ? 'PM' : 'AM';
+  const hour12Raw = hour24 % 12;
+
+  return {
+    hour12: hour12Raw === 0 ? 12 : hour12Raw,
+    minute,
+    meridiem,
+  };
+}
+
+function fromTwelveHourParts(
+  hour12: number,
+  minute: number,
+  meridiem: 'AM' | 'PM',
+) {
+  let hour = hour12 % 12;
+  if (meridiem === 'PM') {
+    hour += 12;
+  }
+
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
 export function MyInfoGoogleProfilePage() {
@@ -2107,6 +3325,24 @@ function AddressTabIcon() {
     >
       <path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0Z" />
       <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+function OpeningHoursTabIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
     </svg>
   );
 }

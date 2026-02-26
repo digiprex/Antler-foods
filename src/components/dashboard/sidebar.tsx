@@ -1,5 +1,4 @@
 import { NavItem } from './nav-item';
-import { useState } from 'react';
 import { SearchBox, type RestaurantSearchSelection } from './search-box';
 import type { DashboardRailTab } from './icon-rail';
 import {
@@ -28,7 +27,6 @@ export function Sidebar({
   selectedRestaurant,
   onRestaurantSelect,
 }: SidebarProps) {
-  const [isMyInfoOpen, setIsMyInfoOpen] = useState(true);
   const isWebsiteTab = activeTab === 'website';
   const hasRestaurantSelection = Boolean(selectedRestaurant);
   const roleSegment = dashboardBasePath.split('/')[2] || 'admin';
@@ -71,22 +69,13 @@ export function Sidebar({
           href: informationBrandPath,
           label: 'Information',
           icon: <InfoIcon />,
-          matchPrefixes: [
-            informationBasePath,
-            `${dashboardBasePath}/my-info/brand`,
-            `${dashboardBasePath}/my-info/address`,
-            `${dashboardBasePath}/my-info/google-profile`,
-          ],
+          matchPrefixes: [informationBasePath],
         },
         {
           href: mediaPath,
           label: 'Media',
           icon: <MediaIcon />,
-          matchPrefixes: [
-            mediaPath,
-            `${mediaPath}/`,
-            `${dashboardBasePath}/my-info/gallery`,
-          ],
+          matchPrefixes: [mediaPath, `${mediaPath}/`],
         },
         {
           href: buildRestaurantScopedHref(
@@ -104,60 +93,8 @@ export function Sidebar({
           label: 'Assets',
           icon: <AssetsIcon />,
         },
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/opening-hours`,
-            selectedRestaurant,
-          ),
-          label: 'Opening Hours',
-          icon: <ClockIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/locations`,
-            selectedRestaurant,
-          ),
-          label: 'Address',
-          icon: <LocationIcon />,
-        },
       ];
     })()
-    : [];
-    const MY_INFO_MENU_ITEMS = selectedRestaurant
-    ? [
-      {
-        href: buildRestaurantScopedHref(
-          `${dashboardBasePath}/my-info/profile`,
-          selectedRestaurant,
-        ),
-        label: 'Profile',
-        icon: <ProfileIcon />,
-      },
-      {
-        href: buildRestaurantScopedHref(
-          `${dashboardBasePath}/my-info/gallery`,
-          selectedRestaurant,
-        ),
-        label: 'Gallery',
-        icon: <GalleryIcon />,
-      },
-      {
-        href: buildRestaurantScopedHref(
-          `${dashboardBasePath}/my-info/business-information`,
-          selectedRestaurant,
-        ),
-        label: 'Business Information',
-        icon: <BusinessInfoIcon />,
-      },
-      {
-        href: buildRestaurantScopedHref(
-          `${dashboardBasePath}/my-info/google-profile`,
-          selectedRestaurant,
-        ),
-        label: 'Google profile',
-        icon: <GoogleProfileIcon />,
-      },
-    ]
     : [];
 
   const WEBSITE_MENU_ITEMS = selectedRestaurant
@@ -285,63 +222,17 @@ export function Sidebar({
               <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">Restaurant</p>
             )}
             <nav className="space-y-1">
-              {RESTAURANT_MENU_ITEMS.map((item: any) => (
+              {RESTAURANT_MENU_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
                   href={item.href}
                   label={item.label}
                   icon={item.icon}
-                  active={pathname === extractPathFromHref(item.href)}
+                  active={isSidebarItemActive(pathname, item)}
                   collapsed={!isOpen}
                 />
               ))}
             </nav>
-          </div>
-        ) : null}
-
-{/* My Info Section */}
-        {isOpen && hasRestaurantSelection ? (
-          <div>
-            <button
-              type="button"
-              onClick={() => setIsMyInfoOpen((previous) => !previous)}
-              className="flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-left text-sm text-[#111827] transition hover:bg-[#f3f6f4]"
-            >
-              <span className="flex items-center gap-3">
-                <span className="text-[#1f2937]">
-                  <ProfileIcon />
-                </span>
-                <span className="leading-tight font-medium">My info</span>
-              </span>
-              <span
-                className={`transition-transform ${
-                  isMyInfoOpen ? 'rotate-180' : ''
-                }`}
-              >
-                <ChevronDownSmallIcon />
-              </span>
-            </button>
-
-            {isMyInfoOpen ? (
-              <nav className="mt-1 space-y-1 pl-3">
-                {MY_INFO_MENU_ITEMS.length ? (
-                  MY_INFO_MENU_ITEMS.map((item) => (
-                    <NavItem
-                      key={item.href}
-                      href={item.href}
-                      label={item.label}
-                      icon={item.icon}
-                      active={pathname === extractPathFromHref(item.href)}
-                      collapsed={!isOpen}
-                    />
-                  ))
-                ) : (
-                  <div className="px-5 text-sm text-[#60707c]">
-                    Select a restaurant to manage My info.
-                  </div>
-                )}
-              </nav>
-            ) : null}
           </div>
         ) : null}
 
@@ -364,7 +255,7 @@ export function Sidebar({
                   href={item.href}
                   label={item.label}
                   icon={item.icon}
-                  active={pathname === extractPathFromHref(item.href)}
+                  active={isSidebarItemActive(pathname, item)}
                   collapsed={!isOpen}
                 />
               ))}
@@ -385,7 +276,7 @@ export function Sidebar({
                   href={item.href}
                   label={item.label}
                   icon={item.icon}
-                  active={pathname === extractPathFromHref(item.href)}
+                  active={isSidebarItemActive(pathname, item)}
                   collapsed={!isOpen}
                 />
               ))}
@@ -405,7 +296,7 @@ export function Sidebar({
                   href={item.href}
                   label={item.label}
                   icon={item.icon}
-                  active={pathname === extractPathFromHref(item.href)}
+                  active={isSidebarItemActive(pathname, item)}
                   collapsed={!isOpen}
                 />
               ))}
@@ -425,7 +316,7 @@ export function Sidebar({
                   href={item.href}
                   label={item.label}
                   icon={item.icon}
-                  active={pathname === extractPathFromHref(item.href)}
+                  active={isSidebarItemActive(pathname, item)}
                   collapsed={!isOpen}
                 />
               ))}
@@ -459,94 +350,19 @@ function extractPathFromHref(href: string) {
   return href.split('?')[0] || href;
 }
 
-function ChevronDownSmallIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
+function isSidebarItemActive(
+  pathname: string,
+  item: { href: string; matchPrefixes?: string[] },
+) {
+  const itemPath = extractPathFromHref(item.href);
+  if (pathname === itemPath) {
+    return true;
+  }
 
-function ProfileIcon() {
   return (
-    <svg
-      aria-hidden="true"
-      className="h-6 w-6"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="7.5" r="3.5" />
-      <path d="M5 20a7 7 0 0 1 14 0" />
-    </svg>
-  );
-}
-
-function GalleryIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-6 w-6"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <circle cx="9" cy="10" r="1.5" />
-      <path d="m21 16-5-5-6 6" />
-    </svg>
-  );
-}
-
-function BusinessInfoIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-6 w-6"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="4" y="3" width="16" height="18" rx="2" />
-      <path d="M8 7h8" />
-      <path d="M8 11h8" />
-      <path d="M8 15h5" />
-    </svg>
-  );
-}
-
-function GoogleProfileIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-6 w-6"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 20a8 8 0 1 1 7.7-10h-7.7v4h4.4a4.5 4.5 0 1 1-4.4-6" />
-    </svg>
+    item.matchPrefixes?.some((prefix) =>
+      pathname.startsWith(extractPathFromHref(prefix)),
+    ) ?? false
   );
 }
 
@@ -763,24 +579,6 @@ function AssetsIcon() {
       <rect x="3" y="3" width="18" height="18" rx="2" />
       <path d="M7 3v18" />
       <path d="M17 3v18" />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v6l4 2" />
-    </svg>
-  );
-}
-
-function LocationIcon() {
-  return (
-    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z" />
-      <circle cx="12" cy="10" r="3" />
     </svg>
   );
 }

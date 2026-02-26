@@ -288,13 +288,7 @@ export default function FormPreviewPage() {
           </div>
         </div>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3b82f6]"></div>
-            <span className="ml-3 text-[#6b7280]">Loading form...</span>
-          </div>
-        )}
+        {/* Loading State - Removed */}
 
         {/* Error State */}
         {error && (

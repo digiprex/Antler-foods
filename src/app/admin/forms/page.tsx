@@ -13,18 +13,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import type { Form } from '@/types/forms.types';
 import Toast from '@/components/ui/toast';
 
 export default function FormsPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
 
   const [forms, setForms] = useState<Form[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -33,6 +33,8 @@ export default function FormsPage() {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [editForm, setEditForm] = useState<Form | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [deleteFormId, setDeleteFormId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Fetch forms
   useEffect(() => {
@@ -43,7 +45,6 @@ export default function FormsPage() {
 
   const fetchForms = async () => {
     try {
-      setLoading(true);
       setError(null);
 
       const response = await fetch(`/api/forms?restaurant_id=${restaurantId}`);
@@ -61,8 +62,6 @@ export default function FormsPage() {
     } catch (err) {
       console.error('Error fetching forms:', err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -94,13 +93,16 @@ export default function FormsPage() {
     setShowToast(true);
   };
 
-  const handleDeleteForm = async (formId: string) => {
-    if (!confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
-      return;
-    }
+  const handleDeleteForm = (formId: string) => {
+    setDeleteFormId(formId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteForm = async () => {
+    if (!deleteFormId) return;
 
     try {
-      const response = await fetch(`/api/forms?form_id=${formId}`, {
+      const response = await fetch(`/api/forms?form_id=${deleteFormId}`, {
         method: 'DELETE',
       });
       const data = await response.json();
@@ -122,7 +124,15 @@ export default function FormsPage() {
       setToastMessage(err instanceof Error ? err.message : 'Failed to delete form');
       setToastType('error');
       setShowToast(true);
+    } finally {
+      setShowDeleteModal(false);
+      setDeleteFormId(null);
     }
+  };
+
+  const cancelDeleteForm = () => {
+    setShowDeleteModal(false);
+    setDeleteFormId(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -176,8 +186,7 @@ export default function FormsPage() {
             </div>
             <button
               onClick={() => {
-                // TODO: Navigate to form builder
-                window.location.href = `/admin/forms/builder?restaurant_id=${restaurantId}&restaurant_name=${encodeURIComponent(restaurantName)}`;
+                router.push(`/admin/forms/builder?restaurant_id=${restaurantId}&restaurant_name=${encodeURIComponent(restaurantName)}`);
               }}
               className="bg-[#3b82f6] text-white px-4 py-2 rounded-lg hover:bg-[#2563eb] transition-colors flex items-center gap-2"
             >
@@ -186,14 +195,6 @@ export default function FormsPage() {
             </button>
           </div>
         </div>
-
-        {/* Loading State */}
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3b82f6]"></div>
-            <span className="ml-3 text-[#6b7280]">Loading forms...</span>
-          </div>
-        )}
 
         {/* Error State */}
         {error && (
@@ -215,7 +216,7 @@ export default function FormsPage() {
         )}
 
         {/* Forms List */}
-        {!loading && !error && (
+        {!error && (
           <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb]">
             {forms.length === 0 ? (
               <div className="text-center py-12">
@@ -226,7 +227,7 @@ export default function FormsPage() {
                 </p>
                 <button
                   onClick={() => {
-                    window.location.href = `/admin/forms/builder?restaurant_id=${restaurantId}&restaurant_name=${encodeURIComponent(restaurantName)}`;
+                    router.push(`/admin/forms/builder?restaurant_id=${restaurantId}&restaurant_name=${encodeURIComponent(restaurantName)}`);
                   }}
                   className="bg-[#3b82f6] text-white px-6 py-2 rounded-lg hover:bg-[#2563eb] transition-colors"
                 >
@@ -327,6 +328,14 @@ export default function FormsPage() {
           onSaved={handleFormSaved}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <DeleteConfirmationModal
+          onConfirm={confirmDeleteForm}
+          onCancel={cancelDeleteForm}
+        />
+      )}
     </DashboardLayout>
   );
 }
@@ -377,8 +386,8 @@ function PreviewModal({ form, onClose }: { form: Form; onClose: () => void }) {
     e.preventDefault();
 
     if (validateForm()) {
-      alert('Form validation passed! This is a preview - form data is not actually submitted.');
       console.log('Form data:', formData);
+      // Form validation passed - this is just a preview
     }
   };
 
@@ -986,6 +995,60 @@ function EditModal({
                 Save Changes
               </>
             )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Delete Confirmation Modal Component
+function DeleteConfirmationModal({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={onCancel}
+    >
+      <div
+        className="bg-white rounded-lg shadow-xl max-w-md w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div className="px-6 py-4 border-b border-[#e5e7eb]">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">⚠️</span>
+            <h2 className="text-xl font-semibold text-[#111827]">
+              Delete Form
+            </h2>
+          </div>
+        </div>
+
+        {/* Modal Body */}
+        <div className="px-6 py-6">
+          <p className="text-[#6b7280] mb-4">
+            Are you sure you want to delete this form? This will mark the form as deleted and it will no longer appear in your forms list.
+          </p>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="px-6 py-4 bg-[#f9fafb] border-t border-[#e5e7eb] flex items-center justify-end gap-3 rounded-b-lg">
+          <button
+            onClick={onCancel}
+            className="bg-white text-[#374151] px-4 py-2 rounded-lg border border-[#d1d5db] hover:bg-[#f9fafb] transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="bg-[#dc2626] text-white px-4 py-2 rounded-lg hover:bg-[#b91c1c] transition-colors"
+          >
+            Delete Form
           </button>
         </div>
       </div>

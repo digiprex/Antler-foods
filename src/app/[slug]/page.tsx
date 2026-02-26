@@ -18,6 +18,7 @@ import DynamicReviews from '@/components/dynamic-reviews';
 import DynamicLocation from '@/components/dynamic-location';
 import DynamicScrollingText from '@/components/dynamic-scrolling-text';
 import DynamicTimeline from '@/components/dynamic-timeline';
+import DynamicForm from '@/components/dynamic-form';
 import Popup from '@/components/popup';
 import YouTubeSection from '@/components/youtube-section';
 
@@ -198,6 +199,13 @@ export default function DynamicPage() {
       {/* Dynamic Reviews Section */}
       <DynamicReviews
         restaurantId={restaurantId}
+        showLoading={true}
+      />
+
+      {/* Dynamic Form Section */}
+      <DynamicForm
+        restaurantId={restaurantId}
+        pageId={pageData?.data?.page?.page_id}
         showLoading={true}
       />
     </div>

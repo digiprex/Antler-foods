@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
         const data = await graphqlRequest(GET_RESTAURANT_STAGING, { restaurant_id: restaurantId });
 
-        const rest = data.restaurants_by_pk || null;
+        const rest = (data as any).restaurants_by_pk || null;
         if (!rest) {
             return NextResponse.json({ success: false, error: 'Restaurant not found' }, { status: 404 });
         }

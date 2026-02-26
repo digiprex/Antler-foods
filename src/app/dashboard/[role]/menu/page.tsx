@@ -1,0 +1,13 @@
+export default function DashboardMenuPage() {
+  return (
+    <section className="space-y-5">
+      <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">Manage Menu</h1>
+      <div className="rounded-3xl border border-[#d7e2e6] bg-white p-8">
+        <h2 className="text-3xl font-semibold text-[#111827]">Menu Management</h2>
+        <p className="mt-3 text-lg text-[#5f6c78]">
+          Menu management placeholder content.
+        </p>
+      </div>
+    </section>
+  );
+}

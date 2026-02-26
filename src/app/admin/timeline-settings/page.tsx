@@ -16,20 +16,42 @@
 
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import TimelineSettingsForm from '@/components/admin/timeline-settings-form';
+import styles from '@/components/admin/gallery-settings-form.module.css';
 
 export default function TimelineSettingsPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
   const pageId = searchParams.get('page_id');
 
+  const handleBack = () => {
+    const params = new URLSearchParams();
+    if (restaurantId) params.set('restaurant_id', restaurantId);
+    if (restaurantName) params.set('restaurant_name', restaurantName);
+    if (pageId) params.set('page_id', pageId);
+    router.push(`/admin/page-settings?${params.toString()}`);
+  };
+
   return (
     <DashboardLayout>
       {restaurantId && restaurantName && pageId ? (
-        <TimelineSettingsForm />
+        <div className={styles.container}>
+          <div className={styles.singleLayout}>
+            <div className={styles.formSection}>
+              <button
+                onClick={handleBack}
+                className={`${styles.button} ${styles.secondaryButton} ${styles.backButton}`}
+              >
+                ← Back to Page Settings
+              </button>
+              <TimelineSettingsForm />
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">

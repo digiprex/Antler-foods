@@ -302,16 +302,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-[#f3f5f6]">
-      <div className="flex min-h-screen">
-        <Sidebar
-          activeTab={activeTab}
-          pathname={pathname}
-          dashboardBasePath={dashboardBasePath}
-          websiteBasePath={websiteBasePath}
-          isOpen={isSidebarOpen}
-          selectedRestaurant={selectedRestaurant}
-          onRestaurantSelect={onRestaurantSelect}
-        />
+      <Sidebar
+        activeTab={activeTab}
+        pathname={pathname}
+        dashboardBasePath={dashboardBasePath}
+        websiteBasePath={websiteBasePath}
+        isOpen={isSidebarOpen}
+        selectedRestaurant={selectedRestaurant}
+        onRestaurantSelect={onRestaurantSelect}
+      />
+      <div className={`min-h-screen transition-all duration-200 ease-in-out ${isSidebarOpen ? 'ml-[330px]' : 'ml-16'}`}>
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar
             userLabel={userLabel}

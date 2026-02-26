@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
-import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 
 interface WebsiteRouteLayoutProps {
   children: ReactNode;
@@ -21,6 +20,6 @@ export default async function WebsiteRouteLayout({
     notFound();
   }
 
-  return <DashboardLayout>{children}</DashboardLayout>;
+  return <>{children}</>;
 }
 

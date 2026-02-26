@@ -153,6 +153,11 @@ export function Sidebar({
           label: 'Footer Settings',
           icon: <FooterIcon />,
         },
+        {
+          href: buildRestaurantScopedHref(`${websiteBasePath}/popup-settings`, selectedRestaurant),
+          label: 'Popup Settings',
+          icon: <PopupIcon />,
+        },
       ]
     : [];
 
@@ -197,7 +202,7 @@ export function Sidebar({
 
   return (
     <aside
-      className={`min-h-screen border-r border-[#d7e2e6] bg-[#f8fafb] transition-all duration-200 ease-in-out ${
+      className={`fixed left-0 top-0 h-screen border-r border-[#d7e2e6] bg-[#f8fafb] transition-all duration-200 ease-in-out overflow-y-auto ${
         isOpen ? 'w-[330px]' : 'w-16'
       }`}
     >
@@ -205,29 +210,29 @@ export function Sidebar({
         selectedRestaurant={selectedRestaurant}
         onRestaurantSelect={onRestaurantSelect}
       />
-      <div className="border-b border-[#d7e2e6] px-5 py-4">
+      <div className="border-b border-[#d7e2e6] px-4 py-3">
         <div className="flex items-center justify-between">
           {isOpen ? (
-            <h2 className="text-[24px] font-semibold text-[#101827]">Menu</h2>
+            <h2 className="text-lg font-semibold text-[#101827]">Menu</h2>
           ) : (
-            <div className="h-6" />
+            <div className="h-5" />
           )}
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#cdd8de] bg-[#f1f4f6] text-[#a6b2bb]"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-[#cdd8de] bg-[#f1f4f6] text-[#a6b2bb]"
           >
             <EyeIcon />
           </button>
         </div>
       </div>
 
-      <div className="space-y-4 px-3 py-4">
+      <div className="space-y-3 px-3 py-3">
         {/* Home Section */}
         <div>
           {isOpen && (
-            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Home</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">Home</p>
           )}
-          <nav className="space-y-2">
+          <nav className="space-y-1">
             {HOME_MENU_ITEMS.map((item) => (
               <NavItem
                 key={`${dashboardBasePath}${item.href}`}
@@ -245,9 +250,9 @@ export function Sidebar({
         {hasRestaurantSelection ? (
           <div>
             {isOpen && (
-              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Restaurant</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">Restaurant</p>
             )}
-            <nav className="space-y-2">
+            <nav className="space-y-1">
               {RESTAURANT_MENU_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
@@ -268,13 +273,13 @@ export function Sidebar({
             <button
               type="button"
               onClick={() => setIsMyInfoOpen((previous) => !previous)}
-              className="flex w-full items-center justify-between rounded-xl px-5 py-3 text-left text-[20px] text-[#111827] transition hover:bg-[#f3f6f4]"
+              className="flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-left text-sm text-[#111827] transition hover:bg-[#f3f6f4]"
             >
               <span className="flex items-center gap-3">
                 <span className="text-[#1f2937]">
                   <ProfileIcon />
                 </span>
-                <span className="leading-tight">My info</span>
+                <span className="leading-tight font-medium">My info</span>
               </span>
               <span
                 className={`transition-transform ${
@@ -286,7 +291,7 @@ export function Sidebar({
             </button>
 
             {isMyInfoOpen ? (
-              <nav className="mt-1 space-y-2 pl-4">
+              <nav className="mt-1 space-y-1 pl-3">
                 {MY_INFO_MENU_ITEMS.length ? (
                   MY_INFO_MENU_ITEMS.map((item) => (
                     <NavItem
@@ -313,14 +318,14 @@ export function Sidebar({
           <div>
             {isOpen && (
               <p
-                className={`mb-2 text-xs font-medium uppercase tracking-wide ${
+                className={`mb-1.5 text-xs font-medium uppercase tracking-wide ${
                   isWebsiteTab ? 'text-[#5dc67d]' : 'text-[#7c8a96]'
                 }`}
               >
                 Website
               </p>
             )}
-            <nav className="space-y-2">
+            <nav className="space-y-1">
               {WEBSITE_MENU_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
@@ -339,9 +344,9 @@ export function Sidebar({
         {hasRestaurantSelection ? (
           <div>
             {isOpen && (
-              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Marketing</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">Marketing</p>
             )}
-            <nav className="space-y-2">
+            <nav className="space-y-1">
               {MARKETING_MENU_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
@@ -359,9 +364,9 @@ export function Sidebar({
         {hasRestaurantSelection ? (
           <div>
             {isOpen && (
-              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Reservation</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">Reservation</p>
             )}
-            <nav className="space-y-2">
+            <nav className="space-y-1">
               {RESERVATION_MENU_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
@@ -379,9 +384,9 @@ export function Sidebar({
         {hasRestaurantSelection ? (
           <div>
             {isOpen && (
-              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Catering</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">Catering</p>
             )}
-            <nav className="space-y-2">
+            <nav className="space-y-1">
               {CATERING_MENU_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
@@ -754,6 +759,26 @@ function CateringIcon() {
       <path d="M12 2v12" />
       <path d="M16 2v12" />
       <path d="M3 18h18" />
+    </svg>
+  );
+}
+
+function PopupIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M9 9h6v6H9z" />
+      <path d="M16 8l3-3" />
+      <path d="M19 8h-3V5" />
     </svg>
   );
 }

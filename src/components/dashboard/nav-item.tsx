@@ -14,7 +14,7 @@ export function NavItem({ href, label, icon, active = false, collapsed = false }
       <Link
         href={href}
         title={label}
-        className={`relative group inline-flex items-center justify-center rounded-xl px-2 py-3 text-[20px] transition ${
+        className={`relative group inline-flex items-center justify-center rounded-xl px-2 py-2.5 text-sm transition ${
           active ? 'bg-[#ede9fe] text-[#667eea]' : 'text-[#111827] hover:bg-[#f3f6f4]'
         }`}
       >
@@ -29,14 +29,14 @@ export function NavItem({ href, label, icon, active = false, collapsed = false }
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 rounded-xl px-5 py-3 text-[20px] transition ${
+      className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm transition ${
         active
           ? 'bg-[#ede9fe] text-[#667eea]'
           : 'text-[#111827] hover:bg-[#f3f6f4]'
       }`}
     >
       <span className={active ? 'text-[#667eea]' : 'text-[#1f2937]'}>{icon}</span>
-      <span className="leading-tight">{label}</span>
+      <span className="leading-tight font-medium">{label}</span>
     </Link>
   );
 }

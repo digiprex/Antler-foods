@@ -108,6 +108,11 @@ export function Sidebar({
         icon: <PagesIcon />,
       },
       {
+        href: buildRestaurantScopedHref(`/admin/forms`, selectedRestaurant),
+        label: 'Forms',
+        icon: <FormsIcon />,
+      },
+      {
         href: buildRestaurantScopedHref(`${websiteBasePath}/navbar-settings`, selectedRestaurant),
         label: 'Navbar Settings',
         icon: <NavbarIcon />,
@@ -639,6 +644,26 @@ function AnnouncementBarIcon() {
       <path d="M3 10h18" />
       <path d="M7 14h10" />
       <path d="M9 18h6" />
+    </svg>
+  );
+}
+
+function FormsIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M7 7h10" />
+      <path d="M7 11h10" />
+      <path d="M7 15h6" />
     </svg>
   );
 }

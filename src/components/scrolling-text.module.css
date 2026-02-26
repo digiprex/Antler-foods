@@ -1,0 +1,39 @@
+.scrollingText {
+  position: fixed;
+  top: var(--announcement-bar-height, 0px);
+  left: 0;
+  right: 0;
+  z-index: 1099; /* Just below announcement bar */
+  width: 100%;
+}
+
+.scrollingContent {
+  display: inline-flex;
+  animation: scroll-left linear infinite;
+  will-change: transform;
+}
+
+.scrollingItem {
+  padding-right: 4rem;
+  display: inline-block;
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.333%);
+  }
+}
+
+/* Ensure smooth scrolling on all devices */
+@media (prefers-reduced-motion: reduce) {
+  .scrollingContent {
+    animation: none;
+  }
+
+  .scrollingItem:not(:first-child) {
+    display: none;
+  }
+}

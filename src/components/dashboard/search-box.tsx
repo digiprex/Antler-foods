@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { getRestaurants } from '@/lib/graphql/queries';
 
 export interface RestaurantSearchSelection {
@@ -16,7 +15,6 @@ export function SearchBox({
   selectedRestaurant,
   onRestaurantSelect,
 }: SearchBoxProps) {
-  const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [searchValue, setSearchValue] = useState(selectedRestaurant?.name ?? '');
   const [restaurants, setRestaurants] = useState<RestaurantSearchSelection[]>([]);
@@ -134,7 +132,6 @@ export function SearchBox({
                 setSearchValue('');
                 onRestaurantSelect(null);
                 setIsOpen(false);
-                router.push('/');
               }}
               className="ml-2 text-[#b1bac2]"
               aria-label="Clear selected restaurant"

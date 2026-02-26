@@ -261,6 +261,9 @@ export default function ReviewsPage() {
   const [pendingActionReviewId, setPendingActionReviewId] = useState<string | null>(
     null,
   );
+  const [deleteCandidateReview, setDeleteCandidateReview] = useState<ReviewItem | null>(
+    null,
+  );
 
   const [authorName, setAuthorName] = useState('');
   const [reviewText, setReviewText] = useState('');
@@ -565,12 +568,31 @@ export default function ReviewsPage() {
     }
   };
 
-  const onDeleteManualReview = async (review: ReviewItem) => {
-    const confirmed = window.confirm('Delete this manual review?');
-    if (!confirmed) {
+  const onRequestDeleteManualReview = (review: ReviewItem) => {
+    if (!isManualSource(review.source)) {
       return;
     }
 
+    setDeleteCandidateReview(review);
+  };
+
+  const onCancelDeleteManualReview = () => {
+    if (
+      deleteCandidateReview &&
+      pendingActionReviewId === deleteCandidateReview.review_id
+    ) {
+      return;
+    }
+
+    setDeleteCandidateReview(null);
+  };
+
+  const onConfirmDeleteManualReview = async () => {
+    if (!deleteCandidateReview) {
+      return;
+    }
+
+    const review = deleteCandidateReview;
     setPendingActionReviewId(review.review_id);
     setNotice(null);
 
@@ -594,6 +616,7 @@ export default function ReviewsPage() {
         tone: 'success',
         message: 'Manual review deleted.',
       });
+      setDeleteCandidateReview(null);
       await loadReviews();
     } catch (caughtError) {
       const message =
@@ -647,7 +670,7 @@ export default function ReviewsPage() {
                   <th className="px-4 py-3">Text</th>
                   <th className="px-4 py-3">Created</th>
                   <th className="px-4 py-3">Rating</th>
-                  <th className="px-4 py-3">Actions</th>
+                  <th className="whitespace-nowrap px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#edf2f4]">
@@ -690,8 +713,8 @@ export default function ReviewsPage() {
                       <td className="px-4 py-3 align-top text-sm font-semibold text-[#111827]">
                         {review.rating || '-'}
                       </td>
-                      <td className="px-4 py-3 align-top">
-                        <div className="flex flex-wrap gap-2">
+                      <td className="whitespace-nowrap px-4 py-3 align-top">
+                        <div className="inline-flex items-center gap-2 whitespace-nowrap">
                           <button
                             type="button"
                             onClick={() => void onToggleHidden(review)}
@@ -719,7 +742,7 @@ export default function ReviewsPage() {
                           {manual ? (
                             <button
                               type="button"
-                              onClick={() => void onDeleteManualReview(review)}
+                              onClick={() => onRequestDeleteManualReview(review)}
                               disabled={actionPending}
                               aria-label="Delete manual review"
                               title="Delete manual review"
@@ -864,6 +887,48 @@ export default function ReviewsPage() {
                 {isSaving ? 'Saving...' : 'Save'}
               </button>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {deleteCandidateReview ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-5">
+          <div
+            className="absolute inset-0 bg-black/35"
+            onClick={onCancelDeleteManualReview}
+            aria-hidden="true"
+          />
+
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-[#d7e2e6] bg-white p-6 shadow-[0_24px_64px_rgba(15,23,42,0.25)]">
+            <h3 className="text-2xl font-semibold text-[#101827]">Delete review?</h3>
+            <p className="mt-3 text-sm leading-6 text-[#5f6c78]">
+              This will permanently delete the manual review
+              {deleteCandidateReview.author_name
+                ? ` by ${deleteCandidateReview.author_name}`
+                : ''}{' '}
+              from this restaurant.
+            </p>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={onCancelDeleteManualReview}
+                disabled={pendingActionReviewId === deleteCandidateReview.review_id}
+                className="inline-flex items-center rounded-xl border border-[#cfd8df] px-4 py-2 text-sm font-semibold text-[#30414d] transition hover:bg-[#f4f7f9] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void onConfirmDeleteManualReview()}
+                disabled={pendingActionReviewId === deleteCandidateReview.review_id}
+                className="inline-flex items-center rounded-xl bg-[#9b1c1c] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#7f1d1d] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {pendingActionReviewId === deleteCandidateReview.review_id
+                  ? 'Deleting...'
+                  : 'Delete review'}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

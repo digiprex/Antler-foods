@@ -5,33 +5,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
-const HASURA_ENDPOINT = process.env.HASURA_GRAPHQL_ENDPOINT || process.env.HASURA_GRAPHQL_URL;
-const HASURA_ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET || process.env.HASURA_ADMIN_SECRET;
-
-async function graphqlRequest(query: string, variables: Record<string, any> = {}) {
-  if (!HASURA_ENDPOINT) {
-    throw new Error('HASURA_GRAPHQL_ENDPOINT or HASURA_GRAPHQL_URL environment variable is not set');
-  }
-
-  if (!HASURA_ADMIN_SECRET) {
-    throw new Error('HASURA_GRAPHQL_ADMIN_SECRET or HASURA_ADMIN_SECRET environment variable is not set');
-  }
-
-  const response = await fetch(HASURA_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-hasura-admin-secret': HASURA_ADMIN_SECRET,
-    },
-    body: JSON.stringify({ query, variables }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`GraphQL request failed: ${response.statusText}`);
-  }
-
-  return response.json();
+async function graphqlRequest<T>(
+  query: string,
+  variables: Record<string, unknown> = {},
+) {
+  const data = await adminGraphqlRequest<T>(query, variables);
+  return { data };
 }
 
 export async function POST(request: NextRequest) {

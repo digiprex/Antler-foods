@@ -1,5 +1,5 @@
-import { MyInfoBusinessInformationPage } from '@/components/dashboard/my-info/my-info-pages';
+import { MyInfoBrandPage } from '@/components/dashboard/my-info/my-info-pages';
 
 export default function DashboardRoleMyInfoBusinessInformationPage() {
-  return <MyInfoBusinessInformationPage />;
+  return <MyInfoBrandPage />;
 }

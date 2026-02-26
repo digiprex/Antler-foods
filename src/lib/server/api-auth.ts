@@ -233,12 +233,15 @@ function resolveServerConfig(): ResolveServerConfigResult {
   const graphqlUrl =
     normalizeBackendUrl(process.env.HASURA_API_URL) ||
     normalizeBackendUrl(process.env.HASURA_GRAPHQL_URL) ||
+    normalizeBackendUrl(process.env.HASURA_GRAPHQL_ENDPOINT) ||
     (backendUrl ? `${backendUrl}/v1/graphql` : null) ||
     (subdomain && region
       ? `https://${subdomain}.hasura.${region}.nhost.run/v1/graphql`
       : null);
 
-  const hasuraAdminSecret = normalizeString(process.env.HASURA_ADMIN_SECRET);
+  const hasuraAdminSecret =
+    normalizeString(process.env.HASURA_ADMIN_SECRET) ||
+    normalizeString(process.env.HASURA_GRAPHQL_ADMIN_SECRET);
 
   if (!authUrl) {
     throw new Error('Nhost auth URL is not configured on server.');
@@ -249,7 +252,9 @@ function resolveServerConfig(): ResolveServerConfigResult {
   }
 
   if (!hasuraAdminSecret) {
-    throw new Error('HASURA_ADMIN_SECRET is not configured on server.');
+    throw new Error(
+      'HASURA_ADMIN_SECRET (or HASURA_GRAPHQL_ADMIN_SECRET) is not configured on server.',
+    );
   }
 
   return {

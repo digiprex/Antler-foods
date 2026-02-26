@@ -973,6 +973,7 @@ type GooglePlaceReviewPayload = {
   review_text?: unknown;
   author_url?: unknown;
   review_url?: unknown;
+  avatar_url?: unknown;
   published_at?: unknown;
 };
 
@@ -1046,6 +1047,10 @@ async function syncGoogleReviewsForRestaurant({
       review_url:
         typeof rawReview.review_url === 'string' && rawReview.review_url.trim()
           ? rawReview.review_url.trim()
+          : null,
+      avatar_url:
+        typeof rawReview.avatar_url === 'string' && rawReview.avatar_url.trim()
+          ? rawReview.avatar_url.trim()
           : null,
       published_at:
         typeof rawReview.published_at === 'string' && rawReview.published_at.trim()

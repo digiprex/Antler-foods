@@ -12,12 +12,36 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import type { Form, FormField } from '@/types/forms.types';
+
+// Simple layout component for form preview (no authentication required)
+function PreviewLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-[#f3f5f6]">
+      <div className="bg-white shadow-sm border-b border-[#e5e7eb]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <h1 className="text-lg font-semibold text-[#111827]">Form Preview</h1>
+            </div>
+            <button
+              onClick={() => window.history.back()}
+              className="bg-[#6b7280] text-white px-4 py-2 rounded-lg hover:bg-[#4b5563] transition-colors text-sm"
+            >
+              ← Back
+            </button>
+          </div>
+        </div>
+      </div>
+      <main className="flex-1 p-6 md:p-8">{children}</main>
+    </div>
+  );
+}
 
 export default function FormPreviewPage() {
   const searchParams = useSearchParams();
   const formId = searchParams.get('form_id');
+  const restaurantId = searchParams.get('restaurant_id');
 
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,31 +50,34 @@ export default function FormPreviewPage() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (formId) {
+    if (formId && restaurantId) {
       fetchForm();
     }
-  }, [formId]);
+  }, [formId, restaurantId]);
 
   const fetchForm = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // We need to get the restaurant_id to fetch the form
-      // For now, we'll make a simple request to get all forms and find the one we need
-      // In a real implementation, you might want a separate endpoint for single form fetch
-      const response = await fetch(`/api/forms?form_id=${formId}`);
+      // First get all forms for the restaurant, then find the specific form
+      const response = await fetch(`/api/forms?restaurant_id=${restaurantId}`);
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch form');
+        throw new Error(data.error || 'Failed to fetch forms');
       }
 
-      // This is a simplified approach - in reality you'd want a dedicated endpoint
       if (data.success && data.data) {
-        setForm(data.data);
+        // Find the specific form by ID
+        const targetForm = data.data.find((f: Form) => f.form_id === formId);
+        if (targetForm) {
+          setForm(targetForm);
+        } else {
+          throw new Error('Form not found');
+        }
       } else {
-        throw new Error('Form not found');
+        throw new Error('Failed to fetch forms');
       }
     } catch (err) {
       console.error('Error fetching form:', err);
@@ -230,42 +257,34 @@ export default function FormPreviewPage() {
     }
   };
 
-  if (!formId) {
+  if (!formId || !restaurantId) {
     return (
-      <DashboardLayout>
+      <PreviewLayout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="text-6xl mb-4">📋</div>
             <h2 className="text-xl font-semibold text-[#111827] mb-2">
-              Form ID Required
+              Parameters Required
             </h2>
             <p className="text-[#6b7280] max-w-md">
-              Please provide a form_id parameter to preview the form.
+              Please provide both form_id and restaurant_id parameters to preview the form.
             </p>
           </div>
         </div>
-      </DashboardLayout>
+      </PreviewLayout>
     );
   }
 
   return (
-    <DashboardLayout>
+    <PreviewLayout>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-[#111827]">Form Preview</h1>
-              <p className="text-[#6b7280] mt-1">
-                Preview how your form will appear to users
-              </p>
-            </div>
-            <button
-              onClick={() => window.history.back()}
-              className="bg-[#6b7280] text-white px-4 py-2 rounded-lg hover:bg-[#4b5563] transition-colors"
-            >
-              ← Back
-            </button>
+          <div>
+            <h1 className="text-2xl font-bold text-[#111827]">Form Preview</h1>
+            <p className="text-[#6b7280] mt-1">
+              Preview how your form will appear to users
+            </p>
           </div>
         </div>
 
@@ -359,6 +378,6 @@ export default function FormPreviewPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </PreviewLayout>
   );
 }

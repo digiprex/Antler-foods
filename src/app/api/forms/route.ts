@@ -12,12 +12,48 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import type { Form, FormPayload } from '@/types/forms.types';
 
-// GET - List forms for a restaurant
+// GET - List forms for a restaurant or get a single form by ID
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const restaurantId = searchParams.get('restaurant_id');
+    const formId = searchParams.get('form_id');
 
+    // If form_id is provided, fetch a single form
+    if (formId) {
+      const data = await adminGraphqlRequest(`
+        query GetForm($form_id: uuid!) {
+          forms_by_pk(form_id: $form_id) {
+            form_id
+            created_at
+            updated_at
+            title
+            email
+            fields
+            restaurant_id
+            is_deleted
+          }
+        }
+      `, {
+        form_id: formId
+      });
+
+      const form = (data as any).forms_by_pk;
+      
+      if (!form || form.is_deleted) {
+        return NextResponse.json(
+          { success: false, error: 'Form not found' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: form
+      });
+    }
+
+    // Otherwise, list forms for a restaurant
     if (!restaurantId) {
       return NextResponse.json(
         { success: false, error: 'Restaurant ID is required' },

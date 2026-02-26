@@ -29,6 +29,8 @@ export default function FormsPage() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [previewForm, setPreviewForm] = useState<Form | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // Fetch forms
   useEffect(() => {
@@ -60,6 +62,16 @@ export default function FormsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePreviewForm = (form: Form) => {
+    setPreviewForm(form);
+    setShowPreviewModal(true);
+  };
+
+  const handleClosePreview = () => {
+    setShowPreviewModal(false);
+    setPreviewForm(null);
   };
 
   const handleDeleteForm = async (formId: string) => {
@@ -249,10 +261,7 @@ export default function FormsPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => {
-                                // TODO: Navigate to form preview
-                                window.location.href = `/admin/forms/preview?form_id=${form.form_id}`;
-                              }}
+                              onClick={() => handlePreviewForm(form)}
                               className="text-[#3b82f6] hover:text-[#2563eb] transition-colors"
                               title="Preview Form"
                             >
@@ -286,6 +295,252 @@ export default function FormsPage() {
           </div>
         )}
       </div>
+
+      {/* Preview Modal */}
+      {showPreviewModal && previewForm && (
+        <PreviewModal form={previewForm} onClose={handleClosePreview} />
+      )}
     </DashboardLayout>
+  );
+}
+
+// Preview Modal Component
+function PreviewModal({ form, onClose }: { form: Form; onClose: () => void }) {
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  const handleFieldChange = (fieldId: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [fieldId]: value
+    }));
+
+    if (validationErrors[fieldId]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldId];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    form.fields?.forEach((field) => {
+      const value = formData[field.id];
+
+      if (field.required && (!value || (typeof value === 'string' && !value.trim()))) {
+        errors[field.id] = `${field.label} is required`;
+      }
+
+      if (value && field.type === 'email') {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+          errors[field.id] = 'Please enter a valid email address';
+        }
+      }
+    });
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (validateForm()) {
+      alert('Form validation passed! This is a preview - form data is not actually submitted.');
+      console.log('Form data:', formData);
+    }
+  };
+
+  const renderField = (field: any) => {
+    const value = formData[field.id] || '';
+    const error = validationErrors[field.id];
+
+    const baseInputClasses = `w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] ${
+      error ? 'border-red-500' : 'border-[#d1d5db]'
+    }`;
+
+    switch (field.type) {
+      case 'textarea':
+        return (
+          <textarea
+            value={value}
+            onChange={(e) => handleFieldChange(field.id, e.target.value)}
+            placeholder={field.placeholder}
+            required={field.required}
+            className={baseInputClasses}
+            rows={4}
+          />
+        );
+
+      case 'select':
+        return (
+          <select
+            value={value}
+            onChange={(e) => handleFieldChange(field.id, e.target.value)}
+            required={field.required}
+            className={baseInputClasses}
+          >
+            <option value="">Select an option...</option>
+            {field.options?.map((option: string, index: number) => (
+              <option key={index} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        );
+
+      case 'radio':
+        return (
+          <div className="space-y-2">
+            {field.options?.map((option: string, index: number) => (
+              <label key={index} className="flex items-center">
+                <input
+                  type="radio"
+                  name={field.id}
+                  value={option}
+                  checked={value === option}
+                  onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                  required={field.required}
+                  className="mr-2"
+                />
+                {option}
+              </label>
+            ))}
+          </div>
+        );
+
+      case 'checkbox':
+        return (
+          <div className="space-y-2">
+            {field.options?.map((option: string, index: number) => (
+              <label key={index} className="flex items-center">
+                <input
+                  type="checkbox"
+                  value={option}
+                  checked={Array.isArray(value) ? value.includes(option) : false}
+                  onChange={(e) => {
+                    const currentValues = Array.isArray(value) ? value : [];
+                    const newValues = e.target.checked
+                      ? [...currentValues, option]
+                      : currentValues.filter(v => v !== option);
+                    handleFieldChange(field.id, newValues);
+                  }}
+                  className="mr-2"
+                />
+                {option}
+              </label>
+            ))}
+          </div>
+        );
+
+      default:
+        return (
+          <input
+            type={field.type}
+            value={value}
+            onChange={(e) => handleFieldChange(field.id, e.target.value)}
+            placeholder={field.placeholder}
+            required={field.required}
+            className={baseInputClasses}
+          />
+        );
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div className="sticky top-0 bg-white border-b border-[#e5e7eb] px-6 py-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-[#111827]">
+              {form.title}
+            </h2>
+            <p className="text-sm text-[#6b7280] mt-1">
+              Preview Mode - Submissions will be sent to: {form.email}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-[#6b7280] hover:text-[#374151] transition-colors text-2xl leading-none"
+            title="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="px-6 py-6">
+          {form.fields && form.fields.length > 0 ? (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {form.fields
+                .sort((a, b) => a.order - b.order)
+                .map((field) => (
+                  <div key={field.id}>
+                    <label className="block text-sm font-medium text-[#374151] mb-2">
+                      {field.label}
+                      {field.required && <span className="text-red-500 ml-1">*</span>}
+                    </label>
+
+                    {renderField(field)}
+
+                    {validationErrors[field.id] && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {validationErrors[field.id]}
+                      </p>
+                    )}
+                  </div>
+                ))}
+
+              <div className="pt-4 flex items-center gap-3">
+                <button
+                  type="submit"
+                  className="bg-[#3b82f6] text-white px-6 py-2 rounded-lg hover:bg-[#2563eb] transition-colors"
+                >
+                  Submit Form (Preview)
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="bg-[#6b7280] text-white px-6 py-2 rounded-lg hover:bg-[#4b5563] transition-colors"
+                >
+                  Close Preview
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-4">📝</div>
+              <p className="text-[#6b7280]">
+                This form has no fields yet.
+              </p>
+            </div>
+          )}
+
+          {/* Info Box */}
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <span className="text-blue-500 text-xl mr-3">ℹ️</span>
+              <div>
+                <h3 className="text-blue-800 font-medium text-sm">Preview Mode</h3>
+                <p className="text-blue-600 text-xs mt-1">
+                  This is a preview. Form submissions are not processed. The validation and user experience will work exactly like this when deployed.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -54,9 +54,12 @@ export default function AnnouncementBarSettingsForm() {
   const [text, setText] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [showAddress, setShowAddress] = useState(true);
+  const [showPhone, setShowPhone] = useState(true);
+  const [showEmail, setShowEmail] = useState(true);
   const [socialMediaIcons, setSocialMediaIcons] = useState<SocialMediaIcon[]>([]);
   const [layout, setLayout] = useState<AnnouncementBarConfig['layout']>('text-only');
-  const [position, setPosition] = useState<AnnouncementBarConfig['position']>('top');
   const [bgColor, setBgColor] = useState('#000000');
   const [textColor, setTextColor] = useState('#ffffff');
   const [linkColor, setLinkColor] = useState('#ffffff');
@@ -76,9 +79,12 @@ export default function AnnouncementBarSettingsForm() {
       setText(config.text || '');
       setAddress(config.address || '');
       setPhone(config.phone || '');
+      setEmail(config.email || '');
+      setShowAddress(config.showAddress ?? true);
+      setShowPhone(config.showPhone ?? true);
+      setShowEmail(config.showEmail ?? true);
       setSocialMediaIcons(config.socialMediaIcons || []);
       setLayout(config.layout || 'text-only');
-      setPosition(config.position || 'top');
       setBgColor(config.bgColor || '#000000');
       setTextColor(config.textColor || '#ffffff');
       setLinkColor(config.linkColor || '#ffffff');
@@ -102,9 +108,13 @@ export default function AnnouncementBarSettingsForm() {
         text,
         address,
         phone,
-        socialMediaIcons,
+        email,
+        showAddress,
+        showPhone,
+        showEmail,
+        showSocialMedia: true, // Always enabled when layout includes social media
         layout,
-        position,
+        position: 'top', // Always top position
         bgColor,
         textColor,
         linkColor,
@@ -121,34 +131,14 @@ export default function AnnouncementBarSettingsForm() {
     }
   };
 
-  const addSocialMediaIcon = () => {
-    const newIcon: SocialMediaIcon = {
-      id: Date.now().toString(),
-      platform: 'facebook',
-      url: '',
-      order: socialMediaIcons.length,
-    };
-    setSocialMediaIcons([...socialMediaIcons, newIcon]);
-  };
-
-  const updateSocialMediaIcon = (index: number, field: keyof SocialMediaIcon, value: string) => {
-    const updated = [...socialMediaIcons];
-    updated[index] = { ...updated[index], [field]: value };
-    setSocialMediaIcons(updated);
-  };
-
-  const removeSocialMediaIcon = (index: number) => {
-    const updated = socialMediaIcons.filter((_, i) => i !== index);
-    setSocialMediaIcons(updated);
-  };
 
   // Create preview component
   const AnnouncementBarPreview = () => {
     if (!isEnabled) {
       return (
-        <div style={{ 
-          padding: '1rem', 
-          textAlign: 'center', 
+        <div style={{
+          padding: '1rem',
+          textAlign: 'center',
           color: '#6b7280',
           fontStyle: 'italic',
           background: '#f9fafb',
@@ -160,23 +150,34 @@ export default function AnnouncementBarSettingsForm() {
       );
     }
 
-    const hasContent = text || address || phone || socialMediaIcons.some(icon => icon.url);
-    
-    if (!hasContent) {
+    // Check for content based on visibility settings and layout
+    const hasVisibleContent =
+      (layout === 'text-only' && text) ||
+      (layout === 'full' && text) ||
+      (layout === 'contact-info' && (showAddress && address || showPhone && phone || showEmail && email)) ||
+      (layout === 'social-only' && socialMediaIcons.some(icon => icon.url)) ||
+      (layout === 'contact-social' && (showAddress && address || showPhone && phone || showEmail && email || socialMediaIcons.some(icon => icon.url)));
+
+    if (!hasVisibleContent) {
       return (
-        <div style={{ 
-          padding: '1rem', 
-          textAlign: 'center', 
+        <div style={{
+          padding: '1rem',
+          textAlign: 'center',
           color: '#6b7280',
           fontStyle: 'italic',
           background: '#f9fafb',
           borderRadius: '8px',
           border: '2px dashed #e5e7eb'
         }}>
-          Add content to see preview
+          Enable content options to see preview
         </div>
       );
     }
+
+    // Determine what to show based on layout
+    const showTextInPreview = (layout === 'text-only' || layout === 'full') && text;
+    const showContactInPreview = (layout === 'contact-info' || layout === 'contact-social' || layout === 'full');
+    const showSocialInPreview = (layout === 'social-only' || layout === 'contact-social' || layout === 'full');
 
     return (
       <div style={{
@@ -190,15 +191,16 @@ export default function AnnouncementBarSettingsForm() {
         flexWrap: 'wrap',
         minHeight: '40px',
       }}>
-        {text && <span>{text}</span>}
-        {address && <span>📍 {address}</span>}
-        {phone && <span>📞 {phone}</span>}
-        {socialMediaIcons.filter(icon => icon.url).map((icon, index) => (
+        {showTextInPreview && <span>{text}</span>}
+        {showContactInPreview && showAddress && address && <span>📍 {address}</span>}
+        {showContactInPreview && showPhone && phone && <span>📞 {phone}</span>}
+        {showContactInPreview && showEmail && email && <span>✉️ {email}</span>}
+        {showSocialInPreview && socialMediaIcons.filter(icon => icon.url).map((icon, index) => (
           <a
             key={index}
             href={icon.url}
-            style={{ 
-              color: linkColor, 
+            style={{
+              color: linkColor,
               textDecoration: 'none',
               fontSize: '1.2rem'
             }}
@@ -299,7 +301,7 @@ export default function AnnouncementBarSettingsForm() {
               <div className={styles.formGroup}>
                 <label className={styles.label}>
                   Layout Type
-                  <span className={styles.labelHint}>Choose content layout</span>
+                  <span className={styles.labelHint}>Choose what content to display</span>
                 </label>
                 <select
                   value={layout}
@@ -307,25 +309,10 @@ export default function AnnouncementBarSettingsForm() {
                   className={styles.select}
                 >
                   <option value="text-only">Text Only</option>
-                  <option value="contact-info">Contact Information</option>
+                  <option value="contact-info">Contact Information Only</option>
                   <option value="social-only">Social Media Only</option>
-                  <option value="full">Full (Text + Contact + Social)</option>
-                </select>
-              </div>
-
-              {/* Position */}
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Position
-                  <span className={styles.labelHint}>Where to display the bar</span>
-                </label>
-                <select
-                  value={position}
-                  onChange={(e) => setPosition(e.target.value as any)}
-                  className={styles.select}
-                >
-                  <option value="top">Top of Page</option>
-                  <option value="bottom">Bottom of Page</option>
+                  <option value="contact-social">Contact + Social Media</option>
+                  <option value="full">All (Text + Contact + Social)</option>
                 </select>
               </div>
             </div>
@@ -337,101 +324,188 @@ export default function AnnouncementBarSettingsForm() {
                 Content
               </h3>
 
-              {/* Text Content */}
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Announcement Text
-                  <span className={styles.labelHint}>Main message to display</span>
-                </label>
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  className={styles.textarea}
-                  placeholder="Welcome to our restaurant! Special offers available..."
-                />
-              </div>
-
-              {/* Address */}
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Address
-                  <span className={styles.labelHint}>Restaurant address</span>
-                </label>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className={styles.textInput}
-                  placeholder="123 Main St, City, State 12345"
-                />
-              </div>
-
-              {/* Phone */}
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Phone Number
-                  <span className={styles.labelHint}>Contact phone number</span>
-                </label>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className={styles.textInput}
-                  placeholder="(555) 123-4567"
-                />
-              </div>
-
-              {/* Social Media Icons */}
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Social Media
-                  <span className={styles.labelHint}>Social media links</span>
-                </label>
-                <div className={styles.socialMediaSection}>
-                  <div className={styles.socialMediaList}>
-                    {socialMediaIcons.map((icon, index) => (
-                      <div key={index} className={styles.socialMediaItem}>
-                        <span className={styles.socialMediaIcon}>
-                          {SOCIAL_MEDIA_PLATFORMS[icon.platform]?.icon || '🔗'}
-                        </span>
-                        <select
-                          value={icon.platform}
-                          onChange={(e) => updateSocialMediaIcon(index, 'platform', e.target.value)}
-                          style={{ minWidth: '120px', marginRight: '0.5rem' }}
-                        >
-                          {Object.entries(SOCIAL_MEDIA_PLATFORMS).map(([key, platform]) => (
-                            <option key={key} value={key}>
-                              {platform.name}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          type="url"
-                          value={icon.url}
-                          onChange={(e) => updateSocialMediaIcon(index, 'url', e.target.value)}
-                          className={styles.socialMediaInput}
-                          placeholder={SOCIAL_MEDIA_PLATFORMS[icon.platform]?.placeholder || 'https://...'}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeSocialMediaIcon(index)}
-                          className={styles.removeButton}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addSocialMediaIcon}
-                    className={styles.addSocialButton}
-                  >
-                    <span>➕</span>
-                    Add Social Media Link
-                  </button>
+              {layout === 'contact-social' && (
+                <div style={{
+                  padding: '0.75rem 1rem',
+                  background: '#eff6ff',
+                  borderRadius: '8px',
+                  border: '1px solid #bfdbfe',
+                  color: '#1e40af',
+                  fontSize: '0.875rem',
+                  marginBottom: '1rem'
+                }}>
+                  ℹ️ Contact + Social Media layout selected - Contact details and social icons will be shown
                 </div>
-              </div>
+              )}
+
+              {/* Text Content - Show only for text-only and full layouts */}
+              {(layout === 'text-only' || layout === 'full') && (
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Announcement Text
+                    <span className={styles.labelHint}>Main message to display</span>
+                  </label>
+                  <textarea
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    className={styles.textarea}
+                    placeholder="Welcome to our restaurant! Special offers available..."
+                  />
+                </div>
+              )}
+
+              {/* Contact Information - Show for contact-info, contact-social, and full layouts */}
+              {(layout === 'contact-info' || layout === 'contact-social' || layout === 'full') && (
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Contact Information
+                    <span className={styles.labelHint}>Choose what to display</span>
+                  </label>
+
+                  <div style={{
+                    padding: '1rem',
+                    background: '#f9fafb',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    marginBottom: '1rem'
+                  }}>
+                    <p style={{ margin: 0, marginBottom: '0.75rem', color: '#6b7280', fontSize: '0.875rem' }}>
+                      📞 Contact information is automatically pulled from your restaurant profile.
+                    </p>
+
+                    {/* Contact Display Options */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {/* Show Address */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <label className={styles.toggleSwitch} style={{ margin: 0 }}>
+                          <input
+                            type="checkbox"
+                            checked={showAddress}
+                            onChange={(e) => setShowAddress(e.target.checked)}
+                            className={styles.toggleInput}
+                          />
+                          <span className={styles.toggleSlider}></span>
+                        </label>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: '#111827', fontWeight: '500', fontSize: '0.875rem' }}>
+                            Show Address
+                          </div>
+                          {address && (
+                            <div style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                              📍 {address}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Show Phone */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <label className={styles.toggleSwitch} style={{ margin: 0 }}>
+                          <input
+                            type="checkbox"
+                            checked={showPhone}
+                            onChange={(e) => setShowPhone(e.target.checked)}
+                            className={styles.toggleInput}
+                          />
+                          <span className={styles.toggleSlider}></span>
+                        </label>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: '#111827', fontWeight: '500', fontSize: '0.875rem' }}>
+                            Show Phone
+                          </div>
+                          {phone && (
+                            <div style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                              📞 {phone}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Show Email */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <label className={styles.toggleSwitch} style={{ margin: 0 }}>
+                          <input
+                            type="checkbox"
+                            checked={showEmail}
+                            onChange={(e) => setShowEmail(e.target.checked)}
+                            className={styles.toggleInput}
+                          />
+                          <span className={styles.toggleSlider}></span>
+                        </label>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: '#111827', fontWeight: '500', fontSize: '0.875rem' }}>
+                            Show Email
+                          </div>
+                          {email && (
+                            <div style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                              ✉️ {email}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Social Media Info - Show for social-only, contact-social, and full layouts */}
+              {(layout === 'social-only' || layout === 'contact-social' || layout === 'full') && (
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Social Media Icons
+                    <span className={styles.labelHint}>From restaurant profile</span>
+                  </label>
+
+                  <div style={{
+                    padding: '1rem',
+                    background: '#f9fafb',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <p style={{ margin: 0, marginBottom: socialMediaIcons.length > 0 ? '0.75rem' : '0', color: '#6b7280', fontSize: '0.875rem' }}>
+                      📱 Social media icons are automatically pulled from your restaurant profile and will be displayed based on the selected layout.
+                    </p>
+
+                    {/* Current Social Media Icons */}
+                    {socialMediaIcons.length > 0 ? (
+                      <div style={{
+                        marginTop: '0.75rem',
+                        paddingTop: '0.75rem',
+                        borderTop: '1px solid #e5e7eb',
+                        display: 'flex',
+                        gap: '0.5rem',
+                        flexWrap: 'wrap',
+                        alignItems: 'center'
+                      }}>
+                        <strong style={{ color: '#111827', fontSize: '0.875rem' }}>Available social medias:</strong>
+                        {socialMediaIcons.map((icon, index) => (
+                          <span
+                            key={index}
+                            style={{
+                              fontSize: '1.5rem'
+                            }}
+                            title={SOCIAL_MEDIA_PLATFORMS[icon.platform]?.name}
+                          >
+                            {SOCIAL_MEDIA_PLATFORMS[icon.platform]?.icon || '🔗'}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{
+                        marginTop: '0.75rem',
+                        padding: '0.75rem',
+                        background: '#fef2f2',
+                        borderRadius: '6px',
+                        border: '1px solid #fecaca',
+                        color: '#991b1b',
+                        fontSize: '0.875rem'
+                      }}>
+                        ⚠️ No social media links found. Add them in your restaurant settings to display icons here.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Styling Section */}

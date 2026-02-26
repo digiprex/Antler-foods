@@ -3,7 +3,7 @@
 .announcementBar {
   width: 100%;
   position: relative;
-  z-index: 1000;
+  z-index: 1100; /* Higher than navbar (1000) to ensure it appears on top */
   display: flex;
   align-items: center;
   justify-content: center;

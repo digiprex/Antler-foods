@@ -50,6 +50,14 @@ const GET_ANNOUNCEMENT_BAR_CONFIG = `
     ) {
       name
       restaurant_id
+      address
+      phone_number
+      email
+      fb_link
+      insta_link
+      yt_link
+      tiktok_link
+      gmb_link
     }
   }
 `;
@@ -74,14 +82,14 @@ const MARK_AS_DELETED = `
  * GraphQL mutation to insert new template
  */
 const INSERT_TEMPLATE = `
-  mutation InsertTemplate($restaurant_id: uuid!, $name: String!, $category: String!, $config: jsonb!, $menu_items: jsonb!) {
+  mutation InsertTemplate($restaurant_id: uuid!, $name: String!, $category: String!, $config: jsonb!) {
     insert_templates_one(
       object: {
         restaurant_id: $restaurant_id,
         name: $name,
         category: $category,
         config: $config,
-        menu_items: $menu_items,
+        menu_items: [],
         is_deleted: false
       }
     ) {
@@ -196,6 +204,27 @@ export async function GET(request: Request) {
 
     console.log('[Announcement Bar Config] Template query result:', JSON.stringify(data, null, 2));
 
+    // Get restaurant data for social media links and contact info
+    const restaurant = data.restaurants?.[0];
+    
+    // Build social media icons from restaurant data
+    const socialMediaIcons: AnnouncementBarConfig['socialMediaIcons'] = [];
+    if (restaurant?.fb_link) {
+      socialMediaIcons.push({ platform: 'facebook' as const, url: restaurant.fb_link, order: 0 });
+    }
+    if (restaurant?.insta_link) {
+      socialMediaIcons.push({ platform: 'instagram' as const, url: restaurant.insta_link, order: 1 });
+    }
+    if (restaurant?.yt_link) {
+      socialMediaIcons.push({ platform: 'youtube' as const, url: restaurant.yt_link, order: 2 });
+    }
+    if (restaurant?.tiktok_link) {
+      socialMediaIcons.push({ platform: 'tiktok' as const, url: restaurant.tiktok_link, order: 3 });
+    }
+    if (restaurant?.gmb_link) {
+      socialMediaIcons.push({ platform: 'gmb' as const, url: restaurant.gmb_link, order: 4 });
+    }
+
     if (!data.templates || data.templates.length === 0) {
       // Return default disabled configuration if no template exists
       const response = {
@@ -203,9 +232,14 @@ export async function GET(request: Request) {
         data: {
           isEnabled: false,
           text: '',
-          address: '',
-          phone: '',
-          socialMediaIcons: [],
+          address: restaurant?.address || '',
+          phone: restaurant?.phone_number || '',
+          email: restaurant?.email || '',
+          showAddress: true,
+          showPhone: true,
+          showEmail: true,
+          showSocialMedia: true,
+          socialMediaIcons: socialMediaIcons,
           layout: 'text-only',
           position: 'top',
           bgColor: '#000000',
@@ -228,11 +262,16 @@ export async function GET(request: Request) {
     const config: AnnouncementBarConfig = {
       restaurant_id: restaurantId,
       layout: template.name as any, // name field contains layout type
-      socialMediaIcons: template.menu_items || [],
+      socialMediaIcons: socialMediaIcons, // Get from restaurant data instead of template
       isEnabled: template.config?.isEnabled ?? false,
       text: template.config?.text || '',
-      address: template.config?.address || '',
-      phone: template.config?.phone || '',
+      address: restaurant?.address || '', // Always use restaurant data
+      phone: restaurant?.phone_number || '', // Always use restaurant data
+      email: restaurant?.email || '', // Always use restaurant data
+      showAddress: template.config?.showAddress ?? true,
+      showPhone: template.config?.showPhone ?? true,
+      showEmail: template.config?.showEmail ?? true,
+      showSocialMedia: template.config?.showSocialMedia ?? true,
       position: template.config?.position || 'top',
       bgColor: template.config?.bgColor || '#000000',
       textColor: template.config?.textColor || '#ffffff',
@@ -300,6 +339,10 @@ export async function POST(request: Request) {
       text: body.text,
       address: body.address,
       phone: body.phone,
+      showAddress: body.showAddress,
+      showPhone: body.showPhone,
+      showEmail: body.showEmail,
+      showSocialMedia: body.showSocialMedia,
       position: body.position,
       bgColor: body.bgColor,
       textColor: body.textColor,
@@ -312,13 +355,12 @@ export async function POST(request: Request) {
       scrollSpeed: body.scrollSpeed,
     };
 
-    // Step 3: Insert new template
+    // Step 3: Insert new template (without social media icons)
     const insertedData = await graphqlRequest(INSERT_TEMPLATE, {
       restaurant_id: restaurantId,
       name: name,
       category: 'AnnouncementBar',
       config: config,
-      menu_items: body.socialMediaIcons || [], // Social media icons go to menu_items
     });
 
     if (!insertedData.insert_templates_one) {
@@ -327,15 +369,45 @@ export async function POST(request: Request) {
 
     const template = insertedData.insert_templates_one;
     
+    // Step 4: Get restaurant data for social media icons
+    const restaurantData = await graphqlRequest(GET_ANNOUNCEMENT_BAR_CONFIG, {
+      restaurant_id: restaurantId,
+    });
+    
+    const restaurant = restaurantData.restaurants?.[0];
+    
+    // Build social media icons from restaurant data
+    const socialMediaIcons: AnnouncementBarConfig['socialMediaIcons'] = [];
+    if (restaurant?.fb_link) {
+      socialMediaIcons.push({ platform: 'facebook' as const, url: restaurant.fb_link, order: 0 });
+    }
+    if (restaurant?.insta_link) {
+      socialMediaIcons.push({ platform: 'instagram' as const, url: restaurant.insta_link, order: 1 });
+    }
+    if (restaurant?.yt_link) {
+      socialMediaIcons.push({ platform: 'youtube' as const, url: restaurant.yt_link, order: 2 });
+    }
+    if (restaurant?.tiktok_link) {
+      socialMediaIcons.push({ platform: 'tiktok' as const, url: restaurant.tiktok_link, order: 3 });
+    }
+    if (restaurant?.gmb_link) {
+      socialMediaIcons.push({ platform: 'gmb' as const, url: restaurant.gmb_link, order: 4 });
+    }
+    
     // Transform back to AnnouncementBarConfig
     const responseConfig: AnnouncementBarConfig = {
       restaurant_id: restaurantId,
       layout: template.name,
-      socialMediaIcons: template.menu_items,
+      socialMediaIcons: socialMediaIcons, // Get from restaurant data
       isEnabled: template.config?.isEnabled,
       text: template.config?.text,
-      address: template.config?.address,
-      phone: template.config?.phone,
+      address: restaurant?.address || '', // Always use restaurant data
+      phone: restaurant?.phone_number || '', // Always use restaurant data
+      email: restaurant?.email || '', // Always use restaurant data
+      showAddress: template.config?.showAddress ?? true,
+      showPhone: template.config?.showPhone ?? true,
+      showEmail: template.config?.showEmail ?? true,
+      showSocialMedia: template.config?.showSocialMedia ?? true,
       position: template.config?.position,
       bgColor: template.config?.bgColor,
       textColor: template.config?.textColor,

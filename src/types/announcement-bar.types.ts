@@ -5,7 +5,7 @@
 
 export interface SocialMediaIcon {
   id?: string;
-  platform: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'youtube' | 'tiktok' | 'whatsapp';
+  platform: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'youtube' | 'tiktok' | 'whatsapp' | 'gmb';
   url: string;
   order?: number;
 }
@@ -13,20 +13,27 @@ export interface SocialMediaIcon {
 export interface AnnouncementBarConfig {
   id?: string;
   restaurant_id?: string; // Restaurant ID for database operations
-  
+
   // Visibility
   isEnabled: boolean;
-  
+
   // Content
   text?: string;
   address?: string;
   phone?: string;
-  
+  email?: string;
+
+  // Contact Details Display Options
+  showAddress?: boolean;
+  showPhone?: boolean;
+  showEmail?: boolean;
+
   // Social Media
   socialMediaIcons: SocialMediaIcon[];
-  
+  showSocialMedia?: boolean;
+
   // Layout and styling
-  layout?: 'text-only' | 'contact-info' | 'social-only' | 'full';
+  layout?: 'text-only' | 'contact-info' | 'social-only' | 'contact-social' | 'full';
   position?: 'top' | 'bottom';
   
   // Colors
@@ -68,7 +75,12 @@ export const DEFAULT_ANNOUNCEMENT_BAR_CONFIG: AnnouncementBarConfig = {
   text: 'Welcome to our restaurant!',
   address: '',
   phone: '',
+  email: '',
+  showAddress: true,
+  showPhone: true,
+  showEmail: true,
   socialMediaIcons: [],
+  showSocialMedia: true,
   layout: 'text-only',
   position: 'top',
   bgColor: '#000000',
@@ -127,5 +139,11 @@ export const SOCIAL_MEDIA_PLATFORMS = {
     icon: '💬',
     color: '#25D366',
     placeholder: 'https://wa.me/1234567890'
+  },
+  gmb: {
+    name: 'Google My Business',
+    icon: '🏢',
+    color: '#4285F4',
+    placeholder: 'https://g.page/yourbusiness'
   }
 } as const;

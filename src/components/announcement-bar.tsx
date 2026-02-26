@@ -11,7 +11,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { AnnouncementBarConfig } from '@/types/announcement-bar.types';
 import { SOCIAL_MEDIA_PLATFORMS } from '@/types/announcement-bar.types';
 import styles from './announcement-bar.module.css';
@@ -26,6 +26,7 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
   const [announcementConfig, setAnnouncementConfig] = useState<AnnouncementBarConfig | null>(config || null);
   const [loading, setLoading] = useState(!config);
   const [error, setError] = useState<string | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
 
   // Fetch config if not provided as prop
   useEffect(() => {
@@ -33,6 +34,32 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
       fetchAnnouncementBarConfig();
     }
   }, [config, restaurantId, domain]);
+
+  // Update CSS variable when component renders with data and handle resize
+  useEffect(() => {
+    if (announcementConfig && announcementConfig.isEnabled && !loading && barRef.current) {
+      const updateHeight = () => {
+        if (barRef.current) {
+          const height = barRef.current.offsetHeight;
+          document.documentElement.style.setProperty('--announcement-bar-height', `${height}px`);
+        }
+      };
+
+      // Initial measurement after a short delay
+      const timer = setTimeout(updateHeight, 50);
+
+      // Listen for window resize
+      window.addEventListener('resize', updateHeight);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('resize', updateHeight);
+      };
+    } else {
+      // Reset if bar is not showing
+      document.documentElement.style.setProperty('--announcement-bar-height', '0px');
+    }
+  }, [announcementConfig, loading]);
 
   const fetchAnnouncementBarConfig = async () => {
     try {
@@ -74,31 +101,34 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
     return null;
   }
 
-  // Check if there's any content to display
+  // Check if there's any content to display based on visibility settings
   const hasText = announcementConfig.text?.trim();
-  const hasAddress = announcementConfig.address?.trim();
-  const hasPhone = announcementConfig.phone?.trim();
-  const hasSocialMedia = announcementConfig.socialMediaIcons?.some(icon => icon.url?.trim());
-  
-  const hasContent = hasText || hasAddress || hasPhone || hasSocialMedia;
-  
+  const hasAddress = (announcementConfig.showAddress !== false) && announcementConfig.address?.trim();
+  const hasPhone = (announcementConfig.showPhone !== false) && announcementConfig.phone?.trim();
+  const hasEmail = (announcementConfig.showEmail !== false) && announcementConfig.email?.trim();
+  const hasSocialMedia = (announcementConfig.showSocialMedia !== false) && announcementConfig.socialMediaIcons?.some(icon => icon.url?.trim());
+
+  const hasContent = hasText || hasAddress || hasPhone || hasEmail || hasSocialMedia;
+
   if (!hasContent) {
     return null;
   }
 
   // Determine what content to show based on layout
   const showText = hasText && (
-    announcementConfig.layout === 'text-only' || 
+    announcementConfig.layout === 'text-only' ||
     announcementConfig.layout === 'full'
   );
-  
-  const showContactInfo = (hasAddress || hasPhone) && (
-    announcementConfig.layout === 'contact-info' || 
+
+  const showContactInfo = (hasAddress || hasPhone || hasEmail) && (
+    announcementConfig.layout === 'contact-info' ||
+    announcementConfig.layout === 'contact-social' ||
     announcementConfig.layout === 'full'
   );
-  
+
   const showSocialMedia = hasSocialMedia && (
-    announcementConfig.layout === 'social-only' || 
+    announcementConfig.layout === 'social-only' ||
+    announcementConfig.layout === 'contact-social' ||
     announcementConfig.layout === 'full'
   );
 
@@ -108,8 +138,11 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
     fontSize: announcementConfig.fontSize || '14px',
     fontWeight: announcementConfig.fontWeight || 'normal',
     padding: announcementConfig.padding || '8px 16px',
-    position: 'relative',
-    zIndex: 1000,
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1100, // Higher than navbar to ensure it appears on top
     width: '100%',
     display: 'flex',
     alignItems: 'center',
@@ -126,7 +159,8 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
   };
 
   return (
-    <div 
+    <div
+      ref={barRef}
       className={`${styles.announcementBar} ${styles[announcementConfig.position || 'top']}`}
       style={containerStyle}
     >
@@ -147,13 +181,23 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
             </span>
           )}
           {hasPhone && (
-            <a 
+            <a
               href={`tel:${announcementConfig.phone}`}
               style={linkStyle}
               className={styles.contactItem}
             >
               <span className={styles.contactIcon}>📞</span>
               {announcementConfig.phone}
+            </a>
+          )}
+          {hasEmail && (
+            <a
+              href={`mailto:${announcementConfig.email}`}
+              style={linkStyle}
+              className={styles.contactItem}
+            >
+              <span className={styles.contactIcon}>✉️</span>
+              {announcementConfig.email}
             </a>
           )}
         </div>

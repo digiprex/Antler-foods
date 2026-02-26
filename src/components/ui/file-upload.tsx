@@ -265,7 +265,12 @@ export default function FileUpload({
           <div className={styles.uploadContent}>
             {uploading ? (
               <>
-                <div className={styles.spinner}></div>
+                <div className={styles.spinner} aria-hidden="true">
+                  <span className={styles.spinnerDot}></span>
+                  <span className={styles.spinnerDot}></span>
+                  <span className={styles.spinnerDot}></span>
+                  <span className={styles.spinnerDot}></span>
+                </div>
                 <p className={styles.uploadText}>Uploading...</p>
               </>
             ) : (

@@ -5,9 +5,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-
-const NHOST_STORAGE_URL = process.env.NHOST_STORAGE_URL || 'https://pycfacumenjefxtblime.storage.us-east-1.nhost.run/v1';
-const HASURA_ADMIN_SECRET = process.env.HASURA_ADMIN_SECRET || "i;8zmVF8SvnMiX5gao@F'a6,uJ%WphsD";
+import {
+  resolveHasuraAdminSecret,
+  resolveStorageApiUrl,
+} from '@/lib/server/nhost-config';
 
 /**
  * GET endpoint to proxy images from Nhost storage
@@ -16,6 +17,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const fileId = searchParams.get('fileId');
+    const storageApiUrl = resolveStorageApiUrl();
+    const hasuraAdminSecret = resolveHasuraAdminSecret();
 
     if (!fileId) {
       return NextResponse.json(
@@ -24,10 +27,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (!storageApiUrl || !hasuraAdminSecret) {
+      return NextResponse.json(
+        { error: 'Storage service is not configured on server' },
+        { status: 500 },
+      );
+    }
+
     // Fetch the file from Nhost storage with admin authentication
-    const response = await fetch(`${NHOST_STORAGE_URL}/files/${fileId}`, {
+    const response = await fetch(`${storageApiUrl}/files/${fileId}`, {
       headers: {
-        'x-hasura-admin-secret': HASURA_ADMIN_SECRET,
+        'x-hasura-admin-secret': hasuraAdminSecret,
       },
     });
 

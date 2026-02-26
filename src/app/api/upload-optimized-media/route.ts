@@ -13,10 +13,11 @@ import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
-
-const HASURA_URL = process.env.HASURA_GRAPHQL_URL || 'https://pycfacumenjefxtblime.hasura.us-east-1.nhost.run/v1/graphql';
-const HASURA_ADMIN_SECRET = process.env.HASURA_ADMIN_SECRET || "i;8zmVF8SvnMiX5gao@F'a6,uJ%WphsD";
-const NHOST_STORAGE_URL = process.env.NHOST_STORAGE_URL || 'https://pycfacumenjefxtblime.storage.us-east-1.nhost.run/v1';
+import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import {
+  resolveHasuraAdminSecret,
+  resolveStorageApiUrl,
+} from '@/lib/server/nhost-config';
 
 /**
  * GraphQL mutation to insert media record
@@ -45,30 +46,8 @@ const INSERT_MEDIA = `
 /**
  * Helper function to make GraphQL requests
  */
-async function graphqlRequest(query: string, variables?: any) {
-  const response = await fetch(HASURA_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-hasura-admin-secret': HASURA_ADMIN_SECRET,
-    },
-    body: JSON.stringify({
-      query,
-      variables,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`GraphQL request failed: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-
-  if (data.errors) {
-    throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
-  }
-
-  return data.data;
+async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>) {
+  return adminGraphqlRequest<T>(query, variables);
 }
 
 /**
@@ -178,6 +157,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const restaurantId = formData.get('restaurant_id') as string;
+    const storageApiUrl = resolveStorageApiUrl();
+    const hasuraAdminSecret = resolveHasuraAdminSecret();
 
     if (!file) {
       return NextResponse.json(
@@ -190,6 +171,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'Restaurant ID is required' },
         { status: 400 }
+      );
+    }
+
+    if (!storageApiUrl || !hasuraAdminSecret) {
+      return NextResponse.json(
+        { success: false, error: 'Storage service is not configured on server.' },
+        { status: 500 },
       );
     }
 
@@ -222,10 +210,10 @@ export async function POST(request: NextRequest) {
     optimizedFormData.append('file[]', optimizedBlob, optimizedFile.filename);
     
     // Upload optimized file to Nhost storage
-    const uploadResponse = await fetch(`${NHOST_STORAGE_URL}/files?public=true`, {
+    const uploadResponse = await fetch(`${storageApiUrl}/files?public=true`, {
       method: 'POST',
       headers: {
-        'x-hasura-admin-secret': HASURA_ADMIN_SECRET,
+        'x-hasura-admin-secret': hasuraAdminSecret,
       },
       body: optimizedFormData,
     });
@@ -272,10 +260,10 @@ export async function POST(request: NextRequest) {
     if (!mediaData.insert_medias_one) {
       // If database insert fails, try to delete the uploaded file
       try {
-        await fetch(`${NHOST_STORAGE_URL}/files/${fileMetadata.id}`, {
+        await fetch(`${storageApiUrl}/files/${fileMetadata.id}`, {
           method: 'DELETE',
           headers: {
-            'x-hasura-admin-secret': HASURA_ADMIN_SECRET,
+            'x-hasura-admin-secret': hasuraAdminSecret,
           },
         });
       } catch (deleteError) {

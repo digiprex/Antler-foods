@@ -6,33 +6,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { resolveStorageApiUrl } from '@/lib/server/nhost-config';
 
-const HASURA_ENDPOINT = process.env.HASURA_GRAPHQL_ENDPOINT || process.env.HASURA_GRAPHQL_URL;
-const HASURA_ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET || process.env.HASURA_ADMIN_SECRET;
-
-async function graphqlRequest(query: string, variables: Record<string, any> = {}) {
-  if (!HASURA_ENDPOINT) {
-    throw new Error('HASURA_GRAPHQL_ENDPOINT or HASURA_GRAPHQL_URL environment variable is not set');
-  }
-
-  if (!HASURA_ADMIN_SECRET) {
-    throw new Error('HASURA_GRAPHQL_ADMIN_SECRET or HASURA_ADMIN_SECRET environment variable is not set');
-  }
-
-  const response = await fetch(HASURA_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-hasura-admin-secret': HASURA_ADMIN_SECRET,
-    },
-    body: JSON.stringify({ query, variables }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`GraphQL request failed: ${response.statusText}`);
-  }
-
-  return response.json();
+async function graphqlRequest<T>(
+  query: string,
+  variables: Record<string, unknown> = {},
+) {
+  const data = await adminGraphqlRequest<T>(query, variables);
+  return { data };
 }
 
 export async function GET(request: NextRequest) {
@@ -142,20 +124,9 @@ export async function GET(request: NextRequest) {
       const fileMap = new Map<string, any>(files.map((f: any) => [f.id, f]));
 
       // Combine media and file data
-      let storageUrl = process.env.NEXT_PUBLIC_NHOST_STORAGE_URL;
+      const storageApiUrl = resolveStorageApiUrl();
 
-      // If storage URL not set, try to derive it from Hasura endpoint
-      if (!storageUrl && HASURA_ENDPOINT) {
-        // Convert graphql.region.nhost.run to storage.region.nhost.run
-        const hasuraUrl = new URL(HASURA_ENDPOINT);
-        const hostname = hasuraUrl.hostname;
-        if (hostname.includes('.nhost.run')) {
-          storageUrl = `https://${hostname.replace('graphql', 'storage')}`;
-          console.log('[Media API] Derived storage URL from Hasura endpoint:', storageUrl);
-        }
-      }
-
-      console.log('[Media API] Storage URL:', storageUrl || 'NOT SET');
+      console.log('[Media API] Storage URL:', storageApiUrl || 'NOT SET');
 
       const enrichedMedia = mediaFiles.map((media: any) => {
         const file: any = fileMap.get(media.file_id);
@@ -170,9 +141,9 @@ export async function GET(request: NextRequest) {
           fileUrl = `/api/image-proxy?fileId=${file.id}`;
           
           // Fallback URLs
-          if (storageUrl) {
-            directUrl = `${storageUrl}/v1/files/${file.id}`;
-            urlWithAuth = `${storageUrl}/v1/files/${file.id}?token=${process.env.HASURA_ADMIN_SECRET || ''}`;
+          if (storageApiUrl) {
+            directUrl = `${storageApiUrl}/files/${file.id}`;
+            urlWithAuth = directUrl;
           }
           
           console.log('[Media API] Generated URLs for file:', {

@@ -8,34 +8,18 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import {
+  resolveHasuraAdminSecret,
+  resolveStorageApiUrl,
+} from '@/lib/server/nhost-config';
 
-const HASURA_ENDPOINT = process.env.HASURA_GRAPHQL_ENDPOINT || process.env.HASURA_GRAPHQL_URL;
-const HASURA_ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET || process.env.HASURA_ADMIN_SECRET;
-const NHOST_STORAGE_URL = process.env.NEXT_PUBLIC_NHOST_STORAGE_URL;
-
-async function graphqlRequest(query: string, variables: Record<string, any> = {}) {
-  if (!HASURA_ENDPOINT) {
-    throw new Error('HASURA_GRAPHQL_ENDPOINT or HASURA_GRAPHQL_URL environment variable is not set');
-  }
-
-  if (!HASURA_ADMIN_SECRET) {
-    throw new Error('HASURA_GRAPHQL_ADMIN_SECRET or HASURA_ADMIN_SECRET environment variable is not set');
-  }
-
-  const response = await fetch(HASURA_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-hasura-admin-secret': HASURA_ADMIN_SECRET,
-    },
-    body: JSON.stringify({ query, variables }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`GraphQL request failed: ${response.statusText}`);
-  }
-
-  return response.json();
+async function graphqlRequest<T>(
+  query: string,
+  variables: Record<string, unknown> = {},
+) {
+  const data = await adminGraphqlRequest<T>(query, variables);
+  return { data };
 }
 
 export async function POST(request: NextRequest) {
@@ -44,6 +28,8 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File;
     const restaurantId = formData.get('restaurant_id') as string;
     const type = formData.get('type') as string || 'image';
+    const storageApiUrl = resolveStorageApiUrl();
+    const hasuraAdminSecret = resolveHasuraAdminSecret();
 
     console.log('[Media Upload] Starting upload:', {
       fileName: file?.name,
@@ -75,28 +61,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Derive storage URL if not set
-    let storageUrl = NHOST_STORAGE_URL;
-    if (!storageUrl && HASURA_ENDPOINT) {
-      const hasuraUrl = new URL(HASURA_ENDPOINT);
-      const hostname = hasuraUrl.hostname;
-      if (hostname.includes('.nhost.run')) {
-        // Extract subdomain from graphql URL
-        const subdomain = hostname.split('.')[0];
-        const region = hostname.split('.')[2]; // e.g., 'eu-central-1'
-        storageUrl = `https://${subdomain}.storage.${region}.nhost.run`;
-        console.log('[Media Upload] Derived storage URL:', storageUrl);
-      }
-    }
-
-    console.log('[Media Upload] Using storage URL:', storageUrl);
+    console.log('[Media Upload] Using storage URL:', storageApiUrl);
     console.log('[Media Upload] File details:', {
       name: file.name,
       size: file.size,
       type: file.type,
     });
 
-    if (!storageUrl) {
+    if (!storageApiUrl) {
       console.error('[Media Upload] Storage URL not configured');
       return NextResponse.json(
         {
@@ -107,20 +79,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!hasuraAdminSecret) {
+      console.error('[Media Upload] Hasura admin secret not configured');
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Hasura admin secret not configured. Set HASURA_ADMIN_SECRET or HASURA_GRAPHQL_ADMIN_SECRET.',
+        },
+        { status: 500 },
+      );
+    }
+
     // Upload file to Nhost Storage
     // Nhost expects 'file[]' as the field name for file uploads
     const uploadFormData = new FormData();
     uploadFormData.append('file[]', file);
 
-    const uploadUrl = `${storageUrl}/v1/files`;
+    const uploadUrl = `${storageApiUrl}/files`;
     console.log('[Media Upload] Uploading to:', uploadUrl);
-    console.log('[Media Upload] Using admin secret:', HASURA_ADMIN_SECRET ? 'SET' : 'NOT SET');
+    console.log('[Media Upload] Using admin secret:', hasuraAdminSecret ? 'SET' : 'NOT SET');
     console.log('[Media Upload] Form field name: file[]');
 
     const uploadResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
-        'x-hasura-admin-secret': HASURA_ADMIN_SECRET,
+        'x-hasura-admin-secret': hasuraAdminSecret,
       },
       body: uploadFormData,
     });
@@ -218,7 +202,7 @@ export async function POST(request: NextRequest) {
           name: file.name,
           mimeType: file.type,
           url: `/api/image-proxy?fileId=${fileId}`,
-          directUrl: `${storageUrl}/v1/files/${fileId}`,
+          directUrl: `${storageApiUrl}/files/${fileId}`,
           size: file.size,
         },
       },

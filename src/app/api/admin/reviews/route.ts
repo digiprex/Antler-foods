@@ -1,10 +1,5 @@
 import { NextResponse } from 'next/server';
-
-const HASURA_URL =
-  process.env.HASURA_GRAPHQL_URL ||
-  'https://pycfacumenjefxtblime.hasura.us-east-1.nhost.run/v1/graphql';
-const HASURA_ADMIN_SECRET =
-  process.env.HASURA_ADMIN_SECRET || "i;8zmVF8SvnMiX5gao@F'a6,uJ%WphsD";
+import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
 const GET_RESTAURANT_REVIEWS = `
   query GetRestaurantReviews($restaurant_id: uuid!) {
@@ -140,41 +135,7 @@ interface UpdateReviewResponse {
 }
 
 async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>) {
-  const response = await fetch(HASURA_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-hasura-admin-secret': HASURA_ADMIN_SECRET,
-    },
-    body: JSON.stringify({
-      query,
-      variables,
-    }),
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    throw new Error(`GraphQL request failed: ${response.statusText}`);
-  }
-
-  const payload = (await response.json()) as {
-    data?: T;
-    errors?: Array<{ message?: string }>;
-  };
-
-  if (payload.errors?.length) {
-    const reason = payload.errors
-      .map((entry) => entry.message)
-      .filter(Boolean)
-      .join('; ');
-    throw new Error(reason || 'GraphQL request failed.');
-  }
-
-  if (!payload.data) {
-    throw new Error('No data returned from GraphQL.');
-  }
-
-  return payload.data;
+  return adminGraphqlRequest<T>(query, variables);
 }
 
 function asTrimmedString(value: unknown) {

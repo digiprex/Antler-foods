@@ -43,7 +43,7 @@ export interface RestaurantDraftItem {
   contactName: string;
   phoneNumber: string;
   email: string;
-  legalName: string;
+  smsName: string;
   pocPhoneNumber: string;
   pocEmail: string;
   googlePlaceId: string;
@@ -759,7 +759,7 @@ function parseRestaurantDraft(rows: Array<Record<string, unknown>>, idField: str
     cuisineTypes: normalizeCuisineTypes(firstRow.cuisine_types),
     phoneNumber: normalizeText(firstRow.phone_number, ""),
     email: normalizeText(firstRow.email, ""),
-    legalName: normalizeText(firstRow.sms_name, ""),
+    smsName: normalizeText(firstRow.sms_name, ""),
     pocPhoneNumber: normalizeText(firstRow.poc_phone_number, ""),
     pocEmail: normalizeText(firstRow.poc_email, ""),
     googlePlaceId: normalizeText(firstRow.google_place_id, ""),

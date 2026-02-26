@@ -15,6 +15,7 @@ import DynamicFAQ from '@/components/dynamic-faq';
 import DynamicGallery from '@/components/dynamic-gallery';
 import DynamicReviews from '@/components/dynamic-reviews';
 import DynamicLocation from '@/components/dynamic-location';
+import DynamicScrollingText from '@/components/dynamic-scrolling-text';
 import Popup from '@/components/popup';
 import YouTubeSection from '@/components/youtube-section';
 
@@ -146,6 +147,13 @@ export default function DynamicPage() {
       {/* Dynamic Hero Section */}
       <DynamicHero
         restaurantId={restaurantId}
+        showLoading={true}
+      />
+
+      {/* Dynamic Scrolling Text Section */}
+      <DynamicScrollingText
+        restaurantId={restaurantId}
+        pageId={pageData?.data?.page?.page_id}
         showLoading={true}
       />
 

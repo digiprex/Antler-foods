@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import ConditionalAnnouncementBar from "../components/conditional-announcement-bar";
-import ConditionalScrollingText from "../components/conditional-scrolling-text";
 import ConditionalNavbar from "../components/conditional-navbar";
 import ConditionalFooter from "../components/conditional-footer";
 
@@ -28,7 +27,6 @@ export default function RootLayout({
       <body>
         <Providers>
           <ConditionalAnnouncementBar />
-          <ConditionalScrollingText />
           <ConditionalNavbar />
           {children}
           <ConditionalFooter />

@@ -5,10 +5,12 @@ import { useSearchParams } from 'next/navigation';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import FileUpload from '@/components/ui/file-upload';
 import {
+  getServiceModels,
   getRestaurantDraftById,
   type RestaurantDraftItem,
   updateRestaurant,
 } from '@/lib/graphql/queries';
+import { nhost } from '@/lib/nhost';
 
 type RestaurantScope = {
   id: string;
@@ -22,7 +24,10 @@ type SaveNotice = {
 
 type GalleryItem = {
   id: string;
-  file_id: string;
+  restaurant_id: string;
+  source: string;
+  file_id: string | null;
+  external_id: string | null;
   type: string;
   created_at: string | null;
   url: string;
@@ -36,12 +41,21 @@ interface GalleryApiResponse {
 
 interface DeleteMediaApiResponse {
   success: boolean;
+  action?: string;
   error?: string;
 }
 
-function optionalString(value: string) {
-  const trimmed = value.trim();
-  return trimmed || null;
+type GooglePhotoItem = {
+  photo_id: string;
+  width: number | null;
+  height: number | null;
+  preview_url: string;
+};
+
+interface GooglePhotosApiResponse {
+  success: boolean;
+  data?: GooglePhotoItem[];
+  error?: string;
 }
 
 function useRestaurantScope(): RestaurantScope | null {
@@ -201,12 +215,14 @@ function FormField({
   onChange,
   type = 'text',
   required = false,
+  readOnly = false,
 }: {
   label: string;
   value: string;
   onChange: (nextValue: string) => void;
   type?: 'text' | 'email';
   required?: boolean;
+  readOnly?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-2">
@@ -218,9 +234,53 @@ function FormField({
         type={type}
         value={value}
         required={required}
+        readOnly={readOnly}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-base text-[#111827] outline-none transition focus:border-[#88c39b] focus:ring-2 focus:ring-[#cde9d7]"
+        className={`w-full rounded-xl border border-[#d2dde2] px-4 py-3 text-base outline-none transition ${
+          readOnly
+            ? 'cursor-not-allowed bg-[#f4f7f9] text-[#5f6c78]'
+            : 'bg-white text-[#111827] focus:border-[#88c39b] focus:ring-2 focus:ring-[#cde9d7]'
+        }`}
       />
+    </label>
+  );
+}
+
+function FormSelectField({
+  label,
+  value,
+  onChange,
+  options,
+  disabled = false,
+  required = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (nextValue: string) => void;
+  options: string[];
+  disabled?: boolean;
+  required?: boolean;
+}) {
+  return (
+    <label className="flex flex-col gap-2">
+      <span className="text-sm font-medium text-[#111827]">
+        {required ? '* ' : ''}
+        {label}
+      </span>
+      <select
+        value={value}
+        required={required}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-base text-[#111827] outline-none transition focus:border-[#88c39b] focus:ring-2 focus:ring-[#cde9d7] disabled:cursor-not-allowed disabled:bg-[#f4f7f9] disabled:text-[#5f6c78]"
+      >
+        <option value="">Select service model</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }
@@ -236,6 +296,18 @@ export function MyInfoProfilePage() {
   const [shortName, setShortName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [businessType, setBusinessType] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [country, setCountry] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [serviceModel, setServiceModel] = useState('');
+  const [serviceModelOptions, setServiceModelOptions] = useState<string[]>([]);
+  const [isServiceModelsLoading, setIsServiceModelsLoading] = useState(true);
+  const [cuisineTypes, setCuisineTypes] = useState('');
+  const [googlePlaceId, setGooglePlaceId] = useState('');
+  const [googleBusinessLink, setGoogleBusinessLink] = useState('');
 
   useEffect(() => {
     if (!draft) {
@@ -246,7 +318,50 @@ export function MyInfoProfilePage() {
     setShortName(draft.legalName);
     setPhoneNumber(draft.phoneNumber);
     setEmail(draft.email);
+    setBusinessType(draft.businessType);
+    setAddress(draft.address);
+    setCity(draft.city);
+    setState(draft.state);
+    setCountry(draft.country);
+    setPostalCode(draft.postalCode);
+    setServiceModel(draft.serviceModel);
+    setCuisineTypes(draft.cuisineTypes.join(', '));
+    setGooglePlaceId(draft.googlePlaceId);
+    setGoogleBusinessLink(draft.gmbLink);
   }, [draft]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadServiceModels = async () => {
+      try {
+        setIsServiceModelsLoading(true);
+        const models = await getServiceModels();
+        if (!isActive) {
+          return;
+        }
+
+        const names = models
+          .map((model) => model.name.trim())
+          .filter(Boolean);
+        setServiceModelOptions(Array.from(new Set(names)));
+      } catch {
+        if (isActive) {
+          setServiceModelOptions([]);
+        }
+      } finally {
+        if (isActive) {
+          setIsServiceModelsLoading(false);
+        }
+      }
+    };
+
+    void loadServiceModels();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   if (!restaurant) {
     return <SelectionRequiredCard target="Profile" />;
@@ -265,6 +380,11 @@ export function MyInfoProfilePage() {
       />
     );
   }
+
+  const mergedServiceModelOptions =
+    serviceModel && !serviceModelOptions.includes(serviceModel)
+      ? [serviceModel, ...serviceModelOptions]
+      : serviceModelOptions;
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -286,11 +406,22 @@ export function MyInfoProfilePage() {
         sms_name: shortName.trim(),
         phone_number: phoneNumber.trim(),
         email: email.trim(),
+        business_type: businessType.trim(),
+        address: address.trim(),
+        city: city.trim(),
+        state: state.trim(),
+        country: country.trim(),
+        postal_code: postalCode.trim(),
+        service_model: serviceModel.trim(),
+        cuisine_types: cuisineTypes
+          .split(',')
+          .map((entry) => entry.trim())
+          .filter(Boolean),
       });
 
       setNotice({
         tone: 'success',
-        message: 'Profile details updated.',
+        message: 'Restaurant details updated.',
       });
       await reload();
     } catch (caughtError) {
@@ -333,6 +464,44 @@ export function MyInfoProfilePage() {
           onChange={setPhoneNumber}
         />
         <FormField label="Email" value={email} onChange={setEmail} type="email" />
+        <FormField
+          label="Business type"
+          value={businessType}
+          onChange={setBusinessType}
+        />
+        <FormField label="Address" value={address} onChange={setAddress} />
+        <FormField label="City" value={city} onChange={setCity} />
+        <FormField label="State" value={state} onChange={setState} />
+        <FormField label="Country" value={country} onChange={setCountry} />
+        <FormField
+          label="Postal code"
+          value={postalCode}
+          onChange={setPostalCode}
+        />
+        <FormSelectField
+          label="Service model"
+          value={serviceModel}
+          onChange={setServiceModel}
+          options={mergedServiceModelOptions}
+          disabled={isServiceModelsLoading}
+        />
+        <FormField
+          label="Cuisine types (comma separated)"
+          value={cuisineTypes}
+          onChange={setCuisineTypes}
+        />
+        <FormField
+          label="Google Place ID"
+          value={googlePlaceId}
+          onChange={setGooglePlaceId}
+          readOnly
+        />
+        <FormField
+          label="Google Business Link"
+          value={googleBusinessLink}
+          onChange={setGoogleBusinessLink}
+          readOnly
+        />
         <button
           type="submit"
           disabled={isSaving}
@@ -353,9 +522,6 @@ export function MyInfoBusinessInformationPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState<SaveNotice | null>(null);
   const [businessType, setBusinessType] = useState('');
-  const [contactName, setContactName] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -368,9 +534,6 @@ export function MyInfoBusinessInformationPage() {
     }
 
     setBusinessType(draft.businessType);
-    setContactName(draft.contactName);
-    setContactPhone(draft.pocPhoneNumber || draft.phoneNumber);
-    setContactEmail(draft.pocEmail || draft.email);
     setAddress(draft.address);
     setCity(draft.city);
     setState(draft.state);
@@ -404,9 +567,6 @@ export function MyInfoBusinessInformationPage() {
     try {
       await updateRestaurant(restaurant.id, {
         business_type: businessType.trim(),
-        poc_name: optionalString(contactName),
-        poc_phone_number: optionalString(contactPhone),
-        poc_email: optionalString(contactEmail),
         address: address.trim(),
         city: city.trim(),
         state: state.trim(),
@@ -451,22 +611,6 @@ export function MyInfoBusinessInformationPage() {
           value={businessType}
           onChange={setBusinessType}
         />
-        <FormField
-          label="Contact name"
-          value={contactName}
-          onChange={setContactName}
-        />
-        <FormField
-          label="Contact phone"
-          value={contactPhone}
-          onChange={setContactPhone}
-        />
-        <FormField
-          label="Contact email"
-          value={contactEmail}
-          onChange={setContactEmail}
-          type="email"
-        />
         <FormField label="Address" value={address} onChange={setAddress} />
         <FormField label="City" value={city} onChange={setCity} />
         <FormField label="State" value={state} onChange={setState} />
@@ -489,8 +633,6 @@ export function MyInfoGoogleProfilePage() {
   const { draft, isLoading, loadError, reload } = useRestaurantDraft(
     restaurant?.id ?? null,
   );
-  const [isSaving, setIsSaving] = useState(false);
-  const [notice, setNotice] = useState<SaveNotice | null>(null);
   const [googlePlaceId, setGooglePlaceId] = useState('');
   const [googleBusinessLink, setGoogleBusinessLink] = useState('');
 
@@ -521,67 +663,28 @@ export function MyInfoGoogleProfilePage() {
     );
   }
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setNotice(null);
-    setIsSaving(true);
-
-    try {
-      await updateRestaurant(restaurant.id, {
-        google_place_id: optionalString(googlePlaceId),
-        gmb_link: optionalString(googleBusinessLink),
-      });
-
-      setNotice({
-        tone: 'success',
-        message: 'Google profile updated.',
-      });
-      await reload();
-    } catch (caughtError) {
-      const message =
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'Failed to update Google profile.';
-      setNotice({
-        tone: 'error',
-        message,
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   return (
     <section className="space-y-5">
       <Header
         title="Google profile"
-        subtitle="Connect Google place details for this restaurant."
+        subtitle="Google place details for this restaurant (read-only)."
         restaurantName={restaurant.name}
       />
 
-      <form
-        onSubmit={onSubmit}
-        className="space-y-4 rounded-3xl border border-[#d7e2e6] bg-white p-8"
-      >
-        <FormMessage notice={notice} />
+      <div className="space-y-4 rounded-3xl border border-[#d7e2e6] bg-white p-8">
         <FormField
           label="Google Place ID"
           value={googlePlaceId}
           onChange={setGooglePlaceId}
+          readOnly
         />
         <FormField
           label="Google Business Link"
           value={googleBusinessLink}
           onChange={setGoogleBusinessLink}
+          readOnly
         />
-        <button
-          type="submit"
-          disabled={isSaving}
-          className="inline-flex items-center rounded-xl bg-[#5dc67d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4db46b] disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {isSaving ? 'Saving...' : 'Save google profile'}
-        </button>
-      </form>
+      </div>
     </section>
   );
 }
@@ -589,8 +692,29 @@ export function MyInfoGoogleProfilePage() {
 export function MyInfoGalleryPage() {
   const restaurant = useRestaurantScope();
   const [items, setItems] = useState<GalleryItem[]>([]);
+  const [googlePhotos, setGooglePhotos] = useState<GooglePhotoItem[]>([]);
   const [isLoading, setIsLoading] = useState(Boolean(restaurant));
+  const [isGoogleLoading, setIsGoogleLoading] = useState(Boolean(restaurant));
+  const [importingPhotoId, setImportingPhotoId] = useState<string | null>(null);
   const [notice, setNotice] = useState<SaveNotice | null>(null);
+
+  const fetchWithAuth = useCallback(
+    async (input: RequestInfo | URL, init: RequestInit = {}) => {
+      const accessToken = await nhost.auth.getAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session has expired. Please login again.');
+      }
+
+      const headers = new Headers(init.headers);
+      headers.set('Authorization', `Bearer ${accessToken}`);
+
+      return fetch(input, {
+        ...init,
+        headers,
+      });
+    },
+    [],
+  );
 
   const loadGallery = useCallback(async () => {
     if (!restaurant?.id) {
@@ -603,7 +727,7 @@ export function MyInfoGalleryPage() {
     setNotice(null);
 
     try {
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `/api/admin/restaurant-media?restaurant_id=${encodeURIComponent(
           restaurant.id,
         )}`,
@@ -631,11 +755,50 @@ export function MyInfoGalleryPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [restaurant?.id]);
+  }, [fetchWithAuth, restaurant?.id]);
+
+  const loadGooglePhotos = useCallback(async () => {
+    if (!restaurant?.id) {
+      setGooglePhotos([]);
+      setIsGoogleLoading(false);
+      return;
+    }
+
+    setIsGoogleLoading(true);
+
+    try {
+      const response = await fetchWithAuth(
+        `/api/restaurants/${encodeURIComponent(restaurant.id)}/google-photos`,
+        {
+          cache: 'no-store',
+        },
+      );
+      const payload = (await response.json()) as GooglePhotosApiResponse;
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Failed to load Google place photos.');
+      }
+
+      setGooglePhotos(payload.data || []);
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Failed to load Google place photos.';
+      setNotice({
+        tone: 'error',
+        message,
+      });
+      setGooglePhotos([]);
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }, [fetchWithAuth, restaurant?.id]);
 
   useEffect(() => {
     void loadGallery();
-  }, [loadGallery]);
+    void loadGooglePhotos();
+  }, [loadGallery, loadGooglePhotos]);
 
   if (!restaurant) {
     return <SelectionRequiredCard target="Gallery" />;
@@ -645,7 +808,7 @@ export function MyInfoGalleryPage() {
     setNotice(null);
 
     try {
-      const response = await fetch('/api/admin/restaurant-media', {
+      const response = await fetchWithAuth('/api/admin/restaurant-media', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -663,7 +826,10 @@ export function MyInfoGalleryPage() {
 
       setNotice({
         tone: 'success',
-        message: 'Gallery image removed.',
+        message:
+          payload.action === 'hidden'
+            ? 'Google photo hidden from gallery.'
+            : 'Gallery image removed.',
       });
       await loadGallery();
     } catch (caughtError) {
@@ -678,6 +844,56 @@ export function MyInfoGalleryPage() {
     }
   };
 
+  const onImportGooglePhoto = async (photoId: string) => {
+    if (!restaurant?.id) {
+      return;
+    }
+
+    setImportingPhotoId(photoId);
+    setNotice(null);
+
+    try {
+      const response = await fetchWithAuth(
+        `/api/restaurants/${encodeURIComponent(restaurant.id)}/google-photos/import`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            photoId,
+          }),
+        },
+      );
+
+      const payload = (await response.json()) as {
+        success: boolean;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Failed to import Google photo.');
+      }
+
+      setNotice({
+        tone: 'success',
+        message: 'Google photo imported into gallery.',
+      });
+      await loadGallery();
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Failed to import Google photo.';
+      setNotice({
+        tone: 'error',
+        message,
+      });
+    } finally {
+      setImportingPhotoId(null);
+    }
+  };
+
   const onUpload = async () => {
     setNotice({
       tone: 'success',
@@ -685,6 +901,12 @@ export function MyInfoGalleryPage() {
     });
     await loadGallery();
   };
+
+  const importedGooglePhotoIds = new Set(
+    items
+      .filter((item) => item.source === 'google' && item.external_id)
+      .map((item) => item.external_id as string),
+  );
 
   return (
     <section className="space-y-5">
@@ -703,6 +925,69 @@ export function MyInfoGalleryPage() {
           restaurantId={restaurant.id}
           onUpload={onUpload}
         />
+      </div>
+
+      <div className="space-y-4 rounded-3xl border border-[#d7e2e6] bg-white p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-2xl font-semibold text-[#111827]">Google Place Photos</h2>
+          <button
+            type="button"
+            onClick={() => void loadGooglePhotos()}
+            disabled={isGoogleLoading}
+            className="inline-flex items-center rounded-lg border border-[#d2dde2] px-3 py-2 text-xs font-semibold text-[#1f2937] transition hover:bg-[#f4f7f9] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isGoogleLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+
+        {isGoogleLoading ? (
+          <p className="text-[#5f6c78]">Loading Google photos...</p>
+        ) : googlePhotos.length === 0 ? (
+          <p className="text-[#5f6c78]">No Google photos found for this place.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {googlePhotos.map((photo, index) => {
+              const isImported = importedGooglePhotoIds.has(photo.photo_id);
+              const isImporting = importingPhotoId === photo.photo_id;
+
+              return (
+                <article
+                  key={photo.photo_id}
+                  className="overflow-hidden rounded-2xl border border-[#d7e2e6] bg-[#f8fafb]"
+                >
+                  <div className="relative h-40 w-full">
+                    <Image
+                      src={photo.preview_url}
+                      alt={`Google place photo ${index + 1}`}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="space-y-3 p-3">
+                    <p className="text-xs text-[#60707c]">
+                      {photo.width && photo.height
+                        ? `${photo.width} x ${photo.height}`
+                        : 'Google Place photo'}
+                    </p>
+                    <button
+                      type="button"
+                      disabled={isImported || isImporting}
+                      onClick={() => void onImportGooglePhoto(photo.photo_id)}
+                      className="inline-flex items-center rounded-lg border border-[#88c39b] px-3 py-1.5 text-xs font-semibold text-[#25613d] transition hover:bg-[#ecf8f0] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isImported
+                        ? 'Imported'
+                        : isImporting
+                          ? 'Importing...'
+                          : 'Import to gallery'}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="rounded-3xl border border-[#d7e2e6] bg-white p-8">
@@ -730,10 +1015,13 @@ export function MyInfoGalleryPage() {
                 </div>
                 <div className="space-y-3 p-3">
                   <p className="text-xs text-[#60707c]">
-                    Uploaded{' '}
+                    {item.source === 'google' ? 'Imported' : 'Uploaded'}{' '}
                     {item.created_at
                       ? new Date(item.created_at).toLocaleString()
                       : 'recently'}
+                  </p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96]">
+                    {item.source === 'google' ? 'Google' : 'Manual'}
                   </p>
                   <button
                     type="button"

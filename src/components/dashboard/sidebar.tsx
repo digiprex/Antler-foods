@@ -26,6 +26,7 @@ export function Sidebar({
 }: SidebarProps) {
   const [isMyInfoOpen, setIsMyInfoOpen] = useState(true);
   const isWebsiteTab = activeTab === 'website';
+  const hasRestaurantSelection = Boolean(selectedRestaurant);
   
   // Static grouped menu structure matching requested layout
   const HOME_MENU_ITEMS = [
@@ -34,15 +35,66 @@ export function Sidebar({
     { href: '/restaurants', label: 'Restaurants', icon: <ShopIcon /> },
   ];
 
-  const RESTAURANT_MENU_ITEMS = [
-    { href: '/sales', label: 'Sales', icon: <SalesIcon /> },
-    { href: '/menu', label: 'Manage Menu', icon: <MenuIcon /> },
-    { href: '/information', label: 'Information', icon: <InfoIcon /> },
-    { href: '/reviews', label: 'Reviews', icon: <UsersIcon /> },
-    { href: '/assets', label: 'Assets', icon: <AssetsIcon /> },
-    { href: '/opening-hours', label: 'Opening Hours', icon: <ClockIcon /> },
-    { href: '/locations', label: 'Locations', icon: <LocationIcon /> },
-  ];
+  const RESTAURANT_MENU_ITEMS = selectedRestaurant
+    ? [
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/sales`,
+            selectedRestaurant,
+          ),
+          label: 'Sales',
+          icon: <SalesIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/menu`,
+            selectedRestaurant,
+          ),
+          label: 'Manage Menu',
+          icon: <MenuIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/information`,
+            selectedRestaurant,
+          ),
+          label: 'Information',
+          icon: <InfoIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/reviews`,
+            selectedRestaurant,
+          ),
+          label: 'Reviews',
+          icon: <UsersIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/assets`,
+            selectedRestaurant,
+          ),
+          label: 'Assets',
+          icon: <AssetsIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/opening-hours`,
+            selectedRestaurant,
+          ),
+          label: 'Opening Hours',
+          icon: <ClockIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/locations`,
+            selectedRestaurant,
+          ),
+          label: 'Locations',
+          icon: <LocationIcon />,
+        },
+      ]
+    : [];
 
   const MY_INFO_MENU_ITEMS = selectedRestaurant
     ? [
@@ -84,6 +136,10 @@ export function Sidebar({
   const WEBSITE_MENU_ITEMS = selectedRestaurant
     ? [
         {
+          href: buildRestaurantScopedHref(
+            `${websiteBasePath}/pages-settings`,
+            selectedRestaurant,
+          ),
           href: buildAdminSettingsHref('/admin/pages-settings', selectedRestaurant),
           label: 'Pages',
           icon: <PagesIcon />,
@@ -106,17 +162,44 @@ export function Sidebar({
       ]
     : [];
 
-  const MARKETING_MENU_ITEMS = [
-    { href: '/marketing', label: 'Marketing', icon: <MarketingIcon /> },
-  ];
+  const MARKETING_MENU_ITEMS = selectedRestaurant
+    ? [
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/marketing`,
+            selectedRestaurant,
+          ),
+          label: 'Marketing',
+          icon: <MarketingIcon />,
+        },
+      ]
+    : [];
 
-  const RESERVATION_MENU_ITEMS = [
-    { href: '/reservations', label: 'Reservation', icon: <ReservationIcon /> },
-  ];
+  const RESERVATION_MENU_ITEMS = selectedRestaurant
+    ? [
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/reservations`,
+            selectedRestaurant,
+          ),
+          label: 'Reservation',
+          icon: <ReservationIcon />,
+        },
+      ]
+    : [];
 
-  const CATERING_MENU_ITEMS = [
-    { href: '/catering', label: 'Catering', icon: <CateringIcon /> },
-  ];
+  const CATERING_MENU_ITEMS = selectedRestaurant
+    ? [
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/catering`,
+            selectedRestaurant,
+          ),
+          label: 'Catering',
+          icon: <CateringIcon />,
+        },
+      ]
+    : [];
 
   return (
     <aside
@@ -165,26 +248,28 @@ export function Sidebar({
         </div>
 
         {/* Restaurant Section */}
-        <div>
-          {isOpen && (
-            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Restaurant</p>
-          )}
-          <nav className="space-y-2">
-            {RESTAURANT_MENU_ITEMS.map((item) => (
-              <NavItem
-                key={`${dashboardBasePath}${item.href}`}
-                href={`${dashboardBasePath}${item.href}`}
-                label={item.label}
-                icon={item.icon}
-                active={pathname === `${dashboardBasePath}${item.href}`}
-                collapsed={!isOpen}
-              />
-            ))}
-          </nav>
-        </div>
+        {hasRestaurantSelection ? (
+          <div>
+            {isOpen && (
+              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Restaurant</p>
+            )}
+            <nav className="space-y-2">
+              {RESTAURANT_MENU_ITEMS.map((item) => (
+                <NavItem
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  active={pathname === extractPathFromHref(item.href)}
+                  collapsed={!isOpen}
+                />
+              ))}
+            </nav>
+          </div>
+        ) : null}
 
         {/* My Info Section */}
-        {isOpen ? (
+        {isOpen && hasRestaurantSelection ? (
           <div>
             <button
               type="button"
@@ -230,19 +315,19 @@ export function Sidebar({
         ) : null}
 
         {/* Website Section */}
-        <div>
-          {isOpen && (
-            <p
-              className={`mb-2 text-xs font-medium uppercase tracking-wide ${
-                isWebsiteTab ? 'text-[#5dc67d]' : 'text-[#7c8a96]'
-              }`}
-            >
-              Website
-            </p>
-          )}
-          <nav className="space-y-2">
-            {WEBSITE_MENU_ITEMS.length ? (
-              WEBSITE_MENU_ITEMS.map((item) => (
+        {hasRestaurantSelection ? (
+          <div>
+            {isOpen && (
+              <p
+                className={`mb-2 text-xs font-medium uppercase tracking-wide ${
+                  isWebsiteTab ? 'text-[#5dc67d]' : 'text-[#7c8a96]'
+                }`}
+              >
+                Website
+              </p>
+            )}
+            <nav className="space-y-2">
+              {WEBSITE_MENU_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
                   href={item.href}
@@ -251,69 +336,77 @@ export function Sidebar({
                   active={pathname === extractPathFromHref(item.href)}
                   collapsed={!isOpen}
                 />
-              ))
-            ) : (
-              isOpen ? (
-                <div className="text-sm text-[#60707c]">Select a restaurant to manage website settings.</div>
-              ) : null
-            )}
-          </nav>
-        </div>
+              ))}
+            </nav>
+          </div>
+        ) : null}
 
         {/* Marketing / Reservation / Catering */}
-        <div>
-          {isOpen && (
-            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Marketing</p>
-          )}
-          <nav className="space-y-2">
-            {MARKETING_MENU_ITEMS.map((item) => (
-              <NavItem
-                key={`${dashboardBasePath}${item.href}`}
-                href={`${dashboardBasePath}${item.href}`}
-                label={item.label}
-                icon={item.icon}
-                active={pathname === `${dashboardBasePath}${item.href}`}
-                collapsed={!isOpen}
-              />
-            ))}
-          </nav>
-        </div>
+        {hasRestaurantSelection ? (
+          <div>
+            {isOpen && (
+              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Marketing</p>
+            )}
+            <nav className="space-y-2">
+              {MARKETING_MENU_ITEMS.map((item) => (
+                <NavItem
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  active={pathname === extractPathFromHref(item.href)}
+                  collapsed={!isOpen}
+                />
+              ))}
+            </nav>
+          </div>
+        ) : null}
 
-        <div>
-          {isOpen && (
-            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Reservation</p>
-          )}
-          <nav className="space-y-2">
-            {RESERVATION_MENU_ITEMS.map((item) => (
-              <NavItem
-                key={`${dashboardBasePath}${item.href}`}
-                href={`${dashboardBasePath}${item.href}`}
-                label={item.label}
-                icon={item.icon}
-                active={pathname === `${dashboardBasePath}${item.href}`}
-                collapsed={!isOpen}
-              />
-            ))}
-          </nav>
-        </div>
+        {hasRestaurantSelection ? (
+          <div>
+            {isOpen && (
+              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Reservation</p>
+            )}
+            <nav className="space-y-2">
+              {RESERVATION_MENU_ITEMS.map((item) => (
+                <NavItem
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  active={pathname === extractPathFromHref(item.href)}
+                  collapsed={!isOpen}
+                />
+              ))}
+            </nav>
+          </div>
+        ) : null}
 
-        <div>
-          {isOpen && (
-            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Catering</p>
-          )}
-          <nav className="space-y-2">
-            {CATERING_MENU_ITEMS.map((item) => (
-              <NavItem
-                key={`${dashboardBasePath}${item.href}`}
-                href={`${dashboardBasePath}${item.href}`}
-                label={item.label}
-                icon={item.icon}
-                active={pathname === `${dashboardBasePath}${item.href}`}
-                collapsed={!isOpen}
-              />
-            ))}
-          </nav>
-        </div>
+        {hasRestaurantSelection ? (
+          <div>
+            {isOpen && (
+              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Catering</p>
+            )}
+            <nav className="space-y-2">
+              {CATERING_MENU_ITEMS.map((item) => (
+                <NavItem
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  active={pathname === extractPathFromHref(item.href)}
+                  collapsed={!isOpen}
+                />
+              ))}
+            </nav>
+          </div>
+        ) : null}
+
+        {!hasRestaurantSelection && isOpen ? (
+          <div className="rounded-xl border border-[#d7e2e6] bg-white px-4 py-3 text-sm text-[#60707c]">
+            Select a restaurant from the search bar to manage restaurant settings.
+          </div>
+        ) : null}
       </div>
     </aside>
   );

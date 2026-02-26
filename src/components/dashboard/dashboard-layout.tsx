@@ -75,8 +75,18 @@ function isMyInfoPath(pathname: string) {
   return /^\/dashboard\/(admin|owner|manager)\/my-info(\/|$)/.test(pathname);
 }
 
+function isRestaurantWorkspacePath(pathname: string) {
+  return /^\/dashboard\/(admin|owner|manager)\/(sales|menu|information|reviews|assets|opening-hours|locations|marketing|reservations|catering)(\/|$)/.test(
+    pathname,
+  );
+}
+
 function isRestaurantScopedPath(pathname: string) {
-  return isWebsitePath(pathname) || isMyInfoPath(pathname);
+  return (
+    isWebsitePath(pathname) ||
+    isMyInfoPath(pathname) ||
+    isRestaurantWorkspacePath(pathname)
+  );
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {

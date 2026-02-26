@@ -36,6 +36,7 @@ interface MediaByIdResponseV2 {
     id?: string | null;
     restaurant_id?: string | null;
     source?: string | null;
+    is_hidden?: boolean | null;
   } | null;
 }
 
@@ -58,7 +59,6 @@ const GET_RESTAURANT_MEDIA_V2 = `
       where: {
         restaurant_id: { _eq: $restaurant_id }
         is_deleted: { _eq: false }
-        is_hidden: { _eq: false }
       }
       order_by: { created_at: desc }
     ) {
@@ -98,6 +98,7 @@ const GET_MEDIA_BY_ID_V2 = `
       id
       restaurant_id
       source
+      is_hidden
     }
   }
 `;
@@ -122,11 +123,11 @@ const SOFT_DELETE_MEDIA = `
   }
 `;
 
-const HIDE_MEDIA = `
-  mutation HideMedia($media_id: uuid!) {
+const SET_MEDIA_HIDDEN = `
+  mutation SetMediaHidden($media_id: uuid!, $is_hidden: Boolean!) {
     update_medias_by_pk(
       pk_columns: { id: $media_id }
-      _set: { is_hidden: true }
+      _set: { is_hidden: $is_hidden }
     ) {
       id
     }
@@ -197,11 +198,11 @@ export async function DELETE(request: Request) {
     await requireRestaurantAccess(request, mediaRow.restaurant_id);
 
     const source = normalizeSource(mediaRow.source);
-    const mutation = source === 'google' ? HIDE_MEDIA : SOFT_DELETE_MEDIA;
+    const mutation = source === 'google' ? SET_MEDIA_HIDDEN : SOFT_DELETE_MEDIA;
+    const variables =
+      source === 'google' ? { media_id: mediaId, is_hidden: true } : { media_id: mediaId };
 
-    const data = await adminGraphqlRequest<DeleteMediaResponse>(mutation, {
-      media_id: mediaId,
-    });
+    const data = await adminGraphqlRequest<DeleteMediaResponse>(mutation, variables);
 
     if (!data.update_medias_by_pk?.id) {
       return NextResponse.json(
@@ -238,10 +239,11 @@ export async function PATCH(request: Request) {
       | {
           media_id?: unknown;
           action?: unknown;
+          is_hidden?: unknown;
         }
       | null;
     const mediaId = normalizeString(payload?.media_id);
-    const action = (normalizeString(payload?.action) || 'hide').toLowerCase();
+    const action = (normalizeString(payload?.action) || 'toggle_hidden').toLowerCase();
 
     if (!mediaId) {
       return NextResponse.json(
@@ -250,9 +252,9 @@ export async function PATCH(request: Request) {
       );
     }
 
-    if (action !== 'hide') {
+    if (action !== 'hide' && action !== 'unhide' && action !== 'toggle_hidden') {
       return NextResponse.json(
-        { success: false, error: 'Only hide action is supported.' },
+        { success: false, error: 'Supported actions: hide, unhide, toggle_hidden.' },
         { status: 400 },
       );
     }
@@ -267,8 +269,19 @@ export async function PATCH(request: Request) {
 
     await requireRestaurantAccess(request, mediaRow.restaurant_id);
 
-    const data = await adminGraphqlRequest<DeleteMediaResponse>(HIDE_MEDIA, {
+    const requestedHiddenState =
+      typeof payload?.is_hidden === 'boolean' ? payload.is_hidden : null;
+    const currentHiddenState = Boolean(mediaRow.is_hidden);
+    const nextHiddenState =
+      action === 'hide'
+        ? true
+        : action === 'unhide'
+          ? false
+          : requestedHiddenState ?? !currentHiddenState;
+
+    const data = await adminGraphqlRequest<DeleteMediaResponse>(SET_MEDIA_HIDDEN, {
       media_id: mediaId,
+      is_hidden: nextHiddenState,
     });
 
     if (!data.update_medias_by_pk?.id) {
@@ -280,7 +293,8 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({
       success: true,
-      action: 'hidden',
+      action: nextHiddenState ? 'hidden' : 'unhidden',
+      is_hidden: nextHiddenState,
     });
   } catch (caughtError) {
     if (caughtError instanceof RouteError) {
@@ -368,6 +382,7 @@ async function loadMediaById(mediaId: string) {
     return {
       ...fallback.medias_by_pk,
       source: 'manual',
+      is_hidden: false,
     };
   }
 }
@@ -383,6 +398,7 @@ function normalizeMedia(
   const createdAt = normalizeString(row.created_at);
   const externalId = normalizeString(row.external_id);
   const fileId = normalizeString(row.file_id);
+  const isHidden = Boolean(row.is_hidden);
 
   if (!mediaId || !restaurantId) {
     return null;
@@ -401,6 +417,7 @@ function normalizeMedia(
       external_id: externalId,
       type,
       created_at: createdAt,
+      is_hidden: isHidden,
       url: buildGooglePhotoProxyUrl(restaurantGooglePlaceId, externalId, 1200),
     };
   }
@@ -417,6 +434,7 @@ function normalizeMedia(
     external_id: null,
     type,
     created_at: createdAt,
+    is_hidden: isHidden,
     url: `/api/image-proxy?fileId=${encodeURIComponent(fileId)}`,
   };
 }
@@ -424,7 +442,7 @@ function normalizeMedia(
 function buildGooglePhotoProxyUrl(placeId: string, photoId: string, maxWidth: number) {
   const params = new URLSearchParams();
   params.set('placeId', placeId);
-  params.set('photoId', photoId);
+  params.set('mediaId', photoId);
   params.set('maxWidth', String(maxWidth));
   return `/api/google/photo?${params.toString()}`;
 }

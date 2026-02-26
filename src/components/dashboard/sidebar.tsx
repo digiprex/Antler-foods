@@ -31,7 +31,7 @@ export function Sidebar({
   // Static grouped menu structure matching requested layout
   const HOME_MENU_ITEMS = [
     { href: '/home', label: 'Home', icon: <HomeIcon /> },
-    { href: '/new-restaurant', label: 'New Restaurant', icon: <StoreIcon /> },
+    { href: '/new-restaurant?step=1', label: 'New Restaurant', icon: <StoreIcon /> },
     { href: '/restaurants', label: 'Restaurants', icon: <ShopIcon /> },
   ];
 
@@ -140,17 +140,23 @@ export function Sidebar({
             `${websiteBasePath}/pages-settings`,
             selectedRestaurant,
           ),
+          href: buildAdminSettingsHref('/admin/pages-settings', selectedRestaurant),
           label: 'Pages',
           icon: <PagesIcon />,
         },
         {
-          href: buildRestaurantScopedHref(`${websiteBasePath}/navbar-settings`, selectedRestaurant),
-          label: 'Navbar Settings',
+          href: buildAdminSettingsHref('/admin/navbar-settings', selectedRestaurant),
+          label: 'Navbar',
           icon: <NavbarIcon />,
         },
         {
-          href: buildRestaurantScopedHref(`${websiteBasePath}/footer-settings`, selectedRestaurant),
-          label: 'Footer Settings',
+          href: buildAdminSettingsHref('/admin/popup-settings', selectedRestaurant),
+          label: 'Popup',
+          icon: <span style={{ fontSize: '1.25rem' }}>🔔</span>,
+        },
+        {
+          href: buildAdminSettingsHref('/admin/footer-settings', selectedRestaurant),
+          label: 'Footer',
           icon: <FooterIcon />,
         },
       ]
@@ -406,8 +412,9 @@ export function Sidebar({
   );
 }
 
-function buildRestaurantScopedHref(
-  basePath: string,
+function buildWebsiteSettingsHref(
+  websiteBasePath: string,
+  settingsPath: string,
   selectedRestaurant: RestaurantSearchSelection,
 ) {
   const params = new URLSearchParams({
@@ -415,7 +422,19 @@ function buildRestaurantScopedHref(
     restaurant_name: selectedRestaurant.name,
   });
 
-  return `${basePath}?${params.toString()}`;
+  return `${websiteBasePath}${settingsPath}?${params.toString()}`;
+}
+
+function buildAdminSettingsHref(
+  adminPath: string,
+  selectedRestaurant: RestaurantSearchSelection,
+) {
+  const params = new URLSearchParams({
+    restaurant_id: selectedRestaurant.id,
+    restaurant_name: selectedRestaurant.name,
+  });
+
+  return `${adminPath}?${params.toString()}`;
 }
 
 function extractPathFromHref(href: string) {

@@ -23,6 +23,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import HeroSettingsForm from '@/components/admin/hero-settings-form';
+import styles from '@/components/admin/gallery-settings-form.module.css';
 
 export default function HeroSettingsPage() {
   const router = useRouter();
@@ -42,41 +43,18 @@ export default function HeroSettingsPage() {
   return (
     <DashboardLayout>
       {restaurantId && restaurantName ? (
-        <div>
-          <div style={{ padding: '1.5rem 2rem 0' }}>
-            <button
-              onClick={handleBack}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.75rem 1.25rem',
-                background: 'rgba(255, 255, 255, 0.95)',
-                color: '#1f2937',
-                border: '2px solid #e5e7eb',
-                borderRadius: '8px',
-                fontSize: '0.875rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-                backdropFilter: 'blur(10px)'
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
-                e.currentTarget.style.borderColor = '#667eea';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)';
-                e.currentTarget.style.borderColor = '#e5e7eb';
-              }}
-            >
-              ← Back to Page Settings
-            </button>
+        <div className={styles.container}>
+          <div className={styles.singleLayout}>
+            <div className={styles.formSection}>
+              <button
+                onClick={handleBack}
+                className={`${styles.button} ${styles.secondaryButton} ${styles.backButton}`}
+              >
+                ← Back to Page Settings
+              </button>
+              <HeroSettingsForm pageId={pageId || undefined} />
+            </div>
           </div>
-          <HeroSettingsForm pageId={pageId || undefined} />
         </div>
       ) : (
         <div className="flex items-center justify-center min-h-[400px]">

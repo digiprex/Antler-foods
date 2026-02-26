@@ -12,6 +12,10 @@ import { useParams } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import DynamicHero from '@/components/dynamic-hero';
 import DynamicFAQ from '@/components/dynamic-faq';
+import DynamicGallery from '@/components/dynamic-gallery';
+import DynamicReviews from '@/components/dynamic-reviews';
+import Popup from '@/components/popup';
+import YouTubeSection from '@/components/youtube-section';
 
 export default function DynamicPage() {
   const params = useParams();
@@ -146,6 +150,9 @@ export default function DynamicPage() {
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       {/* Navbar is automatically rendered by ConditionalNavbar in root layout */}
 
+      {/* Universal Popup */}
+      <Popup restaurantId={restaurantId} />
+
       {/* Dynamic Hero Section */}
       <DynamicHero
         restaurantId={restaurantId}
@@ -154,6 +161,21 @@ export default function DynamicPage() {
 
       {/* Dynamic FAQ Section */}
       <DynamicFAQ
+        restaurantId={restaurantId}
+        showLoading={true}
+      />
+
+      {/* Dynamic Gallery Section */}
+      <DynamicGallery
+        restaurantId={restaurantId}
+        showLoading={true}
+      />
+
+      {/* YouTube Section */}
+      <YouTubeSection restaurantId={restaurantId} />
+
+      {/* Dynamic Reviews Section */}
+      <DynamicReviews
         restaurantId={restaurantId}
         showLoading={true}
       />

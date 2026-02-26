@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 interface FormField {
   id: string;
@@ -107,27 +107,39 @@ export default function DynamicForm({
 
     if (!form || !formSettings) return;
 
+    // Use email from form creation (forms table)
+    if (!form.email) {
+      alert('Form email not configured. Please contact administrator.');
+      return;
+    }
+
     try {
       setSubmitting(true);
 
-      // Here you would submit to your forms API endpoint
       const response = await fetch('/api/form-submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           form_id: form.form_id,
+          form_title: form.title,
           restaurant_id: restaurantId,
+          email: form.email,
           data: formData
         })
       });
 
-      if (response.ok) {
+      const result = await response.json();
+
+      if (result.success) {
         setSubmitSuccess(true);
         setFormData({});
         setTimeout(() => setSubmitSuccess(false), 5000);
+      } else {
+        throw new Error(result.error || 'Submission failed');
       }
     } catch (err) {
       console.error('Form submission error:', err);
+      alert('Failed to submit form. Please try again.');
     } finally {
       setSubmitting(false);
     }

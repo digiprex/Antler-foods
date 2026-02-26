@@ -24,9 +24,8 @@ export function Sidebar({
   selectedRestaurant,
   onRestaurantSelect,
 }: SidebarProps) {
-  const [isMyInfoOpen, setIsMyInfoOpen] = useState(true);
+  const isHomeTab = activeTab === 'home';
   const isWebsiteTab = activeTab === 'website';
-  const hasRestaurantSelection = Boolean(selectedRestaurant);
   
   // Static grouped menu structure matching requested layout
   const HOME_MENU_ITEMS = [
@@ -35,111 +34,19 @@ export function Sidebar({
     { href: '/restaurants', label: 'Restaurants', icon: <ShopIcon /> },
   ];
 
-  const RESTAURANT_MENU_ITEMS = selectedRestaurant
-    ? [
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/sales`,
-            selectedRestaurant,
-          ),
-          label: 'Sales',
-          icon: <SalesIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/menu`,
-            selectedRestaurant,
-          ),
-          label: 'Manage Menu',
-          icon: <MenuIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/information`,
-            selectedRestaurant,
-          ),
-          label: 'Information',
-          icon: <InfoIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/reviews`,
-            selectedRestaurant,
-          ),
-          label: 'Reviews',
-          icon: <UsersIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/assets`,
-            selectedRestaurant,
-          ),
-          label: 'Assets',
-          icon: <AssetsIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/opening-hours`,
-            selectedRestaurant,
-          ),
-          label: 'Opening Hours',
-          icon: <ClockIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/locations`,
-            selectedRestaurant,
-          ),
-          label: 'Locations',
-          icon: <LocationIcon />,
-        },
-      ]
-    : [];
-
-  const MY_INFO_MENU_ITEMS = selectedRestaurant
-    ? [
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/my-info/profile`,
-            selectedRestaurant,
-          ),
-          label: 'Profile',
-          icon: <ProfileIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/my-info/gallery`,
-            selectedRestaurant,
-          ),
-          label: 'Gallery',
-          icon: <GalleryIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/my-info/business-information`,
-            selectedRestaurant,
-          ),
-          label: 'Business Information',
-          icon: <BusinessInfoIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/my-info/google-profile`,
-            selectedRestaurant,
-          ),
-          label: 'Google profile',
-          icon: <GoogleProfileIcon />,
-        },
-      ]
-    : [];
+  const RESTAURANT_MENU_ITEMS = [
+    { href: '/sales', label: 'Sales', icon: <SalesIcon /> },
+    { href: '/menu', label: 'Manage Menu', icon: <MenuIcon /> },
+    { href: '/information', label: 'Information', icon: <InfoIcon /> },
+    { href: '/reviews', label: 'Reviews', icon: <UsersIcon /> },
+    { href: '/assets', label: 'Assets', icon: <AssetsIcon /> },
+    { href: '/opening-hours', label: 'Opening Hours', icon: <ClockIcon /> },
+    { href: '/locations', label: 'Locations', icon: <LocationIcon /> },
+  ];
 
   const WEBSITE_MENU_ITEMS = selectedRestaurant
     ? [
         {
-          href: buildRestaurantScopedHref(
-            `${websiteBasePath}/pages-settings`,
-            selectedRestaurant,
-          ),
           href: buildAdminSettingsHref('/admin/pages-settings', selectedRestaurant),
           label: 'Pages',
           icon: <PagesIcon />,
@@ -162,44 +69,17 @@ export function Sidebar({
       ]
     : [];
 
-  const MARKETING_MENU_ITEMS = selectedRestaurant
-    ? [
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/marketing`,
-            selectedRestaurant,
-          ),
-          label: 'Marketing',
-          icon: <MarketingIcon />,
-        },
-      ]
-    : [];
+  const MARKETING_MENU_ITEMS = [
+    { href: '/marketing', label: 'Marketing', icon: <MarketingIcon /> },
+  ];
 
-  const RESERVATION_MENU_ITEMS = selectedRestaurant
-    ? [
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/reservations`,
-            selectedRestaurant,
-          ),
-          label: 'Reservation',
-          icon: <ReservationIcon />,
-        },
-      ]
-    : [];
+  const RESERVATION_MENU_ITEMS = [
+    { href: '/reservations', label: 'Reservation', icon: <ReservationIcon /> },
+  ];
 
-  const CATERING_MENU_ITEMS = selectedRestaurant
-    ? [
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/catering`,
-            selectedRestaurant,
-          ),
-          label: 'Catering',
-          icon: <CateringIcon />,
-        },
-      ]
-    : [];
+  const CATERING_MENU_ITEMS = [
+    { href: '/catering', label: 'Catering', icon: <CateringIcon /> },
+  ];
 
   return (
     <aside
@@ -248,86 +128,32 @@ export function Sidebar({
         </div>
 
         {/* Restaurant Section */}
-        {hasRestaurantSelection ? (
-          <div>
-            {isOpen && (
-              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Restaurant</p>
-            )}
-            <nav className="space-y-2">
-              {RESTAURANT_MENU_ITEMS.map((item) => (
-                <NavItem
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  active={pathname === extractPathFromHref(item.href)}
-                  collapsed={!isOpen}
-                />
-              ))}
-            </nav>
-          </div>
-        ) : null}
-
-        {/* My Info Section */}
-        {isOpen && hasRestaurantSelection ? (
-          <div>
-            <button
-              type="button"
-              onClick={() => setIsMyInfoOpen((previous) => !previous)}
-              className="flex w-full items-center justify-between rounded-xl px-5 py-3 text-left text-[20px] text-[#111827] transition hover:bg-[#f3f6f4]"
-            >
-              <span className="flex items-center gap-3">
-                <span className="text-[#1f2937]">
-                  <ProfileIcon />
-                </span>
-                <span className="leading-tight">My info</span>
-              </span>
-              <span
-                className={`transition-transform ${
-                  isMyInfoOpen ? 'rotate-180' : ''
-                }`}
-              >
-                <ChevronDownSmallIcon />
-              </span>
-            </button>
-
-            {isMyInfoOpen ? (
-              <nav className="mt-1 space-y-2 pl-4">
-                {MY_INFO_MENU_ITEMS.length ? (
-                  MY_INFO_MENU_ITEMS.map((item) => (
-                    <NavItem
-                      key={item.href}
-                      href={item.href}
-                      label={item.label}
-                      icon={item.icon}
-                      active={pathname === extractPathFromHref(item.href)}
-                      collapsed={!isOpen}
-                    />
-                  ))
-                ) : (
-                  <div className="px-5 text-sm text-[#60707c]">
-                    Select a restaurant to manage My info.
-                  </div>
-                )}
-              </nav>
-            ) : null}
-          </div>
-        ) : null}
+        <div>
+          {isOpen && (
+            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Restaurant</p>
+          )}
+          <nav className="space-y-2">
+            {RESTAURANT_MENU_ITEMS.map((item) => (
+              <NavItem
+                key={`${dashboardBasePath}${item.href}`}
+                href={`${dashboardBasePath}${item.href}`}
+                label={item.label}
+                icon={item.icon}
+                active={pathname === `${dashboardBasePath}${item.href}`}
+                collapsed={!isOpen}
+              />
+            ))}
+          </nav>
+        </div>
 
         {/* Website Section */}
-        {hasRestaurantSelection ? (
-          <div>
-            {isOpen && (
-              <p
-                className={`mb-2 text-xs font-medium uppercase tracking-wide ${
-                  isWebsiteTab ? 'text-[#5dc67d]' : 'text-[#7c8a96]'
-                }`}
-              >
-                Website
-              </p>
-            )}
-            <nav className="space-y-2">
-              {WEBSITE_MENU_ITEMS.map((item) => (
+        <div>
+          {isOpen && (
+            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Website</p>
+          )}
+          <nav className="space-y-2">
+            {WEBSITE_MENU_ITEMS.length ? (
+              WEBSITE_MENU_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
                   href={item.href}
@@ -336,77 +162,69 @@ export function Sidebar({
                   active={pathname === extractPathFromHref(item.href)}
                   collapsed={!isOpen}
                 />
-              ))}
-            </nav>
-          </div>
-        ) : null}
+              ))
+            ) : (
+              isOpen ? (
+                <div className="text-sm text-[#60707c]">Select a restaurant to manage website settings.</div>
+              ) : null
+            )}
+          </nav>
+        </div>
 
         {/* Marketing / Reservation / Catering */}
-        {hasRestaurantSelection ? (
-          <div>
-            {isOpen && (
-              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Marketing</p>
-            )}
-            <nav className="space-y-2">
-              {MARKETING_MENU_ITEMS.map((item) => (
-                <NavItem
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  active={pathname === extractPathFromHref(item.href)}
-                  collapsed={!isOpen}
-                />
-              ))}
-            </nav>
-          </div>
-        ) : null}
+        <div>
+          {isOpen && (
+            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Marketing</p>
+          )}
+          <nav className="space-y-2">
+            {MARKETING_MENU_ITEMS.map((item) => (
+              <NavItem
+                key={`${dashboardBasePath}${item.href}`}
+                href={`${dashboardBasePath}${item.href}`}
+                label={item.label}
+                icon={item.icon}
+                active={pathname === `${dashboardBasePath}${item.href}`}
+                collapsed={!isOpen}
+              />
+            ))}
+          </nav>
+        </div>
 
-        {hasRestaurantSelection ? (
-          <div>
-            {isOpen && (
-              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Reservation</p>
-            )}
-            <nav className="space-y-2">
-              {RESERVATION_MENU_ITEMS.map((item) => (
-                <NavItem
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  active={pathname === extractPathFromHref(item.href)}
-                  collapsed={!isOpen}
-                />
-              ))}
-            </nav>
-          </div>
-        ) : null}
+        <div>
+          {isOpen && (
+            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Reservation</p>
+          )}
+          <nav className="space-y-2">
+            {RESERVATION_MENU_ITEMS.map((item) => (
+              <NavItem
+                key={`${dashboardBasePath}${item.href}`}
+                href={`${dashboardBasePath}${item.href}`}
+                label={item.label}
+                icon={item.icon}
+                active={pathname === `${dashboardBasePath}${item.href}`}
+                collapsed={!isOpen}
+              />
+            ))}
+          </nav>
+        </div>
 
-        {hasRestaurantSelection ? (
-          <div>
-            {isOpen && (
-              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Catering</p>
-            )}
-            <nav className="space-y-2">
-              {CATERING_MENU_ITEMS.map((item) => (
-                <NavItem
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  active={pathname === extractPathFromHref(item.href)}
-                  collapsed={!isOpen}
-                />
-              ))}
-            </nav>
-          </div>
-        ) : null}
-
-        {!hasRestaurantSelection && isOpen ? (
-          <div className="rounded-xl border border-[#d7e2e6] bg-white px-4 py-3 text-sm text-[#60707c]">
-            Select a restaurant from the search bar to manage restaurant settings.
-          </div>
-        ) : null}
+        <div>
+          {isOpen && (
+            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-2">Catering</p>
+          )}
+          <nav className="space-y-2">
+            {CATERING_MENU_ITEMS.map((item) => (
+              <NavItem
+                key={`${dashboardBasePath}${item.href}`}
+                href={`${dashboardBasePath}${item.href}`}
+                label={item.label}
+                icon={item.icon}
+                active={pathname === `${dashboardBasePath}${item.href}`}
+                collapsed={!isOpen}
+              />
+            ))}
+          </nav>
+        </div>
       </div>
     </aside>
   );
@@ -439,97 +257,6 @@ function buildAdminSettingsHref(
 
 function extractPathFromHref(href: string) {
   return href.split('?')[0] || href;
-}
-
-function ChevronDownSmallIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
-function ProfileIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-6 w-6"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="7.5" r="3.5" />
-      <path d="M5 20a7 7 0 0 1 14 0" />
-    </svg>
-  );
-}
-
-function GalleryIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-6 w-6"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <circle cx="9" cy="10" r="1.5" />
-      <path d="m21 16-5-5-6 6" />
-    </svg>
-  );
-}
-
-function BusinessInfoIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-6 w-6"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="4" y="3" width="16" height="18" rx="2" />
-      <path d="M8 7h8" />
-      <path d="M8 11h8" />
-      <path d="M8 15h5" />
-    </svg>
-  );
-}
-
-function GoogleProfileIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-6 w-6"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 20a8 8 0 1 1 7.7-10h-7.7v4h4.4a4.5 4.5 0 1 1-4.4-6" />
-    </svg>
-  );
 }
 
 function HomeIcon() {
@@ -625,6 +352,26 @@ function SalesIcon() {
       <path d="M11 20V4" />
       <path d="M17 20v-7" />
       <path d="M3 20h18" />
+    </svg>
+  );
+}
+
+function ReportsIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 3h9l4 4v14H6z" />
+      <path d="M15 3v4h4" />
+      <path d="M9 12h6" />
+      <path d="M9 16h6" />
     </svg>
   );
 }

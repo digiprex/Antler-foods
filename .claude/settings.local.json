@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm uninstall leaflet react-leaflet @types/leaflet)"
+    ]
+  }
+}

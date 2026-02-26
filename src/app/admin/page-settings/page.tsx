@@ -66,6 +66,14 @@ export default function PageSettingsSelector() {
             <div className="text-lg font-semibold">YouTube Settings</div>
             <div className="text-sm text-gray-500 mt-1">Configure YouTube video display and layout for this page</div>
           </button>
+
+          <button
+            className="p-4 bg-white rounded-lg shadow hover:shadow-md text-left"
+            onClick={() => router.push(`/admin/location-settings?${paramsString}`)}
+          >
+            <div className="text-lg font-semibold">Location Settings</div>
+            <div className="text-sm text-gray-500 mt-1">Configure restaurant locations display and layout for this page</div>
+          </button>
         </div>
 
       </div>

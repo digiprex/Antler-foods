@@ -407,6 +407,8 @@ export interface RestaurantReviewUpsertInput {
   review_text?: string | null;
   author_url?: string | null;
   review_url?: string | null;
+  avatar_url?: string | null;
+  avatar_file_id?: string | null;
   published_at?: string | null;
   is_hidden?: boolean;
   created_by_user_id?: string | null;
@@ -1022,6 +1024,8 @@ export async function replaceRestaurantGoogleReviews(
     review_text: normalizeNullableText(review.review_text),
     author_url: normalizeNullableText(review.author_url),
     review_url: normalizeNullableText(review.review_url),
+    avatar_url: normalizeNullableText(review.avatar_url),
+    avatar_file_id: normalizeNullableText(review.avatar_file_id),
     published_at: normalizeNullableText(review.published_at),
     is_hidden: Boolean(review.is_hidden),
     created_by_user_id: normalizeNullableText(review.created_by_user_id),

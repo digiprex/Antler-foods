@@ -12,6 +12,7 @@ type GoogleReviewRecord = {
   authorAttribution?: {
     displayName?: string;
     uri?: string;
+    photoUri?: string;
   };
 };
 
@@ -27,6 +28,7 @@ const GOOGLE_FIELDS_MASK = [
   "reviews.publishTime",
   "reviews.authorAttribution.displayName",
   "reviews.authorAttribution.uri",
+  "reviews.authorAttribution.photoUri",
   "reviews.googleMapsUri",
 ].join(",");
 
@@ -114,6 +116,7 @@ function toNormalizedReview(rawReview: GoogleReviewRecord) {
     review_text: reviewText,
     author_url: normalizeString(rawReview.authorAttribution?.uri),
     review_url: normalizeString(rawReview.googleMapsUri),
+    avatar_url: normalizeString(rawReview.authorAttribution?.photoUri),
     published_at: normalizeIsoString(rawReview.publishTime),
   };
 }
@@ -178,4 +181,3 @@ async function safeParseJson(requestOrResponse: Request | Response) {
     return null;
   }
 }
-

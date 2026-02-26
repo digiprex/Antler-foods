@@ -1,13 +1,81 @@
 import { NextResponse } from 'next/server';
+import {
+  RouteError,
+  adminGraphqlRequest,
+  requireRestaurantAccess,
+  safeParseJson,
+} from '@/lib/server/api-auth';
 
-const HASURA_URL =
-  process.env.HASURA_GRAPHQL_URL ||
-  'https://pycfacumenjefxtblime.hasura.us-east-1.nhost.run/v1/graphql';
-const HASURA_ADMIN_SECRET =
-  process.env.HASURA_ADMIN_SECRET || "i;8zmVF8SvnMiX5gao@F'a6,uJ%WphsD";
+type MediaRow = {
+  id?: string | null;
+  restaurant_id?: string | null;
+  file_id?: string | null;
+  type?: string | null;
+  created_at?: string | null;
+  source?: string | null;
+  external_id?: string | null;
+  is_hidden?: boolean | null;
+};
 
-const GET_RESTAURANT_MEDIA = `
-  query GetRestaurantMedia($restaurant_id: uuid!) {
+interface GetRestaurantMediaResponseV2 {
+  medias?: MediaRow[];
+}
+
+interface GetRestaurantMediaResponseV1 {
+  medias?: Array<{
+    id?: string | null;
+    restaurant_id?: string | null;
+    file_id?: string | null;
+    type?: string | null;
+    created_at?: string | null;
+  }>;
+}
+
+interface MediaByIdResponseV2 {
+  medias_by_pk?: {
+    id?: string | null;
+    restaurant_id?: string | null;
+    source?: string | null;
+  } | null;
+}
+
+interface MediaByIdResponseV1 {
+  medias_by_pk?: {
+    id?: string | null;
+    restaurant_id?: string | null;
+  } | null;
+}
+
+interface DeleteMediaResponse {
+  update_medias_by_pk?: {
+    id?: string | null;
+  } | null;
+}
+
+const GET_RESTAURANT_MEDIA_V2 = `
+  query GetRestaurantMediaV2($restaurant_id: uuid!) {
+    medias(
+      where: {
+        restaurant_id: { _eq: $restaurant_id }
+        is_deleted: { _eq: false }
+        is_hidden: { _eq: false }
+      }
+      order_by: { created_at: desc }
+    ) {
+      id
+      restaurant_id
+      file_id
+      type
+      created_at
+      source
+      external_id
+      is_hidden
+    }
+  }
+`;
+
+const GET_RESTAURANT_MEDIA_V1 = `
+  query GetRestaurantMediaV1($restaurant_id: uuid!) {
     medias(
       where: {
         restaurant_id: { _eq: $restaurant_id }
@@ -16,9 +84,29 @@ const GET_RESTAURANT_MEDIA = `
       order_by: { created_at: desc }
     ) {
       id
+      restaurant_id
       file_id
       type
       created_at
+    }
+  }
+`;
+
+const GET_MEDIA_BY_ID_V2 = `
+  query GetMediaByIdV2($media_id: uuid!) {
+    medias_by_pk(id: $media_id) {
+      id
+      restaurant_id
+      source
+    }
+  }
+`;
+
+const GET_MEDIA_BY_ID_V1 = `
+  query GetMediaByIdV1($media_id: uuid!) {
+    medias_by_pk(id: $media_id) {
+      id
+      restaurant_id
     }
   }
 `;
@@ -34,60 +122,16 @@ const SOFT_DELETE_MEDIA = `
   }
 `;
 
-interface MediaRow {
-  id?: string | null;
-  file_id?: string | null;
-  type?: string | null;
-  created_at?: string | null;
-}
-
-interface GetRestaurantMediaResponse {
-  medias?: MediaRow[];
-}
-
-interface DeleteMediaResponse {
-  update_medias_by_pk?: {
-    id?: string | null;
-  } | null;
-}
-
-async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>) {
-  const response = await fetch(HASURA_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-hasura-admin-secret': HASURA_ADMIN_SECRET,
-    },
-    body: JSON.stringify({
-      query,
-      variables,
-    }),
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    throw new Error(`GraphQL request failed: ${response.statusText}`);
+const HIDE_MEDIA = `
+  mutation HideMedia($media_id: uuid!) {
+    update_medias_by_pk(
+      pk_columns: { id: $media_id }
+      _set: { is_hidden: true }
+    ) {
+      id
+    }
   }
-
-  const payload = (await response.json()) as {
-    data?: T;
-    errors?: Array<{ message?: string }>;
-  };
-
-  if (payload.errors?.length) {
-    const reason = payload.errors
-      .map((entry) => entry.message)
-      .filter(Boolean)
-      .join('; ');
-    throw new Error(reason || 'GraphQL request failed.');
-  }
-
-  if (!payload.data) {
-    throw new Error('No data returned from GraphQL.');
-  }
-
-  return payload.data;
-}
+`;
 
 export async function GET(request: Request) {
   try {
@@ -101,34 +145,11 @@ export async function GET(request: Request) {
       );
     }
 
-    const data = await graphqlRequest<GetRestaurantMediaResponse>(
-      GET_RESTAURANT_MEDIA,
-      {
-        restaurant_id: restaurantId,
-      },
-    );
+    const { restaurant } = await requireRestaurantAccess(request, restaurantId);
 
-    const rows = Array.isArray(data.medias) ? data.medias : [];
+    const rows = await loadMediaRows(restaurantId);
     const normalized = rows
-      .map((row) => {
-        const mediaId = typeof row.id === 'string' ? row.id.trim() : '';
-        const fileId = typeof row.file_id === 'string' ? row.file_id.trim() : '';
-        const mediaType = typeof row.type === 'string' ? row.type : '';
-        const createdAt =
-          typeof row.created_at === 'string' ? row.created_at : null;
-
-        if (!mediaId || !fileId) {
-          return null;
-        }
-
-        return {
-          id: mediaId,
-          file_id: fileId,
-          type: mediaType,
-          created_at: createdAt,
-          url: `/api/image-proxy?fileId=${encodeURIComponent(fileId)}`,
-        };
-      })
+      .map((row) => normalizeMedia(row, restaurant.googlePlaceId))
       .filter((row): row is NonNullable<typeof row> => Boolean(row));
 
     return NextResponse.json({
@@ -136,6 +157,13 @@ export async function GET(request: Request) {
       data: normalized,
     });
   } catch (caughtError) {
+    if (caughtError instanceof RouteError) {
+      return NextResponse.json(
+        { success: false, error: caughtError.message },
+        { status: caughtError.status },
+      );
+    }
+
     return NextResponse.json(
       {
         success: false,
@@ -148,9 +176,8 @@ export async function GET(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const payload = (await request.json()) as { media_id?: unknown };
-    const mediaId =
-      typeof payload.media_id === 'string' ? payload.media_id.trim() : '';
+    const payload = (await safeParseJson(request)) as { media_id?: unknown } | null;
+    const mediaId = normalizeString(payload?.media_id);
 
     if (!mediaId) {
       return NextResponse.json(
@@ -159,7 +186,20 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const data = await graphqlRequest<DeleteMediaResponse>(SOFT_DELETE_MEDIA, {
+    const mediaRow = await loadMediaById(mediaId);
+    if (!mediaRow?.id || !mediaRow.restaurant_id) {
+      return NextResponse.json(
+        { success: false, error: 'Media not found.' },
+        { status: 404 },
+      );
+    }
+
+    await requireRestaurantAccess(request, mediaRow.restaurant_id);
+
+    const source = normalizeSource(mediaRow.source);
+    const mutation = source === 'google' ? HIDE_MEDIA : SOFT_DELETE_MEDIA;
+
+    const data = await adminGraphqlRequest<DeleteMediaResponse>(mutation, {
       media_id: mediaId,
     });
 
@@ -170,8 +210,18 @@ export async function DELETE(request: Request) {
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      action: source === 'google' ? 'hidden' : 'deleted',
+    });
   } catch (caughtError) {
+    if (caughtError instanceof RouteError) {
+      return NextResponse.json(
+        { success: false, error: caughtError.message },
+        { status: caughtError.status },
+      );
+    }
+
     return NextResponse.json(
       {
         success: false,
@@ -180,4 +230,142 @@ export async function DELETE(request: Request) {
       { status: 500 },
     );
   }
+}
+
+async function loadMediaRows(restaurantId: string) {
+  try {
+    const data = await adminGraphqlRequest<GetRestaurantMediaResponseV2>(
+      GET_RESTAURANT_MEDIA_V2,
+      {
+        restaurant_id: restaurantId,
+      },
+    );
+
+    return Array.isArray(data.medias) ? data.medias : [];
+  } catch (caughtError) {
+    const message = caughtError instanceof Error ? caughtError.message : String(caughtError);
+    if (!isSchemaColumnError(message)) {
+      throw caughtError;
+    }
+
+    const fallback = await adminGraphqlRequest<GetRestaurantMediaResponseV1>(
+      GET_RESTAURANT_MEDIA_V1,
+      {
+        restaurant_id: restaurantId,
+      },
+    );
+
+    const rows = Array.isArray(fallback.medias) ? fallback.medias : [];
+    return rows.map((row) => ({
+      ...row,
+      source: 'manual',
+      external_id: null,
+      is_hidden: false,
+    }));
+  }
+}
+
+async function loadMediaById(mediaId: string) {
+  try {
+    const data = await adminGraphqlRequest<MediaByIdResponseV2>(GET_MEDIA_BY_ID_V2, {
+      media_id: mediaId,
+    });
+
+    return data.medias_by_pk || null;
+  } catch (caughtError) {
+    const message = caughtError instanceof Error ? caughtError.message : String(caughtError);
+    if (!isSchemaColumnError(message)) {
+      throw caughtError;
+    }
+
+    const fallback = await adminGraphqlRequest<MediaByIdResponseV1>(GET_MEDIA_BY_ID_V1, {
+      media_id: mediaId,
+    });
+
+    if (!fallback.medias_by_pk) {
+      return null;
+    }
+
+    return {
+      ...fallback.medias_by_pk,
+      source: 'manual',
+    };
+  }
+}
+
+function normalizeMedia(
+  row: MediaRow,
+  restaurantGooglePlaceId: string | null,
+) {
+  const mediaId = normalizeString(row.id);
+  const restaurantId = normalizeString(row.restaurant_id);
+  const source = normalizeSource(row.source);
+  const type = normalizeString(row.type) || '';
+  const createdAt = normalizeString(row.created_at);
+  const externalId = normalizeString(row.external_id);
+  const fileId = normalizeString(row.file_id);
+
+  if (!mediaId || !restaurantId) {
+    return null;
+  }
+
+  if (source === 'google') {
+    if (!externalId || !restaurantGooglePlaceId) {
+      return null;
+    }
+
+    return {
+      id: mediaId,
+      restaurant_id: restaurantId,
+      source,
+      file_id: null,
+      external_id: externalId,
+      type,
+      created_at: createdAt,
+      url: buildGooglePhotoProxyUrl(restaurantGooglePlaceId, externalId, 1200),
+    };
+  }
+
+  if (!fileId) {
+    return null;
+  }
+
+  return {
+    id: mediaId,
+    restaurant_id: restaurantId,
+    source: 'manual',
+    file_id: fileId,
+    external_id: null,
+    type,
+    created_at: createdAt,
+    url: `/api/image-proxy?fileId=${encodeURIComponent(fileId)}`,
+  };
+}
+
+function buildGooglePhotoProxyUrl(placeId: string, photoId: string, maxWidth: number) {
+  const params = new URLSearchParams();
+  params.set('placeId', placeId);
+  params.set('photoId', photoId);
+  params.set('maxWidth', String(maxWidth));
+  return `/api/google/photo?${params.toString()}`;
+}
+
+function normalizeSource(value: unknown) {
+  const normalized = normalizeString(value)?.toLowerCase();
+  return normalized === 'google' ? 'google' : 'manual';
+}
+
+function normalizeString(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function isSchemaColumnError(message: string) {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('field "source"') ||
+    normalized.includes('field "is_hidden"') ||
+    normalized.includes('column "source"') ||
+    normalized.includes('column "is_hidden"') ||
+    normalized.includes('external_id')
+  );
 }

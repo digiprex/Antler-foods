@@ -232,6 +232,85 @@ export async function DELETE(request: Request) {
   }
 }
 
+export async function PATCH(request: Request) {
+  try {
+    const payload = (await safeParseJson(request)) as
+      | {
+          media_id?: unknown;
+          action?: unknown;
+        }
+      | null;
+    const mediaId = normalizeString(payload?.media_id);
+    const action = (normalizeString(payload?.action) || 'hide').toLowerCase();
+
+    if (!mediaId) {
+      return NextResponse.json(
+        { success: false, error: 'media_id required' },
+        { status: 400 },
+      );
+    }
+
+    if (action !== 'hide') {
+      return NextResponse.json(
+        { success: false, error: 'Only hide action is supported.' },
+        { status: 400 },
+      );
+    }
+
+    const mediaRow = await loadMediaById(mediaId);
+    if (!mediaRow?.id || !mediaRow.restaurant_id) {
+      return NextResponse.json(
+        { success: false, error: 'Media not found.' },
+        { status: 404 },
+      );
+    }
+
+    await requireRestaurantAccess(request, mediaRow.restaurant_id);
+
+    const data = await adminGraphqlRequest<DeleteMediaResponse>(HIDE_MEDIA, {
+      media_id: mediaId,
+    });
+
+    if (!data.update_medias_by_pk?.id) {
+      return NextResponse.json(
+        { success: false, error: 'Media not found.' },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      action: 'hidden',
+    });
+  } catch (caughtError) {
+    if (caughtError instanceof RouteError) {
+      return NextResponse.json(
+        { success: false, error: caughtError.message },
+        { status: caughtError.status },
+      );
+    }
+
+    const message = caughtError instanceof Error ? caughtError.message : String(caughtError);
+    if (isSchemaColumnError(message)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Hide action is not supported by the current media schema.',
+        },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: message,
+      },
+      { status: 500 },
+    );
+  }
+}
+
 async function loadMediaRows(restaurantId: string) {
   try {
     const data = await adminGraphqlRequest<GetRestaurantMediaResponseV2>(

@@ -11,10 +11,20 @@ type GooglePlacePhoto = {
   heightPx?: unknown;
 };
 
-type GooglePlacePhotosResponse = {
-  photos?: unknown;
+type GooglePlaceVideo = {
+  name?: unknown;
+  widthPx?: unknown;
+  heightPx?: unknown;
 };
 
+type GooglePlacePhotosResponse = {
+  photos?: unknown;
+  videos?: unknown;
+  error?: unknown;
+};
+
+const GOOGLE_MEDIA_FIELDS_MASK =
+  'photos.name,photos.widthPx,photos.heightPx,videos.name,videos.widthPx,videos.heightPx';
 const GOOGLE_PHOTO_FIELDS_MASK = 'photos.name,photos.widthPx,photos.heightPx';
 
 export async function GET(
@@ -47,20 +57,21 @@ export async function GET(
     }
 
     const normalizedPlaceId = normalizePlaceId(restaurant.googlePlaceId);
+    if (!normalizedPlaceId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Stored Google Place ID is invalid. Update Google profile settings.',
+        },
+        { status: 400 },
+      );
+    }
     const endpoint = `https://places.googleapis.com/v1/places/${encodeURIComponent(
       normalizedPlaceId,
     )}`;
 
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': GOOGLE_PHOTO_FIELDS_MASK,
-      },
-      cache: 'no-store',
-    });
+    const { response, payload } = await fetchGooglePlaceMedia(endpoint, apiKey);
 
-    const payload = (await safeParseJson(response)) as GooglePlacePhotosResponse | null;
     if (!response.ok) {
       const message = extractGoogleErrorMessage(payload);
       return NextResponse.json(
@@ -74,9 +85,15 @@ export async function GET(
     }
 
     const photos = Array.isArray(payload?.photos) ? payload?.photos : [];
-    const normalized = photos
-      .map((photo) => toPhotoItem(photo, normalizedPlaceId))
-      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+    const videos = Array.isArray(payload?.videos) ? payload?.videos : [];
+    const normalized = [
+      ...photos
+        .map((photo) => toMediaItem(photo, normalizedPlaceId, 'photo'))
+        .filter((item): item is NonNullable<typeof item> => Boolean(item)),
+      ...videos
+        .map((video) => toMediaItem(video, normalizedPlaceId, 'video'))
+        .filter((item): item is NonNullable<typeof item> => Boolean(item)),
+    ];
 
     return NextResponse.json({
       success: true,
@@ -96,38 +113,101 @@ export async function GET(
         error:
           caughtError instanceof Error
             ? caughtError.message
-            : 'Failed to load Google place photos.',
+            : 'Failed to load Google place media.',
       },
       { status: 500 },
     );
   }
 }
 
-function toPhotoItem(rawPhoto: unknown, placeId: string) {
-  const photo = (rawPhoto || {}) as GooglePlacePhoto;
-  const photoId = normalizeString(photo.name);
-  if (!photoId) {
+function toMediaItem(
+  rawMedia: unknown,
+  placeId: string,
+  kind: 'photo' | 'video',
+) {
+  const media = (rawMedia || {}) as GooglePlacePhoto | GooglePlaceVideo;
+  const mediaId = normalizeString(media.name);
+  if (!mediaId) {
     return null;
   }
 
   return {
-    photo_id: photoId,
-    width: normalizePositiveInt(photo.widthPx),
-    height: normalizePositiveInt(photo.heightPx),
-    preview_url: buildGooglePhotoProxyUrl(placeId, photoId, 640),
+    media_id: mediaId,
+    kind,
+    width: normalizePositiveInt(media.widthPx),
+    height: normalizePositiveInt(media.heightPx),
+    preview_url: buildGoogleMediaProxyUrl(placeId, mediaId, 640),
   };
 }
 
-function buildGooglePhotoProxyUrl(placeId: string, photoId: string, maxWidth: number) {
+function buildGoogleMediaProxyUrl(placeId: string, mediaId: string, maxWidth: number) {
   const params = new URLSearchParams();
   params.set('placeId', placeId);
-  params.set('photoId', photoId);
+  params.set('mediaId', mediaId);
   params.set('maxWidth', String(maxWidth));
   return `/api/google/photo?${params.toString()}`;
 }
 
+async function fetchGooglePlaceMedia(endpoint: string, apiKey: string) {
+  const mediaResponse = await fetch(endpoint, {
+    method: 'GET',
+    headers: {
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': GOOGLE_MEDIA_FIELDS_MASK,
+    },
+    cache: 'no-store',
+  });
+
+  const mediaPayload = (await safeParseJson(mediaResponse)) as GooglePlacePhotosResponse | null;
+  const shouldRetryWithPhotosOnly =
+    mediaResponse.status === 400 || isFieldMaskError(mediaPayload);
+
+  if (mediaResponse.ok || !shouldRetryWithPhotosOnly) {
+    return { response: mediaResponse, payload: mediaPayload };
+  }
+
+  const photoOnlyResponse = await fetch(endpoint, {
+    method: 'GET',
+    headers: {
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': GOOGLE_PHOTO_FIELDS_MASK,
+    },
+    cache: 'no-store',
+  });
+  const photoOnlyPayload = (await safeParseJson(photoOnlyResponse)) as
+    | GooglePlacePhotosResponse
+    | null;
+  return { response: photoOnlyResponse, payload: photoOnlyPayload };
+}
+
 function normalizePlaceId(value: string) {
-  return value.replace(/^places\//i, '').trim();
+  const direct = extractPlaceIdCandidate(value);
+  if (direct) {
+    return direct;
+  }
+
+  try {
+    const parsedUrl = new URL(value);
+    const queryCandidates = [
+      parsedUrl.searchParams.get('q'),
+      parsedUrl.searchParams.get('query'),
+      parsedUrl.searchParams.get('place_id'),
+      parsedUrl.searchParams.get('placeid'),
+    ]
+      .map((entry) => normalizeString(entry))
+      .filter((entry): entry is string => Boolean(entry));
+
+    for (const candidate of queryCandidates) {
+      const extracted = extractPlaceIdCandidate(candidate);
+      if (extracted) {
+        return extracted;
+      }
+    }
+  } catch {
+    // Not a URL, direct parsing above already attempted.
+  }
+
+  return '';
 }
 
 function normalizeString(value: unknown) {
@@ -166,4 +246,61 @@ function extractGoogleErrorMessage(payload: GooglePlacePhotosResponse | null) {
 
   const errorRecord = errorValue as Record<string, unknown>;
   return normalizeString(errorRecord.message) || normalizeString(errorRecord.status);
+}
+
+function isFieldMaskError(payload: GooglePlacePhotosResponse | null) {
+  const message = extractGoogleErrorMessage(payload);
+  if (!message) {
+    return false;
+  }
+
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('fieldmask') ||
+    normalized.includes('field mask') ||
+    normalized.includes('invalid field') ||
+    normalized.includes('cannot find field')
+  );
+}
+
+function extractPlaceIdCandidate(value: string) {
+  const direct = normalizeString(value);
+  if (!direct) {
+    return null;
+  }
+
+  const decoded = safeDecodeURIComponent(direct);
+  const candidate = decoded.replace(/^\/+/, '').trim();
+  if (!candidate) {
+    return null;
+  }
+
+  const placeIdQueryMatch = candidate.match(/place_id:([^&#?/\s]+)/i);
+  if (placeIdQueryMatch?.[1]) {
+    return placeIdQueryMatch[1].trim();
+  }
+
+  const placeResourceMatch = candidate.match(/(?:^|\/)places\/([^/?#\s]+)/i);
+  if (placeResourceMatch?.[1]) {
+    return placeResourceMatch[1].trim();
+  }
+
+  const normalized = candidate
+    .replace(/^place_id:/i, '')
+    .replace(/^places\//i, '')
+    .trim();
+
+  if (!normalized || !/^[A-Za-z0-9._-]+$/.test(normalized)) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function safeDecodeURIComponent(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }

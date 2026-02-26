@@ -8,7 +8,9 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const placeId = normalizePlaceId(url.searchParams.get('placeId'));
-    const photoId = normalizeString(url.searchParams.get('photoId'));
+    const mediaId =
+      normalizeString(url.searchParams.get('mediaId')) ||
+      normalizeString(url.searchParams.get('photoId'));
     const maxWidth = normalizeMaxWidth(url.searchParams.get('maxWidth'));
 
     if (!placeId) {
@@ -18,18 +20,22 @@ export async function GET(request: Request) {
       );
     }
 
-    if (!photoId) {
+    if (!mediaId) {
       return NextResponse.json(
-        { success: false, error: 'photoId query parameter is required.' },
+        { success: false, error: 'mediaId query parameter is required.' },
         { status: 400 },
       );
     }
 
-    const normalizedPhotoId = photoId.replace(/^\/+/, '');
-    const expectedPrefix = `places/${placeId}/photos/`;
-    if (!normalizedPhotoId.startsWith(expectedPrefix)) {
+    const normalizedMediaId = mediaId.replace(/^\/+/, '');
+    const expectedPhotoPrefix = `places/${placeId}/photos/`;
+    const expectedVideoPrefix = `places/${placeId}/videos/`;
+    if (
+      !normalizedMediaId.startsWith(expectedPhotoPrefix) &&
+      !normalizedMediaId.startsWith(expectedVideoPrefix)
+    ) {
       return NextResponse.json(
-        { success: false, error: 'photoId does not belong to the provided placeId.' },
+        { success: false, error: 'mediaId does not belong to the provided placeId.' },
         { status: 400 },
       );
     }
@@ -46,7 +52,7 @@ export async function GET(request: Request) {
     }
 
     const endpoint = new URL(
-      `https://places.googleapis.com/v1/${normalizedPhotoId}/media`,
+      `https://places.googleapis.com/v1/${normalizedMediaId}/media`,
     );
     endpoint.searchParams.set('maxWidthPx', String(maxWidth));
     endpoint.searchParams.set('key', apiKey);
@@ -108,12 +114,38 @@ function normalizeString(value: unknown) {
 }
 
 function normalizePlaceId(value: unknown) {
-  const normalized = normalizeString(value);
-  if (!normalized) {
+  const direct = normalizeString(value);
+  if (!direct) {
     return null;
   }
 
-  return normalized.replace(/^places\//i, '').trim();
+  const extracted = extractPlaceIdCandidate(direct);
+  if (extracted) {
+    return extracted;
+  }
+
+  try {
+    const parsedUrl = new URL(direct);
+    const queryCandidates = [
+      parsedUrl.searchParams.get('q'),
+      parsedUrl.searchParams.get('query'),
+      parsedUrl.searchParams.get('place_id'),
+      parsedUrl.searchParams.get('placeid'),
+    ]
+      .map((entry) => normalizeString(entry))
+      .filter((entry): entry is string => Boolean(entry));
+
+    for (const candidate of queryCandidates) {
+      const resolved = extractPlaceIdCandidate(candidate);
+      if (resolved) {
+        return resolved;
+      }
+    }
+  } catch {
+    // Not a URL.
+  }
+
+  return null;
 }
 
 function normalizeMaxWidth(value: string | null) {
@@ -123,4 +155,41 @@ function normalizeMaxWidth(value: string | null) {
   }
 
   return Math.max(MIN_MAX_WIDTH, Math.min(MAX_MAX_WIDTH, parsed));
+}
+
+function extractPlaceIdCandidate(value: string) {
+  const decoded = safeDecodeURIComponent(value);
+  const candidate = decoded.replace(/^\/+/, '').trim();
+  if (!candidate) {
+    return null;
+  }
+
+  const placeIdQueryMatch = candidate.match(/place_id:([^&#?/\s]+)/i);
+  if (placeIdQueryMatch?.[1]) {
+    return placeIdQueryMatch[1].trim();
+  }
+
+  const placeResourceMatch = candidate.match(/(?:^|\/)places\/([^/?#\s]+)/i);
+  if (placeResourceMatch?.[1]) {
+    return placeResourceMatch[1].trim();
+  }
+
+  const normalized = candidate
+    .replace(/^place_id:/i, '')
+    .replace(/^places\//i, '')
+    .trim();
+
+  if (!normalized || !/^[A-Za-z0-9._-]+$/.test(normalized)) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function safeDecodeURIComponent(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }

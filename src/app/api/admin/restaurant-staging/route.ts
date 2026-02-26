@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-
-const HASURA_URL = process.env.HASURA_GRAPHQL_URL || 'https://pycfacumenjefxtblime.hasura.us-east-1.nhost.run/v1/graphql';
-const HASURA_ADMIN_SECRET = process.env.HASURA_ADMIN_SECRET || "i;8zmVF8SvnMiX5gao@F'a6,uJ%WphsD";
+import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
 const GET_RESTAURANT_STAGING = `
     query GetRestaurantStaging($restaurant_id: uuid!) {
@@ -14,26 +12,7 @@ const GET_RESTAURANT_STAGING = `
 `;
 
 async function graphqlRequest(query: string, variables?: any) {
-    const response = await fetch(HASURA_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-hasura-admin-secret': HASURA_ADMIN_SECRET,
-        },
-        body: JSON.stringify({ query, variables }),
-    });
-
-    if (!response.ok) {
-        throw new Error(`GraphQL request failed: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    if (data.errors) {
-        throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
-    }
-
-    return data.data;
+    return adminGraphqlRequest(query, variables);
 }
 
 export async function GET(request: Request) {

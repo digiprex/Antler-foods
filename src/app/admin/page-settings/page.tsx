@@ -98,6 +98,14 @@ export default function PageSettingsSelector() {
             <div className="text-lg font-semibold">Timeline</div>
             <div className="text-sm text-gray-500 mt-1">Create a visual timeline to showcase your journey and milestones</div>
           </button>
+
+          <button
+            className="p-4 bg-white rounded-lg shadow hover:shadow-md text-left"
+            onClick={() => router.push(`/admin/form-settings?${paramsString}`)}
+          >
+            <div className="text-lg font-semibold">Form Display</div>
+            <div className="text-sm text-gray-500 mt-1">Configure form display with multiple layout options</div>
+          </button>
         </div>
 
       </div>

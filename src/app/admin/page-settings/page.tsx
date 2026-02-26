@@ -82,6 +82,22 @@ export default function PageSettingsSelector() {
             <div className="text-lg font-semibold">Scrolling Text</div>
             <div className="text-sm text-gray-500 mt-1">Configure scrolling text banner for this page</div>
           </button>
+
+          <button
+            className="p-4 bg-white rounded-lg shadow hover:shadow-md text-left"
+            onClick={() => router.push(`/admin/custom-code-settings?${paramsString}`)}
+          >
+            <div className="text-lg font-semibold">Custom Code</div>
+            <div className="text-sm text-gray-500 mt-1">Add custom HTML/CSS/JS or iframe embed for this page</div>
+          </button>
+
+          <button
+            className="p-4 bg-white rounded-lg shadow hover:shadow-md text-left"
+            onClick={() => router.push(`/admin/timeline-settings?${paramsString}`)}
+          >
+            <div className="text-lg font-semibold">Timeline</div>
+            <div className="text-sm text-gray-500 mt-1">Create a visual timeline to showcase your journey and milestones</div>
+          </button>
         </div>
 
       </div>

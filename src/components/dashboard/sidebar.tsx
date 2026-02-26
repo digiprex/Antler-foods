@@ -1,4 +1,5 @@
 import { NavItem } from './nav-item';
+import { useState } from 'react';
 import { SearchBox, type RestaurantSearchSelection } from './search-box';
 import type { DashboardRailTab } from './icon-rail';
 import {
@@ -27,10 +28,11 @@ export function Sidebar({
   selectedRestaurant,
   onRestaurantSelect,
 }: SidebarProps) {
+  const [isMyInfoOpen, setIsMyInfoOpen] = useState(true);
   const isWebsiteTab = activeTab === 'website';
   const hasRestaurantSelection = Boolean(selectedRestaurant);
   const roleSegment = dashboardBasePath.split('/')[2] || 'admin';
-  
+
   // Static grouped menu structure matching requested layout
   const HOME_MENU_ITEMS = [
     { href: '/home', label: 'Home', icon: <HomeIcon /> },
@@ -40,15 +42,15 @@ export function Sidebar({
 
   const RESTAURANT_MENU_ITEMS = selectedRestaurant
     ? (() => {
-        const informationBrandPath = buildRestaurantInformationPath(
-          roleSegment,
-          selectedRestaurant,
-          'brand',
-        );
-        const informationBasePath = informationBrandPath.replace(/brand$/, '');
-        const mediaPath = buildRestaurantMediaPath(roleSegment, selectedRestaurant);
+      const informationBrandPath = buildRestaurantInformationPath(
+        roleSegment,
+        selectedRestaurant,
+        'brand',
+      );
+      const informationBasePath = informationBrandPath.replace(/brand$/, '');
+      const mediaPath = buildRestaurantMediaPath(roleSegment, selectedRestaurant);
 
-        return [
+      return [
         {
           href: buildRestaurantScopedHref(
             `${dashboardBasePath}/sales`,
@@ -121,84 +123,120 @@ export function Sidebar({
       ];
     })()
     : [];
+    const MY_INFO_MENU_ITEMS = selectedRestaurant
+    ? [
+      {
+        href: buildRestaurantScopedHref(
+          `${dashboardBasePath}/my-info/profile`,
+          selectedRestaurant,
+        ),
+        label: 'Profile',
+        icon: <ProfileIcon />,
+      },
+      {
+        href: buildRestaurantScopedHref(
+          `${dashboardBasePath}/my-info/gallery`,
+          selectedRestaurant,
+        ),
+        label: 'Gallery',
+        icon: <GalleryIcon />,
+      },
+      {
+        href: buildRestaurantScopedHref(
+          `${dashboardBasePath}/my-info/business-information`,
+          selectedRestaurant,
+        ),
+        label: 'Business Information',
+        icon: <BusinessInfoIcon />,
+      },
+      {
+        href: buildRestaurantScopedHref(
+          `${dashboardBasePath}/my-info/google-profile`,
+          selectedRestaurant,
+        ),
+        label: 'Google profile',
+        icon: <GoogleProfileIcon />,
+      },
+    ]
+    : [];
 
   const WEBSITE_MENU_ITEMS = selectedRestaurant
     ? [
-        {
-          href: buildRestaurantScopedHref(
-            `${websiteBasePath}/pages-settings`,
-            selectedRestaurant,
-          ),
-          label: 'Pages',
-          icon: <PagesIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(`${websiteBasePath}/navbar-settings`, selectedRestaurant),
-          label: 'Navbar Settings',
-          icon: <NavbarIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(`/admin/announcement-bar-settings`, selectedRestaurant),
-          label: 'Announcement Bar',
-          icon: <AnnouncementBarIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(`${websiteBasePath}/footer-settings`, selectedRestaurant),
-          label: 'Footer Settings',
-          icon: <FooterIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(`${websiteBasePath}/popup-settings`, selectedRestaurant),
-          label: 'Popup Settings',
-          icon: <PopupIcon />,
-        },
-      ]
+      {
+        href: buildRestaurantScopedHref(
+          `${websiteBasePath}/pages-settings`,
+          selectedRestaurant,
+        ),
+        label: 'Pages',
+        icon: <PagesIcon />,
+      },
+      {
+        href: buildRestaurantScopedHref(`${websiteBasePath}/navbar-settings`, selectedRestaurant),
+        label: 'Navbar Settings',
+        icon: <NavbarIcon />,
+      },
+      {
+        href: buildRestaurantScopedHref(`/admin/announcement-bar-settings`, selectedRestaurant),
+        label: 'Announcement Bar',
+        icon: <AnnouncementBarIcon />,
+      },
+      {
+        href: buildRestaurantScopedHref(`${websiteBasePath}/footer-settings`, selectedRestaurant),
+        label: 'Footer Settings',
+        icon: <FooterIcon />,
+      },
+      {
+        href: buildRestaurantScopedHref(`${websiteBasePath}/popup-settings`, selectedRestaurant),
+        label: 'Popup Settings',
+        icon: <PopupIcon />,
+      },
+    ]
     : [];
 
   const MARKETING_MENU_ITEMS = selectedRestaurant
     ? [
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/marketing`,
-            selectedRestaurant,
-          ),
-          label: 'Marketing',
-          icon: <MarketingIcon />,
-        },
-      ]
+      {
+        href: buildRestaurantScopedHref(
+          `${dashboardBasePath}/marketing`,
+          selectedRestaurant,
+        ),
+        label: 'Marketing',
+        icon: <MarketingIcon />,
+      },
+    ]
     : [];
 
   const RESERVATION_MENU_ITEMS = selectedRestaurant
     ? [
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/reservations`,
-            selectedRestaurant,
-          ),
-          label: 'Reservation',
-          icon: <ReservationIcon />,
-        },
-      ]
+      {
+        href: buildRestaurantScopedHref(
+          `${dashboardBasePath}/reservations`,
+          selectedRestaurant,
+        ),
+        label: 'Reservation',
+        icon: <ReservationIcon />,
+      },
+    ]
     : [];
 
   const CATERING_MENU_ITEMS = selectedRestaurant
     ? [
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/catering`,
-            selectedRestaurant,
-          ),
-          label: 'Catering',
-          icon: <CateringIcon />,
-        },
-      ]
+      {
+        href: buildRestaurantScopedHref(
+          `${dashboardBasePath}/catering`,
+          selectedRestaurant,
+        ),
+        label: 'Catering',
+        icon: <CateringIcon />,
+      },
+    ]
     : [];
 
   return (
     <aside
       className={`fixed left-0 top-0 h-screen border-r border-[#d7e2e6] bg-[#f8fafb] transition-all duration-200 ease-in-out overflow-y-auto ${
         isOpen ? 'w-[330px]' : 'w-16'
-      }`}
+        }`}
     >
       <SearchBox
         selectedRestaurant={selectedRestaurant}
@@ -247,17 +285,13 @@ export function Sidebar({
               <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">Restaurant</p>
             )}
             <nav className="space-y-1">
-              {RESTAURANT_MENU_ITEMS.map((item) => (
+              {RESTAURANT_MENU_ITEMS.map((item: any) => (
                 <NavItem
                   key={item.href}
                   href={item.href}
                   label={item.label}
                   icon={item.icon}
-                  active={
-                    item.matchPrefixes
-                      ? item.matchPrefixes.some((prefix) => pathname.startsWith(prefix))
-                      : pathname === extractPathFromHref(item.href)
-                  }
+                  active={pathname === extractPathFromHref(item.href)}
                   collapsed={!isOpen}
                 />
               ))}
@@ -265,7 +299,7 @@ export function Sidebar({
           </div>
         ) : null}
 
-        {/* My Info Section */}
+{/* My Info Section */}
         {isOpen && hasRestaurantSelection ? (
           <div>
             <button
@@ -318,8 +352,7 @@ export function Sidebar({
               <p
                 className={`mb-1.5 text-xs font-medium uppercase tracking-wide ${
                   isWebsiteTab ? 'text-[#5dc67d]' : 'text-[#7c8a96]'
-
-                }`}
+                  }`}
               >
                 Website
               </p>
@@ -424,6 +457,97 @@ function buildRestaurantScopedHref(
 
 function extractPathFromHref(href: string) {
   return href.split('?')[0] || href;
+}
+
+function ChevronDownSmallIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function ProfileIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="7.5" r="3.5" />
+      <path d="M5 20a7 7 0 0 1 14 0" />
+    </svg>
+  );
+}
+
+function GalleryIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="10" r="1.5" />
+      <path d="m21 16-5-5-6 6" />
+    </svg>
+  );
+}
+
+function BusinessInfoIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M8 7h8" />
+      <path d="M8 11h8" />
+      <path d="M8 15h5" />
+    </svg>
+  );
+}
+
+function GoogleProfileIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 20a8 8 0 1 1 7.7-10h-7.7v4h4.4a4.5 4.5 0 1 1-4.4-6" />
+    </svg>
+  );
 }
 
 function HomeIcon() {

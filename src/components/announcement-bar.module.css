@@ -1,0 +1,170 @@
+/* Announcement Bar Styles */
+
+.announcementBar {
+  width: 100%;
+  position: relative;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  min-height: 40px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.announcementBar.top {
+  order: -1; /* Ensures it appears before other content */
+}
+
+.announcementBar.bottom {
+  order: 999; /* Ensures it appears after other content */
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  word-wrap: break-word;
+}
+
+.contactInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.contactItem {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+}
+
+.contactItem:hover {
+  opacity: 0.8;
+}
+
+.contactIcon {
+  font-size: 1em;
+  flex-shrink: 0;
+}
+
+.socialMedia {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.socialIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2em;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+.socialIcon:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+.socialIcon:focus {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .announcementBar {
+    padding: 12px 16px;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .contactInfo {
+    gap: 0.75rem;
+    justify-content: center;
+  }
+
+  .socialMedia {
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .text {
+    flex: none;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .announcementBar {
+    padding: 10px 12px;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .contactInfo {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .contactItem {
+    font-size: 0.875rem;
+  }
+
+  .socialIcon {
+    font-size: 1.1em;
+  }
+}
+
+/* Animation for scrolling text (if needed in future) */
+@keyframes scroll {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.scrolling {
+  animation: scroll 20s linear infinite;
+  white-space: nowrap;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .announcementBar {
+    border-bottom: 1px solid currentColor;
+  }
+  
+  .socialIcon:focus {
+    outline-width: 3px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .socialIcon {
+    transition: none;
+  }
+  
+  .socialIcon:hover {
+    transform: none;
+  }
+  
+  .scrolling {
+    animation: none;
+  }
+}

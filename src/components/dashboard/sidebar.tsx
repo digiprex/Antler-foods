@@ -149,6 +149,11 @@ export function Sidebar({
           icon: <NavbarIcon />,
         },
         {
+          href: buildRestaurantScopedHref(`/admin/announcement-bar-settings`, selectedRestaurant),
+          label: 'Announcement Bar',
+          icon: <AnnouncementBarIcon />,
+        },
+        {
           href: buildRestaurantScopedHref(`${websiteBasePath}/footer-settings`, selectedRestaurant),
           label: 'Footer Settings',
           icon: <FooterIcon />,
@@ -779,6 +784,26 @@ function PopupIcon() {
       <path d="M9 9h6v6H9z" />
       <path d="M16 8l3-3" />
       <path d="M19 8h-3V5" />
+    </svg>
+  );
+}
+
+function AnnouncementBarIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 6h18" />
+      <path d="M3 10h18" />
+      <path d="M7 14h10" />
+      <path d="M9 18h6" />
     </svg>
   );
 }

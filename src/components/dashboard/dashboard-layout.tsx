@@ -22,9 +22,9 @@ import type { DashboardRailTab } from './icon-rail';
 import type { RestaurantSearchSelection } from './search-box';
 import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
+import { PurpleDotSpinner } from './purple-dot-spinner';
+import { DASHBOARD_ROUTE_LOADING_START_EVENT } from './route-loading-events';
 import {
-  buildRestaurantInformationPath,
-  buildRestaurantMediaPath,
   buildRestaurantSlug,
   parseRestaurantScopeFromPath,
 } from '@/lib/restaurants/route-utils';
@@ -78,12 +78,9 @@ function isWebsitePath(pathname: string) {
          /^\/admin\/(pages-settings|navbar-settings|popup-settings|youtube-settings|footer-settings|hero-settings|gallery-settings|faq-settings|review-settings)(\/|$)/.test(pathname);
 }
 
-function isMyInfoPath(pathname: string) {
+function isInformationPath(pathname: string) {
   return (
-    /^\/dashboard\/(admin|owner|manager)\/my-info(\/|$)/.test(pathname) ||
-    /^\/dashboard\/(admin|owner|manager)\/restaurants\/[^/]+\/information\/(brand|address|google-profile)(\/|$)/.test(
-      pathname,
-    )
+    /^\/dashboard\/(admin|owner|manager)\/restaurants\/[^/]+\/information\/(brand|address|opening-hours|google-profile)(\/|$)/.test(pathname)
   );
 }
 
@@ -101,7 +98,7 @@ function isRestaurantWorkspacePath(pathname: string) {
 function isRestaurantScopedPath(pathname: string) {
   return (
     isWebsitePath(pathname) ||
-    isMyInfoPath(pathname) ||
+    isInformationPath(pathname) ||
     isRestaurantWorkspacePath(pathname)
   );
 }
@@ -122,6 +119,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [claimsWaitElapsed, setClaimsWaitElapsed] = useState(false);
   const [isAuthBootstrapReady, setIsAuthBootstrapReady] = useState(false);
+  const [isRouteLoading, setIsRouteLoading] = useState(false);
+  const [pendingApiCalls, setPendingApiCalls] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedRestaurant, setSelectedRestaurant] =
     useState<RestaurantSearchSelection | null>(null);
@@ -228,61 +227,60 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [pathname, searchParams]);
 
   useEffect(() => {
-    const roleSegment = resolveRoleSegmentFromPath(pathname);
-    const restaurantId = searchParams.get('restaurant_id')?.trim() ?? '';
-    const restaurantName = searchParams.get('restaurant_name')?.trim() ?? '';
-    if (!roleSegment || !restaurantId) {
+    if (!isRouteLoading) {
       return;
     }
 
-    let nextPath: string | null = null;
-    if (
-      /\/my-info\/(profile|business-information|brand)$/.test(pathname)
-    ) {
-      nextPath = buildRestaurantInformationPath(
-        roleSegment,
-        {
-          id: restaurantId,
-          name: restaurantName || 'restaurant',
-        },
-        'brand',
-      );
-    } else if (/\/my-info\/address$/.test(pathname)) {
-      nextPath = buildRestaurantInformationPath(
-        roleSegment,
-        {
-          id: restaurantId,
-          name: restaurantName || 'restaurant',
-        },
-        'address',
-      );
-    } else if (/\/my-info\/google-profile$/.test(pathname)) {
-      nextPath = buildRestaurantInformationPath(
-        roleSegment,
-        {
-          id: restaurantId,
-          name: restaurantName || 'restaurant',
-        },
-        'google-profile',
-      );
-    } else if (/\/my-info\/gallery$/.test(pathname)) {
-      nextPath = buildRestaurantMediaPath(roleSegment, {
-        id: restaurantId,
-        name: restaurantName || 'restaurant',
-      });
-    }
+    const timer = setTimeout(() => {
+      setIsRouteLoading(false);
+    }, 250);
 
-    if (!nextPath) {
-      return;
-    }
+    return () => clearTimeout(timer);
+  }, [isRouteLoading, pathname, searchParams]);
 
-    const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.delete('restaurant_id');
-    nextParams.delete('restaurant_name');
-    const query = nextParams.toString();
-    const nextUrl = query ? `${nextPath}?${query}` : nextPath;
-    router.replace(nextUrl, { scroll: false });
-  }, [pathname, router, searchParams]);
+  useEffect(() => {
+    const onRouteLoadStart = () => {
+      setIsRouteLoading(true);
+    };
+
+    window.addEventListener(DASHBOARD_ROUTE_LOADING_START_EVENT, onRouteLoadStart);
+    return () => {
+      window.removeEventListener(
+        DASHBOARD_ROUTE_LOADING_START_EVENT,
+        onRouteLoadStart,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const originalFetch: typeof window.fetch = window.fetch.bind(window);
+    let disposed = false;
+
+    const patchedFetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      const shouldTrack = shouldTrackApiRequest(input);
+      if (shouldTrack && !disposed) {
+        setPendingApiCalls((current) => current + 1);
+      }
+
+      try {
+        return await originalFetch(input, init);
+      } finally {
+        if (shouldTrack && !disposed) {
+          setPendingApiCalls((current) => Math.max(0, current - 1));
+        }
+      }
+    }) as typeof window.fetch;
+
+    window.fetch = patchedFetch;
+
+    return () => {
+      disposed = true;
+      window.fetch = originalFetch;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated || roleFromClaims) {
@@ -365,6 +363,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   const onRestaurantSelect = (restaurant: RestaurantSearchSelection | null) => {
+    setIsRouteLoading(true);
     setSelectedRestaurant(restaurant);
     const restaurantScope = parseRestaurantScopeFromPath(pathname);
 
@@ -426,8 +425,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   ) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f3f5f6]">
-        <div className="rounded-xl border border-[#d7e2e6] bg-white px-5 py-3 text-sm text-[#5a6670]">
-          Loading dashboard...
+        <div className="flex items-center gap-3 rounded-xl border border-[#d7e2e6] bg-white px-5 py-3 text-sm text-[#5a6670]">
+          <PurpleDotSpinner size="sm" />
+          <span>Loading dashboard...</span>
         </div>
       </div>
     );
@@ -438,9 +438,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const userLabel = user?.displayName?.trim() || user?.email || 'Admin';
+  const shouldShowGlobalSpinner = isRouteLoading || pendingApiCalls > 0;
 
   return (
     <div className="min-h-screen bg-[#f3f5f6]">
+      {shouldShowGlobalSpinner ? (
+        <div className="pointer-events-none fixed inset-0 z-[90] flex items-center justify-center bg-[#f3f5f6]/50">
+          <div className="rounded-2xl border border-[#d8cdfd] bg-white/95 p-4 shadow-xl">
+            <PurpleDotSpinner size="md" label="Loading dashboard content" />
+          </div>
+        </div>
+      ) : null}
       <Sidebar
         activeTab={activeTab}
         pathname={pathname}
@@ -463,4 +471,31 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
     </div>
   );
+}
+
+function shouldTrackApiRequest(input: RequestInfo | URL) {
+  const urlValue =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+
+  if (!urlValue) {
+    return false;
+  }
+
+  if (urlValue.startsWith('/api/')) {
+    return true;
+  }
+
+  try {
+    const resolved = new URL(urlValue, window.location.origin);
+    return (
+      resolved.origin === window.location.origin &&
+      resolved.pathname.startsWith('/api/')
+    );
+  } catch {
+    return false;
+  }
 }

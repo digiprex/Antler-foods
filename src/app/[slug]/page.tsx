@@ -14,6 +14,7 @@ import DynamicHero from '@/components/dynamic-hero';
 import DynamicFAQ from '@/components/dynamic-faq';
 import DynamicGallery from '@/components/dynamic-gallery';
 import DynamicReviews from '@/components/dynamic-reviews';
+import DynamicLocation from '@/components/dynamic-location';
 import Popup from '@/components/popup';
 import YouTubeSection from '@/components/youtube-section';
 
@@ -34,7 +35,6 @@ export default function DynamicPage() {
         // Get current domain
         const domain = window.location.host;
 
-        console.log(`[DynamicPage] 🔍 Rendering page for slug: "${slug}" on domain: "${domain}"`);
 
         // First, resolve restaurant ID from domain
         const heroResponse = await fetch(`/api/hero-config?domain=${domain}&url_slug=${slug}`);
@@ -56,19 +56,13 @@ export default function DynamicPage() {
           // Add your restaurant ID here for local development
           const FALLBACK_RESTAURANT_ID = ''; // TODO: Add restaurant ID from database
           if (FALLBACK_RESTAURANT_ID) {
-            console.log(`[DynamicPage] 💡 Using fallback restaurant ID for localhost`);
             resolvedRestaurantId = FALLBACK_RESTAURANT_ID;
           }
         }
 
         if (!resolvedRestaurantId) {
-          console.error(`[DynamicPage] ❌ No restaurant found for domain: "${domain}"`);
-          console.error(`[DynamicPage] 💡 Fix by running in Hasura:`);
-          console.error(`[DynamicPage]    UPDATE restaurants SET staging_domain='${domain}' WHERE restaurant_id='YOUR_ID';`);
           throw new Error('No restaurant found for this domain');
         }
-
-        console.log(`[DynamicPage] ✓ Found restaurant ID: ${resolvedRestaurantId}`);
         setRestaurantId(resolvedRestaurantId);
 
         // Fetch page details
@@ -77,7 +71,6 @@ export default function DynamicPage() {
         );
 
         if (pageResponse.status === 404) {
-          console.error(`[DynamicPage] ❌ Page not found with slug: "${slug}"`);
           notFound();
           return;
         }
@@ -93,13 +86,10 @@ export default function DynamicPage() {
           return;
         }
 
-        console.log(`[DynamicPage] ✓ Successfully loaded page`);
         setPageData(pageResponseData);
 
       } catch (error) {
-        console.error('[DynamicPage] ❌ Error fetching page data:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error('[DynamicPage] Error details:', errorMessage);
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -173,6 +163,13 @@ export default function DynamicPage() {
 
       {/* YouTube Section */}
       <YouTubeSection restaurantId={restaurantId} />
+
+      {/* Dynamic Location Section */}
+      <DynamicLocation
+        restaurantId={restaurantId}
+        pageId={pageData?.data?.page?.page_id}
+        showLoading={true}
+      />
 
       {/* Dynamic Reviews Section */}
       <DynamicReviews

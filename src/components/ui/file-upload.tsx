@@ -1,14 +1,23 @@
 /**
  * File Upload Component
- * 
- * Handles file uploads to Nhost storage and saves metadata to medias table
- * Supports images and videos with preview functionality
+ *
+ * Handles file uploads to Nhost storage and saves metadata to medias table.
+ * Supports image and video uploads with validation and preview.
  */
 
 'use client';
 
-import { useState, useRef } from 'react';
+import {
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+} from 'react';
 import styles from './file-upload.module.css';
+
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'bmp'];
+const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm', 'm4v', 'mkv'];
+const AUDIO_EXTENSIONS = ['mp3', 'wav', 'aac', 'm4a', 'ogg', 'flac'];
 
 interface MediaFile {
   id: string;
@@ -24,41 +33,70 @@ interface FileUploadProps {
    * Type of files to accept
    */
   accept: 'image' | 'video' | 'both';
-  
+
   /**
    * Current file URL (if any)
    */
   currentUrl?: string;
-  
+
   /**
    * Callback when file is uploaded successfully
    */
   onUpload: (mediaFile: MediaFile) => void;
-  
+
   /**
    * Callback when file is removed
    */
   onRemove?: () => void;
-  
+
   /**
    * Label for the upload area
    */
   label: string;
-  
+
   /**
    * Optional description
    */
   description?: string;
-  
+
   /**
    * Restaurant ID for media association
    */
   restaurantId: string;
-  
+
   /**
    * Whether upload is disabled
    */
   disabled?: boolean;
+}
+
+function getFileExtension(name: string) {
+  const trimmed = name.trim().toLowerCase();
+  if (!trimmed.includes('.')) {
+    return null;
+  }
+
+  const extension = trimmed.split('.').pop()?.trim() || '';
+  return extension || null;
+}
+
+function resolveFileKind(file: File) {
+  const mime = file.type.trim().toLowerCase();
+  const extension = getFileExtension(file.name);
+
+  if (mime.startsWith('image/') || (extension && IMAGE_EXTENSIONS.includes(extension))) {
+    return { kind: 'image' as const, extension };
+  }
+
+  if (mime.startsWith('video/') || (extension && VIDEO_EXTENSIONS.includes(extension))) {
+    return { kind: 'video' as const, extension };
+  }
+
+  if (mime.startsWith('audio/') || (extension && AUDIO_EXTENSIONS.includes(extension))) {
+    return { kind: 'audio' as const, extension };
+  }
+
+  return { kind: 'unsupported' as const, extension };
 }
 
 export default function FileUpload({
@@ -69,54 +107,59 @@ export default function FileUpload({
   label,
   description,
   restaurantId,
-  disabled = false
+  disabled = false,
 }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Get accepted file types
   const getAcceptedTypes = () => {
     switch (accept) {
       case 'image':
-        return 'image/*';
+        return IMAGE_EXTENSIONS.map((extension) => `.${extension}`).join(',');
       case 'video':
-        return 'video/*';
+        return VIDEO_EXTENSIONS.map((extension) => `.${extension}`).join(',');
       case 'both':
-        return 'image/*,video/*';
+        return [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS]
+          .map((extension) => `.${extension}`)
+          .join(',');
       default:
         return '';
     }
   };
 
-  // Validate file type and size
   const validateFile = (file: File): string | null => {
-    const maxSize = accept === 'video' ? 100 * 1024 * 1024 : 10 * 1024 * 1024; // 100MB for video, 10MB for images
-    
+    const fileInfo = resolveFileKind(file);
+
+    if (fileInfo.kind === 'audio') {
+      return 'Audio files (for example MP3) are not supported. Upload video files: MP4, MOV, WEBM, M4V, MKV.';
+    }
+
+    if (fileInfo.kind === 'unsupported') {
+      return 'Unsupported format. Supported images: JPG, JPEG, PNG, WEBP, GIF, AVIF, BMP. Supported videos: MP4, MOV, WEBM, M4V, MKV.';
+    }
+
+    if (accept === 'image' && fileInfo.kind !== 'image') {
+      return 'Please select an image file.';
+    }
+
+    if (accept === 'video' && fileInfo.kind !== 'video') {
+      return 'Please select a video file.';
+    }
+
+    if (accept === 'both' && fileInfo.kind !== 'image' && fileInfo.kind !== 'video') {
+      return 'Please select an image or video file.';
+    }
+
+    const maxSize = fileInfo.kind === 'video' ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      return `File size must be less than ${maxSize / (1024 * 1024)}MB`;
-    }
-
-    const isImage = file.type.startsWith('image/');
-    const isVideo = file.type.startsWith('video/');
-
-    if (accept === 'image' && !isImage) {
-      return 'Please select an image file';
-    }
-    
-    if (accept === 'video' && !isVideo) {
-      return 'Please select a video file';
-    }
-    
-    if (accept === 'both' && !isImage && !isVideo) {
-      return 'Please select an image or video file';
+      return `File size must be less than ${maxSize / (1024 * 1024)}MB.`;
     }
 
     return null;
   };
 
-  // Handle file upload
   const handleFileUpload = async (file: File) => {
     const validationError = validateFile(file);
     if (validationError) {
@@ -137,62 +180,63 @@ export default function FileUpload({
         body: formData,
       });
 
+      const payload = await response.json().catch(() => null);
+
       if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`);
+        throw new Error(
+          payload?.error ||
+            `Upload failed (${response.status}${response.statusText ? `: ${response.statusText}` : ''})`,
+        );
       }
 
-      const data = await response.json();
-
-      if (data.success) {
-        onUpload(data.data);
-      } else {
-        throw new Error(data.error || 'Upload failed');
+      if (!payload?.success || !payload?.data) {
+        throw new Error(payload?.error || 'Upload failed.');
       }
-    } catch (err) {
-      console.error('Upload error:', err);
-      setError(err instanceof Error ? err.message : 'Upload failed');
+
+      onUpload(payload.data as MediaFile);
+    } catch (caughtError) {
+      console.error('Upload error:', caughtError);
+      setError(caughtError instanceof Error ? caughtError.message : 'Upload failed.');
     } finally {
       setUploading(false);
     }
   };
 
-  // Handle file input change
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      handleFileUpload(file);
+      void handleFileUpload(file);
     }
+
+    event.target.value = '';
   };
 
-  // Handle drag and drop
-  const handleDrop = (event: React.DragEvent) => {
+  const handleDrop = (event: DragEvent) => {
     event.preventDefault();
     setDragOver(false);
 
     const file = event.dataTransfer.files[0];
     if (file) {
-      handleFileUpload(file);
+      void handleFileUpload(file);
     }
   };
 
-  const handleDragOver = (event: React.DragEvent) => {
+  const handleDragOver = (event: DragEvent) => {
     event.preventDefault();
     setDragOver(true);
   };
 
-  const handleDragLeave = (event: React.DragEvent) => {
+  const handleDragLeave = (event: DragEvent) => {
     event.preventDefault();
     setDragOver(false);
   };
 
-  // Handle click to open file dialog
   const handleClick = () => {
     if (!disabled && !uploading) {
       fileInputRef.current?.click();
     }
   };
 
-  // Handle remove file
   const handleRemove = () => {
     if (onRemove) {
       onRemove();
@@ -200,27 +244,24 @@ export default function FileUpload({
     setError(null);
   };
 
-  // Render preview
   const renderPreview = () => {
-    if (!currentUrl) return null;
+    if (!currentUrl) {
+      return null;
+    }
 
-    const isVideo = currentUrl.includes('.mp4') || currentUrl.includes('.mov') || currentUrl.includes('.webm');
+    const isVideo =
+      currentUrl.includes('.mp4') ||
+      currentUrl.includes('.mov') ||
+      currentUrl.includes('.webm') ||
+      currentUrl.includes('.m4v') ||
+      currentUrl.includes('.mkv');
 
     return (
       <div className={styles.preview}>
         {isVideo ? (
-          <video
-            src={currentUrl}
-            className={styles.previewVideo}
-            controls
-            muted
-          />
+          <video src={currentUrl} className={styles.previewVideo} controls muted />
         ) : (
-          <img
-            src={currentUrl}
-            alt="Preview"
-            className={styles.previewImage}
-          />
+          <img src={currentUrl} alt="Preview" className={styles.previewImage} />
         )}
         <button
           type="button"
@@ -228,7 +269,7 @@ export default function FileUpload({
           className={styles.removeButton}
           title="Remove file"
         >
-          ✕
+          x
         </button>
       </div>
     );
@@ -238,7 +279,7 @@ export default function FileUpload({
     <div className={styles.container}>
       <label className={styles.label}>
         {label}
-        {description && <span className={styles.description}>{description}</span>}
+        {description ? <span className={styles.description}>{description}</span> : null}
       </label>
 
       {currentUrl ? (
@@ -276,18 +317,17 @@ export default function FileUpload({
             ) : (
               <>
                 <div className={styles.uploadIcon}>
-                  {accept === 'video' ? '🎥' : accept === 'image' ? '🖼️' : '📁'}
+                  {accept === 'video' ? 'VID' : accept === 'image' ? 'IMG' : '📁'}
                 </div>
                 <p className={styles.uploadText}>
                   Drop {accept === 'both' ? 'image or video' : accept} here or click to browse
                 </p>
                 <p className={styles.uploadHint}>
-                  {accept === 'video' 
-                    ? 'MP4, MOV, WebM up to 100MB'
+                  {accept === 'video'
+                    ? 'Supported: MP4, MOV, WEBM, M4V, MKV (up to 100MB)'
                     : accept === 'image'
-                    ? 'JPG, PNG, WebP up to 10MB'
-                    : 'Images up to 10MB, Videos up to 100MB'
-                  }
+                      ? 'Supported: JPG, JPEG, PNG, WEBP, GIF, AVIF, BMP (up to 10MB)'
+                      : 'Images: JPG/JPEG/PNG/WEBP/GIF/AVIF/BMP up to 10MB. Videos: MP4/MOV/WEBM/M4V/MKV up to 100MB.'}
                 </p>
               </>
             )}
@@ -295,12 +335,12 @@ export default function FileUpload({
         </div>
       )}
 
-      {error && (
+      {error ? (
         <div className={styles.error}>
-          <span className={styles.errorIcon}>⚠</span>
+          <span className={styles.errorIcon}>!</span>
           <span>{error}</span>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

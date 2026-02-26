@@ -19,6 +19,50 @@ import {
   resolveStorageApiUrl,
 } from '@/lib/server/nhost-config';
 
+type MediaKind = 'image' | 'video' | 'audio' | 'unsupported';
+
+const SUPPORTED_IMAGE_EXTENSIONS = new Set([
+  'jpg',
+  'jpeg',
+  'png',
+  'webp',
+  'gif',
+  'avif',
+  'bmp',
+]);
+
+const SUPPORTED_VIDEO_EXTENSIONS = new Set([
+  'mp4',
+  'mov',
+  'webm',
+  'm4v',
+  'mkv',
+]);
+
+const AUDIO_EXTENSIONS = new Set([
+  'mp3',
+  'wav',
+  'aac',
+  'm4a',
+  'ogg',
+  'flac',
+]);
+
+const EXTENSION_TO_MIME: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  avif: 'image/avif',
+  bmp: 'image/bmp',
+  mp4: 'video/mp4',
+  mov: 'video/quicktime',
+  webm: 'video/webm',
+  m4v: 'video/mp4',
+  mkv: 'video/x-matroska',
+};
+
 /**
  * GraphQL mutation to insert media record
  */
@@ -42,6 +86,14 @@ const INSERT_MEDIA = `
     }
   }
 `;
+
+interface InsertMediaResponse {
+  insert_medias_one?: {
+    id?: string | null;
+    file_id?: string | null;
+    type?: string | null;
+  } | null;
+}
 
 /**
  * Helper function to make GraphQL requests
@@ -132,15 +184,34 @@ async function optimizeVideo(file: File): Promise<{ buffer: Buffer; filename: st
  * Validate file type and size
  */
 function validateFile(file: File): string | null {
-  const isImage = file.type.startsWith('image/');
-  const isVideo = file.type.startsWith('video/');
-  
-  if (!isImage && !isVideo) {
-    return 'Only image and video files are allowed';
+  const info = detectFileInfo(file);
+
+  if (info.kind === 'audio') {
+    return 'Audio files are not supported. Upload video files (MP4, MOV, WEBM, M4V, MKV).';
+  }
+
+  if (info.kind === 'unsupported') {
+    return 'Unsupported file format. Use images (JPG, JPEG, PNG, WEBP, GIF, AVIF, BMP) or videos (MP4, MOV, WEBM, M4V, MKV).';
+  }
+
+  if (
+    info.kind === 'image' &&
+    info.extension &&
+    !SUPPORTED_IMAGE_EXTENSIONS.has(info.extension)
+  ) {
+    return 'Unsupported image format. Supported: JPG, JPEG, PNG, WEBP, GIF, AVIF, BMP.';
+  }
+
+  if (
+    info.kind === 'video' &&
+    info.extension &&
+    !SUPPORTED_VIDEO_EXTENSIONS.has(info.extension)
+  ) {
+    return 'Unsupported video format. Supported: MP4, MOV, WEBM, M4V, MKV.';
   }
 
   // Size limits: 50MB for images, 500MB for videos (before optimization)
-  const maxSize = isVideo ? 500 * 1024 * 1024 : 50 * 1024 * 1024;
+  const maxSize = info.kind === 'video' ? 500 * 1024 * 1024 : 50 * 1024 * 1024;
   
   if (file.size > maxSize) {
     return `File size must be less than ${maxSize / (1024 * 1024)}MB`;
@@ -190,17 +261,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const fileInfo = detectFileInfo(file);
+
     // Optimize file based on type
     let optimizedFile: { buffer: Buffer; filename: string; mimeType: string };
+    let optimizationWarning: string | null = null;
     
-    if (file.type.startsWith('image/')) {
+    if (fileInfo.kind === 'image') {
       optimizedFile = await optimizeImage(file);
-    } else if (file.type.startsWith('video/')) {
-      optimizedFile = await optimizeVideo(file);
+    } else if (fileInfo.kind === 'video') {
+      try {
+        optimizedFile = await optimizeVideo(file);
+      } catch (caughtError) {
+        const fallbackBuffer = Buffer.from(await file.arrayBuffer());
+        const extension = fileInfo.extension || 'mp4';
+        const fallbackMimeType = EXTENSION_TO_MIME[extension] || 'video/mp4';
+
+        optimizedFile = {
+          buffer: fallbackBuffer,
+          filename: ensureExtensionInFileName(file.name || `video.${extension}`, extension),
+          mimeType: fallbackMimeType,
+        };
+
+        optimizationWarning =
+          'Video optimization is unavailable on server right now. Uploaded original video file.';
+        console.warn(
+          '[Upload Optimized Media] Video optimization failed, fallback to original upload:',
+          caughtError,
+        );
+      }
     } else {
       return NextResponse.json(
-        { success: false, error: 'Unsupported file type' },
-        { status: 400 }
+        {
+          success: false,
+          error:
+            'Unsupported file type. Use images (JPG, JPEG, PNG, WEBP, GIF, AVIF, BMP) or videos (MP4, MOV, WEBM, M4V, MKV).',
+        },
+        { status: 400 },
       );
     }
 
@@ -251,7 +348,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save media metadata to database
-    const mediaData = await graphqlRequest(INSERT_MEDIA, {
+    const mediaData = await graphqlRequest<InsertMediaResponse>(INSERT_MEDIA, {
       restaurant_id: restaurantId,
       file_id: fileMetadata.id,
       type: optimizedFile.mimeType,
@@ -277,6 +374,7 @@ export async function POST(request: NextRequest) {
     }
 
     const media = mediaData.insert_medias_one;
+    const wasOptimized = !optimizationWarning;
 
     // Return proxy URL for reliable access
     const publicUrl = `/api/image-proxy?fileId=${fileMetadata.id}`;
@@ -290,10 +388,11 @@ export async function POST(request: NextRequest) {
         name: optimizedFile.filename,
         type: optimizedFile.mimeType,
         size: optimizedFile.buffer.length,
-        optimized: true,
+        optimized: wasOptimized,
         originalSize: file.size,
         compressionRatio: ((file.size - optimizedFile.buffer.length) / file.size * 100).toFixed(1)
       },
+      warning: optimizationWarning || undefined,
     });
 
   } catch (error) {
@@ -307,4 +406,80 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function detectFileInfo(file: File): {
+  kind: MediaKind;
+  extension: string | null;
+  mimeType: string | null;
+} {
+  const rawType = file.type?.trim().toLowerCase() || '';
+  const extension = getFileExtension(file.name);
+
+  if (rawType.startsWith('audio/')) {
+    return { kind: 'audio', extension, mimeType: rawType || null };
+  }
+
+  if (rawType.startsWith('image/')) {
+    return { kind: 'image', extension, mimeType: rawType };
+  }
+
+  if (rawType.startsWith('video/')) {
+    return { kind: 'video', extension, mimeType: rawType };
+  }
+
+  if (extension && SUPPORTED_IMAGE_EXTENSIONS.has(extension)) {
+    return {
+      kind: 'image',
+      extension,
+      mimeType: EXTENSION_TO_MIME[extension] || 'image/jpeg',
+    };
+  }
+
+  if (extension && SUPPORTED_VIDEO_EXTENSIONS.has(extension)) {
+    return {
+      kind: 'video',
+      extension,
+      mimeType: EXTENSION_TO_MIME[extension] || 'video/mp4',
+    };
+  }
+
+  if (extension && AUDIO_EXTENSIONS.has(extension)) {
+    return {
+      kind: 'audio',
+      extension,
+      mimeType: rawType || null,
+    };
+  }
+
+  return {
+    kind: 'unsupported',
+    extension,
+    mimeType: rawType || null,
+  };
+}
+
+function getFileExtension(fileName: string) {
+  const cleanName = fileName.trim().toLowerCase();
+  if (!cleanName.includes('.')) {
+    return null;
+  }
+
+  const extension = cleanName.split('.').pop()?.trim() || '';
+  return extension || null;
+}
+
+function ensureExtensionInFileName(fileName: string, extension: string) {
+  const trimmed = fileName.trim();
+  if (!trimmed) {
+    return `media.${extension}`;
+  }
+
+  const lower = trimmed.toLowerCase();
+  if (lower.endsWith(`.${extension.toLowerCase()}`)) {
+    return trimmed;
+  }
+
+  const base = trimmed.replace(/\.[^/.]+$/, '');
+  return `${base || 'media'}.${extension}`;
 }

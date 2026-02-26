@@ -44,6 +44,7 @@ type GalleryItem = {
   external_id: string | null;
   type: string;
   created_at: string | null;
+  is_hidden: boolean;
   url: string;
 };
 
@@ -56,6 +57,7 @@ interface GalleryApiResponse {
 interface DeleteMediaApiResponse {
   success: boolean;
   action?: string;
+  is_hidden?: boolean;
   error?: string;
 }
 
@@ -1342,8 +1344,8 @@ export function MyInfoGalleryPage() {
     }
   };
 
-  const onHideItem = async (mediaId: string) => {
-    const actionKey = buildActionKey('hide', mediaId);
+  const onHideItem = async (item: GalleryItem) => {
+    const actionKey = buildActionKey('hide', item.id);
     setPendingActionKey(actionKey);
     setNotice(null);
 
@@ -1354,27 +1356,31 @@ export function MyInfoGalleryPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          media_id: mediaId,
-          action: 'hide',
+          media_id: item.id,
+          action: 'toggle_hidden',
+          is_hidden: !item.is_hidden,
         }),
       });
 
       const payload = (await response.json()) as DeleteMediaApiResponse;
 
       if (!response.ok || !payload.success) {
-        throw new Error(payload.error || 'Failed to hide gallery image.');
+        throw new Error(payload.error || 'Failed to update media visibility.');
       }
 
       setNotice({
         tone: 'success',
-        message: 'Image hidden from gallery.',
+        message:
+          payload.action === 'unhidden'
+            ? 'Media is now visible.'
+            : 'Media has been hidden.',
       });
       await loadGallery();
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
           ? caughtError.message
-          : 'Failed to hide gallery image.';
+          : 'Failed to update media visibility.';
       setNotice({
         tone: 'error',
         message,
@@ -1453,11 +1459,15 @@ export function MyInfoGalleryPage() {
         .map((item) => item.external_id as string),
     ],
   );
+  const visibleItems = items.filter((item) => !item.is_hidden);
   const totalGooglePhotos = googlePhotos.filter((item) => item.kind === 'photo').length;
   const totalGoogleVideos = googlePhotos.filter((item) => item.kind === 'video').length;
-  const totalGalleryItems = items.length;
-  const totalGalleryVideos = items.filter((item) => isVideoMimeType(item.type)).length;
+  const totalGalleryItems = visibleItems.length;
+  const totalGalleryVideos = visibleItems.filter((item) =>
+    isVideoMimeType(item.type),
+  ).length;
   const totalGalleryImages = Math.max(0, totalGalleryItems - totalGalleryVideos);
+  const totalHiddenItems = items.filter((item) => item.is_hidden).length;
 
   return (
     <section className="space-y-6">
@@ -1512,6 +1522,11 @@ export function MyInfoGalleryPage() {
           <p className="mt-4 text-xs text-[#6a7a87]">
             Use the top-right icons to view, download, hide, or delete quickly.
           </p>
+          {totalHiddenItems > 0 ? (
+            <p className="mt-1 text-xs font-medium text-[#6f4cf6]">
+              Hidden images: {totalHiddenItems}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -1669,11 +1684,15 @@ export function MyInfoGalleryPage() {
               const isDownloading = pendingActionKey === downloadKey;
               const actionsLocked = Boolean(pendingActionKey);
               const isVideo = isVideoMimeType(item.type);
+              const isHidden = item.is_hidden;
 
               return (
                 <article
                   key={item.id}
-                  className="group overflow-hidden rounded-2xl border border-[#d7e2e6] bg-[#f8fafb]"
+                  className={cx(
+                    'group overflow-hidden rounded-2xl border bg-[#f8fafb]',
+                    isHidden ? 'border-[#c6b8ff] opacity-65' : 'border-[#d7e2e6]',
+                  )}
                 >
                   <div className="relative h-24 w-full overflow-hidden">
                     {isVideo ? (
@@ -1694,6 +1713,11 @@ export function MyInfoGalleryPage() {
                       />
                     )}
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/55 to-transparent" />
+                    {isHidden ? (
+                      <span className="absolute left-2 top-2 rounded-md bg-[#6f4cf6cc] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                        Hidden
+                      </span>
+                    ) : null}
                     <div className="absolute right-2 top-2 flex items-center gap-1">
                       <MediaActionIconButton
                         title="View media"
@@ -1724,12 +1748,18 @@ export function MyInfoGalleryPage() {
                         {isDownloading ? <PurpleDotSpinner size="icon" /> : <DownloadIcon />}
                       </MediaActionIconButton>
                       <MediaActionIconButton
-                        title="Hide media"
-                        ariaLabel="Hide media"
-                        onClick={() => void onHideItem(item.id)}
+                        title={isHidden ? 'Unhide media' : 'Hide media'}
+                        ariaLabel={isHidden ? 'Unhide media' : 'Hide media'}
+                        onClick={() => void onHideItem(item)}
                         disabled={actionsLocked}
                       >
-                        {isHiding ? <PurpleDotSpinner size="icon" /> : <HiddenIcon />}
+                        {isHiding ? (
+                          <PurpleDotSpinner size="icon" />
+                        ) : isHidden ? (
+                          <ViewIcon />
+                        ) : (
+                          <HiddenIcon />
+                        )}
                       </MediaActionIconButton>
                       <MediaActionIconButton
                         title="Delete media"

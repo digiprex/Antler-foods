@@ -9,7 +9,8 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import type { ReviewConfig, Review } from '@/types/review.types';
 import { DEFAULT_REVIEW_CONFIG } from '@/types/review.types';
 import styles from '@/components/admin/gallery-settings-form.module.css';
@@ -41,14 +42,7 @@ export default function ReviewSettingsPage() {
     published_at: new Date().toISOString().split('T')[0],
   });
 
-  useEffect(() => {
-    if (restaurantId) {
-      fetchReviewConfig();
-      fetchReviews();
-    }
-  }, [restaurantId, pageId]);
-
-  const fetchReviewConfig = async () => {
+  const fetchReviewConfig = useCallback(async () => {
     setLoading(true);
     try {
       const url = `/api/review-config?restaurant_id=${restaurantId}${pageId ? `&page_id=${pageId}` : ''}`;
@@ -63,9 +57,9 @@ export default function ReviewSettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [restaurantId, pageId]);
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     if (!restaurantId) return;
 
     try {
@@ -79,7 +73,14 @@ export default function ReviewSettingsPage() {
     } catch (error) {
       console.error('Error fetching reviews:', error);
     }
-  };
+  }, [restaurantId]);
+
+  useEffect(() => {
+    if (restaurantId) {
+      fetchReviewConfig();
+      fetchReviews();
+    }
+  }, [restaurantId, pageId, fetchReviewConfig, fetchReviews]);
 
   const handleSave = async () => {
     if (!restaurantId) return;
@@ -325,7 +326,7 @@ export default function ReviewSettingsPage() {
                     </label>
                     <select
                       value={config.layout}
-                      onChange={(e) => setConfig({ ...config, layout: e.target.value as any })}
+                      onChange={(e) => setConfig({ ...config, layout: e.target.value as ReviewConfig['layout'] })}
                       className={styles.select}
                     >
                       <option value="grid">Grid - Card layout</option>
@@ -341,7 +342,7 @@ export default function ReviewSettingsPage() {
                     </label>
                     <select
                       value={config.columns}
-                      onChange={(e) => setConfig({ ...config, columns: Number(e.target.value) as any })}
+                      onChange={(e) => setConfig({ ...config, columns: Number(e.target.value) as ReviewConfig['columns'] })}
                       className={styles.select}
                     >
                       <option value="2">2 Columns</option>
@@ -566,7 +567,7 @@ export default function ReviewSettingsPage() {
                               WebkitBoxOrient: 'vertical',
                               overflow: 'hidden',
                             }}>
-                              "{review.review_text}"
+                              &ldquo;{review.review_text}&rdquo;
                             </p>
                           )}
 
@@ -579,9 +580,11 @@ export default function ReviewSettingsPage() {
                             borderTop: '1px solid #e5e7eb',
                           }}>
                             {review.avatar_url ? (
-                              <img
+                              <Image
                                 src={review.avatar_url}
                                 alt={review.author_name || 'User'}
+                                width={32}
+                                height={32}
                                 style={{
                                   width: '32px',
                                   height: '32px',
@@ -722,7 +725,7 @@ export default function ReviewSettingsPage() {
               <div className={styles.formGroup}>
                 <label className={styles.label}>
                   Author Name
-                  <span className={styles.labelHint}>Reviewer's name</span>
+                  <span className={styles.labelHint}>Reviewer&apos;s name</span>
                 </label>
                 <input
                   type="text"
@@ -788,9 +791,11 @@ export default function ReviewSettingsPage() {
                     borderRadius: '0.5rem',
                     border: '1px solid #e5e7eb'
                   }}>
-                    <img
+                    <Image
                       src={avatarPreview}
                       alt="Avatar preview"
+                      width={60}
+                      height={60}
                       style={{
                         width: '60px',
                         height: '60px',

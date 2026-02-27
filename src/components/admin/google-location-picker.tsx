@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState, memo } from 'react';
+import { useEffect, useRef, useState, memo, useCallback } from 'react';
 import type { LocationItem } from '@/types/location.types';
 
 interface GoogleLocationPickerProps {
@@ -21,7 +21,7 @@ interface GoogleLocationPickerProps {
 // Google Maps types
 declare global {
   interface Window {
-    google: any;
+    google: typeof google;
     initGoogleMaps: () => void;
     googleMapsLoaded?: boolean;
     googleMapsLoading?: boolean;
@@ -91,40 +91,58 @@ function GoogleLocationPicker({
 }: GoogleLocationPickerProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [map, setMap] = useState<any>(null);
-  const [marker, setMarker] = useState<any>(null);
-  const [autocomplete, setAutocomplete] = useState<any>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [marker, setMarker] = useState<google.maps.Marker | null>(null);
+  const [_autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const mapInitialized = useRef(false);
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-  // Load Google Maps script with caching
-  useEffect(() => {
-    if (!apiKey) {
-      setError('Google Maps API key not configured');
-      setIsLoading(false);
-      return;
-    }
+  // Reverse geocode coordinates to address
+  const reverseGeocode = useCallback(async (lat: number, lng: number) => {
+    if (!window.google) return;
 
-    if (mapInitialized.current) return;
+    const geocoder = new window.google.maps.Geocoder();
 
-    const loadAndInitMap = async () => {
-      try {
-        await loadGoogleMapsScript(apiKey);
-        initializeMap();
-      } catch (err) {
-        console.error('Failed to load Google Maps:', err);
-        setError('Failed to load Google Maps');
-        setIsLoading(false);
+    try {
+      const response = await geocoder.geocode({
+        location: { lat, lng },
+      });
+
+      if (response.results && response.results[0]) {
+        const place = response.results[0];
+        const addressComponents = place.address_components || [];
+        const updates: Partial<LocationItem> = {};
+
+        // Parse address components
+        addressComponents.forEach((component: google.maps.GeocoderAddressComponent) => {
+          const types = component.types;
+
+          if (types.includes('street_number')) {
+            updates.address = component.long_name;
+          } else if (types.includes('route')) {
+            updates.address = (updates.address || '') + ' ' + component.long_name;
+          } else if (types.includes('locality')) {
+            updates.city = component.long_name;
+          } else if (types.includes('administrative_area_level_1')) {
+            updates.state = component.short_name;
+          } else if (types.includes('postal_code')) {
+            updates.zipCode = component.long_name;
+          } else if (types.includes('country')) {
+            updates.country = component.long_name;
+          }
+        });
+
+        onLocationUpdate(updates);
       }
-    };
+    } catch (err) {
+      console.error('Reverse geocoding error:', err);
+    }
+  }, [onLocationUpdate]);
 
-    loadAndInitMap();
-  }, [apiKey]);
-
-  const initializeMap = () => {
+  const initializeMap = useCallback(() => {
     if (!window.google || !mapRef.current || mapInitialized.current) return;
 
     try {
@@ -160,17 +178,17 @@ function GoogleLocationPicker({
       setMarker(markerInstance);
 
       // Handle marker drag
-      markerInstance.addListener('dragend', (e: any) => {
-        const lat = e.latLng.lat();
-        const lng = e.latLng.lng();
+      markerInstance.addListener('dragend', (e: google.maps.MapMouseEvent) => {
+        const lat = e.latLng!.lat();
+        const lng = e.latLng!.lng();
         onLocationUpdate({ latitude: lat, longitude: lng });
         reverseGeocode(lat, lng);
       });
 
       // Handle map click
-      mapInstance.addListener('click', (e: any) => {
-        const lat = e.latLng.lat();
-        const lng = e.latLng.lng();
+      mapInstance.addListener('click', (e: google.maps.MapMouseEvent) => {
+        const lat = e.latLng!.lat();
+        const lng = e.latLng!.lng();
         markerInstance.setPosition({ lat, lng });
         onLocationUpdate({ latitude: lat, longitude: lng });
         reverseGeocode(lat, lng);
@@ -206,7 +224,7 @@ function GoogleLocationPicker({
           };
 
           // Parse address components
-          addressComponents.forEach((component: any) => {
+          addressComponents.forEach((component: google.maps.GeocoderAddressComponent) => {
             const types = component.types;
 
             if (types.includes('street_number')) {
@@ -245,49 +263,31 @@ function GoogleLocationPicker({
       setError('Failed to initialize map');
       setIsLoading(false);
     }
-  };
+  }, [location.latitude, location.longitude, location.name, onLocationUpdate, reverseGeocode]);
 
-  // Reverse geocode coordinates to address
-  const reverseGeocode = async (lat: number, lng: number) => {
-    if (!window.google) return;
-
-    const geocoder = new window.google.maps.Geocoder();
-
-    try {
-      const response = await geocoder.geocode({
-        location: { lat, lng },
-      });
-
-      if (response.results && response.results[0]) {
-        const place = response.results[0];
-        const addressComponents = place.address_components || [];
-        const updates: Partial<LocationItem> = {};
-
-        // Parse address components
-        addressComponents.forEach((component: any) => {
-          const types = component.types;
-
-          if (types.includes('street_number')) {
-            updates.address = component.long_name;
-          } else if (types.includes('route')) {
-            updates.address = (updates.address || '') + ' ' + component.long_name;
-          } else if (types.includes('locality')) {
-            updates.city = component.long_name;
-          } else if (types.includes('administrative_area_level_1')) {
-            updates.state = component.short_name;
-          } else if (types.includes('postal_code')) {
-            updates.zipCode = component.long_name;
-          } else if (types.includes('country')) {
-            updates.country = component.long_name;
-          }
-        });
-
-        onLocationUpdate(updates);
-      }
-    } catch (err) {
-      console.error('Reverse geocoding error:', err);
+  // Load Google Maps script with caching
+  useEffect(() => {
+    if (!apiKey) {
+      setError('Google Maps API key not configured');
+      setIsLoading(false);
+      return;
     }
-  };
+
+    if (mapInitialized.current) return;
+
+    const loadAndInitMap = async () => {
+      try {
+        await loadGoogleMapsScript(apiKey);
+        initializeMap();
+      } catch (err) {
+        console.error('Failed to load Google Maps:', err);
+        setError('Failed to load Google Maps');
+        setIsLoading(false);
+      }
+    };
+
+    loadAndInitMap();
+  }, [apiKey, initializeMap]);
 
   // Geocode address to coordinates
   const geocodeAddress = async () => {

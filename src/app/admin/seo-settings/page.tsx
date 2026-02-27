@@ -14,7 +14,8 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import styles from '@/components/admin/gallery-settings-form.module.css';
 import toast, { Toaster } from 'react-hot-toast';
@@ -35,13 +36,7 @@ export default function SEOSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [showImageGallery, setShowImageGallery] = useState(false);
 
-  useEffect(() => {
-    if (restaurantId && pageId) {
-      fetchPageSEO();
-    }
-  }, [restaurantId, pageId]);
-
-  const fetchPageSEO = async () => {
+  const fetchPageSEO = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`/api/web-pages/${pageId}`);
@@ -66,7 +61,13 @@ export default function SEOSettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pageId]);
+
+  useEffect(() => {
+    if (restaurantId && pageId) {
+      fetchPageSEO();
+    }
+  }, [restaurantId, pageId, fetchPageSEO]);
 
   const handleSave = async () => {
     if (!restaurantId || !pageId) return;
@@ -199,9 +200,11 @@ export default function SEOSettingsPage() {
                       <div className="space-y-3">
                         {ogImage && (
                           <div className="relative inline-block">
-                            <img
+                            <Image
                               src={ogImage}
                               alt="Social sharing preview"
+                              width={400}
+                              height={210}
                               className="w-full max-w-md h-auto rounded-lg border border-gray-300"
                             />
                             <button
@@ -242,9 +245,11 @@ export default function SEOSettingsPage() {
                           {/* Image Section */}
                           <div className="aspect-[1.91/1] bg-gray-100 flex items-center justify-center">
                             {ogImage ? (
-                              <img
+                              <Image
                                 src={ogImage}
                                 alt="Social sharing preview"
+                                width={1200}
+                                height={630}
                                 className="w-full h-full object-cover"
                               />
                             ) : (

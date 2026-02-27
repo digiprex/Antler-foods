@@ -11,17 +11,34 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import Toast from '@/components/ui/toast';
 import styles from './hero-settings-form.module.css';
 import galleryStyles from './gallery-settings-form.module.css';
+
+interface FormField {
+  field_id: string;
+  label: string;
+  type: string;
+  required?: boolean;
+  options?: string[];
+}
 
 interface Form {
   form_id: string;
   title: string;
   email: string;
-  fields: any[];
+  fields: FormField[];
   created_at: string;
+}
+
+interface MediaFile {
+  id: string;
+  file?: {
+    url: string;
+    name?: string;
+  };
 }
 
 interface FormSettingsConfig {
@@ -73,7 +90,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
   
   // Image gallery state
   const [showImageGallery, setShowImageGallery] = useState(false);
-  const [availableImages, setAvailableImages] = useState<any[]>([]);
+  const [availableImages, setAvailableImages] = useState<MediaFile[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   // Layout options with descriptions
@@ -177,10 +194,10 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
         const data = await response.json();
 
         if (data.success && data.data) {
-          setConfig({
-            ...config,
+          setConfig(prev => ({
+            ...prev,
             ...data.data,
-          });
+          }));
         }
       } catch (error) {
         console.error('Error loading form settings:', error);
@@ -280,7 +297,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
   };
 
   // Fetch available images
-  const fetchAvailableImages = async () => {
+  const fetchAvailableImages = useCallback(async () => {
     try {
       const response = await fetch(`/api/media?restaurant_id=${restaurantId}`);
       const data = await response.json();
@@ -291,14 +308,14 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
     } catch (error) {
       console.error('Error fetching images:', error);
     }
-  };
+  }, [restaurantId]);
 
   // Load images when gallery is opened
   useEffect(() => {
     if (showImageGallery && availableImages.length === 0) {
       fetchAvailableImages();
     }
-  }, [showImageGallery]);
+  }, [showImageGallery, availableImages.length, fetchAvailableImages]);
 
   if (loadingForms) {
     return (
@@ -564,9 +581,11 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                           position: 'relative',
                           maxWidth: '300px'
                         }}>
-                          <img
+                          <Image
                             src={config.imageUrl}
                             alt="Selected form image"
+                            width={300}
+                            height={150}
                             style={{
                               width: '100%',
                               height: '150px',
@@ -825,12 +844,11 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                           overflow: 'hidden'
                         }}>
                           {config.imageUrl ? (
-                            <img
+                            <Image
                               src={config.imageUrl}
                               alt="Form image"
+                              fill
                               style={{
-                                width: '100%',
-                                height: '100%',
                                 objectFit: 'cover'
                               }}
                             />
@@ -851,15 +869,15 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                           justifyContent: 'center',
                           minHeight: '200px',
                           fontSize: '3rem',
-                          overflow: 'hidden'
+                          overflow: 'hidden',
+                          position: 'relative'
                         }}>
                           {config.imageUrl ? (
-                            <img
+                            <Image
                               src={config.imageUrl}
                               alt="Form image"
+                              fill
                               style={{
-                                width: '100%',
-                                height: '100%',
                                 objectFit: 'cover'
                               }}
                             />
@@ -943,15 +961,15 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                           minHeight: '120px',
                           fontSize: '3rem',
                           marginBottom: '1.5rem',
-                          overflow: 'hidden'
+                          overflow: 'hidden',
+                          position: 'relative'
                         }}>
                           {config.imageUrl ? (
-                            <img
+                            <Image
                               src={config.imageUrl}
                               alt="Form image"
+                              fill
                               style={{
-                                width: '100%',
-                                height: '100%',
                                 objectFit: 'cover',
                                 minHeight: '120px'
                               }}
@@ -1389,9 +1407,11 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                       className={`${galleryStyles.mediaItem} ${config.imageUrl === (media.file?.url || media.url) ? galleryStyles.selected : ''}`}
                     >
                       {(media.file?.url || media.url) ? (
-                        <img
+                        <Image
                           src={media.file?.url || media.url}
                           alt={media.file?.name || media.name || 'Image'}
+                          width={150}
+                          height={150}
                           className={galleryStyles.mediaImage}
                           onError={(e) => {
                             console.error('Image failed to load:', media.file?.url || media.url);

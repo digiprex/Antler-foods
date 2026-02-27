@@ -198,7 +198,7 @@ export default function NavbarSettingsForm() {
                 </label>
                 <select
                   value={layout}
-                  onChange={(e) => setLayout(e.target.value as any)}
+                  onChange={(e) => setLayout(e.target.value as NavbarConfig['layout'])}
                   className={styles.select}
                 >
                   <option value="default">Default - Standard Navigation</option>
@@ -222,7 +222,7 @@ export default function NavbarSettingsForm() {
                       type="radio"
                       value="absolute"
                       checked={position === 'absolute'}
-                      onChange={(e) => setPosition(e.target.value as any)}
+                      onChange={(e) => setPosition(e.target.value as NavbarConfig['position'])}
                       className={styles.radioInput}
                     />
                     <span className={styles.radioButton}></span>
@@ -236,7 +236,7 @@ export default function NavbarSettingsForm() {
                       type="radio"
                       value="fixed"
                       checked={position === 'fixed'}
-                      onChange={(e) => setPosition(e.target.value as any)}
+                      onChange={(e) => setPosition(e.target.value as NavbarConfig['position'])}
                       className={styles.radioInput}
                     />
                     <span className={styles.radioButton}></span>

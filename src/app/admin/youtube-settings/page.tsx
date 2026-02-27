@@ -7,15 +7,14 @@
 
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { YouTubeConfig } from '@/types/youtube.types';
 import { DEFAULT_YOUTUBE_CONFIG } from '@/types/youtube.types';
 import styles from '@/components/admin/gallery-settings-form.module.css';
 
 export default function YouTubeSettingsPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
@@ -26,13 +25,7 @@ export default function YouTubeSettingsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  useEffect(() => {
-    if (restaurantId) {
-      fetchYouTubeConfig();
-    }
-  }, [restaurantId]);
-
-  const fetchYouTubeConfig = async () => {
+  const fetchYouTubeConfig = useCallback(async () => {
     setLoading(true);
     try {
       const url = `/api/youtube-config?restaurant_id=${restaurantId}`;
@@ -47,7 +40,13 @@ export default function YouTubeSettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [restaurantId]);
+
+  useEffect(() => {
+    if (restaurantId) {
+      fetchYouTubeConfig();
+    }
+  }, [restaurantId, fetchYouTubeConfig]);
 
   const handleSave = async () => {
     if (!restaurantId) return;
@@ -194,7 +193,7 @@ export default function YouTubeSettingsPage() {
                     </label>
                     <select
                       value={config.layout || 'default'}
-                      onChange={(e) => setConfig({ ...config, layout: e.target.value as any })}
+                      onChange={(e) => setConfig({ ...config, layout: e.target.value as YouTubeConfig['layout'] })}
                       className={styles.select}
                     >
                       <option value="default">Default (Centered)</option>
@@ -348,7 +347,7 @@ export default function YouTubeSettingsPage() {
                     </label>
                     <select
                       value={config.aspectRatio || '16:9'}
-                      onChange={(e) => setConfig({ ...config, aspectRatio: e.target.value as any })}
+                      onChange={(e) => setConfig({ ...config, aspectRatio: e.target.value as YouTubeConfig['aspectRatio'] })}
                       className={styles.select}
                     >
                       <option value="16:9">16:9 (Standard)</option>

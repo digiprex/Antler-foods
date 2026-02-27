@@ -35,8 +35,6 @@ export default function PageSettingsSelector() {
   const pageNameParam = searchParams.get('page_name');
   const [sectionConfigs, setSectionConfigs] = useState<Map<string, unknown>>(new Map());
   const [allTemplates, setAllTemplates] = useState<Array<{ template_id: string; name: string; category: string; config?: unknown; order_index?: number; section?: unknown }>>([]);
-  const [existingSections, setExistingSections] = useState<Set<string>>(new Set());
-  const [sectionTemplates, setSectionTemplates] = useState<Map<string, unknown>>(new Map());
   const [loading, setLoading] = useState(true);
   const [isHomePage, setIsHomePage] = useState<boolean>(false);
   const [showAddSectionModal, setShowAddSectionModal] = useState(false);
@@ -414,9 +412,8 @@ export default function PageSettingsSelector() {
                 });
                 console.log(`✓ Added section: ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
 
-                // Store the template config and full template data
+                // Store the template config
                 setSectionConfigs(prev => new Map(prev.set(`${template.template_id}`, template.config)));
-                setSectionTemplates(prev => new Map(prev.set(`${template.template_id}`, template)));
               } else {
                 console.log(`✗ Skipped section (disabled): ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
               }
@@ -434,7 +431,6 @@ export default function PageSettingsSelector() {
         console.error('Error fetching templates:', err);
       }
 
-      setExistingSections(existing);
       setAllTemplates(templates);
     } catch (error) {
       console.error('Error fetching page and sections:', error);

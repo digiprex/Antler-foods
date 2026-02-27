@@ -18,7 +18,7 @@
 import { useState, useEffect } from 'react';
 import { useNavbarConfig, useUpdateNavbarConfig } from '@/hooks/use-navbar-config';
 import Navbar from '@/components/navbar';
-import type { NavItem, CTAButton } from '@/types/navbar.types';
+import type { NavItem } from '@/types/navbar.types';
 
 export default function NavbarAdmin() {
   const { config, loading, error: fetchError, refetch } = useNavbarConfig();
@@ -41,8 +41,8 @@ export default function NavbarAdmin() {
       setRestaurantName(config.restaurantName);
       setLogoUrl(config.logoUrl || '');
       setLeftNavItems(config.leftNavItems);
-      setCtaLabel(config.ctaButton.label);
-      setCtaHref(config.ctaButton.href);
+      setCtaLabel(config.ctaButton?.label || '');
+      setCtaHref(config.ctaButton?.href || '');
       setBgColor(config.bgColor || '#ffffff');
       setTextColor(config.textColor || '#000000');
       setButtonBgColor(config.buttonBgColor || '#000000');
@@ -251,7 +251,7 @@ export default function NavbarAdmin() {
           {/* CTA Button */}
           <section style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
-              CTA Button (e.g., "Order Online")
+              CTA Button (e.g., &quot;Order Online&quot;)
             </h2>
 
             <div style={{ marginBottom: '1rem' }}>

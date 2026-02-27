@@ -1,6 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
+
+interface MediaFile {
+  id: string;
+  file?: {
+    url: string;
+    name?: string;
+  };
+}
 
 interface ImageGalleryModalProps {
   isOpen: boolean;
@@ -19,17 +28,11 @@ export function ImageGalleryModal({
   title = 'Select Image',
   description = 'Choose an image from your media library or upload new',
 }: ImageGalleryModalProps) {
-  const [mediaFiles, setMediaFiles] = useState<any[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && restaurantId) {
-      fetchMediaFiles();
-    }
-  }, [isOpen, restaurantId]);
-
-  const fetchMediaFiles = async () => {
+  const fetchMediaFiles = useCallback(async () => {
     if (!restaurantId) return;
 
     setLoadingMedia(true);
@@ -45,7 +48,13 @@ export function ImageGalleryModal({
     } finally {
       setLoadingMedia(false);
     }
-  };
+  }, [restaurantId]);
+
+  useEffect(() => {
+    if (isOpen && restaurantId) {
+      fetchMediaFiles();
+    }
+  }, [isOpen, restaurantId, fetchMediaFiles]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -164,10 +173,11 @@ export function ImageGalleryModal({
                   onClick={() => handleSelectImage(media.file?.url || '')}
                   className="relative cursor-pointer group aspect-video rounded-lg overflow-hidden border-2 border-[#d4e0e6] hover:border-[#667eea] transition-all duration-200 hover:shadow-lg"
                 >
-                  <img
-                    src={media.file?.url}
+                  <Image
+                    src={media.file?.url || ''}
                     alt={media.file?.name || 'Image'}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    fill
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200" />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">

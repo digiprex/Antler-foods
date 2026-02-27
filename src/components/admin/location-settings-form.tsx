@@ -17,8 +17,6 @@ import type { LocationConfig } from '@/types/location.types';
 import { DEFAULT_LOCATION_CONFIG } from '@/types/location.types';
 import styles from './location-settings-form.module.css';
 
-// Dynamically import Google Location Picker to avoid SSR issues
-const GoogleLocationPicker = dynamic(() => import('./google-location-picker'), { ssr: false });
 
 interface LocationSettingsFormProps {
   restaurantId: string;
@@ -55,7 +53,6 @@ export default function LocationSettingsForm({ restaurantId, pageId }: LocationS
   const [config, setConfig] = useState<LocationConfig>(DEFAULT_LOCATION_CONFIG);
   const [placeDetails, setPlaceDetails] = useState<PlaceDetails | null>(null);
   const [googlePlaceId, setGooglePlaceId] = useState<string>('');
-  const [loadingPlace, setLoadingPlace] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // Toast state

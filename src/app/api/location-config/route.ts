@@ -96,6 +96,24 @@ async function graphqlRequest<T>(query: string, variables?: Record<string, unkno
   return adminGraphqlRequest<T>(query, variables);
 }
 
+interface LocationConfigResponse {
+  templates?: Array<{
+    category: string;
+    config: Record<string, unknown>;
+    created_at: string;
+    is_deleted: boolean;
+    name: string;
+    restaurant_id: string;
+    template_id: string;
+    page_id: string;
+    updated_at: string;
+  }>;
+  restaurants?: Array<{
+    google_place_id?: string;
+    restaurant_id: string;
+  }>;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -111,7 +129,7 @@ export async function GET(request: NextRequest) {
 
     console.log('[Location Config] Using restaurant_id:', restaurantId, 'page_id:', pageId);
 
-    const data = await graphqlRequest(GET_LOCATION_CONFIG, {
+    const data = await graphqlRequest<LocationConfigResponse>(GET_LOCATION_CONFIG, {
       restaurant_id: restaurantId,
       page_id: pageId,
     });

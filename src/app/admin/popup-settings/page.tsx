@@ -9,10 +9,20 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import type { PopupConfig } from '@/types/popup.types';
 import { DEFAULT_POPUP_CONFIG } from '@/types/popup.types';
 import styles from '@/components/admin/gallery-settings-form.module.css';
+
+interface MediaFile {
+  id: string;
+  type?: string;
+  file?: {
+    url: string;
+    name?: string;
+  };
+}
 
 export default function PopupSettingsPage() {
   const router = useRouter();
@@ -25,31 +35,12 @@ export default function PopupSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showMediaModal, setShowMediaModal] = useState(false);
-  const [mediaFiles, setMediaFiles] = useState<any[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [showPreview, setShowPreview] = useState(false);
 
-  useEffect(() => {
-    if (restaurantId) {
-      fetchPopupConfig();
-    }
-  }, [restaurantId]);
-
-  // Auto-enable submit button for newsletter layouts
-  useEffect(() => {
-    const isNewsletterLayout = config.layout === 'newsletter-image' || config.layout === 'newsletter-text';
-    if (isNewsletterLayout) {
-      setConfig(prevConfig => ({
-        ...prevConfig,
-        showButton: true,
-        buttonText: prevConfig.buttonText === 'View Menu' || !prevConfig.buttonText ? 'Submit' : prevConfig.buttonText
-      }));
-    }
-  }, [config.layout]);
-
-  const fetchPopupConfig = async () => {
+  const fetchPopupConfig = useCallback(async () => {
     setLoading(true);
     try {
       const url = `/api/popup-config?restaurant_id=${restaurantId}`;
@@ -64,7 +55,25 @@ export default function PopupSettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [restaurantId]);
+
+  useEffect(() => {
+    if (restaurantId) {
+      fetchPopupConfig();
+    }
+  }, [restaurantId, fetchPopupConfig]);
+
+  // Auto-enable submit button for newsletter layouts
+  useEffect(() => {
+    const isNewsletterLayout = config.layout === 'newsletter-image' || config.layout === 'newsletter-text';
+    if (isNewsletterLayout) {
+      setConfig(prevConfig => ({
+        ...prevConfig,
+        showButton: true,
+        buttonText: prevConfig.buttonText === 'View Menu' || !prevConfig.buttonText ? 'Submit' : prevConfig.buttonText
+      }));
+    }
+  }, [config.layout]);
 
   const fetchMediaFiles = async () => {
     if (!restaurantId) return;
@@ -96,7 +105,7 @@ export default function PopupSettingsPage() {
     setShowMediaModal(false);
   };
 
-  const selectMedia = (media: any) => {
+  const selectMedia = (media: MediaFile) => {
     setConfig({
       ...config,
       imageUrl: media.file?.url || '',
@@ -107,8 +116,6 @@ export default function PopupSettingsPage() {
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0 || !restaurantId) return;
-
-    setUploading(true);
 
     try {
       for (let i = 0; i < files.length; i++) {
@@ -143,8 +150,6 @@ export default function PopupSettingsPage() {
       }, 1000);
     } catch (error) {
       console.error('Error uploading files:', error);
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -178,10 +183,6 @@ export default function PopupSettingsPage() {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleBack = () => {
-    router.push('/admin/dashboard');
   };
 
   const renderPopupContent = () => {
@@ -223,9 +224,11 @@ export default function PopupSettingsPage() {
         <>
           {config.imageUrl && (
             <div style={{ marginBottom: '1.5rem' }}>
-              <img
+              <Image
                 src={config.imageUrl}
                 alt={config.title || 'Popup'}
+                width={500}
+                height={300}
                 style={{
                   width: '100%',
                   height: 'auto',
@@ -259,9 +262,11 @@ export default function PopupSettingsPage() {
         <div style={{ display: 'flex', flexDirection: 'row', gap: '2rem', padding: '2rem' }}>
           {config.imageUrl && (
             <div style={{ flex: '0 0 40%' }}>
-              <img
+              <Image
                 src={config.imageUrl}
                 alt={config.title || 'Popup'}
+                width={200}
+                height={250}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -295,9 +300,11 @@ export default function PopupSettingsPage() {
         <div style={{ display: 'flex', flexDirection: 'row-reverse', gap: '2rem', padding: '2rem' }}>
           {config.imageUrl && (
             <div style={{ flex: '0 0 40%' }}>
-              <img
+              <Image
                 src={config.imageUrl}
                 alt={config.title || 'Popup'}
+                width={200}
+                height={250}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -370,9 +377,11 @@ export default function PopupSettingsPage() {
       return (
         <div style={{ padding: 0 }}>
           {config.imageUrl && (
-            <img
+            <Image
               src={config.imageUrl}
               alt={config.title || 'Popup'}
+              width={500}
+              height={500}
               style={{
                 width: '100%',
                 height: 'auto',
@@ -392,9 +401,11 @@ export default function PopupSettingsPage() {
         <div style={{ padding: '2rem' }}>
           {config.imageUrl && (
             <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
-              <img
+              <Image
                 src={config.imageUrl}
                 alt={config.title || 'Popup'}
+                width={120}
+                height={120}
                 style={{
                   width: '120px',
                   height: '120px',
@@ -572,7 +583,7 @@ export default function PopupSettingsPage() {
                     </label>
                     <select
                       value={config.frequency}
-                      onChange={(e) => setConfig({ ...config, frequency: e.target.value as any })}
+                      onChange={(e) => setConfig({ ...config, frequency: e.target.value as PopupConfig['frequency'] })}
                       className={styles.select}
                     >
                       <option value="always">Always</option>
@@ -589,7 +600,7 @@ export default function PopupSettingsPage() {
                     </label>
                     <select
                       value={config.layout || 'default'}
-                      onChange={(e) => setConfig({ ...config, layout: e.target.value as any })}
+                      onChange={(e) => setConfig({ ...config, layout: e.target.value as PopupConfig['layout'] })}
                       className={styles.select}
                     >
                       <option value="default">Default (Image Top)</option>
@@ -699,9 +710,11 @@ export default function PopupSettingsPage() {
                         borderRadius: '0.5rem',
                         border: '1px solid #e5e7eb'
                       }}>
-                        <img
+                        <Image
                           src={config.imageUrl}
                           alt="Popup preview"
+                          width={300}
+                          height={200}
                           style={{
                             width: '100%',
                             height: 'auto',
@@ -902,9 +915,11 @@ export default function PopupSettingsPage() {
                       style={{ cursor: 'pointer' }}
                     >
                       {media.file?.url ? (
-                        <img
+                        <Image
                           src={media.file.url}
                           alt={media.file.name || 'Image'}
+                          width={150}
+                          height={150}
                           className={styles.mediaImage}
                         />
                       ) : (

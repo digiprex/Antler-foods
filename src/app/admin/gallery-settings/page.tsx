@@ -595,19 +595,19 @@ export default function GallerySettingsPage() {
                             height={150}
                             className={styles.mediaImage}
                             onError={(e) => {
-                              console.error('[Gallery Settings] Image failed to load:', (media as unknown).file.url);
+                              console.error('[Gallery Settings] Image failed to load:', (media as MediaFile).file?.url);
                               const target = e.target as HTMLImageElement;
 
                               // Try alternative URLs if available
-                              if ((media as { file: { url: string; name?: string; urlWithAuth?: string; directUrl?: string } }).file.urlWithAuth && target.src !== (media as unknown).file.urlWithAuth) {
-                                console.log('[Gallery Settings] Trying URL with auth:', (media as unknown).file.urlWithAuth);
-                                target.src = (media as unknown).file.urlWithAuth;
+                              if ((media as MediaFile).file?.urlWithAuth && target.src !== (media as MediaFile).file?.urlWithAuth) {
+                                console.log('[Gallery Settings] Trying URL with auth:', (media as MediaFile).file?.urlWithAuth);
+                                target.src = (media as MediaFile).file?.urlWithAuth || '';
                                 return;
                               }
 
-                              if ((media as unknown).file.directUrl && target.src !== (media as unknown).file.directUrl) {
-                                console.log('[Gallery Settings] Trying direct URL:', (media as unknown).file.directUrl);
-                                target.src = (media as unknown).file.directUrl;
+                              if ((media as MediaFile).file?.directUrl && target.src !== (media as MediaFile).file?.directUrl) {
+                                console.log('[Gallery Settings] Trying direct URL:', (media as MediaFile).file?.directUrl);
+                                target.src = (media as MediaFile).file?.directUrl || '';
                                 return;
                               }
 
@@ -632,13 +632,13 @@ export default function GallerySettingsPage() {
                                 errorDiv.innerHTML = `
                                   <div>🖼️</div>
                                   <div>Failed to load</div>
-                                  <div style="font-size: 0.6rem; opacity: 0.7;">${(media as unknown).file.name || 'Unknown'}</div>
+                                  <div style="font-size: 0.6rem; opacity: 0.7;">${(media as MediaFile).file?.name || 'Unknown'}</div>
                                 `;
                                 parent.appendChild(errorDiv);
                               }
                             }}
                             onLoad={() => {
-                              console.log('[Gallery Settings] Image loaded successfully:', (media as unknown).file.url);
+                              console.log('[Gallery Settings] Image loaded successfully:', (media as MediaFile).file?.url);
                             }}
                           />
                         ) : (

@@ -14,6 +14,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Hero from '@/components/hero';
 import Toast from '@/components/ui/toast';
 import { ImageGalleryModal } from './image-gallery-modal';
@@ -50,6 +51,7 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
   // Get restaurant ID and other params from URL
   const searchParams = new URLSearchParams(window.location.search);
   const restaurantId = searchParams.get('restaurant_id') || '';
+  const restaurantName = searchParams.get('restaurant_name') || '';
 
   // Layout options
   const layoutOptions = [
@@ -104,7 +106,7 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
     if (!formConfig) return;
 
     try {
-      const payload: any = {
+      const payload: HeroConfig & { restaurant_id: string; page_id?: string; new_section?: boolean } = {
         ...formConfig,
         restaurant_id: restaurantId,
       };
@@ -459,7 +461,7 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
                     <div
                       key={option.value}
                       className={`${styles.layoutOption} ${formConfig.layout === option.value ? styles.selected : ''}`}
-                      onClick={() => updateConfig({ layout: option.value as any })}
+                      onClick={() => updateConfig({ layout: option.value as HeroConfig['layout'] })}
                     >
                       <div className={styles.layoutPreview}>
                         {renderLayoutPreview(option.value)}
@@ -589,7 +591,7 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
                     </label>
                     <select
                       value={formConfig.primaryButton.variant || 'primary'}
-                      onChange={(e) => updatePrimaryButton({ variant: e.target.value as any })}
+                      onChange={(e) => updatePrimaryButton({ variant: e.target.value as HeroButton['variant'] })}
                       className={styles.select}
                     >
                       <option value="primary">Primary</option>
@@ -660,7 +662,7 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
                     </label>
                     <select
                       value={formConfig.secondaryButton.variant || 'outline'}
-                      onChange={(e) => updateSecondaryButton({ variant: e.target.value as any })}
+                      onChange={(e) => updateSecondaryButton({ variant: e.target.value as HeroButton['variant'] })}
                       className={styles.select}
                     >
                       <option value="primary">Primary</option>
@@ -695,10 +697,12 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
                           <div className={styles.mediaUploadContainer}>
                             {formConfig.image?.url ? (
                               <div className={styles.mediaPreview}>
-                                <img
+                                <Image
                                   src={formConfig.image.url}
                                   alt={formConfig.image.alt || 'Hero image'}
                                   className={styles.mediaPreviewImage}
+                                  width={300}
+                                  height={200}
                                 />
                                 <div className={styles.mediaActions}>
                                   <button
@@ -809,10 +813,12 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
                         <div className={styles.mediaUploadContainer}>
                           {formConfig.backgroundImage ? (
                             <div className={styles.mediaPreview}>
-                              <img
+                              <Image
                                 src={formConfig.backgroundImage}
                                 alt="Background"
                                 className={styles.mediaPreviewImage}
+                                width={300}
+                                height={200}
                               />
                               <div className={styles.mediaActions}>
                                 <button
@@ -924,7 +930,7 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
                 </label>
                 <select
                   value={formConfig.textAlign || 'center'}
-                  onChange={(e) => updateConfig({ textAlign: e.target.value as any })}
+                  onChange={(e) => updateConfig({ textAlign: e.target.value as HeroConfig['textAlign'] })}
                   className={styles.select}
                 >
                   <option value="left">Left</option>

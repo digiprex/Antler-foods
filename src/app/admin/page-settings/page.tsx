@@ -13,7 +13,6 @@ export default function PageSettingsSelector() {
   const pageNameParam = searchParams.get('page_name');
   const [existingSections, setExistingSections] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [pageName, setPageName] = useState<string>(pageNameParam || '');
   const [isHomePage, setIsHomePage] = useState<boolean>(false);
 
   const buildParams = () => {
@@ -21,7 +20,7 @@ export default function PageSettingsSelector() {
     if (restaurantId) params.set('restaurant_id', restaurantId);
     if (restaurantName) params.set('restaurant_name', restaurantName);
     if (pageId) params.set('page_id', pageId);
-    if (pageName) params.set('page_name', pageName);
+    if (pageNameParam) params.set('page_name', pageNameParam);
     return params.toString();
   };
 
@@ -72,14 +71,14 @@ export default function PageSettingsSelector() {
     },
     {
       name: 'Scrolling Text',
-      category: 'Scrolling Text',
+      category: 'ScrollingText',
       description: 'Configure scrolling text banner for this page',
       route: '/admin/scrolling-text-settings',
       layouts: ['Horizontal Scroll', 'Vertical Scroll']
     },
     {
       name: 'Custom Code',
-      category: 'Custom Code',
+      category: 'CustomCode',
       description: 'Add custom HTML/CSS/JS or iframe embed for this page',
       route: '/admin/custom-code-settings',
       layouts: ['HTML/CSS/JS', 'iframe Embed']
@@ -104,7 +103,7 @@ export default function PageSettingsSelector() {
       description: 'Configure meta title, description and social sharing image',
       route: '/admin/seo-settings',
       layouts: ['Meta Tags', 'Social Sharing', 'Open Graph']
-    },
+    }
   ];
 
   useEffect(() => {
@@ -117,43 +116,14 @@ export default function PageSettingsSelector() {
       try {
         setLoading(true);
 
-        // Fetch page details to get page name (only if not in URL params)
-        if (!pageNameParam) {
-          try {
-            const pageResponse = await fetch(
-              `/api/web-pages?restaurant_id=${restaurantId}`
-            );
-            const pageData = await pageResponse.json();
-
-            if (pageData.success && pageData.data) {
-              const currentPage = pageData.data.find((page: any) => page.page_id === pageId);
-              if (currentPage) {
-                setPageName(currentPage.page_name || currentPage.url_slug || 'Unknown Page');
-                // Check if this is the home page (url_slug is empty or '/')
-                setIsHomePage(!currentPage.url_slug || currentPage.url_slug === '/' || currentPage.url_slug === '');
-              }
-            }
-          } catch (err) {
-            console.error('Error fetching page details:', err);
-          }
-        } else {
-          // Check if it's home page by fetching page details
-          try {
-            const pageResponse = await fetch(
-              `/api/web-pages?restaurant_id=${restaurantId}`
-            );
-            const pageData = await pageResponse.json();
-
-            if (pageData.success && pageData.data) {
-              const currentPage = pageData.data.find((page: any) => page.page_id === pageId);
-              if (currentPage) {
-                // Check if this is the home page (url_slug is empty or '/')
-                setIsHomePage(!currentPage.url_slug || currentPage.url_slug === '/' || currentPage.url_slug === '');
-              }
-            }
-          } catch (err) {
-            console.error('Error fetching page details:', err);
-          }
+        // Set page name from URL param or default
+        if (pageNameParam) {
+          // Check if it's the home page based on URL slug pattern
+          // Home page typically has empty slug, '/', or 'home'
+          const isHome = pageNameParam.toLowerCase() === 'home' ||
+                        pageNameParam === '/' ||
+                        pageNameParam === '';
+          setIsHomePage(isHome);
         }
 
         const existing = new Set<string>();
@@ -166,14 +136,51 @@ export default function PageSettingsSelector() {
           const templatesData = await templatesResponse.json();
 
           if (templatesData.success && templatesData.data) {
+            console.log('Fetched templates:', templatesData.data.length);
+            console.log('Available section categories:', sectionsData.map(s => s.category));
+
             // Map template categories to section names
             templatesData.data.forEach((template: any) => {
-              // Find matching section by category
-              const section = sectionsData.find(s => s.category === template.category);
-              if (section && template.config?.enabled !== false) {
-                existing.add(section.name);
+              console.log('Processing template:', {
+                category: template.category,
+                name: template.name,
+                config: template.config,
+                enabled: template.config?.enabled,
+                isEnabled: template.config?.isEnabled
+              });
+
+              // Find matching section by category (case-insensitive match)
+              const section = sectionsData.find(s =>
+                s.category.toLowerCase() === template.category.toLowerCase()
+              );
+              
+              if (section) {
+                console.log(`Found matching section: ${section.name} for category: ${template.category}`);
+                
+                // Check both 'enabled' and 'isEnabled' fields (different sections use different field names)
+                // If neither field exists, or if either is not explicitly false, consider it added
+                const enabled = template.config?.enabled;
+                const isEnabled = template.config?.isEnabled;
+
+                // Show section as added if:
+                // 1. No enabled field exists (template exists but no enable/disable functionality)
+                // 2. enabled or isEnabled is explicitly true
+                // 3. enabled or isEnabled is undefined (not set yet, but template exists)
+                // Only hide if explicitly set to false
+                if (enabled !== false && isEnabled !== false) {
+                  existing.add(section.name);
+                  console.log(`✓ Added section: ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
+                } else {
+                  console.log(`✗ Skipped section (disabled): ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
+                }
+              } else {
+                console.log(`✗ No matching section found for category: "${template.category}"`);
+                console.log('Available categories:', sectionsData.map(s => `"${s.category}"`));
               }
             });
+
+            console.log('Total sections added:', existing.size);
+            console.log('Added sections:', Array.from(existing));
           }
         } catch (err) {
           console.error('Error fetching templates:', err);
@@ -220,7 +227,7 @@ export default function PageSettingsSelector() {
 
           <div className="flex justify-between items-center gap-3 mb-2">
             <h1 className="text-3xl font-bold">
-              {pageName ? `Edit ${pageName}` : 'Edit Page Settings'}
+              {pageNameParam ? `Edit ${pageNameParam}` : 'Edit Page Settings'}
             </h1>
             {isHomePage && (
               <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded-full">
@@ -263,45 +270,6 @@ export default function PageSettingsSelector() {
                           <span
                             key={layoutIdx}
                             className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded"
-                          >
-                            {layout}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Available Sections */}
-            {availableSectionsData.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                  {existingSectionsData.length > 0 ? 'Available Sections' : 'Add Sections to Your Page'}
-                </h2>
-                {existingSectionsData.length === 0 && (
-                  <p className="text-gray-600 mb-6">
-                    Click on any section below to add and configure it for your page.
-                  </p>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {availableSectionsData.map((section, idx) => (
-                    <div
-                      key={idx}
-                      className="p-5 bg-white border border-gray-200 rounded-lg shadow hover:shadow-md hover:border-blue-400 transition-all cursor-pointer group"
-                      onClick={() => router.push(`${section.route}?${paramsString}`)}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{section.name}</div>
-                      </div>
-                      <div className="text-sm text-gray-600 mb-3">{section.description}</div>
-                      <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100">
-                        <span className="text-xs font-medium text-gray-500">Layouts:</span>
-                        {section.layouts.map((layout, layoutIdx) => (
-                          <span
-                            key={layoutIdx}
-                            className="text-xs px-2 py-1 bg-gray-50 text-gray-700 rounded"
                           >
                             {layout}
                           </span>

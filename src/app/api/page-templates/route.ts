@@ -3,6 +3,7 @@
  *
  * Fetches all templates associated with a page
  * GET /api/page-templates - Get all templates for a page
+ * PATCH /api/page-templates - Update template order
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -19,14 +20,27 @@ const GET_PAGE_TEMPLATES = `
         page_id: { _eq: $page_id }
         is_deleted: { _eq: false }
       }
-      order_by: { created_at: desc }
+      order_by: { order_index: asc_nulls_last, created_at: desc }
     ) {
       template_id
       category
       name
       config
+      order_index
       created_at
       updated_at
+    }
+  }
+`;
+
+const UPDATE_TEMPLATE_ORDER = `
+  mutation UpdateTemplateOrder($template_id: uuid!, $order_index: Int!) {
+    update_templates_by_pk(
+      pk_columns: { template_id: $template_id }
+      _set: { order_index: $order_index }
+    ) {
+      template_id
+      order_index
     }
   }
 `;
@@ -67,6 +81,46 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Page Templates API GET error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - Update template order
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { template_id, order_index } = body;
+
+    if (!template_id) {
+      return NextResponse.json(
+        { success: false, error: 'Template ID is required' },
+        { status: 400 }
+      );
+    }
+
+    if (typeof order_index !== 'number') {
+      return NextResponse.json(
+        { success: false, error: 'Order index must be a number' },
+        { status: 400 }
+      );
+    }
+
+    // Update template order
+    const data = await adminGraphqlRequest(UPDATE_TEMPLATE_ORDER, {
+      template_id,
+      order_index
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: (data as any).update_templates_by_pk
+    });
+
+  } catch (error) {
+    console.error('Page Templates API PATCH error:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

@@ -4,6 +4,17 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 
+// Import dynamic components for previews
+import DynamicHero from '@/components/dynamic-hero';
+import DynamicGallery from '@/components/dynamic-gallery';
+import DynamicReviews from '@/components/dynamic-reviews';
+import DynamicTimeline from '@/components/dynamic-timeline';
+import DynamicFAQ from '@/components/dynamic-faq';
+import DynamicLocation from '@/components/dynamic-location';
+import DynamicScrollingText from '@/components/dynamic-scrolling-text';
+import DynamicCustomCode from '@/components/dynamic-custom-code';
+import DynamicForm from '@/components/dynamic-form';
+
 export default function PageSettingsSelector() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -12,8 +23,122 @@ export default function PageSettingsSelector() {
   const pageId = searchParams.get('page_id');
   const pageNameParam = searchParams.get('page_name');
   const [existingSections, setExistingSections] = useState<Set<string>>(new Set());
+  const [sectionConfigs, setSectionConfigs] = useState<Map<string, any>>(new Map());
+  const [sectionTemplates, setSectionTemplates] = useState<Map<string, any>>(new Map());
   const [loading, setLoading] = useState(true);
   const [isHomePage, setIsHomePage] = useState<boolean>(false);
+
+  // Function to render section preview based on category
+  const renderSectionPreview = (category: string) => {
+    if (!restaurantId || !pageId) return null;
+
+    const previewStyle = {
+      maxHeight: '400px',
+      overflow: 'auto',
+      border: '1px solid #e5e7eb',
+      borderRadius: '8px',
+      backgroundColor: '#f9fafb'
+    } as React.CSSProperties;
+
+    switch (category.toLowerCase()) {
+      case 'hero':
+        return (
+          <div style={previewStyle}>
+            <DynamicHero restaurantId={restaurantId} showLoading={false} />
+          </div>
+        );
+      case 'gallery':
+        return (
+          <div style={previewStyle}>
+            <DynamicGallery restaurantId={restaurantId} />
+          </div>
+        );
+      case 'reviews':
+        return (
+          <div style={previewStyle}>
+            <DynamicReviews restaurantId={restaurantId} pageId={pageId} />
+          </div>
+        );
+      case 'youtube':
+        return (
+          <div style={previewStyle}>
+            <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+              🎥 YouTube Video Section
+              <br />
+              <small>Video display preview</small>
+            </div>
+          </div>
+        );
+      case 'timeline':
+        return (
+          <div style={previewStyle}>
+            <DynamicTimeline restaurantId={restaurantId} pageId={pageId} />
+          </div>
+        );
+      case 'faq':
+        return (
+          <div style={previewStyle}>
+            <DynamicFAQ
+              restaurantId={restaurantId}
+              showLoading={false}
+              fallbackConfig={{
+                faqs: [
+                  { id: '1', question: 'What are your opening hours?', answer: 'We are open daily from 11 AM to 10 PM.' },
+                  { id: '2', question: 'Do you take reservations?', answer: 'Yes, we accept reservations. Please call us or book online.' }
+                ],
+                layout: 'accordion',
+                title: 'Frequently Asked Questions',
+                subtitle: 'Find answers to common questions'
+              }}
+            />
+          </div>
+        );
+      case 'location':
+        return (
+          <div style={previewStyle}>
+            <DynamicLocation restaurantId={restaurantId} pageId={pageId} />
+          </div>
+        );
+      case 'scrollingtext':
+        return (
+          <div style={previewStyle}>
+            <DynamicScrollingText restaurantId={restaurantId} pageId={pageId} showLoading={false} />
+          </div>
+        );
+      case 'customcode':
+        return (
+          <div style={previewStyle}>
+            <DynamicCustomCode restaurantId={restaurantId} pageId={pageId} showLoading={false} />
+          </div>
+        );
+      case 'form':
+        return (
+          <div style={previewStyle}>
+            <DynamicForm restaurantId={restaurantId} pageId={pageId} showLoading={false} />
+          </div>
+        );
+      case 'seo':
+        return (
+          <div style={previewStyle}>
+            <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+              🔍 SEO Settings
+              <br />
+              <small>Meta tags and social sharing configuration</small>
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <div style={previewStyle}>
+            <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+              🎨 Section Preview
+              <br />
+              <small>Configure section to see preview</small>
+            </div>
+          </div>
+        );
+    }
+  };
 
   const buildParams = () => {
     const params = new URLSearchParams();
@@ -103,6 +228,34 @@ export default function PageSettingsSelector() {
       description: 'Configure meta title, description and social sharing image',
       route: '/admin/seo-settings',
       layouts: ['Meta Tags', 'Social Sharing', 'Open Graph']
+    },
+    {
+      name: 'Popup Settings',
+      category: 'Popup',
+      description: 'Configure popup display and behavior for this page',
+      route: '/admin/popup-settings',
+      layouts: ['Modal', 'Slide In', 'Banner', 'Full Screen']
+    },
+    {
+      name: 'Announcement Bar',
+      category: 'AnnouncementBar',
+      description: 'Configure announcement bar display for this page',
+      route: '/admin/announcement-bar-settings',
+      layouts: ['Top Bar', 'Bottom Bar', 'Floating']
+    },
+    {
+      name: 'Footer Settings',
+      category: 'Footer',
+      description: 'Configure footer content and layout for this page',
+      route: '/admin/footer-settings',
+      layouts: ['Simple', 'Multi Column', 'Minimal']
+    },
+    {
+      name: 'Navbar Settings',
+      category: 'Navbar',
+      description: 'Configure navigation bar for this page',
+      route: '/admin/navbar-settings',
+      layouts: ['Horizontal', 'Sidebar', 'Minimal']
     }
   ];
 
@@ -170,6 +323,10 @@ export default function PageSettingsSelector() {
                 if (enabled !== false && isEnabled !== false) {
                   existing.add(section.name);
                   console.log(`✓ Added section: ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
+                  
+                  // Store the template config and full template data
+                  setSectionConfigs(prev => new Map(prev.set(section.name, template.config)));
+                  setSectionTemplates(prev => new Map(prev.set(section.name, template)));
                 } else {
                   console.log(`✗ Skipped section (disabled): ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
                 }
@@ -197,13 +354,75 @@ export default function PageSettingsSelector() {
     fetchPageAndSections();
   }, [restaurantId, pageId, pageNameParam]);
 
-  const existingSectionsData = sectionsData.filter(section =>
-    existingSections.has(section.name)
-  );
+  // Sort existing sections by order_index
+  const existingSectionsData = sectionsData
+    .filter(section => existingSections.has(section.name))
+    .map(section => {
+      const template = sectionTemplates.get(section.name);
+      return {
+        ...section,
+        order_index: template?.order_index || 999,
+        template_id: template?.template_id
+      };
+    })
+    .sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
 
   const availableSectionsData = sectionsData.filter(section =>
     !existingSections.has(section.name)
   );
+
+  // Function to update section order
+  const updateSectionOrder = async (templateId: string, newOrderIndex: number) => {
+    try {
+      const response = await fetch('/api/page-templates', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          template_id: templateId,
+          order_index: newOrderIndex
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Refresh the page data to reflect the new order
+        window.location.reload();
+      } else {
+        alert('Error updating section order: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error updating section order:', error);
+      alert('Error updating section order');
+    }
+  };
+
+  // Function to move section up
+  const moveSectionUp = (sectionIndex: number) => {
+    if (sectionIndex === 0) return; // Already at top
+    
+    const currentSection = existingSectionsData[sectionIndex];
+    const previousSection = existingSectionsData[sectionIndex - 1];
+    
+    if (currentSection.template_id && previousSection.template_id) {
+      // Swap order indices
+      updateSectionOrder(currentSection.template_id, previousSection.order_index);
+      updateSectionOrder(previousSection.template_id, currentSection.order_index);
+    }
+  };
+
+  // Function to move section down
+  const moveSectionDown = (sectionIndex: number) => {
+    if (sectionIndex === existingSectionsData.length - 1) return; // Already at bottom
+    
+    const currentSection = existingSectionsData[sectionIndex];
+    const nextSection = existingSectionsData[sectionIndex + 1];
+    
+    if (currentSection.template_id && nextSection.template_id) {
+      // Swap order indices
+      updateSectionOrder(currentSection.template_id, nextSection.order_index);
+      updateSectionOrder(nextSection.template_id, currentSection.order_index);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -250,30 +469,127 @@ export default function PageSettingsSelector() {
             {existingSectionsData.length > 0 && (
               <div className="mb-10">
                 <h2 className="text-xl font-semibold mb-4 text-gray-800">Added Sections</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-6">
                   {existingSectionsData.map((section, idx) => (
                     <div
                       key={idx}
-                      className="p-5 bg-white border border-green-200 rounded-lg shadow hover:shadow-md transition-all cursor-pointer group"
-                      onClick={() => router.push(`${section.route}?${paramsString}`)}
+                      className="bg-white border border-green-200 rounded-lg shadow hover:shadow-md transition-all group"
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{section.name}</div>
-                        <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded flex-shrink-0">
-                          ✓ Added
-                        </span>
+                      {/* Section Header */}
+                      <div className="p-5 border-b border-gray-100">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="font-semibold text-gray-900">{section.name}</div>
+                              <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded flex-shrink-0">
+                                ✓ Added
+                              </span>
+                            </div>
+                            <div className="text-sm text-gray-600 mb-3">{section.description}</div>
+                            <div className="flex flex-wrap gap-2">
+                              <span className="text-xs font-medium text-gray-500">Layout:</span>
+                              {(() => {
+                                const config = sectionConfigs.get(section.name);
+                                console.log(`Layout debug for ${section.name}:`, config);
+                                
+                                // Try multiple possible layout field names
+                                const selectedLayout =
+                                  config?.layout ||
+                                  config?.layoutType ||
+                                  config?.selectedLayout ||
+                                  config?.layoutStyle ||
+                                  config?.displayLayout ||
+                                  'Default';
+                                
+                                return (
+                                  <span className="text-xs px-2 py-1 bg-green-50 text-green-700 rounded font-medium">
+                                    {selectedLayout}
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            {/* Order Controls */}
+                            <div className="flex flex-col gap-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveSectionUp(idx);
+                                }}
+                                disabled={idx === 0}
+                                className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                title="Move up"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                                Up
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveSectionDown(idx);
+                                }}
+                                disabled={idx === existingSectionsData.length - 1}
+                                className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                title="Move down"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                                Down
+                              </button>
+                            </div>
+                            
+                            {/* Order Index Display */}
+                            <div className="text-xs text-gray-500 px-2 py-1 bg-gray-50 rounded">
+                              #{idx + 1}
+                            </div>
+
+                            {/* Action Buttons */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`${section.route}?${paramsString}`);
+                              }}
+                              className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Edit
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`Are you sure you want to delete ${section.name}? This action cannot be undone.`)) {
+                                  // TODO: Implement delete functionality
+                                  console.log(`Delete ${section.name}`);
+                                }
+                              }}
+                              className="px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-600 mb-3">{section.description}</div>
-                      <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100">
-                        <span className="text-xs font-medium text-gray-500">Layouts:</span>
-                        {section.layouts.map((layout, layoutIdx) => (
-                          <span
-                            key={layoutIdx}
-                            className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded"
-                          >
-                            {layout}
-                          </span>
-                        ))}
+
+                      {/* Live Preview */}
+                      <div className="p-5">
+                        <div className="mb-3">
+                          <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <span className="text-green-600">👁️</span>
+                            Live Preview - How it appears to customers
+                          </h4>
+                        </div>
+                        <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                          {renderSectionPreview(section.category)}
+                        </div>
                       </div>
                     </div>
                   ))}

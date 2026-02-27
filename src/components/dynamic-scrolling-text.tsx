@@ -1,120 +1,156 @@
 /**
  * Dynamic Scrolling Text Component
- *
- * Displays scrolling text banner dynamically based on page configuration:
- * - Fetches configuration from database per page
- * - Continuous left-to-right scroll animation
- * - Customizable colors and speed
- * - Responsive design
+ * 
+ * Fetches scrolling text configuration from API and renders the scrolling text section
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import type { ScrollingTextConfig } from '@/types/scrolling-text.types';
-import { SCROLL_SPEEDS } from '@/types/scrolling-text.types';
-import styles from './scrolling-text.module.css';
+import { useEffect, useState } from 'react';
+
+interface ScrollingTextConfig {
+  isEnabled?: boolean;
+  text?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  speed?: string;
+}
 
 interface DynamicScrollingTextProps {
-  restaurantId: string;
-  pageId: string;
+  restaurantId?: string;
+  pageId?: string;
   showLoading?: boolean;
 }
 
 export default function DynamicScrollingText({
   restaurantId,
   pageId,
-  showLoading = false
+  showLoading = true
 }: DynamicScrollingTextProps) {
-  const [scrollingConfig, setScrollingConfig] = useState<ScrollingTextConfig | null>(null);
+  const [config, setConfig] = useState<ScrollingTextConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch config
   useEffect(() => {
-    fetchScrollingTextConfig();
+    const fetchConfig = async () => {
+      if (!restaurantId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const url = pageId 
+          ? `/api/scrolling-text-config?restaurant_id=${restaurantId}&page_id=${pageId}`
+          : `/api/scrolling-text-config?restaurant_id=${restaurantId}`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          setConfig(data.data);
+        } else {
+          setError('Failed to load scrolling text configuration');
+        }
+      } catch (err) {
+        console.error('Error fetching scrolling text config:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConfig();
   }, [restaurantId, pageId]);
 
-  const fetchScrollingTextConfig = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(
-        `/api/scrolling-text-config?restaurant_id=${restaurantId}&page_id=${pageId}`
-      );
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
-      }
-
-      if (data.success && data.data) {
-        setScrollingConfig(data.data);
-      } else {
-        setScrollingConfig(null);
-      }
-    } catch (err) {
-      console.error('Error fetching scrolling text config:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
-      setScrollingConfig(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Show loading state if enabled
+  // Show loading state
   if (loading && showLoading) {
     return (
       <div style={{
-        padding: '12px 0',
-        backgroundColor: '#f3f4f6',
-        textAlign: 'center',
-        color: '#6b7280',
-        fontSize: '14px'
+        minHeight: '60px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f9fafb'
       }}>
-        Loading scrolling text...
+        <div style={{
+          textAlign: 'center',
+          color: '#6b7280'
+        }}>
+          <p>Loading scrolling text...</p>
+        </div>
       </div>
     );
   }
 
-  // Don't render if loading, error, disabled, or no config
-  if (loading || error || !scrollingConfig || !scrollingConfig.isEnabled) {
-    return null;
+  // Show error state or if disabled
+  if (error || !config || !config.isEnabled) {
+    return (
+      <div style={{
+        minHeight: '60px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f3f4f6',
+        border: '2px dashed #d1d5db',
+        borderRadius: '8px'
+      }}>
+        <div style={{
+          textAlign: 'center',
+          color: '#6b7280'
+        }}>
+          <p>📜 Scrolling Text (Not configured or disabled)</p>
+        </div>
+      </div>
+    );
   }
 
-  // Don't render if no text
-  if (!scrollingConfig.text?.trim()) {
-    return null;
-  }
+  // Render scrolling text
+  const {
+    text = 'Sample scrolling text',
+    backgroundColor = '#000000',
+    textColor = '#ffffff',
+    speed = 'medium'
+  } = config;
 
-  const speed = SCROLL_SPEEDS[scrollingConfig.scrollSpeed] || SCROLL_SPEEDS.medium;
-
-  const containerStyle: React.CSSProperties = {
-    backgroundColor: scrollingConfig.bgColor || '#000000',
-    color: scrollingConfig.textColor || '#ffffff',
-    fontSize: scrollingConfig.fontSize || '16px',
-    position: 'relative',
-    width: '100%',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    padding: '12px 0',
+  const getAnimationDuration = () => {
+    switch (speed) {
+      case 'slow': return '20s';
+      case 'fast': return '8s';
+      default: return '12s';
+    }
   };
 
   return (
     <div
-      style={containerStyle}
+      style={{
+        backgroundColor,
+        color: textColor,
+        padding: '12px 0',
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
+        position: 'relative'
+      }}
     >
       <div
-        className={styles.scrollingContent}
         style={{
-          animationDuration: `${100 / speed}s`,
+          display: 'inline-block',
+          animation: `scroll-left ${getAnimationDuration()} linear infinite`,
+          paddingLeft: '100%'
         }}
       >
-        <span className={styles.scrollingItem}>{scrollingConfig.text}</span>
-        <span className={styles.scrollingItem}>{scrollingConfig.text}</span>
-        <span className={styles.scrollingItem}>{scrollingConfig.text}</span>
+        {text}
       </div>
+      
+      <style jsx>{`
+        @keyframes scroll-left {
+          0% {
+            transform: translate3d(100%, 0, 0);
+          }
+          100% {
+            transform: translate3d(-100%, 0, 0);
+          }
+        }
+      `}</style>
     </div>
   );
 }

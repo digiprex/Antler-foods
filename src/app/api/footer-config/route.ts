@@ -67,6 +67,19 @@ const GET_FOOTER_CONFIG = `
       ubereats_link
       yelp_link
     }
+    web_pages(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        show_on_footer: {_eq: true},
+        published: {_eq: true},
+        is_deleted: {_eq: false}
+      },
+      order_by: {created_at: asc}
+    ) {
+      page_id
+      name
+      url_slug
+    }
   }
 `;
 
@@ -161,8 +174,8 @@ export async function GET(request: Request) {
           domain: domain,
         });
 
-        if (domainData.restaurants && domainData.restaurants.length > 0) {
-          const restaurant = domainData.restaurants[0];
+        if ((domainData as any).restaurants && (domainData as any).restaurants.length > 0) {
+          const restaurant = (domainData as any).restaurants[0];
           if (!restaurant.is_deleted) {
             restaurantId = restaurant.restaurant_id;
             console.log('[Footer Config] Found restaurant for domain:', domain, '->', restaurantId);
@@ -198,7 +211,7 @@ export async function GET(request: Request) {
     console.log('[Footer Config] Template query result (restaurant-wide):', JSON.stringify(data, null, 2));
 
     // Extract name, email, phone, address and social links from restaurant table
-    const restaurantData = data.restaurants?.[0];
+    const restaurantData = (data as any).restaurants?.[0];
     const restaurantName = restaurantData?.name || '';
     const restaurantEmail = restaurantData?.email || '';
     const restaurantPhone = restaurantData?.phone_number || '';
@@ -243,7 +256,7 @@ export async function GET(request: Request) {
       socialLinks.push({ platform: 'yelp' as const, url: restaurantData.yelp_link, order: order++ });
     }
 
-    if (!data.templates || data.templates.length === 0) {
+    if (!(data as any).templates || (data as any).templates.length === 0) {
       // Return 404 if no footer template exists - don't show footer
       const response = {
         success: false,
@@ -253,7 +266,22 @@ export async function GET(request: Request) {
       return NextResponse.json(response, { status: 404 });
     }
 
-    const template = data.templates[0];
+    const template = (data as any).templates[0];
+
+    // Transform web_pages to footer links
+    const pageLinks = ((data as any).web_pages || []).map((page: any) => ({
+      label: page.name,
+      href: `/${page.url_slug}`,
+    }));
+
+    // Create a "Pages" column with dynamic page links if there are any pages
+    const pagesColumn = pageLinks.length > 0 ? [{
+      title: 'Pages',
+      links: pageLinks,
+    }] : [];
+
+    // Combine pages column with any additional columns from template menu_items
+    const allColumns = [...pagesColumn, ...(template.menu_items || [])];
 
     // Transform template structure to FooterConfig
     // Use name, email, phone, address and social links from restaurant table, fallback to template config
@@ -263,7 +291,7 @@ export async function GET(request: Request) {
       email: restaurantEmail || template.config?.email || '',
       phone: restaurantPhone || template.config?.phone || '',
       address: restaurantAddress || template.config?.address || '',
-      columns: template.menu_items || [],
+      columns: allColumns, // Use pages with show_on_footer=true + any additional columns
       socialLinks: socialLinks.length > 0 ? socialLinks : (template.config?.socialLinks || []),
       copyrightText: template.config?.copyrightText || `© ${new Date().getFullYear()} Antler Foods. All rights reserved.`,
       showPoweredBy: template.config?.showPoweredBy !== false,
@@ -322,8 +350,8 @@ export async function POST(request: Request) {
     });
 
     // Step 2: Mark current template as deleted (if exists)
-    if (currentData.templates && currentData.templates.length > 0) {
-      const currentTemplate = currentData.templates[0];
+    if ((currentData as any).templates && (currentData as any).templates.length > 0) {
+      const currentTemplate = (currentData as any).templates[0];
 
       await graphqlRequest(MARK_AS_DELETED, {
         template_id: currentTemplate.template_id,
@@ -358,11 +386,11 @@ export async function POST(request: Request) {
       menu_items: menu_items,
     });
 
-    if (!insertedData.insert_templates_one) {
+    if (!(insertedData as any).insert_templates_one) {
       throw new Error('Failed to insert new template');
     }
 
-    const template = insertedData.insert_templates_one;
+    const template = (insertedData as any).insert_templates_one;
 
     // Transform back to FooterConfig
     // Note: restaurantName, email, phone, address and socialLinks will be fetched from restaurant table on next GET request

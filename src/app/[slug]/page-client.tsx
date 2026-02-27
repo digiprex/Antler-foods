@@ -263,8 +263,8 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       {/* Navbar is automatically rendered by ConditionalNavbar in root layout */}
 
-      {/* Universal Popup */}
-      <Popup restaurantId={restaurantId} />
+      {/* Universal Popup - Only show on homepage */}
+      {slug === 'home' && <Popup restaurantId={restaurantId} />}
 
       {/* Render sections in order based on order_index */}
       {sortedTemplates.map((template) => renderSection(template.category))}

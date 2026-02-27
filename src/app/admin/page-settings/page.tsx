@@ -33,6 +33,9 @@ export default function PageSettingsSelector() {
   const [deleting, setDeleting] = useState(false);
   const [pagePublished, setPagePublished] = useState<boolean>(false);
   const [updatingPublish, setUpdatingPublish] = useState(false);
+  const [showOnNavbar, setShowOnNavbar] = useState<boolean>(false);
+  const [showOnFooter, setShowOnFooter] = useState<boolean>(false);
+  const [updatingVisibility, setUpdatingVisibility] = useState(false);
 
   // Function to render section preview based on category
   const renderSectionPreview = (category: string) => {
@@ -308,12 +311,14 @@ export default function PageSettingsSelector() {
     try {
       setLoading(true);
 
-      // Fetch page details to get published status
+      // Fetch page details to get published status and visibility
       try {
         const pageResponse = await fetch(`/api/web-pages/${pageId}`);
         const pageData = await pageResponse.json();
         if (pageData.success && pageData.data) {
           setPagePublished(pageData.data.published || false);
+          setShowOnNavbar(pageData.data.show_on_navbar || false);
+          setShowOnFooter(pageData.data.show_on_footer || false);
         }
       } catch (err) {
         console.error('Error fetching page details:', err);
@@ -552,6 +557,60 @@ export default function PageSettingsSelector() {
     }
   };
 
+  const toggleNavbarVisibility = async () => {
+    if (!pageId) return;
+
+    setUpdatingVisibility(true);
+    try {
+      const response = await fetch(`/api/web-pages/${pageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          show_on_navbar: !showOnNavbar,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setShowOnNavbar(!showOnNavbar);
+      } else {
+        alert('Failed to update navbar visibility: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error updating navbar visibility:', error);
+      alert('Error updating navbar visibility');
+    } finally {
+      setUpdatingVisibility(false);
+    }
+  };
+
+  const toggleFooterVisibility = async () => {
+    if (!pageId) return;
+
+    setUpdatingVisibility(true);
+    try {
+      const response = await fetch(`/api/web-pages/${pageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          show_on_footer: !showOnFooter,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setShowOnFooter(!showOnFooter);
+      } else {
+        alert('Failed to update footer visibility: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error updating footer visibility:', error);
+      alert('Error updating footer visibility');
+    } finally {
+      setUpdatingVisibility(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="p-6">
@@ -640,6 +699,51 @@ export default function PageSettingsSelector() {
           <p className="text-gray-600">
             Manage sections configured for this page. Click on any section to configure it.
           </p>
+
+          {/* Page Visibility Settings */}
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Page Visibility</h3>
+            <div className="flex flex-wrap gap-4">
+              <label className={`flex items-center gap-2 ${!pagePublished ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} group`}>
+                <input
+                  type="checkbox"
+                  checked={showOnNavbar}
+                  onChange={toggleNavbarVisibility}
+                  disabled={updatingVisibility || !pagePublished}
+                  className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500 focus:ring-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <span className="text-sm text-gray-700 group-hover:text-gray-900 select-none">
+                  Show in Navbar
+                </span>
+              </label>
+              <label className={`flex items-center gap-2 ${!pagePublished ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} group`}>
+                <input
+                  type="checkbox"
+                  checked={showOnFooter}
+                  onChange={toggleFooterVisibility}
+                  disabled={updatingVisibility || !pagePublished}
+                  className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500 focus:ring-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <span className="text-sm text-gray-700 group-hover:text-gray-900 select-none">
+                  Show in Footer
+                </span>
+              </label>
+            </div>
+            {!pagePublished ? (
+              <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800 flex items-start gap-2">
+                <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span>
+                  This page must be <strong>published</strong> before it can appear in the navbar or footer.
+                </span>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 mt-2">
+                Control where this page appears in your site navigation
+              </p>
+            )}
+          </div>
         </div>
 
         {loading ? (

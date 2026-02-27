@@ -255,23 +255,63 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           showLoading={true}
         />;
       case 'customcode':
-        return <DynamicCustomCode key={uniqueKey} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+        return <DynamicCustomCode
+          key={uniqueKey}
+          restaurantId={restaurantId}
+          pageId={pageId}
+          showLoading={true}
+        />;
       case 'scrollingtext':
-        return <DynamicScrollingText key={uniqueKey} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+        return <DynamicScrollingText
+          key={uniqueKey}
+          restaurantId={restaurantId}
+          pageId={pageId}
+          showLoading={true}
+        />;
       case 'timeline':
-        return <DynamicTimeline key={uniqueKey} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+        return <DynamicTimeline
+          key={uniqueKey}
+          restaurantId={restaurantId}
+          pageId={pageId}
+          showLoading={true}
+        />;
       case 'faq':
-        return <DynamicFAQ key={uniqueKey} restaurantId={restaurantId} showLoading={true} />;
+        return <DynamicFAQ
+          key={uniqueKey}
+          restaurantId={restaurantId}
+          configData={template.config}
+          showLoading={true}
+        />;
       case 'gallery':
-        return <DynamicGallery key={uniqueKey} restaurantId={restaurantId} showLoading={true} />;
+        return <DynamicGallery
+          key={uniqueKey}
+          restaurantId={restaurantId}
+          configData={template.config}
+          showLoading={true}
+        />;
       case 'youtube':
         return <YouTubeSection key={uniqueKey} restaurantId={restaurantId} />;
       case 'location':
-        return <DynamicLocation key={uniqueKey} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+        return <DynamicLocation
+          key={uniqueKey}
+          restaurantId={restaurantId}
+          pageId={pageId}
+          showLoading={true}
+        />;
       case 'reviews':
-        return <DynamicReviews key={uniqueKey} restaurantId={restaurantId} showLoading={true} />;
+        return <DynamicReviews
+          key={uniqueKey}
+          restaurantId={restaurantId}
+          configData={template.config}
+          showLoading={true}
+        />;
       case 'form':
-        return <DynamicForm key={uniqueKey} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+        return <DynamicForm
+          key={uniqueKey}
+          restaurantId={restaurantId}
+          pageId={pageId}
+          showLoading={true}
+        />;
       default:
         console.warn('Unknown section category:', category);
         return (

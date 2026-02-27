@@ -11,18 +11,30 @@ import Reviews from './reviews';
 import type { ReviewConfig, Review } from '@/types/review.types';
 
 interface DynamicReviewsProps {
-  restaurantId: string;
+  restaurantId?: string;
   pageId?: string;
   showLoading?: boolean;
+  configData?: Partial<ReviewConfig>;
 }
 
-export default function DynamicReviews({ restaurantId, pageId, showLoading = false }: DynamicReviewsProps) {
-  const [config, setConfig] = useState<ReviewConfig | null>(null);
+export default function DynamicReviews({ restaurantId, pageId, showLoading = false, configData }: DynamicReviewsProps) {
+  const [config, setConfig] = useState<ReviewConfig | null>(configData || null);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!configData);
 
   useEffect(() => {
+    // If configData is provided, use it directly
+    if (configData) {
+      setConfig(configData as ReviewConfig);
+      setLoading(false);
+      // Note: We don't fetch reviews here because configData might already include them
+      // or they should be fetched separately if needed
+      return;
+    }
+
     const fetchData = async () => {
+      if (!restaurantId) return;
+
       setLoading(true);
       try {
         // Fetch review config
@@ -49,10 +61,8 @@ export default function DynamicReviews({ restaurantId, pageId, showLoading = fal
       }
     };
 
-    if (restaurantId) {
-      fetchData();
-    }
-  }, [restaurantId, pageId]);
+    fetchData();
+  }, [restaurantId, pageId, configData]);
 
   if (loading && showLoading) {
     return (

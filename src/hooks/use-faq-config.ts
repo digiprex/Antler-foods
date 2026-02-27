@@ -28,15 +28,29 @@ interface FAQConfigResponse {
 }
 
 interface UseFAQConfigProps {
-  apiEndpoint: string;
+  apiEndpoint?: string;
+  overrideConfig?: Partial<FAQConfig>;
 }
 
-export function useFAQConfig({ apiEndpoint }: UseFAQConfigProps) {
-  const [config, setConfig] = useState<FAQConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+export function useFAQConfig({ apiEndpoint, overrideConfig }: UseFAQConfigProps) {
+  // Initialize with overrideConfig if provided
+  const [config, setConfig] = useState<FAQConfig | null>(overrideConfig as FAQConfig || null);
+  const [loading, setLoading] = useState(!overrideConfig);
   const [error, setError] = useState<string | null>(null);
 
   const fetchConfig = useCallback(async () => {
+    // If override config is provided, use it directly
+    if (overrideConfig) {
+      setConfig(overrideConfig as FAQConfig);
+      setLoading(false);
+      return;
+    }
+
+    if (!apiEndpoint) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -66,11 +80,20 @@ export function useFAQConfig({ apiEndpoint }: UseFAQConfigProps) {
     } finally {
       setLoading(false);
     }
-  }, [apiEndpoint]);
+  }, [apiEndpoint, overrideConfig]);
 
   useEffect(() => {
-    fetchConfig();
-  }, [fetchConfig]);
+    if (!overrideConfig) {
+      fetchConfig();
+    }
+  }, [fetchConfig, overrideConfig]);
+
+  // Handle overrideConfig changes
+  useEffect(() => {
+    if (overrideConfig) {
+      setConfig(overrideConfig as FAQConfig);
+    }
+  }, [overrideConfig]);
 
   const refetch = () => {
     fetchConfig();

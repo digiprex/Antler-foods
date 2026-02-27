@@ -14,7 +14,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useScrollingTextConfig, useUpdateScrollingTextConfig } from '@/hooks/use-scrolling-text-config';
-import type { ScrollingTextConfig } from '@/types/scrolling-text.types';
 import { SCROLL_SPEEDS } from '@/types/scrolling-text.types';
 import Toast from '@/components/ui/toast';
 import styles from './announcement-bar-settings-form.module.css'; // Reuse existing styles
@@ -22,19 +21,9 @@ import styles from './announcement-bar-settings-form.module.css'; // Reuse exist
 export default function ScrollingTextSettingsForm() {
   const searchParams = useSearchParams();
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
-  const restaurantNameFromQuery = searchParams.get('restaurant_name')?.trim() ?? '';
   const pageIdFromQuery = searchParams.get('page_id')?.trim() ?? '';
   const restaurantId = restaurantIdFromQuery || '';
   const pageId = pageIdFromQuery || '';
-
-  if (!restaurantId || !pageId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID and Page ID are required. Please provide them via URL parameters.</p>
-      </div>
-    );
-  }
 
   const configApiEndpoint = useMemo(
     () => `/api/scrolling-text-config?restaurant_id=${encodeURIComponent(restaurantId)}&page_id=${encodeURIComponent(pageId)}`,
@@ -71,6 +60,15 @@ export default function ScrollingTextSettingsForm() {
       setScrollSpeed(config.scrollSpeed || 'medium');
     }
   }, [config]);
+
+  if (!restaurantId || !pageId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID and Page ID are required. Please provide them via URL parameters.</p>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -356,7 +354,7 @@ export default function ScrollingTextSettingsForm() {
                 </label>
                 <select
                   value={scrollSpeed}
-                  onChange={(e) => setScrollSpeed(e.target.value as any)}
+                  onChange={(e) => setScrollSpeed(e.target.value as 'slow' | 'medium' | 'fast')}
                   className={styles.select}
                 >
                   <option value="slow">Slow</option>

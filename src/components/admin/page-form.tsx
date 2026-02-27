@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { insertPage, updatePage, getPageById } from '@/lib/graphql/queries';
 import type { PageItem, CreatePageInput, UpdatePageInput } from '@/types/pages.types';
 import { ImageGalleryModal } from './image-gallery-modal';
@@ -49,13 +50,7 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
 
   const isEditing = !!pageId;
 
-  useEffect(() => {
-    if (pageId) {
-      loadPage();
-    }
-  }, [pageId]);
-
-  const loadPage = async () => {
+  const loadPage = useCallback(async () => {
     if (!pageId) return;
 
     try {
@@ -101,7 +96,13 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
     } finally {
       setLoadingPage(false);
     }
-  };
+  }, [pageId]);
+
+  useEffect(() => {
+    if (pageId) {
+      loadPage();
+    }
+  }, [pageId, loadPage]);
 
   const openImageGallery = () => {
     setShowImageGallery(true);
@@ -180,7 +181,7 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
           : null;
 
         // attach keywordsPayload (or null) to payload
-        (payload as any).keywords = keywordsPayload;
+        (payload as Record<string, unknown>).keywords = keywordsPayload;
 
       let result: PageItem;
       
@@ -330,9 +331,11 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
               <div className="space-y-3">
                 {formData.og_image && (
                   <div className="relative inline-block">
-                    <img
+                    <Image
                       src={formData.og_image}
                       alt="Open Graph preview"
+                      width={192}
+                      height={100}
                       className="w-48 h-auto rounded-xl border border-[#d4e0e6]"
                     />
                     <button
@@ -472,12 +475,12 @@ export default function PageFormPage() {
   const pageId = searchParams.get('page_id');
   const restaurantId = searchParams.get('restaurant_id');
 
-  const handleSuccess = (page: PageItem) => {
+  const handleSuccess = () => {
     // Redirect back to pages list with success message
     const params = new URLSearchParams();
     if (restaurantId) params.set('restaurant_id', restaurantId);
     params.set('success', pageId ? 'updated' : 'created');
-    
+
     window.location.href = `/admin/pages-settings?${params.toString()}`;
   };
 

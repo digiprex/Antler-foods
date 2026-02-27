@@ -7,7 +7,6 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
 import Hero from '@/components/hero';
 import { useHeroConfig } from '@/hooks/use-hero-config';
 import type { HeroConfig } from '@/types/hero.types';

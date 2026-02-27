@@ -285,7 +285,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare review configuration
-    const { restaurant_id, layout, page_id: _pageId, ...configData } = body;
+    const { restaurant_id: _restaurantId, layout, page_id: _pageId, ...configData } = body;
     const name = layout || 'grid';
     const config = {
       ...configData,

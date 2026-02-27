@@ -12,8 +12,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getPageById } from '@/lib/graphql/queries';
-import type { PageItem } from '@/types/pages.types';
 import { useFAQConfig, useUpdateFAQConfig } from '@/hooks/use-faq-config';
 import Toast from '@/components/ui/toast';
 import styles from './faq-settings-form.module.css';
@@ -73,16 +71,6 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
     apiEndpoint: configApiEndpoint,
   });
   const { updateFAQ: updateFAQConfig, updating, error: updateError } = useUpdateFAQConfig();
-  
-  // Validate that restaurant ID is provided
-  if (!finalRestaurantId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID is required. Please provide it via URL parameter or props.</p>
-      </div>
-    );
-  }
 
   // Initialize form with fetched config
   useEffect(() => {
@@ -147,6 +135,16 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
 
     tryResolve();
   }, [pageId, pageIdFromParams, domainParamRaw, urlSlugFromParams, finalRestaurantId]);
+
+  // Validate that restaurant ID is provided
+  if (!finalRestaurantId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID is required. Please provide it via URL parameter or props.</p>
+      </div>
+    );
+  }
 
   const updateFAQ = (id: string, field: 'question' | 'answer', value: string) => {
     setFaqs((s) => s.map((f) => (f.id === id ? { ...f, [field]: value } : f)));

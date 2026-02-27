@@ -14,7 +14,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTimelineConfig, useUpdateTimelineConfig } from '@/hooks/use-timeline-config';
-import type { TimelineConfig, TimelineLayout, TimelineItem } from '@/types/timeline.types';
+import type { TimelineLayout, TimelineItem } from '@/types/timeline.types';
 import { TIMELINE_LAYOUTS } from '@/types/timeline.types';
 import Toast from '@/components/ui/toast';
 import styles from './announcement-bar-settings-form.module.css';
@@ -22,19 +22,9 @@ import styles from './announcement-bar-settings-form.module.css';
 export default function TimelineSettingsForm() {
   const searchParams = useSearchParams();
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
-  const restaurantNameFromQuery = searchParams.get('restaurant_name')?.trim() ?? '';
   const pageIdFromQuery = searchParams.get('page_id')?.trim() ?? '';
   const restaurantId = restaurantIdFromQuery || '';
   const pageId = pageIdFromQuery || '';
-
-  if (!restaurantId || !pageId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID and Page ID are required. Please provide them via URL parameters.</p>
-      </div>
-    );
-  }
 
   const configApiEndpoint = useMemo(
     () => `/api/timeline-config?restaurant_id=${encodeURIComponent(restaurantId)}&page_id=${encodeURIComponent(pageId)}`,
@@ -83,6 +73,15 @@ export default function TimelineSettingsForm() {
       setLineColor(config.lineColor || '#d1d5db');
     }
   }, [config]);
+
+  if (!restaurantId || !pageId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID and Page ID are required. Please provide them via URL parameters.</p>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -324,7 +323,7 @@ export default function TimelineSettingsForm() {
                   borderRadius: '8px',
                   border: '2px dashed #e5e7eb'
                 }}>
-                  No timeline items yet. Click "Add Item" to create your first one.
+                  No timeline items yet. Click &quot;Add Item&quot; to create your first one.
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

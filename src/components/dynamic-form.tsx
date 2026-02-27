@@ -7,6 +7,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 interface FormField {
   field_id: string;
@@ -294,13 +295,12 @@ export default function DynamicForm({
             <p style={{ fontSize: '16px', marginBottom: '24px', color: textColor, opacity: 0.8 }}>{description}</p>
             {renderFormFields()}
           </div>
-          <div style={{ flex: '1', minWidth: '300px' }}>
-            <img
+          <div style={{ flex: '1', minWidth: '300px', position: 'relative', height: '300px' }}>
+            <Image
               src={imageUrl}
               alt="Form image"
+              fill
               style={{
-                width: '100%',
-                height: '300px',
                 objectFit: 'cover',
                 borderRadius: '8px'
               }}

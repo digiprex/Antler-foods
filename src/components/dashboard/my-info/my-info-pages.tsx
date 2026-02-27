@@ -1048,11 +1048,14 @@ export function MyInfoBrandPage() {
           <div className="mt-4 flex items-center gap-4">
             <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-[#d7e2e6] bg-white">
               {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt={`${legalName || restaurant.name} logo`}
-                  className="h-full w-full object-contain p-1"
-                />
+                <div className="relative h-full w-full p-1">
+                  <Image
+                    src={logoUrl}
+                    alt={`${legalName || restaurant.name} logo`}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
               ) : (
                 <span className="text-xs font-medium text-[#8b98a5]">No logo</span>
               )}

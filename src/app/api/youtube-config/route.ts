@@ -194,7 +194,7 @@ export async function POST(request: Request) {
     }
 
     // Prepare YouTube configuration
-    const { restaurant_id, ...configData } = body;
+    const { restaurant_id: _restaurantId, ...configData } = body;
     const name = 'youtube';
     const config = {
       ...configData,

@@ -85,7 +85,6 @@ function CustomCodePreview({ htmlCode, cssCode, jsCode }: { htmlCode: string; cs
 export default function CustomCodeSettingsForm() {
   const searchParams = useSearchParams();
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
-  const restaurantNameFromQuery = searchParams.get('restaurant_name')?.trim() ?? '';
   const pageIdFromQuery = searchParams.get('page_id')?.trim() ?? '';
   const restaurantId = restaurantIdFromQuery || '';
   const pageId = pageIdFromQuery || '';
@@ -118,15 +117,6 @@ export default function CustomCodeSettingsForm() {
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
 
-  if (!restaurantId || !pageId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID and Page ID are required. Please provide them via URL parameters.</p>
-      </div>
-    );
-  }
-
   // Initialize form with fetched config
   useEffect(() => {
     if (config) {
@@ -140,6 +130,15 @@ export default function CustomCodeSettingsForm() {
       setIframeWidth(config.iframeWidth || '100%');
     }
   }, [config]);
+
+  if (!restaurantId || !pageId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID and Page ID are required. Please provide them via URL parameters.</p>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

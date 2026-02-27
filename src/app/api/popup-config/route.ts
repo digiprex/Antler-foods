@@ -194,7 +194,7 @@ export async function POST(request: Request) {
     }
 
     // Prepare popup configuration
-    const { restaurant_id, ...configData } = body;
+    const { restaurant_id: _restaurantId, ...configData } = body;
     const name = 'popup';
     const config = {
       ...configData,

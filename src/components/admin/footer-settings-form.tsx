@@ -64,16 +64,6 @@ export default function FooterSettingsForm() {
     apiEndpoint: configApiEndpoint,
   });
   const { updateFooter, updating, error: updateError } = useUpdateFooterConfig();
-  
-  // Validate that restaurant ID is provided
-  if (!restaurantId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
-      </div>
-    );
-  }
 
   // Initialize form with fetched config
   useEffect(() => {
@@ -92,6 +82,16 @@ export default function FooterSettingsForm() {
       setShowSocialMedia(config.showSocialMedia !== false);
     }
   }, [config]);
+
+  // Validate that restaurant ID is provided
+  if (!restaurantId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

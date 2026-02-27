@@ -30,16 +30,7 @@ export default function NavbarSettingsForm() {
   const restaurantNameFromQuery =
     searchParams.get('restaurant_name')?.trim() ?? '';
   const restaurantId = restaurantIdFromQuery || '';
-  
-  // Validate that restaurant ID is provided
-  if (!restaurantId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
-      </div>
-    );
-  }
+
   const configApiEndpoint = useMemo(
     () =>
       `/api/navbar-config?restaurant_id=${encodeURIComponent(restaurantId)}`,
@@ -84,6 +75,16 @@ export default function NavbarSettingsForm() {
       setOrderButtonHref(config.ctaButton?.href || '/order');
     }
   }, [config]);
+
+  // Validate that restaurant ID is provided
+  if (!restaurantId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

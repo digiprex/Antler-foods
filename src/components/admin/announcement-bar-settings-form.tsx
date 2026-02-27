@@ -26,9 +26,8 @@ import styles from './announcement-bar-settings-form.module.css';
 export default function AnnouncementBarSettingsForm() {
   const searchParams = useSearchParams();
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
-  const restaurantNameFromQuery = searchParams.get('restaurant_name')?.trim() ?? '';
   const restaurantId = restaurantIdFromQuery || '';
-  
+
   const configApiEndpoint = useMemo(
     () => `/api/announcement-bar-config?restaurant_id=${encodeURIComponent(restaurantId)}`,
     [restaurantId],
@@ -53,7 +52,7 @@ export default function AnnouncementBarSettingsForm() {
   const [bgColor, setBgColor] = useState('#000000');
   const [textColor, setTextColor] = useState('#ffffff');
   const [linkColor, setLinkColor] = useState('#ffffff');
-  
+
   // Toast state
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -61,16 +60,6 @@ export default function AnnouncementBarSettingsForm() {
 
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
-
-  // Validate that restaurant ID is provided
-  if (!restaurantId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
-      </div>
-    );
-  }
 
   // Initialize form with fetched config
   useEffect(() => {
@@ -90,6 +79,16 @@ export default function AnnouncementBarSettingsForm() {
       setLinkColor(config.linkColor || '#ffffff');
     }
   }, [config]);
+
+  // Validate that restaurant ID is provided
+  if (!restaurantId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

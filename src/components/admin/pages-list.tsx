@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getPages, deletePage } from '@/lib/graphql/queries';
 import { PageForm } from './page-form';
@@ -21,11 +21,7 @@ export function PagesList({ restaurantId }: PagesListProps) {
   const [updatingPublishId, setUpdatingPublishId] = useState<string | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    loadPages();
-  }, [restaurantId]);
-
-  const loadPages = async () => {
+  const loadPages = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -36,7 +32,11 @@ export function PagesList({ restaurantId }: PagesListProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [restaurantId]);
+
+  useEffect(() => {
+    loadPages();
+  }, [loadPages]);
 
   const handleDelete = (pageId: string) => {
     // open confirmation modal

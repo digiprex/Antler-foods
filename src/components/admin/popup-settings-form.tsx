@@ -7,7 +7,8 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import type { PopupConfig } from '@/types/popup.types';
 import { DEFAULT_POPUP_CONFIG } from '@/types/popup.types';
 import styles from '@/components/admin/gallery-settings-form.module.css';
@@ -23,29 +24,9 @@ export default function PopupSettingsForm() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showMediaModal, setShowMediaModal] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [showPreview, setShowPreview] = useState(false);
 
-  useEffect(() => {
-    if (restaurantId) {
-      fetchPopupConfig();
-    }
-  }, [restaurantId]);
-
-  // Auto-enable submit button for newsletter layouts
-  useEffect(() => {
-    const isNewsletterLayout = config.layout === 'newsletter-image' || config.layout === 'newsletter-text';
-    if (isNewsletterLayout) {
-      setConfig(prevConfig => ({
-        ...prevConfig,
-        showButton: true,
-        buttonText: prevConfig.buttonText === 'View Menu' || !prevConfig.buttonText ? 'Submit' : prevConfig.buttonText
-      }));
-    }
-  }, [config.layout]);
-
-  const fetchPopupConfig = async () => {
+  const fetchPopupConfig = useCallback(async () => {
     setLoading(true);
     try {
       const url = `/api/popup-config?restaurant_id=${restaurantId}`;
@@ -60,7 +41,25 @@ export default function PopupSettingsForm() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [restaurantId]);
+
+  useEffect(() => {
+    if (restaurantId) {
+      fetchPopupConfig();
+    }
+  }, [restaurantId, fetchPopupConfig]);
+
+  // Auto-enable submit button for newsletter layouts
+  useEffect(() => {
+    const isNewsletterLayout = config.layout === 'newsletter-image' || config.layout === 'newsletter-text';
+    if (isNewsletterLayout) {
+      setConfig(prevConfig => ({
+        ...prevConfig,
+        showButton: true,
+        buttonText: prevConfig.buttonText === 'View Menu' || !prevConfig.buttonText ? 'Submit' : prevConfig.buttonText
+      }));
+    }
+  }, [config.layout]);
 
   const openMediaModal = () => {
     setShowMediaModal(true);
@@ -75,50 +74,6 @@ export default function PopupSettingsForm() {
       ...config,
       imageUrl: imageUrl,
     });
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0 || !restaurantId) return;
-
-    setUploading(true);
-
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        setUploadProgress(prev => ({ ...prev, [file.name]: 0 }));
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('restaurant_id', restaurantId);
-        formData.append('type', 'image');
-
-        const response = await fetch('/api/media/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
-        } else {
-          console.error('Error uploading file:', data.error);
-        }
-      }
-
-      // Refresh media library
-      await fetchMediaFiles();
-
-      // Clear upload progress after a delay
-      setTimeout(() => {
-        setUploadProgress({});
-      }, 1000);
-    } catch (error) {
-      console.error('Error uploading files:', error);
-    } finally {
-      setUploading(false);
-    }
   };
 
   const handleSave = async () => {
@@ -191,16 +146,14 @@ export default function PopupSettingsForm() {
       return (
         <>
           {config.imageUrl && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <img
+            <div style={{ marginBottom: '1.5rem', position: 'relative', width: '100%', height: '300px' }}>
+              <Image
                 src={config.imageUrl}
                 alt={config.title || 'Popup'}
+                fill
                 style={{
-                  width: '100%',
-                  height: 'auto',
                   borderRadius: '12px 12px 0 0',
                   objectFit: 'cover',
-                  maxHeight: '300px',
                 }}
               />
             </div>
@@ -327,7 +280,7 @@ export default function PopupSettingsForm() {
                   </label>
                   <select
                     value={config.frequency}
-                    onChange={(e) => setConfig({ ...config, frequency: e.target.value as any })}
+                    onChange={(e) => setConfig({ ...config, frequency: e.target.value as PopupConfig['frequency'] })}
                     className={styles.select}
                   >
                     <option value="always">Always</option>
@@ -344,7 +297,7 @@ export default function PopupSettingsForm() {
                   </label>
                   <select
                     value={config.layout || 'default'}
-                    onChange={(e) => setConfig({ ...config, layout: e.target.value as any })}
+                    onChange={(e) => setConfig({ ...config, layout: e.target.value as PopupConfig['layout'] })}
                     className={styles.select}
                   >
                     <option value="default">Default (Image Top)</option>
@@ -454,18 +407,18 @@ export default function PopupSettingsForm() {
                       borderRadius: '0.5rem',
                       border: '1px solid #e5e7eb'
                     }}>
-                      <img
-                        src={config.imageUrl}
-                        alt="Popup preview"
-                        style={{
-                          width: '100%',
-                          height: 'auto',
-                          maxHeight: '200px',
-                          objectFit: 'cover',
-                          borderRadius: '0.5rem',
-                          border: '2px solid #e5e7eb',
-                        }}
-                      />
+                      <div style={{ position: 'relative', width: '100%', height: '200px' }}>
+                        <Image
+                          src={config.imageUrl}
+                          alt="Popup preview"
+                          fill
+                          style={{
+                            objectFit: 'cover',
+                            borderRadius: '0.5rem',
+                            border: '2px solid #e5e7eb',
+                          }}
+                        />
+                      </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
                           onClick={openMediaModal}

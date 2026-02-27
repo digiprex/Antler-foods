@@ -428,7 +428,7 @@ export async function POST(request: Request) {
     }
 
     // Prepare hero configuration
-    const { restaurant_id, layout, page_id: _pageId, new_section, ...configData } = body;
+    const { restaurant_id: _restaurantId, layout, page_id: _pageId, new_section: _newSection, ...configData } = body;
     const name = layout || 'centered-large'; // layout goes to name field
 
     // The entire hero config (except layout, page_id, new_section) goes into the config field

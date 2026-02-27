@@ -11,7 +11,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { AnnouncementBarConfig } from '@/types/announcement-bar.types';
 import { SOCIAL_MEDIA_PLATFORMS } from '@/types/announcement-bar.types';
 import styles from './announcement-bar.module.css';
@@ -28,40 +28,7 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
   const [error, setError] = useState<string | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
-  // Fetch config if not provided as prop
-  useEffect(() => {
-    if (!config && (restaurantId || domain)) {
-      fetchAnnouncementBarConfig();
-    }
-  }, [config, restaurantId, domain]);
-
-  // Update CSS variable when component renders with data and handle resize
-  useEffect(() => {
-    if (announcementConfig && announcementConfig.isEnabled && !loading && barRef.current) {
-      const updateHeight = () => {
-        if (barRef.current) {
-          const height = barRef.current.offsetHeight;
-          document.documentElement.style.setProperty('--announcement-bar-height', `${height}px`);
-        }
-      };
-
-      // Initial measurement after a short delay
-      const timer = setTimeout(updateHeight, 50);
-
-      // Listen for window resize
-      window.addEventListener('resize', updateHeight);
-
-      return () => {
-        clearTimeout(timer);
-        window.removeEventListener('resize', updateHeight);
-      };
-    } else {
-      // Reset if bar is not showing
-      document.documentElement.style.setProperty('--announcement-bar-height', '0px');
-    }
-  }, [announcementConfig, loading]);
-
-  const fetchAnnouncementBarConfig = async () => {
+  const fetchAnnouncementBarConfig = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -94,7 +61,40 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
     } finally {
       setLoading(false);
     }
-  };
+  }, [restaurantId, domain]);
+
+  // Fetch config if not provided as prop
+  useEffect(() => {
+    if (!config && (restaurantId || domain)) {
+      fetchAnnouncementBarConfig();
+    }
+  }, [config, restaurantId, domain, fetchAnnouncementBarConfig]);
+
+  // Update CSS variable when component renders with data and handle resize
+  useEffect(() => {
+    if (announcementConfig && announcementConfig.isEnabled && !loading && barRef.current) {
+      const updateHeight = () => {
+        if (barRef.current) {
+          const height = barRef.current.offsetHeight;
+          document.documentElement.style.setProperty('--announcement-bar-height', `${height}px`);
+        }
+      };
+
+      // Initial measurement after a short delay
+      const timer = setTimeout(updateHeight, 50);
+
+      // Listen for window resize
+      window.addEventListener('resize', updateHeight);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('resize', updateHeight);
+      };
+    } else {
+      // Reset if bar is not showing
+      document.documentElement.style.setProperty('--announcement-bar-height', '0px');
+    }
+  }, [announcementConfig, loading]);
 
   // Don't render if loading, error, disabled, or no config
   if (loading || error || !announcementConfig || !announcementConfig.isEnabled) {

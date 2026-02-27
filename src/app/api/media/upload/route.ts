@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
           errorMessage += ' - The storage endpoint was not found. Please check your Nhost configuration.';
           errorDetails = `Attempted URL: ${uploadUrl}\n\nPlease verify:\n1. NEXT_PUBLIC_NHOST_STORAGE_URL is set correctly in .env.local\n2. Your Nhost project has storage enabled\n3. The subdomain and region match your Nhost project`;
         }
-      } catch (e) {
+      } catch {
         // Error text is not JSON, use as-is
       }
 

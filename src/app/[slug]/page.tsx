@@ -6,7 +6,6 @@
  * Now includes dynamic SEO metadata generation
  */
 
-import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { generateDynamicSEO, generateMetadata as generateSEOMetadata } from '@/lib/seo';
 import DynamicPageClient from './page-client';

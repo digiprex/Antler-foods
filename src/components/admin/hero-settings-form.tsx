@@ -29,7 +29,7 @@ interface HeroSettingsFormProps {
 }
 
 export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsFormProps) {
-  const { config, loading, error: fetchError, refetch } = useHeroConfig({ fetchOnMount: !isNewSection });
+  const { config, loading, error: fetchError } = useHeroConfig({ fetchOnMount: !isNewSection });
   const { updateHero, updating, error: updateError } = useUpdateHeroConfig();
 
   // Toast state
@@ -50,17 +50,6 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
   // Get restaurant ID and other params from URL
   const searchParams = new URLSearchParams(window.location.search);
   const restaurantId = searchParams.get('restaurant_id') || '';
-  const restaurantName = searchParams.get('restaurant_name') || '';
-
-  // Validate that restaurant ID is provided
-  if (!restaurantId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
-      </div>
-    );
-  }
 
   // Layout options
   const layoutOptions = [
@@ -98,6 +87,16 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
       setFormConfig(config);
     }
   }, [config, formConfig, isNewSection]);
+
+  // Validate that restaurant ID is provided
+  if (!restaurantId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

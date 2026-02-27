@@ -71,14 +71,14 @@ export default function DynamicFaw({
     // Merge page template config if available
     try {
       if (data && data.templates) {
-        const tpl = data.templates[categoryKey] || Object.values(data.templates).find((t: any) => (t?.name || "").toLowerCase().includes("faw") || (t?.name || "").toLowerCase().includes("feature"));
+        const tpl = data.templates[categoryKey] || Object.values(data.templates).find((t: { name?: string; config?: Partial<FawConfig> }) => (t?.name || "").toLowerCase().includes("faw") || (t?.name || "").toLowerCase().includes("feature"));
         if (tpl && tpl.config) {
           const merged = { ...defaults, ...tpl.config, ...fallbackConfig } as FawConfig;
           // Ensure items shape
           if (Array.isArray(merged.items) && merged.items.length > 0) return merged;
         }
       }
-    } catch (e) {
+    } catch {
       // ignore and use fallbacks
     }
 

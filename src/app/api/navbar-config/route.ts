@@ -126,8 +126,6 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     let restaurantId = searchParams.get('restaurant_id');
     const domain = searchParams.get('domain') || request.headers.get('host');
-    const urlSlug = searchParams.get('url_slug');
-    let pageId = searchParams.get('page_id');
 
     // If domain is provided but no restaurantId, fetch restaurantId from domain
     if (domain && !searchParams.get('restaurant_id')) {

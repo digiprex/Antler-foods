@@ -25,6 +25,7 @@ export default function PageSettingsSelector() {
   const [existingSections, setExistingSections] = useState<Set<string>>(new Set());
   const [sectionConfigs, setSectionConfigs] = useState<Map<string, any>>(new Map());
   const [sectionTemplates, setSectionTemplates] = useState<Map<string, any>>(new Map());
+  const [allTemplates, setAllTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isHomePage, setIsHomePage] = useState<boolean>(false);
   const [showAddSectionModal, setShowAddSectionModal] = useState(false);
@@ -335,6 +336,7 @@ export default function PageSettingsSelector() {
       }
 
       const existing = new Set<string>();
+      const templates: any[] = [];
 
       // Fetch all templates for this page from the templates table
       try {
@@ -377,11 +379,12 @@ export default function PageSettingsSelector() {
               // Only hide if explicitly set to false
               if (enabled !== false && isEnabled !== false) {
                 existing.add(section.name);
+                templates.push({ ...template, section });
                 console.log(`✓ Added section: ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
 
                 // Store the template config and full template data
-                setSectionConfigs(prev => new Map(prev.set(section.name, template.config)));
-                setSectionTemplates(prev => new Map(prev.set(section.name, template)));
+                setSectionConfigs(prev => new Map(prev.set(`${template.template_id}`, template.config)));
+                setSectionTemplates(prev => new Map(prev.set(`${template.template_id}`, template)));
               } else {
                 console.log(`✗ Skipped section (disabled): ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
               }
@@ -393,12 +396,14 @@ export default function PageSettingsSelector() {
 
           console.log('Total sections added:', existing.size);
           console.log('Added sections:', Array.from(existing));
+          console.log('Total templates:', templates.length);
         }
       } catch (err) {
         console.error('Error fetching templates:', err);
       }
 
       setExistingSections(existing);
+      setAllTemplates(templates);
     } catch (error) {
       console.error('Error fetching page and sections:', error);
     } finally {
@@ -411,21 +416,17 @@ export default function PageSettingsSelector() {
   }, [fetchPageAndSections]);
 
   // Sort existing sections by order_index
-  const existingSectionsData = sectionsData
-    .filter(section => existingSections.has(section.name))
-    .map(section => {
-      const template = sectionTemplates.get(section.name);
-      return {
-        ...section,
-        order_index: template?.order_index ?? 999,
-        template_id: template?.template_id
-      };
-    })
+  const existingSectionsData = allTemplates
+    .map(template => ({
+      ...template.section,
+      order_index: template.order_index ?? 999,
+      template_id: template.template_id,
+      config: template.config
+    }))
     .sort((a, b) => (a.order_index ?? 999) - (b.order_index ?? 999));
 
-  const availableSectionsData = sectionsData.filter(section =>
-    !existingSections.has(section.name)
-  );
+  // All section types are always available (allow multiple instances)
+  const availableSectionsData = sectionsData;
 
   // Function to update section order
   const updateSectionOrder = useCallback(async (templateId: string, newOrderIndex: number) => {
@@ -759,7 +760,7 @@ export default function PageSettingsSelector() {
                 <div className="space-y-6">
                   {existingSectionsData.map((section, idx) => (
                     <div
-                      key={idx}
+                      key={section.template_id}
                       className="bg-white border border-green-200 rounded-lg shadow hover:shadow-md transition-all group"
                     >
                       {/* Section Header */}
@@ -771,14 +772,27 @@ export default function PageSettingsSelector() {
                               <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded flex-shrink-0">
                                 ✓ Added
                               </span>
+                              {(() => {
+                                // Count instances of this section type
+                                const instanceCount = existingSectionsData.filter(s => s.category === section.category).length;
+                                if (instanceCount > 1) {
+                                  const instanceNumber = existingSectionsData.filter(s => s.category === section.category).findIndex(s => s.template_id === section.template_id) + 1;
+                                  return (
+                                    <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded flex-shrink-0 font-medium">
+                                      Instance #{instanceNumber}
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                             <div className="text-sm text-gray-600 mb-3">{section.description}</div>
                             <div className="flex flex-wrap gap-2">
                               <span className="text-xs font-medium text-gray-500">Layout:</span>
                               {(() => {
-                                const config = sectionConfigs.get(section.name);
-                                console.log(`Layout debug for ${section.name}:`, config);
-                                
+                                const config = section.config;
+                                console.log(`Layout debug for ${section.name} (${section.template_id}):`, config);
+
                                 // Try multiple possible layout field names
                                 const selectedLayout =
                                   config?.layout ||
@@ -787,7 +801,7 @@ export default function PageSettingsSelector() {
                                   config?.layoutStyle ||
                                   config?.displayLayout ||
                                   'Default';
-                                
+
                                 return (
                                   <span className="text-xs px-2 py-1 bg-green-50 text-green-700 rounded font-medium">
                                     {selectedLayout}
@@ -890,7 +904,10 @@ export default function PageSettingsSelector() {
             <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
               {/* Modal Header */}
               <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">Add New Section</h2>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Add New Section</h2>
+                  <p className="text-sm text-gray-600 mt-1">You can add multiple instances of the same section type</p>
+                </div>
                 <button
                   onClick={() => setShowAddSectionModal(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -910,7 +927,8 @@ export default function PageSettingsSelector() {
                       className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all hover:border-green-400 cursor-pointer"
                       onClick={() => {
                         const params = buildParams();
-                        router.push(`${section.route}?${params}`);
+                        // Add new_section=true to indicate this is creating a new instance
+                        router.push(`${section.route}?${params}&new_section=true`);
                         setShowAddSectionModal(false);
                       }}
                     >

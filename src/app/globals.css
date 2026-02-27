@@ -43,4 +43,11 @@ input[type="text"], input[type="email"], input[type="password"], input[type="url
   .auth-link {
     @apply text-accent transition-colors hover:text-accentDark hover:underline;
   }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }

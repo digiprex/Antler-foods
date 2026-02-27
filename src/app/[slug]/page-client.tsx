@@ -220,42 +220,47 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
     );
   }
 
-  // Get templates and sort by order_index
-  const templates = pageData?.data?.templates || {};
-  const sortedTemplates = Object.entries(templates)
-    .map(([category, template]: [string, any]) => ({
-      category,
-      ...template
-    }))
-    .sort((a, b) => (a.order_index ?? 999) - (b.order_index ?? 999));
+  // Get templates array and sort by order_index
+  const templates = pageData?.data?.templates || [];
+  const sortedTemplates = templates.sort((a: any, b: any) => (a.order_index ?? 999) - (b.order_index ?? 999));
 
   // Render component based on category
-  const renderSection = (category: string) => {
+  const renderSection = (template: any) => {
     const pageId = pageData?.data?.page?.page_id;
+    const category = template.category;
 
+    const uniqueKey = template.template_id || `${category}-${template.order_index || 0}`;
+    
     switch (category.toLowerCase()) {
       case 'hero':
-        return <DynamicHero key={category} restaurantId={restaurantId} showLoading={true} />;
+        return <DynamicHero key={uniqueKey} restaurantId={restaurantId} showLoading={true} />;
       case 'customcode':
-        return <DynamicCustomCode key={category} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+        return <DynamicCustomCode key={uniqueKey} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
       case 'scrollingtext':
-        return <DynamicScrollingText key={category} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+        return <DynamicScrollingText key={uniqueKey} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
       case 'timeline':
-        return <DynamicTimeline key={category} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+        return <DynamicTimeline key={uniqueKey} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
       case 'faq':
-        return <DynamicFAQ key={category} restaurantId={restaurantId} showLoading={true} />;
+        return <DynamicFAQ key={uniqueKey} restaurantId={restaurantId} showLoading={true} />;
       case 'gallery':
-        return <DynamicGallery key={category} restaurantId={restaurantId} showLoading={true} />;
+        return <DynamicGallery key={uniqueKey} restaurantId={restaurantId} showLoading={true} />;
       case 'youtube':
-        return <YouTubeSection key={category} restaurantId={restaurantId} />;
+        return <YouTubeSection key={uniqueKey} restaurantId={restaurantId} />;
       case 'location':
-        return <DynamicLocation key={category} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+        return <DynamicLocation key={uniqueKey} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
       case 'reviews':
-        return <DynamicReviews key={category} restaurantId={restaurantId} showLoading={true} />;
+        return <DynamicReviews key={uniqueKey} restaurantId={restaurantId} showLoading={true} />;
       case 'form':
-        return <DynamicForm key={category} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+        return <DynamicForm key={uniqueKey} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
       default:
-        return null;
+        console.warn('Unknown section category:', category);
+        return (
+          <div key={uniqueKey} style={{ padding: '20px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', margin: '10px 0' }}>
+            <h3>Unknown Section: {category}</h3>
+            <p>This section type is not yet supported. Template data:</p>
+            <pre style={{ fontSize: '12px', overflow: 'auto' }}>{JSON.stringify(template, null, 2)}</pre>
+          </div>
+        );
     }
   };
 
@@ -267,7 +272,16 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
       {slug === 'home' && <Popup restaurantId={restaurantId} />}
 
       {/* Render sections in order based on order_index */}
-      {sortedTemplates.map((template) => renderSection(template.category))}
+      {sortedTemplates.length > 0 ? (
+        sortedTemplates.map((template: any) => renderSection(template))
+      ) : (
+        <div style={{ padding: '40px', textAlign: 'center', backgroundColor: 'white', margin: '20px', borderRadius: '8px' }}>
+          <h3>No sections found for this page</h3>
+          <p>This page doesn't have any sections configured yet.</p>
+          <p>Page ID: {pageData?.data?.page?.page_id}</p>
+          <p>Restaurant ID: {restaurantId}</p>
+        </div>
+      )}
     </div>
   );
 }

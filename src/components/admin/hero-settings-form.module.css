@@ -1646,3 +1646,104 @@
   font-size: 0.875rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
+
+/* Media Upload Container Styles */
+.mediaUploadContainer {
+  flex: 1;
+  width: 100%;
+}
+
+.mediaPreview {
+  position: relative;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f9fafb;
+}
+
+.mediaPreviewImage {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  max-height: 300px;
+  object-fit: cover;
+  display: block;
+  border-radius: 10px 10px 0 0;
+}
+
+.mediaActions {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+}
+
+.changeMediaButton {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+.changeMediaButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+}
+
+.removeMediaButton {
+  padding: 0.75rem 1rem;
+  background: #fee;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.removeMediaButton:hover {
+  background: #fecaca;
+  border-color: #f87171;
+}
+
+.uploadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+.uploadButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+}
+
+.uploadButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background: #d1d5db;
+  box-shadow: none;
+}
+
+.uploadIcon {
+  font-size: 1.125rem;
+}

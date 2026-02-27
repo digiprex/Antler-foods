@@ -75,7 +75,9 @@ const GET_PAGE_TEMPLATES = `
       config
       menu_items
       page_id
+      restaurant_id
       order_index
+      is_deleted
       created_at
       updated_at
     }
@@ -133,7 +135,8 @@ export async function GET(request: NextRequest) {
       url_slug: urlSlug,
     });
 
-    if (!pageData.web_pages || pageData.web_pages.length === 0) {
+
+    if (!(pageData as any).web_pages || (pageData as any).web_pages.length === 0) {
       return NextResponse.json(
         {
           success: false,
@@ -144,7 +147,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const page = pageData.web_pages[0];
+    const page = (pageData as any).web_pages[0];
 
     // Step 2: Get all templates for this page
     const templatesData = await graphqlRequest(GET_PAGE_TEMPLATES, {
@@ -152,21 +155,10 @@ export async function GET(request: NextRequest) {
       page_id: page.page_id,
     });
 
-    // Organize templates by category for easier access
-    const templatesByCategory: Record<string, any> = {};
-    if (templatesData.templates) {
-      templatesData.templates.forEach((template: any) => {
-        templatesByCategory[template.category] = {
-          template_id: template.template_id,
-          name: template.name,
-          config: template.config,
-          menu_items: template.menu_items,
-          order_index: template.order_index,
-          created_at: template.created_at,
-          updated_at: template.updated_at,
-        };
-      });
-    }
+
+    // Return templates as an array instead of organizing by category
+    // This allows multiple templates of the same category and preserves order
+    const templates = (templatesData as any).templates || [];
 
     const response = {
       success: true,
@@ -187,8 +179,8 @@ export async function GET(request: NextRequest) {
           created_at: page.created_at,
           updated_at: page.updated_at,
         },
-        templates: templatesByCategory,
-        template_count: templatesData.templates?.length || 0,
+        templates: templates,
+        template_count: templates.length,
       },
       error: null,
     };

@@ -221,13 +221,53 @@ export default function SEOSettingsPage() {
                       </div>
                     </div>
 
-                    {/* Preview Card */}
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Preview (Google Search Result)</h3>
-                      <div className="bg-white p-4 rounded border border-gray-200">
-                        <div className="text-blue-600 text-lg mb-1">{metaTitle || 'Page Title'}</div>
-                        <div className="text-green-600 text-sm mb-2">https://yourwebsite.com/{pageName || 'page'}</div>
-                        <div className="text-gray-600 text-sm">{metaDescription || 'Your page description will appear here...'}</div>
+                    {/* Preview Cards */}
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">SEO Preview</h3>
+                      
+                      {/* Google Search Result Preview */}
+                      <div>
+                        <h4 className="text-xs font-medium text-gray-600 mb-2">Google Search Result</h4>
+                        <div className="bg-white p-4 rounded border border-gray-200">
+                          <div className="text-blue-600 text-lg mb-1">{metaTitle || 'Page Title'}</div>
+                          <div className="text-green-600 text-sm mb-2">https://yourwebsite.com/{pageName || 'page'}</div>
+                          <div className="text-gray-600 text-sm">{metaDescription || 'Your page description will appear here...'}</div>
+                        </div>
+                      </div>
+
+                      {/* Social Media Preview */}
+                      <div>
+                        <h4 className="text-xs font-medium text-gray-600 mb-2">Social Media Preview</h4>
+                        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden max-w-md">
+                          {/* Image Section */}
+                          <div className="aspect-[1.91/1] bg-gray-100 flex items-center justify-center">
+                            {ogImage ? (
+                              <img
+                                src={ogImage}
+                                alt="Social sharing preview"
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="text-center text-gray-400">
+                                <div className="text-4xl mb-2">🖼️</div>
+                                <div className="text-sm">Social Sharing Image</div>
+                                <div className="text-xs">1200 × 630 px</div>
+                              </div>
+                            )}
+                          </div>
+                          {/* Content Section */}
+                          <div className="p-3 border-t border-gray-100">
+                            <div className="text-sm font-medium text-gray-900 mb-1 line-clamp-2">
+                              {metaTitle || 'Page Title'}
+                            </div>
+                            <div className="text-xs text-gray-600 line-clamp-2">
+                              {metaDescription || 'Your page description will appear here...'}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              yourwebsite.com
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
 

@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ScrollingTextConfig } from '@/types/scrolling-text.types';
 import { SCROLL_SPEEDS } from '@/types/scrolling-text.types';
 import styles from './scrolling-text.module.css';
@@ -26,36 +26,7 @@ export default function ScrollingText({ config, restaurantId, domain }: Scrollin
   const [error, setError] = useState<string | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
-  // Fetch config if not provided as prop
-  useEffect(() => {
-    if (!config && (restaurantId || domain)) {
-      fetchScrollingTextConfig();
-    }
-  }, [config, restaurantId, domain]);
-
-  // Update CSS variable for navbar positioning
-  useEffect(() => {
-    if (scrollingConfig && scrollingConfig.isEnabled && !loading && barRef.current) {
-      const updateHeight = () => {
-        if (barRef.current) {
-          const height = barRef.current.offsetHeight;
-          document.documentElement.style.setProperty('--scrolling-text-height', `${height}px`);
-        }
-      };
-
-      const timer = setTimeout(updateHeight, 50);
-      window.addEventListener('resize', updateHeight);
-
-      return () => {
-        clearTimeout(timer);
-        window.removeEventListener('resize', updateHeight);
-      };
-    } else {
-      document.documentElement.style.setProperty('--scrolling-text-height', '0px');
-    }
-  }, [scrollingConfig, loading]);
-
-  const fetchScrollingTextConfig = async () => {
+  const fetchScrollingTextConfig = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -87,7 +58,36 @@ export default function ScrollingText({ config, restaurantId, domain }: Scrollin
     } finally {
       setLoading(false);
     }
-  };
+  }, [restaurantId, domain]);
+
+  // Fetch config if not provided as prop
+  useEffect(() => {
+    if (!config && (restaurantId || domain)) {
+      fetchScrollingTextConfig();
+    }
+  }, [config, restaurantId, domain, fetchScrollingTextConfig]);
+
+  // Update CSS variable for navbar positioning
+  useEffect(() => {
+    if (scrollingConfig && scrollingConfig.isEnabled && !loading && barRef.current) {
+      const updateHeight = () => {
+        if (barRef.current) {
+          const height = barRef.current.offsetHeight;
+          document.documentElement.style.setProperty('--scrolling-text-height', `${height}px`);
+        }
+      };
+
+      const timer = setTimeout(updateHeight, 50);
+      window.addEventListener('resize', updateHeight);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('resize', updateHeight);
+      };
+    } else {
+      document.documentElement.style.setProperty('--scrolling-text-height', '0px');
+    }
+  }, [scrollingConfig, loading]);
 
   // Don't render if loading, error, disabled, or no config
   if (loading || error || !scrollingConfig || !scrollingConfig.isEnabled) {

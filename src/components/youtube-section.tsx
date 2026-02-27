@@ -7,7 +7,7 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import type { YouTubeConfig } from '@/types/youtube.types';
 
 interface YouTubeSectionProps {
@@ -18,11 +18,7 @@ export default function YouTubeSection({ restaurantId }: YouTubeSectionProps): J
   const [config, setConfig] = useState<YouTubeConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchYouTubeConfig();
-  }, [restaurantId]);
-
-  const fetchYouTubeConfig = async () => {
+  const fetchYouTubeConfig = useCallback(async () => {
     try {
       const response = await fetch(`/api/youtube-config?restaurant_id=${restaurantId}`);
       const data = await response.json();
@@ -35,7 +31,11 @@ export default function YouTubeSection({ restaurantId }: YouTubeSectionProps): J
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [restaurantId]);
+
+  useEffect(() => {
+    fetchYouTubeConfig();
+  }, [fetchYouTubeConfig]);
 
   const extractVideoId = (url: string): string => {
     if (!url) return '';

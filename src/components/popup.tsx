@@ -7,7 +7,8 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
 import type { PopupConfig } from '@/types/popup.types';
 
 interface PopupProps {
@@ -22,11 +23,33 @@ export default function Popup({ restaurantId }: PopupProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  useEffect(() => {
-    fetchPopupConfig();
+  const shouldShowPopup = useCallback((frequency: string): boolean => {
+    const storageKey = `popup_${restaurantId}_last_shown`;
+    const lastShown = localStorage.getItem(storageKey);
+
+    if (!lastShown) return true;
+
+    if (frequency === 'always') return true;
+    if (frequency === 'once') return false;
+
+    const lastShownDate = new Date(lastShown);
+    const now = new Date();
+    const daysDiff = Math.floor((now.getTime() - lastShownDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (frequency === 'daily' && daysDiff >= 1) return true;
+    if (frequency === 'weekly' && daysDiff >= 7) return true;
+
+    return false;
   }, [restaurantId]);
 
-  const fetchPopupConfig = async () => {
+  const recordPopupView = useCallback((frequency: string) => {
+    if (frequency !== 'always') {
+      const storageKey = `popup_${restaurantId}_last_shown`;
+      localStorage.setItem(storageKey, new Date().toISOString());
+    }
+  }, [restaurantId]);
+
+  const fetchPopupConfig = useCallback(async () => {
     try {
       const response = await fetch(`/api/popup-config?restaurant_id=${restaurantId}`);
       const data = await response.json();
@@ -51,33 +74,11 @@ export default function Popup({ restaurantId }: PopupProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [restaurantId, shouldShowPopup, recordPopupView]);
 
-  const shouldShowPopup = (frequency: string): boolean => {
-    const storageKey = `popup_${restaurantId}_last_shown`;
-    const lastShown = localStorage.getItem(storageKey);
-
-    if (!lastShown) return true;
-
-    if (frequency === 'always') return true;
-    if (frequency === 'once') return false;
-
-    const lastShownDate = new Date(lastShown);
-    const now = new Date();
-    const daysDiff = Math.floor((now.getTime() - lastShownDate.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (frequency === 'daily' && daysDiff >= 1) return true;
-    if (frequency === 'weekly' && daysDiff >= 7) return true;
-
-    return false;
-  };
-
-  const recordPopupView = (frequency: string) => {
-    if (frequency !== 'always') {
-      const storageKey = `popup_${restaurantId}_last_shown`;
-      localStorage.setItem(storageKey, new Date().toISOString());
-    }
-  };
+  useEffect(() => {
+    fetchPopupConfig();
+  }, [fetchPopupConfig]);
 
   const handleClose = () => {
     setIsVisible(false);
@@ -212,9 +213,11 @@ export default function Popup({ restaurantId }: PopupProps) {
         <>
           {config.imageUrl && (
             <div style={{ marginBottom: '1.5rem' }}>
-              <img
+              <Image
                 src={config.imageUrl}
                 alt={config.title || 'Popup'}
+                width={500}
+                height={300}
                 style={{
                   width: '100%',
                   height: 'auto',
@@ -248,9 +251,11 @@ export default function Popup({ restaurantId }: PopupProps) {
         <div style={{ display: 'flex', flexDirection: 'row', gap: '2rem', padding: '2rem' }}>
           {config.imageUrl && (
             <div style={{ flex: '0 0 40%' }}>
-              <img
+              <Image
                 src={config.imageUrl}
                 alt={config.title || 'Popup'}
+                width={200}
+                height={250}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -284,9 +289,11 @@ export default function Popup({ restaurantId }: PopupProps) {
         <div style={{ display: 'flex', flexDirection: 'row-reverse', gap: '2rem', padding: '2rem' }}>
           {config.imageUrl && (
             <div style={{ flex: '0 0 40%' }}>
-              <img
+              <Image
                 src={config.imageUrl}
                 alt={config.title || 'Popup'}
+                width={200}
+                height={250}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -359,9 +366,11 @@ export default function Popup({ restaurantId }: PopupProps) {
       return (
         <div style={{ padding: 0 }}>
           {config.imageUrl && (
-            <img
+            <Image
               src={config.imageUrl}
               alt={config.title || 'Popup'}
+              width={500}
+              height={500}
               style={{
                 width: '100%',
                 height: 'auto',
@@ -381,12 +390,12 @@ export default function Popup({ restaurantId }: PopupProps) {
         <div style={{ padding: '2rem' }}>
           {config.imageUrl && (
             <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
-              <img
+              <Image
                 src={config.imageUrl}
                 alt={config.title || 'Popup'}
+                width={120}
+                height={120}
                 style={{
-                  width: '120px',
-                  height: '120px',
                   borderRadius: '50%',
                   objectFit: 'cover',
                   margin: '0 auto',

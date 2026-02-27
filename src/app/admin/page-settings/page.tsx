@@ -15,6 +15,17 @@ import DynamicScrollingText from '@/components/dynamic-scrolling-text';
 import DynamicCustomCode from '@/components/dynamic-custom-code';
 import DynamicForm from '@/components/dynamic-form';
 
+interface SectionData {
+  name: string;
+  category: string;
+  description: string;
+  route: string;
+  layouts: string[];
+  order_index?: number;
+  template_id: string;
+  config?: Record<string, unknown> | unknown;
+}
+
 export default function PageSettingsSelector() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -85,7 +96,7 @@ export default function PageSettingsSelector() {
                       backgroundColor: String(config.bgColor || '#000000'),
                       color: String(config.textColor || '#ffffff')
                     }}>
-                      {config.showTitle && config.title && (
+                      {config.showTitle && config.title ? (
                         <div style={{
                           marginBottom: '20px',
                           textAlign: 'center'
@@ -97,7 +108,7 @@ export default function PageSettingsSelector() {
                           }}>
                             {String(config.title)}
                           </h2>
-                          {config.description && (
+                          {config.description ? (
                             <p style={{
                               fontSize: '14px',
                               opacity: 0.9,
@@ -105,9 +116,9 @@ export default function PageSettingsSelector() {
                             }}>
                               {String(config.description)}
                             </p>
-                          )}
+                          ) : null}
                         </div>
-                      )}
+                      ) : null}
                       <div style={{
                         position: 'relative',
                         paddingBottom: config.aspectRatio === '16:9' ? '56.25%' : '75%',
@@ -357,13 +368,20 @@ export default function PageSettingsSelector() {
           console.log('Available section categories:', sectionsData.map(s => s.category));
 
           // Map template categories to section names
-          templatesData.data.forEach((template: any) => {
+          templatesData.data.forEach((template: {
+            template_id: string;
+            name: string;
+            category: string;
+            config?: Record<string, unknown>;
+            order_index?: number;
+          }) => {
+            const config = template.config as Record<string, unknown> | undefined;
             console.log('Processing template:', {
               category: template.category,
               name: template.name,
               config: template.config,
-              enabled: template.config?.enabled,
-              isEnabled: template.config?.isEnabled
+              enabled: config?.enabled,
+              isEnabled: config?.isEnabled
             });
 
             // Find matching section by category (case-insensitive match)
@@ -376,8 +394,8 @@ export default function PageSettingsSelector() {
 
               // Check both 'enabled' and 'isEnabled' fields (different sections use different field names)
               // If neither field exists, or if either is not explicitly false, consider it added
-              const enabled = template.config?.enabled;
-              const isEnabled = template.config?.isEnabled;
+              const enabled = config?.enabled;
+              const isEnabled = config?.isEnabled;
 
               // Show section as added if:
               // 1. No enabled field exists (template exists but no enable/disable functionality)
@@ -386,7 +404,14 @@ export default function PageSettingsSelector() {
               // Only hide if explicitly set to false
               if (enabled !== false && isEnabled !== false) {
                 existing.add(section.name);
-                templates.push({ ...template, section });
+                templates.push({
+                  template_id: template.template_id,
+                  name: template.name,
+                  category: template.category,
+                  config: template.config,
+                  order_index: template.order_index,
+                  section: section as Record<string, unknown>
+                });
                 console.log(`✓ Added section: ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
 
                 // Store the template config and full template data
@@ -416,16 +441,16 @@ export default function PageSettingsSelector() {
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, pageId, pageNameParam]);
+  }, [restaurantId, pageId, pageNameParam, sectionsData]);
 
   useEffect(() => {
     fetchPageAndSections();
   }, [fetchPageAndSections]);
 
   // Sort existing sections by order_index
-  const existingSectionsData = allTemplates
+  const existingSectionsData: SectionData[] = allTemplates
     .map(template => ({
-      ...template.section,
+      ...(template.section as SectionData),
       order_index: template.order_index ?? 999,
       template_id: template.template_id,
       config: template.config
@@ -454,7 +479,7 @@ export default function PageSettingsSelector() {
   }, []);
 
   // Function to reorder all sections sequentially
-  const reorderAllSections = useCallback(async (sections: any[]) => {
+  const reorderAllSections = useCallback(async (sections: Array<{ template_id: string }>) => {
     try {
       // Update all sections with sequential order indices (1, 2, 3, 4...)
       const updates = sections.map((section, index) =>
@@ -797,7 +822,7 @@ export default function PageSettingsSelector() {
                             <div className="flex flex-wrap gap-2">
                               <span className="text-xs font-medium text-gray-500">Layout:</span>
                               {(() => {
-                                const config = section.config;
+                                const config = section.config as Record<string, unknown> | undefined;
                                 console.log(`Layout debug for ${section.name} (${section.template_id}):`, config);
 
                                 // Try multiple possible layout field names
@@ -811,7 +836,7 @@ export default function PageSettingsSelector() {
 
                                 return (
                                   <span className="text-xs px-2 py-1 bg-green-50 text-green-700 rounded font-medium">
-                                    {selectedLayout}
+                                    {String(selectedLayout)}
                                   </span>
                                 );
                               })()}

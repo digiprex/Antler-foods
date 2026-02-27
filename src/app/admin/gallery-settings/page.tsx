@@ -637,7 +637,7 @@ export default function GallerySettingsPage() {
                                 parent.appendChild(errorDiv);
                               }
                             }}
-                            onLoad={(e) => {
+                            onLoad={() => {
                               console.log('[Gallery Settings] Image loaded successfully:', (media as unknown).file.url);
                             }}
                           />

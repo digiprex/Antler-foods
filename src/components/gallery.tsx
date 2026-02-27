@@ -7,9 +7,10 @@
 'use client';
 
 import { useState } from 'react';
-import type { GalleryConfig, GalleryImage } from '@/types/gallery.types';
+import Image from 'next/image';
+import type { GalleryConfig } from '@/types/gallery.types';
 
-interface GalleryProps extends Partial<GalleryConfig> {}
+type GalleryProps = Partial<GalleryConfig>;
 
 export default function Gallery({
   title = 'Our Gallery',
@@ -115,25 +116,28 @@ export default function Gallery({
                 }}
                 onClick={() => openLightbox(index)}
               >
-                <img
-                  src={image.url}
-                  alt={image.alt}
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    display: 'block',
-                    borderRadius: '0.5rem',
-                    transition: 'transform 0.3s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (enableLightbox) {
-                      e.currentTarget.style.transform = 'scale(1.02)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }}
-                />
+              <Image
+                src={image.url}
+                alt={image.alt}
+                width={400}
+                height={300}
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  display: 'block',
+                  borderRadius: '0.5rem',
+                  transition: 'transform 0.3s ease',
+                  objectFit: 'cover',
+                }}
+                onMouseEnter={(e) => {
+                  if (enableLightbox) {
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              />
                 {showCaptions && (image.title || image.description) && (
                   <div style={{
                     position: 'absolute',
@@ -178,9 +182,11 @@ export default function Gallery({
                     }}
                     onClick={() => openLightbox(index)}
                   >
-                    <img
+                    <Image
                       src={image.url}
                       alt={image.alt}
+                      width={400}
+                      height={400}
                       style={{
                         width: '100%',
                         height: '400px',
@@ -300,12 +306,11 @@ export default function Gallery({
                 }}
                 onClick={() => openLightbox(index)}
               >
-                <img
+                <Image
                   src={image.url}
                   alt={image.alt}
+                  fill
                   style={{
-                    width: '100%',
-                    height: '100%',
                     objectFit: 'cover',
                     transition: 'transform 0.3s ease',
                   }}
@@ -395,13 +400,17 @@ export default function Gallery({
             )}
 
             {/* Image */}
-            <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: '90%', maxHeight: '90%' }}>
-              <img
+            <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: '90%', maxHeight: '90%', position: 'relative' }}>
+              <Image
                 src={images[lightboxIndex].url}
                 alt={images[lightboxIndex].alt}
+                width={1200}
+                height={800}
                 style={{
                   maxWidth: '100%',
                   maxHeight: '85vh',
+                  width: 'auto',
+                  height: 'auto',
                   objectFit: 'contain',
                 }}
               />

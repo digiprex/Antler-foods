@@ -8,6 +8,30 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
+
+// Google Maps type declarations
+declare global {
+  interface Window {
+    google?: {
+      maps?: {
+        places?: {
+          PlacesService: new (element: HTMLElement) => GooglePlacesService;
+          PlacesServiceStatus: {
+            OK: string;
+          };
+        };
+      };
+    };
+  }
+}
+
+interface GooglePlacesService {
+  getDetails(
+    request: { placeId: string; fields: string[] },
+    callback: (place: PlaceDetails | null, status: string) => void
+  ): void;
+}
 
 interface LocationConfig {
   enabled: boolean;
@@ -129,7 +153,7 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
     console.log('[Location] Fetching Google Places details for:', placeId);
 
     // Check if Google Maps is already loaded
-    if (typeof window !== 'undefined' && window.google?.maps && (window.google.maps as any).places) {
+    if (typeof window !== 'undefined' && window.google?.maps?.places) {
       getPlaceDetails(placeId);
       return;
     }
@@ -153,7 +177,7 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
     } else {
       // Wait for Google Maps to be available
       const checkGoogle = setInterval(() => {
-        if (typeof window !== 'undefined' && window.google?.maps && (window.google.maps as any).places) {
+        if (typeof window !== 'undefined' && window.google?.maps?.places) {
           clearInterval(checkGoogle);
           getPlaceDetails(placeId);
         }
@@ -162,7 +186,7 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
   };
 
   const getPlaceDetails = (placeId: string) => {
-    if (typeof window === 'undefined' || !window.google?.maps || !(window.google.maps as any).places) {
+    if (typeof window === 'undefined' || !window.google?.maps?.places) {
       console.error('[Location] Google Maps not loaded');
       return;
     }
@@ -171,7 +195,7 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
 
     // Create a temporary div for PlacesService
     const mapDiv = document.createElement('div');
-    const service = new (window.google.maps as any).places.PlacesService(mapDiv);
+    const service = new window.google.maps.places.PlacesService(mapDiv);
 
     const request = {
       placeId: placeId,
@@ -186,8 +210,8 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
       ],
     };
 
-    service.getDetails(request, (place: any, status: any) => {
-      if (status === (window.google?.maps as any)?.places?.PlacesServiceStatus?.OK && place) {
+    service.getDetails(request, (place: PlaceDetails | null, status: string) => {
+      if (status === window.google?.maps?.places?.PlacesServiceStatus?.OK && place) {
         console.log('[Location] Successfully fetched place details:', place.name);
         setPlaceDetails(place);
       } else {
@@ -257,14 +281,12 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
         position: 'relative',
         overflow: 'hidden',
       }}>
-        <img
+        <Image
           src={staticMapUrl}
           alt={`Map showing ${name}`}
+          fill
           style={{
-            width: '100%',
-            height: '100%',
             objectFit: 'cover',
-            display: 'block',
           }}
           onError={(e) => {
             const target = e.target as HTMLImageElement;

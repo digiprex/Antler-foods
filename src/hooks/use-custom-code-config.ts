@@ -3,7 +3,7 @@
  * Provides data fetching and update functionality for custom code settings
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { CustomCodeConfig, CustomCodeConfigResponse } from '@/types/custom-code.types';
 
 /**
@@ -14,7 +14,7 @@ export function useCustomCodeConfig({ apiEndpoint }: { apiEndpoint: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchConfig = async () => {
+  const fetchConfig = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -38,7 +38,7 @@ export function useCustomCodeConfig({ apiEndpoint }: { apiEndpoint: string }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiEndpoint]);
 
   useEffect(() => {
     if (apiEndpoint) {

@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import type { FooterConfig } from '@/types/footer.types';
 import styles from './footer.module.scss';
 
@@ -25,7 +26,6 @@ export default function Footer(props: FooterProps) {
     socialLinks = [],
     columns = [],
     copyrightText,
-    showPoweredBy = true,
     showSocialMedia = true,
     showLocations = true,
     showNewsletter = false,
@@ -159,7 +159,7 @@ export default function Footer(props: FooterProps) {
       {/* Left Section: Logo, About, Social Media */}
       <div className={styles.leftSection}>
         {logoUrl ? (
-          <img src={logoUrl} alt={restaurantName} className={styles.logo} />
+          <Image src={logoUrl} alt={restaurantName} className={styles.logo} width={150} height={60} />
         ) : (
           <h3 className={styles.brandName}>{restaurantName}</h3>
         )}
@@ -264,6 +264,11 @@ export default function Footer(props: FooterProps) {
               {newsletterStatus === 'loading' ? 'Subscribing...' : newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
             </button>
           </form>
+          {newsletterMessage && (
+            <div className={`${styles.newsletterMessage} ${newsletterStatus === 'success' ? styles.newsletterMessageSuccess : styles.newsletterMessageError}`}>
+              {newsletterMessage}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -273,7 +278,7 @@ export default function Footer(props: FooterProps) {
     <div className={styles.centeredLayout}>
       <div className={styles.centeredContent}>
         {logoUrl ? (
-          <img src={logoUrl} alt={restaurantName} className={styles.logoCentered} />
+          <Image src={logoUrl} alt={restaurantName} className={styles.logoCentered} width={180} height={72} />
         ) : (
           <h3 className={styles.brandNameCentered}>{restaurantName}</h3>
         )}
@@ -338,6 +343,11 @@ export default function Footer(props: FooterProps) {
                 {newsletterStatus === 'loading' ? 'Subscribing...' : newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
               </button>
             </form>
+            {newsletterMessage && (
+              <div className={`${styles.newsletterMessage} ${newsletterStatus === 'success' ? styles.newsletterMessageSuccess : styles.newsletterMessageError}`}>
+                {newsletterMessage}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -349,7 +359,7 @@ export default function Footer(props: FooterProps) {
       {/* Brand Column */}
       <div className={styles.brandColumn}>
         {logoUrl ? (
-          <img src={logoUrl} alt={restaurantName} className={styles.logo} />
+          <Image src={logoUrl} alt={restaurantName} className={styles.logo} width={150} height={60} />
         ) : (
           <h3 className={styles.brandName}>{restaurantName}</h3>
         )}
@@ -425,7 +435,7 @@ export default function Footer(props: FooterProps) {
         {/* Left Section: Brand, About, Social Media */}
         <div className={styles.restaurantBrand}>
           {logoUrl ? (
-            <img src={logoUrl} alt={restaurantName} className={styles.logo} />
+            <Image src={logoUrl} alt={restaurantName} className={styles.logo} width={150} height={60} />
           ) : (
             <h3 className={styles.brandName}>{restaurantName}</h3>
           )}
@@ -502,6 +512,11 @@ export default function Footer(props: FooterProps) {
                 {newsletterStatus === 'loading' ? 'Subscribing...' : newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
               </button>
             </form>
+            {newsletterMessage && (
+              <div className={`${styles.newsletterMessage} ${newsletterStatus === 'success' ? styles.newsletterMessageSuccess : styles.newsletterMessageError}`}>
+                {newsletterMessage}
+              </div>
+            )}
           </div>
         )}
       </div>

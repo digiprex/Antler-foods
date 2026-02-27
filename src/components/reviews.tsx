@@ -7,6 +7,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import type { ReviewConfig, Review } from '@/types/review.types';
 
 interface ReviewsProps extends Partial<ReviewConfig> {
@@ -119,19 +120,19 @@ export default function Reviews({
                     {/* Review Text */}
                     {review.review_text && (
                       <p style={{ fontSize: '0.9375rem', lineHeight: '1.6', marginBottom: '1rem', color: textColor }}>
-                        "{review.review_text}"
+                        &ldquo;{review.review_text}&rdquo;
                       </p>
                     )}
 
                     {/* Author Info */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', paddingTop: '1rem', borderTop: `1px solid rgba(0,0,0,0.1)` }}>
                       {showAvatar && review.avatar_url && (
-                        <img
+                        <Image
                           src={review.avatar_url}
                           alt={review.author_name || 'User'}
+                          width={40}
+                          height={40}
                           style={{
-                            width: '40px',
-                            height: '40px',
                             borderRadius: '50%',
                             objectFit: 'cover',
                           }}
@@ -242,12 +243,12 @@ export default function Reviews({
                 }}
               >
                 {showAvatar && review.avatar_url && (
-                  <img
+                  <Image
                     src={review.avatar_url}
                     alt={review.author_name || 'User'}
+                    width={60}
+                    height={60}
                     style={{
-                      width: '60px',
-                      height: '60px',
                       borderRadius: '50%',
                       objectFit: 'cover',
                       flexShrink: 0,
@@ -309,19 +310,19 @@ export default function Reviews({
                 {/* Review Text */}
                 {review.review_text && (
                   <p style={{ fontSize: '0.9375rem', lineHeight: '1.6', marginBottom: '1rem', color: textColor, flex: 1 }}>
-                    "{review.review_text}"
+                    &ldquo;{review.review_text}&rdquo;
                   </p>
                 )}
 
                 {/* Author Info */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', paddingTop: '1rem', borderTop: `1px solid rgba(0,0,0,0.1)` }}>
                   {showAvatar && review.avatar_url && (
-                    <img
+                    <Image
                       src={review.avatar_url}
                       alt={review.author_name || 'User'}
+                      width={40}
+                      height={40}
                       style={{
-                        width: '40px',
-                        height: '40px',
                         borderRadius: '50%',
                         objectFit: 'cover',
                       }}

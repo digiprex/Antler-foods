@@ -6,7 +6,8 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import Image from 'next/image';
 import type { HeroConfig } from '@/types/hero.types';
 import styles from './hero.module.scss';
 
@@ -37,7 +38,7 @@ export default function Hero(props: HeroProps) {
     minHeight = '600px',
     showScrollIndicator = false,
     contentMaxWidth = '1200px',
-    restaurant_id,
+    restaurant_id: _restaurant_id, // eslint-disable-line @typescript-eslint/no-unused-vars
   } = props;
 
   // Debug logging in development
@@ -53,7 +54,7 @@ export default function Hero(props: HeroProps) {
     });
   }
 
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false); // eslint-disable-line @typescript-eslint/no-unused-vars
 
   // Scroll indicator handler
   const scrollToContent = () => {
@@ -134,10 +135,13 @@ export default function Hero(props: HeroProps) {
 
     return (
       <div className={styles.imageContainer}>
-        <img
+        <Image
           src={image.url}
           alt={image.alt}
           className={styles.heroImage}
+          width={600}
+          height={400}
+          style={{ objectFit: 'cover' }}
           onError={(e) => {
             console.error('Hero image failed to load:', image.url);
             console.error('Image error event:', e);

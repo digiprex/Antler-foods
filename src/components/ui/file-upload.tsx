@@ -13,6 +13,7 @@ import {
   type ChangeEvent,
   type DragEvent,
 } from 'react';
+import Image from 'next/image';
 import styles from './file-upload.module.css';
 
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'bmp'];
@@ -261,7 +262,14 @@ export default function FileUpload({
         {isVideo ? (
           <video src={currentUrl} className={styles.previewVideo} controls muted />
         ) : (
-          <img src={currentUrl} alt="Preview" className={styles.previewImage} />
+          <Image
+            src={currentUrl}
+            alt="Preview"
+            className={styles.previewImage}
+            width={200}
+            height={200}
+            style={{ objectFit: 'cover' }}
+          />
         )}
         <button
           type="button"

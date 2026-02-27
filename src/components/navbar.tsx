@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import styles from './navbar.module.scss';
 
 export interface NavItem {
@@ -42,11 +43,6 @@ const DEFAULT_LEFT_NAV_ITEMS: NavItem[] = [
 
 const DEFAULT_RIGHT_NAV_ITEMS: NavItem[] = [];
 
-const DEFAULT_CTA_BUTTON: CTAButton = {
-  label: 'Get Started',
-  href: '#get-started'
-};
-
 // Helper function to get initials from restaurant name
 const getInitials = (name: string): string => {
   return name
@@ -62,7 +58,7 @@ export default function Navbar({
   restaurantName = DEFAULT_RESTAURANT_NAME,
   leftNavItems = DEFAULT_LEFT_NAV_ITEMS,
   rightNavItems = DEFAULT_RIGHT_NAV_ITEMS,
-  bagCount = 0,
+  bagCount = 0, // eslint-disable-line @typescript-eslint/no-unused-vars
   ctaButton,
   position = 'absolute',
   zIndex = 1000,
@@ -94,7 +90,7 @@ export default function Navbar({
 
   // Determine what to display for the brand
   const brandDisplay = logoUrl ? (
-    <img src={logoUrl} alt={restaurantName} className={styles.logoImage} />
+    <Image src={logoUrl} alt={restaurantName} className={styles.logoImage} width={120} height={40} style={{ objectFit: 'contain' }} />
   ) : (
     <span className={styles.logoInitials}>{getInitials(restaurantName)}</span>
   );

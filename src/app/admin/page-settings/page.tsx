@@ -27,6 +27,7 @@ export default function PageSettingsSelector() {
   const [sectionTemplates, setSectionTemplates] = useState<Map<string, any>>(new Map());
   const [loading, setLoading] = useState(true);
   const [isHomePage, setIsHomePage] = useState<boolean>(false);
+  const [showAddSectionModal, setShowAddSectionModal] = useState(false);
 
   // Function to render section preview based on category
   const renderSectionPreview = (category: string) => {
@@ -289,41 +290,6 @@ export default function PageSettingsSelector() {
       description: 'Configure form display with multiple layout options',
       route: '/admin/form-settings',
       layouts: ['Centered', 'Split Right', 'Split Left', 'Image Top', 'Background Image']
-    },
-    {
-      name: 'SEO Settings',
-      category: 'SEO',
-      description: 'Configure meta title, description and social sharing image',
-      route: '/admin/seo-settings',
-      layouts: ['Meta Tags', 'Social Sharing', 'Open Graph']
-    },
-    {
-      name: 'Popup Settings',
-      category: 'Popup',
-      description: 'Configure popup display and behavior for this page',
-      route: '/admin/popup-settings',
-      layouts: ['Modal', 'Slide In', 'Banner', 'Full Screen']
-    },
-    {
-      name: 'Announcement Bar',
-      category: 'AnnouncementBar',
-      description: 'Configure announcement bar display for this page',
-      route: '/admin/announcement-bar-settings',
-      layouts: ['Top Bar', 'Bottom Bar', 'Floating']
-    },
-    {
-      name: 'Footer Settings',
-      category: 'Footer',
-      description: 'Configure footer content and layout for this page',
-      route: '/admin/footer-settings',
-      layouts: ['Simple', 'Multi Column', 'Minimal']
-    },
-    {
-      name: 'Navbar Settings',
-      category: 'Navbar',
-      description: 'Configure navigation bar for this page',
-      route: '/admin/navbar-settings',
-      layouts: ['Horizontal', 'Sidebar', 'Minimal']
     }
   ];
 
@@ -524,14 +490,39 @@ export default function PageSettingsSelector() {
           </div>
 
           <div className="flex justify-between items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold">
-              {pageNameParam ? `Edit ${pageNameParam}` : 'Edit Page Settings'}
-            </h1>
-            {isHomePage && (
-              <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded-full">
-                🏠 Home Page
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold">
+                {pageNameParam ? `Edit ${pageNameParam}` : 'Edit Page Settings'}
+              </h1>
+              {isHomePage && (
+                <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded-full">
+                  🏠 Home Page
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  const params = buildParams();
+                  router.push(`/admin/seo-settings?${params}`);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                Manage SEO
+              </button>
+              <button
+                onClick={() => setShowAddSectionModal(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-medium"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Section
+              </button>
+            </div>
           </div>
           <p className="text-gray-600">
             Manage sections configured for this page. Click on any section to configure it.
@@ -675,7 +666,77 @@ export default function PageSettingsSelector() {
                 </div>
               </div>
             )}
+
           </>
+        )}
+
+        {/* Add Section Modal */}
+        {showAddSectionModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Modal Header */}
+              <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">Add New Section</h2>
+                <button
+                  onClick={() => setShowAddSectionModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {availableSectionsData.map((section, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all hover:border-green-400 cursor-pointer"
+                      onClick={() => {
+                        const params = buildParams();
+                        router.push(`${section.route}?${params}`);
+                        setShowAddSectionModal(false);
+                      }}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="font-semibold text-gray-900 mb-1">{section.name}</div>
+                          <div className="text-sm text-gray-600">{section.description}</div>
+                        </div>
+                        <svg className="w-5 h-5 text-green-600 flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {section.layouts.slice(0, 3).map((layout: string, layoutIdx: number) => (
+                          <span key={layoutIdx} className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
+                            {layout}
+                          </span>
+                        ))}
+                        {section.layouts.length > 3 && (
+                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
+                            +{section.layouts.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-gray-200 flex justify-end">
+                <button
+                  onClick={() => setShowAddSectionModal(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
       </div>

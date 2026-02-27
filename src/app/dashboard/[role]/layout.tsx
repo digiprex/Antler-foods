@@ -1,6 +1,10 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
+import { generateMetadata as generateSEOMetadata, getPageSEO } from "@/lib/seo";
+
+export const metadata: Metadata = generateSEOMetadata(getPageSEO('dashboard'));
 
 interface DashboardRouteLayoutProps {
   children: ReactNode;

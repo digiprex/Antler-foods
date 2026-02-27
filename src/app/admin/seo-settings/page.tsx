@@ -17,6 +17,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import styles from '@/components/admin/gallery-settings-form.module.css';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function SEOSettingsPage() {
   const router = useRouter();
@@ -99,13 +100,22 @@ export default function SEOSettingsPage() {
       const data = await response.json();
 
       if (data.success) {
-        alert('SEO settings saved successfully!');
+        toast.success('SEO settings saved successfully!', {
+          duration: 3000,
+          position: 'top-right',
+        });
       } else {
-        alert('Error saving settings: ' + data.error);
+        toast.error('Error saving settings: ' + data.error, {
+          duration: 4000,
+          position: 'top-right',
+        });
       }
     } catch (error) {
       console.error('Error saving SEO settings:', error);
-      alert('Error saving settings');
+      toast.error('Error saving settings', {
+        duration: 4000,
+        position: 'top-right',
+      });
     } finally {
       setSaving(false);
     }
@@ -131,7 +141,9 @@ export default function SEOSettingsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
+      <Toaster />
+      <DashboardLayout>
       {restaurantId && restaurantName ? (
         <div className={styles.container}>
           <div className={styles.singleLayout}>
@@ -333,5 +345,6 @@ export default function SEOSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+    </>
   );
 }

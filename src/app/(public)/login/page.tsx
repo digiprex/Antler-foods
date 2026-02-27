@@ -1,6 +1,10 @@
 import { Suspense } from "react";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { LoginForm } from "@/components/auth/login-form";
+import { generateMetadata as generateSEOMetadata, getPageSEO } from "@/lib/seo";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = generateSEOMetadata(getPageSEO('login'));
 
 export default function LoginPage() {
   return (

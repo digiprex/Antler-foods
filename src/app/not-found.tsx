@@ -3,6 +3,10 @@
  */
 
 import Link from 'next/link';
+import { generateMetadata as generateSEOMetadata, getPageSEO } from "@/lib/seo";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = generateSEOMetadata(getPageSEO('not-found'));
 
 export default function NotFound() {
   return (

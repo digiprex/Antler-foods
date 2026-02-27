@@ -4,11 +4,9 @@ import { Providers } from "./providers";
 import ConditionalAnnouncementBar from "../components/conditional-announcement-bar";
 import ConditionalNavbar from "../components/conditional-navbar";
 import ConditionalFooter from "../components/conditional-footer";
+import { generateMetadata as generateSEOMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Antler Foods Dashboard",
-  description: "Antler Foods auth and dashboard foundation with Nhost.",
-};
+export const metadata: Metadata = generateSEOMetadata();
 
 export const viewport: Viewport = {
   width: "device-width",

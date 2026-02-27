@@ -1,4 +1,4 @@
-import { MyInfoGoogleProfilePage } from '@/components/dashboard/my-info/my-info-pages';
+import { MyInfoGoogleProfilePage } from '@/components/dashboard/my-info/google-profile-page';
 
 export default function DashboardRestaurantInformationGoogleProfilePage() {
   return <MyInfoGoogleProfilePage />;

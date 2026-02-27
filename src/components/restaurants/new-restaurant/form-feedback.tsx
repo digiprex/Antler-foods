@@ -18,7 +18,7 @@ export function FormSuccess({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="rounded-xl border border-[#bce4cb] bg-[#ebf9ef] px-4 py-3 text-sm text-[#2b7a45]">
+    <div className="rounded-xl border border-[#d5cfff] bg-[#f3f1ff] px-4 py-3 text-sm text-[#4d3cae]">
       {children}
     </div>
   );

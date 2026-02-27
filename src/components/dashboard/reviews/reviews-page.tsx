@@ -142,9 +142,13 @@ function parseDateTimeLocalValue(value: string) {
 function SelectionRequiredCard() {
   return (
     <section className="space-y-5">
-      <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">Google Reviews</h1>
+      <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">
+        Google Reviews
+      </h1>
       <div className="rounded-3xl border border-[#d7e2e6] bg-white p-8">
-        <h2 className="text-3xl font-semibold text-[#111827]">Select a restaurant</h2>
+        <h2 className="text-3xl font-semibold text-[#111827]">
+          Select a restaurant
+        </h2>
         <p className="mt-3 text-lg text-[#5f6c78]">
           Select a restaurant from the search box to manage reviews.
         </p>
@@ -162,7 +166,7 @@ function FormMessage({ notice }: { notice: SaveNotice | null }) {
     <p
       className={`rounded-xl px-4 py-3 text-sm ${
         notice.tone === 'success'
-          ? 'bg-[#e8f6ed] text-[#25613d]'
+          ? 'bg-[#efeafe] text-[#4c3aa9]'
           : 'bg-[#fde8e8] text-[#9b1c1c]'
       }`}
     >
@@ -258,12 +262,11 @@ export default function ReviewsPage() {
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
-  const [pendingActionReviewId, setPendingActionReviewId] = useState<string | null>(
-    null,
-  );
-  const [deleteCandidateReview, setDeleteCandidateReview] = useState<ReviewItem | null>(
-    null,
-  );
+  const [pendingActionReviewId, setPendingActionReviewId] = useState<
+    string | null
+  >(null);
+  const [deleteCandidateReview, setDeleteCandidateReview] =
+    useState<ReviewItem | null>(null);
 
   const [authorName, setAuthorName] = useState('');
   const [reviewText, setReviewText] = useState('');
@@ -306,7 +309,9 @@ export default function ReviewsPage() {
       setReviews(payload.data || []);
     } catch (caughtError) {
       const message =
-        caughtError instanceof Error ? caughtError.message : 'Failed to load reviews.';
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Failed to load reviews.';
       setNotice({
         tone: 'error',
         message,
@@ -396,7 +401,9 @@ export default function ReviewsPage() {
       setAvatarUrl(payload.data.url || null);
     } catch (caughtError) {
       const message =
-        caughtError instanceof Error ? caughtError.message : 'Failed to upload avatar.';
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Failed to upload avatar.';
       setNotice({
         tone: 'error',
         message,
@@ -446,7 +453,11 @@ export default function ReviewsPage() {
       return;
     }
 
-    if (Number.isNaN(normalizedRating) || normalizedRating < 1 || normalizedRating > 5) {
+    if (
+      Number.isNaN(normalizedRating) ||
+      normalizedRating < 1 ||
+      normalizedRating > 5
+    ) {
       setNotice({
         tone: 'error',
         message: 'Rating must be between 1 and 5.',
@@ -517,7 +528,9 @@ export default function ReviewsPage() {
       await loadReviews();
     } catch (caughtError) {
       const message =
-        caughtError instanceof Error ? caughtError.message : 'Failed to save review.';
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Failed to save review.';
       setNotice({
         tone: 'error',
         message,
@@ -551,7 +564,9 @@ export default function ReviewsPage() {
 
       setNotice({
         tone: 'success',
-        message: review.is_hidden ? 'Review is now visible.' : 'Review has been hidden.',
+        message: review.is_hidden
+          ? 'Review is now visible.'
+          : 'Review has been hidden.',
       });
       await loadReviews();
     } catch (caughtError) {
@@ -620,7 +635,9 @@ export default function ReviewsPage() {
       await loadReviews();
     } catch (caughtError) {
       const message =
-        caughtError instanceof Error ? caughtError.message : 'Failed to delete review.';
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Failed to delete review.';
       setNotice({
         tone: 'error',
         message,
@@ -637,9 +654,15 @@ export default function ReviewsPage() {
   return (
     <section className="space-y-5">
       <div className="space-y-2">
-        <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">Google Reviews</h1>
-        <p className="text-lg text-[#5f6c78]">Manage hidden/manual review entries.</p>
-        <p className="text-sm font-medium text-[#111827]">Restaurant: {restaurant.name}</p>
+        <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">
+          Google Reviews
+        </h1>
+        <p className="text-lg text-[#5f6c78]">
+          Manage hidden/manual review entries.
+        </p>
+        <p className="text-sm font-medium text-[#111827]">
+          Restaurant: {restaurant.name}
+        </p>
       </div>
 
       <div className="space-y-4 rounded-3xl border border-[#d7e2e6] bg-white p-8">
@@ -649,7 +672,7 @@ export default function ReviewsPage() {
           <button
             type="button"
             onClick={openCreateModal}
-            className="inline-flex items-center rounded-xl bg-[#5dc67d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4db46b]"
+            className="inline-flex items-center rounded-xl bg-[#6f5ef9] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#5e4ee0]"
           >
             Add Review
           </button>
@@ -658,7 +681,9 @@ export default function ReviewsPage() {
         {isLoading ? (
           <div className="text-[#60707c]">Loading reviews...</div>
         ) : reviews.length === 0 ? (
-          <div className="text-[#60707c]">No reviews found for this restaurant.</div>
+          <div className="text-[#60707c]">
+            No reviews found for this restaurant.
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-[#e6ecef]">
@@ -678,10 +703,14 @@ export default function ReviewsPage() {
                   const avatar = resolveAvatarUrl(review);
                   const manual = isManualSource(review.source);
                   const google = isGoogleSource(review.source);
-                  const actionPending = pendingActionReviewId === review.review_id;
+                  const actionPending =
+                    pendingActionReviewId === review.review_id;
 
                   return (
-                    <tr key={review.review_id} className={review.is_hidden ? 'opacity-60' : ''}>
+                    <tr
+                      key={review.review_id}
+                      className={review.is_hidden ? 'opacity-60' : ''}
+                    >
                       <td className="px-4 py-3 align-top text-sm text-[#111827]">
                         {restaurant.name}
                       </td>
@@ -694,14 +723,20 @@ export default function ReviewsPage() {
                           />
                         ) : (
                           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#dfe7ec] text-xs font-semibold text-[#6b7a86]">
-                            {(review.author_name || '?').slice(0, 1).toUpperCase()}
+                            {(review.author_name || '?')
+                              .slice(0, 1)
+                              .toUpperCase()}
                           </div>
                         )}
                       </td>
                       <td className="px-4 py-3 align-top text-sm text-[#111827]">
                         <div>{review.author_name || '-'}</div>
                         <div className="mt-1 text-xs font-medium uppercase tracking-wide text-[#7c8a96]">
-                          {google ? 'Google' : manual ? 'Manual' : review.source}
+                          {google
+                            ? 'Google'
+                            : manual
+                              ? 'Manual'
+                              : review.source}
                         </div>
                       </td>
                       <td className="max-w-[520px] whitespace-pre-wrap px-4 py-3 align-top text-sm text-[#111827]">
@@ -719,11 +754,19 @@ export default function ReviewsPage() {
                             type="button"
                             onClick={() => void onToggleHidden(review)}
                             disabled={actionPending}
-                            aria-label={review.is_hidden ? 'Unhide review' : 'Hide review'}
-                            title={review.is_hidden ? 'Unhide review' : 'Hide review'}
+                            aria-label={
+                              review.is_hidden ? 'Unhide review' : 'Hide review'
+                            }
+                            title={
+                              review.is_hidden ? 'Unhide review' : 'Hide review'
+                            }
                             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#d0d9de] text-[#1f2937] transition hover:bg-[#f4f7f9] disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {review.is_hidden ? <VisibilityOnIcon /> : <VisibilityOffIcon />}
+                            {review.is_hidden ? (
+                              <VisibilityOnIcon />
+                            ) : (
+                              <VisibilityOffIcon />
+                            )}
                           </button>
 
                           {manual ? (
@@ -742,7 +785,9 @@ export default function ReviewsPage() {
                           {manual ? (
                             <button
                               type="button"
-                              onClick={() => onRequestDeleteManualReview(review)}
+                              onClick={() =>
+                                onRequestDeleteManualReview(review)
+                              }
                               disabled={actionPending}
                               aria-label="Delete manual review"
                               title="Delete manual review"
@@ -829,36 +874,42 @@ export default function ReviewsPage() {
               </div>
 
               <label className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-[#111827]">* Name</span>
+                <span className="text-sm font-medium text-[#111827]">
+                  * Name
+                </span>
                 <input
                   type="text"
                   value={authorName}
                   onChange={(event) => setAuthorName(event.target.value)}
                   required
-                  className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-base text-[#111827] outline-none transition focus:border-[#88c39b] focus:ring-2 focus:ring-[#cde9d7]"
+                  className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-base text-[#111827] outline-none transition focus:border-[#8a7dff] focus:ring-2 focus:ring-[#ddd8ff]"
                   placeholder="Author name"
                 />
               </label>
 
               <label className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-[#111827]">* Text</span>
+                <span className="text-sm font-medium text-[#111827]">
+                  * Text
+                </span>
                 <textarea
                   value={reviewText}
                   onChange={(event) => setReviewText(event.target.value)}
                   required
                   rows={6}
-                  className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-base text-[#111827] outline-none transition focus:border-[#88c39b] focus:ring-2 focus:ring-[#cde9d7]"
+                  className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-base text-[#111827] outline-none transition focus:border-[#8a7dff] focus:ring-2 focus:ring-[#ddd8ff]"
                   placeholder="Enter review text"
                 />
               </label>
 
               <label className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-[#111827]">* Rating</span>
+                <span className="text-sm font-medium text-[#111827]">
+                  * Rating
+                </span>
                 <select
                   value={rating}
                   onChange={(event) => setRating(event.target.value)}
                   required
-                  className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-base text-[#111827] outline-none transition focus:border-[#88c39b] focus:ring-2 focus:ring-[#cde9d7]"
+                  className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-base text-[#111827] outline-none transition focus:border-[#8a7dff] focus:ring-2 focus:ring-[#ddd8ff]"
                 >
                   <option value="1">1</option>
                   <option value="2">2</option>
@@ -869,20 +920,22 @@ export default function ReviewsPage() {
               </label>
 
               <label className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-[#111827]">* Time</span>
+                <span className="text-sm font-medium text-[#111827]">
+                  * Time
+                </span>
                 <input
                   type="datetime-local"
                   value={publishedAtInput}
                   onChange={(event) => setPublishedAtInput(event.target.value)}
                   required
-                  className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-base text-[#111827] outline-none transition focus:border-[#88c39b] focus:ring-2 focus:ring-[#cde9d7]"
+                  className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-base text-[#111827] outline-none transition focus:border-[#8a7dff] focus:ring-2 focus:ring-[#ddd8ff]"
                 />
               </label>
 
               <button
                 type="submit"
                 disabled={isSaving || isAvatarUploading}
-                className="inline-flex items-center rounded-xl bg-[#5dc67d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4db46b] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center rounded-xl bg-[#6f5ef9] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#5e4ee0] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSaving ? 'Saving...' : 'Save'}
               </button>
@@ -900,7 +953,9 @@ export default function ReviewsPage() {
           />
 
           <div className="relative z-10 w-full max-w-md rounded-2xl border border-[#d7e2e6] bg-white p-6 shadow-[0_24px_64px_rgba(15,23,42,0.25)]">
-            <h3 className="text-2xl font-semibold text-[#101827]">Delete review?</h3>
+            <h3 className="text-2xl font-semibold text-[#101827]">
+              Delete review?
+            </h3>
             <p className="mt-3 text-sm leading-6 text-[#5f6c78]">
               This will permanently delete the manual review
               {deleteCandidateReview.author_name
@@ -913,7 +968,9 @@ export default function ReviewsPage() {
               <button
                 type="button"
                 onClick={onCancelDeleteManualReview}
-                disabled={pendingActionReviewId === deleteCandidateReview.review_id}
+                disabled={
+                  pendingActionReviewId === deleteCandidateReview.review_id
+                }
                 className="inline-flex items-center rounded-xl border border-[#cfd8df] px-4 py-2 text-sm font-semibold text-[#30414d] transition hover:bg-[#f4f7f9] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Cancel
@@ -921,7 +978,9 @@ export default function ReviewsPage() {
               <button
                 type="button"
                 onClick={() => void onConfirmDeleteManualReview()}
-                disabled={pendingActionReviewId === deleteCandidateReview.review_id}
+                disabled={
+                  pendingActionReviewId === deleteCandidateReview.review_id
+                }
                 className="inline-flex items-center rounded-xl bg-[#9b1c1c] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#7f1d1d] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {pendingActionReviewId === deleteCandidateReview.review_id

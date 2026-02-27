@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import type { Form } from '@/types/forms.types';
@@ -36,14 +36,7 @@ export default function FormsPage() {
   const [deleteFormId, setDeleteFormId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Fetch forms
-  useEffect(() => {
-    if (restaurantId) {
-      fetchForms();
-    }
-  }, [restaurantId]);
-
-  const fetchForms = async () => {
+  const fetchForms = useCallback(async () => {
     try {
       setError(null);
 
@@ -63,7 +56,13 @@ export default function FormsPage() {
       console.error('Error fetching forms:', err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     }
-  };
+  }, [restaurantId]);
+
+  useEffect(() => {
+    if (restaurantId) {
+      fetchForms();
+    }
+  }, [fetchForms, restaurantId]);
 
   const handlePreviewForm = (form: Form) => {
     setPreviewForm(form);

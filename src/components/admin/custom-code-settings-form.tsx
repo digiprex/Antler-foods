@@ -14,7 +14,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useCustomCodeConfig, useUpdateCustomCodeConfig } from '@/hooks/use-custom-code-config';
-import type { CustomCodeConfig, CustomCodeType } from '@/types/custom-code.types';
+import type { CustomCodeType } from '@/types/custom-code.types';
 import Toast from '@/components/ui/toast';
 import styles from './announcement-bar-settings-form.module.css'; // Reuse existing styles
 

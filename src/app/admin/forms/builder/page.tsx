@@ -11,7 +11,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import type { Form, FormField, FormFieldType, FormPayload } from '@/types/forms.types';
@@ -122,23 +122,14 @@ export default function FormBuilderPage() {
   const [formEmail, setFormEmail] = useState('');
   const [fields, setFields] = useState<FormField[]>([]);
   const [selectedField, setSelectedField] = useState<FormField | null>(null);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [showTemplates, setShowTemplates] = useState(true);
 
-  // Load existing form if editing
-  useEffect(() => {
-    if (formId && restaurantId) {
-      loadExistingForm();
-    }
-  }, [formId, restaurantId]);
-
-  const loadExistingForm = async () => {
+  const loadExistingForm = useCallback(async () => {
     try {
-      setLoading(true);
       const response = await fetch(`/api/forms?restaurant_id=${restaurantId}`);
       const data = await response.json();
 
@@ -155,10 +146,15 @@ export default function FormBuilderPage() {
       setToastMessage('Failed to load form');
       setToastType('error');
       setShowToast(true);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [restaurantId, formId]);
+
+  // Load existing form if editing
+  useEffect(() => {
+    if (formId && restaurantId) {
+      loadExistingForm();
+    }
+  }, [formId, restaurantId, loadExistingForm]);
 
   const generateFieldId = () => {
     return `field_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

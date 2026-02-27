@@ -2,7 +2,7 @@
  * Custom hook for fetching page details and templates by URL slug
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface PageDetails {
   page_id: string;
@@ -52,7 +52,7 @@ export function usePageDetails(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPageDetails = async () => {
+  const fetchPageDetails = useCallback(async () => {
     if (!restaurantId || !urlSlug) {
       setError('Restaurant ID and URL slug are required');
       setLoading(false);
@@ -84,18 +84,18 @@ export function usePageDetails(
       }
 
       setData(result.data);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching page details:', err);
-      setError(err.message || 'Failed to fetch page details');
+      setError(err instanceof Error ? err.message : 'Failed to fetch page details');
       setData(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [restaurantId, urlSlug, domain]);
 
   useEffect(() => {
     fetchPageDetails();
-  }, [restaurantId, urlSlug, domain]);
+  }, [fetchPageDetails]);
 
   const refetch = () => {
     fetchPageDetails();

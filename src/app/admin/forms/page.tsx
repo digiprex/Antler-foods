@@ -15,7 +15,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
-import type { Form } from '@/types/forms.types';
+import type { Form, FormField, FormFieldType } from '@/types/forms.types';
 import Toast from '@/components/ui/toast';
 
 export default function FormsPage() {
@@ -319,10 +319,9 @@ export default function FormsPage() {
       )}
 
       {/* Edit Modal */}
-      {showEditModal && editForm && restaurantId && (
+      {showEditModal && editForm && (
         <EditModal
           form={editForm}
-          restaurantId={restaurantId}
           onClose={handleCloseEdit}
           onSaved={handleFormSaved}
         />
@@ -341,10 +340,10 @@ export default function FormsPage() {
 
 // Preview Modal Component
 function PreviewModal({ form, onClose }: { form: Form; onClose: () => void }) {
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, string | string[]>>({});
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  const handleFieldChange = (fieldId: string, value: any) => {
+  const handleFieldChange = (fieldId: string, value: string | string[]) => {
     setFormData(prev => ({
       ...prev,
       [fieldId]: value
@@ -369,7 +368,7 @@ function PreviewModal({ form, onClose }: { form: Form; onClose: () => void }) {
         errors[field.id] = `${field.label} is required`;
       }
 
-      if (value && field.type === 'email') {
+      if (value && field.type === 'email' && typeof value === 'string') {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
           errors[field.id] = 'Please enter a valid email address';
@@ -390,7 +389,7 @@ function PreviewModal({ form, onClose }: { form: Form; onClose: () => void }) {
     }
   };
 
-  const renderField = (field: any) => {
+  const renderField = (field: FormField) => {
     const value = formData[field.id] || '';
     const error = validationErrors[field.id];
 
@@ -583,19 +582,17 @@ function PreviewModal({ form, onClose }: { form: Form; onClose: () => void }) {
 // Edit Modal Component
 function EditModal({
   form,
-  restaurantId,
   onClose,
   onSaved,
 }: {
   form: Form;
-  restaurantId: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const [formTitle, setFormTitle] = useState(form.title);
   const [formEmail, setFormEmail] = useState(form.email);
-  const [fields, setFields] = useState<any[]>(form.fields || []);
-  const [selectedField, setSelectedField] = useState<any | null>(null);
+  const [fields, setFields] = useState<FormField[]>(form.fields || []);
+  const [selectedField, setSelectedField] = useState<FormField | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -618,9 +615,9 @@ function EditModal({
   };
 
   const addField = (type: string) => {
-    const newField = {
+    const newField: FormField = {
       id: generateFieldId(),
-      type,
+      type: type as FormFieldType,
       label: `${FIELD_TYPES.find((ft) => ft.type === type)?.label || 'Field'}`,
       required: false,
       order: fields.length,
@@ -633,7 +630,7 @@ function EditModal({
     setSelectedField(newField);
   };
 
-  const updateField = (fieldId: string, updates: any) => {
+  const updateField = (fieldId: string, updates: Partial<FormField>) => {
     setFields(
       fields.map((field) => (field.id === fieldId ? { ...field, ...updates } : field))
     );

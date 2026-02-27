@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { Form, FormField } from '@/types/forms.types';
 
@@ -46,16 +46,10 @@ export default function FormPreviewPage() {
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, string | string[]>>({});
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    if (formId && restaurantId) {
-      fetchForm();
-    }
-  }, [formId, restaurantId]);
-
-  const fetchForm = async () => {
+  const fetchForm = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -85,9 +79,15 @@ export default function FormPreviewPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [formId, restaurantId]);
 
-  const handleFieldChange = (fieldId: string, value: any) => {
+  useEffect(() => {
+    if (formId && restaurantId) {
+      fetchForm();
+    }
+  }, [formId, restaurantId, fetchForm]);
+
+  const handleFieldChange = (fieldId: string, value: string | string[]) => {
     setFormData(prev => ({
       ...prev,
       [fieldId]: value
@@ -113,7 +113,7 @@ export default function FormPreviewPage() {
         errors[field.id] = `${field.label} is required`;
       }
 
-      if (value && field.validation) {
+      if (value && field.validation && typeof value === 'string') {
         const validation = field.validation;
 
         if (validation.minLength && value.length < validation.minLength) {
@@ -140,7 +140,7 @@ export default function FormPreviewPage() {
       }
 
       // Email validation
-      if (field.type === 'email' && value) {
+      if (field.type === 'email' && value && typeof value === 'string') {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
           errors[field.id] = 'Please enter a valid email address';

@@ -18,11 +18,23 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { GalleryConfig } from '@/types/gallery.types';
 import { DEFAULT_GALLERY_CONFIG } from '@/types/gallery.types';
 import styles from '@/components/admin/gallery-settings-form.module.css';
 import Gallery from '@/components/gallery';
+import Image from 'next/image';
+
+interface MediaFile {
+  id: string;
+  type?: string;
+  file?: {
+    url: string;
+    name?: string;
+    urlWithAuth?: string;
+    directUrl?: string;
+  };
+}
 
 export default function GallerySettingsPage() {
   const router = useRouter();
@@ -36,20 +48,14 @@ export default function GallerySettingsPage() {
   const [saving, setSaving] = useState(false);
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [mediaFiles, setMediaFiles] = useState<any[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<Set<string>>(new Set());
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  useEffect(() => {
-    if (restaurantId) {
-      fetchGalleryConfig();
-    }
-  }, [restaurantId, pageId]);
-
-  const fetchGalleryConfig = async () => {
+  const fetchGalleryConfig = useCallback(async () => {
     setLoading(true);
     try {
       const url = `/api/gallery-config?restaurant_id=${restaurantId}${pageId ? `&page_id=${pageId}` : ''}`;
@@ -64,7 +70,13 @@ export default function GallerySettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [restaurantId, pageId]);
+
+  useEffect(() => {
+    if (restaurantId) {
+      fetchGalleryConfig();
+    }
+  }, [restaurantId, pageId, fetchGalleryConfig]);
 
   const fetchMediaFiles = async () => {
     if (!restaurantId) return;
@@ -86,7 +98,7 @@ export default function GallerySettingsPage() {
 
         // Filter for images on the client side if needed
         const allMedia = data.data || [];
-        console.log('[Gallery Settings] All media types:', allMedia.map((m: any) => m.type));
+        console.log('[Gallery Settings] All media types:', allMedia.map((m: MediaFile) => m.type));
 
         // Add some test data if no media is found for debugging
         if (allMedia.length === 0) {
@@ -196,7 +208,7 @@ export default function GallerySettingsPage() {
     if (!files || files.length === 0 || !restaurantId) return;
 
     setUploading(true);
-    const uploadedMedia: any[] = [];
+    const uploadedMedia: MediaFile[] = [];
 
     try {
       // Upload files one by one
@@ -355,7 +367,7 @@ export default function GallerySettingsPage() {
                       </label>
                       <select
                         value={config.layout}
-                        onChange={(e) => setConfig({ ...config, layout: e.target.value as any })}
+                        onChange={(e) => setConfig({ ...config, layout: e.target.value as 'grid' | 'masonry' | 'carousel' | 'slider' })}
                         className={styles.select}
                       >
                         <option value="grid">Grid - Uniform layout</option>
@@ -370,7 +382,7 @@ export default function GallerySettingsPage() {
                       </label>
                       <select
                         value={config.columns}
-                        onChange={(e) => setConfig({ ...config, columns: Number(e.target.value) as any })}
+                        onChange={(e) => setConfig({ ...config, columns: Number(e.target.value) as 2 | 3 | 4 | 5 | 6 })}
                         className={styles.select}
                       >
                         <option value="2">2 Columns</option>
@@ -443,9 +455,11 @@ export default function GallerySettingsPage() {
                             </button>
                           </div>
                           {image.url && (
-                            <img
+                            <Image
                               src={image.url}
-                              alt={image.alt}
+                              alt={image.alt || 'Gallery image'}
+                              width={200} // Adjust based on your layout needs
+                              height={200}
                               className={styles.imagePreview}
                             />
                           )}
@@ -573,27 +587,30 @@ export default function GallerySettingsPage() {
                         className={`${styles.mediaItem} ${selectedMedia.has(media.id) ? styles.selected : ''}`}
                       >
                         {media.file?.url ? (
-                          <img
+
+                          <Image
                             src={media.file.url}
-                            alt={media.file.name || 'Image'}
+                            alt={media.file.name || 'Media image'}
+                            width={150} // Adjust to match your grid item size
+                            height={150}
                             className={styles.mediaImage}
                             onError={(e) => {
-                              console.error('[Gallery Settings] Image failed to load:', media.file.url);
+                              console.error('[Gallery Settings] Image failed to load:', (media as unknown).file.url);
                               const target = e.target as HTMLImageElement;
-                              
+
                               // Try alternative URLs if available
-                              if (media.file.urlWithAuth && target.src !== media.file.urlWithAuth) {
-                                console.log('[Gallery Settings] Trying URL with auth:', media.file.urlWithAuth);
-                                target.src = media.file.urlWithAuth;
+                              if ((media as { file: { url: string; name?: string; urlWithAuth?: string; directUrl?: string } }).file.urlWithAuth && target.src !== (media as unknown).file.urlWithAuth) {
+                                console.log('[Gallery Settings] Trying URL with auth:', (media as unknown).file.urlWithAuth);
+                                target.src = (media as unknown).file.urlWithAuth;
                                 return;
                               }
-                              
-                              if (media.file.directUrl && target.src !== media.file.directUrl) {
-                                console.log('[Gallery Settings] Trying direct URL:', media.file.directUrl);
-                                target.src = media.file.directUrl;
+
+                              if ((media as unknown).file.directUrl && target.src !== (media as unknown).file.directUrl) {
+                                console.log('[Gallery Settings] Trying direct URL:', (media as unknown).file.directUrl);
+                                target.src = (media as unknown).file.directUrl;
                                 return;
                               }
-                              
+
                               // If all URLs fail, show error placeholder
                               target.style.display = 'none';
                               const parent = target.parentElement;
@@ -615,13 +632,13 @@ export default function GallerySettingsPage() {
                                 errorDiv.innerHTML = `
                                   <div>🖼️</div>
                                   <div>Failed to load</div>
-                                  <div style="font-size: 0.6rem; opacity: 0.7;">${media.file.name || 'Unknown'}</div>
+                                  <div style="font-size: 0.6rem; opacity: 0.7;">${(media as unknown).file.name || 'Unknown'}</div>
                                 `;
                                 parent.appendChild(errorDiv);
                               }
                             }}
-                            onLoad={() => {
-                              console.log('[Gallery Settings] Image loaded successfully:', media.file.url);
+                            onLoad={(e) => {
+                              console.log('[Gallery Settings] Image loaded successfully:', (media as unknown).file.url);
                             }}
                           />
                         ) : (

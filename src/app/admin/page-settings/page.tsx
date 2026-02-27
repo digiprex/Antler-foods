@@ -22,10 +22,10 @@ export default function PageSettingsSelector() {
   const restaurantName = searchParams.get('restaurant_name');
   const pageId = searchParams.get('page_id');
   const pageNameParam = searchParams.get('page_name');
+  const [sectionConfigs, setSectionConfigs] = useState<Map<string, unknown>>(new Map());
+  const [allTemplates, setAllTemplates] = useState<Array<{ template_id: string; name: string; category: string; config?: unknown; order_index?: number; section?: unknown }>>([]);
   const [existingSections, setExistingSections] = useState<Set<string>>(new Set());
-  const [sectionConfigs, setSectionConfigs] = useState<Map<string, any>>(new Map());
-  const [sectionTemplates, setSectionTemplates] = useState<Map<string, any>>(new Map());
-  const [allTemplates, setAllTemplates] = useState<any[]>([]);
+  const [sectionTemplates, setSectionTemplates] = useState<Map<string, unknown>>(new Map());
   const [loading, setLoading] = useState(true);
   const [isHomePage, setIsHomePage] = useState<boolean>(false);
   const [showAddSectionModal, setShowAddSectionModal] = useState(false);
@@ -73,17 +73,17 @@ export default function PageSettingsSelector() {
         return (
           <div style={previewStyle}>
             {(() => {
-              const config = sectionConfigs.get('YouTube Settings');
-              if (config && config.videoUrl) {
+              const config = sectionConfigs.get('YouTube Settings') as Record<string, unknown> | undefined;
+              if (config && typeof config === 'object' && config.videoUrl) {
                 // Extract video ID from URL
-                const videoId = config.videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/)?.[1];
+                const videoId = String(config.videoUrl).match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/)?.[1];
 
                 if (videoId) {
                   return (
                     <div style={{
                       padding: '20px',
-                      backgroundColor: config.bgColor || '#000000',
-                      color: config.textColor || '#ffffff'
+                      backgroundColor: String(config.bgColor || '#000000'),
+                      color: String(config.textColor || '#ffffff')
                     }}>
                       {config.showTitle && config.title && (
                         <div style={{
@@ -95,7 +95,7 @@ export default function PageSettingsSelector() {
                             fontWeight: 'bold',
                             margin: '0 0 8px 0'
                           }}>
-                            {config.title}
+                            {String(config.title)}
                           </h2>
                           {config.description && (
                             <p style={{
@@ -103,7 +103,7 @@ export default function PageSettingsSelector() {
                               opacity: 0.9,
                               margin: 0
                             }}>
-                              {config.description}
+                              {String(config.description)}
                             </p>
                           )}
                         </div>
@@ -113,7 +113,7 @@ export default function PageSettingsSelector() {
                         paddingBottom: config.aspectRatio === '16:9' ? '56.25%' : '75%',
                         height: 0,
                         overflow: 'hidden',
-                        maxWidth: config.maxWidth || '1200px',
+                        maxWidth: String(config.maxWidth || '1200px'),
                         margin: '0 auto',
                         borderRadius: '8px'
                       }}>
@@ -336,7 +336,14 @@ export default function PageSettingsSelector() {
       }
 
       const existing = new Set<string>();
-      const templates: any[] = [];
+      const templates: Array<{
+        template_id: string;
+        name: string;
+        category: string;
+        config?: Record<string, unknown>;
+        order_index?: number;
+        section?: Record<string, unknown>;
+      }> = [];
 
       // Fetch all templates for this page from the templates table
       try {

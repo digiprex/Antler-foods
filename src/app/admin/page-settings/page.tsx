@@ -28,6 +28,11 @@ export default function PageSettingsSelector() {
   const [loading, setLoading] = useState(true);
   const [isHomePage, setIsHomePage] = useState<boolean>(false);
   const [showAddSectionModal, setShowAddSectionModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [sectionToDelete, setSectionToDelete] = useState<{ name: string; templateId: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [pagePublished, setPagePublished] = useState<boolean>(false);
+  const [updatingPublish, setUpdatingPublish] = useState(false);
 
   // Function to render section preview based on category
   const renderSectionPreview = (category: string) => {
@@ -303,6 +308,17 @@ export default function PageSettingsSelector() {
     try {
       setLoading(true);
 
+      // Fetch page details to get published status
+      try {
+        const pageResponse = await fetch(`/api/web-pages/${pageId}`);
+        const pageData = await pageResponse.json();
+        if (pageData.success && pageData.data) {
+          setPagePublished(pageData.data.published || false);
+        }
+      } catch (err) {
+        console.error('Error fetching page details:', err);
+      }
+
       // Set page name from URL param or default
       if (pageNameParam) {
         // Check if it's the home page based on URL slug pattern
@@ -469,6 +485,73 @@ export default function PageSettingsSelector() {
     await reorderAllSections(reorderedSections);
   }, [existingSectionsData, reorderAllSections]);
 
+  // Function to handle delete click
+  const handleDeleteClick = (sectionName: string, templateId: string) => {
+    setSectionToDelete({ name: sectionName, templateId });
+    setShowDeleteModal(true);
+  };
+
+  // Function to confirm delete
+  const confirmDelete = async () => {
+    if (!sectionToDelete) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/page-templates?template_id=${sectionToDelete.templateId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Refresh sections list
+        await fetchPageAndSections();
+        setShowDeleteModal(false);
+        setSectionToDelete(null);
+      } else {
+        alert('Failed to delete section: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error deleting section:', error);
+      alert('Error deleting section');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Function to cancel delete
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setSectionToDelete(null);
+  };
+
+  // Function to toggle publish status
+  const togglePublish = async () => {
+    if (!pageId) return;
+
+    setUpdatingPublish(true);
+    try {
+      const response = await fetch(`/api/web-pages/${pageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          published: !pagePublished,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setPagePublished(!pagePublished);
+      } else {
+        alert('Failed to update publish status: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error updating publish status:', error);
+      alert('Error updating publish status');
+    } finally {
+      setUpdatingPublish(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="p-6">
@@ -501,6 +584,36 @@ export default function PageSettingsSelector() {
               )}
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={togglePublish}
+                disabled={updatingPublish}
+                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium ${
+                  pagePublished
+                    ? 'bg-amber-600 text-white hover:bg-amber-700'
+                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {updatingPublish ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Updating...
+                  </>
+                ) : pagePublished ? (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                    Unpublish
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Publish
+                  </>
+                )}
+              </button>
               <button
                 onClick={() => {
                   const params = buildParams();
@@ -633,10 +746,7 @@ export default function PageSettingsSelector() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (confirm(`Are you sure you want to delete ${section.name}? This action cannot be undone.`)) {
-                                  // TODO: Implement delete functionality
-                                  console.log(`Delete ${section.name}`);
-                                }
+                                handleDeleteClick(section.name, section.template_id);
                               }}
                               className="px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1"
                             >
@@ -734,6 +844,51 @@ export default function PageSettingsSelector() {
                 >
                   Close
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && sectionToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+            <div className="fixed inset-0" onClick={cancelDelete} />
+            <div className="relative w-full max-w-md bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] z-50 animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-[#111827]">Delete Section</h3>
+                </div>
+                <p className="text-sm text-[#556678] leading-relaxed">
+                  Are you sure you want to delete <strong>{sectionToDelete.name}</strong>? This will soft delete the section and it can be restored from the database if needed.
+                </p>
+                <div className="mt-8 flex justify-end gap-3">
+                  <button
+                    onClick={cancelDelete}
+                    disabled={deleting}
+                    className="rounded-xl border border-[#d2dee4] bg-white px-5 py-2.5 text-sm font-medium text-[#111827] transition hover:bg-[#f7fafc] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    disabled={deleting}
+                    className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {deleting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Deleting...
+                      </>
+                    ) : (
+                      'Delete Section'
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

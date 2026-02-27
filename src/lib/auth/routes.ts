@@ -2,7 +2,7 @@ import type { AppRole } from "./get-user-role";
 
 export const LOGIN_ROUTE = "/login";
 export const SIGNUP_ROUTE = "/signup";
-export const DEFAULT_AUTH_REDIRECT = "/dashboard/admin";
+export const DEFAULT_AUTH_REDIRECT = "/dashboard/admin/home";
 export const UNAUTHORIZED_ROUTE = "/unauthorized";
 
 export const PUBLIC_ROUTES = [LOGIN_ROUTE, SIGNUP_ROUTE] as const;
@@ -11,7 +11,7 @@ export const PROTECTED_ROUTE_PREFIXES = [
 ] as const;
 
 export const ROLE_DASHBOARD_ROUTES: Record<AppRole, string> = {
-  admin: "/dashboard/admin",
+  admin: "/dashboard/admin/home",
   manager: "/dashboard/manager",
   owner: "/dashboard/owner",
   client: "/dashboard/owner",

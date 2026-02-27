@@ -45,6 +45,18 @@ const UPDATE_TEMPLATE_ORDER = `
   }
 `;
 
+const SOFT_DELETE_TEMPLATE = `
+  mutation SoftDeleteTemplate($template_id: uuid!) {
+    update_templates_by_pk(
+      pk_columns: { template_id: $template_id }
+      _set: { is_deleted: true }
+    ) {
+      template_id
+      is_deleted
+    }
+  }
+`;
+
 // GET - Fetch all templates for a page
 export async function GET(request: NextRequest) {
   try {
@@ -121,6 +133,38 @@ export async function PATCH(request: NextRequest) {
 
   } catch (error) {
     console.error('Page Templates API PATCH error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Soft delete template
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const templateId = searchParams.get('template_id');
+
+    if (!templateId) {
+      return NextResponse.json(
+        { success: false, error: 'Template ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Soft delete template
+    const data = await adminGraphqlRequest(SOFT_DELETE_TEMPLATE, {
+      template_id: templateId
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: (data as any).update_templates_by_pk
+    });
+
+  } catch (error) {
+    console.error('Page Templates API DELETE error:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

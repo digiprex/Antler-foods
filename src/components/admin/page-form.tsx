@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import FileUpload from '@/components/ui/file-upload';
 import { insertPage, updatePage, getPageById } from '@/lib/graphql/queries';
 import type { PageItem, CreatePageInput, UpdatePageInput } from '@/types/pages.types';
+import { ImageGalleryModal } from './image-gallery-modal';
 
 interface PageFormProps {
   pageId?: string;
@@ -45,6 +45,7 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingPage, setLoadingPage] = useState(!!pageId);
+  const [showImageGallery, setShowImageGallery] = useState(false);
 
   const isEditing = !!pageId;
 
@@ -61,7 +62,7 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
       setLoadingPage(true);
       setError(null);
       const page = await getPageById(pageId);
-      
+
       if (!page) {
         setError('Page not found');
         return;
@@ -100,6 +101,14 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
     } finally {
       setLoadingPage(false);
     }
+  };
+
+  const openImageGallery = () => {
+    setShowImageGallery(true);
+  };
+
+  const handleSelectImage = (imageUrl: string) => {
+    handleInputChange('og_image', imageUrl);
   };
 
   const handleInputChange = (field: keyof FormData, value: string | boolean) => {
@@ -199,8 +208,8 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading page...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#667eea] mx-auto mb-4"></div>
+          <p className="text-[#556678]">Loading page...</p>
         </div>
       </div>
     );
@@ -208,24 +217,24 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
+      <div className="bg-white rounded-3xl border border-[#d7e2e6] overflow-hidden">
+        <div className="border-b border-[#d8e3e7] px-8 py-5">
+          <h2 className="text-[28px] font-semibold text-[#111827]">
             {isEditing ? 'Edit Page' : 'Create New Page'}
           </h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-[#556678] mt-1">
             {isEditing ? 'Update page information and settings' : 'Add a new page to your website'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-8 space-y-6">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex">
-                <div className="text-red-400 mr-3">⚠️</div>
+            <div className="rounded-xl border border-[#f4c3c3] bg-[#fff5f5] px-4 py-3">
+              <div className="flex items-start gap-3">
+                <span className="text-[#e57373] text-lg">⚠️</span>
                 <div>
-                  <h3 className="text-sm font-medium text-red-800">Error</h3>
-                  <p className="text-sm text-red-700 mt-1">{error}</p>
+                  <h3 className="text-sm font-semibold text-[#c62828]">Error</h3>
+                  <p className="text-sm text-[#d32f2f] mt-0.5">{error}</p>
                 </div>
               </div>
             </div>
@@ -233,8 +242,8 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
 
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-1.5">
+              <label htmlFor="name" className="block text-sm font-medium text-[#374151] mb-1.5">
                 Page Name *
               </label>
               <input
@@ -242,18 +251,18 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="h-12 w-full px-3 border border-[#d4e0e6] rounded-xl bg-white text-base text-[#101827] placeholder:text-[#a0acb7] focus:outline-none focus:border-[#667eea] focus:ring-2 focus:ring-[#667eea]/20"
                 placeholder="About Us"
                 required
               />
             </div>
 
-            <div>
-              <label htmlFor="url_slug" className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-1.5">
+              <label htmlFor="url_slug" className="block text-sm font-medium text-[#374151] mb-1.5">
                 URL Slug *
               </label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 py-2 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-lg">
+              <div className="flex min-h-12 items-center rounded-xl border border-[#d4e0e6] bg-white">
+                <span className="ml-3 flex items-center gap-2 border-r border-[#d6e0e5] pr-3 text-[#556678]">
                   /
                 </span>
                 <input
@@ -261,13 +270,13 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                   id="url_slug"
                   value={formData.url_slug}
                   onChange={(e) => handleInputChange('url_slug', e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="h-12 w-full bg-transparent px-3 text-base text-[#101827] placeholder:text-[#a0acb7] focus:outline-none"
                   placeholder="about-us"
                   pattern="[a-z0-9-]+"
                   required
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-[#6b7280] mt-1">
                 Only lowercase letters, numbers, and hyphens allowed
               </p>
             </div>
@@ -275,10 +284,10 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
 
           {/* SEO Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">SEO Settings</h3>
-            
-            <div>
-              <label htmlFor="meta_title" className="block text-sm font-medium text-gray-700 mb-2">
+            <h3 className="text-lg font-semibold text-[#111827]">SEO Settings</h3>
+
+            <div className="space-y-1.5">
+              <label htmlFor="meta_title" className="block text-sm font-medium text-[#374151] mb-1.5">
                 Meta Title
               </label>
               <input
@@ -286,17 +295,17 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                 id="meta_title"
                 value={formData.meta_title}
                 onChange={(e) => handleInputChange('meta_title', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="h-12 w-full px-3 border border-[#d4e0e6] rounded-xl bg-white text-base text-[#101827] placeholder:text-[#a0acb7] focus:outline-none focus:border-[#667eea] focus:ring-2 focus:ring-[#667eea]/20"
                 placeholder="Page title for search engines"
                 maxLength={60}
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-[#6b7280] mt-1">
                 {formData.meta_title.length}/60 characters (recommended)
               </p>
             </div>
 
-            <div>
-              <label htmlFor="meta_description" className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-1.5">
+              <label htmlFor="meta_description" className="block text-sm font-medium text-[#374151] mb-1.5">
                 Meta Description
               </label>
               <textarea
@@ -304,31 +313,57 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                 value={formData.meta_description}
                 onChange={(e) => handleInputChange('meta_description', e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-[#d4e0e6] rounded-xl bg-white text-base text-[#101827] placeholder:text-[#a0acb7] focus:outline-none focus:border-[#667eea] focus:ring-2 focus:ring-[#667eea]/20"
                 placeholder="Brief description for search engines"
                 maxLength={160}
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-[#6b7280] mt-1">
                 {formData.meta_description.length}/160 characters (recommended)
               </p>
             </div>
 
-            <div>
-              {/* <label className="block text-sm font-medium text-gray-700 mb-2">Open Graph Image</label> */}
-              <FileUpload
-                accept="image"
-                currentUrl={formData.og_image || undefined}
-                onUpload={(media) => handleInputChange('og_image', media.url)}
-                onRemove={() => handleInputChange('og_image', '')}
-                label="Open Graph Image"
-                description="Upload an image for social previews. We'll compress and upload it for you."
-                restaurantId={restaurantId || ''}
-                disabled={!restaurantId}
-              />
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-[#374151] mb-1.5">
+                Open Graph Image
+                <span className="text-[#6b7280] font-normal ml-2">(Recommended: 1200x630px)</span>
+              </label>
+              <div className="space-y-3">
+                {formData.og_image && (
+                  <div className="relative inline-block">
+                    <img
+                      src={formData.og_image}
+                      alt="Open Graph preview"
+                      className="w-48 h-auto rounded-xl border border-[#d4e0e6]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleInputChange('og_image', '')}
+                      className="absolute top-2 right-2 bg-[#e57373] text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-[#d32f2f] transition text-sm"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+                {!formData.og_image && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={openImageGallery}
+                      disabled={!restaurantId}
+                      className="rounded-xl bg-[#667eea] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#cfc8ff] disabled:text-[#f8f7ff]"
+                    >
+                      📁 Choose Image from Gallery
+                    </button>
+                    {!restaurantId && (
+                      <p className="text-xs text-[#d32f2f]">Restaurant ID is required to select images</p>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="keywords" className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-1.5">
+              <label htmlFor="keywords" className="block text-sm font-medium text-[#374151] mb-1.5">
                 Keywords (comma-separated)
               </label>
               <textarea
@@ -336,10 +371,10 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                 value={formData.keywords}
                 onChange={(e) => handleInputChange('keywords', e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="w-full px-3 py-2 border border-[#d4e0e6] rounded-xl bg-white text-base text-[#101827] placeholder:text-[#a0acb7] focus:outline-none focus:border-[#667eea] focus:ring-2 focus:ring-[#667eea]/20"
                 placeholder="restaurant, food, about"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-[#6b7280] mt-1">
                 Optional comma-separated tags (converted to JSON on save)
               </p>
             </div>
@@ -347,8 +382,8 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
 
           {/* Visibility Settings */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">Visibility Settings</h3>
-            
+            <h3 className="text-lg font-semibold text-[#111827]">Visibility Settings</h3>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center">
                 <input
@@ -356,9 +391,9 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                   id="published"
                   checked={formData.published}
                   onChange={(e) => handleInputChange('published', e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-[#667eea] focus:ring-[#667eea] border-[#d4e0e6] rounded"
                 />
-                <label htmlFor="published" className="ml-2 block text-sm text-gray-700">
+                <label htmlFor="published" className="ml-2 block text-sm text-[#374151]">
                   Published
                 </label>
               </div>
@@ -369,9 +404,9 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                   id="show_on_navbar"
                   checked={formData.show_on_navbar}
                   onChange={(e) => handleInputChange('show_on_navbar', e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-[#667eea] focus:ring-[#667eea] border-[#d4e0e6] rounded"
                 />
-                <label htmlFor="show_on_navbar" className="ml-2 block text-sm text-gray-700">
+                <label htmlFor="show_on_navbar" className="ml-2 block text-sm text-[#374151]">
                   Show in Navigation
                 </label>
               </div>
@@ -382,9 +417,9 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                   id="show_on_footer"
                   checked={formData.show_on_footer}
                   onChange={(e) => handleInputChange('show_on_footer', e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-[#667eea] focus:ring-[#667eea] border-[#d4e0e6] rounded"
                 />
-                <label htmlFor="show_on_footer" className="ml-2 block text-sm text-gray-700">
+                <label htmlFor="show_on_footer" className="ml-2 block text-sm text-[#374151]">
                   Show in Footer
                 </label>
               </div>
@@ -394,22 +429,22 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
           </div>
 
           {/* Form Actions */}
-          <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-end gap-3 pt-6 border-t border-[#d8e3e7]">
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="rounded-xl border border-[#d2dee4] bg-white px-5 py-2 text-sm font-medium text-[#111827] transition hover:bg-[#f7fafc]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-xl bg-[#667eea] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#cfc8ff] disabled:text-[#f8f7ff]"
             >
               {loading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   {isEditing ? 'Updating...' : 'Creating...'}
                 </div>
               ) : (
@@ -419,6 +454,15 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
           </div>
         </form>
       </div>
+
+      <ImageGalleryModal
+        isOpen={showImageGallery}
+        onClose={() => setShowImageGallery(false)}
+        onSelect={handleSelectImage}
+        restaurantId={restaurantId}
+        title="Select Open Graph Image"
+        description="Choose an image from your media library or upload new"
+      />
     </div>
   );
 }

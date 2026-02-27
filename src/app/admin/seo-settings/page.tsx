@@ -18,6 +18,7 @@ import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import styles from '@/components/admin/gallery-settings-form.module.css';
 import toast, { Toaster } from 'react-hot-toast';
+import { ImageGalleryModal } from '@/components/admin/image-gallery-modal';
 
 export default function SEOSettingsPage() {
   const router = useRouter();
@@ -33,8 +34,6 @@ export default function SEOSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showImageGallery, setShowImageGallery] = useState(false);
-  const [mediaFiles, setMediaFiles] = useState<any[]>([]);
-  const [loadingMedia, setLoadingMedia] = useState(false);
 
   useEffect(() => {
     if (restaurantId && pageId) {
@@ -66,24 +65,6 @@ export default function SEOSettingsPage() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchMediaFiles = async () => {
-    if (!restaurantId) return;
-
-    setLoadingMedia(true);
-    try {
-      const response = await fetch(`/api/media?restaurant_id=${restaurantId}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setMediaFiles(data.data || []);
-      }
-    } catch (error) {
-      console.error('Error fetching media files:', error);
-    } finally {
-      setLoadingMedia(false);
     }
   };
 
@@ -138,12 +119,10 @@ export default function SEOSettingsPage() {
 
   const openImageGallery = () => {
     setShowImageGallery(true);
-    fetchMediaFiles();
   };
 
-  const selectImage = (imageUrl: string) => {
+  const handleSelectImage = (imageUrl: string) => {
     setOgImage(imageUrl);
-    setShowImageGallery(false);
   };
 
   return (
@@ -288,68 +267,14 @@ export default function SEOSettingsPage() {
         </div>
       )}
 
-      {/* Image Gallery Modal */}
-      {showImageGallery && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]"
-          onClick={() => setShowImageGallery(false)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold">Select Social Sharing Image</h2>
-              <button
-                onClick={() => setShowImageGallery(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="p-6">
-              {loadingMedia ? (
-                <div className="text-center py-12">
-                  <p>Loading images...</p>
-                </div>
-              ) : mediaFiles.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-6xl mb-4">📁</div>
-                  <h3 className="text-xl font-semibold mb-2">No images found</h3>
-                  <p className="text-gray-600">Upload images to your media library first.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {mediaFiles.map((media) => (
-                    <div
-                      key={media.id}
-                      onClick={() => selectImage(media.file?.url || '')}
-                      className="relative cursor-pointer group aspect-video rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-500 transition-all"
-                    >
-                      <img
-                        src={media.file?.url}
-                        alt={media.file?.name || 'Image'}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all" />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="sticky bottom-0 bg-gray-50 border-t px-6 py-4">
-              <button
-                onClick={() => setShowImageGallery(false)}
-                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ImageGalleryModal
+        isOpen={showImageGallery}
+        onClose={() => setShowImageGallery(false)}
+        onSelect={handleSelectImage}
+        restaurantId={restaurantId || undefined}
+        title="Select Social Sharing Image"
+        description="Choose an image from your media library or upload new"
+      />
     </DashboardLayout>
     </>
   );

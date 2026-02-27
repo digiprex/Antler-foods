@@ -89,6 +89,12 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           return;
         }
 
+        // Check if page is published
+        const page = pageResponseData.data?.page;
+        if (page && page.published === false) {
+          throw new Error('This page is not published yet. Please publish it from the admin panel to make it visible.');
+        }
+
         setPageData(pageResponseData);
 
       } catch (error) {
@@ -129,11 +135,86 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
         backgroundColor: '#f9fafb',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        padding: '20px'
       }}>
-        <div style={{ textAlign: 'center', color: '#dc2626' }}>
-          <h2>Error</h2>
-          <p>{error || 'Failed to load page'}</p>
+        <div style={{
+          textAlign: 'center',
+          maxWidth: '600px',
+          backgroundColor: 'white',
+          padding: '40px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{
+            fontSize: '48px',
+            marginBottom: '20px'
+          }}>⚠️</div>
+          <h2 style={{
+            color: '#111827',
+            marginBottom: '16px',
+            fontSize: '24px',
+            fontWeight: '600'
+          }}>Unable to Load Page</h2>
+          <p style={{
+            color: '#6b7280',
+            marginBottom: '24px',
+            lineHeight: '1.6'
+          }}>{error || 'Failed to load page'}</p>
+          {error === 'No restaurant found for this domain' && (
+            <div style={{
+              backgroundColor: '#fef3c7',
+              border: '1px solid #f59e0b',
+              borderRadius: '8px',
+              padding: '20px',
+              textAlign: 'left',
+              fontSize: '14px',
+              color: '#92400e',
+              marginTop: '20px'
+            }}>
+              <div style={{ fontWeight: '600', marginBottom: '12px', fontSize: '16px' }}>
+                🔧 How to Fix This
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <strong>Option 1: Configure Staging Domain</strong>
+                <ol style={{ marginTop: '8px', marginLeft: '20px', lineHeight: '1.8' }}>
+                  <li>Go to Admin Panel → Location Settings</li>
+                  <li>Set staging domain to: <code style={{ backgroundColor: '#fcd34d', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>{typeof window !== 'undefined' ? window.location.host : 'localhost:3000'}</code></li>
+                  <li>Save changes</li>
+                  <li>Refresh this page</li>
+                </ol>
+              </div>
+              <div>
+                <strong>Option 2: Use Admin View Button</strong>
+                <ul style={{ marginTop: '8px', marginLeft: '20px', lineHeight: '1.8' }}>
+                  <li>Access pages through Admin Panel → Pages → View button</li>
+                  <li>This automatically uses your configured staging domain</li>
+                </ul>
+              </div>
+            </div>
+          )}
+          {error === 'This page is not published yet. Please publish it from the admin panel to make it visible.' && (
+            <div style={{
+              backgroundColor: '#dbeafe',
+              border: '1px solid #3b82f6',
+              borderRadius: '8px',
+              padding: '16px',
+              textAlign: 'left',
+              fontSize: '14px',
+              color: '#1e40af',
+              marginTop: '20px'
+            }}>
+              <strong>📝 Page Not Published</strong>
+              <p style={{ marginTop: '8px', lineHeight: '1.6' }}>
+                This page is currently in draft mode. To make it visible:
+              </p>
+              <ol style={{ marginTop: '8px', marginLeft: '20px', lineHeight: '1.8' }}>
+                <li>Go to Admin Panel → Pages</li>
+                <li>Find this page in the list</li>
+                <li>Click the "Publish" button</li>
+              </ol>
+            </div>
+          )}
         </div>
       </div>
     );

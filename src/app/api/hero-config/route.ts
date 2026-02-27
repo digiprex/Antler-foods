@@ -143,9 +143,9 @@ export async function GET(request: Request) {
         });
         
         console.log('[Hero Config] Domain lookup result for', domain, ':', JSON.stringify(domainData, null, 2));
-        
-        if (domainData.restaurants && domainData.restaurants.length > 0) {
-          const restaurant = domainData.restaurants[0];
+
+        if ((domainData as any).restaurants && (domainData as any).restaurants.length > 0) {
+          const restaurant = (domainData as any).restaurants[0];
           if (!restaurant.is_deleted) {
             restaurantId = restaurant.restaurant_id;
             console.log('[Hero Config] Found restaurant for domain:', domain, '->', restaurantId);
@@ -189,9 +189,9 @@ export async function GET(request: Request) {
           try {
             const stagingResult = await graphqlRequest(GET_BY_STAGING, { domain });
             console.log('[Hero Config] Staging domain query result:', JSON.stringify(stagingResult, null, 2));
-            
-            if (stagingResult.restaurants && stagingResult.restaurants.length > 0) {
-              restaurantId = stagingResult.restaurants[0].restaurant_id;
+
+            if ((stagingResult as any).restaurants && (stagingResult as any).restaurants.length > 0) {
+              restaurantId = (stagingResult as any).restaurants[0].restaurant_id;
               console.log('[Hero Config] Found restaurant via staging_domain:', restaurantId);
             }
           } catch (stagingError) {
@@ -202,9 +202,9 @@ export async function GET(request: Request) {
             try {
               const customResult = await graphqlRequest(GET_BY_CUSTOM, { domain });
               console.log('[Hero Config] Custom domain query result:', JSON.stringify(customResult, null, 2));
-              
-              if (customResult.restaurants && customResult.restaurants.length > 0) {
-                restaurantId = customResult.restaurants[0].restaurant_id;
+
+              if ((customResult as any).restaurants && (customResult as any).restaurants.length > 0) {
+                restaurantId = (customResult as any).restaurants[0].restaurant_id;
                 console.log('[Hero Config] Found restaurant via custom_domain:', restaurantId);
               }
             } catch (customError) {
@@ -258,8 +258,8 @@ export async function GET(request: Request) {
 
         console.log('[Hero Config] Page lookup result:', JSON.stringify(pageData, null, 2));
 
-        if (pageData.web_pages && pageData.web_pages.length > 0) {
-          pageId = pageData.web_pages[0].page_id;
+        if ((pageData as any).web_pages && (pageData as any).web_pages.length > 0) {
+          pageId = (pageData as any).web_pages[0].page_id;
           console.log('[Hero Config] Found page_id for', urlSlug, ':', pageId);
         } else {
           console.log('[Hero Config] No page found for url_slug:', urlSlug);
@@ -306,17 +306,21 @@ export async function GET(request: Request) {
 
     console.log('[Hero Config] Template query result:', JSON.stringify(data, null, 2));
 
-    if (!data.templates || data.templates.length === 0) {
+    if (!(data as any).templates || (data as any).templates.length === 0) {
       // Return default config if template doesn't exist
+      // Include restaurant_id so page-client can resolve the restaurant
       const response: HeroConfigResponse = {
         success: true,
-        data: DEFAULT_HERO_CONFIG,
+        data: {
+          ...DEFAULT_HERO_CONFIG,
+          restaurant_id: restaurantId,
+        },
       };
 
       return NextResponse.json(response);
     }
 
-    const template = data.templates[0]; // Get most recent non-deleted template
+    const template = (data as any).templates[0]; // Get most recent non-deleted template
     
     // The config field contains the complete hero configuration
     const config: HeroConfig = {
@@ -391,8 +395,8 @@ export async function POST(request: Request) {
         });
 
     // Step 2: Mark current template as deleted (if exists)
-    if (currentData.templates && currentData.templates.length > 0) {
-      const currentTemplate = currentData.templates[0];
+    if ((currentData as any).templates && (currentData as any).templates.length > 0) {
+      const currentTemplate = (currentData as any).templates[0];
 
       await graphqlRequest(MARK_AS_DELETED, {
         template_id: currentTemplate.template_id,
@@ -421,11 +425,11 @@ export async function POST(request: Request) {
       page_id: pageId,
     });
 
-    if (!insertedData.insert_templates_one) {
+    if (!(insertedData as any).insert_templates_one) {
       throw new Error('Failed to insert new template');
     }
 
-    const template = insertedData.insert_templates_one;
+    const template = (insertedData as any).insert_templates_one;
     
     // Transform back to HeroConfig
     const responseConfig: HeroConfig = {

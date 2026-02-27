@@ -1,198 +1,219 @@
 /**
  * Dynamic Custom Code Component
- *
- * Renders custom code section dynamically based on page configuration:
- * - Fetches configuration from database per page
- * - Supports HTML/CSS/JS or iframe embed
- * - Safely renders custom code
+ * 
+ * Fetches custom code configuration from API and renders the custom code section
  */
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import type { CustomCodeConfig } from '@/types/custom-code.types';
+import { useEffect, useState, useRef } from 'react';
+
+interface CustomCodeConfig {
+  isEnabled?: boolean;
+  codeType?: 'html' | 'iframe';
+  htmlCode?: string;
+  cssCode?: string;
+  jsCode?: string;
+  iframeUrl?: string;
+  iframeWidth?: string;
+  iframeHeight?: string;
+}
 
 interface DynamicCustomCodeProps {
-  restaurantId: string;
-  pageId: string;
+  restaurantId?: string;
+  pageId?: string;
   showLoading?: boolean;
 }
 
-// Component to render HTML/CSS/JS with proper script execution
-function CustomHTMLRenderer({ htmlCode, cssCode, jsCode }: { htmlCode: string; cssCode?: string; jsCode?: string }) {
+// Safe HTML renderer component
+function SafeHTMLRenderer({ htmlCode, cssCode, jsCode }: { htmlCode: string; cssCode?: string; jsCode?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const htmlContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Execute JavaScript code if provided
-    if (jsCode && containerRef.current && htmlContainerRef.current) {
-      // Wait for HTML to be rendered and DOM to be ready
-      const timeoutId = setTimeout(() => {
-        try {
-          // Create a new script element
-          const script = document.createElement('script');
+    if (!containerRef.current) return;
 
-          // Wrap the code to ensure DOM elements are available
-          // Use a longer timeout to ensure HTML is fully rendered
-          const wrappedCode = `
-            (function() {
-              // Wait a bit more to ensure DOM elements are available
-              setTimeout(function() {
-                try {
-                  ${jsCode}
-                } catch (error) {
-                  console.error('Error in custom JavaScript:', error);
-                }
-              }, 100);
-            })();
-          `;
+    const container = containerRef.current;
+    
+    // Clear previous content
+    container.innerHTML = '';
 
-          script.textContent = wrappedCode;
-          script.async = false;
+    // Create a safe container
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = htmlCode;
 
-          // Append to container
-          if (containerRef.current) {
-            containerRef.current.appendChild(script);
-          }
-        } catch (error) {
-          console.error('Error executing custom JavaScript:', error);
-        }
-      }, 50); // Increased timeout to ensure HTML is rendered first
-
-      // Cleanup: remove script on unmount
-      return () => {
-        clearTimeout(timeoutId);
-        const scripts = containerRef.current?.getElementsByTagName('script');
-        if (scripts && scripts.length > 0) {
-          Array.from(scripts).forEach(script => {
-            script.parentNode?.removeChild(script);
-          });
-        }
-      };
+    // Add CSS if provided
+    if (cssCode) {
+      const style = document.createElement('style');
+      style.textContent = cssCode;
+      wrapper.appendChild(style);
     }
-  }, [jsCode, htmlCode]);
 
-  return (
-    <div ref={containerRef} style={{ width: '100%', padding: '2rem 0' }}>
-      {/* Inject CSS if provided */}
-      {cssCode && <style dangerouslySetInnerHTML={{ __html: cssCode }} />}
+    container.appendChild(wrapper);
 
-      {/* Render HTML */}
-      <div ref={htmlContainerRef} dangerouslySetInnerHTML={{ __html: htmlCode }} />
-    </div>
-  );
+    // Execute JavaScript safely (basic execution)
+    if (jsCode) {
+      try {
+        // Create a safe execution context
+        const script = document.createElement('script');
+        script.textContent = `
+          (function() {
+            try {
+              ${jsCode}
+            } catch (error) {
+              console.warn('Custom code execution error:', error);
+            }
+          })();
+        `;
+        container.appendChild(script);
+      } catch (error) {
+        console.warn('Error executing custom JavaScript:', error);
+      }
+    }
+
+    // Cleanup function
+    return () => {
+      if (container) {
+        container.innerHTML = '';
+      }
+    };
+  }, [htmlCode, cssCode, jsCode]);
+
+  return <div ref={containerRef} style={{ width: '100%' }} />;
 }
 
 export default function DynamicCustomCode({
   restaurantId,
   pageId,
-  showLoading = false
+  showLoading = true
 }: DynamicCustomCodeProps) {
-  const [customCodeConfig, setCustomCodeConfig] = useState<CustomCodeConfig | null>(null);
+  const [config, setConfig] = useState<CustomCodeConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch config
   useEffect(() => {
-    fetchCustomCodeConfig();
+    const fetchConfig = async () => {
+      if (!restaurantId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const url = pageId 
+          ? `/api/custom-code-config?restaurant_id=${restaurantId}&page_id=${pageId}`
+          : `/api/custom-code-config?restaurant_id=${restaurantId}`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          setConfig(data.data);
+        } else {
+          setError('Failed to load custom code configuration');
+        }
+      } catch (err) {
+        console.error('Error fetching custom code config:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConfig();
   }, [restaurantId, pageId]);
 
-  const fetchCustomCodeConfig = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(
-        `/api/custom-code-config?restaurant_id=${restaurantId}&page_id=${pageId}`
-      );
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
-      }
-
-      if (data.success && data.data) {
-        setCustomCodeConfig(data.data);
-      } else {
-        setCustomCodeConfig(null);
-      }
-    } catch (err) {
-      console.error('Error fetching custom code config:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
-      setCustomCodeConfig(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Show loading state if enabled
+  // Show loading state
   if (loading && showLoading) {
     return (
       <div style={{
-        padding: '2rem',
-        backgroundColor: '#f3f4f6',
-        textAlign: 'center',
-        color: '#6b7280',
-        fontSize: '14px'
+        minHeight: '200px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f9fafb'
       }}>
-        Loading custom code...
+        <div style={{
+          textAlign: 'center',
+          color: '#6b7280'
+        }}>
+          <p>Loading custom code...</p>
+        </div>
       </div>
     );
   }
 
-  // Don't render if loading, error, disabled, or no config
-  if (loading || error || !customCodeConfig || !customCodeConfig.isEnabled) {
-    return null;
-  }
-
-  // HTML/CSS/JS Code Type
-  if (customCodeConfig.codeType === 'html') {
-    const hasCode = customCodeConfig.htmlCode?.trim();
-
-    if (!hasCode) {
-      return null;
-    }
-
+  // Show error state or if disabled
+  if (error || !config || !config.isEnabled) {
     return (
-      <CustomHTMLRenderer
-        htmlCode={customCodeConfig.htmlCode || ''}
-        cssCode={customCodeConfig.cssCode}
-        jsCode={customCodeConfig.jsCode}
-      />
+      <div style={{
+        minHeight: '200px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f3f4f6',
+        border: '2px dashed #d1d5db',
+        borderRadius: '8px'
+      }}>
+        <div style={{
+          textAlign: 'center',
+          color: '#6b7280'
+        }}>
+          <p>💻 Custom Code (Not configured or disabled)</p>
+        </div>
+      </div>
     );
   }
 
-  // iframe Code Type
-  if (customCodeConfig.codeType === 'iframe') {
-    const hasUrl = customCodeConfig.iframeUrl?.trim();
+  // Render custom code based on type
+  const { codeType, htmlCode, cssCode, jsCode, iframeUrl, iframeWidth, iframeHeight } = config;
 
-    if (!hasUrl) {
-      return null;
-    }
-
+  if (codeType === 'iframe' && iframeUrl) {
     return (
-      <div style={{
-        width: '100%',
-        padding: '2rem 0',
-        display: 'flex',
-        justifyContent: 'center',
-      }}>
+      <div style={{ width: '100%', textAlign: 'center' }}>
         <iframe
-          src={customCodeConfig.iframeUrl}
-          width={customCodeConfig.iframeWidth || '100%'}
-          height={customCodeConfig.iframeHeight || '500px'}
-          frameBorder="0"
+          src={iframeUrl}
+          width={iframeWidth || '100%'}
+          height={iframeHeight || '400px'}
           style={{
             border: 'none',
-            maxWidth: '100%',
-            display: 'block',
+            borderRadius: '8px',
+            maxWidth: '100%'
           }}
-          title="Custom Embed Content"
-          loading="lazy"
+          title="Custom Code iframe"
+          sandbox="allow-scripts allow-same-origin allow-forms"
         />
       </div>
     );
   }
 
-  return null;
+  if (codeType === 'html' && htmlCode) {
+    return (
+      <div style={{ width: '100%', minHeight: '100px' }}>
+        <SafeHTMLRenderer
+          htmlCode={htmlCode}
+          cssCode={cssCode}
+          jsCode={jsCode}
+        />
+      </div>
+    );
+  }
+
+  // Fallback if no valid content
+  return (
+    <div style={{
+      minHeight: '100px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#f3f4f6',
+      border: '2px dashed #d1d5db',
+      borderRadius: '8px'
+    }}>
+      <div style={{
+        textAlign: 'center',
+        color: '#6b7280'
+      }}>
+        <p>💻 Custom Code (No content configured)</p>
+      </div>
+    </div>
+  );
 }

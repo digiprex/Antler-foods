@@ -1,47 +1,44 @@
 /**
  * Dynamic Form Component
- *
- * Renders form section with configurable layout and styling.
- * Fetches form settings and displays the selected form.
+ * 
+ * Fetches form configuration from API and renders the form section
  */
 
-"use client";
+'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface FormField {
-  id: string;
-  type: string;
+  field_id: string;
+  type: 'text' | 'email' | 'phone' | 'textarea' | 'select' | 'checkbox' | 'radio';
   label: string;
   placeholder?: string;
   required: boolean;
-  options?: string[];
   order: number;
+  options?: string[];
+}
+
+interface FormConfig {
+  isEnabled?: boolean;
+  title?: string;
+  description?: string;
+  layout?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  buttonColor?: string;
+  buttonText?: string;
+  imageUrl?: string;
+  selectedFormId?: string;
 }
 
 interface Form {
   form_id: string;
-  title: string;
-  email: string;
+  name: string;
   fields: FormField[];
 }
 
-interface FormSettings {
-  form_id: string;
-  layout: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  backgroundColor: string;
-  textColor: string;
-  imageUrl?: string;
-  showImage: boolean;
-  imagePosition: 'left' | 'right' | 'top' | 'background';
-  enabled: boolean;
-}
-
 interface DynamicFormProps {
-  restaurantId: string;
+  restaurantId?: string;
   pageId?: string;
   showLoading?: boolean;
 }
@@ -49,443 +46,287 @@ interface DynamicFormProps {
 export default function DynamicForm({
   restaurantId,
   pageId,
-  showLoading = false
+  showLoading = true
 }: DynamicFormProps) {
-  const [formSettings, setFormSettings] = useState<FormSettings | null>(null);
+  const [config, setConfig] = useState<FormConfig | null>(null);
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [formData, setFormData] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    const fetchFormSettings = async () => {
-      if (!pageId) {
+    const fetchConfig = async () => {
+      if (!restaurantId) {
         setLoading(false);
         return;
       }
 
       try {
-        setLoading(true);
-        const response = await fetch(`/api/form-settings?restaurant_id=${restaurantId}&page_id=${pageId}`);
-        const data = await response.json();
+        // Fetch form configuration
+        const configUrl = pageId 
+          ? `/api/form-settings?restaurant_id=${restaurantId}&page_id=${pageId}`
+          : `/api/form-settings?restaurant_id=${restaurantId}`;
+        
+        const configResponse = await fetch(configUrl);
+        const configData = await configResponse.json();
 
-        if (data.success && data.data) {
-          setFormSettings(data.data);
+        if (configData.success && configData.data) {
+          setConfig(configData.data);
 
-          // Fetch the actual form
-          if (data.data.form_id) {
-            const formResponse = await fetch(`/api/forms?restaurant_id=${restaurantId}`);
+          // If a form is selected, fetch the form details
+          if (configData.data.selectedFormId) {
+            const formResponse = await fetch(`/api/forms?restaurant_id=${restaurantId}&form_id=${configData.data.selectedFormId}`);
             const formData = await formResponse.json();
-
-            if (formData.success && formData.data) {
-              const selectedForm = formData.data.find((f: Form) => f.form_id === data.data.form_id);
-              if (selectedForm) {
-                setForm(selectedForm);
-              }
+            
+            if (formData.success && formData.data && formData.data.length > 0) {
+              setForm(formData.data[0]);
             }
           }
         }
       } catch (err) {
-        console.error('Error fetching form settings:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load form');
+        console.error('Error fetching form config:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error occurred');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchFormSettings();
+    fetchConfig();
   }, [restaurantId, pageId]);
 
-  const handleInputChange = (fieldId: string, value: string) => {
-    setFormData(prev => ({ ...prev, [fieldId]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!form || !formSettings) return;
-
-    // Use email from form creation (forms table)
-    if (!form.email) {
-      alert('Form email not configured. Please contact administrator.');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-
-      const response = await fetch('/api/form-submissions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          form_id: form.form_id,
-          form_title: form.title,
-          restaurant_id: restaurantId,
-          email: form.email,
-          data: formData
-        })
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        setSubmitSuccess(true);
-        setFormData({});
-        setTimeout(() => setSubmitSuccess(false), 5000);
-      } else {
-        throw new Error(result.error || 'Submission failed');
-      }
-    } catch (err) {
-      console.error('Form submission error:', err);
-      alert('Failed to submit form. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
+  // Show loading state
   if (loading && showLoading) {
     return (
-      <section style={{
-        padding: '80px 2rem',
-        backgroundColor: '#f9fafb',
-        textAlign: 'center'
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ color: '#6b7280' }}>Loading form...</div>
-        </div>
-      </section>
-    );
-  }
-
-  if (error || !formSettings || !form || !formSettings.enabled) {
-    return null;
-  }
-
-  const renderFormFields = () => {
-    return form.fields
-      .sort((a, b) => a.order - b.order)
-      .map((field) => (
-        <div key={field.id} style={{ marginBottom: '1.5rem' }}>
-          <label
-            htmlFor={field.id}
-            style={{
-              display: 'block',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              marginBottom: '0.5rem',
-              color: formSettings.textColor
-            }}
-          >
-            {field.label}
-            {field.required && <span style={{ color: '#dc2626', marginLeft: '0.25rem' }}>*</span>}
-          </label>
-
-          {field.type === 'textarea' ? (
-            <textarea
-              id={field.id}
-              placeholder={field.placeholder || ''}
-              required={field.required}
-              value={formData[field.id] || ''}
-              onChange={(e) => handleInputChange(field.id, e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                fontFamily: 'inherit',
-                resize: 'vertical',
-                minHeight: '120px',
-                boxSizing: 'border-box'
-              }}
-              rows={4}
-            />
-          ) : field.type === 'select' ? (
-            <select
-              id={field.id}
-              required={field.required}
-              value={formData[field.id] || ''}
-              onChange={(e) => handleInputChange(field.id, e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                backgroundColor: 'white',
-                boxSizing: 'border-box'
-              }}
-            >
-              <option value="">Select an option...</option>
-              {field.options?.map((option, i) => (
-                <option key={i} value={option}>{option}</option>
-              ))}
-            </select>
-          ) : (
-            <input
-              id={field.id}
-              type={field.type}
-              placeholder={field.placeholder || ''}
-              required={field.required}
-              value={formData[field.id] || ''}
-              onChange={(e) => handleInputChange(field.id, e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                boxSizing: 'border-box'
-              }}
-            />
-          )}
-        </div>
-      ));
-  };
-
-  const renderForm = () => (
-    <form onSubmit={handleSubmit}>
-      {renderFormFields()}
-
-      {submitSuccess && (
-        <div style={{
-          padding: '1rem',
-          backgroundColor: '#dcfce7',
-          color: '#166534',
-          borderRadius: '0.375rem',
-          marginBottom: '1rem',
-          textAlign: 'center'
-        }}>
-          Thank you! Your submission has been received.
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={submitting}
-        style={{
-          backgroundColor: '#3b82f6',
-          color: 'white',
-          padding: '0.75rem 1.5rem',
-          border: 'none',
-          borderRadius: '0.375rem',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          cursor: submitting ? 'not-allowed' : 'pointer',
-          opacity: submitting ? 0.6 : 1,
-          width: '100%'
-        }}
-      >
-        {submitting ? 'Submitting...' : 'Submit'}
-      </button>
-    </form>
-  );
-
-  const renderContent = () => (
-    <div style={{ textAlign: formSettings.layout === 'centered' ? 'center' : 'left', marginBottom: '2rem' }}>
-      <h2 style={{
-        fontSize: '2rem',
-        fontWeight: 'bold',
-        marginBottom: '0.5rem',
-        color: formSettings.textColor
-      }}>
-        {formSettings.title}
-      </h2>
-      {formSettings.subtitle && (
-        <p style={{
-          fontSize: '1.125rem',
-          marginBottom: '0.5rem',
-          opacity: 0.8,
-          color: formSettings.textColor
-        }}>
-          {formSettings.subtitle}
-        </p>
-      )}
-      {formSettings.description && (
-        <p style={{
-          fontSize: '0.875rem',
-          opacity: 0.7,
-          lineHeight: 1.6,
-          color: formSettings.textColor
-        }}>
-          {formSettings.description}
-        </p>
-      )}
-    </div>
-  );
-
-  // Render different layouts
-  if (formSettings.layout === 'split-right') {
-    return (
-      <section style={{
-        padding: '80px 2rem',
-        backgroundColor: formSettings.backgroundColor,
-        color: formSettings.textColor
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '1fr 1fr',
-            gap: '3rem',
-            alignItems: 'center'
-          }}>
-            <div>
-              {renderContent()}
-              {renderForm()}
-            </div>
-            {formSettings.imageUrl && (
-              <div style={{
-                borderRadius: '0.5rem',
-                overflow: 'hidden',
-                height: window.innerWidth < 768 ? '300px' : '500px'
-              }}>
-                <img
-                  src={formSettings.imageUrl}
-                  alt="Form image"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (formSettings.layout === 'split-left') {
-    return (
-      <section style={{
-        padding: '80px 2rem',
-        backgroundColor: formSettings.backgroundColor,
-        color: formSettings.textColor
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '1fr 1fr',
-            gap: '3rem',
-            alignItems: 'center'
-          }}>
-            {formSettings.imageUrl && (
-              <div style={{
-                borderRadius: '0.5rem',
-                overflow: 'hidden',
-                height: window.innerWidth < 768 ? '300px' : '500px',
-                order: window.innerWidth < 768 ? 1 : 0
-              }}>
-                <img
-                  src={formSettings.imageUrl}
-                  alt="Form image"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
-                />
-              </div>
-            )}
-            <div style={{ order: window.innerWidth < 768 ? 0 : 1 }}>
-              {renderContent()}
-              {renderForm()}
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (formSettings.layout === 'image-top') {
-    return (
-      <section style={{
-        padding: '80px 2rem',
-        backgroundColor: formSettings.backgroundColor,
-        color: formSettings.textColor
-      }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          {formSettings.imageUrl && (
-            <div style={{
-              borderRadius: '0.5rem',
-              overflow: 'hidden',
-              height: '300px',
-              marginBottom: '3rem'
-            }}>
-              <img
-                src={formSettings.imageUrl}
-                alt="Form image"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover'
-                }}
-              />
-            </div>
-          )}
-          {renderContent()}
-          {renderForm()}
-        </div>
-      </section>
-    );
-  }
-
-  if (formSettings.layout === 'background-image') {
-    return (
-      <section style={{
-        padding: '80px 2rem',
-        backgroundImage: formSettings.imageUrl ? `url(${formSettings.imageUrl})` : 'none',
-        backgroundColor: formSettings.imageUrl ? 'transparent' : formSettings.backgroundColor,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        position: 'relative',
-        minHeight: '600px',
+      <div style={{
+        minHeight: '300px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        backgroundColor: '#f9fafb'
       }}>
-        {formSettings.imageUrl && (
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            zIndex: 0
-          }} />
-        )}
         <div style={{
-          position: 'relative',
-          zIndex: 1,
-          maxWidth: '600px',
-          width: '100%',
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          padding: '3rem',
-          borderRadius: '1rem',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)'
+          textAlign: 'center',
+          color: '#6b7280'
         }}>
-          {renderContent()}
-          {renderForm()}
+          <p>Loading form...</p>
         </div>
-      </section>
+      </div>
+    );
+  }
+
+  // Use actual config if available, otherwise use sample config for preview
+  const displayConfig = config || {
+    title: 'Contact Form',
+    description: 'Get in touch with us',
+    layout: 'centered',
+    backgroundColor: '#ffffff',
+    textColor: '#000000',
+    buttonColor: '#3b82f6',
+    buttonText: 'Submit',
+    isEnabled: true
+  };
+
+  const displayForm = form || {
+    form_id: 'sample',
+    name: 'Sample Contact Form',
+    fields: [
+      { field_id: '1', type: 'text' as const, label: 'Full Name', placeholder: 'Enter your full name', required: true, order: 1 },
+      { field_id: '2', type: 'email' as const, label: 'Email Address', placeholder: 'Enter your email', required: true, order: 2 },
+      { field_id: '3', type: 'textarea' as const, label: 'Message', placeholder: 'Enter your message', required: true, order: 3 }
+    ]
+  };
+
+  // Always show preview for page settings, even if disabled
+  // We'll indicate the status in the preview banner
+
+  // Render form preview
+  const {
+    title = 'Contact Form',
+    description = 'Get in touch with us',
+    layout = 'centered',
+    backgroundColor = '#ffffff',
+    textColor = '#000000',
+    buttonColor = '#3b82f6',
+    buttonText = 'Submit',
+    imageUrl
+  } = displayConfig;
+
+  const renderFormFields = () => {
+    if (!displayForm || !displayForm.fields) {
+      return (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+          <p>No form fields configured</p>
+        </div>
+      );
+    }
+
+    const sortedFields = displayForm.fields.sort((a, b) => a.order - b.order).slice(0, 3); // Show only first 3 fields for preview
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {sortedFields.map((field) => (
+          <div key={field.field_id}>
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: textColor,
+              marginBottom: '4px'
+            }}>
+              {field.label} {field.required && <span style={{ color: '#ef4444' }}>*</span>}
+            </label>
+            {field.type === 'textarea' ? (
+              <textarea
+                placeholder={field.placeholder || ''}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  minHeight: '80px',
+                  resize: 'vertical'
+                }}
+                disabled
+              />
+            ) : field.type === 'select' ? (
+              <select
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+                disabled
+              >
+                <option>{field.placeholder || 'Select an option'}</option>
+                {field.options?.map((option, idx) => (
+                  <option key={idx} value={option}>{option}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type={field.type}
+                placeholder={field.placeholder || ''}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+                disabled
+              />
+            )}
+          </div>
+        ))}
+        
+        {displayForm.fields.length > 3 && (
+          <div style={{ 
+            padding: '8px', 
+            textAlign: 'center', 
+            fontSize: '12px', 
+            color: '#6b7280',
+            fontStyle: 'italic'
+          }}>
+            ... and {displayForm.fields.length - 3} more fields
+          </div>
+        )}
+
+        <button
+          style={{
+            backgroundColor: buttonColor,
+            color: '#ffffff',
+            padding: '12px 24px',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: 'not-allowed',
+            opacity: 0.7
+          }}
+          disabled
+        >
+          {buttonText}
+        </button>
+      </div>
+    );
+  };
+
+  const containerStyle = {
+    backgroundColor,
+    color: textColor,
+    padding: '40px 20px',
+    borderRadius: '8px'
+  };
+
+  // Add preview indicator if using sample data or if disabled
+  const isUsingSampleData = !config || !form;
+  const isDisabled = config && !config.isEnabled;
+
+  // Render based on layout
+  if (layout === 'split' && imageUrl) {
+    return (
+      <div style={containerStyle}>
+        {(isUsingSampleData || isDisabled) && (
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '20px',
+            padding: '8px',
+            backgroundColor: isDisabled ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: isDisabled ? '#ef4444' : '#3b82f6'
+          }}>
+            {isDisabled ? '📝 Form Display (Disabled - Enable in settings to show to customers)' : '📝 Sample Form Preview (Configure form settings to see actual form)'}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: '40px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1', minWidth: '300px' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px', color: textColor }}>{title}</h2>
+            <p style={{ fontSize: '16px', marginBottom: '24px', color: textColor, opacity: 0.8 }}>{description}</p>
+            {renderFormFields()}
+          </div>
+          <div style={{ flex: '1', minWidth: '300px' }}>
+            <img
+              src={imageUrl}
+              alt="Form image"
+              style={{
+                width: '100%',
+                height: '300px',
+                objectFit: 'cover',
+                borderRadius: '8px'
+              }}
+            />
+          </div>
+        </div>
+      </div>
     );
   }
 
   // Default centered layout
   return (
-    <section style={{
-      padding: '80px 2rem',
-      backgroundColor: formSettings.backgroundColor,
-      color: formSettings.textColor
-    }}>
-      <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-        {renderContent()}
-        {renderForm()}
+    <div style={containerStyle}>
+      {(isUsingSampleData || isDisabled) && (
+        <div style={{
+          textAlign: 'center',
+          marginBottom: '20px',
+          padding: '8px',
+          backgroundColor: isDisabled ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+          borderRadius: '4px',
+          fontSize: '12px',
+          color: isDisabled ? '#ef4444' : '#3b82f6'
+        }}>
+          {isDisabled ? '📝 Form Display (Disabled - Enable in settings to show to customers)' : '📝 Sample Form Preview (Configure form settings to see actual form)'}
+        </div>
+      )}
+      <div style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px', color: textColor }}>{title}</h2>
+        <p style={{ fontSize: '16px', marginBottom: '24px', color: textColor, opacity: 0.8 }}>{description}</p>
+        <div style={{ textAlign: 'left' }}>
+          {renderFormFields()}
+        </div>
       </div>
-    </section>
+    </div>
   );
 }

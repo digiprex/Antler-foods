@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm uninstall leaflet react-leaflet @types/leaflet)"
+      "Bash(npm uninstall leaflet react-leaflet @types/leaflet)",
+      "Bash(xargs grep -l \"web_pages\")",
+      "Bash(python -c \"import sys, json; data=json.load\\(sys.stdin\\); [print\\(f''{t[\"\"category\"\"]:<15} | enabled={str\\(t.get\\(\"\"config\"\",{}\\).get\\(\"\"enabled\"\"\\)\\):<9} | isEnabled={str\\(t.get\\(\"\"config\"\",{}\\).get\\(\"\"isEnabled\"\"\\)\\):<9}''\\) for t in data[''data'']]\")",
+      "Bash(python -c \"import sys, json; data=json.load\\(sys.stdin\\); print\\(''Total templates:'', len\\(data[''data'']\\)\\); print\\(''\\\\nAll categories in database:''\\); [print\\(f''  - {t[\"\"category\"\"]}''\\) for t in data[''data'']]\")"
     ]
   }
 }

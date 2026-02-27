@@ -19,9 +19,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import LocationSettingsForm from '@/components/admin/location-settings-form';
-import styles from '@/components/admin/gallery-settings-form.module.css';
 
 export default function LocationSettingsPage() {
   const router = useRouter();
@@ -38,39 +36,53 @@ export default function LocationSettingsPage() {
     router.push(`/admin/page-settings?${params.toString()}`);
   };
 
-  return (
-    <DashboardLayout>
-      {restaurantId && restaurantName ? (
-        <div className={styles.container}>
-          <div className={styles.singleLayout}>
-            <div className={styles.formSection}>
-              <button
-                onClick={handleBack}
-                className={`${styles.button} ${styles.secondaryButton} ${styles.backButton}`}
-              >
-                ← Back to Page Settings
-              </button>
-
-              <LocationSettingsForm
-                restaurantId={restaurantId}
-                pageId={pageId || undefined}
-              />
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-center justify-center min-h-[400px]">
+  if (!restaurantId || !restaurantName) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md">
           <div className="text-center">
             <div className="text-6xl mb-4">🏪</div>
             <h2 className="text-xl font-semibold text-[#111827] mb-2">
               Select a Restaurant
             </h2>
-            <p className="text-[#6b7280] max-w-md">
+            <p className="text-[#6b7280]">
               Please add or select a restaurant from the sidebar.
             </p>
+            <button
+              onClick={handleBack}
+              className="mt-6 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              Go Back
+            </button>
           </div>
         </div>
-      )}
-    </DashboardLayout>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="border-b px-6 py-4 flex justify-between items-center bg-gray-50">
+          <h1 className="text-2xl font-bold">Location Settings</h1>
+          <button
+            onClick={handleBack}
+            className="text-gray-500 hover:text-gray-700 text-2xl font-bold leading-none"
+            title="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <LocationSettingsForm
+            restaurantId={restaurantId}
+            pageId={pageId || undefined}
+          />
+        </div>
+      </div>
+    </div>
   );
 }

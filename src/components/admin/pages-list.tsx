@@ -102,11 +102,12 @@ export function PagesList({ restaurantId }: PagesListProps) {
       const data = await res.json();
       if (!data.success || !data.data) throw new Error(data.error || 'Restaurant not found');
 
-      const name = data.data.name || '';
+      const restaurantName = data.data.name || '';
       const params = new URLSearchParams();
       params.set('restaurant_id', page.restaurant_id);
-      if (name) params.set('restaurant_name', name);
+      if (restaurantName) params.set('restaurant_name', restaurantName);
       params.set('page_id', page.page_id);
+      if (page.name) params.set('page_name', page.name);
 
       router.push(`/admin/page-settings?${params.toString()}`);
     } catch (err) {

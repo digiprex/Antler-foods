@@ -621,6 +621,7 @@ export function MyInfoBrandPage() {
   );
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState<SaveNotice | null>(null);
+  const [toastNotice, setToastNotice] = useState<SaveNotice | null>(null);
   const [legalName, setLegalName] = useState('');
   const [smsName, setSmsName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -917,6 +918,7 @@ export function MyInfoBrandPage() {
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setNotice(null);
+    setToastNotice(null);
 
     const trimmedLegalName = legalName.trim();
     if (!trimmedLegalName) {
@@ -959,11 +961,10 @@ export function MyInfoBrandPage() {
         ...socialLinksPayload,
       });
 
-      setNotice({
+      setToastNotice({
         tone: 'success',
-        message: 'Brand details updated.',
+        message: 'Brand details updated successfully.',
       });
-      await reload();
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
@@ -980,6 +981,13 @@ export function MyInfoBrandPage() {
 
   return (
     <MyInfoWorkspaceShell activeTab="brand">
+      {toastNotice ? (
+        <Toast
+          message={toastNotice.message}
+          type={toastNotice.tone === 'success' ? 'success' : 'error'}
+          onClose={() => setToastNotice(null)}
+        />
+      ) : null}
       <Header
         title="Brand"
         subtitle="Manage legal name, SMS name, business model, and cuisine setup."
@@ -1224,6 +1232,7 @@ export function MyInfoBrandPage() {
             label="Google business link"
             value={googleBusinessLink}
             onChange={setGoogleBusinessLink}
+            readOnly
           />
           <FormField
             label="Facebook link"
@@ -1291,6 +1300,7 @@ export function MyInfoAddressPage() {
   );
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState<SaveNotice | null>(null);
+  const [toastNotice, setToastNotice] = useState<SaveNotice | null>(null);
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -1340,6 +1350,7 @@ export function MyInfoAddressPage() {
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setNotice(null);
+    setToastNotice(null);
     setIsSaving(true);
 
     try {
@@ -1351,11 +1362,10 @@ export function MyInfoAddressPage() {
         postal_code: postalCode.trim(),
       });
 
-      setNotice({
+      setToastNotice({
         tone: 'success',
-        message: 'Address details updated.',
+        message: 'Address details updated successfully.',
       });
-      await reload();
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
@@ -1372,6 +1382,13 @@ export function MyInfoAddressPage() {
 
   return (
     <MyInfoWorkspaceShell activeTab="address">
+      {toastNotice ? (
+        <Toast
+          message={toastNotice.message}
+          type={toastNotice.tone === 'success' ? 'success' : 'error'}
+          onClose={() => setToastNotice(null)}
+        />
+      ) : null}
       <Header
         title="Address"
         subtitle="Manage restaurant location and mailing details."
@@ -1423,6 +1440,7 @@ export function MyInfoOpeningHoursPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [savingDayOfWeek, setSavingDayOfWeek] = useState<number | null>(null);
   const [notice, setNotice] = useState<SaveNotice | null>(null);
+  const [toastNotice, setToastNotice] = useState<SaveNotice | null>(null);
   const [source, setSource] = useState<'google' | 'manual'>('manual');
   const [timezone, setTimezone] = useState(getBrowserTimezone());
   const [is24x7, setIs24x7] = useState(false);
@@ -1710,6 +1728,7 @@ export function MyInfoOpeningHoursPage() {
     setIsSaving(true);
     setSavingDayOfWeek(dayOfWeek);
     setNotice(null);
+    setToastNotice(null);
 
     try {
       const response = await fetchWithAuth(
@@ -1735,7 +1754,7 @@ export function MyInfoOpeningHoursPage() {
       }
 
       applyOpeningHoursState(payload.data.profile, payload.data.slots);
-      setNotice({
+      setToastNotice({
         tone: 'success',
         message: payload.message || `${getDayLabel(dayOfWeek)} hours saved.`,
       });
@@ -1744,7 +1763,7 @@ export function MyInfoOpeningHoursPage() {
         caughtError instanceof Error
           ? caughtError.message
           : 'Failed to save opening hours.';
-      setNotice({
+      setToastNotice({
         tone: 'error',
         message,
       });
@@ -1772,6 +1791,13 @@ export function MyInfoOpeningHoursPage() {
 
   return (
     <MyInfoWorkspaceShell activeTab="opening-hours">
+      {toastNotice ? (
+        <Toast
+          message={toastNotice.message}
+          type={toastNotice.tone === 'success' ? 'success' : 'error'}
+          onClose={() => setToastNotice(null)}
+        />
+      ) : null}
       <Header
         title="Opening Hours"
         subtitle="Manage day-wise timing slots"

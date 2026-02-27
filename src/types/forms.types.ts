@@ -58,7 +58,7 @@ export interface FormPayload {
 // Form submission data
 export interface FormSubmission {
   form_id: string;
-  submission_data: Record<string, any>;
+  submission_data: Record<string, unknown>;
   submitted_at: string;
   ip_address?: string;
 }

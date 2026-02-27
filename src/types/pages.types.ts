@@ -11,7 +11,7 @@ export interface PageItem {
   is_system_page: boolean;
   show_on_navbar: boolean;
   show_on_footer: boolean;
-  keywords?: Record<string, any> | null;
+  keywords?: Record<string, unknown> | null;
   og_image?: string;
   published: boolean;
 }
@@ -25,7 +25,7 @@ export interface CreatePageInput {
   is_system_page?: boolean;
   show_on_navbar?: boolean;
   show_on_footer?: boolean;
-  keywords?: Record<string, any> | null;
+  keywords?: Record<string, unknown> | null;
   og_image?: string;
   published?: boolean;
 }
@@ -39,7 +39,7 @@ export interface UpdatePageInput {
   is_system_page?: boolean;
   show_on_navbar?: boolean;
   show_on_footer?: boolean;
-  keywords?: Record<string, any> | null;
+  keywords?: Record<string, unknown> | null;
   og_image?: string;
   published?: boolean;
 }

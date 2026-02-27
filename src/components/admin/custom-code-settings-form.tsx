@@ -90,15 +90,6 @@ export default function CustomCodeSettingsForm() {
   const restaurantId = restaurantIdFromQuery || '';
   const pageId = pageIdFromQuery || '';
 
-  if (!restaurantId || !pageId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID and Page ID are required. Please provide them via URL parameters.</p>
-      </div>
-    );
-  }
-
   const configApiEndpoint = useMemo(
     () => `/api/custom-code-config?restaurant_id=${encodeURIComponent(restaurantId)}&page_id=${encodeURIComponent(pageId)}`,
     [restaurantId, pageId],
@@ -126,6 +117,15 @@ export default function CustomCodeSettingsForm() {
 
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
+
+  if (!restaurantId || !pageId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID and Page ID are required. Please provide them via URL parameters.</p>
+      </div>
+    );
+  }
 
   // Initialize form with fetched config
   useEffect(() => {

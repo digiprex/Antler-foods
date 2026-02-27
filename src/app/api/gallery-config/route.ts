@@ -129,8 +129,8 @@ export async function GET(request: Request) {
 
         const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, { domain });
 
-        if (domainData.restaurants && domainData.restaurants.length > 0) {
-          restaurantId = domainData.restaurants[0].restaurant_id;
+        if ((domainData as any).restaurants && (domainData as any).restaurants.length > 0) {
+          restaurantId = (domainData as any).restaurants[0].restaurant_id;
         }
       } catch (error) {
         console.error('[Gallery Config] Error fetching restaurant ID by domain:', error);
@@ -169,8 +169,8 @@ export async function GET(request: Request) {
           url_slug: urlSlug,
         });
 
-        if (pageData.web_pages && pageData.web_pages.length > 0) {
-          pageId = pageData.web_pages[0].page_id;
+        if ((pageData as any).web_pages && (pageData as any).web_pages.length > 0) {
+          pageId = (pageData as any).web_pages[0].page_id;
         }
       } catch (error) {
         console.error('[Gallery Config] Error fetching page_id:', error);
@@ -209,7 +209,7 @@ export async function GET(request: Request) {
         })
       : await graphqlRequest(GET_GALLERY_CONFIG, { restaurant_id: restaurantId });
 
-    if (!data.templates || data.templates.length === 0) {
+    if (!(data as any).templates || (data as any).templates.length === 0) {
       const response: GalleryConfigResponse = {
         success: true,
         data: DEFAULT_GALLERY_CONFIG,
@@ -217,7 +217,7 @@ export async function GET(request: Request) {
       return NextResponse.json(response);
     }
 
-    const template = data.templates[0];
+    const template = (data as any).templates[0];
     const config: GalleryConfig = {
       ...DEFAULT_GALLERY_CONFIG,
       ...template.config,
@@ -282,9 +282,9 @@ export async function POST(request: Request) {
       : await graphqlRequest(GET_GALLERY_CONFIG, { restaurant_id: restaurantId });
 
     // Mark current template as deleted (if exists)
-    if (currentData.templates && currentData.templates.length > 0) {
+    if ((currentData as any).templates && (currentData as any).templates.length > 0) {
       await graphqlRequest(MARK_AS_DELETED, {
-        template_id: currentData.templates[0].template_id,
+        template_id: (currentData as any).templates[0].template_id,
       });
     }
 
@@ -306,11 +306,11 @@ export async function POST(request: Request) {
       page_id: pageId,
     });
 
-    if (!insertedData.insert_templates_one) {
+    if (!(insertedData as any).insert_templates_one) {
       throw new Error('Failed to insert template');
     }
 
-    const template = insertedData.insert_templates_one;
+    const template = (insertedData as any).insert_templates_one;
     const responseConfig: GalleryConfig = {
       ...template.config,
       layout: template.name as any,

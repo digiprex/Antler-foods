@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useFAQConfig } from '@/hooks/use-faq-config';
 
 interface FAQ {
@@ -53,7 +53,7 @@ export default function DynamicFAQ({
     return endpoint;
   }, [restaurantId, configData]);
 
-  const { config: fetchedConfig, loading, error, refetch } = useFAQConfig({
+  const { config: fetchedConfig, loading, error } = useFAQConfig({
     apiEndpoint,
     overrideConfig: configData
   });

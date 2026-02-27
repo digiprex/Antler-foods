@@ -7,20 +7,20 @@ declare global {
   interface Window {
     google?: {
       maps?: {
-        Map?: any;
-        Marker?: any;
-        Geocoder?: any;
+        Map?: unknown;
+        Marker?: unknown;
+        Geocoder?: unknown;
         places?: {
-          PlacesService?: any;
-          Autocomplete?: any;
-          PlacesServiceStatus?: any;
+          PlacesService?: unknown;
+          Autocomplete?: unknown;
+          PlacesServiceStatus?: unknown;
         };
-        Animation?: any;
+        Animation?: unknown;
         importLibrary?: (name: string) => Promise<unknown>;
       } & {
         places?: {
-          PlacesService?: any;
-          PlacesServiceStatus?: any;
+          PlacesService?: unknown;
+          PlacesServiceStatus?: unknown;
         };
       };
     };

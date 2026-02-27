@@ -44,7 +44,7 @@ export function useAnnouncementBarConfig({ apiEndpoint }: { apiEndpoint: string 
     if (apiEndpoint) {
       fetchConfig();
     }
-  }, [apiEndpoint]);
+  }, [apiEndpoint, fetchConfig]);
 
   return {
     config,

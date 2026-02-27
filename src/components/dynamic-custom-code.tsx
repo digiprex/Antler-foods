@@ -23,6 +23,7 @@ interface DynamicCustomCodeProps {
   restaurantId?: string;
   pageId?: string;
   showLoading?: boolean;
+  configData?: Partial<CustomCodeConfig>;
 }
 
 // Safe HTML renderer component
@@ -84,13 +85,21 @@ function SafeHTMLRenderer({ htmlCode, cssCode, jsCode }: { htmlCode: string; css
 export default function DynamicCustomCode({
   restaurantId,
   pageId,
-  showLoading = true
+  showLoading = true,
+  configData
 }: DynamicCustomCodeProps) {
-  const [config, setConfig] = useState<CustomCodeConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [config, setConfig] = useState<CustomCodeConfig | null>(configData || null);
+  const [loading, setLoading] = useState(!configData);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // If configData is provided, use it directly
+    if (configData) {
+      setConfig(configData as CustomCodeConfig);
+      setLoading(false);
+      return;
+    }
+
     const fetchConfig = async () => {
       if (!restaurantId) {
         setLoading(false);
@@ -119,7 +128,7 @@ export default function DynamicCustomCode({
     };
 
     fetchConfig();
-  }, [restaurantId, pageId]);
+  }, [restaurantId, pageId, configData]);
 
   // Show loading state
   if (loading && showLoading) {

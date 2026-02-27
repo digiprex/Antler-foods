@@ -41,15 +41,21 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
   const finalRestaurantId = restaurantIdFromQuery || restaurantId || '';
   
-  // Validate that restaurant ID is provided
-  if (!finalRestaurantId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID is required. Please provide it via URL parameter or props.</p>
-      </div>
-    );
-  }
+  // Form state
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [layout, setLayout] = useState<'list' | 'accordion' | 'grid'>('accordion');
+  const [bgColor, setBgColor] = useState<string>('#ffffff');
+  const [textColor, setTextColor] = useState<string>('#111827');
+  const [title, setTitle] = useState<string>('Frequently Asked Questions');
+  const [subtitle, setSubtitle] = useState<string>('Find answers to common questions');
+  
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+
+  // Preview visibility state
+  const [showPreview, setShowPreview] = useState(false);
   
   const configApiEndpoint = useMemo(
     () => {
@@ -68,21 +74,15 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
   });
   const { updateFAQ: updateFAQConfig, updating, error: updateError } = useUpdateFAQConfig();
   
-  // Form state
-  const [faqs, setFaqs] = useState<FAQ[]>([]);
-  const [layout, setLayout] = useState<'list' | 'accordion' | 'grid'>('accordion');
-  const [bgColor, setBgColor] = useState<string>('#ffffff');
-  const [textColor, setTextColor] = useState<string>('#111827');
-  const [title, setTitle] = useState<string>('Frequently Asked Questions');
-  const [subtitle, setSubtitle] = useState<string>('Find answers to common questions');
-  
-  // Toast state
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error'>('success');
-
-  // Preview visibility state
-  const [showPreview, setShowPreview] = useState(false);
+  // Validate that restaurant ID is provided
+  if (!finalRestaurantId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID is required. Please provide it via URL parameter or props.</p>
+      </div>
+    );
+  }
 
   // Initialize form with fetched config
   useEffect(() => {
@@ -127,7 +127,7 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
             if (p) urlSlug = p;
             // use hostname as domain if needed
             domain = parsed.hostname;
-          } catch (e) {
+          } catch {
             // not a full URL, keep domain as-is
           }
         }
@@ -146,7 +146,7 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
     };
 
     tryResolve();
-  }, [pageId, domainParamRaw, urlSlugFromParams, finalRestaurantId]);
+  }, [pageId, pageIdFromParams, domainParamRaw, urlSlugFromParams, finalRestaurantId]);
 
   const updateFAQ = (id: string, field: 'question' | 'answer', value: string) => {
     setFaqs((s) => s.map((f) => (f.id === id ? { ...f, [field]: value } : f)));
@@ -165,7 +165,16 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
     }
 
     try {
-      const payload: any = {
+      const payload: {
+        restaurant_id: string;
+        layout: 'list' | 'accordion' | 'grid';
+        bgColor: string;
+        textColor: string;
+        title: string;
+        subtitle: string;
+        faqs: FAQ[];
+        page_id?: string;
+      } = {
         restaurant_id: finalRestaurantId,
         layout,
         bgColor,
@@ -182,7 +191,9 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
       try {
         // eslint-disable-next-line no-console
         console.debug('FAQ save payload:', payload);
-      } catch (e) {}
+      } catch {
+        // Ignore console errors
+      }
 
       await updateFAQConfig(payload);
       

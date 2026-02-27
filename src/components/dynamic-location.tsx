@@ -40,21 +40,34 @@ interface PlaceDetails {
 }
 
 interface DynamicLocationProps {
-  restaurantId: string;
+  restaurantId?: string;
   pageId?: string;
   showLoading?: boolean;
+  configData?: Partial<LocationConfig>;
 }
 
-export default function DynamicLocation({ restaurantId, pageId, showLoading = false }: DynamicLocationProps) {
-  const [config, setConfig] = useState<LocationConfig | null>(null);
+export default function DynamicLocation({ restaurantId, pageId, showLoading = false, configData }: DynamicLocationProps) {
+  const [config, setConfig] = useState<LocationConfig | null>(configData || null);
   const [placeDetails, setPlaceDetails] = useState<PlaceDetails | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetchLocationConfig();
-  }, [restaurantId, pageId]);
+  const [isLoading, setIsLoading] = useState(!configData);
 
   const fetchLocationConfig = async () => {
+    // If configData is provided, use it directly
+    if (configData) {
+      setConfig(configData as LocationConfig);
+      if (configData.google_place_id) {
+        fetchPlaceDetails(configData.google_place_id);
+      } else {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    if (!restaurantId) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // First try with page_id if provided
       let params = new URLSearchParams();
@@ -100,6 +113,11 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchLocationConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurantId, pageId, configData]);
 
   const fetchPlaceDetails = async (placeId: string) => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;

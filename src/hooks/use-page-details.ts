@@ -14,7 +14,7 @@ export interface PageDetails {
   is_system_page: boolean;
   show_on_navbar: boolean;
   show_on_footer: boolean;
-  keywords?: Record<string, any>;
+  keywords?: Record<string, unknown>;
   og_image?: string;
   published: boolean;
   created_at: string;
@@ -24,8 +24,8 @@ export interface PageDetails {
 export interface PageTemplate {
   template_id: string;
   name: string;
-  config: Record<string, any>;
-  menu_items?: Record<string, any>;
+  config: Record<string, unknown>;
+  menu_items?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }

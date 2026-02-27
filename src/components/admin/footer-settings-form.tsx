@@ -30,26 +30,6 @@ export default function FooterSettingsForm() {
     searchParams.get('restaurant_name')?.trim() ?? '';
   const restaurantId = restaurantIdFromQuery || '';
   
-  // Validate that restaurant ID is provided
-  if (!restaurantId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
-      </div>
-    );
-  }
-  const configApiEndpoint = useMemo(
-    () =>
-      `/api/footer-config?restaurant_id=${encodeURIComponent(restaurantId)}`,
-    [restaurantId],
-  );
-
-  const { config, loading, error: fetchError } = useFooterConfig({
-    apiEndpoint: configApiEndpoint,
-  });
-  const { updateFooter, updating, error: updateError } = useUpdateFooterConfig();
-
   // Form state
   const [layout, setLayout] = useState<NonNullable<FooterConfig['layout']>>(
     'columns-3',
@@ -73,6 +53,27 @@ export default function FooterSettingsForm() {
 
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
+  
+  const configApiEndpoint = useMemo(
+    () =>
+      `/api/footer-config?restaurant_id=${encodeURIComponent(restaurantId)}`,
+    [restaurantId],
+  );
+
+  const { config, loading, error: fetchError } = useFooterConfig({
+    apiEndpoint: configApiEndpoint,
+  });
+  const { updateFooter, updating, error: updateError } = useUpdateFooterConfig();
+  
+  // Validate that restaurant ID is provided
+  if (!restaurantId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
+      </div>
+    );
+  }
 
   // Initialize form with fetched config
   useEffect(() => {
@@ -105,7 +106,7 @@ export default function FooterSettingsForm() {
     try {
       await updateFooter({
         restaurant_id: restaurantId,
-        layout: layout as any,
+        layout,
         aboutContent,
         // restaurantName, email, phone, address and socialLinks are not saved here - they come from restaurant table
         bgColor,
@@ -202,7 +203,7 @@ export default function FooterSettingsForm() {
                 </label>
                 <select
                   value={layout}
-                  onChange={(e) => setLayout(e.target.value as any)}
+                  onChange={(e) => setLayout(e.target.value as NonNullable<FooterConfig['layout']>)}
                   className={styles.select}
                 >
                   <option value="default">Three Section (Brand | Location | Contact)</option>

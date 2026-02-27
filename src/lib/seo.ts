@@ -17,6 +17,21 @@ export interface SEOConfig {
 }
 
 /**
+ * Page data structure for dynamic SEO generation
+ */
+export interface PageData {
+  data?: {
+    page?: {
+      meta_title?: string;
+      name?: string;
+      meta_description?: string;
+      keywords?: string | { tags: string[] } | string[];
+      og_image?: string;
+    };
+  };
+}
+
+/**
  * Default SEO configuration
  */
 export const DEFAULT_SEO: Required<Omit<SEOConfig, 'canonical'>> = {
@@ -153,7 +168,7 @@ export function getPageSEO(pageType: string, customConfig: SEOConfig = {}): SEOC
 /**
  * Generate dynamic SEO from page data (for [slug] pages)
  */
-export function generateDynamicSEO(pageData: any, restaurantName?: string): SEOConfig {
+export function generateDynamicSEO(pageData: PageData, restaurantName?: string): SEOConfig {
   const page = pageData?.data?.page;
 
   if (!page) {
@@ -173,12 +188,12 @@ export function generateDynamicSEO(pageData: any, restaurantName?: string): SEOC
     if (typeof page.keywords === 'string') {
       // Legacy format: comma-separated string
       keywords = page.keywords.split(',').map((k: string) => k.trim());
-    } else if (page.keywords.tags && Array.isArray(page.keywords.tags)) {
-      // New format: JSON object with tags array
-      keywords = page.keywords.tags;
     } else if (Array.isArray(page.keywords)) {
       // Direct array format
       keywords = page.keywords;
+    } else if (typeof page.keywords === 'object' && 'tags' in page.keywords && Array.isArray(page.keywords.tags)) {
+      // New format: JSON object with tags array
+      keywords = page.keywords.tags;
     }
   }
 

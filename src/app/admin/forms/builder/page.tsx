@@ -12,7 +12,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import type { Form, FormField, FormFieldType, FormPayload } from '@/types/forms.types';
 import Toast from '@/components/ui/toast';
@@ -31,8 +31,89 @@ const FIELD_TYPES: { type: FormFieldType; label: string; icon: string }[] = [
   { type: 'file', label: 'File Upload', icon: '📎' },
 ];
 
+// Form templates
+const FORM_TEMPLATES = [
+  {
+    id: 'contact',
+    name: 'Contact Form',
+    icon: '📧',
+    description: 'General contact inquiry form',
+    title: 'Contact Us',
+    fields: [
+      { type: 'text', label: 'Full Name', required: true, order: 0 },
+      { type: 'email', label: 'Email Address', required: true, order: 1 },
+      { type: 'tel', label: 'Phone Number', required: false, order: 2 },
+      { type: 'textarea', label: 'Message', required: true, placeholder: 'How can we help you?', order: 3 },
+    ] as Partial<FormField>[]
+  },
+  {
+    id: 'catering',
+    name: 'Catering Request',
+    icon: '🍽️',
+    description: 'Catering service inquiry form',
+    title: 'Catering Request',
+    fields: [
+      { type: 'text', label: 'Full Name', required: true, order: 0 },
+      { type: 'email', label: 'Email Address', required: true, order: 1 },
+      { type: 'tel', label: 'Phone Number', required: true, order: 2 },
+      { type: 'date', label: 'Event Date', required: true, order: 3 },
+      { type: 'number', label: 'Number of Guests', required: true, placeholder: 'Estimated guest count', order: 4 },
+      { type: 'select', label: 'Event Type', required: true, options: ['Wedding', 'Corporate Event', 'Birthday Party', 'Other'], order: 5 },
+      { type: 'textarea', label: 'Special Requirements', required: false, placeholder: 'Dietary restrictions, preferences, etc.', order: 6 },
+    ] as Partial<FormField>[]
+  },
+  {
+    id: 'reservation',
+    name: 'Reservation',
+    icon: '🍴',
+    description: 'Table reservation form',
+    title: 'Table Reservation',
+    fields: [
+      { type: 'text', label: 'Full Name', required: true, order: 0 },
+      { type: 'email', label: 'Email Address', required: true, order: 1 },
+      { type: 'tel', label: 'Phone Number', required: true, order: 2 },
+      { type: 'date', label: 'Reservation Date', required: true, order: 3 },
+      { type: 'select', label: 'Time', required: true, options: ['5:00 PM', '5:30 PM', '6:00 PM', '6:30 PM', '7:00 PM', '7:30 PM', '8:00 PM', '8:30 PM', '9:00 PM'], order: 4 },
+      { type: 'number', label: 'Number of Guests', required: true, placeholder: 'Party size', order: 5 },
+      { type: 'textarea', label: 'Special Requests', required: false, placeholder: 'Birthday, anniversary, dietary restrictions, etc.', order: 6 },
+    ] as Partial<FormField>[]
+  },
+  {
+    id: 'feedback',
+    name: 'Feedback',
+    icon: '💬',
+    description: 'Customer feedback form',
+    title: 'We Value Your Feedback',
+    fields: [
+      { type: 'text', label: 'Name (Optional)', required: false, order: 0 },
+      { type: 'email', label: 'Email (Optional)', required: false, order: 1 },
+      { type: 'radio', label: 'Overall Experience', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'], order: 2 },
+      { type: 'checkbox', label: 'What did you like?', required: false, options: ['Food Quality', 'Service', 'Ambiance', 'Price', 'Location'], order: 3 },
+      { type: 'textarea', label: 'Additional Comments', required: false, placeholder: 'Tell us more about your experience...', order: 4 },
+    ] as Partial<FormField>[]
+  },
+  {
+    id: 'private-event',
+    name: 'Private Event',
+    icon: '🎉',
+    description: 'Private event booking form',
+    title: 'Private Event Inquiry',
+    fields: [
+      { type: 'text', label: 'Full Name', required: true, order: 0 },
+      { type: 'email', label: 'Email Address', required: true, order: 1 },
+      { type: 'tel', label: 'Phone Number', required: true, order: 2 },
+      { type: 'date', label: 'Event Date', required: true, order: 3 },
+      { type: 'select', label: 'Event Type', required: true, options: ['Birthday Party', 'Anniversary', 'Corporate Event', 'Rehearsal Dinner', 'Other'], order: 4 },
+      { type: 'number', label: 'Expected Guests', required: true, order: 5 },
+      { type: 'radio', label: 'Preferred Space', required: false, options: ['Private Dining Room', 'Full Venue Buyout', 'Semi-Private Area'], order: 6 },
+      { type: 'textarea', label: 'Event Details', required: false, placeholder: 'Menu preferences, decorations, special requirements, etc.', order: 7 },
+    ] as Partial<FormField>[]
+  },
+];
+
 export default function FormBuilderPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
   const formId = searchParams.get('form_id'); // For editing existing forms
@@ -46,6 +127,7 @@ export default function FormBuilderPage() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [showTemplates, setShowTemplates] = useState(true);
 
   // Load existing form if editing
   useEffect(() => {
@@ -80,6 +162,17 @@ export default function FormBuilderPage() {
 
   const generateFieldId = () => {
     return `field_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  const applyTemplate = (template: typeof FORM_TEMPLATES[0]) => {
+    setFormTitle(template.title);
+    const templateFields = template.fields.map((field, index) => ({
+      ...field,
+      id: generateFieldId(),
+      order: index,
+    })) as FormField[];
+    setFields(templateFields);
+    setShowTemplates(false);
   };
 
   const addField = (type: FormFieldType) => {
@@ -168,7 +261,7 @@ export default function FormBuilderPage() {
 
         // Redirect to forms list after a delay
         setTimeout(() => {
-          window.location.href = `/admin/forms?restaurant_id=${restaurantId}&restaurant_name=${encodeURIComponent(restaurantName || '')}`;
+          router.push(`/admin/forms?restaurant_id=${restaurantId}&restaurant_name=${encodeURIComponent(restaurantName || '')}`);
         }, 2000);
       } else {
         throw new Error(data.error || 'Failed to save form');
@@ -219,7 +312,7 @@ export default function FormBuilderPage() {
           <div className="mb-4">
             <button
               onClick={() => {
-                window.location.href = `/admin/forms?restaurant_id=${restaurantId}&restaurant_name=${encodeURIComponent(restaurantName || '')}`;
+                router.push(`/admin/forms?restaurant_id=${restaurantId}&restaurant_name=${encodeURIComponent(restaurantName || '')}`);
               }}
               className="inline-flex items-center gap-2 text-[#6b7280] hover:text-[#374151] transition-colors"
             >
@@ -240,7 +333,7 @@ export default function FormBuilderPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => {
-                  window.location.href = `/admin/forms?restaurant_id=${restaurantId}&restaurant_name=${encodeURIComponent(restaurantName || '')}`;
+                  router.push(`/admin/forms?restaurant_id=${restaurantId}&restaurant_name=${encodeURIComponent(restaurantName || '')}`);
                 }}
                 className="bg-[#6b7280] text-white px-4 py-2 rounded-lg hover:bg-[#4b5563] transition-colors"
               >
@@ -267,12 +360,55 @@ export default function FormBuilderPage() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3b82f6]"></div>
-            <span className="ml-3 text-[#6b7280]">Loading form...</span>
+        {/* Templates Section - Show only when creating a new form */}
+        {!formId && showTemplates && fields.length === 0 && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-[#111827]">Start with a Template</h3>
+                  <p className="text-sm text-[#6b7280] mt-1">
+                    Choose a pre-built template and customize it to your needs
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowTemplates(false)}
+                  className="text-[#6b7280] hover:text-[#374151] text-sm"
+                >
+                  Start from scratch instead
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {FORM_TEMPLATES.map((template) => (
+                  <button
+                    key={template.id}
+                    onClick={() => applyTemplate(template)}
+                    className="bg-white rounded-lg p-4 border border-[#e5e7eb] hover:border-[#3b82f6] hover:shadow-md transition-all text-left group"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-3xl">{template.icon}</span>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-[#111827] group-hover:text-[#3b82f6] transition-colors">
+                          {template.name}
+                        </h4>
+                        <p className="text-xs text-[#6b7280] mt-1">
+                          {template.description}
+                        </p>
+                        <p className="text-xs text-[#9ca3af] mt-2">
+                          {template.fields.length} fields
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        ) : (
+        )}
+
+        {/* Loading state removed */}
+        {(
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Form Settings */}
             <div className="lg:col-span-1">
@@ -336,9 +472,17 @@ export default function FormBuilderPage() {
                 {fields.length === 0 ? (
                   <div className="text-center py-12 border-2 border-dashed border-[#e5e7eb] rounded-lg">
                     <div className="text-4xl mb-4">📝</div>
-                    <p className="text-[#6b7280]">
+                    <p className="text-[#6b7280] mb-4">
                       Add fields from the sidebar to start building your form
                     </p>
+                    {!formId && (
+                      <button
+                        onClick={() => setShowTemplates(true)}
+                        className="text-[#3b82f6] hover:text-[#2563eb] text-sm font-medium"
+                      >
+                        Or choose from templates
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">

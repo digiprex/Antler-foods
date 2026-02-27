@@ -442,13 +442,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-[#f3f5f6]">
-      {shouldShowGlobalSpinner ? (
-        <div className="pointer-events-none fixed inset-0 z-[90] flex items-center justify-center bg-[#f3f5f6]/50">
-          <div className="rounded-2xl border border-[#d8cdfd] bg-white/95 p-4 shadow-xl">
-            <PurpleDotSpinner size="md" label="Loading dashboard content" />
-          </div>
-        </div>
-      ) : null}
+      {/* Global spinner removed */}
       <Sidebar
         activeTab={activeTab}
         pathname={pathname}

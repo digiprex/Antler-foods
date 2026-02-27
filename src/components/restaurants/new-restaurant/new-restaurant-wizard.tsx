@@ -17,14 +17,18 @@ import {
 } from './schema';
 import { Stepper } from './stepper';
 import {
+  getPages,
   getRestaurants,
   getRestaurantDraftById,
   insertFranchise,
+  insertPage,
   insertRestaurant,
   replaceRestaurantGoogleReviews,
   updateFranchiseOwner,
   updateRestaurant,
 } from '@/lib/graphql/queries';
+import { resolveRoleSegmentFromPath } from '@/lib/auth/routes';
+import { emitDashboardRestaurantsRefresh } from '@/components/dashboard/route-loading-events';
 import { nhost } from '@/lib/nhost';
 
 type WizardStep = 1 | 2;
@@ -43,6 +47,14 @@ const DRAFT_QUERY_PARAM = 'draft';
 const STEP_QUERY_PARAM = 'step';
 const FRANCHISE_QUERY_PARAM = 'franchise';
 const MODE_QUERY_PARAM = 'mode';
+const DEFAULT_STAGING_DOMAIN_SUFFIX = '.antlerfoods.com';
+
+const DEFAULT_SYSTEM_PAGES = [
+  { urlSlug: 'home', name: 'Home' },
+  { urlSlug: 'about', name: 'About' },
+  { urlSlug: 'contact', name: 'Contact' },
+  { urlSlug: 'menu', name: 'Menu' },
+] as const;
 
 const DEFAULT_FORM_VALUES: NewRestaurantFormValues = {
   ownerProfileMode: 'create',
@@ -68,11 +80,10 @@ const DEFAULT_FORM_VALUES: NewRestaurantFormValues = {
   contactName: '',
   contactPhone: '',
   contactEmail: '',
-  deploymentEnvironment: 'staging',
+  shouldCreateOwner: false,
   ownerEmail: '',
   ownerPassword: '',
   ownerDisplayName: '',
-  ownerIsLocationPoc: false,
 };
 
 function debugLog(label: string, data?: unknown) {
@@ -113,6 +124,10 @@ export function NewRestaurantWizard() {
   const [isCreatedToastVisible, setIsCreatedToastVisible] = useState(false);
   const [isSavingStepOne, setIsSavingStepOne] = useState(false);
   const [isSavingStepTwo, setIsSavingStepTwo] = useState(false);
+  const [saveProgressMessage, setSaveProgressMessage] = useState<string | null>(
+    null,
+  );
+  const [saveElapsedSeconds, setSaveElapsedSeconds] = useState(0);
   const [isHydratingDraft, setIsHydratingDraft] = useState(true);
   const hasInitializedFromRouteRef = useRef(false);
   const createdToastTimeoutsRef = useRef<Array<ReturnType<typeof setTimeout>>>(
@@ -432,6 +447,21 @@ export function NewRestaurantWizard() {
     };
   }, [clearCreatedToastTimers]);
 
+  useEffect(() => {
+    if (!isSavingStepTwo) {
+      setSaveElapsedSeconds(0);
+      return;
+    }
+
+    const timerId = setInterval(() => {
+      setSaveElapsedSeconds((previous) => previous + 1);
+    }, 1000);
+
+    return () => {
+      clearInterval(timerId);
+    };
+  }, [isSavingStepTwo]);
+
   const setStepErrors = (
     fieldNames: readonly string[],
     issues: Array<{ path: PropertyKey[]; message: string }>,
@@ -522,12 +552,16 @@ export function NewRestaurantWizard() {
       }
     }
 
-    const payload = buildRestaurantPayload(values, activeFranchiseId);
-
     let restaurantId = primaryRestaurantId;
     if (restaurantId) {
+      const payload = buildRestaurantPayload(values, activeFranchiseId, {
+        includeDefaultStagingDomain: false,
+      });
       await updateRestaurant(restaurantId, payload);
     } else {
+      const payload = buildRestaurantPayload(values, activeFranchiseId, {
+        includeDefaultStagingDomain: true,
+      });
       const inserted = await insertRestaurant(payload);
       restaurantId = resolveRestaurantId(inserted.row, inserted.primaryKey);
     }
@@ -570,14 +604,6 @@ export function NewRestaurantWizard() {
     setCurrentStep(2);
   };
 
-  const resetWizardAfterSave = () => {
-    reset(DEFAULT_FORM_VALUES);
-    setPrimaryRestaurantId(null);
-    setFranchiseId(null);
-    setWizardMode(null);
-    setCurrentStep(1);
-  };
-
   const saveStepTwoAndContinue = async () => {
     const values = getValues();
 
@@ -598,6 +624,7 @@ export function NewRestaurantWizard() {
       sms_name: values.restaurantName.trim(),
     };
 
+    setSaveProgressMessage('Saving business information...');
     await updateRestaurant(primaryRestaurantId, restaurantBusinessPayload);
 
     const savedCard: RecentRestaurantCard = {
@@ -615,13 +642,14 @@ export function NewRestaurantWizard() {
       createdAt: new Date().toISOString(),
     };
 
-    if (values.deploymentEnvironment === 'production') {
+    if (values.shouldCreateOwner) {
       if (!franchiseId) {
         throw new Error(
           'Franchise id is missing. Please complete step 1 first.',
         );
       }
 
+      setSaveProgressMessage('Creating owner account...');
       const ownerUserId = await createOwnerUser({
         email: values.ownerEmail,
         password: values.ownerPassword,
@@ -632,26 +660,38 @@ export function NewRestaurantWizard() {
       });
 
       await updateFranchiseOwner(franchiseId, ownerUserId);
-
-      if (values.ownerIsLocationPoc) {
-        await updateRestaurant(primaryRestaurantId, {
-          poc_user_id: ownerUserId,
-        });
-      }
-
-      setSuccessMessage('Production owner assignment and business info saved.');
-      upsertRecentlyCreatedRestaurant(savedCard);
-      showCreatedToast(savedCard.name);
-      void refreshRecentlyCreatedRestaurants();
-      resetWizardAfterSave();
-      return;
     }
 
-    setSuccessMessage('Staging business info saved to restaurant.');
+    setSaveProgressMessage('Creating default pages...');
+    await ensureDefaultSystemPagesForRestaurant(primaryRestaurantId);
+
+    if (values.googlePlaceId.trim()) {
+      setSaveProgressMessage('Syncing Google timings...');
+      await syncGoogleOpeningHoursForRestaurant(primaryRestaurantId);
+
+      setSaveProgressMessage('Importing Google photos/videos...');
+      try {
+        await importAllGoogleMediaForRestaurant(primaryRestaurantId);
+      } catch (caughtError) {
+        debugLog('google-media:sync-failed', {
+          restaurantId: primaryRestaurantId,
+          reason:
+            caughtError instanceof Error
+              ? caughtError.message
+              : 'Unknown error',
+        });
+      }
+    }
+
+    setSaveProgressMessage('Finalizing setup...');
+    setSuccessMessage('Restaurant created successfully.');
     upsertRecentlyCreatedRestaurant(savedCard);
     showCreatedToast(savedCard.name);
     void refreshRecentlyCreatedRestaurants();
-    resetWizardAfterSave();
+
+    emitDashboardRestaurantsRefresh();
+    const restaurantsListPath = buildRestaurantsListPath(pathname);
+    router.push(restaurantsListPath);
   };
 
   const onContinue = async () => {
@@ -702,15 +742,17 @@ export function NewRestaurantWizard() {
 
       try {
         setIsSavingStepTwo(true);
+        setSaveProgressMessage('Starting restaurant setup...');
         await saveStepTwoAndContinue();
       } catch (caughtError) {
         const message =
           caughtError instanceof Error
             ? caughtError.message
-            : 'Failed to save business info and owner assignment.';
+            : 'Failed to complete restaurant setup.';
         setErrorMessage(message);
       } finally {
         setIsSavingStepTwo(false);
+        setSaveProgressMessage(null);
       }
     }
   };
@@ -800,6 +842,51 @@ export function NewRestaurantWizard() {
         </div>
       ) : null}
 
+      {isSavingStepTwo && saveProgressMessage ? (
+        <div className="fixed inset-0 z-[130] overflow-hidden bg-[#13073a]/62 backdrop-blur-[3px]">
+          <div className="pointer-events-none absolute -left-16 top-20 h-72 w-72 rounded-full bg-[#8f70ff]/35 blur-3xl animate-pulse" />
+          <div className="pointer-events-none absolute -right-14 bottom-14 h-80 w-80 rounded-full bg-[#667eea]/28 blur-3xl animate-pulse [animation-delay:400ms]" />
+
+          <div className="relative flex min-h-full items-center justify-center px-4">
+            <div className="w-full max-w-xl rounded-3xl border border-[#ddd1ff] bg-white/95 p-7 shadow-[0_35px_90px_rgba(38,14,100,0.36)]">
+              <div className="flex items-center gap-4">
+                <div className="relative h-14 w-14 shrink-0">
+                  <span className="absolute inset-0 rounded-full border-2 border-[#d8ccff]" />
+                  <span className="absolute inset-[6px] rounded-full border-2 border-transparent border-r-[#9178ff] border-t-[#6a4cf4] animate-spin" />
+                  <span className="absolute inset-[16px] rounded-full bg-[#f0ebff]" />
+                  <span className="absolute inset-[22px] rounded-full bg-[#6a4cf4] animate-pulse" />
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[26px] font-semibold leading-none text-[#19143a]">
+                    Creating restaurant
+                  </p>
+                  <p className="text-sm font-medium text-[#5f5a80]">
+                    {saveProgressMessage}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 h-2 w-full overflow-hidden rounded-full bg-[#eee9ff]">
+                <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-[#6b4ef6] via-[#8b73ff] to-[#667eea] animate-pulse" />
+              </div>
+
+              <div className="mt-3 flex items-center justify-between gap-3 text-xs font-medium text-[#6f6a95]">
+                <p className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#7a62ff] animate-bounce" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#7a62ff] animate-bounce [animation-delay:140ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#7a62ff] animate-bounce [animation-delay:280ms]" />
+                  </span>
+                  Please keep this tab open
+                </p>
+                <p>Elapsed: {formatElapsedTime(saveElapsedSeconds)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="overflow-hidden rounded-3xl border border-[#d7e2e6] bg-white">
       <div className="border-b border-[#d8e3e7] px-8 py-5">
         <h2 className="text-[28px] font-semibold text-[#111827]">
@@ -838,6 +925,7 @@ export function NewRestaurantWizard() {
           <StepBusinessInfo
             control={control}
             register={register}
+            setValue={setValue}
             errors={errors}
             franchiseId={franchiseId}
             onBackToStepOne={onBackToStepOne}
@@ -948,6 +1036,9 @@ function formatRecentCreatedAt(value: string | null) {
 function buildRestaurantPayload(
   values: NewRestaurantFormValues,
   activeFranchiseId: string,
+  options: {
+    includeDefaultStagingDomain: boolean;
+  },
 ) {
   const currentUser = nhost.auth.getUser();
   const selectedCuisineValues =
@@ -961,6 +1052,9 @@ function buildRestaurantPayload(
   const trimmedGooglePlaceId = values.googlePlaceId.trim();
   const gmbLink = trimmedGooglePlaceId
     ? `https://www.google.com/maps/place/?q=place_id:${trimmedGooglePlaceId}`
+    : '';
+  const defaultStagingDomain = options.includeDefaultStagingDomain
+    ? buildDefaultStagingDomain(trimmedRestaurantName)
     : '';
 
   const payload: Record<string, unknown> = {
@@ -987,7 +1081,29 @@ function buildRestaurantPayload(
     gmb_link: gmbLink,
   };
 
+  if (defaultStagingDomain) {
+    payload.staging_domain = defaultStagingDomain;
+  }
+
   return payload;
+}
+
+function buildDefaultStagingDomain(restaurantName: string) {
+  const normalizedLabel = restaurantName
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+
+  const base = normalizedLabel || 'restaurant';
+  return `${base}${DEFAULT_STAGING_DOMAIN_SUFFIX}`;
+}
+
+function formatElapsedTime(totalSeconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function ToastCheckIcon() {
@@ -1184,6 +1300,168 @@ async function syncGoogleReviewsForRestaurant({
     );
 
   await replaceRestaurantGoogleReviews(restaurantId, reviews);
+}
+
+async function ensureDefaultSystemPagesForRestaurant(restaurantId: string) {
+  const existingPages = await getPages(restaurantId);
+  const existingSlugs = new Set(
+    existingPages
+      .map((page) => page.url_slug?.trim().toLowerCase())
+      .filter((slug): slug is string => Boolean(slug)),
+  );
+
+  for (const page of DEFAULT_SYSTEM_PAGES) {
+    if (existingSlugs.has(page.urlSlug)) {
+      continue;
+    }
+
+    await insertPage({
+      url_slug: page.urlSlug,
+      name: page.name,
+      is_deleted: false,
+      meta_title: null,
+      meta_description: null,
+      restaurant_id: restaurantId,
+      is_system_page: true,
+      show_on_navbar: true,
+      show_on_footer: true,
+      keywords: null,
+      og_image: null,
+      published: false,
+    });
+  }
+}
+
+async function syncGoogleOpeningHoursForRestaurant(restaurantId: string) {
+  const response = await fetchWithSessionAuth(
+    `/api/restaurants/${encodeURIComponent(restaurantId)}/opening-hours`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'sync_google',
+      }),
+    },
+  );
+
+  const payload = (await safeParseJson(response)) as {
+    success?: unknown;
+    error?: unknown;
+    message?: unknown;
+  } | null;
+
+  if (!response.ok || payload?.success !== true) {
+    const message =
+      (payload &&
+        (typeof payload.error === 'string'
+          ? payload.error
+          : typeof payload.message === 'string'
+            ? payload.message
+            : null)) ||
+      'Failed to sync opening hours from Google.';
+    throw new Error(message);
+  }
+}
+
+async function importAllGoogleMediaForRestaurant(restaurantId: string) {
+  const photosResponse = await fetchWithSessionAuth(
+    `/api/restaurants/${encodeURIComponent(restaurantId)}/google-photos`,
+    {
+      cache: 'no-store',
+    },
+  );
+
+  const photosPayload = (await safeParseJson(photosResponse)) as {
+    success?: unknown;
+    data?: unknown;
+    error?: unknown;
+    message?: unknown;
+  } | null;
+
+  if (!photosResponse.ok || photosPayload?.success !== true) {
+    const message =
+      (photosPayload &&
+        (typeof photosPayload.error === 'string'
+          ? photosPayload.error
+          : typeof photosPayload.message === 'string'
+            ? photosPayload.message
+            : null)) ||
+      'Failed to fetch Google media.';
+    throw new Error(message);
+  }
+
+  const mediaIds = Array.from(
+    new Set(
+      (Array.isArray(photosPayload?.data) ? photosPayload?.data : [])
+        .map((item) => {
+          const record = item as { media_id?: unknown };
+          return typeof record.media_id === 'string' ? record.media_id.trim() : '';
+        })
+        .filter(Boolean),
+    ),
+  );
+
+  for (const mediaId of mediaIds) {
+    const importResponse = await fetchWithSessionAuth(
+      `/api/restaurants/${encodeURIComponent(restaurantId)}/google-photos/import`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mediaId,
+        }),
+      },
+    );
+
+    const importPayload = (await safeParseJson(importResponse)) as {
+      success?: unknown;
+      error?: unknown;
+      message?: unknown;
+    } | null;
+
+    if (!importResponse.ok || importPayload?.success !== true) {
+      const message =
+        (importPayload &&
+          (typeof importPayload.error === 'string'
+            ? importPayload.error
+            : typeof importPayload.message === 'string'
+              ? importPayload.message
+              : null)) ||
+        `Failed to import Google media ${mediaId}.`;
+      debugLog('google-media:import-failed', {
+        restaurantId,
+        mediaId,
+        reason: message,
+      });
+    }
+  }
+}
+
+function buildRestaurantsListPath(pathname: string) {
+  const roleSegment = resolveRoleSegmentFromPath(pathname) || 'admin';
+  return `/dashboard/${roleSegment}/restaurants`;
+}
+
+async function fetchWithSessionAuth(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+) {
+  const accessToken = await nhost.auth.getAccessToken();
+  if (!accessToken) {
+    throw new Error('Your session has expired. Please login again.');
+  }
+
+  const headers = new Headers(init.headers);
+  headers.set('Authorization', `Bearer ${accessToken}`);
+
+  return fetch(input, {
+    ...init,
+    headers,
+  });
 }
 
 async function safeParseJson(response: Response) {

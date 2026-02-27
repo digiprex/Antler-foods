@@ -16,8 +16,6 @@ interface SidebarProps {
   onRestaurantSelect: (restaurant: RestaurantSearchSelection | null) => void;
 }
 
-
-
 export function Sidebar({
   activeTab,
   pathname,
@@ -40,145 +38,160 @@ export function Sidebar({
 
   const RESTAURANT_MENU_ITEMS = selectedRestaurant
     ? (() => {
-      const informationBrandPath = buildRestaurantInformationPath(
-        roleSegment,
-        selectedRestaurant,
-        'brand',
-      );
-      const informationBasePath = informationBrandPath.replace(/brand$/, '');
-      const mediaPath = buildRestaurantMediaPath(roleSegment, selectedRestaurant);
+        const informationBrandPath = buildRestaurantInformationPath(
+          roleSegment,
+          selectedRestaurant,
+          'brand',
+        );
+        const informationBasePath = informationBrandPath.replace(/brand$/, '');
+        const mediaPath = buildRestaurantMediaPath(
+          roleSegment,
+          selectedRestaurant,
+        );
 
-      return [
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/sales`,
-            selectedRestaurant,
-          ),
-          label: 'Sales',
-          icon: <SalesIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/menu`,
-            selectedRestaurant,
-          ),
-          label: 'Manage Menu',
-          icon: <MenuIcon />,
-        },
-        {
-          href: informationBrandPath,
-          label: 'Information',
-          icon: <InfoIcon />,
-          matchPrefixes: [informationBasePath],
-        },
-        {
-          href: mediaPath,
-          label: 'Media',
-          icon: <MediaIcon />,
-          matchPrefixes: [mediaPath, `${mediaPath}/`],
-        },
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/reviews`,
-            selectedRestaurant,
-          ),
-          label: 'Reviews',
-          icon: <UsersIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/assets`,
-            selectedRestaurant,
-          ),
-          label: 'Assets',
-          icon: <AssetsIcon />,
-        },
-      ];
-    })()
+        return [
+          {
+            href: buildRestaurantScopedHref(
+              `${dashboardBasePath}/sales`,
+              selectedRestaurant,
+            ),
+            label: 'Sales',
+            icon: <SalesIcon />,
+          },
+          {
+            href: buildRestaurantScopedHref(
+              `${dashboardBasePath}/menu`,
+              selectedRestaurant,
+            ),
+            label: 'Manage Menu',
+            icon: <MenuIcon />,
+          },
+          {
+            href: informationBrandPath,
+            label: 'Information',
+            icon: <InfoIcon />,
+            matchPrefixes: [informationBasePath],
+          },
+          {
+            href: mediaPath,
+            label: 'Media',
+            icon: <MediaIcon />,
+            matchPrefixes: [mediaPath, `${mediaPath}/`],
+          },
+          {
+            href: buildRestaurantScopedHref(
+              `${dashboardBasePath}/reviews`,
+              selectedRestaurant,
+            ),
+            label: 'Reviews',
+            icon: <UsersIcon />,
+          },
+          // {
+          //   href: buildRestaurantScopedHref(
+          //     `${dashboardBasePath}/assets`,
+          //     selectedRestaurant,
+          //   ),
+          //   label: 'Assets',
+          //   icon: <AssetsIcon />,
+          // },
+        ];
+      })()
     : [];
 
   const WEBSITE_MENU_ITEMS = selectedRestaurant
     ? [
-      {
-        href: buildRestaurantScopedHref(
-          `${websiteBasePath}/pages-settings`,
-          selectedRestaurant,
-        ),
-        label: 'Pages',
-        icon: <PagesIcon />,
-      },
-      {
-        href: buildRestaurantScopedHref(`/admin/forms`, selectedRestaurant),
-        label: 'Forms',
-        icon: <FormsIcon />,
-      },
-      {
-        href: buildRestaurantScopedHref(`${websiteBasePath}/navbar-settings`, selectedRestaurant),
-        label: 'Navbar Settings',
-        icon: <NavbarIcon />,
-      },
-      {
-        href: buildRestaurantScopedHref(`/admin/announcement-bar-settings`, selectedRestaurant),
-        label: 'Announcement Bar',
-        icon: <AnnouncementBarIcon />,
-      },
-      {
-        href: buildRestaurantScopedHref(`${websiteBasePath}/footer-settings`, selectedRestaurant),
-        label: 'Footer Settings',
-        icon: <FooterIcon />,
-      },
-      {
-        href: buildRestaurantScopedHref(`${websiteBasePath}/popup-settings`, selectedRestaurant),
-        label: 'Popup Settings',
-        icon: <PopupIcon />,
-      },
-    ]
+        {
+          href: buildRestaurantScopedHref(
+            `${websiteBasePath}/pages-settings`,
+            selectedRestaurant,
+          ),
+          label: 'Pages',
+          icon: <PagesIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(`/admin/forms`, selectedRestaurant),
+          label: 'Forms',
+          icon: <FormsIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
+            `${websiteBasePath}/navbar-settings`,
+            selectedRestaurant,
+          ),
+          label: 'Navbar Settings',
+          icon: <NavbarIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
+            `/admin/announcement-bar-settings`,
+            selectedRestaurant,
+          ),
+          label: 'Announcement Bar',
+          icon: <AnnouncementBarIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
+            `${websiteBasePath}/footer-settings`,
+            selectedRestaurant,
+          ),
+          label: 'Footer Settings',
+          icon: <FooterIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
+            `${websiteBasePath}/popup-settings`,
+            selectedRestaurant,
+          ),
+          label: 'Popup Settings',
+          icon: <PopupIcon />,
+        },
+      ]
     : [];
 
   const MARKETING_MENU_ITEMS = selectedRestaurant
     ? [
-      {
-        href: buildRestaurantScopedHref(
-          `${dashboardBasePath}/marketing`,
-          selectedRestaurant,
-        ),
-        label: 'Marketing',
-        icon: <MarketingIcon />,
-      },
-    ]
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/marketing`,
+            selectedRestaurant,
+          ),
+          label: 'Marketing',
+          icon: <MarketingIcon />,
+        },
+      ]
     : [];
 
   const RESERVATION_MENU_ITEMS = selectedRestaurant
     ? [
-      {
-        href: buildRestaurantScopedHref(
-          `${dashboardBasePath}/reservations`,
-          selectedRestaurant,
-        ),
-        label: 'Reservation',
-        icon: <ReservationIcon />,
-      },
-    ]
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/reservations`,
+            selectedRestaurant,
+          ),
+          label: 'Reservation',
+          icon: <ReservationIcon />,
+        },
+      ]
     : [];
 
   const CATERING_MENU_ITEMS = selectedRestaurant
     ? [
-      {
-        href: buildRestaurantScopedHref(
-          `${dashboardBasePath}/catering`,
-          selectedRestaurant,
-        ),
-        label: 'Catering',
-        icon: <CateringIcon />,
-      },
-    ]
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/catering`,
+            selectedRestaurant,
+          ),
+          label: 'Catering',
+          icon: <CateringIcon />,
+        },
+      ]
     : [];
 
   return (
     <aside
       className={`fixed left-0 top-0 h-screen border-r border-[#d7e2e6] bg-[#f8fafb] transition-all duration-200 ease-in-out overflow-y-auto ${
         isOpen ? 'w-[330px]' : 'w-16'
-        }`}
+      }`}
     >
       <SearchBox
         selectedRestaurant={selectedRestaurant}
@@ -204,7 +217,9 @@ export function Sidebar({
         {/* Home Section */}
         <div>
           {isOpen && (
-            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">Home</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">
+              Home
+            </p>
           )}
           <nav className="space-y-1">
             {HOME_MENU_ITEMS.map((item) => (
@@ -224,7 +239,9 @@ export function Sidebar({
         {hasRestaurantSelection ? (
           <div>
             {isOpen && (
-              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">Restaurant</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">
+                Restaurant
+              </p>
             )}
             <nav className="space-y-1">
               {RESTAURANT_MENU_ITEMS.map((item) => (
@@ -248,7 +265,7 @@ export function Sidebar({
               <p
                 className={`mb-1.5 text-xs font-medium uppercase tracking-wide ${
                   isWebsiteTab ? 'text-[#5dc67d]' : 'text-[#7c8a96]'
-                  }`}
+                }`}
               >
                 Website
               </p>
@@ -272,7 +289,9 @@ export function Sidebar({
         {hasRestaurantSelection ? (
           <div>
             {isOpen && (
-              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">Marketing</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">
+                Marketing
+              </p>
             )}
             <nav className="space-y-1">
               {MARKETING_MENU_ITEMS.map((item) => (
@@ -292,7 +311,9 @@ export function Sidebar({
         {hasRestaurantSelection ? (
           <div>
             {isOpen && (
-              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">Reservation</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">
+                Reservation
+              </p>
             )}
             <nav className="space-y-1">
               {RESERVATION_MENU_ITEMS.map((item) => (
@@ -312,7 +333,9 @@ export function Sidebar({
         {hasRestaurantSelection ? (
           <div>
             {isOpen && (
-              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">Catering</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-[#7c8a96] mb-1.5">
+                Catering
+              </p>
             )}
             <nav className="space-y-1">
               {CATERING_MENU_ITEMS.map((item) => (
@@ -331,7 +354,8 @@ export function Sidebar({
 
         {!hasRestaurantSelection && isOpen ? (
           <div className="rounded-xl border border-[#d7e2e6] bg-white px-4 py-3 text-sm text-[#60707c]">
-            Select a restaurant from the search bar to manage restaurant settings.
+            Select a restaurant from the search bar to manage restaurant
+            settings.
           </div>
         ) : null}
       </div>
@@ -550,7 +574,16 @@ function ReservationIcon() {
 
 function MenuIcon() {
   return (
-    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M3 6h18" />
       <path d="M3 12h18" />
       <path d="M3 18h18" />
@@ -560,7 +593,16 @@ function MenuIcon() {
 
 function InfoIcon() {
   return (
-    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <circle cx="12" cy="12" r="10" />
       <path d="M12 16v-4" />
       <path d="M12 8h.01" />
@@ -570,7 +612,16 @@ function InfoIcon() {
 
 function MediaIcon() {
   return (
-    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <circle cx="9" cy="10" r="1.5" />
       <path d="m21 16-5-5-6 6" />
@@ -578,19 +629,28 @@ function MediaIcon() {
   );
 }
 
-function AssetsIcon() {
-  return (
-    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <path d="M7 3v18" />
-      <path d="M17 3v18" />
-    </svg>
-  );
-}
+// function AssetsIcon() {
+//   return (
+//     <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+//       <rect x="3" y="3" width="18" height="18" rx="2" />
+//       <path d="M7 3v18" />
+//       <path d="M17 3v18" />
+//     </svg>
+//   );
+// }
 
 function MarketingIcon() {
   return (
-    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M3 11h4l9-6v14l-9-6H3v-2z" />
       <path d="M17 8l4-2v10l-4-2" />
     </svg>
@@ -599,7 +659,16 @@ function MarketingIcon() {
 
 function CateringIcon() {
   return (
-    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M8 2v12" />
       <path d="M12 2v12" />
       <path d="M16 2v12" />
@@ -685,4 +754,3 @@ function EyeIcon() {
     </svg>
   );
 }
-

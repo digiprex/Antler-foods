@@ -72,11 +72,17 @@ export function RestaurantsListPage() {
     }
 
     return restaurants.filter((restaurant) => {
+      const preferredDomain = getPreferredDomain(restaurant);
       const searchText = [
         restaurant.name,
+        restaurant.ownerName,
+        restaurant.ownerEmail,
         restaurant.serviceModel,
         restaurant.email,
         restaurant.phoneNumber,
+        restaurant.customDomain,
+        restaurant.stagingDomain,
+        preferredDomain,
         restaurant.cuisineTypes.join(' '),
       ]
         .join(' ')
@@ -198,9 +204,9 @@ export function RestaurantsListPage() {
                 <thead className="bg-[#f7fafc]">
                   <tr className="text-left text-xs font-semibold uppercase tracking-wide text-[#6b7a88]">
                     <th className="px-6 py-3">Name</th>
-                    <th className="px-6 py-3">Service model</th>
-                    <th className="px-6 py-3">Cuisine types</th>
                     <th className="px-6 py-3">Contact</th>
+                    <th className="px-6 py-3">Owner</th>
+                    <th className="px-6 py-3">Domain</th>
                     <th className="px-6 py-3">Created</th>
                     <th className="px-6 py-3 text-right">Actions</th>
                   </tr>
@@ -217,16 +223,15 @@ export function RestaurantsListPage() {
                         </p>
                       </td>
                       <td className="px-6 py-4 text-sm text-[#334155]">
-                        {restaurant.serviceModel || 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-[#334155]">
-                        {restaurant.cuisineTypes.length
-                          ? restaurant.cuisineTypes.join(', ')
-                          : 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-[#334155]">
                         <p>{restaurant.phoneNumber || 'N/A'}</p>
                         <p>{restaurant.email || 'N/A'}</p>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-[#334155]">
+                        <p>{restaurant.ownerName || 'N/A'}</p>
+                        <p>{restaurant.ownerEmail || 'N/A'}</p>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-[#334155]">
+                        <DomainCell restaurant={restaurant} />
                       </td>
                       <td className="px-6 py-4 text-sm text-[#334155]">
                         {formatDate(restaurant.createdAt)}
@@ -342,6 +347,52 @@ export function RestaurantsListPage() {
       ) : null}
     </section>
   );
+}
+
+function DomainCell({ restaurant }: { restaurant: RestaurantListItem }) {
+  const preferredDomain = getPreferredDomain(restaurant);
+  if (!preferredDomain) {
+    return <p>N/A</p>;
+  }
+
+  const href = toExternalUrl(preferredDomain);
+  const isProductionDomain = Boolean(restaurant.customDomain.trim());
+
+  return (
+    <div className="space-y-0.5">
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer noopener"
+        className="text-[#5b3fd4] underline decoration-[#c8bcff] underline-offset-2 transition hover:text-[#4728cc]"
+      >
+        {preferredDomain}
+      </a>
+      <p className="text-xs text-[#7a8996]">
+        {isProductionDomain ? 'Production' : 'Staging'}
+      </p>
+    </div>
+  );
+}
+
+function getPreferredDomain(restaurant: RestaurantListItem) {
+  if (restaurant.customDomain.trim()) {
+    return restaurant.customDomain.trim();
+  }
+
+  if (restaurant.stagingDomain.trim()) {
+    return restaurant.stagingDomain.trim();
+  }
+
+  return '';
+}
+
+function toExternalUrl(domain: string) {
+  if (/^https?:\/\//i.test(domain)) {
+    return domain;
+  }
+
+  return `https://${domain}`;
 }
 
 function getPaginationWindow(

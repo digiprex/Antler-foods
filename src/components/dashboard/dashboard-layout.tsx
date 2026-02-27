@@ -120,7 +120,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [claimsWaitElapsed, setClaimsWaitElapsed] = useState(false);
   const [isAuthBootstrapReady, setIsAuthBootstrapReady] = useState(false);
   const [isRouteLoading, setIsRouteLoading] = useState(false);
-  const [pendingApiCalls, setPendingApiCalls] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedRestaurant, setSelectedRestaurant] =
     useState<RestaurantSearchSelection | null>(null);
@@ -249,36 +248,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         DASHBOARD_ROUTE_LOADING_START_EVENT,
         onRouteLoadStart,
       );
-    };
-  }, []);
-
-  useEffect(() => {
-    const originalFetch: typeof window.fetch = window.fetch.bind(window);
-    let disposed = false;
-
-    const patchedFetch = (async (
-      input: RequestInfo | URL,
-      init?: RequestInit,
-    ): Promise<Response> => {
-      const shouldTrack = shouldTrackApiRequest(input);
-      if (shouldTrack && !disposed) {
-        setPendingApiCalls((current) => current + 1);
-      }
-
-      try {
-        return await originalFetch(input, init);
-      } finally {
-        if (shouldTrack && !disposed) {
-          setPendingApiCalls((current) => Math.max(0, current - 1));
-        }
-      }
-    }) as typeof window.fetch;
-
-    window.fetch = patchedFetch;
-
-    return () => {
-      disposed = true;
-      window.fetch = originalFetch;
     };
   }, []);
 
@@ -438,7 +407,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const userLabel = user?.displayName?.trim() || user?.email || 'Admin';
-  const shouldShowGlobalSpinner = isRouteLoading || pendingApiCalls > 0;
 
   return (
     <div className="min-h-screen bg-[#f3f5f6]">
@@ -465,31 +433,4 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
     </div>
   );
-}
-
-function shouldTrackApiRequest(input: RequestInfo | URL) {
-  const urlValue =
-    typeof input === 'string'
-      ? input
-      : input instanceof URL
-        ? input.toString()
-        : input.url;
-
-  if (!urlValue) {
-    return false;
-  }
-
-  if (urlValue.startsWith('/api/')) {
-    return true;
-  }
-
-  try {
-    const resolved = new URL(urlValue, window.location.origin);
-    return (
-      resolved.origin === window.location.origin &&
-      resolved.pathname.startsWith('/api/')
-    );
-  } catch {
-    return false;
-  }
 }

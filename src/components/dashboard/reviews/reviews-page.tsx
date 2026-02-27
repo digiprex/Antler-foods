@@ -11,6 +11,8 @@ import {
   useRef,
   useState,
 } from 'react';
+import { PurpleDotSpinner } from '@/components/dashboard/purple-dot-spinner';
+import Toast from '@/components/ui/toast';
 
 type RestaurantScope = {
   id: string;
@@ -258,6 +260,7 @@ export default function ReviewsPage() {
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notice, setNotice] = useState<SaveNotice | null>(null);
+  const [toastNotice, setToastNotice] = useState<SaveNotice | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -283,6 +286,13 @@ export default function ReviewsPage() {
         ? reviews.find((review) => review.review_id === editingReviewId) || null
         : null,
     [editingReviewId, reviews],
+  );
+
+  const showToast = useCallback(
+    (tone: SaveNotice['tone'], message: string) => {
+      setToastNotice({ tone, message });
+    },
+    [],
   );
 
   const loadReviews = useCallback(async () => {
@@ -325,6 +335,22 @@ export default function ReviewsPage() {
   useEffect(() => {
     void loadReviews();
   }, [loadReviews]);
+
+  useEffect(() => {
+    if (!isModalOpen) {
+      return;
+    }
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [isModalOpen]);
 
   const resetForm = () => {
     setAuthorName('');
@@ -467,9 +493,10 @@ export default function ReviewsPage() {
 
     setIsSaving(true);
     setNotice(null);
+    const currentEditingReviewId = editingReviewId;
 
     try {
-      if (!editingReviewId) {
+      if (!currentEditingReviewId) {
         const response = await fetch('/api/admin/reviews', {
           method: 'POST',
           headers: {
@@ -491,10 +518,13 @@ export default function ReviewsPage() {
           throw new Error(payload.error || 'Failed to create review.');
         }
 
-        setNotice({
-          tone: 'success',
-          message: 'Manual review created.',
-        });
+        if (!payload.data) {
+          throw new Error('Failed to receive created review.');
+        }
+
+        const createdReview = payload.data;
+        setReviews((previous) => [createdReview, ...previous]);
+        showToast('success', 'Review added successfully.');
       } else {
         const response = await fetch('/api/admin/reviews', {
           method: 'PATCH',
@@ -503,7 +533,7 @@ export default function ReviewsPage() {
           },
           body: JSON.stringify({
             action: 'edit_manual',
-            review_id: editingReviewId,
+            review_id: currentEditingReviewId,
             author_name: normalizedAuthorName,
             review_text: normalizedReviewText,
             rating: normalizedRating,
@@ -518,14 +548,20 @@ export default function ReviewsPage() {
           throw new Error(payload.error || 'Failed to update manual review.');
         }
 
-        setNotice({
-          tone: 'success',
-          message: 'Manual review updated.',
-        });
+        if (!payload.data) {
+          throw new Error('Failed to receive updated review.');
+        }
+
+        const updatedReview = payload.data;
+        setReviews((previous) =>
+          previous.map((item) =>
+            item.review_id === updatedReview.review_id ? updatedReview : item,
+          ),
+        );
+        showToast('success', 'Review updated successfully.');
       }
 
       closeModal();
-      await loadReviews();
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
@@ -535,6 +571,7 @@ export default function ReviewsPage() {
         tone: 'error',
         message,
       });
+      showToast('error', message);
     } finally {
       setIsSaving(false);
     }
@@ -562,13 +599,22 @@ export default function ReviewsPage() {
         throw new Error(payload.error || 'Failed to update visibility.');
       }
 
-      setNotice({
-        tone: 'success',
-        message: review.is_hidden
-          ? 'Review is now visible.'
-          : 'Review has been hidden.',
-      });
-      await loadReviews();
+      if (!payload.data) {
+        throw new Error('Failed to receive updated review visibility.');
+      }
+
+      const updatedReview = payload.data;
+      setReviews((previous) =>
+        previous.map((item) =>
+          item.review_id === review.review_id ? updatedReview : item,
+        ),
+      );
+      showToast(
+        'success',
+        updatedReview.is_hidden
+          ? 'Review hidden successfully.'
+          : 'Review is now visible.',
+      );
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
@@ -578,6 +624,7 @@ export default function ReviewsPage() {
         tone: 'error',
         message,
       });
+      showToast('error', message);
     } finally {
       setPendingActionReviewId(null);
     }
@@ -627,12 +674,11 @@ export default function ReviewsPage() {
         throw new Error(payload.error || 'Failed to delete review.');
       }
 
-      setNotice({
-        tone: 'success',
-        message: 'Manual review deleted.',
-      });
+      setReviews((previous) =>
+        previous.filter((item) => item.review_id !== review.review_id),
+      );
       setDeleteCandidateReview(null);
-      await loadReviews();
+      showToast('success', 'Review deleted successfully.');
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
@@ -642,6 +688,7 @@ export default function ReviewsPage() {
         tone: 'error',
         message,
       });
+      showToast('error', message);
     } finally {
       setPendingActionReviewId(null);
     }
@@ -653,6 +700,14 @@ export default function ReviewsPage() {
 
   return (
     <section className="space-y-5">
+      {toastNotice ? (
+        <Toast
+          message={toastNotice.message}
+          type={toastNotice.tone === 'success' ? 'success' : 'error'}
+          onClose={() => setToastNotice(null)}
+        />
+      ) : null}
+
       <div className="space-y-2">
         <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">
           Google Reviews
@@ -679,7 +734,16 @@ export default function ReviewsPage() {
         </div>
 
         {isLoading ? (
-          <div className="text-[#60707c]">Loading reviews...</div>
+          <div
+            className="flex min-h-[180px] items-center justify-center"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="inline-flex items-center gap-3 rounded-xl border border-[#d7e2e6] bg-white px-5 py-3 text-sm text-[#5a6670]">
+              <PurpleDotSpinner size="sm" label="Loading reviews" />
+              Loading reviews...
+            </div>
+          </div>
         ) : reviews.length === 0 ? (
           <div className="text-[#60707c]">
             No reviews found for this restaurant.
@@ -808,14 +872,14 @@ export default function ReviewsPage() {
       </div>
 
       {isModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-5">
           <div
             className="absolute inset-0 bg-black/35"
             onClick={closeModal}
             aria-hidden="true"
           />
 
-          <div className="relative z-10 w-full max-w-3xl rounded-2xl border border-[#d7e2e6] bg-white p-8 shadow-[0_24px_64px_rgba(15,23,42,0.25)]">
+          <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#d7e2e6] bg-white p-6 shadow-[0_24px_64px_rgba(15,23,42,0.25)] sm:p-7">
             <button
               type="button"
               onClick={closeModal}
@@ -825,11 +889,11 @@ export default function ReviewsPage() {
               ×
             </button>
 
-            <h2 className="text-4xl font-semibold tracking-tight text-[#101827]">
+            <h2 className="text-3xl font-semibold tracking-tight text-[#101827]">
               {activeEditingReview ? 'Edit Review' : 'Add Review'}
             </h2>
 
-            <form onSubmit={onSaveReview} className="mt-6 space-y-4">
+            <form onSubmit={onSaveReview} className="mt-5 space-y-4">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-[#111827]">Avatar</p>
                 <div className="flex items-center gap-4">
@@ -895,7 +959,7 @@ export default function ReviewsPage() {
                   value={reviewText}
                   onChange={(event) => setReviewText(event.target.value)}
                   required
-                  rows={6}
+                  rows={5}
                   className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-base text-[#111827] outline-none transition focus:border-[#8a7dff] focus:ring-2 focus:ring-[#ddd8ff]"
                   placeholder="Enter review text"
                 />

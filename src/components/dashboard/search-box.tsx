@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getRestaurants } from '@/lib/graphql/queries';
+import { DASHBOARD_RESTAURANTS_REFRESH_EVENT } from './route-loading-events';
 
 export interface RestaurantSearchSelection {
   id: string;
@@ -22,50 +23,52 @@ export function SearchBox({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    let isActive = true;
+  const loadRestaurants = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setLoadError(null);
 
-    const loadRestaurants = async () => {
-      try {
-        setIsLoading(true);
-        setLoadError(null);
+      const rows = await getRestaurants();
 
-        const rows = await getRestaurants();
-        if (!isActive) {
-          return;
-        }
+      const normalized = rows
+        .map((row) => ({
+          id: row.id,
+          name: row.name.trim(),
+        }))
+        .filter((row) => Boolean(row.id) && Boolean(row.name));
 
-        const normalized = rows
-          .map((row) => ({
-            id: row.id,
-            name: row.name.trim(),
-          }))
-          .filter((row) => Boolean(row.id) && Boolean(row.name));
-
-        setRestaurants(normalized);
-      } catch (caughtError) {
-        if (!isActive) {
-          return;
-        }
-
-        const message =
-          caughtError instanceof Error
-            ? caughtError.message
-            : 'Failed to load restaurants.';
-        setLoadError(message);
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void loadRestaurants();
-
-    return () => {
-      isActive = false;
-    };
+      setRestaurants(normalized);
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Failed to load restaurants.';
+      setLoadError(message);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadRestaurants();
+  }, [loadRestaurants]);
+
+  useEffect(() => {
+    const onRestaurantsRefresh = () => {
+      void loadRestaurants();
+    };
+
+    window.addEventListener(
+      DASHBOARD_RESTAURANTS_REFRESH_EVENT,
+      onRestaurantsRefresh,
+    );
+    return () => {
+      window.removeEventListener(
+        DASHBOARD_RESTAURANTS_REFRESH_EVENT,
+        onRestaurantsRefresh,
+      );
+    };
+  }, [loadRestaurants]);
 
   useEffect(() => {
     setSearchValue(selectedRestaurant?.name ?? '');

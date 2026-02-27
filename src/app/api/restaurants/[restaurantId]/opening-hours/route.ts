@@ -243,31 +243,12 @@ export async function GET(
       );
     }
 
-    const { restaurant, user } = await requireRestaurantAccess(request, restaurantId);
+    const { restaurant } = await requireRestaurantAccess(request, restaurantId);
 
-    let profile = await loadActiveOpeningHoursProfile(restaurantId);
-    let slots = profile?.opening_hour_id
+    const profile = await loadActiveOpeningHoursProfile(restaurantId);
+    const slots = profile?.opening_hour_id
       ? await loadOpeningHourSlots(profile.opening_hour_id)
       : [];
-    let googleSyncError: string | null = null;
-
-    if (!profile && restaurant.googlePlaceId) {
-      try {
-        const synced = await syncGoogleHoursToDatabase({
-          restaurantId,
-          googlePlaceId: restaurant.googlePlaceId,
-          createdByUserId: user.userId,
-          timezoneFallback: 'UTC',
-        });
-        profile = synced.profile;
-        slots = synced.slots;
-      } catch (caughtError) {
-        googleSyncError =
-          caughtError instanceof Error
-            ? caughtError.message
-            : 'Unable to sync opening hours from Google.';
-      }
-    }
 
     return NextResponse.json({
       success: true,
@@ -275,7 +256,6 @@ export async function GET(
         profile: profile ? normalizeOpeningHoursProfile(profile) : null,
         slots: slots.map(normalizeOpeningHourSlot).filter(Boolean),
         has_google_place_id: Boolean(restaurant.googlePlaceId),
-        google_sync_error: googleSyncError,
       },
     });
   } catch (caughtError) {

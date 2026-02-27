@@ -11,7 +11,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import Toast from '@/components/ui/toast';
 import type { LocationConfig } from '@/types/location.types';
 import { DEFAULT_LOCATION_CONFIG } from '@/types/location.types';
@@ -253,7 +253,7 @@ export default function LocationSettingsForm({ restaurantId, pageId }: LocationS
           No Google Place ID Configured
         </h2>
         <p style={{ fontSize: '1rem', color: '#6b7280', marginBottom: '1.5rem', maxWidth: '600px', margin: '0 auto 1.5rem' }}>
-          This restaurant doesn't have a Google Place ID set. The location settings feature requires a Google Place ID to fetch and display location information.
+          This restaurant doesn&apos;t have a Google Place ID set. The location settings feature requires a Google Place ID to fetch and display location information.
         </p>
         <div style={{
           backgroundColor: '#fff',
@@ -615,14 +615,12 @@ function SimpleMapPreview({ lat, lng, name }: { lat: number; lng: number; name: 
       position: 'relative',
       overflow: 'hidden',
     }}>
-      <img
+      <Image
         src={staticMapUrl}
         alt={`Map showing ${name}`}
+        fill
         style={{
-          width: '100%',
-          height: '100%',
           objectFit: 'cover',
-          display: 'block',
         }}
         onError={(e) => {
           // Fallback if static map fails to load

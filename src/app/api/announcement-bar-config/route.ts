@@ -108,7 +108,7 @@ const INSERT_TEMPLATE = `
 /**
  * Helper function to make GraphQL requests
  */
-async function graphqlRequest(query: string, variables?: any) {
+async function graphqlRequest(query: string, variables?: Record<string, unknown>) {
   const response = await fetch(HASURA_URL, {
     method: 'POST',
     headers: {
@@ -261,7 +261,7 @@ export async function GET(request: Request) {
     // Transform template structure to AnnouncementBarConfig
     const config: AnnouncementBarConfig = {
       restaurant_id: restaurantId,
-      layout: template.name as any, // name field contains layout type
+      layout: template.name as AnnouncementBarConfig['layout'], // name field contains layout type
       socialMediaIcons: socialMediaIcons, // Get from restaurant data instead of template
       isEnabled: template.config?.isEnabled ?? false,
       text: template.config?.text || '',

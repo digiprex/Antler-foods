@@ -289,7 +289,7 @@ export async function POST(request: Request) {
     }
 
     // Prepare gallery configuration
-    const { restaurant_id, layout, page_id: _pageId, ...configData } = body;
+    const { restaurant_id: _restaurant_id, layout, page_id: _pageId, ...configData } = body;
     const name = layout || 'grid';
     const config = {
       ...configData,

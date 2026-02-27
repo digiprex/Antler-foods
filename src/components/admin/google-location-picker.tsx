@@ -93,7 +93,6 @@ function GoogleLocationPicker({
   const inputRef = useRef<HTMLInputElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [marker, setMarker] = useState<google.maps.Marker | null>(null);
-  const [_autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const mapInitialized = useRef(false);
@@ -203,8 +202,6 @@ function GoogleLocationPicker({
             fields: ['address_components', 'geometry', 'name', 'formatted_address', 'formatted_phone_number'],
           }
         );
-
-        setAutocomplete(autocompleteInstance);
 
         // Handle place selection
         autocompleteInstance.addListener('place_changed', () => {

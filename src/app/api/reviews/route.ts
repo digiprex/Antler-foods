@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       }
     `;
 
-    const variables: any = {
+    const variables: Record<string, string | boolean | number> = {
       restaurantId,
       isDeleted: false,
       isHidden: false,

@@ -10,7 +10,38 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
-import type { Form, FormPayload } from '@/types/forms.types';
+import type { FormPayload } from '@/types/forms.types';
+
+interface FormData {
+  form_id: string;
+  created_at: string;
+  updated_at: string;
+  title: string;
+  email: string;
+  fields: unknown;
+  restaurant_id: string;
+  is_deleted?: boolean;
+}
+
+interface GetFormResponse {
+  forms_by_pk: FormData;
+}
+
+interface GetFormsResponse {
+  forms: FormData[];
+}
+
+interface CreateFormResponse {
+  insert_forms_one: FormData;
+}
+
+interface UpdateFormResponse {
+  update_forms_by_pk: FormData | null;
+}
+
+interface DeleteFormResponse {
+  update_forms_by_pk: { form_id: string } | null;
+}
 
 // GET - List forms for a restaurant or get a single form by ID
 export async function GET(request: NextRequest) {
@@ -36,9 +67,9 @@ export async function GET(request: NextRequest) {
         }
       `, {
         form_id: formId
-      });
+      }) as GetFormResponse;
 
-      const form = (data as any).forms_by_pk;
+      const form = data.forms_by_pk;
       
       if (!form || form.is_deleted) {
         return NextResponse.json(
@@ -82,11 +113,11 @@ export async function GET(request: NextRequest) {
       }
     `, {
       restaurant_id: restaurantId
-    });
+    }) as GetFormsResponse;
 
     return NextResponse.json({
       success: true,
-      data: (data as any).forms || []
+      data: data.forms || []
     });
 
   } catch (error) {
@@ -149,11 +180,11 @@ export async function POST(request: NextRequest) {
       email,
       fields: fields || [],
       restaurant_id
-    });
+    }) as CreateFormResponse;
 
     return NextResponse.json({
       success: true,
-      data: (data as any).insert_forms_one
+      data: data.insert_forms_one
     });
 
   } catch (error) {
@@ -190,7 +221,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Build update object
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (title !== undefined) updateData.title = title;
     if (email !== undefined) updateData.email = email;
     if (fields !== undefined) updateData.fields = fields;
@@ -211,9 +242,9 @@ export async function PUT(request: NextRequest) {
     `, {
       form_id,
       updates: updateData
-    });
+    }) as UpdateFormResponse;
 
-    if (!(data as any).update_forms_by_pk) {
+    if (!data.update_forms_by_pk) {
       return NextResponse.json(
         { success: false, error: 'Form not found' },
         { status: 404 }
@@ -222,7 +253,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: (data as any).update_forms_by_pk
+      data: data.update_forms_by_pk
     });
 
   } catch (error) {
@@ -259,9 +290,9 @@ export async function DELETE(request: NextRequest) {
       }
     `, {
       form_id: formId
-    });
+    }) as DeleteFormResponse;
 
-    if (!(data as any).update_forms_by_pk) {
+    if (!data.update_forms_by_pk) {
       return NextResponse.json(
         { success: false, error: 'Form not found' },
         { status: 404 }

@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const pages = await getPages(restaurantId);
 
     return NextResponse.json({ pages });
-  } catch (error: any) {
-    return NextResponse.json({ error: error?.message ?? 'Unknown error' }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

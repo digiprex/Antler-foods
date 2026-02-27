@@ -90,7 +90,7 @@ const INSERT_TEMPLATE = `
 /**
  * Helper function to make GraphQL requests
  */
-async function graphqlRequest(query: string, variables?: any) {
+async function graphqlRequest(query: string, variables?: Record<string, unknown>) {
   const response = await fetch(HASURA_URL, {
     method: 'POST',
     headers: {

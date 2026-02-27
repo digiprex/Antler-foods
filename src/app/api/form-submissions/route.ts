@@ -8,6 +8,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+interface FormSubmissionResponse {
+  insert_form_submissions_one: {
+    form_submission_id: string;
+    restaurant_id: string;
+    email: string;
+    type: string;
+    fields: Record<string, unknown>;
+    created_at: string;
+  };
+}
+
 /**
  * GraphQL mutation to insert form submission
  */
@@ -42,7 +53,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const {
-      form_id,
+      form_id: _form_id,
       form_title,
       restaurant_id,
       data,
@@ -63,13 +74,13 @@ export async function POST(request: NextRequest) {
       email,
       type: form_title || 'Form Submission',
       fields: data
-    });
+    }) as FormSubmissionResponse;
 
-    if (!(result as any).insert_form_submissions_one) {
+    if (!result.insert_form_submissions_one) {
       throw new Error('Failed to insert form submission');
     }
 
-    const submission = (result as any).insert_form_submissions_one;
+    const submission = result.insert_form_submissions_one;
 
     return NextResponse.json({
       success: true,

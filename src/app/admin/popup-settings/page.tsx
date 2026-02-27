@@ -25,7 +25,7 @@ interface MediaFile {
 }
 
 export default function PopupSettingsPage() {
-  const router = useRouter();
+  const _router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');

@@ -11,8 +11,16 @@ const GET_RESTAURANT_STAGING = `
     }
 `;
 
-async function graphqlRequest(query: string, variables?: any) {
-    return adminGraphqlRequest(query, variables);
+interface RestaurantStagingResponse {
+    restaurants_by_pk: {
+        restaurant_id: string;
+        name: string;
+        staging_domain: string | null;
+    } | null;
+}
+
+async function graphqlRequest<T = unknown>(query: string, variables?: Record<string, unknown>): Promise<T> {
+    return adminGraphqlRequest(query, variables) as Promise<T>;
 }
 
 export async function GET(request: Request) {
@@ -24,9 +32,9 @@ export async function GET(request: Request) {
             return NextResponse.json({ success: false, error: 'restaurant_id required' }, { status: 400 });
         }
 
-        const data = await graphqlRequest(GET_RESTAURANT_STAGING, { restaurant_id: restaurantId });
+        const data = await graphqlRequest<RestaurantStagingResponse>(GET_RESTAURANT_STAGING, { restaurant_id: restaurantId });
 
-        const rest = (data as any).restaurants_by_pk || null;
+        const rest = data.restaurants_by_pk || null;
         if (!rest) {
             return NextResponse.json({ success: false, error: 'Restaurant not found' }, { status: 404 });
         }

@@ -9,6 +9,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { resolveStorageApiUrl } from '@/lib/server/nhost-config';
 
+interface MediaFile {
+  id: string;
+  file_id: string;
+  type: string;
+  restaurant_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface FileData {
+  id: string;
+  name: string;
+  mimeType: string;
+  bucketId: string;
+  size: number;
+}
+
+interface MediaResponse {
+  medias: MediaFile[];
+}
+
+interface FilesResponse {
+  files: FileData[];
+}
+
 async function graphqlRequest<T>(
   query: string,
   variables: Record<string, unknown> = {},
@@ -70,7 +95,7 @@ export async function GET(request: NextRequest) {
       }
     `;
 
-    const variables: any = {
+    const variables: Record<string, string | boolean> = {
       restaurantId,
       isDeleted: false
     };
@@ -79,7 +104,7 @@ export async function GET(request: NextRequest) {
       variables.type = type;
     }
 
-    const result = await graphqlRequest(query, variables);
+    const result = await graphqlRequest<MediaResponse>(query, variables);
 
     if (result.errors) {
       console.error('[Media API] GraphQL errors:', result.errors);
@@ -95,7 +120,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch file details for all media files
     if (mediaFiles.length > 0) {
-      const fileIds = mediaFiles.map((m: any) => m.file_id);
+      const fileIds = mediaFiles.map((m) => m.file_id);
 
       const filesQuery = `
         query GetFiles($fileIds: [uuid!]!) {
@@ -109,7 +134,7 @@ export async function GET(request: NextRequest) {
         }
       `;
 
-      const filesResult = await graphqlRequest(filesQuery, { fileIds });
+      const filesResult = await graphqlRequest<FilesResponse>(filesQuery, { fileIds });
 
       if (filesResult.errors) {
         console.error('[Media API] GraphQL errors fetching files:', filesResult.errors);
@@ -121,15 +146,15 @@ export async function GET(request: NextRequest) {
 
       const files = filesResult.data?.files || [];
       console.log('[Media API] Found files:', files.length);
-      const fileMap = new Map<string, any>(files.map((f: any) => [f.id, f]));
+      const fileMap = new Map<string, FileData>(files.map((f) => [f.id, f]));
 
       // Combine media and file data
       const storageApiUrl = resolveStorageApiUrl();
 
       console.log('[Media API] Storage URL:', storageApiUrl || 'NOT SET');
 
-      const enrichedMedia = mediaFiles.map((media: any) => {
-        const file: any = fileMap.get(media.file_id);
+      const enrichedMedia = mediaFiles.map((media) => {
+        const file = fileMap.get(media.file_id);
         
         // Use image proxy for better compatibility and CORS handling
         let fileUrl = '';

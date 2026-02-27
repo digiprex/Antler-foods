@@ -9,6 +9,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+interface Template {
+  template_id: string;
+  category: string;
+  name: string;
+  config: Record<string, unknown>;
+  order_index: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface PageTemplatesResponse {
+  templates: Template[];
+}
+
+interface UpdateTemplateOrderResponse {
+  update_templates_by_pk: {
+    template_id: string;
+    order_index: number;
+  };
+}
+
+interface SoftDeleteTemplateResponse {
+  update_templates_by_pk: {
+    template_id: string;
+    is_deleted: boolean;
+  };
+}
+
 /**
  * GraphQL query to fetch all templates for a page
  */
@@ -79,12 +107,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Query templates
-    const data = await adminGraphqlRequest(GET_PAGE_TEMPLATES, {
+    const data = await adminGraphqlRequest<PageTemplatesResponse>(GET_PAGE_TEMPLATES, {
       restaurant_id: restaurantId,
       page_id: pageId
     });
 
-    const templates = (data as any).templates || [];
+    const templates = data.templates || [];
 
     return NextResponse.json({
       success: true,
@@ -121,14 +149,14 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update template order
-    const data = await adminGraphqlRequest(UPDATE_TEMPLATE_ORDER, {
+    const data = await adminGraphqlRequest<UpdateTemplateOrderResponse>(UPDATE_TEMPLATE_ORDER, {
       template_id,
       order_index
     });
 
     return NextResponse.json({
       success: true,
-      data: (data as any).update_templates_by_pk
+      data: data.update_templates_by_pk
     });
 
   } catch (error) {
@@ -154,13 +182,13 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Soft delete template
-    const data = await adminGraphqlRequest(SOFT_DELETE_TEMPLATE, {
+    const data = await adminGraphqlRequest<SoftDeleteTemplateResponse>(SOFT_DELETE_TEMPLATE, {
       template_id: templateId
     });
 
     return NextResponse.json({
       success: true,
-      data: (data as any).update_templates_by_pk
+      data: data.update_templates_by_pk
     });
 
   } catch (error) {

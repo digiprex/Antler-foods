@@ -14,6 +14,45 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 // Restaurant ID should be provided dynamically via query parameters - no static fallback
 
+interface PageData {
+  page_id: string;
+  url_slug: string;
+  name: string;
+  meta_title: string | null;
+  meta_description: string | null;
+  restaurant_id: string;
+  is_system_page: boolean;
+  show_on_navbar: boolean;
+  show_on_footer: boolean;
+  keywords: string | null;
+  og_image: string | null;
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TemplateData {
+  template_id: string;
+  name: string;
+  category: string;
+  config: Record<string, unknown>;
+  menu_items: unknown;
+  page_id: string;
+  restaurant_id: string;
+  order_index: number | null;
+  is_deleted: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface GetPageResponse {
+  web_pages: PageData[];
+}
+
+interface GetTemplatesResponse {
+  templates: TemplateData[];
+}
+
 /**
  * GraphQL request helper
  */
@@ -130,13 +169,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Step 1: Get page details by URL slug
-    const pageData = await graphqlRequest(GET_PAGE_BY_SLUG, {
+    const pageData = await graphqlRequest<GetPageResponse>(GET_PAGE_BY_SLUG, {
       restaurant_id: restaurantId,
       url_slug: urlSlug,
     });
 
 
-    if (!(pageData as any).web_pages || (pageData as any).web_pages.length === 0) {
+    if (!pageData.web_pages || pageData.web_pages.length === 0) {
       return NextResponse.json(
         {
           success: false,
@@ -147,10 +186,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const page = (pageData as any).web_pages[0];
+    const page = pageData.web_pages[0];
 
     // Step 2: Get all templates for this page
-    const templatesData = await graphqlRequest(GET_PAGE_TEMPLATES, {
+    const templatesData = await graphqlRequest<GetTemplatesResponse>(GET_PAGE_TEMPLATES, {
       restaurant_id: restaurantId,
       page_id: page.page_id,
     });
@@ -158,7 +197,7 @@ export async function GET(request: NextRequest) {
 
     // Return templates as an array instead of organizing by category
     // This allows multiple templates of the same category and preserves order
-    const templates = (templatesData as any).templates || [];
+    const templates = templatesData.templates || [];
 
     const response = {
       success: true,
@@ -186,12 +225,12 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json(response);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Page details API error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error?.message || 'Internal server error',
+        error: error instanceof Error ? error.message : 'Internal server error',
         data: null,
       },
       { status: 500 }

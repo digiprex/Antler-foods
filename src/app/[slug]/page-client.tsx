@@ -211,7 +211,7 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
               <ol style={{ marginTop: '8px', marginLeft: '20px', lineHeight: '1.8' }}>
                 <li>Go to Admin Panel → Pages</li>
                 <li>Find this page in the list</li>
-                <li>Click the "Publish" button</li>
+                <li>Click the &ldquo;Publish&rdquo; button</li>
               </ol>
             </div>
           )}
@@ -337,7 +337,7 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
       ) : (
         <div style={{ padding: '40px', textAlign: 'center', backgroundColor: 'white', margin: '20px', borderRadius: '8px' }}>
           <h3>No sections found for this page</h3>
-          <p>This page doesn't have any sections configured yet.</p>
+          <p>This page doesn&apos;t have any sections configured yet.</p>
           <p>Page ID: {pageData?.data?.page?.page_id}</p>
           <p>Restaurant ID: {restaurantId}</p>
         </div>

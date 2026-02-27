@@ -9,6 +9,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+interface PageData {
+  page_id: string;
+  name: string;
+  url_slug: string;
+  meta_title: string | null;
+  meta_description: string | null;
+  og_image: string | null;
+  published: boolean;
+  show_on_navbar: boolean;
+  show_on_footer: boolean;
+  restaurant_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface GetPageResponse {
+  web_pages_by_pk: PageData | null;
+}
+
+interface UpdatePageResponse {
+  update_web_pages_by_pk: {
+    page_id: string;
+    meta_title: string | null;
+    meta_description: string | null;
+    og_image: string | null;
+    published: boolean;
+    show_on_navbar: boolean;
+    show_on_footer: boolean;
+    updated_at: string;
+  } | null;
+}
+
 /**
  * GraphQL query to get page by ID
  */
@@ -86,16 +118,16 @@ export async function GET(
     // Fetch page
     const result = await adminGraphqlRequest(GET_PAGE, {
       page_id: pageId,
-    });
+    }) as GetPageResponse;
 
-    if (!(result as any).web_pages_by_pk) {
+    if (!result.web_pages_by_pk) {
       return NextResponse.json(
         { success: false, error: 'Page not found' },
         { status: 404 }
       );
     }
 
-    const page = (result as any).web_pages_by_pk;
+    const page = result.web_pages_by_pk;
 
     return NextResponse.json({
       success: true,
@@ -129,7 +161,7 @@ export async function PATCH(
     }
 
     // Build variables object, only including defined values
-    const variables: any = {
+    const variables: Record<string, string | boolean> = {
       page_id: pageId,
     };
 
@@ -141,13 +173,13 @@ export async function PATCH(
     if (show_on_footer !== undefined) variables.show_on_footer = show_on_footer;
 
     // Update page
-    const result = await adminGraphqlRequest(UPDATE_PAGE, variables);
+    const result = await adminGraphqlRequest(UPDATE_PAGE, variables) as UpdatePageResponse;
 
-    if (!(result as any).update_web_pages_by_pk) {
+    if (!result.update_web_pages_by_pk) {
       throw new Error('Failed to update page');
     }
 
-    const page = (result as any).update_web_pages_by_pk;
+    const page = result.update_web_pages_by_pk;
 
     return NextResponse.json({
       success: true,

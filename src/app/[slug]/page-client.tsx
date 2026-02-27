@@ -224,16 +224,36 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
   const templates = pageData?.data?.templates || [];
   const sortedTemplates = templates.sort((a: any, b: any) => (a.order_index ?? 999) - (b.order_index ?? 999));
 
+  console.log('[Page Client] Total templates:', templates.length);
+  console.log('[Page Client] Templates:', templates.map((t: any) => ({
+    id: t.template_id,
+    category: t.category,
+    name: t.name,
+    order_index: t.order_index,
+    has_config: !!t.config
+  })));
+
   // Render component based on category
   const renderSection = (template: any) => {
     const pageId = pageData?.data?.page?.page_id;
     const category = template.category;
 
     const uniqueKey = template.template_id || `${category}-${template.order_index || 0}`;
-    
+
     switch (category.toLowerCase()) {
       case 'hero':
-        return <DynamicHero key={uniqueKey} restaurantId={restaurantId} showLoading={true} />;
+        console.log('[Page Client] Rendering hero with template:', {
+          template_id: template.template_id,
+          name: template.name,
+          config: template.config,
+          order_index: template.order_index
+        });
+        return <DynamicHero
+          key={uniqueKey}
+          restaurantId={restaurantId}
+          configData={template.config ? { ...template.config, layout: template.name } : undefined}
+          showLoading={true}
+        />;
       case 'customcode':
         return <DynamicCustomCode key={uniqueKey} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
       case 'scrollingtext':

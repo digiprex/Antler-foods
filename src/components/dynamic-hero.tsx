@@ -17,12 +17,17 @@ interface DynamicHeroProps {
    * Restaurant ID to fetch configuration for
    */
   restaurantId?: string;
-  
+
   /**
    * Fallback configuration if API fails
    */
   fallbackConfig?: Partial<HeroConfig>;
-  
+
+  /**
+   * Pre-fetched hero configuration (skips API call)
+   */
+  configData?: Partial<HeroConfig>;
+
   /**
    * Whether to show loading state
    */
@@ -32,12 +37,18 @@ interface DynamicHeroProps {
 export default function DynamicHero({
   restaurantId, // Restaurant ID should be provided dynamically
   fallbackConfig,
+  configData,
   showLoading = true
 }: DynamicHeroProps) {
+  console.log('[DynamicHero] Component rendered with configData:', configData);
+
   const { config, loading, error } = useHeroConfig({
     restaurantId,
-    fetchOnMount: true,
+    fetchOnMount: !configData, // Skip fetch if config data is provided
+    overrideConfig: configData, // Use provided config if available
   });
+
+  console.log('[DynamicHero] Hook returned - config:', config, 'loading:', loading, 'error:', error);
 
   // Show loading state
   if (loading && showLoading) {

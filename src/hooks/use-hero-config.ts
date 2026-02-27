@@ -94,7 +94,10 @@ export function useHeroConfig(
     onError,
   } = options;
 
-  const [config, setConfig] = useState<HeroConfig | null>(null);
+  // If overrideConfig is provided, initialize with it immediately
+  const [config, setConfig] = useState<HeroConfig | null>(
+    overrideConfig ? { ...DEFAULT_HERO_CONFIG, ...overrideConfig } : null
+  );
   const [loading, setLoading] = useState(fetchOnMount && !overrideConfig);
   const [error, setError] = useState<string | null>(null);
 
@@ -165,6 +168,15 @@ export function useHeroConfig(
       fetchConfig();
     }
   }, [fetchOnMount, fetchConfig]);
+
+  // Handle overrideConfig changes
+  useEffect(() => {
+    if (overrideConfig) {
+      const mergedConfig = { ...DEFAULT_HERO_CONFIG, ...overrideConfig };
+      setConfig(mergedConfig);
+      onSuccess?.(mergedConfig);
+    }
+  }, [overrideConfig, onSuccess]);
 
   return {
     config,

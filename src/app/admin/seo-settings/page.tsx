@@ -45,19 +45,25 @@ export default function SEOSettingsPage() {
   const fetchPageSEO = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/web-pages?restaurant_id=${restaurantId}`);
+      const response = await fetch(`/api/web-pages/${pageId}`);
       const data = await response.json();
 
       if (data.success && data.data) {
-        const currentPage = data.data.find((page: any) => page.page_id === pageId);
-        if (currentPage) {
-          setMetaTitle(currentPage.meta_title || '');
-          setMetaDescription(currentPage.meta_description || '');
-          setOgImage(currentPage.og_image || '');
-        }
+        setMetaTitle(data.data.meta_title || '');
+        setMetaDescription(data.data.meta_description || '');
+        setOgImage(data.data.og_image || '');
+      } else {
+        toast.error('Failed to load SEO settings', {
+          duration: 3000,
+          position: 'top-right',
+        });
       }
     } catch (error) {
       console.error('Error fetching page SEO:', error);
+      toast.error('Error loading SEO settings', {
+        duration: 3000,
+        position: 'top-right',
+      });
     } finally {
       setLoading(false);
     }

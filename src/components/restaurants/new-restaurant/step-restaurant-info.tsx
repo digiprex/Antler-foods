@@ -29,6 +29,7 @@ interface StepRestaurantInfoProps {
   setValue: UseFormSetValue<NewRestaurantFormValues>;
   errors: FieldErrors<NewRestaurantFormValues>;
   openRegistrationPanelToken?: number;
+  onRegistrationPanelOpenChange?: (isOpen: boolean) => void;
 }
 
 const COUNTRY_OPTIONS = [
@@ -36,13 +37,6 @@ const COUNTRY_OPTIONS = [
   { value: 'Germany', label: 'Germany' },
   { value: 'United Kingdom', label: 'United Kingdom' },
   { value: 'India', label: 'India' },
-];
-
-const STATE_OPTIONS = [
-  { value: 'CA', label: 'CA' },
-  { value: 'NY', label: 'NY' },
-  { value: 'TX', label: 'TX' },
-  { value: 'FL', label: 'FL' },
 ];
 
 const ENABLE_EXISTING_FRANCHISE = false;
@@ -53,6 +47,7 @@ export function StepRestaurantInfo({
   setValue,
   errors,
   openRegistrationPanelToken = 0,
+  onRegistrationPanelOpenChange,
 }: StepRestaurantInfoProps) {
   const [categories, setCategories] = useState<CuisineTypeCategory[]>([]);
   const [serviceModels, setServiceModels] = useState<ServiceModel[]>([]);
@@ -110,12 +105,6 @@ export function StepRestaurantInfo({
       name: 'country',
     }) ?? '';
 
-  const selectedState =
-    useWatch({
-      control,
-      name: 'state',
-    }) ?? '';
-
   const googleMapsApiKey =
     process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ?? '';
   const hasGoogleMapsApiKey = googleMapsApiKey.length > 0;
@@ -171,7 +160,7 @@ export function StepRestaurantInfo({
         });
       }
       if (place.state) {
-        setValue('state', place.state.toUpperCase(), {
+        setValue('state', normalizeStateValue(place.state, normalizedCountry), {
           shouldDirty: true,
           shouldValidate: true,
         });
@@ -352,6 +341,10 @@ export function StepRestaurantInfo({
   }, [openRegistrationPanelToken]);
 
   useEffect(() => {
+    onRegistrationPanelOpenChange?.(isRegistrationPanelOpen);
+  }, [isRegistrationPanelOpen, onRegistrationPanelOpenChange]);
+
+  useEffect(() => {
     if (
       mode === 'create' &&
       !franchiseNameValue.trim() &&
@@ -415,11 +408,6 @@ export function StepRestaurantInfo({
   const countryOptions = useMemo(
     () => mergeSelectOptions(COUNTRY_OPTIONS, selectedCountry),
     [selectedCountry],
-  );
-
-  const stateOptions = useMemo(
-    () => mergeSelectOptions(STATE_OPTIONS, selectedState),
-    [selectedState],
   );
 
   const serviceModelError =
@@ -571,7 +559,7 @@ export function StepRestaurantInfo({
               'rounded-xl border px-4 py-2 text-sm font-semibold transition',
               mode === 'create'
                 ? 'border-[#667eea] bg-[#ede9fe] text-[#5b21b6]'
-                : 'border-[#d3e0e6] bg-white text-[#334155] hover:bg-[#f6faf8]',
+                : 'border-[#d3e0e6] bg-white text-[#334155] hover:bg-[#f6f5ff]',
             )}
           >
             + Add new restaurant
@@ -584,7 +572,7 @@ export function StepRestaurantInfo({
                 'rounded-xl border px-4 py-2 text-sm font-semibold transition',
                 mode === 'existing'
                   ? 'border-[#667eea] bg-[#ede9fe] text-[#5b21b6]'
-                  : 'border-[#d3e0e6] bg-white text-[#334155] hover:bg-[#f6faf8]',
+                  : 'border-[#d3e0e6] bg-white text-[#334155] hover:bg-[#f6f5ff]',
               )}
             >
               Existing franchise
@@ -821,14 +809,13 @@ export function StepRestaurantInfo({
                   placeholder="Select country"
                   options={countryOptions}
                 />
-                <FormSelectInput
-                  label="State"
+                <FormTextInput
+                  label="State / Province"
                   name="state"
                   register={register}
                   errors={errors}
                   required
-                  placeholder="Select state"
-                  options={stateOptions}
+                  placeholder="State or province"
                 />
               </div>
             </div>
@@ -1035,6 +1022,19 @@ function normalizeCountryName(value: string) {
   }
   if (code === 'IN') {
     return 'India';
+  }
+
+  return normalized;
+}
+
+function normalizeStateValue(value: string, country: string) {
+  const normalized = value.trim();
+  if (!normalized) {
+    return '';
+  }
+
+  if (country === 'United States' && normalized.length <= 3) {
+    return normalized.toUpperCase();
   }
 
   return normalized;

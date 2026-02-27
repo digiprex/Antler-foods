@@ -17,6 +17,7 @@ import {
 } from './schema';
 import { Stepper } from './stepper';
 import {
+  getRestaurants,
   getRestaurantDraftById,
   insertFranchise,
   insertRestaurant,
@@ -28,12 +29,14 @@ import { nhost } from '@/lib/nhost';
 
 type WizardStep = 1 | 2;
 type WizardMode = 'create' | 'existing';
-type SavedRestaurantCard = {
+type RecentRestaurantCard = {
   id: string;
   name: string;
   address: string;
   hasGooglePlace: boolean;
+  createdAt: string | null;
 };
+const MAX_RECENT_RESTAURANTS = 4;
 
 const IS_DEV = process.env.NODE_ENV !== 'production';
 const DRAFT_QUERY_PARAM = 'draft';
@@ -97,13 +100,24 @@ export function NewRestaurantWizard() {
   );
   const [franchiseId, setFranchiseId] = useState<string | null>(null);
   const [wizardMode, setWizardMode] = useState<WizardMode | null>(null);
-  const [savedRestaurantCard, setSavedRestaurantCard] =
-    useState<SavedRestaurantCard | null>(null);
-  const [openStepOnePanelToken, setOpenStepOnePanelToken] = useState(0);
+  const [recentlyCreatedRestaurants, setRecentlyCreatedRestaurants] = useState<
+    RecentRestaurantCard[]
+  >([]);
+  const [isLoadingRecentRestaurants, setIsLoadingRecentRestaurants] =
+    useState(false);
+  const [isStepOneRegistrationOpen, setIsStepOneRegistrationOpen] =
+    useState(false);
+  const [createdToastMessage, setCreatedToastMessage] = useState<string | null>(
+    null,
+  );
+  const [isCreatedToastVisible, setIsCreatedToastVisible] = useState(false);
   const [isSavingStepOne, setIsSavingStepOne] = useState(false);
   const [isSavingStepTwo, setIsSavingStepTwo] = useState(false);
   const [isHydratingDraft, setIsHydratingDraft] = useState(true);
   const hasInitializedFromRouteRef = useRef(false);
+  const createdToastTimeoutsRef = useRef<Array<ReturnType<typeof setTimeout>>>(
+    [],
+  );
 
   const {
     control,
@@ -135,6 +149,102 @@ export function NewRestaurantWizard() {
   );
 
   const isBusy = isSavingStepOne || isSavingStepTwo || isHydratingDraft;
+
+  const clearCreatedToastTimers = useCallback(() => {
+    createdToastTimeoutsRef.current.forEach((timeoutId) => {
+      clearTimeout(timeoutId);
+    });
+    createdToastTimeoutsRef.current = [];
+  }, []);
+
+  const showCreatedToast = useCallback(
+    (restaurantName: string) => {
+      clearCreatedToastTimers();
+      setCreatedToastMessage(
+        `${restaurantName.trim() || 'Restaurant'} created successfully.`,
+      );
+      setIsCreatedToastVisible(false);
+
+      createdToastTimeoutsRef.current.push(
+        setTimeout(() => {
+          setIsCreatedToastVisible(true);
+        }, 30),
+      );
+
+      createdToastTimeoutsRef.current.push(
+        setTimeout(() => {
+          setIsCreatedToastVisible(false);
+        }, 2750),
+      );
+
+      createdToastTimeoutsRef.current.push(
+        setTimeout(() => {
+          setCreatedToastMessage(null);
+        }, 3150),
+      );
+    },
+    [clearCreatedToastTimers],
+  );
+
+  const upsertRecentlyCreatedRestaurant = useCallback(
+    (restaurant: RecentRestaurantCard) => {
+      setRecentlyCreatedRestaurants((previous) =>
+        [restaurant, ...previous.filter((item) => item.id !== restaurant.id)]
+          .slice(0, MAX_RECENT_RESTAURANTS),
+      );
+    },
+    [],
+  );
+
+  const refreshRecentlyCreatedRestaurants = useCallback(async () => {
+    setIsLoadingRecentRestaurants(true);
+
+    try {
+      const latestRestaurants = (await getRestaurants()).slice(
+        0,
+        MAX_RECENT_RESTAURANTS,
+      );
+
+      const enrichedRestaurants = await Promise.all(
+        latestRestaurants.map(async (restaurant) => {
+          try {
+            const draft = await getRestaurantDraftById(restaurant.id);
+            return {
+              id: restaurant.id,
+              name: draft?.name?.trim() || restaurant.name,
+              address: [
+                draft?.address?.trim() ?? '',
+                [draft?.city?.trim() ?? '', draft?.postalCode?.trim() ?? '']
+                  .filter(Boolean)
+                  .join(' '),
+              ]
+                .filter(Boolean)
+                .join(', '),
+              hasGooglePlace: Boolean(draft?.googlePlaceId?.trim()),
+              createdAt: restaurant.createdAt,
+            } satisfies RecentRestaurantCard;
+          } catch {
+            return {
+              id: restaurant.id,
+              name: restaurant.name,
+              address: '',
+              hasGooglePlace: false,
+              createdAt: restaurant.createdAt,
+            } satisfies RecentRestaurantCard;
+          }
+        }),
+      );
+
+      setRecentlyCreatedRestaurants(enrichedRestaurants);
+    } catch (caughtError) {
+      debugLog('recent-restaurants:load-failed', {
+        reason:
+          caughtError instanceof Error ? caughtError.message : 'Unknown error',
+      });
+    } finally {
+      setIsLoadingRecentRestaurants(false);
+    }
+  }, []);
 
   const syncWizardRoute = useCallback(
     (
@@ -312,6 +422,16 @@ export function NewRestaurantWizard() {
     wizardMode,
   ]);
 
+  useEffect(() => {
+    void refreshRecentlyCreatedRestaurants();
+  }, [refreshRecentlyCreatedRestaurants]);
+
+  useEffect(() => {
+    return () => {
+      clearCreatedToastTimers();
+    };
+  }, [clearCreatedToastTimers]);
+
   const setStepErrors = (
     fieldNames: readonly string[],
     issues: Array<{ path: PropertyKey[]; message: string }>,
@@ -480,7 +600,7 @@ export function NewRestaurantWizard() {
 
     await updateRestaurant(primaryRestaurantId, restaurantBusinessPayload);
 
-    const savedCard: SavedRestaurantCard = {
+    const savedCard: RecentRestaurantCard = {
       id: primaryRestaurantId,
       name: values.restaurantName.trim(),
       address: [
@@ -492,6 +612,7 @@ export function NewRestaurantWizard() {
         .filter(Boolean)
         .join(', '),
       hasGooglePlace: Boolean(values.googlePlaceId.trim()),
+      createdAt: new Date().toISOString(),
     };
 
     if (values.deploymentEnvironment === 'production') {
@@ -519,13 +640,17 @@ export function NewRestaurantWizard() {
       }
 
       setSuccessMessage('Production owner assignment and business info saved.');
-      setSavedRestaurantCard(savedCard);
+      upsertRecentlyCreatedRestaurant(savedCard);
+      showCreatedToast(savedCard.name);
+      void refreshRecentlyCreatedRestaurants();
       resetWizardAfterSave();
       return;
     }
 
     setSuccessMessage('Staging business info saved to restaurant.');
-    setSavedRestaurantCard(savedCard);
+    upsertRecentlyCreatedRestaurant(savedCard);
+    showCreatedToast(savedCard.name);
+    void refreshRecentlyCreatedRestaurants();
     resetWizardAfterSave();
   };
 
@@ -643,84 +768,39 @@ export function NewRestaurantWizard() {
     setCurrentStep(1);
   };
 
-  const onEditSavedRestaurant = async () => {
-    if (!savedRestaurantCard) {
-      return;
-    }
-
-    try {
-      setErrorMessage(null);
-      const draft = await getRestaurantDraftById(savedRestaurantCard.id);
-      if (!draft) {
-        throw new Error('Saved restaurant draft not found.');
-      }
-
-      const hydratedFranchiseId = draft.franchiseId || '';
-      const hydratedMode: WizardMode = hydratedFranchiseId.trim()
-        ? 'existing'
-        : 'create';
-
-      setPrimaryRestaurantId(draft.id);
-      setFranchiseId(hydratedFranchiseId || null);
-      setWizardMode(hydratedMode);
-      setCurrentStep(1);
-
-      reset({
-        ...DEFAULT_FORM_VALUES,
-        ownerProfileMode: hydratedMode,
-        selectedFranchiseId: hydratedFranchiseId,
-        franchiseName: hydratedMode === 'create' ? draft.name : '',
-        restaurantName: draft.name,
-        address: draft.address,
-        city: draft.city,
-        state: draft.state,
-        country: draft.country,
-        postalCode: draft.postalCode,
-        businessType: draft.businessType,
-        contactName: draft.contactName,
-        selectedServiceModelId: draft.serviceModel,
-        selectedServiceModelName: draft.serviceModel,
-        selectedCuisineTypeIds: draft.cuisineTypes,
-        selectedCuisineTypeLabels: draft.cuisineTypes,
-        contactPhone: draft.pocPhoneNumber || draft.phoneNumber,
-        contactEmail: draft.pocEmail || draft.email,
-        googlePlaceId:
-          draft.googlePlaceId || extractGooglePlaceId(draft.gmbLink),
-        googlePlaceName: draft.name,
-      });
-
-      setOpenStepOnePanelToken((previous) => previous + 1);
-      setSuccessMessage('Saved restaurant loaded for edit.');
-    } catch (caughtError) {
-      const message =
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'Failed to load saved restaurant for edit.';
-      setErrorMessage(message);
-    }
-  };
-
-  const onDeleteSavedRestaurant = async () => {
-    if (!savedRestaurantCard) {
-      return;
-    }
-
-    try {
-      setErrorMessage(null);
-      await updateRestaurant(savedRestaurantCard.id, { is_deleted: true });
-      setSavedRestaurantCard(null);
-      setSuccessMessage('Saved restaurant deleted.');
-    } catch (caughtError) {
-      const message =
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'Failed to delete saved restaurant.';
-      setErrorMessage(message);
-    }
-  };
+  const showBackButton = currentStep > 1;
+  const showContinueButton = currentStep < 2 && isStepOneRegistrationOpen;
+  const showSaveButton = currentStep === 2;
+  const hasFooterActions =
+    showBackButton || showContinueButton || showSaveButton;
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-[#d7e2e6] bg-white">
+    <>
+      {createdToastMessage ? (
+        <div
+          aria-live="polite"
+          className={`pointer-events-none fixed right-6 top-6 z-[120] transition-all duration-300 ${
+            isCreatedToastVisible
+              ? 'translate-y-0 opacity-100'
+              : '-translate-y-3 opacity-0'
+          }`}
+          role="status"
+        >
+          <div className="flex items-center gap-3 rounded-2xl border border-[#cfc5ff] bg-[#f6f3ff] px-4 py-3 shadow-[0_18px_40px_rgba(102,126,234,0.24)]">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#667eea] text-white">
+              <ToastCheckIcon />
+            </span>
+            <div className="space-y-0.5">
+              <p className="text-sm font-semibold text-[#1c1b4e]">
+                Restaurant saved
+              </p>
+              <p className="text-sm text-[#4d4a73]">{createdToastMessage}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="overflow-hidden rounded-3xl border border-[#d7e2e6] bg-white">
       <div className="border-b border-[#d8e3e7] px-8 py-5">
         <h2 className="text-[28px] font-semibold text-[#111827]">
           New restaurant
@@ -750,7 +830,7 @@ export function NewRestaurantWizard() {
             register={register}
             setValue={setValue}
             errors={errors}
-            openRegistrationPanelToken={openStepOnePanelToken}
+            onRegistrationPanelOpenChange={setIsStepOneRegistrationOpen}
           />
         ) : null}
 
@@ -764,85 +844,105 @@ export function NewRestaurantWizard() {
           />
         ) : null}
 
-        {currentStep === 1 && savedRestaurantCard ? (
+        {currentStep === 1 &&
+        !isStepOneRegistrationOpen &&
+        recentlyCreatedRestaurants.length > 0 ? (
           <div className="space-y-3 rounded-2xl border border-[#d7e2e6] bg-[#f8fbfd] p-4">
-            <h4 className="text-lg font-semibold text-[#111827]">
-              Associated Restaurant(s)
-            </h4>
-            <div className="rounded-xl border border-[#d9e3e8] bg-white p-4">
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-lg font-semibold text-[#111827]">
-                    {savedRestaurantCard.name || 'Saved restaurant'}
-                  </p>
-                  <p className="text-sm text-[#5d6c78]">
-                    {savedRestaurantCard.address || 'Address not available'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void onEditSavedRestaurant()}
-                    disabled={isBusy}
-                    className="rounded-lg border border-[#d4e0e6] px-3 py-1.5 text-sm font-medium text-[#1f2f3d] transition hover:bg-[#f4f8fa] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void onDeleteSavedRestaurant()}
-                    disabled={isBusy}
-                    className="rounded-lg border border-[#f2c7c7] px-3 py-1.5 text-sm font-medium text-[#b33838] transition hover:bg-[#fff5f5] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-              <p className="text-sm text-[#4d6070]">
-                {savedRestaurantCard.hasGooglePlace
-                  ? 'Google place: yes'
-                  : 'Google place: no'}
+            <div className="flex items-center justify-between gap-3">
+              <h4 className="text-lg font-semibold text-[#111827]">
+                Recently created restaurants
+              </h4>
+              <p className="text-xs text-[#607180]">
+                {isLoadingRecentRestaurants
+                  ? 'Refreshing...'
+                  : 'Showing latest 4 (read-only)'}
               </p>
+            </div>
+
+            <div className="space-y-3">
+              {recentlyCreatedRestaurants.map((restaurant) => (
+                <div
+                  key={restaurant.id}
+                  className="rounded-xl border border-[#d9e3e8] bg-white p-4"
+                >
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-lg font-semibold text-[#111827]">
+                        {restaurant.name || 'Saved restaurant'}
+                      </p>
+                      <p className="text-sm text-[#5d6c78]">
+                        {restaurant.address || 'Address not available'}
+                      </p>
+                    </div>
+                    <p className="text-xs font-medium text-[#667085]">
+                      {formatRecentCreatedAt(restaurant.createdAt)}
+                    </p>
+                  </div>
+                  <p className="text-sm text-[#4d6070]">
+                    {restaurant.hasGooglePlace
+                      ? 'Google place: yes'
+                      : 'Google place: no'}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         ) : null}
       </div>
 
-      <div className="flex justify-end border-t border-[#d8e3e7] bg-[#f3f7f9] px-8 py-5">
-        <div className="flex items-center gap-3">
-          {currentStep > 1 ? (
-            <button
-              type="button"
-              onClick={onBack}
-              className="rounded-xl border border-[#d2dee4] bg-white px-5 py-2 text-[18px] font-medium text-[#111827] transition hover:bg-[#f7fafc]"
-            >
-              Back
-            </button>
-          ) : null}
+      {hasFooterActions ? (
+        <div className="flex justify-end border-t border-[#d8e3e7] bg-[#f3f7f9] px-8 py-5">
+          <div className="flex items-center gap-3">
+            {showBackButton ? (
+              <button
+                type="button"
+                onClick={onBack}
+                className="rounded-xl border border-[#d2dee4] bg-white px-5 py-2 text-[18px] font-medium text-[#111827] transition hover:bg-[#f7fafc]"
+              >
+                Back
+              </button>
+            ) : null}
 
-          {currentStep < 2 ? (
-            <button
-              type="button"
-              onClick={onContinue}
-              disabled={!isStepOneComplete || isBusy}
-              className="rounded-xl bg-[#667eea] px-6 py-2 text-[18px] font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#c7d8ce]"
-            >
-              {isBusy ? 'Saving...' : 'Continue'}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onContinue}
-              disabled={!isStepOneComplete || !isStepTwoComplete || isBusy}
-              className="rounded-xl bg-[#667eea] px-6 py-2 text-[18px] font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#c7d8ce] disabled:text-[#f4f7f5]"
-            >
-              {isBusy ? 'Saving...' : 'Save restaurant'}
-            </button>
-          )}
+            {showContinueButton ? (
+              <button
+                type="button"
+                onClick={onContinue}
+                disabled={!isStepOneComplete || isBusy}
+                className="rounded-xl bg-[#667eea] px-6 py-2 text-[18px] font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#cfc8ff] disabled:text-[#f8f7ff]"
+              >
+                {isBusy ? 'Saving...' : 'Continue'}
+              </button>
+            ) : null}
+
+            {showSaveButton ? (
+              <button
+                type="button"
+                onClick={onContinue}
+                disabled={!isStepOneComplete || !isStepTwoComplete || isBusy}
+                className="rounded-xl bg-[#667eea] px-6 py-2 text-[18px] font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#cfc8ff] disabled:text-[#f8f7ff]"
+              >
+                {isBusy ? 'Saving...' : 'Save restaurant'}
+              </button>
+            ) : null}
+          </div>
         </div>
+      ) : null}
       </div>
-    </div>
+    </>
   );
+}
+
+function formatRecentCreatedAt(value: string | null) {
+  if (!value) {
+    return 'Recently created';
+  }
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return 'Recently created';
+  }
+
+  return parsedDate.toLocaleString();
 }
 
 function buildRestaurantPayload(
@@ -888,6 +988,23 @@ function buildRestaurantPayload(
   };
 
   return payload;
+}
+
+function ToastCheckIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m5 12 4.5 4.5L19 7" />
+    </svg>
+  );
 }
 
 async function createOwnerUser({

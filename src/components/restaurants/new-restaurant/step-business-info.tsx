@@ -100,6 +100,16 @@ export function StepBusinessInfo({
         required
       />
 
+      <FormTextInput
+        label="Email"
+        name="contactEmail"
+        register={register}
+        errors={errors}
+        placeholder="owner@restaurant.com"
+        type="email"
+        autoComplete="email"
+      />
+
       <div className="space-y-1.5">
         <label className="block text-base font-medium text-[#111827]">
           <span className="mr-1 text-[#ef5350]">*</span>
@@ -191,7 +201,7 @@ export function StepBusinessInfo({
                 <button
                   type="button"
                   onClick={() => setIsPasswordVisible((previous) => !previous)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#8d9aa6] transition hover:bg-[#f2f7f4] hover:text-[#4a5d6f]"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#8d9aa6] transition hover:bg-[#f1efff] hover:text-[#4a5d6f]"
                   aria-label={
                     isPasswordVisible ? 'Hide password' : 'Show password'
                   }
@@ -213,10 +223,10 @@ export function StepBusinessInfo({
         </div>
       ) : null}
 
-      <div className="rounded-xl border border-[#e1eaef] bg-[#f9fcfd] px-4 py-3 text-xs text-[#5b6b79]">
+      {/* <div className="rounded-xl border border-[#e1eaef] bg-[#f9fcfd] px-4 py-3 text-xs text-[#5b6b79]">
         Franchise ID:{' '}
         <span className="font-medium text-[#374151]">{franchiseId}</span>
-      </div>
+      </div> */}
     </div>
   );
 }

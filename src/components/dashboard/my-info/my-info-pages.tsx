@@ -124,6 +124,30 @@ interface GooglePhotosApiResponse {
   error?: string;
 }
 
+type GoogleProfileDetailsRecord = {
+  place_id: string;
+  name: string | null;
+  formatted_address: string | null;
+  short_address: string | null;
+  maps_url: string | null;
+  website_url: string | null;
+  phone_number: string | null;
+  rating: number | null;
+  user_rating_count: number | null;
+  business_status: string | null;
+  open_now: boolean | null;
+  weekday_descriptions: string[];
+  latitude: number | null;
+  longitude: number | null;
+  primary_type: string | null;
+};
+
+interface GoogleProfileDetailsApiResponse {
+  success: boolean;
+  data?: GoogleProfileDetailsRecord;
+  error?: string;
+}
+
 type OpeningHoursProfileRecord = {
   opening_hour_id: string;
   source: 'google' | 'manual';
@@ -607,6 +631,11 @@ export function MyInfoBrandPage() {
   const [xLink, setXLink] = useState('');
   const [tiktokLink, setTiktokLink] = useState('');
   const [youtubeLink, setYoutubeLink] = useState('');
+  const [googleBusinessLink, setGoogleBusinessLink] = useState('');
+  const [yelpLink, setYelpLink] = useState('');
+  const [ubereatsLink, setUbereatsLink] = useState('');
+  const [grubhubLink, setGrubhubLink] = useState('');
+  const [doordashLink, setDoordashLink] = useState('');
   const [cuisineSearchTerm, setCuisineSearchTerm] = useState('');
   const [selectedCuisineTypes, setSelectedCuisineTypes] = useState<string[]>([]);
   const [cuisineCategories, setCuisineCategories] = useState<CuisineTypeCategory[]>(
@@ -630,6 +659,16 @@ export function MyInfoBrandPage() {
     setBusinessType(draft.businessType);
     setServiceModel(draft.serviceModel);
     setSelectedCuisineTypes(draft.cuisineTypes);
+    setFacebookLink(draft.facebookLink || '');
+    setInstagramLink(draft.instagramLink || '');
+    setXLink(draft.xLink || '');
+    setTiktokLink(draft.tiktokLink || '');
+    setYoutubeLink(draft.youtubeLink || '');
+    setGoogleBusinessLink(draft.gmbLink || '');
+    setYelpLink(draft.yelpLink || '');
+    setUbereatsLink(draft.ubereatsLink || '');
+    setGrubhubLink(draft.grubhubLink || '');
+    setDoordashLink(draft.doordashLink || '');
   }, [draft]);
 
   useEffect(() => {
@@ -806,6 +845,11 @@ export function MyInfoBrandPage() {
       xLink,
       tiktokLink,
       youtubeLink,
+      googleBusinessLink,
+      yelpLink,
+      ubereatsLink,
+      grubhubLink,
+      doordashLink,
     });
 
     setIsSaving(true);
@@ -1002,6 +1046,11 @@ export function MyInfoBrandPage() {
 
         <div className="grid gap-4 md:grid-cols-2">
           <FormField
+            label="Google business link"
+            value={googleBusinessLink}
+            onChange={setGoogleBusinessLink}
+          />
+          <FormField
             label="Facebook link"
             value={facebookLink}
             onChange={setFacebookLink}
@@ -1021,6 +1070,22 @@ export function MyInfoBrandPage() {
             label="YouTube link"
             value={youtubeLink}
             onChange={setYoutubeLink}
+          />
+          <FormField label="Yelp link" value={yelpLink} onChange={setYelpLink} />
+          <FormField
+            label="Uber Eats link"
+            value={ubereatsLink}
+            onChange={setUbereatsLink}
+          />
+          <FormField
+            label="Grubhub link"
+            value={grubhubLink}
+            onChange={setGrubhubLink}
+          />
+          <FormField
+            label="DoorDash link"
+            value={doordashLink}
+            onChange={setDoordashLink}
           />
         </div>
 
@@ -1163,6 +1228,7 @@ export function MyInfoOpeningHoursPage() {
   const restaurant = useRestaurantScope();
   const [isLoading, setIsLoading] = useState(Boolean(restaurant));
   const [isSaving, setIsSaving] = useState(false);
+  const [savingDayOfWeek, setSavingDayOfWeek] = useState<number | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [notice, setNotice] = useState<SaveNotice | null>(null);
   const [source, setSource] = useState<'google' | 'manual'>('manual');
@@ -1174,7 +1240,27 @@ export function MyInfoOpeningHoursPage() {
   const [daySchedules, setDaySchedules] = useState<DayScheduleState[]>(
     buildDefaultDaySchedule,
   );
+  const [persistedDaySchedules, setPersistedDaySchedules] = useState<DayScheduleState[]>(
+    buildDefaultDaySchedule,
+  );
   const timezoneOptions = useMemo(() => getTimezoneOptions(), []);
+  const dirtyDayOfWeeks = useMemo(() => {
+    const persistedByDay = new Map(
+      persistedDaySchedules.map((day) => [day.dayOfWeek, day]),
+    );
+
+    return new Set(
+      daySchedules
+        .filter((day) => {
+          const persistedDay = persistedByDay.get(day.dayOfWeek);
+          if (!persistedDay) {
+            return true;
+          }
+          return !areDaySchedulesEquivalent(day, persistedDay);
+        })
+        .map((day) => day.dayOfWeek),
+    );
+  }, [daySchedules, persistedDaySchedules]);
 
   const fetchWithAuth = useCallback(
     async (input: RequestInfo | URL, init: RequestInit = {}) => {
@@ -1208,12 +1294,12 @@ export function MyInfoOpeningHoursPage() {
       setIs24x7(Boolean(profile?.is_24x7));
       setNotes(profile?.notes || '');
       setSyncedAt(profile?.synced_at || null);
-      setDaySchedules(
-        buildScheduleFromSlots(
-          slots || [],
-          Boolean(profile?.is_24x7),
-        ),
+      const nextSchedules = buildScheduleFromSlots(
+        slots || [],
+        Boolean(profile?.is_24x7),
       );
+      setDaySchedules(nextSchedules);
+      setPersistedDaySchedules(nextSchedules);
     },
     [timezone, timezoneOptions],
   );
@@ -1226,7 +1312,9 @@ export function MyInfoOpeningHoursPage() {
       setIs24x7(false);
       setNotes('');
       setSyncedAt(null);
-      setDaySchedules(buildDefaultDaySchedule());
+      const defaults = buildDefaultDaySchedule();
+      setDaySchedules(defaults);
+      setPersistedDaySchedules(defaults);
       return;
     }
 
@@ -1372,12 +1460,44 @@ export function MyInfoOpeningHoursPage() {
     );
   };
 
-  const handleSaveManual = async () => {
+  const buildScheduleForSingleDaySave = useCallback(
+    (targetDayOfWeek: number) => {
+      const currentByDay = new Map(daySchedules.map((day) => [day.dayOfWeek, day]));
+      const persistedByDay = new Map(
+        persistedDaySchedules.map((day) => [day.dayOfWeek, day]),
+      );
+
+      return OPENING_HOURS_DAYS.map((day) => {
+        const fallbackDay = {
+          dayOfWeek: day.dayOfWeek,
+          label: day.label,
+          closed: true,
+          slots: [
+            {
+              id: createScheduleSlotId(day.dayOfWeek),
+              openTime: '09:00',
+              closeTime: '17:00',
+            },
+          ],
+        } satisfies DayScheduleState;
+
+        if (day.dayOfWeek === targetDayOfWeek) {
+          return currentByDay.get(day.dayOfWeek) || persistedByDay.get(day.dayOfWeek) || fallbackDay;
+        }
+
+        return persistedByDay.get(day.dayOfWeek) || currentByDay.get(day.dayOfWeek) || fallbackDay;
+      });
+    },
+    [daySchedules, persistedDaySchedules],
+  );
+
+  const handleSaveManualDay = async (dayOfWeek: number) => {
     if (!restaurant?.id) {
       return;
     }
 
-    const validationMessage = validateScheduleForSubmit(daySchedules, is24x7);
+    const scheduleForSave = buildScheduleForSingleDaySave(dayOfWeek);
+    const validationMessage = validateScheduleForSubmit(scheduleForSave, is24x7);
     if (validationMessage) {
       setNotice({
         tone: 'error',
@@ -1387,6 +1507,7 @@ export function MyInfoOpeningHoursPage() {
     }
 
     setIsSaving(true);
+    setSavingDayOfWeek(dayOfWeek);
     setNotice(null);
 
     try {
@@ -1402,7 +1523,7 @@ export function MyInfoOpeningHoursPage() {
             timezone,
             is_24x7: is24x7,
             notes: notes.trim() || null,
-            slots: scheduleToApiSlots(daySchedules, is24x7),
+            slots: scheduleToApiSlots(scheduleForSave, is24x7),
           }),
         },
       );
@@ -1415,7 +1536,7 @@ export function MyInfoOpeningHoursPage() {
       applyOpeningHoursState(payload.data.profile, payload.data.slots);
       setNotice({
         tone: 'success',
-        message: payload.message || 'Opening hours saved.',
+        message: payload.message || `${getDayLabel(dayOfWeek)} hours saved.`,
       });
     } catch (caughtError) {
       const message =
@@ -1428,6 +1549,7 @@ export function MyInfoOpeningHoursPage() {
       });
     } finally {
       setIsSaving(false);
+      setSavingDayOfWeek(null);
     }
   };
 
@@ -1555,16 +1677,6 @@ export function MyInfoOpeningHoursPage() {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => void handleSaveManual()}
-              disabled={isSaving || isSyncing}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#6f4cf6] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5e3de1] disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSaving ? <PurpleDotSpinner size="inline" /> : null}
-              {isSaving ? 'Saving...' : 'Save manual hours'}
-            </button>
-
-            <button
-              type="button"
               onClick={() => void handleGoogleSync()}
               disabled={!hasGooglePlaceId || isSaving || isSyncing}
               className="inline-flex items-center gap-2 rounded-xl border border-[#9eb7ff] px-5 py-2.5 text-sm font-semibold text-[#3f51b5] transition hover:bg-[#eef3ff] disabled:cursor-not-allowed disabled:opacity-60"
@@ -1644,16 +1756,34 @@ export function MyInfoOpeningHoursPage() {
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-base font-semibold text-[#111827]">{day.label}</h3>
-                <label className="inline-flex items-center gap-2 text-sm font-medium text-[#4b5563]">
-                  <input
-                    type="checkbox"
-                    checked={day.closed}
-                    disabled={is24x7}
-                    onChange={(event) => setDayClosed(day.dayOfWeek, event.target.checked)}
-                    className="h-4 w-4 accent-[#6f4cf6]"
-                  />
-                  Closed
-                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveManualDay(day.dayOfWeek)}
+                    disabled={
+                      is24x7 ||
+                      isSaving ||
+                      isSyncing ||
+                      !dirtyDayOfWeeks.has(day.dayOfWeek)
+                    }
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#6f4cf6] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#5e3de1] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSaving && savingDayOfWeek === day.dayOfWeek ? (
+                      <PurpleDotSpinner size="inline" />
+                    ) : null}
+                    {isSaving && savingDayOfWeek === day.dayOfWeek ? 'Saving...' : 'Save'}
+                  </button>
+                  <label className="inline-flex items-center gap-2 text-sm font-medium text-[#4b5563]">
+                    <input
+                      type="checkbox"
+                      checked={day.closed}
+                      disabled={is24x7}
+                      onChange={(event) => setDayClosed(day.dayOfWeek, event.target.checked)}
+                      className="h-4 w-4 accent-[#6f4cf6]"
+                    />
+                    Closed
+                  </label>
+                </div>
               </div>
 
               {!day.closed ? (
@@ -1729,6 +1859,46 @@ export function MyInfoOpeningHoursPage() {
       </section>
     </MyInfoWorkspaceShell>
   );
+}
+
+function normalizeDaySlotsForDirtyCompare(day: DayScheduleState) {
+  if (day.closed) {
+    return [] as Array<{ openTime: string; closeTime: string }>;
+  }
+
+  return day.slots
+    .map((slot) => ({
+      openTime: slot.openTime,
+      closeTime: slot.closeTime,
+    }))
+    .sort((left, right) => {
+      const openDiff = toMinutes(left.openTime) - toMinutes(right.openTime);
+      if (openDiff !== 0) {
+        return openDiff;
+      }
+      return toMinutes(left.closeTime) - toMinutes(right.closeTime);
+    });
+}
+
+function areDaySchedulesEquivalent(left: DayScheduleState, right: DayScheduleState) {
+  if (left.closed !== right.closed) {
+    return false;
+  }
+
+  const leftSlots = normalizeDaySlotsForDirtyCompare(left);
+  const rightSlots = normalizeDaySlotsForDirtyCompare(right);
+  if (leftSlots.length !== rightSlots.length) {
+    return false;
+  }
+
+  return leftSlots.every((slot, index) => {
+    const rightSlot = rightSlots[index];
+    return (
+      rightSlot != null &&
+      slot.openTime === rightSlot.openTime &&
+      slot.closeTime === rightSlot.closeTime
+    );
+  });
 }
 
 function getBrowserTimezone() {
@@ -2252,6 +2422,29 @@ export function MyInfoGoogleProfilePage() {
   );
   const [googlePlaceId, setGooglePlaceId] = useState('');
   const [googleBusinessLink, setGoogleBusinessLink] = useState('');
+  const [profileDetails, setProfileDetails] = useState<GoogleProfileDetailsRecord | null>(
+    null,
+  );
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  const fetchWithAuth = useCallback(
+    async (input: RequestInfo | URL, init: RequestInit = {}) => {
+      const accessToken = await nhost.auth.getAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session has expired. Please login again.');
+      }
+
+      const headers = new Headers(init.headers);
+      headers.set('Authorization', `Bearer ${accessToken}`);
+
+      return fetch(input, {
+        ...init,
+        headers,
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!draft) {
@@ -2261,6 +2454,63 @@ export function MyInfoGoogleProfilePage() {
     setGooglePlaceId(draft.googlePlaceId);
     setGoogleBusinessLink(draft.gmbLink);
   }, [draft]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadGoogleProfileDetails = async () => {
+      if (!restaurant?.id || !googlePlaceId.trim()) {
+        setProfileDetails(null);
+        setProfileError(null);
+        setIsProfileLoading(false);
+        return;
+      }
+
+      setIsProfileLoading(true);
+      setProfileError(null);
+
+      try {
+        const response = await fetchWithAuth(
+          `/api/restaurants/${encodeURIComponent(restaurant.id)}/google-profile`,
+          {
+            cache: 'no-store',
+          },
+        );
+        const payload = (await response.json()) as GoogleProfileDetailsApiResponse;
+
+        if (!response.ok || !payload.success || !payload.data) {
+          throw new Error(payload.error || 'Failed to load Google profile details.');
+        }
+
+        if (!isActive) {
+          return;
+        }
+
+        setProfileDetails(payload.data);
+      } catch (caughtError) {
+        if (!isActive) {
+          return;
+        }
+
+        const message =
+          caughtError instanceof Error
+            ? caughtError.message
+            : 'Failed to load Google profile details.';
+        setProfileDetails(null);
+        setProfileError(message);
+      } finally {
+        if (isActive) {
+          setIsProfileLoading(false);
+        }
+      }
+    };
+
+    void loadGoogleProfileDetails();
+
+    return () => {
+      isActive = false;
+    };
+  }, [fetchWithAuth, googlePlaceId, restaurant?.id]);
 
   if (!restaurant) {
     return (
@@ -2290,29 +2540,296 @@ export function MyInfoGoogleProfilePage() {
     );
   }
 
+  const hasConnectedProfile = Boolean(googlePlaceId.trim());
+  const mapsUrl =
+    profileDetails?.maps_url ||
+    googleBusinessLink ||
+    buildGoogleMapsPlaceUrlFromPlaceId(googlePlaceId) ||
+    null;
+  const resolvedName = profileDetails?.name || draft.name || 'Google listing';
+  const resolvedAddress =
+    profileDetails?.formatted_address ||
+    buildAddressSummaryFromDraft(draft) ||
+    'Address unavailable';
+  const roundedRating =
+    typeof profileDetails?.rating === 'number'
+      ? Math.max(0, Math.min(5, Math.round(profileDetails.rating * 10) / 10))
+      : null;
+  const ratingCount =
+    typeof profileDetails?.user_rating_count === 'number'
+      ? profileDetails.user_rating_count
+      : null;
+  const statusLabel = formatGoogleBusinessStatus(profileDetails?.business_status);
+  const openNowLabel = formatOpenNowLabel(profileDetails?.open_now);
+  const reviewsUrl = buildGoogleReviewsUrlFromPlaceId(
+    profileDetails?.place_id || googlePlaceId,
+  );
+
   return (
     <MyInfoWorkspaceShell activeTab="google-profile">
       <Header
         title="Google profile"
-        subtitle="Google place details for this restaurant (read-only)."
+        subtitle="Connected Google listing details with rating snapshot (read-only)."
         restaurantName={restaurant.name}
       />
 
-      <div className="space-y-4 rounded-3xl border border-[#d7e2e6] bg-white p-8">
-        <FormField
-          label="Google Place ID"
-          value={googlePlaceId}
-          onChange={setGooglePlaceId}
-          readOnly
-        />
-        <FormField
-          label="Google Business Link"
-          value={googleBusinessLink}
-          onChange={setGoogleBusinessLink}
-          readOnly
-        />
-      </div>
+      <section className="space-y-4 rounded-3xl border border-[#d7e2e6] bg-white p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-2xl font-semibold text-[#111827]">Connected profile</h2>
+            <p className="text-sm text-[#5f6c78]">
+              Google Place live details for this restaurant profile.
+            </p>
+          </div>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
+              hasConnectedProfile
+                ? 'bg-[#e8f7ef] text-[#177245]'
+                : 'bg-[#fde8e8] text-[#a72b2b]'
+            }`}
+          >
+            {hasConnectedProfile ? 'Connected' : 'Not connected'}
+          </span>
+        </div>
+
+        {!hasConnectedProfile ? (
+          <div className="rounded-2xl border border-dashed border-[#d9e3ec] bg-[#f8fafc] p-4 text-sm text-[#5f6c78]">
+            Add a Google Place ID in restaurant data to load live Google profile details.
+          </div>
+        ) : null}
+
+        {isProfileLoading ? (
+          <div className="flex items-center gap-3 rounded-2xl border border-[#dbe6ef] bg-[#f7fbff] p-4 text-[#5f6c78]">
+            <PurpleDotSpinner size="sm" />
+            <span>Loading connected Google profile...</span>
+          </div>
+        ) : null}
+
+        {profileError ? (
+          <div className="rounded-2xl border border-[#f0d5d5] bg-[#fff6f6] p-4 text-sm text-[#a72b2b]">
+            {profileError}
+          </div>
+        ) : null}
+
+        <article className="rounded-2xl border border-[#d9e3ec] bg-gradient-to-br from-white via-[#f9fbff] to-[#eef4ff] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-2xl font-semibold text-[#101827]">{resolvedName}</h3>
+                {mapsUrl ? (
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#c8d8ea] bg-white text-[#3158be] transition hover:bg-[#eef3ff]"
+                    aria-label="Open in Google Maps"
+                    title="Open in Google Maps"
+                  >
+                    <ExternalLinkIcon />
+                  </a>
+                ) : null}
+              </div>
+              <p className="flex items-center gap-2 text-sm text-[#435363]">
+                <MapPinCardIcon />
+                <span>{resolvedAddress}</span>
+              </p>
+            </div>
+
+            {openNowLabel ? (
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  profileDetails?.open_now ? 'bg-[#e8f7ef] text-[#177245]' : 'bg-[#f3f4f6] text-[#4b5563]'
+                }`}
+              >
+                {openNowLabel}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+            {roundedRating != null ? (
+              <>
+                <span className="text-xl font-semibold text-[#111827]">
+                  {roundedRating.toFixed(1)}
+                </span>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: 5 }, (_, index) => (
+                    <StarIcon key={index} filled={index < Math.round(roundedRating)} />
+                  ))}
+                </div>
+                <span className="flex items-center gap-1 text-[#4b5563]">
+                  {reviewsUrl ? (
+                    <a
+                      href={reviewsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[#3158be] transition hover:bg-[#edf3ff]"
+                      title="Open Google reviews"
+                      aria-label="Open Google reviews"
+                    >
+                      <ReviewCountIcon />
+                    </a>
+                  ) : (
+                    <ReviewCountIcon />
+                  )}
+                  <span>({ratingCount != null ? ratingCount.toLocaleString() : '0'})</span>
+                </span>
+              </>
+            ) : (
+              <span className="text-[#5f6c78]">Rating not available from Google.</span>
+            )}
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <GoogleInfoPill
+              icon={<PhoneCardIcon />}
+              label={profileDetails?.phone_number || 'Phone not available'}
+            />
+            <GoogleInfoPill
+              icon={<GlobeCardIcon />}
+              label={profileDetails?.website_url || 'Website not available'}
+              href={profileDetails?.website_url || undefined}
+            />
+            <GoogleInfoPill
+              icon={<StatusCardIcon />}
+              label={statusLabel || 'Status unavailable'}
+            />
+            <GoogleInfoPill
+              icon={<CategoryCardIcon />}
+              label={profileDetails?.primary_type || 'Category unavailable'}
+            />
+            <GoogleInfoPill
+              icon={<CoordinatesCardIcon />}
+              label={
+                profileDetails?.latitude != null && profileDetails?.longitude != null
+                  ? `${profileDetails.latitude.toFixed(4)}, ${profileDetails.longitude.toFixed(
+                      4,
+                    )}`
+                  : 'Coordinates unavailable'
+              }
+            />
+          </div>
+
+          {Array.isArray(profileDetails?.weekday_descriptions) &&
+          profileDetails.weekday_descriptions.length > 0 ? (
+            <div className="mt-4 rounded-xl border border-[#d7e3ee] bg-white p-4">
+              <h4 className="mb-2 text-sm font-semibold text-[#111827]">Hours snapshot</h4>
+              <div className="space-y-1 text-sm text-[#4b5563]">
+                {profileDetails.weekday_descriptions.map((entry) => (
+                  <p key={entry}>{entry}</p>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </article>
+      </section>
+
+      <section className="space-y-4 rounded-3xl border border-[#d7e2e6] bg-white p-6">
+        <h2 className="text-xl font-semibold text-[#111827]">Reference fields</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField
+            label="Google Place ID"
+            value={googlePlaceId}
+            onChange={setGooglePlaceId}
+            readOnly
+          />
+          <FormField
+            label="Google Business Link"
+            value={googleBusinessLink}
+            onChange={setGoogleBusinessLink}
+            readOnly
+          />
+        </div>
+      </section>
     </MyInfoWorkspaceShell>
+  );
+}
+
+function buildGoogleMapsPlaceUrlFromPlaceId(placeId: string) {
+  const normalized = placeId.trim();
+  if (!normalized) {
+    return null;
+  }
+  return `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(normalized)}`;
+}
+
+function buildGoogleReviewsUrlFromPlaceId(placeId: string | null | undefined) {
+  const normalized = typeof placeId === 'string' ? placeId.trim() : '';
+  if (!normalized) {
+    return null;
+  }
+
+  return `https://search.google.com/local/reviews?placeid=${encodeURIComponent(normalized)}`;
+}
+
+function buildAddressSummaryFromDraft(draft: RestaurantDraftItem) {
+  const parts = [draft.address, draft.city, draft.state, draft.postalCode, draft.country]
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  return parts.length ? parts.join(', ') : null;
+}
+
+function formatGoogleBusinessStatus(value: string | null | undefined) {
+  const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized === 'OPERATIONAL') {
+    return 'Open for business';
+  }
+  if (normalized === 'CLOSED_TEMPORARILY') {
+    return 'Temporarily closed';
+  }
+  if (normalized === 'CLOSED_PERMANENTLY') {
+    return 'Permanently closed';
+  }
+
+  return normalized
+    .split('_')
+    .map((segment) => segment.charAt(0) + segment.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function formatOpenNowLabel(value: boolean | null | undefined) {
+  if (value === true) {
+    return 'Open now';
+  }
+  if (value === false) {
+    return 'Closed now';
+  }
+  return null;
+}
+
+function GoogleInfoPill({
+  icon,
+  label,
+  href,
+}: {
+  icon: ReactNode;
+  label: string;
+  href?: string;
+}) {
+  return (
+    <div className="flex min-h-10 items-center gap-2 rounded-lg border border-[#d6e2ee] bg-white px-3 py-2 text-sm text-[#3f4d5c]">
+      <span className="text-[#3e5cb9]">{icon}</span>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="truncate text-[#2d4fb3] underline-offset-2 hover:underline"
+          title={label}
+        >
+          {label}
+        </a>
+      ) : (
+        <span className="truncate" title={label}>
+          {label}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -3059,12 +3576,22 @@ function buildSocialLinksUpdatePayload({
   xLink,
   tiktokLink,
   youtubeLink,
+  googleBusinessLink,
+  yelpLink,
+  ubereatsLink,
+  grubhubLink,
+  doordashLink,
 }: {
   facebookLink: string;
   instagramLink: string;
   xLink: string;
   tiktokLink: string;
   youtubeLink: string;
+  googleBusinessLink: string;
+  yelpLink: string;
+  ubereatsLink: string;
+  grubhubLink: string;
+  doordashLink: string;
 }) {
   const payload: Record<string, string> = {};
   const facebook = facebookLink.trim();
@@ -3072,12 +3599,19 @@ function buildSocialLinksUpdatePayload({
   const x = xLink.trim();
   const tiktok = tiktokLink.trim();
   const youtube = youtubeLink.trim();
+  const gmb = googleBusinessLink.trim();
+  const yelp = yelpLink.trim();
+  const ubereats = ubereatsLink.trim();
+  const grubhub = grubhubLink.trim();
+  const doordash = doordashLink.trim();
 
   if (facebook) {
+    payload.fb_link = facebook;
     payload.facebook_link = facebook;
     payload.facebook_url = facebook;
   }
   if (instagram) {
+    payload.insta_link = instagram;
     payload.instagram_link = instagram;
     payload.instagram_url = instagram;
   }
@@ -3092,8 +3626,25 @@ function buildSocialLinksUpdatePayload({
     payload.tiktok_url = tiktok;
   }
   if (youtube) {
+    payload.yt_link = youtube;
     payload.youtube_link = youtube;
     payload.youtube_url = youtube;
+  }
+  if (gmb) {
+    payload.gmb_link = gmb;
+    payload.google_business_link = gmb;
+  }
+  if (yelp) {
+    payload.yelp_link = yelp;
+  }
+  if (ubereats) {
+    payload.ubereats_link = ubereats;
+  }
+  if (grubhub) {
+    payload.grubhub_link = grubhub;
+  }
+  if (doordash) {
+    payload.doordash_link = doordash;
   }
 
   return payload;
@@ -3134,6 +3685,166 @@ function SearchIcon() {
     >
       <circle cx="9" cy="9" r="6" />
       <path d="m14 14 4 4" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M14 5h5v5" />
+      <path d="M10 14 19 5" />
+      <path d="M19 13v6H5V5h6" />
+    </svg>
+  );
+}
+
+function StarIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={filled ? 'h-4 w-4 text-[#f5b800]' : 'h-4 w-4 text-[#d3d9df]'}
+      viewBox="0 0 20 20"
+      fill="currentColor"
+    >
+      <path d="m10 1.7 2.24 4.54 5.01.73-3.63 3.54.86 4.99L10 13.13 5.52 15.5l.86-4.99L2.75 6.97l5-.73L10 1.7Z" />
+    </svg>
+  );
+}
+
+function MapPinCardIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0Z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+function PhoneCardIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 3.1 5.2 2 2 0 0 1 5 3h3a2 2 0 0 1 2 1.7c.12.9.35 1.77.68 2.6a2 2 0 0 1-.45 2.11L9 10.62a16 16 0 0 0 4.4 4.4l1.24-1.24a2 2 0 0 1 2.1-.45c.84.33 1.72.56 2.6.68A2 2 0 0 1 22 16.9Z" />
+    </svg>
+  );
+}
+
+function GlobeCardIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2a15 15 0 0 1 0 20" />
+      <path d="M12 2a15 15 0 0 0 0 20" />
+    </svg>
+  );
+}
+
+function StatusCardIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8 12h8" />
+    </svg>
+  );
+}
+
+function CategoryCardIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 7a2 2 0 0 1 2-2h6l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+    </svg>
+  );
+}
+
+function CoordinatesCardIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 2v20" />
+      <path d="M2 12h20" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function ReviewCountIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z" />
+      <path d="M8 10h8" />
+      <path d="M8 14h5" />
     </svg>
   );
 }

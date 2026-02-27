@@ -48,6 +48,15 @@ export interface RestaurantDraftItem {
   pocEmail: string;
   googlePlaceId: string;
   gmbLink: string;
+  facebookLink: string;
+  instagramLink: string;
+  xLink: string;
+  tiktokLink: string;
+  youtubeLink: string;
+  yelpLink: string;
+  ubereatsLink: string;
+  grubhubLink: string;
+  doordashLink: string;
   isDeleted: boolean | null;
 }
 
@@ -314,6 +323,14 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           poc_email
           google_place_id
           gmb_link
+          fb_link
+          insta_link
+          yt_link
+          tiktok_link
+          yelp_link
+          ubereats_link
+          grubhub_link
+          doordash_link
           is_deleted
         }
       }
@@ -639,6 +656,21 @@ function normalizeText(value: unknown, fallback: string) {
   return fallback;
 }
 
+function normalizeTextFromFieldCandidates(
+  row: Record<string, unknown>,
+  candidates: string[],
+  fallback = "",
+) {
+  for (const candidate of candidates) {
+    const value = row[candidate];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return fallback;
+}
+
 function normalizeNullableText(value: unknown) {
   if (typeof value === "string" && value.trim()) {
     return value.trim();
@@ -764,6 +796,35 @@ function parseRestaurantDraft(rows: Array<Record<string, unknown>>, idField: str
     pocEmail: normalizeText(firstRow.poc_email, ""),
     googlePlaceId: normalizeText(firstRow.google_place_id, ""),
     gmbLink: normalizeText(firstRow.gmb_link, ""),
+    facebookLink: normalizeTextFromFieldCandidates(firstRow, [
+      "fb_link",
+      "facebook_link",
+      "facebook_url",
+    ]),
+    instagramLink: normalizeTextFromFieldCandidates(firstRow, [
+      "insta_link",
+      "instagram_link",
+      "instagram_url",
+    ]),
+    xLink: normalizeTextFromFieldCandidates(firstRow, [
+      "x_link",
+      "x_url",
+      "twitter_link",
+      "twitter_url",
+    ]),
+    tiktokLink: normalizeTextFromFieldCandidates(firstRow, [
+      "tiktok_link",
+      "tiktok_url",
+    ]),
+    youtubeLink: normalizeTextFromFieldCandidates(firstRow, [
+      "yt_link",
+      "youtube_link",
+      "youtube_url",
+    ]),
+    yelpLink: normalizeText(firstRow.yelp_link, ""),
+    ubereatsLink: normalizeText(firstRow.ubereats_link, ""),
+    grubhubLink: normalizeText(firstRow.grubhub_link, ""),
+    doordashLink: normalizeText(firstRow.doordash_link, ""),
     isDeleted: typeof firstRow.is_deleted === "boolean" ? firstRow.is_deleted : null,
   } satisfies RestaurantDraftItem;
 }
@@ -1293,7 +1354,7 @@ interface PagesQueryResponse {
     is_system_page: boolean;
     show_on_navbar: boolean;
     show_on_footer: boolean;
-    keywords?: Record<string, any> | null;
+    keywords?: Record<string, unknown> | null;
     og_image?: string | null;
     published: boolean;
   }>;
@@ -1313,7 +1374,7 @@ interface PageByIdQueryResponse {
     is_system_page: boolean;
     show_on_navbar: boolean;
     show_on_footer: boolean;
-    keywords?: Record<string, any> | null;
+    keywords?: Record<string, unknown> | null;
     og_image?: string | null;
     published: boolean;
   } | null;
@@ -1333,7 +1394,7 @@ interface PageBySlugQueryResponse {
     is_system_page: boolean;
     show_on_navbar: boolean;
     show_on_footer: boolean;
-    keywords?: Record<string, any> | null;
+    keywords?: Record<string, unknown> | null;
     og_image?: string | null;
     published: boolean;
   }>;
@@ -1353,7 +1414,7 @@ interface InsertPageResponse {
     is_system_page: boolean;
     show_on_navbar: boolean;
     show_on_footer: boolean;
-    keywords?: Record<string, any> | null;
+    keywords?: Record<string, unknown> | null;
     og_image?: string | null;
     published: boolean;
   } | null;

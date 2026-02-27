@@ -56,10 +56,14 @@ interface UpdateOpeningHoursByPkResponse {
   update_opening_hours_by_pk?: OpeningHoursProfileRow | null;
 }
 
-interface SoftDeleteOpeningHourSlotsResponse {
+interface SoftDeleteOpeningHourSlotsByIdsResponse {
   update_opening_hour_slots?: {
     affected_rows?: number | null;
   } | null;
+}
+
+interface UpdateOpeningHourSlotByPkResponse {
+  update_opening_hour_slots_by_pk?: OpeningHourSlotRow | null;
 }
 
 type GooglePlacePeriodPoint = {
@@ -187,14 +191,14 @@ const UPDATE_OPENING_HOURS_BY_PK = `
   }
 `;
 
-const SOFT_DELETE_OPENING_HOUR_SLOTS = `
-  mutation SoftDeleteOpeningHourSlots(
-    $opening_hour_id: uuid!
+const SOFT_DELETE_OPENING_HOUR_SLOTS_BY_IDS = `
+  mutation SoftDeleteOpeningHourSlotsByIds(
+    $opening_hour_slot_ids: [uuid!]!
     $updated_at: timestamptz!
   ) {
     update_opening_hour_slots(
       where: {
-        opening_hour_id: { _eq: $opening_hour_id }
+        opening_hour_slot_id: { _in: $opening_hour_slot_ids }
         is_deleted: { _eq: false }
       }
       _set: { is_deleted: true, updated_at: $updated_at }
@@ -208,6 +212,20 @@ const INSERT_OPENING_HOUR_SLOTS = `
   mutation InsertOpeningHourSlots($objects: [opening_hour_slots_insert_input!]!) {
     insert_opening_hour_slots(objects: $objects) {
       affected_rows
+    }
+  }
+`;
+
+const UPDATE_OPENING_HOUR_SLOT_BY_PK = `
+  mutation UpdateOpeningHourSlotByPk(
+    $opening_hour_slot_id: uuid!
+    $changes: opening_hour_slots_set_input!
+  ) {
+    update_opening_hour_slots_by_pk(
+      pk_columns: { opening_hour_slot_id: $opening_hour_slot_id }
+      _set: $changes
+    ) {
+      opening_hour_slot_id
     }
   }
 `;
@@ -417,6 +435,159 @@ async function loadOpeningHourSlots(openingHourId: string) {
   return Array.isArray(data.opening_hour_slots) ? data.opening_hour_slots : [];
 }
 
+type ComparableOpeningHourSlot = {
+  opening_hour_slot_id: string;
+  day_of_week: number;
+  slot_order: number;
+  is_closed: boolean;
+  open_time: string | null;
+  close_time: string | null;
+};
+
+function buildSlotDiffKey(dayOfWeek: number, slotOrder: number) {
+  return `${dayOfWeek}:${slotOrder}`;
+}
+
+function areSlotValuesEqualForDiff(
+  existing: ComparableOpeningHourSlot,
+  next: CanonicalOpeningHourSlot,
+) {
+  return (
+    existing.is_closed === next.is_closed &&
+    existing.open_time === next.open_time &&
+    existing.close_time === next.close_time
+  );
+}
+
+function normalizeSlotForDiff(row: OpeningHourSlotRow): ComparableOpeningHourSlot | null {
+  const openingHourSlotId = normalizeString(row.opening_hour_slot_id);
+  const dayOfWeek = normalizeDayOfWeek(row.day_of_week);
+  const slotOrder = normalizePositiveInt(row.slot_order);
+
+  if (!openingHourSlotId || !dayOfWeek || !slotOrder) {
+    return null;
+  }
+
+  return {
+    opening_hour_slot_id: openingHourSlotId,
+    day_of_week: dayOfWeek,
+    slot_order: slotOrder,
+    is_closed: Boolean(row.is_closed),
+    open_time: normalizeNullableTimeValue(row.open_time),
+    close_time: normalizeNullableTimeValue(row.close_time),
+  };
+}
+
+async function syncOpeningHourSlotsWithDiff({
+  openingHourId,
+  desiredSlots,
+  nowIso,
+}: {
+  openingHourId: string;
+  desiredSlots: CanonicalOpeningHourSlot[];
+  nowIso: string;
+}) {
+  const existingRows = await loadOpeningHourSlots(openingHourId);
+  const existingSlots = existingRows
+    .map(normalizeSlotForDiff)
+    .filter((slot): slot is ComparableOpeningHourSlot => Boolean(slot));
+
+  const seenDesiredKeys = new Set<string>();
+  for (const slot of desiredSlots) {
+    const key = buildSlotDiffKey(slot.day_of_week, slot.slot_order);
+    if (seenDesiredKeys.has(key)) {
+      throw new Error(
+        `Duplicate slot key found for day ${slot.day_of_week}, order ${slot.slot_order}.`,
+      );
+    }
+    seenDesiredKeys.add(key);
+  }
+
+  const existingByKey = new Map<string, ComparableOpeningHourSlot>();
+  existingSlots.forEach((slot) => {
+    const key = buildSlotDiffKey(slot.day_of_week, slot.slot_order);
+    if (!existingByKey.has(key)) {
+      existingByKey.set(key, slot);
+    }
+  });
+
+  const matchedExistingIds = new Set<string>();
+  const toInsert: CanonicalOpeningHourSlot[] = [];
+  const toUpdate: Array<{
+    opening_hour_slot_id: string;
+    slot: CanonicalOpeningHourSlot;
+  }> = [];
+
+  desiredSlots.forEach((slot) => {
+    const key = buildSlotDiffKey(slot.day_of_week, slot.slot_order);
+    const existing = existingByKey.get(key);
+    if (!existing) {
+      toInsert.push(slot);
+      return;
+    }
+
+    matchedExistingIds.add(existing.opening_hour_slot_id);
+    if (!areSlotValuesEqualForDiff(existing, slot)) {
+      toUpdate.push({
+        opening_hour_slot_id: existing.opening_hour_slot_id,
+        slot,
+      });
+    }
+  });
+
+  const toSoftDeleteIds = existingSlots
+    .filter((slot) => !matchedExistingIds.has(slot.opening_hour_slot_id))
+    .map((slot) => slot.opening_hour_slot_id);
+
+  if (toUpdate.length > 0) {
+    await Promise.all(
+      toUpdate.map(({ opening_hour_slot_id, slot }) =>
+        adminGraphqlRequest<UpdateOpeningHourSlotByPkResponse>(
+          UPDATE_OPENING_HOUR_SLOT_BY_PK,
+          {
+            opening_hour_slot_id,
+            changes: {
+              day_of_week: slot.day_of_week,
+              slot_order: slot.slot_order,
+              is_closed: slot.is_closed,
+              open_time: slot.open_time,
+              close_time: slot.close_time,
+              is_deleted: false,
+              updated_at: nowIso,
+            },
+          },
+        ),
+      ),
+    );
+  }
+
+  if (toInsert.length > 0) {
+    await adminGraphqlRequest<InsertOpeningHourSlotsResponse>(INSERT_OPENING_HOUR_SLOTS, {
+      objects: toInsert.map((slot) => ({
+        opening_hour_id: openingHourId,
+        day_of_week: slot.day_of_week,
+        slot_order: slot.slot_order,
+        is_closed: slot.is_closed,
+        open_time: slot.open_time,
+        close_time: slot.close_time,
+        is_deleted: false,
+        created_at: nowIso,
+        updated_at: nowIso,
+      })),
+    });
+  }
+
+  if (toSoftDeleteIds.length > 0) {
+    await adminGraphqlRequest<SoftDeleteOpeningHourSlotsByIdsResponse>(
+      SOFT_DELETE_OPENING_HOUR_SLOTS_BY_IDS,
+      {
+        opening_hour_slot_ids: toSoftDeleteIds,
+        updated_at: nowIso,
+      },
+    );
+  }
+}
+
 async function persistOpeningHoursProfile({
   restaurantId,
   source,
@@ -488,29 +659,11 @@ async function persistOpeningHoursProfile({
     throw new Error('Failed to persist opening hours profile.');
   }
 
-  await adminGraphqlRequest<SoftDeleteOpeningHourSlotsResponse>(
-    SOFT_DELETE_OPENING_HOUR_SLOTS,
-    {
-      opening_hour_id: openingHourId,
-      updated_at: nowIso,
-    },
-  );
-
-  if (!is24x7 && slots.length > 0) {
-    await adminGraphqlRequest<InsertOpeningHourSlotsResponse>(INSERT_OPENING_HOUR_SLOTS, {
-      objects: slots.map((slot) => ({
-        opening_hour_id: openingHourId,
-        day_of_week: slot.day_of_week,
-        slot_order: slot.slot_order,
-        is_closed: slot.is_closed,
-        open_time: slot.open_time,
-        close_time: slot.close_time,
-        is_deleted: false,
-        created_at: nowIso,
-        updated_at: nowIso,
-      })),
-    });
-  }
+  await syncOpeningHourSlotsWithDiff({
+    openingHourId,
+    desiredSlots: is24x7 ? [] : slots,
+    nowIso,
+  });
 
   const insertedSlots = is24x7 ? [] : await loadOpeningHourSlots(openingHourId);
 

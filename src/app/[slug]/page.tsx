@@ -140,6 +140,45 @@ export default function DynamicPage() {
     );
   }
 
+  // Get templates and sort by order_index
+  const templates = pageData?.data?.templates || {};
+  const sortedTemplates = Object.entries(templates)
+    .map(([category, template]: [string, any]) => ({
+      category,
+      ...template
+    }))
+    .sort((a, b) => (a.order_index ?? 999) - (b.order_index ?? 999));
+
+  // Render component based on category
+  const renderSection = (category: string) => {
+    const pageId = pageData?.data?.page?.page_id;
+
+    switch (category.toLowerCase()) {
+      case 'hero':
+        return <DynamicHero key={category} restaurantId={restaurantId} showLoading={true} />;
+      case 'customcode':
+        return <DynamicCustomCode key={category} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+      case 'scrollingtext':
+        return <DynamicScrollingText key={category} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+      case 'timeline':
+        return <DynamicTimeline key={category} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+      case 'faq':
+        return <DynamicFAQ key={category} restaurantId={restaurantId} showLoading={true} />;
+      case 'gallery':
+        return <DynamicGallery key={category} restaurantId={restaurantId} showLoading={true} />;
+      case 'youtube':
+        return <YouTubeSection key={category} restaurantId={restaurantId} />;
+      case 'location':
+        return <DynamicLocation key={category} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+      case 'reviews':
+        return <DynamicReviews key={category} restaurantId={restaurantId} showLoading={true} />;
+      case 'form':
+        return <DynamicForm key={category} restaurantId={restaurantId} pageId={pageId} showLoading={true} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       {/* Navbar is automatically rendered by ConditionalNavbar in root layout */}
@@ -147,67 +186,8 @@ export default function DynamicPage() {
       {/* Universal Popup */}
       <Popup restaurantId={restaurantId} />
 
-      {/* Dynamic Hero Section */}
-      <DynamicHero
-        restaurantId={restaurantId}
-        showLoading={true}
-      />
-
-      {/* Dynamic Custom Code Section */}
-      <DynamicCustomCode
-        restaurantId={restaurantId}
-        pageId={pageData?.data?.page?.page_id}
-        showLoading={true}
-      />
-
-      {/* Dynamic Scrolling Text Section */}
-      <DynamicScrollingText
-        restaurantId={restaurantId}
-        pageId={pageData?.data?.page?.page_id}
-        showLoading={true}
-      />
-
-      {/* Dynamic Timeline Section */}
-      <DynamicTimeline
-        restaurantId={restaurantId}
-        pageId={pageData?.data?.page?.page_id}
-        showLoading={true}
-      />
-
-      {/* Dynamic FAQ Section */}
-      <DynamicFAQ
-        restaurantId={restaurantId}
-        showLoading={true}
-      />
-
-      {/* Dynamic Gallery Section */}
-      <DynamicGallery
-        restaurantId={restaurantId}
-        showLoading={true}
-      />
-
-      {/* YouTube Section */}
-      <YouTubeSection restaurantId={restaurantId} />
-
-      {/* Dynamic Location Section */}
-      <DynamicLocation
-        restaurantId={restaurantId}
-        pageId={pageData?.data?.page?.page_id}
-        showLoading={true}
-      />
-
-      {/* Dynamic Reviews Section */}
-      <DynamicReviews
-        restaurantId={restaurantId}
-        showLoading={true}
-      />
-
-      {/* Dynamic Form Section */}
-      <DynamicForm
-        restaurantId={restaurantId}
-        pageId={pageData?.data?.page?.page_id}
-        showLoading={true}
-      />
+      {/* Render sections in order based on order_index */}
+      {sortedTemplates.map((template) => renderSection(template.category))}
     </div>
   );
 }

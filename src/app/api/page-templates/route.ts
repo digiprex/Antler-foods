@@ -34,7 +34,7 @@ const GET_PAGE_TEMPLATES = `
 `;
 
 const UPDATE_TEMPLATE_ORDER = `
-  mutation UpdateTemplateOrder($template_id: uuid!, $order_index: Int!) {
+  mutation UpdateTemplateOrder($template_id: uuid!, $order_index: numeric!) {
     update_templates_by_pk(
       pk_columns: { template_id: $template_id }
       _set: { order_index: $order_index }

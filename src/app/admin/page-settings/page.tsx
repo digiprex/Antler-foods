@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 
@@ -62,11 +62,79 @@ export default function PageSettingsSelector() {
       case 'youtube':
         return (
           <div style={previewStyle}>
-            <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
-              🎥 YouTube Video Section
-              <br />
-              <small>Video display preview</small>
-            </div>
+            {(() => {
+              const config = sectionConfigs.get('YouTube Settings');
+              if (config && config.videoUrl) {
+                // Extract video ID from URL
+                const videoId = config.videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/)?.[1];
+
+                if (videoId) {
+                  return (
+                    <div style={{
+                      padding: '20px',
+                      backgroundColor: config.bgColor || '#000000',
+                      color: config.textColor || '#ffffff'
+                    }}>
+                      {config.showTitle && config.title && (
+                        <div style={{
+                          marginBottom: '20px',
+                          textAlign: 'center'
+                        }}>
+                          <h2 style={{
+                            fontSize: '24px',
+                            fontWeight: 'bold',
+                            margin: '0 0 8px 0'
+                          }}>
+                            {config.title}
+                          </h2>
+                          {config.description && (
+                            <p style={{
+                              fontSize: '14px',
+                              opacity: 0.9,
+                              margin: 0
+                            }}>
+                              {config.description}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      <div style={{
+                        position: 'relative',
+                        paddingBottom: config.aspectRatio === '16:9' ? '56.25%' : '75%',
+                        height: 0,
+                        overflow: 'hidden',
+                        maxWidth: config.maxWidth || '1200px',
+                        margin: '0 auto',
+                        borderRadius: '8px'
+                      }}>
+                        <iframe
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            border: 'none'
+                          }}
+                          src={`https://www.youtube.com/embed/${videoId}?autoplay=0&controls=${config.controls ? 1 : 0}&loop=${config.loop ? 1 : 0}&mute=${config.mute ? 1 : 0}`}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          title="YouTube video preview"
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+              }
+
+              return (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                  🎥 YouTube Video Section
+                  <br />
+                  <small>Configure section to see video preview</small>
+                </div>
+              );
+            })()}
           </div>
         );
       case 'timeline':
@@ -259,100 +327,101 @@ export default function PageSettingsSelector() {
     }
   ];
 
-  useEffect(() => {
-    const fetchPageAndSections = async () => {
-      if (!restaurantId || !pageId) {
-        setLoading(false);
-        return;
+  // Function to fetch page and sections data
+  const fetchPageAndSections = useCallback(async () => {
+    if (!restaurantId || !pageId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Set page name from URL param or default
+      if (pageNameParam) {
+        // Check if it's the home page based on URL slug pattern
+        // Home page typically has empty slug, '/', or 'home'
+        const isHome = pageNameParam.toLowerCase() === 'home' ||
+                      pageNameParam === '/' ||
+                      pageNameParam === '';
+        setIsHomePage(isHome);
       }
 
+      const existing = new Set<string>();
+
+      // Fetch all templates for this page from the templates table
       try {
-        setLoading(true);
+        const templatesResponse = await fetch(
+          `/api/page-templates?restaurant_id=${restaurantId}&page_id=${pageId}`
+        );
+        const templatesData = await templatesResponse.json();
 
-        // Set page name from URL param or default
-        if (pageNameParam) {
-          // Check if it's the home page based on URL slug pattern
-          // Home page typically has empty slug, '/', or 'home'
-          const isHome = pageNameParam.toLowerCase() === 'home' ||
-                        pageNameParam === '/' ||
-                        pageNameParam === '';
-          setIsHomePage(isHome);
-        }
+        if (templatesData.success && templatesData.data) {
+          console.log('Fetched templates:', templatesData.data.length);
+          console.log('Available section categories:', sectionsData.map(s => s.category));
 
-        const existing = new Set<string>();
-
-        // Fetch all templates for this page from the templates table
-        try {
-          const templatesResponse = await fetch(
-            `/api/page-templates?restaurant_id=${restaurantId}&page_id=${pageId}`
-          );
-          const templatesData = await templatesResponse.json();
-
-          if (templatesData.success && templatesData.data) {
-            console.log('Fetched templates:', templatesData.data.length);
-            console.log('Available section categories:', sectionsData.map(s => s.category));
-
-            // Map template categories to section names
-            templatesData.data.forEach((template: any) => {
-              console.log('Processing template:', {
-                category: template.category,
-                name: template.name,
-                config: template.config,
-                enabled: template.config?.enabled,
-                isEnabled: template.config?.isEnabled
-              });
-
-              // Find matching section by category (case-insensitive match)
-              const section = sectionsData.find(s =>
-                s.category.toLowerCase() === template.category.toLowerCase()
-              );
-              
-              if (section) {
-                console.log(`Found matching section: ${section.name} for category: ${template.category}`);
-                
-                // Check both 'enabled' and 'isEnabled' fields (different sections use different field names)
-                // If neither field exists, or if either is not explicitly false, consider it added
-                const enabled = template.config?.enabled;
-                const isEnabled = template.config?.isEnabled;
-
-                // Show section as added if:
-                // 1. No enabled field exists (template exists but no enable/disable functionality)
-                // 2. enabled or isEnabled is explicitly true
-                // 3. enabled or isEnabled is undefined (not set yet, but template exists)
-                // Only hide if explicitly set to false
-                if (enabled !== false && isEnabled !== false) {
-                  existing.add(section.name);
-                  console.log(`✓ Added section: ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
-                  
-                  // Store the template config and full template data
-                  setSectionConfigs(prev => new Map(prev.set(section.name, template.config)));
-                  setSectionTemplates(prev => new Map(prev.set(section.name, template)));
-                } else {
-                  console.log(`✗ Skipped section (disabled): ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
-                }
-              } else {
-                console.log(`✗ No matching section found for category: "${template.category}"`);
-                console.log('Available categories:', sectionsData.map(s => `"${s.category}"`));
-              }
+          // Map template categories to section names
+          templatesData.data.forEach((template: any) => {
+            console.log('Processing template:', {
+              category: template.category,
+              name: template.name,
+              config: template.config,
+              enabled: template.config?.enabled,
+              isEnabled: template.config?.isEnabled
             });
 
-            console.log('Total sections added:', existing.size);
-            console.log('Added sections:', Array.from(existing));
-          }
-        } catch (err) {
-          console.error('Error fetching templates:', err);
+            // Find matching section by category (case-insensitive match)
+            const section = sectionsData.find(s =>
+              s.category.toLowerCase() === template.category.toLowerCase()
+            );
+
+            if (section) {
+              console.log(`Found matching section: ${section.name} for category: ${template.category}`);
+
+              // Check both 'enabled' and 'isEnabled' fields (different sections use different field names)
+              // If neither field exists, or if either is not explicitly false, consider it added
+              const enabled = template.config?.enabled;
+              const isEnabled = template.config?.isEnabled;
+
+              // Show section as added if:
+              // 1. No enabled field exists (template exists but no enable/disable functionality)
+              // 2. enabled or isEnabled is explicitly true
+              // 3. enabled or isEnabled is undefined (not set yet, but template exists)
+              // Only hide if explicitly set to false
+              if (enabled !== false && isEnabled !== false) {
+                existing.add(section.name);
+                console.log(`✓ Added section: ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
+
+                // Store the template config and full template data
+                setSectionConfigs(prev => new Map(prev.set(section.name, template.config)));
+                setSectionTemplates(prev => new Map(prev.set(section.name, template)));
+              } else {
+                console.log(`✗ Skipped section (disabled): ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
+              }
+            } else {
+              console.log(`✗ No matching section found for category: "${template.category}"`);
+              console.log('Available categories:', sectionsData.map(s => `"${s.category}"`));
+            }
+          });
+
+          console.log('Total sections added:', existing.size);
+          console.log('Added sections:', Array.from(existing));
         }
-
-        setExistingSections(existing);
-      } catch (error) {
-        console.error('Error fetching page and sections:', error);
-      } finally {
-        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching templates:', err);
       }
-    };
 
-    fetchPageAndSections();
+      setExistingSections(existing);
+    } catch (error) {
+      console.error('Error fetching page and sections:', error);
+    } finally {
+      setLoading(false);
+    }
   }, [restaurantId, pageId, pageNameParam]);
+
+  useEffect(() => {
+    fetchPageAndSections();
+  }, [fetchPageAndSections]);
 
   // Sort existing sections by order_index
   const existingSectionsData = sectionsData
@@ -361,68 +430,78 @@ export default function PageSettingsSelector() {
       const template = sectionTemplates.get(section.name);
       return {
         ...section,
-        order_index: template?.order_index || 999,
+        order_index: template?.order_index ?? 999,
         template_id: template?.template_id
       };
     })
-    .sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
+    .sort((a, b) => (a.order_index ?? 999) - (b.order_index ?? 999));
 
   const availableSectionsData = sectionsData.filter(section =>
     !existingSections.has(section.name)
   );
 
   // Function to update section order
-  const updateSectionOrder = async (templateId: string, newOrderIndex: number) => {
-    try {
-      const response = await fetch('/api/page-templates', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          template_id: templateId,
-          order_index: newOrderIndex
-        })
-      });
+  const updateSectionOrder = useCallback(async (templateId: string, newOrderIndex: number) => {
+    const response = await fetch('/api/page-templates', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        template_id: templateId,
+        order_index: newOrderIndex
+      })
+    });
 
-      const data = await response.json();
-      if (data.success) {
-        // Refresh the page data to reflect the new order
-        window.location.reload();
-      } else {
-        alert('Error updating section order: ' + data.error);
-      }
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to update section order');
+    }
+    return data;
+  }, []);
+
+  // Function to reorder all sections sequentially
+  const reorderAllSections = useCallback(async (sections: any[]) => {
+    try {
+      // Update all sections with sequential order indices (1, 2, 3, 4...)
+      const updates = sections.map((section, index) =>
+        updateSectionOrder(section.template_id, index + 1)
+      );
+      await Promise.all(updates);
+
+      // Refetch data to show new order
+      await fetchPageAndSections();
     } catch (error) {
-      console.error('Error updating section order:', error);
+      console.error('Error reordering sections:', error);
       alert('Error updating section order');
     }
-  };
+  }, [updateSectionOrder, fetchPageAndSections]);
 
   // Function to move section up
-  const moveSectionUp = (sectionIndex: number) => {
+  const moveSectionUp = useCallback(async (sectionIndex: number) => {
     if (sectionIndex === 0) return; // Already at top
-    
-    const currentSection = existingSectionsData[sectionIndex];
-    const previousSection = existingSectionsData[sectionIndex - 1];
-    
-    if (currentSection.template_id && previousSection.template_id) {
-      // Swap order indices
-      updateSectionOrder(currentSection.template_id, previousSection.order_index);
-      updateSectionOrder(previousSection.template_id, currentSection.order_index);
-    }
-  };
+
+    // Create a new array with swapped positions
+    const reorderedSections = [...existingSectionsData];
+    const temp = reorderedSections[sectionIndex];
+    reorderedSections[sectionIndex] = reorderedSections[sectionIndex - 1];
+    reorderedSections[sectionIndex - 1] = temp;
+
+    // Update all sections with sequential order indices
+    await reorderAllSections(reorderedSections);
+  }, [existingSectionsData, reorderAllSections]);
 
   // Function to move section down
-  const moveSectionDown = (sectionIndex: number) => {
+  const moveSectionDown = useCallback(async (sectionIndex: number) => {
     if (sectionIndex === existingSectionsData.length - 1) return; // Already at bottom
-    
-    const currentSection = existingSectionsData[sectionIndex];
-    const nextSection = existingSectionsData[sectionIndex + 1];
-    
-    if (currentSection.template_id && nextSection.template_id) {
-      // Swap order indices
-      updateSectionOrder(currentSection.template_id, nextSection.order_index);
-      updateSectionOrder(nextSection.template_id, currentSection.order_index);
-    }
-  };
+
+    // Create a new array with swapped positions
+    const reorderedSections = [...existingSectionsData];
+    const temp = reorderedSections[sectionIndex];
+    reorderedSections[sectionIndex] = reorderedSections[sectionIndex + 1];
+    reorderedSections[sectionIndex + 1] = temp;
+
+    // Update all sections with sequential order indices
+    await reorderAllSections(reorderedSections);
+  }, [existingSectionsData, reorderAllSections]);
 
   return (
     <DashboardLayout>

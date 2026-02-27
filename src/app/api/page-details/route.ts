@@ -67,7 +67,7 @@ const GET_PAGE_TEMPLATES = `
         page_id: {_eq: $page_id},
         is_deleted: {_eq: false}
       }
-      order_by: {updated_at: desc}
+      order_by: {order_index: asc_nulls_last, created_at: desc}
     ) {
       template_id
       name
@@ -75,6 +75,7 @@ const GET_PAGE_TEMPLATES = `
       config
       menu_items
       page_id
+      order_index
       created_at
       updated_at
     }
@@ -160,6 +161,7 @@ export async function GET(request: NextRequest) {
           name: template.name,
           config: template.config,
           menu_items: template.menu_items,
+          order_index: template.order_index,
           created_at: template.created_at,
           updated_at: template.updated_at,
         };

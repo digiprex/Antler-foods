@@ -41,19 +41,27 @@ interface DynamicFormProps {
   restaurantId?: string;
   pageId?: string;
   showLoading?: boolean;
+  configData?: Partial<FormConfig>;
 }
 
 export default function DynamicForm({
   restaurantId,
   pageId,
-  showLoading = true
+  showLoading = true,
+  configData
 }: DynamicFormProps) {
-  const [config, setConfig] = useState<FormConfig | null>(null);
+  const [config, setConfig] = useState<FormConfig | null>(configData || null);
   const [form, setForm] = useState<Form | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!configData);
 
   useEffect(() => {
+    // If configData is provided, use it directly
+    if (configData) {
+      setConfig(configData as FormConfig);
+      setLoading(false);
+      return;
+    }
+
     const fetchConfig = async () => {
       if (!restaurantId) {
         setLoading(false);
@@ -84,14 +92,13 @@ export default function DynamicForm({
         }
       } catch (err) {
         console.error('Error fetching form config:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error occurred');
       } finally {
         setLoading(false);
       }
     };
 
     fetchConfig();
-  }, [restaurantId, pageId]);
+  }, [restaurantId, pageId, configData]);
 
   // Show loading state
   if (loading && showLoading) {

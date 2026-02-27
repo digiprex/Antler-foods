@@ -29,16 +29,6 @@ export default function AnnouncementBarSettingsForm() {
   const restaurantNameFromQuery = searchParams.get('restaurant_name')?.trim() ?? '';
   const restaurantId = restaurantIdFromQuery || '';
   
-  // Validate that restaurant ID is provided
-  if (!restaurantId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
-      </div>
-    );
-  }
-
   const configApiEndpoint = useMemo(
     () => `/api/announcement-bar-config?restaurant_id=${encodeURIComponent(restaurantId)}`,
     [restaurantId],
@@ -71,6 +61,16 @@ export default function AnnouncementBarSettingsForm() {
 
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
+
+  // Validate that restaurant ID is provided
+  if (!restaurantId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
+      </div>
+    );
+  }
 
   // Initialize form with fetched config
   useEffect(() => {
@@ -305,7 +305,7 @@ export default function AnnouncementBarSettingsForm() {
                 </label>
                 <select
                   value={layout}
-                  onChange={(e) => setLayout(e.target.value as any)}
+                  onChange={(e) => setLayout(e.target.value as AnnouncementBarConfig['layout'])}
                   className={styles.select}
                 >
                   <option value="text-only">Text Only</option>

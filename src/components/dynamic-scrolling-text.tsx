@@ -20,18 +20,27 @@ interface DynamicScrollingTextProps {
   restaurantId?: string;
   pageId?: string;
   showLoading?: boolean;
+  configData?: Partial<ScrollingTextConfig>;
 }
 
 export default function DynamicScrollingText({
   restaurantId,
   pageId,
-  showLoading = true
+  showLoading = true,
+  configData
 }: DynamicScrollingTextProps) {
-  const [config, setConfig] = useState<ScrollingTextConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [config, setConfig] = useState<ScrollingTextConfig | null>(configData || null);
+  const [loading, setLoading] = useState(!configData);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // If configData is provided, use it directly
+    if (configData) {
+      setConfig(configData as ScrollingTextConfig);
+      setLoading(false);
+      return;
+    }
+
     const fetchConfig = async () => {
       if (!restaurantId) {
         setLoading(false);
@@ -60,7 +69,7 @@ export default function DynamicScrollingText({
     };
 
     fetchConfig();
-  }, [restaurantId, pageId]);
+  }, [restaurantId, pageId, configData]);
 
   // Show loading state
   if (loading && showLoading) {

@@ -13,26 +13,35 @@ import { useState, useEffect } from 'react';
 import type { TimelineConfig, TimelineItem } from '@/types/timeline.types';
 
 interface DynamicTimelineProps {
-  restaurantId: string;
-  pageId: string;
+  restaurantId?: string;
+  pageId?: string;
   showLoading?: boolean;
+  configData?: Partial<TimelineConfig>;
 }
 
 export default function DynamicTimeline({
   restaurantId,
   pageId,
-  showLoading = false
+  showLoading = false,
+  configData
 }: DynamicTimelineProps) {
-  const [timelineConfig, setTimelineConfig] = useState<TimelineConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [timelineConfig, setTimelineConfig] = useState<TimelineConfig | null>(configData || null);
+  const [loading, setLoading] = useState(!configData);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch config
-  useEffect(() => {
-    fetchTimelineConfig();
-  }, [restaurantId, pageId]);
-
   const fetchTimelineConfig = async () => {
+    // If configData is provided, use it directly
+    if (configData) {
+      setTimelineConfig(configData as TimelineConfig);
+      setLoading(false);
+      return;
+    }
+
+    if (!restaurantId || !pageId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -59,6 +68,12 @@ export default function DynamicTimeline({
       setLoading(false);
     }
   };
+
+  // Fetch config
+  useEffect(() => {
+    fetchTimelineConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurantId, pageId, configData]);
 
   // Show loading state if enabled
   if (loading && showLoading) {

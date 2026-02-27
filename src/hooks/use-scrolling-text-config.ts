@@ -44,7 +44,7 @@ export function useScrollingTextConfig({ apiEndpoint }: { apiEndpoint: string })
     if (apiEndpoint) {
       fetchConfig();
     }
-  }, [apiEndpoint]);
+  }, [apiEndpoint, fetchConfig]);
 
   return {
     config,

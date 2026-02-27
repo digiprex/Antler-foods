@@ -44,7 +44,7 @@ export function useTimelineConfig({ apiEndpoint }: { apiEndpoint: string }) {
     if (apiEndpoint) {
       fetchConfig();
     }
-  }, [apiEndpoint]);
+  }, [apiEndpoint, fetchConfig]);
 
   return {
     config,

@@ -262,10 +262,29 @@ export async function GET(
         profile = synced.profile;
         slots = synced.slots;
       } catch (caughtError) {
-        googleSyncError =
-          caughtError instanceof Error
-            ? caughtError.message
-            : 'Unable to sync opening hours from Google.';
+        // Recover from concurrent first-load sync races (common in dev/strict mode):
+        // if another request already created the profile, use that instead of flashing an error.
+        try {
+          const recoveredProfile = await loadActiveOpeningHoursProfile(restaurantId);
+          const recoveredOpeningHourId = normalizeString(
+            recoveredProfile?.opening_hour_id,
+          );
+
+          if (recoveredProfile && recoveredOpeningHourId) {
+            profile = recoveredProfile;
+            slots = await loadOpeningHourSlots(recoveredOpeningHourId);
+          } else {
+            googleSyncError =
+              caughtError instanceof Error
+                ? caughtError.message
+                : 'Unable to sync opening hours from Google.';
+          }
+        } catch {
+          googleSyncError =
+            caughtError instanceof Error
+              ? caughtError.message
+              : 'Unable to sync opening hours from Google.';
+        }
       }
     }
 

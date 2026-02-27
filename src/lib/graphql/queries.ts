@@ -20,6 +20,10 @@ export interface ServiceModel {
 export interface RestaurantListItem {
   id: string;
   name: string;
+  ownerName: string;
+  ownerEmail: string;
+  customDomain: string;
+  stagingDomain: string;
   serviceModel: string;
   cuisineTypes: string[];
   phoneNumber: string;
@@ -254,6 +258,10 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
         restaurants(order_by: { created_at: desc }) {
           restaurant_id
           name
+          poc_name
+          poc_email
+          custom_domain
+          staging_domain
           service_model
           cuisine_types
           phone_number
@@ -271,10 +279,56 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
         restaurants {
           restaurant_id
           name
+          poc_name
+          poc_email
+          custom_domain
+          staging_domain
           service_model
           cuisine_types
           phone_number
           email
+          is_deleted
+        }
+      }
+    `,
+  },
+  {
+    idField: "restaurant_id",
+    query: `
+      query GetRestaurantsWithCustomerDomainAlias {
+        restaurants {
+          restaurant_id
+          name
+          poc_name
+          poc_email
+          custom_domain: customer_domain
+          staging_domain
+          service_model
+          cuisine_types
+          phone_number
+          email
+          created_at
+          is_deleted
+        }
+      }
+    `,
+  },
+  {
+    idField: "restaurant_id",
+    query: `
+      query GetRestaurantsWithCustomerDomianAlias {
+        restaurants {
+          restaurant_id
+          name
+          poc_name
+          poc_email
+          custom_domain: customer_domian
+          staging_domain
+          service_model
+          cuisine_types
+          phone_number
+          email
+          created_at
           is_deleted
         }
       }
@@ -751,6 +805,18 @@ function parseRestaurants(rows: Array<Record<string, unknown>>, idField: string)
       return {
         id: rawId,
         name: normalizeText(row.name, "Unnamed restaurant"),
+        ownerName: normalizeTextFromFieldCandidates(row, ["poc_name", "owner_name"]),
+        ownerEmail: normalizeTextFromFieldCandidates(row, [
+          "poc_email",
+          "owner_email",
+          "email",
+        ]),
+        customDomain: normalizeTextFromFieldCandidates(row, [
+          "custom_domain",
+          "customer_domain",
+          "customer_domian",
+        ]),
+        stagingDomain: normalizeTextFromFieldCandidates(row, ["staging_domain"]),
         serviceModel: normalizeText(row.service_model, ""),
         cuisineTypes: normalizeCuisineTypes(row.cuisine_types),
         phoneNumber: normalizeText(row.phone_number, ""),

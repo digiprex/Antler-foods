@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import {
+  ChangeEvent,
   FormEvent,
   type ReactNode,
   useCallback,
@@ -12,6 +13,7 @@ import {
   useState,
 } from 'react';
 import FileUpload from '@/components/ui/file-upload';
+import Toast from '@/components/ui/toast';
 import {
   getCuisineCategories,
   getServiceModels,
@@ -69,14 +71,6 @@ type MediaPreviewState = {
   kind: 'image' | 'video';
 } | null;
 
-type GoogleExternalMediaItem = {
-  media_id: string;
-  kind: 'photo' | 'video';
-  width: number | null;
-  height: number | null;
-  preview_url: string;
-};
-
 type MyInfoTabKey = 'brand' | 'address' | 'opening-hours' | 'google-profile';
 
 const BUSINESS_TYPE_OPTIONS = [
@@ -117,12 +111,6 @@ const MY_INFO_TABS: Array<{
     icon: <GoogleTabIcon />,
   },
 ];
-
-interface GooglePhotosApiResponse {
-  success: boolean;
-  data?: GoogleExternalMediaItem[];
-  error?: string;
-}
 
 type GoogleProfileDetailsRecord = {
   place_id: string;
@@ -172,7 +160,6 @@ interface OpeningHoursApiResponse {
     profile: OpeningHoursProfileRecord | null;
     slots: OpeningHoursSlotRecord[];
     has_google_place_id: boolean;
-    google_sync_error?: string | null;
   };
   message?: string;
   error?: string;
@@ -211,7 +198,8 @@ function useMyInfoTabLinks() {
   const searchParams = useSearchParams();
   const paramsString = searchParams.toString();
   const fallbackRestaurantId = searchParams.get('restaurant_id')?.trim() ?? '';
-  const fallbackRestaurantName = searchParams.get('restaurant_name')?.trim() ?? 'restaurant';
+  const fallbackRestaurantName =
+    searchParams.get('restaurant_name')?.trim() ?? 'restaurant';
   const restaurantScope = useMemo(
     () => parseRestaurantScopeFromPath(pathname),
     [pathname],
@@ -357,7 +345,9 @@ function MyInfoWorkspaceShell({
                 {pendingTab === tab.key ? (
                   <PurpleDotSpinner size="inline" />
                 ) : (
-                  <span className={isActive ? 'text-[#2f4fb6]' : 'text-[#7b8a96]'}>
+                  <span
+                    className={isActive ? 'text-[#2f4fb6]' : 'text-[#7b8a96]'}
+                  >
                     {tab.icon}
                   </span>
                 )}
@@ -448,11 +438,16 @@ function useRestaurantDraft(restaurantId: string | null) {
 function SelectionRequiredCard({ target }: { target: string }) {
   return (
     <section className="space-y-5">
-      <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">{target}</h1>
+      <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">
+        {target}
+      </h1>
       <div className="rounded-3xl border border-[#d7e2e6] bg-white p-8">
-        <h2 className="text-3xl font-semibold text-[#111827]">Select a restaurant</h2>
+        <h2 className="text-3xl font-semibold text-[#111827]">
+          Select a restaurant
+        </h2>
         <p className="mt-3 text-lg text-[#5f6c78]">
-          Select a restaurant from the search box to manage {target.toLowerCase()}.
+          Select a restaurant from the search box to manage{' '}
+          {target.toLowerCase()}.
         </p>
       </div>
     </section>
@@ -462,7 +457,9 @@ function SelectionRequiredCard({ target }: { target: string }) {
 function LoadingCard({ title }: { title: string }) {
   return (
     <section className="space-y-5">
-      <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">{title}</h1>
+      <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">
+        {title}
+      </h1>
       <div className="flex items-center gap-3 rounded-3xl border border-[#d7e2e6] bg-white p-8 text-lg text-[#5f6c78]">
         <PurpleDotSpinner size="sm" />
         <span>Loading restaurant data...</span>
@@ -482,7 +479,9 @@ function ErrorCard({
 }) {
   return (
     <section className="space-y-5">
-      <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">{title}</h1>
+      <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">
+        {title}
+      </h1>
       <div className="space-y-4 rounded-3xl border border-[#f0d5d5] bg-white p-8">
         <p className="text-lg text-[#a72b2b]">{message}</p>
         <button
@@ -526,9 +525,13 @@ function Header({
 }) {
   return (
     <div className="space-y-1">
-      <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">{title}</h1>
+      <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">
+        {title}
+      </h1>
       <p className="text-lg text-[#5f6c78]">{subtitle}</p>
-      <p className="text-sm font-medium text-[#111827]">Restaurant: {restaurantName}</p>
+      <p className="text-sm font-medium text-[#111827]">
+        Restaurant: {restaurantName}
+      </p>
     </div>
   );
 }
@@ -636,11 +639,16 @@ export function MyInfoBrandPage() {
   const [ubereatsLink, setUbereatsLink] = useState('');
   const [grubhubLink, setGrubhubLink] = useState('');
   const [doordashLink, setDoordashLink] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoFileId, setLogoFileId] = useState('');
+  const [isLogoUploading, setIsLogoUploading] = useState(false);
   const [cuisineSearchTerm, setCuisineSearchTerm] = useState('');
-  const [selectedCuisineTypes, setSelectedCuisineTypes] = useState<string[]>([]);
-  const [cuisineCategories, setCuisineCategories] = useState<CuisineTypeCategory[]>(
+  const [selectedCuisineTypes, setSelectedCuisineTypes] = useState<string[]>(
     [],
   );
+  const [cuisineCategories, setCuisineCategories] = useState<
+    CuisineTypeCategory[]
+  >([]);
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
   >({});
@@ -669,6 +677,8 @@ export function MyInfoBrandPage() {
     setUbereatsLink(draft.ubereatsLink || '');
     setGrubhubLink(draft.grubhubLink || '');
     setDoordashLink(draft.doordashLink || '');
+    setLogoUrl(draft.logo || '');
+    setLogoFileId(draft.logoFileId || '');
   }, [draft]);
 
   useEffect(() => {
@@ -682,9 +692,7 @@ export function MyInfoBrandPage() {
           return;
         }
 
-        const names = models
-          .map((model) => model.name.trim())
-          .filter(Boolean);
+        const names = models.map((model) => model.name.trim()).filter(Boolean);
         setServiceModelOptions(Array.from(new Set(names)));
       } catch {
         if (isActive) {
@@ -757,7 +765,9 @@ export function MyInfoBrandPage() {
 
     return cuisineCategories
       .map((category) => {
-        const categoryMatches = category.label.toLowerCase().includes(normalizedSearch);
+        const categoryMatches = category.label
+          .toLowerCase()
+          .includes(normalizedSearch);
         const filteredTypes = category.cuisineTypes.filter((type) =>
           type.label.toLowerCase().includes(normalizedSearch),
         );
@@ -825,6 +835,85 @@ export function MyInfoBrandPage() {
       ? [businessType, ...BUSINESS_TYPE_OPTIONS]
       : BUSINESS_TYPE_OPTIONS;
 
+  const uploadLogo = async (file: File) => {
+    if (!restaurant?.id) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setNotice({
+        tone: 'error',
+        message: 'Only image files are allowed for logo upload.',
+      });
+      return;
+    }
+
+    setIsLogoUploading(true);
+    setNotice(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('restaurant_id', restaurant.id);
+
+      const response = await fetch('/api/upload-optimized-media', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const payload = (await response.json()) as {
+        success?: boolean;
+        data?: { file_id?: string; url?: string };
+        error?: string;
+      };
+
+      if (!response.ok || !payload.success || !payload.data?.file_id) {
+        throw new Error(payload.error || 'Failed to upload logo.');
+      }
+
+      const nextLogoUrl =
+        payload.data.url ||
+        `/api/image-proxy?fileId=${encodeURIComponent(payload.data.file_id)}`;
+
+      setLogoFileId(payload.data.file_id);
+      setLogoUrl(nextLogoUrl);
+      setNotice({
+        tone: 'success',
+        message: 'Logo uploaded. Click Save brand to apply changes.',
+      });
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Failed to upload logo.';
+      setNotice({
+        tone: 'error',
+        message,
+      });
+    } finally {
+      setIsLogoUploading(false);
+    }
+  };
+
+  const onLogoFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    void uploadLogo(file);
+    event.target.value = '';
+  };
+
+  const onRemoveLogo = () => {
+    setLogoUrl('');
+    setLogoFileId('');
+    setNotice({
+      tone: 'success',
+      message: 'Logo removed. Click Save brand to apply changes.',
+    });
+  };
+
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setNotice(null);
@@ -862,7 +951,11 @@ export function MyInfoBrandPage() {
         email: email.trim(),
         business_type: businessType.trim(),
         service_model: serviceModel.trim(),
-        cuisine_types: selectedCuisineTypes.map((entry) => entry.trim()).filter(Boolean),
+        cuisine_types: selectedCuisineTypes
+          .map((entry) => entry.trim())
+          .filter(Boolean),
+        logo: logoUrl.trim() || null,
+        logo_file_id: logoFileId.trim() || null,
         ...socialLinksPayload,
       });
 
@@ -899,6 +992,75 @@ export function MyInfoBrandPage() {
       >
         <FormMessage notice={notice} />
 
+        <div className="rounded-2xl border border-[#d7e2e6] bg-[#f8fafb] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-[#111827]">Logo</h3>
+              <p className="text-xs text-[#5f6c78]">
+                Upload restaurant logo (PNG/JPG/WebP, up to 10MB).
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="brand-logo-upload"
+                type="file"
+                accept="image/*"
+                onChange={onLogoFileChange}
+                disabled={isSaving || isLogoUploading}
+                className="hidden"
+              />
+              <label
+                htmlFor="brand-logo-upload"
+                className={cx(
+                  'inline-flex cursor-pointer items-center rounded-xl border px-4 py-2 text-sm font-semibold transition',
+                  isSaving || isLogoUploading
+                    ? 'cursor-not-allowed border-[#d7dfea] bg-[#eef2f7] text-[#8b98a5] pointer-events-none'
+                    : 'border-[#bac8d5] bg-white text-[#2a3a4d] hover:bg-[#f2f6fb]',
+                )}
+              >
+                {isLogoUploading
+                  ? 'Uploading...'
+                  : logoUrl
+                    ? 'Replace logo'
+                    : 'Upload logo'}
+              </label>
+              {logoUrl || logoFileId ? (
+                <button
+                  type="button"
+                  onClick={onRemoveLogo}
+                  disabled={isSaving || isLogoUploading}
+                  className="inline-flex items-center rounded-xl border border-[#efc4c4] bg-white px-4 py-2 text-sm font-semibold text-[#c23939] transition hover:bg-[#fff5f5] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  Remove
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-4">
+            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-[#d7e2e6] bg-white">
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt={`${legalName || restaurant.name} logo`}
+                  className="h-full w-full object-contain p-1"
+                />
+              ) : (
+                <span className="text-xs font-medium text-[#8b98a5]">No logo</span>
+              )}
+            </div>
+            <p className="text-xs text-[#6b7a86]">
+              {logoFileId ? (
+                <>
+                  File ID: <span className="font-mono text-[11px]">{logoFileId}</span>
+                </>
+              ) : (
+                'Logo is stored as URL + file id for stable delivery and easy asset tracking.'
+              )}
+            </p>
+          </div>
+        </div>
+
         <div className="grid gap-4 md:grid-cols-2">
           <FormField
             label="Legal name"
@@ -917,7 +1079,12 @@ export function MyInfoBrandPage() {
             value={phoneNumber}
             onChange={setPhoneNumber}
           />
-          <FormField label="Email" value={email} onChange={setEmail} type="email" />
+          <FormField
+            label="Email"
+            value={email}
+            onChange={setEmail}
+            type="email"
+          />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -940,7 +1107,9 @@ export function MyInfoBrandPage() {
 
         <div className="space-y-4 rounded-2xl border border-[#d7e2e6] bg-[#f8fafb] p-4">
           <div>
-            <h3 className="text-lg font-semibold text-[#111827]">Cuisine types</h3>
+            <h3 className="text-lg font-semibold text-[#111827]">
+              Cuisine types
+            </h3>
             <p className="text-sm text-[#5f6c78]">
               Manage cuisines similar to add-restaurant setup.
             </p>
@@ -980,14 +1149,18 @@ export function MyInfoBrandPage() {
 
           <div className="overflow-hidden rounded-xl border border-[#d2dde2] bg-white">
             {isCuisineLoading ? (
-              <p className="px-4 py-3 text-sm text-[#5f6c78]">Loading cuisines...</p>
+              <p className="px-4 py-3 text-sm text-[#5f6c78]">
+                Loading cuisines...
+              </p>
             ) : null}
 
             {cuisineError ? (
               <p className="px-4 py-3 text-sm text-[#a72b2b]">{cuisineError}</p>
             ) : null}
 
-            {!isCuisineLoading && !cuisineError && !filteredCuisineCategories.length ? (
+            {!isCuisineLoading &&
+            !cuisineError &&
+            !filteredCuisineCategories.length ? (
               <p className="px-4 py-3 text-sm text-[#5f6c78]">
                 No cuisine categories found.
               </p>
@@ -1018,7 +1191,9 @@ export function MyInfoBrandPage() {
                   {isExpanded ? (
                     <div className="grid gap-2 border-t border-[#eef2f5] p-4 sm:grid-cols-2 lg:grid-cols-3">
                       {category.cuisineTypes.map((type) => {
-                        const isSelected = selectedCuisineTypes.includes(type.label);
+                        const isSelected = selectedCuisineTypes.includes(
+                          type.label,
+                        );
 
                         return (
                           <button
@@ -1060,7 +1235,11 @@ export function MyInfoBrandPage() {
             value={instagramLink}
             onChange={setInstagramLink}
           />
-          <FormField label="X (Twitter) link" value={xLink} onChange={setXLink} />
+          <FormField
+            label="X (Twitter) link"
+            value={xLink}
+            onChange={setXLink}
+          />
           <FormField
             label="TikTok link"
             value={tiktokLink}
@@ -1071,7 +1250,11 @@ export function MyInfoBrandPage() {
             value={youtubeLink}
             onChange={setYoutubeLink}
           />
-          <FormField label="Yelp link" value={yelpLink} onChange={setYelpLink} />
+          <FormField
+            label="Yelp link"
+            value={yelpLink}
+            onChange={setYelpLink}
+          />
           <FormField
             label="Uber Eats link"
             value={ubereatsLink}
@@ -1200,11 +1383,21 @@ export function MyInfoAddressPage() {
         className="space-y-4 rounded-3xl border border-[#d7e2e6] bg-white p-8"
       >
         <FormMessage notice={notice} />
-        <FormField label="Address" value={address} onChange={setAddress} required />
+        <FormField
+          label="Address"
+          value={address}
+          onChange={setAddress}
+          required
+        />
         <div className="grid gap-4 md:grid-cols-2">
           <FormField label="City" value={city} onChange={setCity} required />
           <FormField label="State" value={state} onChange={setState} required />
-          <FormField label="Country" value={country} onChange={setCountry} required />
+          <FormField
+            label="Country"
+            value={country}
+            onChange={setCountry}
+            required
+          />
           <FormField
             label="Postal code"
             value={postalCode}
@@ -1229,7 +1422,6 @@ export function MyInfoOpeningHoursPage() {
   const [isLoading, setIsLoading] = useState(Boolean(restaurant));
   const [isSaving, setIsSaving] = useState(false);
   const [savingDayOfWeek, setSavingDayOfWeek] = useState<number | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [notice, setNotice] = useState<SaveNotice | null>(null);
   const [source, setSource] = useState<'google' | 'manual'>('manual');
   const [timezone, setTimezone] = useState(getBrowserTimezone());
@@ -1240,9 +1432,9 @@ export function MyInfoOpeningHoursPage() {
   const [daySchedules, setDaySchedules] = useState<DayScheduleState[]>(
     buildDefaultDaySchedule,
   );
-  const [persistedDaySchedules, setPersistedDaySchedules] = useState<DayScheduleState[]>(
-    buildDefaultDaySchedule,
-  );
+  const [persistedDaySchedules, setPersistedDaySchedules] = useState<
+    DayScheduleState[]
+  >(buildDefaultDaySchedule);
   const timezoneOptions = useMemo(() => getTimezoneOptions(), []);
   const dirtyDayOfWeeks = useMemo(() => {
     const persistedByDay = new Map(
@@ -1285,9 +1477,12 @@ export function MyInfoOpeningHoursPage() {
       profile: OpeningHoursProfileRecord | null,
       slots: OpeningHoursSlotRecord[] | undefined,
     ) => {
-      const safeTimezone = profile?.timezone || timezone || getBrowserTimezone();
+      const safeTimezone =
+        profile?.timezone || timezone || getBrowserTimezone();
       setTimezone(
-        timezoneOptions.includes(safeTimezone) ? safeTimezone : getBrowserTimezone(),
+        timezoneOptions.includes(safeTimezone)
+          ? safeTimezone
+          : getBrowserTimezone(),
       );
       const resolvedSource = profile?.source === 'google' ? 'google' : 'manual';
       setSource(resolvedSource);
@@ -1336,13 +1531,6 @@ export function MyInfoOpeningHoursPage() {
 
       setHasGooglePlaceId(Boolean(payload.data.has_google_place_id));
       applyOpeningHoursState(payload.data.profile, payload.data.slots);
-
-      if (payload.data.google_sync_error && !payload.data.profile) {
-        setNotice({
-          tone: 'error',
-          message: payload.data.google_sync_error,
-        });
-      }
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
@@ -1462,7 +1650,9 @@ export function MyInfoOpeningHoursPage() {
 
   const buildScheduleForSingleDaySave = useCallback(
     (targetDayOfWeek: number) => {
-      const currentByDay = new Map(daySchedules.map((day) => [day.dayOfWeek, day]));
+      const currentByDay = new Map(
+        daySchedules.map((day) => [day.dayOfWeek, day]),
+      );
       const persistedByDay = new Map(
         persistedDaySchedules.map((day) => [day.dayOfWeek, day]),
       );
@@ -1482,10 +1672,18 @@ export function MyInfoOpeningHoursPage() {
         } satisfies DayScheduleState;
 
         if (day.dayOfWeek === targetDayOfWeek) {
-          return currentByDay.get(day.dayOfWeek) || persistedByDay.get(day.dayOfWeek) || fallbackDay;
+          return (
+            currentByDay.get(day.dayOfWeek) ||
+            persistedByDay.get(day.dayOfWeek) ||
+            fallbackDay
+          );
         }
 
-        return persistedByDay.get(day.dayOfWeek) || currentByDay.get(day.dayOfWeek) || fallbackDay;
+        return (
+          persistedByDay.get(day.dayOfWeek) ||
+          currentByDay.get(day.dayOfWeek) ||
+          fallbackDay
+        );
       });
     },
     [daySchedules, persistedDaySchedules],
@@ -1497,7 +1695,10 @@ export function MyInfoOpeningHoursPage() {
     }
 
     const scheduleForSave = buildScheduleForSingleDaySave(dayOfWeek);
-    const validationMessage = validateScheduleForSubmit(scheduleForSave, is24x7);
+    const validationMessage = validateScheduleForSubmit(
+      scheduleForSave,
+      is24x7,
+    );
     if (validationMessage) {
       setNotice({
         tone: 'error',
@@ -1553,61 +1754,6 @@ export function MyInfoOpeningHoursPage() {
     }
   };
 
-  const handleGoogleSync = async () => {
-    if (!restaurant?.id) {
-      return;
-    }
-
-    if (!hasGooglePlaceId) {
-      setNotice({
-        tone: 'error',
-        message: 'Google Place ID is missing for this restaurant.',
-      });
-      return;
-    }
-
-    setIsSyncing(true);
-    setNotice(null);
-
-    try {
-      const response = await fetchWithAuth(
-        `/api/restaurants/${encodeURIComponent(restaurant.id)}/opening-hours`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'sync_google',
-            timezone,
-          }),
-        },
-      );
-      const payload = (await response.json()) as OpeningHoursApiResponse;
-
-      if (!response.ok || !payload.success || !payload.data) {
-        throw new Error(payload.error || 'Failed to sync opening hours from Google.');
-      }
-
-      applyOpeningHoursState(payload.data.profile, payload.data.slots);
-      setNotice({
-        tone: 'success',
-        message: payload.message || 'Opening hours synced from Google.',
-      });
-    } catch (caughtError) {
-      const message =
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'Failed to sync opening hours from Google.';
-      setNotice({
-        tone: 'error',
-        message,
-      });
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   if (!restaurant) {
     return (
       <MyInfoWorkspaceShell activeTab="opening-hours">
@@ -1628,7 +1774,7 @@ export function MyInfoOpeningHoursPage() {
     <MyInfoWorkspaceShell activeTab="opening-hours">
       <Header
         title="Opening Hours"
-        subtitle="Sync from Google or manage manual day-wise timing slots with break time."
+        subtitle="Manage day-wise timing slots"
         restaurantName={restaurant.name}
       />
 
@@ -1638,7 +1784,9 @@ export function MyInfoOpeningHoursPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-[#111827]">* Timezone</span>
+              <span className="text-sm font-medium text-[#111827]">
+                * Timezone
+              </span>
               <select
                 value={timezone}
                 onChange={(event) => setTimezone(event.target.value)}
@@ -1653,7 +1801,9 @@ export function MyInfoOpeningHoursPage() {
             </label>
 
             <label className="flex items-center justify-between rounded-xl border border-[#d2dde2] px-4 py-3">
-              <span className="text-sm font-medium text-[#111827]">Open 24 x 7</span>
+              <span className="text-sm font-medium text-[#111827]">
+                Open 24 x 7
+              </span>
               <input
                 type="checkbox"
                 checked={is24x7}
@@ -1673,31 +1823,12 @@ export function MyInfoOpeningHoursPage() {
               className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#667eea] focus:ring-2 focus:ring-[#ddd6fe]"
             />
           </label>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => void handleGoogleSync()}
-              disabled={!hasGooglePlaceId || isSaving || isSyncing}
-              className="inline-flex items-center gap-2 rounded-xl border border-[#9eb7ff] px-5 py-2.5 text-sm font-semibold text-[#3f51b5] transition hover:bg-[#eef3ff] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSyncing ? <PurpleDotSpinner size="inline" /> : null}
-              {isSyncing ? 'Syncing...' : 'Sync from Google'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => void loadOpeningHours()}
-              disabled={isSaving || isSyncing}
-              className="inline-flex items-center rounded-xl border border-[#d2dde2] px-4 py-2.5 text-sm font-semibold text-[#3c4a56] transition hover:bg-[#f7fafc] disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              Refresh
-            </button>
-          </div>
         </section>
 
         <aside className="space-y-3 rounded-3xl border border-[#d7e2e6] bg-white p-6">
-          <h2 className="text-lg font-semibold text-[#111827]">Profile status</h2>
+          <h2 className="text-lg font-semibold text-[#111827]">
+            Profile status
+          </h2>
           <dl className="space-y-2 text-sm text-[#5f6c78]">
             <div className="flex items-center justify-between gap-2">
               <dt>Source</dt>
@@ -1717,14 +1848,20 @@ export function MyInfoOpeningHoursPage() {
             </div>
             <div className="flex items-center justify-between gap-2">
               <dt>Google profile</dt>
-              <dd className={hasGooglePlaceId ? 'text-[#1f8b4c]' : 'text-[#a72b2b]'}>
+              <dd
+                className={
+                  hasGooglePlaceId ? 'text-[#1f8b4c]' : 'text-[#a72b2b]'
+                }
+              >
                 {hasGooglePlaceId ? 'Connected' : 'Not connected'}
               </dd>
             </div>
             <div className="flex items-center justify-between gap-2">
               <dt>Last Google sync</dt>
               <dd className="font-medium text-[#111827]">
-                {syncedAt ? new Date(syncedAt).toLocaleString() : 'Not synced yet'}
+                {syncedAt
+                  ? new Date(syncedAt).toLocaleString()
+                  : 'Not synced yet'}
               </dd>
             </div>
           </dl>
@@ -1733,15 +1870,19 @@ export function MyInfoOpeningHoursPage() {
 
       <section className="space-y-4 rounded-3xl border border-[#d7e2e6] bg-white p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-2xl font-semibold text-[#111827]">Weekly schedule</h2>
+          <h2 className="text-2xl font-semibold text-[#111827]">
+            Weekly schedule
+          </h2>
           <p className="text-xs font-medium text-[#6c7a87]">
-            12-hour format. Add break slots and overnight ranges (example: 11:00 AM to 2:00 AM).
+            12-hour format. Add break slots and overnight ranges (example: 11:00
+            AM to 2:00 AM).
           </p>
         </div>
 
         {is24x7 ? (
           <div className="rounded-2xl border border-[#d7d2fe] bg-[#f5f3ff] p-4 text-sm text-[#4c2fc5]">
-            Restaurant is marked as open 24 x 7. Turn this off to manage day-wise slots.
+            Restaurant is marked as open 24 x 7. Turn this off to manage
+            day-wise slots.
           </div>
         ) : null}
 
@@ -1751,34 +1892,39 @@ export function MyInfoOpeningHoursPage() {
               key={day.dayOfWeek}
               className={cx(
                 'rounded-2xl border p-4',
-                day.closed ? 'border-[#e3e8ee] bg-[#f9fbfd]' : 'border-[#d7d2fe] bg-[#fcfbff]',
+                day.closed
+                  ? 'border-[#e3e8ee] bg-[#f9fbfd]'
+                  : 'border-[#d7d2fe] bg-[#fcfbff]',
               )}
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-base font-semibold text-[#111827]">{day.label}</h3>
+                <h3 className="text-base font-semibold text-[#111827]">
+                  {day.label}
+                </h3>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => void handleSaveManualDay(day.dayOfWeek)}
                     disabled={
-                      is24x7 ||
-                      isSaving ||
-                      isSyncing ||
-                      !dirtyDayOfWeeks.has(day.dayOfWeek)
+                      is24x7 || isSaving || !dirtyDayOfWeeks.has(day.dayOfWeek)
                     }
                     className="inline-flex items-center gap-1.5 rounded-lg bg-[#6f4cf6] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#5e3de1] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSaving && savingDayOfWeek === day.dayOfWeek ? (
                       <PurpleDotSpinner size="inline" />
                     ) : null}
-                    {isSaving && savingDayOfWeek === day.dayOfWeek ? 'Saving...' : 'Save'}
+                    {isSaving && savingDayOfWeek === day.dayOfWeek
+                      ? 'Saving...'
+                      : 'Save'}
                   </button>
                   <label className="inline-flex items-center gap-2 text-sm font-medium text-[#4b5563]">
                     <input
                       type="checkbox"
                       checked={day.closed}
                       disabled={is24x7}
-                      onChange={(event) => setDayClosed(day.dayOfWeek, event.target.checked)}
+                      onChange={(event) =>
+                        setDayClosed(day.dayOfWeek, event.target.checked)
+                      }
                       className="h-4 w-4 accent-[#6f4cf6]"
                     />
                     Closed
@@ -1789,7 +1935,10 @@ export function MyInfoOpeningHoursPage() {
               {!day.closed ? (
                 <div className="mt-3 space-y-2">
                   {day.slots.map((slot, index) => {
-                    const slotHint = isOvernightRange(slot.openTime, slot.closeTime)
+                    const slotHint = isOvernightRange(
+                      slot.openTime,
+                      slot.closeTime,
+                    )
                       ? 'Overnight hours (closes next day)'
                       : day.slots.length > 1
                         ? `Session ${index + 1}`
@@ -1807,7 +1956,12 @@ export function MyInfoOpeningHoursPage() {
                           <TwelveHourTimeInput
                             value={slot.openTime}
                             onChange={(value) =>
-                              updateBreakSlotTime(day.dayOfWeek, slot.id, 'openTime', value)
+                              updateBreakSlotTime(
+                                day.dayOfWeek,
+                                slot.id,
+                                'openTime',
+                                value,
+                              )
                             }
                           />
                         </div>
@@ -1818,14 +1972,21 @@ export function MyInfoOpeningHoursPage() {
                           <TwelveHourTimeInput
                             value={slot.closeTime}
                             onChange={(value) =>
-                              updateBreakSlotTime(day.dayOfWeek, slot.id, 'closeTime', value)
+                              updateBreakSlotTime(
+                                day.dayOfWeek,
+                                slot.id,
+                                'closeTime',
+                                value,
+                              )
                             }
                           />
                         </div>
                         <div className="flex items-end justify-end">
                           <button
                             type="button"
-                            onClick={() => removeBreakSlot(day.dayOfWeek, slot.id)}
+                            onClick={() =>
+                              removeBreakSlot(day.dayOfWeek, slot.id)
+                            }
                             disabled={day.slots.length === 1}
                             className="inline-flex items-center rounded-lg border border-[#f3c5c5] px-3 py-2 text-xs font-semibold text-[#c73a3a] transition hover:bg-[#fff4f4] disabled:cursor-not-allowed disabled:opacity-50"
                           >
@@ -1851,7 +2012,9 @@ export function MyInfoOpeningHoursPage() {
                   </button>
                 </div>
               ) : (
-                <p className="mt-3 text-sm text-[#6b7b88]">Closed for this day.</p>
+                <p className="mt-3 text-sm text-[#6b7b88]">
+                  Closed for this day.
+                </p>
               )}
             </article>
           ))}
@@ -1880,7 +2043,10 @@ function normalizeDaySlotsForDirtyCompare(day: DayScheduleState) {
     });
 }
 
-function areDaySchedulesEquivalent(left: DayScheduleState, right: DayScheduleState) {
+function areDaySchedulesEquivalent(
+  left: DayScheduleState,
+  right: DayScheduleState,
+) {
   if (left.closed !== right.closed) {
     return false;
   }
@@ -1906,7 +2072,9 @@ function getBrowserTimezone() {
     typeof Intl !== 'undefined'
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
       : null;
-  return typeof resolved === 'string' && resolved.trim() ? resolved.trim() : 'UTC';
+  return typeof resolved === 'string' && resolved.trim()
+    ? resolved.trim()
+    : 'UTC';
 }
 
 function getTimezoneOptions() {
@@ -1988,7 +2156,12 @@ function buildScheduleFromSlots(
   OPENING_HOURS_DAYS.forEach((day) => slotsByDay.set(day.dayOfWeek, []));
 
   for (const slot of slots) {
-    if (!slot || slot.day_of_week < 1 || slot.day_of_week > 7 || slot.is_closed) {
+    if (
+      !slot ||
+      slot.day_of_week < 1 ||
+      slot.day_of_week > 7 ||
+      slot.is_closed
+    ) {
       continue;
     }
 
@@ -2010,7 +2183,9 @@ function buildScheduleFromSlots(
   slotsByDay.forEach((entry, dayOfWeek) => {
     slotsByDay.set(
       dayOfWeek,
-      entry.slice().sort((a, b) => toMinutes(a.openTime) - toMinutes(b.openTime)),
+      entry
+        .slice()
+        .sort((a, b) => toMinutes(a.openTime) - toMinutes(b.openTime)),
     );
   });
 
@@ -2025,7 +2200,8 @@ function buildScheduleFromSlots(
     const nextDayOfWeek = getNextDayOfWeek(day.dayOfWeek);
     const currentDaySlots = slotsByDay.get(day.dayOfWeek) ?? [];
     const nextDaySlots = slotsByDay.get(nextDayOfWeek) ?? [];
-    const currentConsumed = consumedByDay.get(day.dayOfWeek) ?? new Set<string>();
+    const currentConsumed =
+      consumedByDay.get(day.dayOfWeek) ?? new Set<string>();
     const nextConsumed = consumedByDay.get(nextDayOfWeek) ?? new Set<string>();
     const overnightSlots = mergedOvernightByDay.get(day.dayOfWeek) ?? [];
 
@@ -2062,7 +2238,9 @@ function buildScheduleFromSlots(
     const mergedOvernight = mergedOvernightByDay.get(day.dayOfWeek) ?? [];
     const openSlots = [
       ...mergedOvernight,
-      ...(slotsByDay.get(day.dayOfWeek) ?? []).filter((slot) => !consumed.has(slot.id)),
+      ...(slotsByDay.get(day.dayOfWeek) ?? []).filter(
+        (slot) => !consumed.has(slot.id),
+      ),
     ].sort((a, b) => toMinutes(a.openTime) - toMinutes(b.openTime));
 
     if (!openSlots.length) {
@@ -2125,7 +2303,10 @@ type DayInterval = {
 };
 
 function getDayLabel(dayOfWeek: number) {
-  return OPENING_HOURS_DAYS.find((entry) => entry.dayOfWeek === dayOfWeek)?.label || `Day ${dayOfWeek}`;
+  return (
+    OPENING_HOURS_DAYS.find((entry) => entry.dayOfWeek === dayOfWeek)?.label ||
+    `Day ${dayOfWeek}`
+  );
 }
 
 function buildDailyIntervalsFromSchedules(daySchedules: DayScheduleState[]) {
@@ -2138,7 +2319,9 @@ function buildDailyIntervalsFromSchedules(daySchedules: DayScheduleState[]) {
     }
 
     if (!day.slots.length) {
-      throw new Error(`${day.label}: add at least one slot or mark the day as closed.`);
+      throw new Error(
+        `${day.label}: add at least one slot or mark the day as closed.`,
+      );
     }
 
     day.slots.forEach((slot) => {
@@ -2161,7 +2344,9 @@ function buildDailyIntervalsFromSchedules(daySchedules: DayScheduleState[]) {
       }
 
       if (openMinutes === closeMinutes) {
-        throw new Error(`${day.label}: open and close time cannot be the same.`);
+        throw new Error(
+          `${day.label}: open and close time cannot be the same.`,
+        );
       }
 
       const dayIntervals = intervalsByDay.get(day.dayOfWeek) ?? [];
@@ -2193,7 +2378,10 @@ function buildDailyIntervalsFromSchedules(daySchedules: DayScheduleState[]) {
   return intervalsByDay;
 }
 
-function normalizeAndValidateIntervalsForDay(dayOfWeek: number, intervals: DayInterval[]) {
+function normalizeAndValidateIntervalsForDay(
+  dayOfWeek: number,
+  intervals: DayInterval[],
+) {
   const sorted = intervals
     .slice()
     .filter((entry) => entry.start < entry.end)
@@ -2208,7 +2396,9 @@ function normalizeAndValidateIntervalsForDay(dayOfWeek: number, intervals: DayIn
     }
 
     if (interval.start < previous.end) {
-      throw new Error(`${getDayLabel(dayOfWeek)}: slots overlap. Adjust break timings.`);
+      throw new Error(
+        `${getDayLabel(dayOfWeek)}: slots overlap. Adjust break timings.`,
+      );
     }
 
     if (interval.start === previous.end) {
@@ -2220,7 +2410,9 @@ function normalizeAndValidateIntervalsForDay(dayOfWeek: number, intervals: DayIn
   });
 
   if (merged.length > 5) {
-    throw new Error(`${getDayLabel(dayOfWeek)}: maximum 5 break slots allowed.`);
+    throw new Error(
+      `${getDayLabel(dayOfWeek)}: maximum 5 break slots allowed.`,
+    );
   }
 
   return merged;
@@ -2237,7 +2429,10 @@ function minutesToApiTimeValue(minutes: number) {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
 }
 
-function validateScheduleForSubmit(daySchedules: DayScheduleState[], is24x7: boolean) {
+function validateScheduleForSubmit(
+  daySchedules: DayScheduleState[],
+  is24x7: boolean,
+) {
   if (is24x7) {
     return null;
   }
@@ -2311,7 +2506,9 @@ function TwelveHourTimeInput({
   onChange: (nextValue: string) => void;
 }) {
   const parsed = parseTwelveHourTime(value);
-  const hourOptions = Array.from({ length: 12 }, (_, index) => String(index + 1));
+  const hourOptions = Array.from({ length: 12 }, (_, index) =>
+    String(index + 1),
+  );
   const minuteOptions = Array.from({ length: 60 }, (_, index) =>
     String(index).padStart(2, '0'),
   );
@@ -2422,9 +2619,8 @@ export function MyInfoGoogleProfilePage() {
   );
   const [googlePlaceId, setGooglePlaceId] = useState('');
   const [googleBusinessLink, setGoogleBusinessLink] = useState('');
-  const [profileDetails, setProfileDetails] = useState<GoogleProfileDetailsRecord | null>(
-    null,
-  );
+  const [profileDetails, setProfileDetails] =
+    useState<GoogleProfileDetailsRecord | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
@@ -2476,10 +2672,13 @@ export function MyInfoGoogleProfilePage() {
             cache: 'no-store',
           },
         );
-        const payload = (await response.json()) as GoogleProfileDetailsApiResponse;
+        const payload =
+          (await response.json()) as GoogleProfileDetailsApiResponse;
 
         if (!response.ok || !payload.success || !payload.data) {
-          throw new Error(payload.error || 'Failed to load Google profile details.');
+          throw new Error(
+            payload.error || 'Failed to load Google profile details.',
+          );
         }
 
         if (!isActive) {
@@ -2559,7 +2758,9 @@ export function MyInfoGoogleProfilePage() {
     typeof profileDetails?.user_rating_count === 'number'
       ? profileDetails.user_rating_count
       : null;
-  const statusLabel = formatGoogleBusinessStatus(profileDetails?.business_status);
+  const statusLabel = formatGoogleBusinessStatus(
+    profileDetails?.business_status,
+  );
   const openNowLabel = formatOpenNowLabel(profileDetails?.open_now);
   const reviewsUrl = buildGoogleReviewsUrlFromPlaceId(
     profileDetails?.place_id || googlePlaceId,
@@ -2576,7 +2777,9 @@ export function MyInfoGoogleProfilePage() {
       <section className="space-y-4 rounded-3xl border border-[#d7e2e6] bg-white p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-semibold text-[#111827]">Connected profile</h2>
+            <h2 className="text-2xl font-semibold text-[#111827]">
+              Connected profile
+            </h2>
             <p className="text-sm text-[#5f6c78]">
               Google Place live details for this restaurant profile.
             </p>
@@ -2594,7 +2797,8 @@ export function MyInfoGoogleProfilePage() {
 
         {!hasConnectedProfile ? (
           <div className="rounded-2xl border border-dashed border-[#d9e3ec] bg-[#f8fafc] p-4 text-sm text-[#5f6c78]">
-            Add a Google Place ID in restaurant data to load live Google profile details.
+            Add a Google Place ID in restaurant data to load live Google profile
+            details.
           </div>
         ) : null}
 
@@ -2615,7 +2819,9 @@ export function MyInfoGoogleProfilePage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <h3 className="text-2xl font-semibold text-[#101827]">{resolvedName}</h3>
+                <h3 className="text-2xl font-semibold text-[#101827]">
+                  {resolvedName}
+                </h3>
                 {mapsUrl ? (
                   <a
                     href={mapsUrl}
@@ -2638,7 +2844,9 @@ export function MyInfoGoogleProfilePage() {
             {openNowLabel ? (
               <span
                 className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  profileDetails?.open_now ? 'bg-[#e8f7ef] text-[#177245]' : 'bg-[#f3f4f6] text-[#4b5563]'
+                  profileDetails?.open_now
+                    ? 'bg-[#e8f7ef] text-[#177245]'
+                    : 'bg-[#f3f4f6] text-[#4b5563]'
                 }`}
               >
                 {openNowLabel}
@@ -2654,7 +2862,10 @@ export function MyInfoGoogleProfilePage() {
                 </span>
                 <div className="flex items-center gap-1">
                   {Array.from({ length: 5 }, (_, index) => (
-                    <StarIcon key={index} filled={index < Math.round(roundedRating)} />
+                    <StarIcon
+                      key={index}
+                      filled={index < Math.round(roundedRating)}
+                    />
                   ))}
                 </div>
                 <span className="flex items-center gap-1 text-[#4b5563]">
@@ -2672,11 +2883,15 @@ export function MyInfoGoogleProfilePage() {
                   ) : (
                     <ReviewCountIcon />
                   )}
-                  <span>({ratingCount != null ? ratingCount.toLocaleString() : '0'})</span>
+                  <span>
+                    ({ratingCount != null ? ratingCount.toLocaleString() : '0'})
+                  </span>
                 </span>
               </>
             ) : (
-              <span className="text-[#5f6c78]">Rating not available from Google.</span>
+              <span className="text-[#5f6c78]">
+                Rating not available from Google.
+              </span>
             )}
           </div>
 
@@ -2701,7 +2916,8 @@ export function MyInfoGoogleProfilePage() {
             <GoogleInfoPill
               icon={<CoordinatesCardIcon />}
               label={
-                profileDetails?.latitude != null && profileDetails?.longitude != null
+                profileDetails?.latitude != null &&
+                profileDetails?.longitude != null
                   ? `${profileDetails.latitude.toFixed(4)}, ${profileDetails.longitude.toFixed(
                       4,
                     )}`
@@ -2713,7 +2929,9 @@ export function MyInfoGoogleProfilePage() {
           {Array.isArray(profileDetails?.weekday_descriptions) &&
           profileDetails.weekday_descriptions.length > 0 ? (
             <div className="mt-4 rounded-xl border border-[#d7e3ee] bg-white p-4">
-              <h4 className="mb-2 text-sm font-semibold text-[#111827]">Hours snapshot</h4>
+              <h4 className="mb-2 text-sm font-semibold text-[#111827]">
+                Hours snapshot
+              </h4>
               <div className="space-y-1 text-sm text-[#4b5563]">
                 {profileDetails.weekday_descriptions.map((entry) => (
                   <p key={entry}>{entry}</p>
@@ -2725,7 +2943,9 @@ export function MyInfoGoogleProfilePage() {
       </section>
 
       <section className="space-y-4 rounded-3xl border border-[#d7e2e6] bg-white p-6">
-        <h2 className="text-xl font-semibold text-[#111827]">Reference fields</h2>
+        <h2 className="text-xl font-semibold text-[#111827]">
+          Reference fields
+        </h2>
         <div className="grid gap-4 md:grid-cols-2">
           <FormField
             label="Google Place ID"
@@ -2763,7 +2983,13 @@ function buildGoogleReviewsUrlFromPlaceId(placeId: string | null | undefined) {
 }
 
 function buildAddressSummaryFromDraft(draft: RestaurantDraftItem) {
-  const parts = [draft.address, draft.city, draft.state, draft.postalCode, draft.country]
+  const parts = [
+    draft.address,
+    draft.city,
+    draft.state,
+    draft.postalCode,
+    draft.country,
+  ]
     .map((entry) => entry.trim())
     .filter(Boolean);
 
@@ -2771,7 +2997,8 @@ function buildAddressSummaryFromDraft(draft: RestaurantDraftItem) {
 }
 
 function formatGoogleBusinessStatus(value: string | null | undefined) {
-  const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
+  const normalized =
+    typeof value === 'string' ? value.trim().toUpperCase() : '';
   if (!normalized) {
     return null;
   }
@@ -2836,16 +3063,15 @@ function GoogleInfoPill({
 export function MyInfoGalleryPage() {
   const restaurant = useRestaurantScope();
   const [items, setItems] = useState<GalleryItem[]>([]);
-  const [googlePhotos, setGooglePhotos] = useState<GoogleExternalMediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(Boolean(restaurant));
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [hasLoadedGooglePhotos, setHasLoadedGooglePhotos] = useState(false);
-  const [importingPhotoId, setImportingPhotoId] = useState<string | null>(null);
-  const [sessionImportedGooglePhotoIds, setSessionImportedGooglePhotoIds] =
-    useState<string[]>([]);
   const [previewImage, setPreviewImage] = useState<MediaPreviewState>(null);
   const [pendingActionKey, setPendingActionKey] = useState<string | null>(null);
   const [notice, setNotice] = useState<SaveNotice | null>(null);
+  const [toastNotice, setToastNotice] = useState<SaveNotice | null>(null);
+
+  const showToast = useCallback((tone: SaveNotice['tone'], message: string) => {
+    setToastNotice({ tone, message });
+  }, []);
 
   const fetchWithAuth = useCallback(
     async (input: RequestInfo | URL, init: RequestInit = {}) => {
@@ -2906,56 +3132,9 @@ export function MyInfoGalleryPage() {
     }
   }, [fetchWithAuth, restaurant?.id]);
 
-  const loadGooglePhotos = useCallback(async () => {
-    if (!restaurant?.id) {
-      setGooglePhotos([]);
-      setIsGoogleLoading(false);
-      setHasLoadedGooglePhotos(false);
-      return;
-    }
-
-    setHasLoadedGooglePhotos(true);
-    setIsGoogleLoading(true);
-
-    try {
-      const response = await fetchWithAuth(
-        `/api/restaurants/${encodeURIComponent(restaurant.id)}/google-photos`,
-        {
-          cache: 'no-store',
-        },
-      );
-      const payload = (await response.json()) as GooglePhotosApiResponse;
-
-      if (!response.ok || !payload.success) {
-        throw new Error(payload.error || 'Failed to load Google place media.');
-      }
-
-      setGooglePhotos(payload.data || []);
-    } catch (caughtError) {
-      const message =
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'Failed to load Google place media.';
-      setNotice({
-        tone: 'error',
-        message,
-      });
-      setGooglePhotos([]);
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  }, [fetchWithAuth, restaurant?.id]);
-
   useEffect(() => {
     void loadGallery();
   }, [loadGallery]);
-
-  useEffect(() => {
-    setSessionImportedGooglePhotoIds([]);
-    setGooglePhotos([]);
-    setHasLoadedGooglePhotos(false);
-    setIsGoogleLoading(false);
-  }, [restaurant?.id]);
 
   useEffect(() => {
     if (!previewImage) {
@@ -2981,8 +3160,7 @@ export function MyInfoGalleryPage() {
   const buildActionKey = (
     action: 'hide' | 'delete' | 'download',
     mediaId: string,
-  ) =>
-    `${action}:${mediaId}`;
+  ) => `${action}:${mediaId}`;
 
   const isVideoMimeType = (value: string | null | undefined) =>
     typeof value === 'string' && value.toLowerCase().startsWith('video/');
@@ -3025,13 +3203,18 @@ export function MyInfoGalleryPage() {
       URL.revokeObjectURL(objectUrl);
     } catch (caughtError) {
       const message =
-        caughtError instanceof Error ? caughtError.message : 'Failed to download media.';
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Failed to download media.';
       setNotice({
         tone: 'error',
         message,
       });
+      showToast('error', message);
     } finally {
-      setPendingActionKey((current) => (current === actionKey ? null : current));
+      setPendingActionKey((current) =>
+        current === actionKey ? null : current,
+      );
     }
   };
 
@@ -3057,14 +3240,22 @@ export function MyInfoGalleryPage() {
         throw new Error(payload.error || 'Failed to remove gallery image.');
       }
 
-      setNotice({
-        tone: 'success',
-        message:
-          payload.action === 'hidden'
-            ? 'Media hidden from gallery.'
-            : 'Gallery media removed.',
-      });
-      await loadGallery();
+      if (payload.action === 'hidden') {
+        setItems((previous) =>
+          previous.map((item) =>
+            item.id === mediaId
+              ? {
+                  ...item,
+                  is_hidden: true,
+                }
+              : item,
+          ),
+        );
+        showToast('success', 'Media hidden from gallery.');
+      } else {
+        setItems((previous) => previous.filter((item) => item.id !== mediaId));
+        showToast('success', 'Gallery media removed.');
+      }
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
@@ -3074,8 +3265,11 @@ export function MyInfoGalleryPage() {
         tone: 'error',
         message,
       });
+      showToast('error', message);
     } finally {
-      setPendingActionKey((current) => (current === actionKey ? null : current));
+      setPendingActionKey((current) =>
+        current === actionKey ? null : current,
+      );
     }
   };
 
@@ -3103,14 +3297,25 @@ export function MyInfoGalleryPage() {
         throw new Error(payload.error || 'Failed to update media visibility.');
       }
 
-      setNotice({
-        tone: 'success',
-        message:
-          payload.action === 'unhidden'
-            ? 'Media is now visible.'
-            : 'Media has been hidden.',
-      });
-      await loadGallery();
+      const nextHiddenState =
+        typeof payload.is_hidden === 'boolean'
+          ? payload.is_hidden
+          : !item.is_hidden;
+
+      setItems((previous) =>
+        previous.map((current) =>
+          current.id === item.id
+            ? {
+                ...current,
+                is_hidden: nextHiddenState,
+              }
+            : current,
+        ),
+      );
+      showToast(
+        'success',
+        nextHiddenState ? 'Media has been hidden.' : 'Media is now visible.',
+      );
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
@@ -3120,92 +3325,59 @@ export function MyInfoGalleryPage() {
         tone: 'error',
         message,
       });
+      showToast('error', message);
     } finally {
-      setPendingActionKey((current) => (current === actionKey ? null : current));
-    }
-  };
-
-  const onImportGooglePhoto = async (mediaId: string) => {
-    if (!restaurant?.id) {
-      return;
-    }
-
-    setImportingPhotoId(mediaId);
-    setNotice(null);
-
-    try {
-      const response = await fetchWithAuth(
-        `/api/restaurants/${encodeURIComponent(restaurant.id)}/google-photos/import`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            mediaId,
-          }),
-        },
+      setPendingActionKey((current) =>
+        current === actionKey ? null : current,
       );
-
-      const payload = (await response.json()) as {
-        success: boolean;
-        error?: string;
-      };
-
-      if (!response.ok || !payload.success) {
-        throw new Error(payload.error || 'Failed to import Google media.');
-      }
-
-      setNotice({
-        tone: 'success',
-        message: 'Google media imported into gallery.',
-      });
-      setSessionImportedGooglePhotoIds((previous) =>
-        previous.includes(mediaId) ? previous : [...previous, mediaId],
-      );
-      await loadGallery();
-    } catch (caughtError) {
-      const message =
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'Failed to import Google media.';
-      setNotice({
-        tone: 'error',
-        message,
-      });
-    } finally {
-      setImportingPhotoId(null);
     }
   };
 
-  const onUpload = async () => {
-    setNotice({
-      tone: 'success',
-      message: 'Gallery media uploaded.',
-    });
-    await loadGallery();
-  };
+  const onUpload = (mediaFile: {
+    id: string;
+    file_id: string;
+    url: string;
+    type: string;
+  }) => {
+    const nextItem: GalleryItem = {
+      id: mediaFile.id,
+      restaurant_id: restaurant.id,
+      source: 'manual',
+      file_id: mediaFile.file_id,
+      external_id: null,
+      type: mediaFile.type,
+      created_at: new Date().toISOString(),
+      is_hidden: false,
+      url: mediaFile.url,
+    };
 
-  const importedGooglePhotoIds = new Set(
-    [
-      ...sessionImportedGooglePhotoIds,
-      ...items
-        .filter((item) => item.source === 'google' && item.external_id)
-        .map((item) => item.external_id as string),
-    ],
-  );
+    setItems((previous) => [
+      nextItem,
+      ...previous.filter((item) => item.id !== nextItem.id),
+    ]);
+    showToast('success', 'Gallery media uploaded.');
+  };
   const visibleItems = items.filter((item) => !item.is_hidden);
-  const totalGooglePhotos = googlePhotos.filter((item) => item.kind === 'photo').length;
-  const totalGoogleVideos = googlePhotos.filter((item) => item.kind === 'video').length;
   const totalGalleryItems = visibleItems.length;
   const totalGalleryVideos = visibleItems.filter((item) =>
     isVideoMimeType(item.type),
   ).length;
-  const totalGalleryImages = Math.max(0, totalGalleryItems - totalGalleryVideos);
+  const totalGalleryImages = Math.max(
+    0,
+    totalGalleryItems - totalGalleryVideos,
+  );
   const totalHiddenItems = items.filter((item) => item.is_hidden).length;
 
   return (
     <section className="space-y-6">
+      {toastNotice ? (
+        <Toast
+          message={toastNotice.message}
+          type={toastNotice.tone === 'success' ? 'success' : 'error'}
+          onClose={() => setToastNotice(null)}
+        />
+      ) : null}
+
       <Header
         title="Media Studio"
         subtitle="Upload, preview, and manage restaurant gallery assets."
@@ -3230,27 +3402,19 @@ export function MyInfoGalleryPage() {
           </p>
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-[#d9d9ff] bg-[#f5f3ff] px-4 py-3">
-              <p className="text-xs font-medium text-[#6d6ca8]">Gallery images</p>
+              <p className="text-xs font-medium text-[#6d6ca8]">
+                Gallery images
+              </p>
               <p className="mt-1 text-2xl font-semibold text-[#2b2c6f]">
                 {totalGalleryImages}
               </p>
             </div>
             <div className="rounded-2xl border border-[#d9d9ff] bg-[#f5f3ff] px-4 py-3">
-              <p className="text-xs font-medium text-[#6d6ca8]">Google photos</p>
-              <p className="mt-1 text-2xl font-semibold text-[#2b2c6f]">
-                {totalGooglePhotos}
+              <p className="text-xs font-medium text-[#6d6ca8]">
+                Gallery videos
               </p>
-            </div>
-            <div className="rounded-2xl border border-[#d9d9ff] bg-[#f5f3ff] px-4 py-3">
-              <p className="text-xs font-medium text-[#6d6ca8]">Gallery videos</p>
               <p className="mt-1 text-2xl font-semibold text-[#2b2c6f]">
                 {totalGalleryVideos}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-[#d9d9ff] bg-[#f5f3ff] px-4 py-3">
-              <p className="text-xs font-medium text-[#6d6ca8]">Google videos</p>
-              <p className="mt-1 text-2xl font-semibold text-[#2b2c6f]">
-                {totalGoogleVideos}
               </p>
             </div>
           </div>
@@ -3265,137 +3429,11 @@ export function MyInfoGalleryPage() {
         </div>
       </div>
 
-      <div className="space-y-4 rounded-3xl border border-[#d7e2e6] bg-gradient-to-br from-white via-[#fcfdff] to-[#f4f7ff] p-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-2xl font-semibold text-[#111827]">Google Place Media</h2>
-          <button
-            type="button"
-            onClick={() => void loadGooglePhotos()}
-            disabled={isGoogleLoading}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#cfd9ff] px-3 py-2 text-xs font-semibold text-[#33429f] transition hover:bg-[#eef3ff] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isGoogleLoading ? <PurpleDotSpinner size="inline" /> : null}
-            {isGoogleLoading
-              ? hasLoadedGooglePhotos
-                ? 'Refreshing...'
-                  : 'Loading...'
-              : hasLoadedGooglePhotos
-                ? 'Refresh'
-                : 'Load Google Media'}
-          </button>
-        </div>
-
-        {!hasLoadedGooglePhotos ? (
-          <div className="rounded-2xl border border-dashed border-[#ced8f5] bg-[#f8fbff] px-4 py-5">
-            <p className="text-sm text-[#4f5f7a]">
-              Google preview is on-demand. Click <strong>Load Google Media</strong> to fetch
-              latest photos/videos from Google.
-            </p>
-          </div>
-        ) : isGoogleLoading ? (
-          <div className="flex items-center gap-3 text-[#5f6c78]">
-            <PurpleDotSpinner size="sm" />
-            <p>Loading Google media...</p>
-          </div>
-        ) : googlePhotos.length === 0 ? (
-          <p className="text-[#5f6c78]">No Google photos/videos found for this place.</p>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-            {googlePhotos.map((media, index) => {
-              const isImported = importedGooglePhotoIds.has(media.media_id);
-              const isImporting = importingPhotoId === media.media_id;
-              const isVideo = media.kind === 'video';
-
-              return (
-                <article
-                  key={media.media_id}
-                  className="group overflow-hidden rounded-2xl border border-[#d7e2e6] bg-[#f8fafb]"
-                >
-                  <div className="relative h-24 w-full overflow-hidden">
-                    {isVideo ? (
-                      <video
-                        src={media.preview_url}
-                        muted
-                        playsInline
-                        preload="metadata"
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <Image
-                        src={media.preview_url}
-                        alt={`Google place media ${index + 1}`}
-                        fill
-                        unoptimized
-                        className="object-cover transition duration-300 group-hover:scale-105"
-                      />
-                    )}
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/55 to-transparent" />
-                    <div className="absolute right-2 top-2 flex items-center gap-1">
-                      <MediaActionIconButton
-                        title="View media"
-                        ariaLabel="View media"
-                        onClick={() =>
-                          setPreviewImage({
-                            url: media.preview_url,
-                            title: `Google ${isVideo ? 'video' : 'photo'} ${index + 1}`,
-                            subtitle:
-                              media.width && media.height
-                                ? `${media.width} x ${media.height}`
-                                : `Google Place ${isVideo ? 'video' : 'photo'}`,
-                            kind: isVideo ? 'video' : 'image',
-                          })
-                        }
-                      >
-                        <ViewIcon />
-                      </MediaActionIconButton>
-                      <MediaActionIconButton
-                        title="Download media"
-                        ariaLabel="Download media"
-                        onClick={() =>
-                          void onDownloadMedia(
-                            media.preview_url,
-                            media.media_id,
-                            isVideo ? 'video' : 'image',
-                          )
-                        }
-                        disabled={Boolean(pendingActionKey)}
-                      >
-                        {pendingActionKey === buildActionKey('download', media.media_id) ? (
-                          <PurpleDotSpinner size="icon" />
-                        ) : (
-                          <DownloadIcon />
-                        )}
-                      </MediaActionIconButton>
-                    </div>
-                    <p className="absolute bottom-1.5 left-2 text-[11px] font-medium uppercase text-white">
-                      {isVideo ? 'video' : 'photo'}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-end p-2.5">
-                    <button
-                      type="button"
-                      disabled={isImported || isImporting}
-                      onClick={() => void onImportGooglePhoto(media.media_id)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#9eb7ff] px-2.5 py-1 text-[11px] font-semibold text-[#3f51b5] transition hover:bg-[#eef3ff] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isImporting ? <PurpleDotSpinner size="inline" /> : null}
-                      {isImported
-                        ? 'Imported'
-                        : isImporting
-                          ? 'Importing...'
-                          : 'Import to gallery'}
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       <div className="rounded-3xl border border-[#d7e2e6] bg-gradient-to-br from-white via-[#fcfdff] to-[#f6f7fb] p-6 shadow-sm">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-2xl font-semibold text-[#111827]">Existing Media</h2>
+          <h2 className="text-2xl font-semibold text-[#111827]">
+            Existing Media
+          </h2>
           <p className="text-xs font-medium text-[#6c7a87]">
             Hover image cards for quick actions
           </p>
@@ -3426,7 +3464,9 @@ export function MyInfoGalleryPage() {
                   key={item.id}
                   className={cx(
                     'group overflow-hidden rounded-2xl border bg-[#f8fafb]',
-                    isHidden ? 'border-[#c6b8ff] opacity-65' : 'border-[#d7e2e6]',
+                    isHidden
+                      ? 'border-[#c6b8ff] opacity-65'
+                      : 'border-[#d7e2e6]',
                   )}
                 >
                   <div className="relative h-24 w-full overflow-hidden">
@@ -3476,11 +3516,19 @@ export function MyInfoGalleryPage() {
                         title="Download media"
                         ariaLabel="Download media"
                         onClick={() =>
-                          void onDownloadMedia(item.url, item.id, isVideo ? 'video' : 'image')
+                          void onDownloadMedia(
+                            item.url,
+                            item.id,
+                            isVideo ? 'video' : 'image',
+                          )
                         }
                         disabled={actionsLocked}
                       >
-                        {isDownloading ? <PurpleDotSpinner size="icon" /> : <DownloadIcon />}
+                        {isDownloading ? (
+                          <PurpleDotSpinner size="icon" />
+                        ) : (
+                          <DownloadIcon />
+                        )}
                       </MediaActionIconButton>
                       <MediaActionIconButton
                         title={isHidden ? 'Unhide media' : 'Hide media'}
@@ -3503,7 +3551,11 @@ export function MyInfoGalleryPage() {
                         disabled={actionsLocked}
                         tone="danger"
                       >
-                        {isDeleting ? <PurpleDotSpinner size="icon" /> : <DeleteIcon />}
+                        {isDeleting ? (
+                          <PurpleDotSpinner size="icon" />
+                        ) : (
+                          <DeleteIcon />
+                        )}
                       </MediaActionIconButton>
                     </div>
                   </div>
@@ -3532,8 +3584,12 @@ export function MyInfoGalleryPage() {
           >
             <div className="flex items-center justify-between border-b border-[#e3eaf0] px-4 py-3">
               <div>
-                <h3 className="text-lg font-semibold text-[#0f172a]">{previewImage.title}</h3>
-                <p className="text-xs text-[#5f6c78]">{previewImage.subtitle}</p>
+                <h3 className="text-lg font-semibold text-[#0f172a]">
+                  {previewImage.title}
+                </h3>
+                <p className="text-xs text-[#5f6c78]">
+                  {previewImage.subtitle}
+                </p>
               </div>
               <button
                 type="button"
@@ -3658,7 +3714,10 @@ function ChevronRightIcon({ isExpanded }: { isExpanded: boolean }) {
   return (
     <svg
       aria-hidden="true"
-      className={cx('h-4 w-4 transition-transform', isExpanded ? 'rotate-90' : '')}
+      className={cx(
+        'h-4 w-4 transition-transform',
+        isExpanded ? 'rotate-90' : '',
+      )}
       viewBox="0 0 20 20"
       fill="none"
       stroke="currentColor"
@@ -3980,25 +4039,53 @@ function DownloadIcon() {
   );
 }
 
-function PurpleDotSpinner({ size = 'sm' }: { size?: 'sm' | 'inline' | 'icon' }) {
-  const dotSize = size === 'icon' ? 'h-1.5 w-1.5' : size === 'inline' ? 'h-1.5 w-1.5' : 'h-2.5 w-2.5';
-  const containerClass =
+function PurpleDotSpinner({
+  size = 'sm',
+}: {
+  size?: 'sm' | 'inline' | 'icon';
+}) {
+  const dotSize =
     size === 'icon'
-      ? 'h-4 w-4'
+      ? 'h-1.5 w-1.5'
       : size === 'inline'
-        ? 'h-3.5 w-3.5'
-        : 'h-7 w-7';
+        ? 'h-1.5 w-1.5'
+        : 'h-2.5 w-2.5';
+  const containerClass =
+    size === 'icon' ? 'h-4 w-4' : size === 'inline' ? 'h-3.5 w-3.5' : 'h-7 w-7';
 
   return (
     <span
-      className={cx('inline-grid grid-cols-2 grid-rows-2 gap-1', containerClass)}
+      className={cx(
+        'inline-grid grid-cols-2 grid-rows-2 gap-1',
+        containerClass,
+      )}
       role="status"
       aria-label="Loading"
     >
-      <span className={cx(dotSize, 'animate-[pulse_0.9s_ease-in-out_infinite] rounded-full bg-[#6f4cf6]')} />
-      <span className={cx(dotSize, 'animate-[pulse_0.9s_ease-in-out_0.2s_infinite] rounded-full bg-[#8f6cff]')} />
-      <span className={cx(dotSize, 'animate-[pulse_0.9s_ease-in-out_0.3s_infinite] rounded-full bg-[#9f84ff]')} />
-      <span className={cx(dotSize, 'animate-[pulse_0.9s_ease-in-out_0.45s_infinite] rounded-full bg-[#b19dff]')} />
+      <span
+        className={cx(
+          dotSize,
+          'animate-[pulse_0.9s_ease-in-out_infinite] rounded-full bg-[#6f4cf6]',
+        )}
+      />
+      <span
+        className={cx(
+          dotSize,
+          'animate-[pulse_0.9s_ease-in-out_0.2s_infinite] rounded-full bg-[#8f6cff]',
+        )}
+      />
+      <span
+        className={cx(
+          dotSize,
+          'animate-[pulse_0.9s_ease-in-out_0.3s_infinite] rounded-full bg-[#9f84ff]',
+        )}
+      />
+      <span
+        className={cx(
+          dotSize,
+          'animate-[pulse_0.9s_ease-in-out_0.45s_infinite] rounded-full bg-[#b19dff]',
+        )}
+      />
     </span>
   );
 }

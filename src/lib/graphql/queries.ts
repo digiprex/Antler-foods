@@ -61,6 +61,8 @@ export interface RestaurantDraftItem {
   ubereatsLink: string;
   grubhubLink: string;
   doordashLink: string;
+  logo: string;
+  logoFileId: string;
   isDeleted: boolean | null;
 }
 
@@ -385,6 +387,46 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           ubereats_link
           grubhub_link
           doordash_link
+          logo
+          logo_file_id
+          is_deleted
+        }
+      }
+    `,
+  },
+  {
+    idField: "restaurant_id",
+    query: `
+      query GetRestaurantDraftByRestaurantIdWithoutLogoFileId($restaurantId: uuid!) {
+        restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
+          restaurant_id
+          franchise_id
+          name
+          address
+          city
+          state
+          country
+          postal_code
+          business_type
+          service_model
+          cuisine_types
+          phone_number
+          email
+          sms_name
+          poc_name
+          poc_phone_number
+          poc_email
+          google_place_id
+          gmb_link
+          fb_link
+          insta_link
+          yt_link
+          tiktok_link
+          yelp_link
+          ubereats_link
+          grubhub_link
+          doordash_link
+          logo
           is_deleted
         }
       }
@@ -891,6 +933,8 @@ function parseRestaurantDraft(rows: Array<Record<string, unknown>>, idField: str
     ubereatsLink: normalizeText(firstRow.ubereats_link, ""),
     grubhubLink: normalizeText(firstRow.grubhub_link, ""),
     doordashLink: normalizeText(firstRow.doordash_link, ""),
+    logo: normalizeText(firstRow.logo, ""),
+    logoFileId: normalizeTextFromFieldCandidates(firstRow, ["logo_file_id"]),
     isDeleted: typeof firstRow.is_deleted === "boolean" ? firstRow.is_deleted : null,
   } satisfies RestaurantDraftItem;
 }

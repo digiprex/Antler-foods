@@ -6,6 +6,7 @@ import {
   type Control,
   type FieldErrors,
   type UseFormRegister,
+  type UseFormSetValue,
 } from 'react-hook-form';
 import { FormSelectInput, FormTextInput } from './form-fields';
 import type { NewRestaurantFormValues } from './schema';
@@ -13,6 +14,7 @@ import type { NewRestaurantFormValues } from './schema';
 interface StepBusinessInfoProps {
   control: Control<NewRestaurantFormValues>;
   register: UseFormRegister<NewRestaurantFormValues>;
+  setValue: UseFormSetValue<NewRestaurantFormValues>;
   errors: FieldErrors<NewRestaurantFormValues>;
   franchiseId: string | null;
   onBackToStepOne: () => void;
@@ -28,20 +30,20 @@ const BUSINESS_TYPES = [
 export function StepBusinessInfo({
   control,
   register,
+  setValue,
   errors,
   franchiseId,
   onBackToStepOne,
 }: StepBusinessInfoProps) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const deploymentEnvironment =
+  const shouldCreateOwner =
     useWatch({
       control,
-      name: 'deploymentEnvironment',
-    }) ?? 'staging';
-  const isProduction = deploymentEnvironment === 'production';
-  const deploymentEnvironmentError =
-    typeof errors.deploymentEnvironment?.message === 'string'
-      ? errors.deploymentEnvironment.message
+      name: 'shouldCreateOwner',
+    }) ?? false;
+  const ownerToggleError =
+    typeof errors.shouldCreateOwner?.message === 'string'
+      ? errors.shouldCreateOwner.message
       : undefined;
 
   if (!franchiseId) {
@@ -110,56 +112,41 @@ export function StepBusinessInfo({
         autoComplete="email"
       />
 
-      <div className="space-y-1.5">
-        <label className="block text-base font-medium text-[#111827]">
-          <span className="mr-1 text-[#ef5350]">*</span>
-          Environment
-        </label>
-        <div className="grid gap-3 md:grid-cols-2">
-          <label
-            className={`cursor-pointer rounded-xl border px-4 py-3 transition ${
-              deploymentEnvironment === 'staging'
-                ? 'border-[#667eea] bg-[#ede9fe]'
-                : 'border-[#d8e4ea] bg-white hover:bg-[#f9fcfd]'
-            }`}
-          >
-            <input
-              type="radio"
-              value="staging"
-              className="sr-only"
-              {...register('deploymentEnvironment')}
-            />
-            <p className="text-sm font-semibold text-[#111827]">Staging</p>
-            <p className="text-xs text-[#5b6b79]">
-              Save all business info on this restaurant only.
-            </p>
-          </label>
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => {
+            const nextValue = !shouldCreateOwner;
+            setValue('shouldCreateOwner', nextValue, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
 
-          <label
-            className={`cursor-pointer rounded-xl border px-4 py-3 transition ${
-              deploymentEnvironment === 'production'
-                ? 'border-[#667eea] bg-[#ede9fe]'
-                : 'border-[#d8e4ea] bg-white hover:bg-[#f9fcfd]'
-            }`}
-          >
-            <input
-              type="radio"
-              value="production"
-              className="sr-only"
-              {...register('deploymentEnvironment')}
-            />
-            <p className="text-sm font-semibold text-[#111827]">Production</p>
-            <p className="text-xs text-[#5b6b79]">
-              Create owner auth user and assign owner role.
-            </p>
-          </label>
-        </div>
-        {deploymentEnvironmentError ? (
-          <p className="text-xs text-[#d83f3f]">{deploymentEnvironmentError}</p>
+            if (!nextValue) {
+              setValue('ownerEmail', '', {
+                shouldDirty: true,
+                shouldValidate: false,
+              });
+              setValue('ownerPassword', '', {
+                shouldDirty: true,
+                shouldValidate: false,
+              });
+              setValue('ownerDisplayName', '', {
+                shouldDirty: true,
+                shouldValidate: false,
+              });
+            }
+          }}
+          className="inline-flex items-center gap-2 rounded-xl border border-[#cfc5ff] bg-[#f4f1ff] px-4 py-2 text-sm font-semibold text-[#4a35b4] transition hover:bg-[#ece7ff]"
+        >
+          {shouldCreateOwner ? 'Remove owner details' : 'Add owner'}
+        </button>
+        {ownerToggleError ? (
+          <p className="text-xs text-[#d83f3f]">{ownerToggleError}</p>
         ) : null}
       </div>
 
-      {isProduction ? (
+      {shouldCreateOwner ? (
         <div className="rounded-2xl border border-[#d8e4ea] bg-[#f8fbfd] p-4">
           <h4 className="text-lg font-semibold text-[#111827]">
             Owner assignment
@@ -210,15 +197,6 @@ export function StepBusinessInfo({
                 </button>
               }
             />
-
-            <label className="inline-flex items-center gap-2 text-sm font-medium text-[#1c2a39]">
-              <input
-                type="checkbox"
-                {...register('ownerIsLocationPoc')}
-                className="h-4 w-4 rounded border-[#cbd8e0] text-[#667eea] focus:ring-[#667eea]"
-              />
-              Owner is also location POC
-            </label>
           </div>
         </div>
       ) : null}

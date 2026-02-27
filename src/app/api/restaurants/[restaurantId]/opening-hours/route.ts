@@ -243,50 +243,12 @@ export async function GET(
       );
     }
 
-    const { restaurant, user } = await requireRestaurantAccess(request, restaurantId);
+    const { restaurant } = await requireRestaurantAccess(request, restaurantId);
 
-    let profile = await loadActiveOpeningHoursProfile(restaurantId);
-    let slots = profile?.opening_hour_id
+    const profile = await loadActiveOpeningHoursProfile(restaurantId);
+    const slots = profile?.opening_hour_id
       ? await loadOpeningHourSlots(profile.opening_hour_id)
       : [];
-    let googleSyncError: string | null = null;
-
-    if (!profile && restaurant.googlePlaceId) {
-      try {
-        const synced = await syncGoogleHoursToDatabase({
-          restaurantId,
-          googlePlaceId: restaurant.googlePlaceId,
-          createdByUserId: user.userId,
-          timezoneFallback: 'UTC',
-        });
-        profile = synced.profile;
-        slots = synced.slots;
-      } catch (caughtError) {
-        // Recover from concurrent first-load sync races (common in dev/strict mode):
-        // if another request already created the profile, use that instead of flashing an error.
-        try {
-          const recoveredProfile = await loadActiveOpeningHoursProfile(restaurantId);
-          const recoveredOpeningHourId = normalizeString(
-            recoveredProfile?.opening_hour_id,
-          );
-
-          if (recoveredProfile && recoveredOpeningHourId) {
-            profile = recoveredProfile;
-            slots = await loadOpeningHourSlots(recoveredOpeningHourId);
-          } else {
-            googleSyncError =
-              caughtError instanceof Error
-                ? caughtError.message
-                : 'Unable to sync opening hours from Google.';
-          }
-        } catch {
-          googleSyncError =
-            caughtError instanceof Error
-              ? caughtError.message
-              : 'Unable to sync opening hours from Google.';
-        }
-      }
-    }
 
     return NextResponse.json({
       success: true,
@@ -294,7 +256,6 @@ export async function GET(
         profile: profile ? normalizeOpeningHoursProfile(profile) : null,
         slots: slots.map(normalizeOpeningHourSlot).filter(Boolean),
         has_google_place_id: Boolean(restaurant.googlePlaceId),
-        google_sync_error: googleSyncError,
       },
     });
   } catch (caughtError) {

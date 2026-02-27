@@ -79,14 +79,13 @@ export const stepTwoSchema = z
         (value) => !value || z.string().email().safeParse(value).success,
         "Enter a valid email.",
       ),
-    deploymentEnvironment: z.enum(["staging", "production"]),
+    shouldCreateOwner: z.boolean(),
     ownerEmail: z.string(),
     ownerPassword: z.string(),
     ownerDisplayName: z.string(),
-    ownerIsLocationPoc: z.boolean(),
   })
   .superRefine((values, ctx) => {
-    if (values.deploymentEnvironment !== "production") {
+    if (!values.shouldCreateOwner) {
       return;
     }
 
@@ -152,9 +151,8 @@ export const STEP_TWO_FIELDS = [
   "contactName",
   "contactPhone",
   "contactEmail",
-  "deploymentEnvironment",
+  "shouldCreateOwner",
   "ownerEmail",
   "ownerPassword",
   "ownerDisplayName",
-  "ownerIsLocationPoc",
 ] as const;

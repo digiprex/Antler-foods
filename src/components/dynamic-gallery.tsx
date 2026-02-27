@@ -23,6 +23,11 @@ interface DynamicGalleryProps {
   fallbackConfig?: Partial<GalleryConfig>;
 
   /**
+   * Pre-fetched gallery configuration (skips API call)
+   */
+  configData?: Partial<GalleryConfig>;
+
+  /**
    * Whether to show loading state
    */
   showLoading?: boolean;
@@ -31,13 +36,21 @@ interface DynamicGalleryProps {
 export default function DynamicGallery({
   restaurantId,
   fallbackConfig,
+  configData,
   showLoading = true
 }: DynamicGalleryProps) {
-  const [config, setConfig] = useState<GalleryConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [config, setConfig] = useState<GalleryConfig | null>(configData as GalleryConfig || null);
+  const [loading, setLoading] = useState(!configData);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // If configData is provided, use it directly
+    if (configData) {
+      setConfig(configData as GalleryConfig);
+      setLoading(false);
+      return;
+    }
+
     const fetchConfig = async () => {
       setLoading(true);
       setError(null);
@@ -86,7 +99,7 @@ export default function DynamicGallery({
     };
 
     fetchConfig();
-  }, [restaurantId, fallbackConfig]);
+  }, [restaurantId, fallbackConfig, configData]);
 
   // Show loading state
   if (loading && showLoading) {

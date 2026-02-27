@@ -16,26 +16,20 @@
 import { useState, useEffect } from 'react';
 import Hero from '@/components/hero';
 import Toast from '@/components/ui/toast';
-import FileUpload from '@/components/ui/file-upload';
+import { ImageGalleryModal } from './image-gallery-modal';
 import { useHeroConfig, useUpdateHeroConfig } from '@/hooks/use-hero-config';
 import type { HeroConfig, HeroButton, HeroFeature } from '@/types/hero.types';
 import styles from './hero-settings-form.module.css';
 
-interface MediaFile {
-  id: string;
-  file_id: string;
-  url: string;
-  name: string;
-  type: string;
-  size: number;
-}
+type MediaFieldType = 'hero_image' | 'background_video' | 'background_image';
 
 interface HeroSettingsFormProps {
   pageId?: string;
+  isNewSection?: boolean;
 }
 
-export default function HeroSettingsForm({ pageId }: HeroSettingsFormProps) {
-  const { config, loading, error: fetchError, refetch } = useHeroConfig();
+export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsFormProps) {
+  const { config, loading, error: fetchError, refetch } = useHeroConfig({ fetchOnMount: !isNewSection });
   const { updateHero, updating, error: updateError } = useUpdateHeroConfig();
 
   // Toast state
@@ -49,9 +43,14 @@ export default function HeroSettingsForm({ pageId }: HeroSettingsFormProps) {
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
 
-  // Get restaurant ID from URL parameters
+  // Gallery modal state
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
+  const [currentMediaField, setCurrentMediaField] = useState<MediaFieldType | null>(null);
+
+  // Get restaurant ID and other params from URL
   const searchParams = new URLSearchParams(window.location.search);
   const restaurantId = searchParams.get('restaurant_id') || '';
+  const restaurantName = searchParams.get('restaurant_name') || '';
 
   // Validate that restaurant ID is provided
   if (!restaurantId) {
@@ -77,28 +76,64 @@ export default function HeroSettingsForm({ pageId }: HeroSettingsFormProps) {
     { value: 'with-features', name: 'With Features', description: 'Hero with feature cards' },
   ];
 
-  // Initialize form config when config is loaded
+  // Initialize form config when config is loaded or for new sections
   useEffect(() => {
-    if (config && !formConfig) {
+    if (isNewSection && !formConfig) {
+      // For new sections, use default empty config
+      setFormConfig({
+        headline: '',
+        subheadline: '',
+        description: '',
+        layout: 'centered-large',
+        bgColor: '#ffffff',
+        textColor: '#000000',
+        textAlign: 'center',
+        paddingTop: '6rem',
+        paddingBottom: '6rem',
+        minHeight: '600px',
+        showScrollIndicator: false,
+        contentMaxWidth: '1200px',
+      });
+    } else if (config && !formConfig) {
       setFormConfig(config);
     }
-  }, [config, formConfig]);
+  }, [config, formConfig, isNewSection]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formConfig) return;
 
     try {
-      await updateHero({
+      const payload: any = {
         ...formConfig,
         restaurant_id: restaurantId,
-        page_id: pageId || undefined,
-      });
+      };
+
+      // Add page_id if available
+      if (pageId) {
+        payload.page_id = pageId;
+      }
+
+      // Add new_section flag to indicate this should be inserted, not replaced
+      if (isNewSection) {
+        payload.new_section = true;
+      }
+
+      await updateHero(payload);
 
       setToastMessage('Hero settings saved successfully!');
       setToastType('success');
       setShowToast(true);
+
+      // Navigate back to page settings after successful save
+      setTimeout(() => {
+        const params = new URLSearchParams();
+        if (restaurantId) params.set('restaurant_id', restaurantId);
+        if (restaurantName) params.set('restaurant_name', restaurantName);
+        if (pageId) params.set('page_id', pageId);
+        window.location.href = `/admin/page-settings?${params.toString()}`;
+      }, 1500);
     } catch (err) {
       console.error('Failed to save hero config:', err);
       setToastMessage('Failed to save settings. Please try again.');
@@ -157,6 +192,76 @@ export default function HeroSettingsForm({ pageId }: HeroSettingsFormProps) {
       ...prev,
       features: prev.features?.filter((_, i) => i !== index) || []
     }) : null);
+  };
+
+  const openGalleryModal = (fieldType: MediaFieldType) => {
+    setCurrentMediaField(fieldType);
+    setShowGalleryModal(true);
+  };
+
+  const handleSelectImage = (imageUrl: string) => {
+    if (!formConfig || !currentMediaField) return;
+
+    switch (currentMediaField) {
+      case 'hero_image':
+        updateConfig({
+          image: {
+            url: imageUrl,
+            alt: formConfig.image?.alt || 'Hero image'
+          }
+        });
+        break;
+      case 'background_video':
+        updateConfig({ videoUrl: imageUrl });
+        break;
+      case 'background_image':
+        updateConfig({ backgroundImage: imageUrl });
+        break;
+    }
+
+    setShowGalleryModal(false);
+    setCurrentMediaField(null);
+  };
+
+  // Determine which media fields to show based on layout
+  const getMediaFieldsForLayout = (layout: string) => {
+    const fields = {
+      showHeroImage: false,
+      showBackgroundVideo: false,
+      showBackgroundImage: false,
+    };
+
+    switch (layout) {
+      case 'split':
+      case 'split-reverse':
+      case 'side-by-side':
+      case 'offset':
+      case 'with-features':
+        // These layouts use a hero image
+        fields.showHeroImage = true;
+        break;
+
+      case 'video-background':
+        // This layout uses background video
+        fields.showBackgroundVideo = true;
+        break;
+
+      case 'minimal':
+      case 'full-height':
+        // These layouts use background image
+        fields.showBackgroundImage = true;
+        break;
+
+      case 'default':
+      case 'centered-large':
+      default:
+        // These layouts can use both hero image and background image
+        fields.showHeroImage = true;
+        fields.showBackgroundImage = true;
+        break;
+    }
+
+    return fields;
   };
 
   // Render layout preview with placeholder content
@@ -575,70 +680,175 @@ export default function HeroSettingsForm({ pageId }: HeroSettingsFormProps) {
                 Media Configuration
               </h3>
 
-              <div className={styles.formGroup}>
-                <FileUpload
-                  accept="image"
-                  currentUrl={formConfig.image?.url}
-                  onUpload={(mediaFile: MediaFile) => {
-                    updateConfig({
-                      image: {
-                        url: mediaFile.url,
-                        alt: formConfig.image?.alt || 'Hero image'
-                      }
-                    });
-                  }}
-                  onRemove={() => updateConfig({ image: undefined })}
-                  label="Hero Image"
-                  description="Main hero image for your section"
-                  restaurantId={restaurantId}
-                />
-              </div>
+              {(() => {
+                const mediaFields = getMediaFieldsForLayout(formConfig.layout || 'default');
 
-              {formConfig.image && (
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Image Alt Text
-                    <span className={styles.labelHint}>Accessibility description</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formConfig.image.alt}
-                    onChange={(e) => updateConfig({
-                      image: formConfig.image ? { ...formConfig.image, alt: e.target.value } : undefined
-                    })}
-                    className={styles.textInput}
-                    placeholder="Hero image description"
-                  />
-                </div>
-              )}
+                return (
+                  <>
+                    {/* Hero Image */}
+                    {mediaFields.showHeroImage && (
+                      <>
+                        <div className={styles.formGroup}>
+                          <label className={styles.label}>
+                            Hero Image
+                            <span className={styles.labelHint}>Main hero image for your section</span>
+                          </label>
+                          <div className={styles.mediaUploadContainer}>
+                            {formConfig.image?.url ? (
+                              <div className={styles.mediaPreview}>
+                                <img
+                                  src={formConfig.image.url}
+                                  alt={formConfig.image.alt || 'Hero image'}
+                                  className={styles.mediaPreviewImage}
+                                />
+                                <div className={styles.mediaActions}>
+                                  <button
+                                    type="button"
+                                    onClick={() => openGalleryModal('hero_image')}
+                                    className={styles.changeMediaButton}
+                                  >
+                                    Change Image
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateConfig({ image: undefined })}
+                                    className={styles.removeMediaButton}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => openGalleryModal('hero_image')}
+                                className={styles.uploadButton}
+                                disabled={!restaurantId}
+                              >
+                                <span className={styles.uploadIcon}>📁</span>
+                                Choose from Gallery
+                              </button>
+                            )}
+                          </div>
+                        </div>
 
-              <div className={styles.formGroup}>
-                <FileUpload
-                  accept="video"
-                  currentUrl={formConfig.videoUrl}
-                  onUpload={(mediaFile: MediaFile) => {
-                    updateConfig({ videoUrl: mediaFile.url });
-                  }}
-                  onRemove={() => updateConfig({ videoUrl: undefined })}
-                  label="Background Video"
-                  description="Video background for your hero section"
-                  restaurantId={restaurantId}
-                />
-              </div>
+                        {formConfig.image && (
+                          <div className={styles.formGroup}>
+                            <label className={styles.label}>
+                              Image Alt Text
+                              <span className={styles.labelHint}>Accessibility description</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={formConfig.image.alt}
+                              onChange={(e) => updateConfig({
+                                image: formConfig.image ? { ...formConfig.image, alt: e.target.value } : undefined
+                              })}
+                              className={styles.textInput}
+                              placeholder="Hero image description"
+                            />
+                          </div>
+                        )}
+                      </>
+                    )}
 
-              <div className={styles.formGroup}>
-                <FileUpload
-                  accept="image"
-                  currentUrl={formConfig.backgroundImage}
-                  onUpload={(mediaFile: MediaFile) => {
-                    updateConfig({ backgroundImage: mediaFile.url });
-                  }}
-                  onRemove={() => updateConfig({ backgroundImage: undefined })}
-                  label="Background Image"
-                  description="Background image for your hero section"
-                  restaurantId={restaurantId}
-                />
-              </div>
+                    {/* Background Video */}
+                    {mediaFields.showBackgroundVideo && (
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                          Background Video
+                          <span className={styles.labelHint}>Video background for your hero section</span>
+                        </label>
+                        <div className={styles.mediaUploadContainer}>
+                          {formConfig.videoUrl ? (
+                            <div className={styles.mediaPreview}>
+                              <video
+                                src={formConfig.videoUrl}
+                                className={styles.mediaPreviewImage}
+                                muted
+                                playsInline
+                              />
+                              <div className={styles.mediaActions}>
+                                <button
+                                  type="button"
+                                  onClick={() => openGalleryModal('background_video')}
+                                  className={styles.changeMediaButton}
+                                >
+                                  Change Video
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => updateConfig({ videoUrl: undefined })}
+                                  className={styles.removeMediaButton}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openGalleryModal('background_video')}
+                              className={styles.uploadButton}
+                              disabled={!restaurantId}
+                            >
+                              <span className={styles.uploadIcon}>🎥</span>
+                              Choose from Gallery
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Background Image */}
+                    {mediaFields.showBackgroundImage && (
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                          Background Image
+                          <span className={styles.labelHint}>Background image for your hero section</span>
+                        </label>
+                        <div className={styles.mediaUploadContainer}>
+                          {formConfig.backgroundImage ? (
+                            <div className={styles.mediaPreview}>
+                              <img
+                                src={formConfig.backgroundImage}
+                                alt="Background"
+                                className={styles.mediaPreviewImage}
+                              />
+                              <div className={styles.mediaActions}>
+                                <button
+                                  type="button"
+                                  onClick={() => openGalleryModal('background_image')}
+                                  className={styles.changeMediaButton}
+                                >
+                                  Change Image
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => updateConfig({ backgroundImage: undefined })}
+                                  className={styles.removeMediaButton}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openGalleryModal('background_image')}
+                              className={styles.uploadButton}
+                              disabled={!restaurantId}
+                            >
+                              <span className={styles.uploadIcon}>📁</span>
+                              Choose from Gallery
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             {/* Styling Section */}
@@ -880,6 +1090,25 @@ export default function HeroSettingsForm({ pageId }: HeroSettingsFormProps) {
           </div>
         </div>
       )}
+
+      {/* Image Gallery Modal */}
+      <ImageGalleryModal
+        isOpen={showGalleryModal}
+        onClose={() => {
+          setShowGalleryModal(false);
+          setCurrentMediaField(null);
+        }}
+        onSelect={handleSelectImage}
+        restaurantId={restaurantId}
+        title={
+          currentMediaField === 'hero_image'
+            ? 'Select Hero Image'
+            : currentMediaField === 'background_video'
+            ? 'Select Background Video'
+            : 'Select Background Image'
+        }
+        description="Choose from your media library or upload new"
+      />
     </div>
   );
 }

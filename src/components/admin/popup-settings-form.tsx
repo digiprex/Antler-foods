@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react';
 import type { PopupConfig } from '@/types/popup.types';
 import { DEFAULT_POPUP_CONFIG } from '@/types/popup.types';
 import styles from '@/components/admin/gallery-settings-form.module.css';
+import { ImageGalleryModal } from '@/components/admin/image-gallery-modal';
 
 export default function PopupSettingsForm() {
   const searchParams = useSearchParams();
@@ -22,8 +23,6 @@ export default function PopupSettingsForm() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showMediaModal, setShowMediaModal] = useState(false);
-  const [mediaFiles, setMediaFiles] = useState<any[]>([]);
-  const [loadingMedia, setLoadingMedia] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [showPreview, setShowPreview] = useState(false);
@@ -63,42 +62,19 @@ export default function PopupSettingsForm() {
     }
   };
 
-  const fetchMediaFiles = async () => {
-    if (!restaurantId) return;
-
-    setLoadingMedia(true);
-    try {
-      const url = `/api/media?restaurant_id=${restaurantId}`;
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data.success) {
-        setMediaFiles(data.data || []);
-      } else {
-        console.error('Error fetching media files:', data.error);
-      }
-    } catch (error) {
-      console.error('Error fetching media files:', error);
-    } finally {
-      setLoadingMedia(false);
-    }
-  };
-
   const openMediaModal = () => {
     setShowMediaModal(true);
-    fetchMediaFiles();
   };
 
   const closeMediaModal = () => {
     setShowMediaModal(false);
   };
 
-  const selectMedia = (media: any) => {
+  const handleSelectImage = (imageUrl: string) => {
     setConfig({
       ...config,
-      imageUrl: media.file?.url || '',
+      imageUrl: imageUrl,
     });
-    closeMediaModal();
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -623,91 +599,14 @@ export default function PopupSettingsForm() {
         </div>
       </div>
 
-      {/* Media Library Modal */}
-      {showMediaModal && (
-        <div className={styles.modal} onClick={closeMediaModal}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>
-                Select Image from Media Library
-              </h2>
-              <button
-                onClick={closeMediaModal}
-                className={styles.modalCloseButton}
-              >
-                ×
-              </button>
-            </div>
-
-            <div className={styles.modalBody}>
-              {loadingMedia ? (
-                <div style={{ textAlign: 'center', padding: '2rem' }}>
-                  <p>Loading media files...</p>
-                </div>
-              ) : mediaFiles.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <div className={styles.emptyStateIcon}>📁</div>
-                  <h3 className={styles.emptyStateTitle}>No images found</h3>
-                  <p className={styles.emptyStateDescription}>
-                    Upload images using the button below.
-                  </p>
-                </div>
-              ) : (
-                <div className={styles.mediaGrid}>
-                  {mediaFiles.map((media) => (
-                    <div
-                      key={media.id}
-                      onClick={() => selectMedia(media)}
-                      className={styles.mediaItem}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      {media.file?.url ? (
-                        <img
-                          src={media.file.url}
-                          alt={media.file.name || 'Image'}
-                          className={styles.mediaImage}
-                        />
-                      ) : (
-                        <div style={{
-                          width: '100%',
-                          height: '200px',
-                          background: '#e5e7eb',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.875rem',
-                          color: '#6b7280'
-                        }}>
-                          No preview
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className={styles.modalFooter} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-              <label className={`${styles.button} ${styles.primaryButton}`} style={{ marginBottom: 0, cursor: 'pointer' }}>
-                📤 Upload New Images
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  style={{ display: 'none' }}
-                />
-              </label>
-              <button
-                onClick={closeMediaModal}
-                className={`${styles.button} ${styles.secondaryButton}`}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ImageGalleryModal
+        isOpen={showMediaModal}
+        onClose={closeMediaModal}
+        onSelect={handleSelectImage}
+        restaurantId={restaurantId || undefined}
+        title="Select Image from Media Library"
+        description="Choose an image from your media library or upload new"
+      />
 
       {/* Preview Modal */}
       {showPreview && (

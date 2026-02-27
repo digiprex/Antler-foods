@@ -51,6 +51,19 @@ const GET_NAVBAR_CONFIG = `
       name
       restaurant_id
     }
+    web_pages(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        show_on_navbar: {_eq: true},
+        published: {_eq: true},
+        is_deleted: {_eq: false}
+      },
+      order_by: {created_at: asc}
+    ) {
+      page_id
+      name
+      url_slug
+    }
   }
 `;
 
@@ -145,8 +158,8 @@ export async function GET(request: Request) {
           domain: domain,
         });
 
-        if (domainData.restaurants && domainData.restaurants.length > 0) {
-          const restaurant = domainData.restaurants[0];
+        if ((domainData as any).restaurants && (domainData as any).restaurants.length > 0) {
+          const restaurant = (domainData as any).restaurants[0];
           if (!restaurant.is_deleted) {
             restaurantId = restaurant.restaurant_id;
             console.log('[Navbar Config] Found restaurant for domain:', domain, '->', restaurantId);
@@ -186,9 +199,9 @@ export async function GET(request: Request) {
     console.log('[Navbar Config] Template query result (restaurant-wide):', JSON.stringify(data, null, 2));
 
     // Get restaurant name from database
-    const restaurantName = data.restaurants?.[0]?.name || 'Restaurant';
+    const restaurantName = (data as any).restaurants?.[0]?.name || 'Restaurant';
 
-    if (!data.templates || data.templates.length === 0) {
+    if (!(data as any).templates || (data as any).templates.length === 0) {
       // Return 404 if no navbar template exists - don't show navbar
       const response = {
         success: false,
@@ -198,13 +211,19 @@ export async function GET(request: Request) {
       return NextResponse.json(response, { status: 404 });
     }
 
-    const template = data.templates[0]; // Get most recent non-deleted template
-    
+    const template = (data as any).templates[0]; // Get most recent non-deleted template
+
+    // Transform web_pages to nav items
+    const navItems = ((data as any).web_pages || []).map((page: any) => ({
+      label: page.name,
+      href: `/${page.url_slug}`,
+    }));
+
     // Transform template structure to NavbarConfig
     const config: NavbarConfig = {
       restaurantName: restaurantName, // Get from restaurant table
       layout: template.name, // name field contains layout type
-      leftNavItems: template.menu_items || [],
+      leftNavItems: navItems, // Use pages with show_on_navbar=true
       rightNavItems: [],
       ctaButton: template.config?.ctaButton,
       position: template.config?.position || 'absolute',
@@ -263,14 +282,14 @@ export async function POST(request: Request) {
     });
 
     let menu_items = [];
-    
+
     // Step 2: Mark current template as deleted (if exists) and get menu_items
-    if (currentData.templates && currentData.templates.length > 0) {
-      const currentTemplate = currentData.templates[0];
-      
+    if ((currentData as any).templates && (currentData as any).templates.length > 0) {
+      const currentTemplate = (currentData as any).templates[0];
+
       // Preserve menu_items from old record
       menu_items = currentTemplate.menu_items || [];
-      
+
       await graphqlRequest(MARK_AS_DELETED, {
         template_id: currentTemplate.template_id,
       });
@@ -294,11 +313,11 @@ export async function POST(request: Request) {
       menu_items: menu_items, // Use menu_items from old record
     });
 
-    if (!insertedData.insert_templates_one) {
+    if (!(insertedData as any).insert_templates_one) {
       throw new Error('Failed to insert new template');
     }
 
-    const template = insertedData.insert_templates_one;
+    const template = (insertedData as any).insert_templates_one;
     
     // Transform back to NavbarConfig
     const responseConfig: NavbarConfig = {

@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
   useAuthenticationStatus,
   useHasuraClaims,
@@ -18,12 +18,10 @@ import {
 } from '@/lib/auth/routes';
 import { isNhostConfigured } from '@/lib/nhost';
 import { getRoleFromHasuraClaims, getUserRole } from '@/lib/auth/get-user-role';
-import { sanitizeNextPath } from '@/lib/auth/sanitize-next-path';
 import { loginSchema, type LoginFormValues } from '@/lib/validation/auth';
 
 export function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [formError, setFormError] = useState<string | null>(null);
   const { isAuthenticated, isLoading: isStatusLoading } =
     useAuthenticationStatus();
@@ -32,11 +30,6 @@ export function LoginForm() {
   const roleFromClaims = getRoleFromHasuraClaims(hasuraClaims);
   const { signInEmailPassword, isLoading, error, needsEmailVerification } =
     useSignInEmailPassword();
-
-  const redirectPath = useMemo(
-    () => sanitizeNextPath(searchParams.get('next')),
-    [searchParams],
-  );
 
   useEffect(() => {
     if (isStatusLoading || !isAuthenticated) {
@@ -51,15 +44,13 @@ export function LoginForm() {
           : null;
 
     router.replace(
-      redirectPath ||
-      (resolvedRole
+      resolvedRole
         ? getRoleDashboardRoute(resolvedRole)
-        : DEFAULT_AUTH_REDIRECT),
+        : DEFAULT_AUTH_REDIRECT
     );
   }, [
     isAuthenticated,
     isStatusLoading,
-    redirectPath,
     roleFromClaims,
     router,
     user,
@@ -97,7 +88,7 @@ export function LoginForm() {
     }
 
     const signedInRole = getUserRole(result.user);
-    router.replace(redirectPath || getRoleDashboardRoute(signedInRole) || DEFAULT_AUTH_REDIRECT);
+    router.replace(getRoleDashboardRoute(signedInRole) || DEFAULT_AUTH_REDIRECT);
   });
 
   return (

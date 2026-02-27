@@ -25,9 +25,18 @@ export default function PageSettingsSelector() {
   const [existingSections, setExistingSections] = useState<Set<string>>(new Set());
   const [sectionConfigs, setSectionConfigs] = useState<Map<string, any>>(new Map());
   const [sectionTemplates, setSectionTemplates] = useState<Map<string, any>>(new Map());
+  const [allTemplates, setAllTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isHomePage, setIsHomePage] = useState<boolean>(false);
   const [showAddSectionModal, setShowAddSectionModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [sectionToDelete, setSectionToDelete] = useState<{ name: string; templateId: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [pagePublished, setPagePublished] = useState<boolean>(false);
+  const [updatingPublish, setUpdatingPublish] = useState(false);
+  const [showOnNavbar, setShowOnNavbar] = useState<boolean>(false);
+  const [showOnFooter, setShowOnFooter] = useState<boolean>(false);
+  const [updatingVisibility, setUpdatingVisibility] = useState(false);
 
   // Function to render section preview based on category
   const renderSectionPreview = (category: string) => {
@@ -303,6 +312,19 @@ export default function PageSettingsSelector() {
     try {
       setLoading(true);
 
+      // Fetch page details to get published status and visibility
+      try {
+        const pageResponse = await fetch(`/api/web-pages/${pageId}`);
+        const pageData = await pageResponse.json();
+        if (pageData.success && pageData.data) {
+          setPagePublished(pageData.data.published || false);
+          setShowOnNavbar(pageData.data.show_on_navbar || false);
+          setShowOnFooter(pageData.data.show_on_footer || false);
+        }
+      } catch (err) {
+        console.error('Error fetching page details:', err);
+      }
+
       // Set page name from URL param or default
       if (pageNameParam) {
         // Check if it's the home page based on URL slug pattern
@@ -314,6 +336,7 @@ export default function PageSettingsSelector() {
       }
 
       const existing = new Set<string>();
+      const templates: any[] = [];
 
       // Fetch all templates for this page from the templates table
       try {
@@ -356,11 +379,12 @@ export default function PageSettingsSelector() {
               // Only hide if explicitly set to false
               if (enabled !== false && isEnabled !== false) {
                 existing.add(section.name);
+                templates.push({ ...template, section });
                 console.log(`✓ Added section: ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
 
                 // Store the template config and full template data
-                setSectionConfigs(prev => new Map(prev.set(section.name, template.config)));
-                setSectionTemplates(prev => new Map(prev.set(section.name, template)));
+                setSectionConfigs(prev => new Map(prev.set(`${template.template_id}`, template.config)));
+                setSectionTemplates(prev => new Map(prev.set(`${template.template_id}`, template)));
               } else {
                 console.log(`✗ Skipped section (disabled): ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
               }
@@ -372,12 +396,14 @@ export default function PageSettingsSelector() {
 
           console.log('Total sections added:', existing.size);
           console.log('Added sections:', Array.from(existing));
+          console.log('Total templates:', templates.length);
         }
       } catch (err) {
         console.error('Error fetching templates:', err);
       }
 
       setExistingSections(existing);
+      setAllTemplates(templates);
     } catch (error) {
       console.error('Error fetching page and sections:', error);
     } finally {
@@ -390,21 +416,17 @@ export default function PageSettingsSelector() {
   }, [fetchPageAndSections]);
 
   // Sort existing sections by order_index
-  const existingSectionsData = sectionsData
-    .filter(section => existingSections.has(section.name))
-    .map(section => {
-      const template = sectionTemplates.get(section.name);
-      return {
-        ...section,
-        order_index: template?.order_index ?? 999,
-        template_id: template?.template_id
-      };
-    })
+  const existingSectionsData = allTemplates
+    .map(template => ({
+      ...template.section,
+      order_index: template.order_index ?? 999,
+      template_id: template.template_id,
+      config: template.config
+    }))
     .sort((a, b) => (a.order_index ?? 999) - (b.order_index ?? 999));
 
-  const availableSectionsData = sectionsData.filter(section =>
-    !existingSections.has(section.name)
-  );
+  // All section types are always available (allow multiple instances)
+  const availableSectionsData = sectionsData;
 
   // Function to update section order
   const updateSectionOrder = useCallback(async (templateId: string, newOrderIndex: number) => {
@@ -469,6 +491,127 @@ export default function PageSettingsSelector() {
     await reorderAllSections(reorderedSections);
   }, [existingSectionsData, reorderAllSections]);
 
+  // Function to handle delete click
+  const handleDeleteClick = (sectionName: string, templateId: string) => {
+    setSectionToDelete({ name: sectionName, templateId });
+    setShowDeleteModal(true);
+  };
+
+  // Function to confirm delete
+  const confirmDelete = async () => {
+    if (!sectionToDelete) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/page-templates?template_id=${sectionToDelete.templateId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Refresh sections list
+        await fetchPageAndSections();
+        setShowDeleteModal(false);
+        setSectionToDelete(null);
+      } else {
+        alert('Failed to delete section: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error deleting section:', error);
+      alert('Error deleting section');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Function to cancel delete
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setSectionToDelete(null);
+  };
+
+  // Function to toggle publish status
+  const togglePublish = async () => {
+    if (!pageId) return;
+
+    setUpdatingPublish(true);
+    try {
+      const response = await fetch(`/api/web-pages/${pageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          published: !pagePublished,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setPagePublished(!pagePublished);
+      } else {
+        alert('Failed to update publish status: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error updating publish status:', error);
+      alert('Error updating publish status');
+    } finally {
+      setUpdatingPublish(false);
+    }
+  };
+
+  const toggleNavbarVisibility = async () => {
+    if (!pageId) return;
+
+    setUpdatingVisibility(true);
+    try {
+      const response = await fetch(`/api/web-pages/${pageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          show_on_navbar: !showOnNavbar,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setShowOnNavbar(!showOnNavbar);
+      } else {
+        alert('Failed to update navbar visibility: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error updating navbar visibility:', error);
+      alert('Error updating navbar visibility');
+    } finally {
+      setUpdatingVisibility(false);
+    }
+  };
+
+  const toggleFooterVisibility = async () => {
+    if (!pageId) return;
+
+    setUpdatingVisibility(true);
+    try {
+      const response = await fetch(`/api/web-pages/${pageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          show_on_footer: !showOnFooter,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setShowOnFooter(!showOnFooter);
+      } else {
+        alert('Failed to update footer visibility: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error updating footer visibility:', error);
+      alert('Error updating footer visibility');
+    } finally {
+      setUpdatingVisibility(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="p-6">
@@ -502,6 +645,36 @@ export default function PageSettingsSelector() {
             </div>
             <div className="flex items-center gap-3">
               <button
+                onClick={togglePublish}
+                disabled={updatingPublish}
+                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium ${
+                  pagePublished
+                    ? 'bg-amber-600 text-white hover:bg-amber-700'
+                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {updatingPublish ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Updating...
+                  </>
+                ) : pagePublished ? (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                    Unpublish
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Publish
+                  </>
+                )}
+              </button>
+              <button
                 onClick={() => {
                   const params = buildParams();
                   router.push(`/admin/seo-settings?${params}`);
@@ -527,6 +700,51 @@ export default function PageSettingsSelector() {
           <p className="text-gray-600">
             Manage sections configured for this page. Click on any section to configure it.
           </p>
+
+          {/* Page Visibility Settings */}
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Page Visibility</h3>
+            <div className="flex flex-wrap gap-4">
+              <label className={`flex items-center gap-2 ${!pagePublished ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} group`}>
+                <input
+                  type="checkbox"
+                  checked={showOnNavbar}
+                  onChange={toggleNavbarVisibility}
+                  disabled={updatingVisibility || !pagePublished}
+                  className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500 focus:ring-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <span className="text-sm text-gray-700 group-hover:text-gray-900 select-none">
+                  Show in Navbar
+                </span>
+              </label>
+              <label className={`flex items-center gap-2 ${!pagePublished ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} group`}>
+                <input
+                  type="checkbox"
+                  checked={showOnFooter}
+                  onChange={toggleFooterVisibility}
+                  disabled={updatingVisibility || !pagePublished}
+                  className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500 focus:ring-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <span className="text-sm text-gray-700 group-hover:text-gray-900 select-none">
+                  Show in Footer
+                </span>
+              </label>
+            </div>
+            {!pagePublished ? (
+              <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800 flex items-start gap-2">
+                <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span>
+                  This page must be <strong>published</strong> before it can appear in the navbar or footer.
+                </span>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 mt-2">
+                Control where this page appears in your site navigation
+              </p>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -542,7 +760,7 @@ export default function PageSettingsSelector() {
                 <div className="space-y-6">
                   {existingSectionsData.map((section, idx) => (
                     <div
-                      key={idx}
+                      key={section.template_id}
                       className="bg-white border border-green-200 rounded-lg shadow hover:shadow-md transition-all group"
                     >
                       {/* Section Header */}
@@ -554,14 +772,27 @@ export default function PageSettingsSelector() {
                               <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded flex-shrink-0">
                                 ✓ Added
                               </span>
+                              {(() => {
+                                // Count instances of this section type
+                                const instanceCount = existingSectionsData.filter(s => s.category === section.category).length;
+                                if (instanceCount > 1) {
+                                  const instanceNumber = existingSectionsData.filter(s => s.category === section.category).findIndex(s => s.template_id === section.template_id) + 1;
+                                  return (
+                                    <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded flex-shrink-0 font-medium">
+                                      Instance #{instanceNumber}
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                             <div className="text-sm text-gray-600 mb-3">{section.description}</div>
                             <div className="flex flex-wrap gap-2">
                               <span className="text-xs font-medium text-gray-500">Layout:</span>
                               {(() => {
-                                const config = sectionConfigs.get(section.name);
-                                console.log(`Layout debug for ${section.name}:`, config);
-                                
+                                const config = section.config;
+                                console.log(`Layout debug for ${section.name} (${section.template_id}):`, config);
+
                                 // Try multiple possible layout field names
                                 const selectedLayout =
                                   config?.layout ||
@@ -570,7 +801,7 @@ export default function PageSettingsSelector() {
                                   config?.layoutStyle ||
                                   config?.displayLayout ||
                                   'Default';
-                                
+
                                 return (
                                   <span className="text-xs px-2 py-1 bg-green-50 text-green-700 rounded font-medium">
                                     {selectedLayout}
@@ -633,10 +864,7 @@ export default function PageSettingsSelector() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (confirm(`Are you sure you want to delete ${section.name}? This action cannot be undone.`)) {
-                                  // TODO: Implement delete functionality
-                                  console.log(`Delete ${section.name}`);
-                                }
+                                handleDeleteClick(section.name, section.template_id);
                               }}
                               className="px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1"
                             >
@@ -676,7 +904,10 @@ export default function PageSettingsSelector() {
             <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
               {/* Modal Header */}
               <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">Add New Section</h2>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Add New Section</h2>
+                  <p className="text-sm text-gray-600 mt-1">You can add multiple instances of the same section type</p>
+                </div>
                 <button
                   onClick={() => setShowAddSectionModal(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -696,7 +927,8 @@ export default function PageSettingsSelector() {
                       className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all hover:border-green-400 cursor-pointer"
                       onClick={() => {
                         const params = buildParams();
-                        router.push(`${section.route}?${params}`);
+                        // Add new_section=true to indicate this is creating a new instance
+                        router.push(`${section.route}?${params}&new_section=true`);
                         setShowAddSectionModal(false);
                       }}
                     >
@@ -734,6 +966,51 @@ export default function PageSettingsSelector() {
                 >
                   Close
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && sectionToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+            <div className="fixed inset-0" onClick={cancelDelete} />
+            <div className="relative w-full max-w-md bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] z-50 animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-[#111827]">Delete Section</h3>
+                </div>
+                <p className="text-sm text-[#556678] leading-relaxed">
+                  Are you sure you want to delete <strong>{sectionToDelete.name}</strong>? This will soft delete the section and it can be restored from the database if needed.
+                </p>
+                <div className="mt-8 flex justify-end gap-3">
+                  <button
+                    onClick={cancelDelete}
+                    disabled={deleting}
+                    className="rounded-xl border border-[#d2dee4] bg-white px-5 py-2.5 text-sm font-medium text-[#111827] transition hover:bg-[#f7fafc] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    disabled={deleting}
+                    className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {deleting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Deleting...
+                      </>
+                    ) : (
+                      'Delete Section'
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

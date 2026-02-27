@@ -31,6 +31,7 @@ export default function HeroSettingsPage() {
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
   const pageId = searchParams.get('page_id');
+  const isNewSection = searchParams.get('new_section') === 'true';
 
   const handleBack = () => {
     const params = new URLSearchParams();
@@ -52,7 +53,7 @@ export default function HeroSettingsPage() {
               >
                 ← Back to Page Settings
               </button>
-              <HeroSettingsForm pageId={pageId || undefined} />
+              <HeroSettingsForm pageId={pageId || undefined} isNewSection={isNewSection} />
             </div>
           </div>
         </div>

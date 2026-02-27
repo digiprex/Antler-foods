@@ -18,6 +18,7 @@ import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import styles from '@/components/admin/gallery-settings-form.module.css';
 import toast, { Toaster } from 'react-hot-toast';
+import { ImageGalleryModal } from '@/components/admin/image-gallery-modal';
 
 export default function SEOSettingsPage() {
   const router = useRouter();
@@ -33,8 +34,6 @@ export default function SEOSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showImageGallery, setShowImageGallery] = useState(false);
-  const [mediaFiles, setMediaFiles] = useState<any[]>([]);
-  const [loadingMedia, setLoadingMedia] = useState(false);
 
   useEffect(() => {
     if (restaurantId && pageId) {
@@ -66,24 +65,6 @@ export default function SEOSettingsPage() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchMediaFiles = async () => {
-    if (!restaurantId) return;
-
-    setLoadingMedia(true);
-    try {
-      const response = await fetch(`/api/media?restaurant_id=${restaurantId}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setMediaFiles(data.data || []);
-      }
-    } catch (error) {
-      console.error('Error fetching media files:', error);
-    } finally {
-      setLoadingMedia(false);
     }
   };
 
@@ -138,12 +119,10 @@ export default function SEOSettingsPage() {
 
   const openImageGallery = () => {
     setShowImageGallery(true);
-    fetchMediaFiles();
   };
 
-  const selectImage = (imageUrl: string) => {
+  const handleSelectImage = (imageUrl: string) => {
     setOgImage(imageUrl);
-    setShowImageGallery(false);
   };
 
   return (
@@ -242,13 +221,53 @@ export default function SEOSettingsPage() {
                       </div>
                     </div>
 
-                    {/* Preview Card */}
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Preview (Google Search Result)</h3>
-                      <div className="bg-white p-4 rounded border border-gray-200">
-                        <div className="text-blue-600 text-lg mb-1">{metaTitle || 'Page Title'}</div>
-                        <div className="text-green-600 text-sm mb-2">https://yourwebsite.com/{pageName || 'page'}</div>
-                        <div className="text-gray-600 text-sm">{metaDescription || 'Your page description will appear here...'}</div>
+                    {/* Preview Cards */}
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">SEO Preview</h3>
+                      
+                      {/* Google Search Result Preview */}
+                      <div>
+                        <h4 className="text-xs font-medium text-gray-600 mb-2">Google Search Result</h4>
+                        <div className="bg-white p-4 rounded border border-gray-200">
+                          <div className="text-blue-600 text-lg mb-1">{metaTitle || 'Page Title'}</div>
+                          <div className="text-green-600 text-sm mb-2">https://yourwebsite.com/{pageName || 'page'}</div>
+                          <div className="text-gray-600 text-sm">{metaDescription || 'Your page description will appear here...'}</div>
+                        </div>
+                      </div>
+
+                      {/* Social Media Preview */}
+                      <div>
+                        <h4 className="text-xs font-medium text-gray-600 mb-2">Social Media Preview</h4>
+                        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden max-w-md">
+                          {/* Image Section */}
+                          <div className="aspect-[1.91/1] bg-gray-100 flex items-center justify-center">
+                            {ogImage ? (
+                              <img
+                                src={ogImage}
+                                alt="Social sharing preview"
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="text-center text-gray-400">
+                                <div className="text-4xl mb-2">🖼️</div>
+                                <div className="text-sm">Social Sharing Image</div>
+                                <div className="text-xs">1200 × 630 px</div>
+                              </div>
+                            )}
+                          </div>
+                          {/* Content Section */}
+                          <div className="p-3 border-t border-gray-100">
+                            <div className="text-sm font-medium text-gray-900 mb-1 line-clamp-2">
+                              {metaTitle || 'Page Title'}
+                            </div>
+                            <div className="text-xs text-gray-600 line-clamp-2">
+                              {metaDescription || 'Your page description will appear here...'}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              yourwebsite.com
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -288,68 +307,14 @@ export default function SEOSettingsPage() {
         </div>
       )}
 
-      {/* Image Gallery Modal */}
-      {showImageGallery && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]"
-          onClick={() => setShowImageGallery(false)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold">Select Social Sharing Image</h2>
-              <button
-                onClick={() => setShowImageGallery(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="p-6">
-              {loadingMedia ? (
-                <div className="text-center py-12">
-                  <p>Loading images...</p>
-                </div>
-              ) : mediaFiles.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-6xl mb-4">📁</div>
-                  <h3 className="text-xl font-semibold mb-2">No images found</h3>
-                  <p className="text-gray-600">Upload images to your media library first.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {mediaFiles.map((media) => (
-                    <div
-                      key={media.id}
-                      onClick={() => selectImage(media.file?.url || '')}
-                      className="relative cursor-pointer group aspect-video rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-500 transition-all"
-                    >
-                      <img
-                        src={media.file?.url}
-                        alt={media.file?.name || 'Image'}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all" />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="sticky bottom-0 bg-gray-50 border-t px-6 py-4">
-              <button
-                onClick={() => setShowImageGallery(false)}
-                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ImageGalleryModal
+        isOpen={showImageGallery}
+        onClose={() => setShowImageGallery(false)}
+        onSelect={handleSelectImage}
+        restaurantId={restaurantId || undefined}
+        title="Select Social Sharing Image"
+        description="Choose an image from your media library or upload new"
+      />
     </DashboardLayout>
     </>
   );

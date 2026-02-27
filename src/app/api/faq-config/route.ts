@@ -157,19 +157,19 @@ async function graphqlRequest<T>(query: string, variables?: Record<string, unkno
 export async function GET(request: Request) {
   try {
     // Get restaurant_id from query params - required parameter
-      const { searchParams } = new URL(request.url);
-      let restaurantId = searchParams.get('restaurant_id');
-      let pageId = searchParams.get('page_id') || null;
-      let urlSlug = searchParams.get('url_slug') || null;
-      const domain = searchParams.get('domain') || request.headers.get('host');
+    const { searchParams } = new URL(request.url);
+    let restaurantId = searchParams.get('restaurant_id');
+    let pageId = searchParams.get('page_id') || null;
+    let urlSlug = searchParams.get('url_slug') || null;
+    const domain = searchParams.get('domain') || request.headers.get('host');
 
-      // If domain is provided but no restaurantId, fetch restaurantId from domain
-      if (domain && !searchParams.get('restaurant_id')) {
-        try {
-          // Use local GraphQL request function to avoid nhost client issues
-          console.log('[FAQ Config] Looking up domain:', domain);
-          
-          const GET_RESTAURANT_BY_DOMAIN = `
+    // If domain is provided but no restaurantId, fetch restaurantId from domain
+    if (domain && !searchParams.get('restaurant_id')) {
+      try {
+        // Use local GraphQL request function to avoid nhost client issues
+        console.log('[FAQ Config] Looking up domain:', domain);
+
+        const GET_RESTAURANT_BY_DOMAIN = `
             query GetRestaurantByDomain($domain: String!) {
               restaurants(
                 where: {
@@ -188,85 +188,85 @@ export async function GET(request: Request) {
               }
             }
           `;
-          
-          const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, {
-            domain: domain,
-          });
-          
-          if (domainData.restaurants && domainData.restaurants.length > 0) {
-            const restaurant = domainData.restaurants[0];
-            if (!restaurant.is_deleted) {
-              restaurantId = restaurant.restaurant_id;
-              console.log('[FAQ Config] Found restaurant for domain:', domain, '->', restaurantId);
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching restaurant ID by domain:', error);
-          // Continue without restaurant ID - will be validated below
-        }
-      }
 
-      // Validate that restaurant_id is provided
-      if (!restaurantId) {
-        const errorResponse = {
-          success: false,
-          data: null,
-          error: 'restaurant_id is required. Provide it as a query parameter or ensure the domain is properly configured.'
-        };
-        return NextResponse.json(errorResponse, { status: 400 });
-      }
-
-      // If url_slug not supplied, try to derive from referer header (useful when called from a page)
-      if (!urlSlug) {
-        try {
-          const referer = request.headers.get('referer') || request.headers.get('referrer') || null;
-          if (referer) {
-            const parsedRef = new URL(referer);
-            // prefer the last non-empty segment as slug
-            const segments = parsedRef.pathname.split('/').filter(Boolean);
-            if (segments.length > 0) {
-              urlSlug = segments[segments.length - 1];
-            }
-          }
-        } catch (e) {
-          // ignore parse errors
-        }
-      }
-
-      let finalPageId = pageId;
-
-      // Debug logging
-      // eslint-disable-next-line no-console
-      console.log('FAQ GET params -> page_id:', pageId, 'url_slug:', urlSlug);
-
-      // If url_slug is provided (either via query or referer), get the page_id from it
-      if (urlSlug && !pageId) {
-        const pageData = await graphqlRequest(GET_PAGE_BY_SLUG, {
-          restaurant_id: restaurantId,
-          url_slug: urlSlug
+        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, {
+          domain: domain,
         });
 
-        if (pageData.web_pages && pageData.web_pages.length > 0) {
-          finalPageId = pageData.web_pages[0].page_id;
-          // Log resolved page id
-          // eslint-disable-next-line no-console
-          console.log('Resolved page_id from url_slug', urlSlug, '->', finalPageId);
-        } else {
-          // Return error if page not found for the given url_slug
-          const response = {
-            success: false,
-            data: null,
-            error: `No page found with url_slug: ${urlSlug}`
-          };
-          return NextResponse.json(response, { status: 404 });
+        if ((domainData as any).restaurants && (domainData as any).restaurants.length > 0) {
+          const restaurant = (domainData as any).restaurants[0];
+          if (!restaurant.is_deleted) {
+            restaurantId = restaurant.restaurant_id;
+            console.log('[FAQ Config] Found restaurant for domain:', domain, '->', restaurantId);
+          }
         }
+      } catch (error) {
+        console.error('Error fetching restaurant ID by domain:', error);
+        // Continue without restaurant ID - will be validated below
       }
+    }
 
-      const data = finalPageId
-        ? await graphqlRequest(GET_FAQ_CONFIG_BY_PAGE, { restaurant_id: restaurantId, page_id: finalPageId })
-        : await graphqlRequest(GET_FAQ_CONFIG, { restaurant_id: restaurantId });
+    // Validate that restaurant_id is provided
+    if (!restaurantId) {
+      const errorResponse = {
+        success: false,
+        data: null,
+        error: 'restaurant_id is required. Provide it as a query parameter or ensure the domain is properly configured.'
+      };
+      return NextResponse.json(errorResponse, { status: 400 });
+    }
 
-    if (!data.templates || data.templates.length === 0) {
+    // If url_slug not supplied, try to derive from referer header (useful when called from a page)
+    if (!urlSlug) {
+      try {
+        const referer = request.headers.get('referer') || request.headers.get('referrer') || null;
+        if (referer) {
+          const parsedRef = new URL(referer);
+          // prefer the last non-empty segment as slug
+          const segments = parsedRef.pathname.split('/').filter(Boolean);
+          if (segments.length > 0) {
+            urlSlug = segments[segments.length - 1];
+          }
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+    }
+
+    let finalPageId = pageId;
+
+    // Debug logging
+    // eslint-disable-next-line no-console
+    console.log('FAQ GET params -> page_id:', pageId, 'url_slug:', urlSlug);
+
+    // If url_slug is provided (either via query or referer), get the page_id from it
+    if (urlSlug && !pageId) {
+      const pageData = await graphqlRequest(GET_PAGE_BY_SLUG, {
+        restaurant_id: restaurantId,
+        url_slug: urlSlug
+      });
+
+      if ((pageData as any).web_pages && (pageData as any).web_pages.length > 0) {
+        finalPageId = (pageData as any).web_pages[0].page_id;
+        // Log resolved page id
+        // eslint-disable-next-line no-console
+        console.log('Resolved page_id from url_slug', urlSlug, '->', finalPageId);
+      } else {
+        // Return error if page not found for the given url_slug
+        const response = {
+          success: false,
+          data: null,
+          error: `No page found with url_slug: ${urlSlug}`
+        };
+        return NextResponse.json(response, { status: 404 });
+      }
+    }
+
+    const data = finalPageId
+      ? await graphqlRequest(GET_FAQ_CONFIG_BY_PAGE, { restaurant_id: restaurantId, page_id: finalPageId })
+      : await graphqlRequest(GET_FAQ_CONFIG, { restaurant_id: restaurantId });
+
+    if (!(data as any).templates || (data as any).templates.length === 0) {
       // Return 404 if template doesn't exist (frontend will not render section)
       const response = {
         success: false,
@@ -277,7 +277,7 @@ export async function GET(request: Request) {
       return NextResponse.json(response, { status: 404 });
     }
 
-    const template = data.templates[0]; // Get most recent non-deleted template
+    const template = (data as any).templates[0]; // Get most recent non-deleted template
 
     // Transform template structure to FAQ config
     const config = {
@@ -315,18 +315,18 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
+
     // Get restaurant_id - must be provided in request body
     const restaurantId = body.restaurant_id;
-    
+
     if (!restaurantId) {
       throw new Error('restaurant_id is required in request body');
     }
-    
+
     // Step 1: Get current template to mark as deleted (consider optional page_id or url_slug)
     const pageId = body.page_id || null;
     const urlSlug = body.url_slug || null;
-    
+
     let finalPageId = pageId;
 
     // If url_slug is provided, get the page_id from it
@@ -335,9 +335,9 @@ export async function POST(request: Request) {
         restaurant_id: restaurantId,
         url_slug: urlSlug
       });
-      
-      if (pageData.web_pages && pageData.web_pages.length > 0) {
-        finalPageId = pageData.web_pages[0].page_id;
+
+      if ((pageData as any).web_pages && (pageData as any).web_pages.length > 0) {
+        finalPageId = (pageData as any).web_pages[0].page_id;
       } else {
         // Return error if page not found for the given url_slug
         const errorResponse = {
@@ -348,20 +348,20 @@ export async function POST(request: Request) {
         return NextResponse.json(errorResponse, { status: 404 });
       }
     }
-    
+
     const currentData = finalPageId
       ? await graphqlRequest(GET_FAQ_CONFIG_BY_PAGE, { restaurant_id: restaurantId, page_id: finalPageId })
       : await graphqlRequest(GET_FAQ_CONFIG, { restaurant_id: restaurantId });
-    
+
     // Step 2: Mark current template as deleted (if exists)
-    if (currentData.templates && currentData.templates.length > 0) {
-      const currentTemplate = currentData.templates[0];
-      
+    if ((currentData as any).templates && (currentData as any).templates.length > 0) {
+      const currentTemplate = (currentData as any).templates[0];
+
       await graphqlRequest(MARK_AS_DELETED, {
         template_id: currentTemplate.template_id,
       });
     }
-    
+
     // Transform FAQ config to template structure
     const name = body.layout || 'accordion'; // layout goes to name field
     const config = {
@@ -384,12 +384,12 @@ export async function POST(request: Request) {
       page_id: finalPageId || null,
     });
 
-    if (!insertedData.insert_templates_one) {
+    if (!(insertedData as any).insert_templates_one) {
       throw new Error('Failed to insert new template');
     }
 
-    const template = insertedData.insert_templates_one;
-    
+    const template = (insertedData as any).insert_templates_one;
+
     // Transform back to FAQ config
     const responseConfig = {
       layout: template.name,

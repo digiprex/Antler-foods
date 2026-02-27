@@ -155,22 +155,37 @@ export function getPageSEO(pageType: string, customConfig: SEOConfig = {}): SEOC
  */
 export function generateDynamicSEO(pageData: any, restaurantName?: string): SEOConfig {
   const page = pageData?.data?.page;
-  
+
   if (!page) {
     return getPageSEO('default');
   }
 
-  const title = page.meta_title || 
+  const title = page.meta_title ||
     (page.name && restaurantName ? `${page.name} - ${restaurantName}` : page.name) ||
     DEFAULT_SEO.title;
 
-  const description = page.meta_description || 
+  const description = page.meta_description ||
     `Learn more about ${page.name || 'our services'}${restaurantName ? ` at ${restaurantName}` : ''}. ${DEFAULT_SEO.description}`;
+
+  // Handle keywords - can be string, JSON object with tags array, or null
+  let keywords = DEFAULT_SEO.keywords;
+  if (page.keywords) {
+    if (typeof page.keywords === 'string') {
+      // Legacy format: comma-separated string
+      keywords = page.keywords.split(',').map((k: string) => k.trim());
+    } else if (page.keywords.tags && Array.isArray(page.keywords.tags)) {
+      // New format: JSON object with tags array
+      keywords = page.keywords.tags;
+    } else if (Array.isArray(page.keywords)) {
+      // Direct array format
+      keywords = page.keywords;
+    }
+  }
 
   return {
     title,
     description,
-    keywords: page.keywords ? page.keywords.split(',').map((k: string) => k.trim()) : DEFAULT_SEO.keywords,
+    keywords,
     ogImage: page.og_image || DEFAULT_SEO.ogImage,
   };
 }

@@ -21,6 +21,9 @@ const GET_PAGE = `
       meta_title
       meta_description
       og_image
+      published
+      show_on_navbar
+      show_on_footer
       restaurant_id
       created_at
       updated_at
@@ -37,6 +40,9 @@ const UPDATE_PAGE = `
     $meta_title: String
     $meta_description: String
     $og_image: String
+    $published: Boolean
+    $show_on_navbar: Boolean
+    $show_on_footer: Boolean
   ) {
     update_web_pages_by_pk(
       pk_columns: { page_id: $page_id }
@@ -44,6 +50,9 @@ const UPDATE_PAGE = `
         meta_title: $meta_title
         meta_description: $meta_description
         og_image: $og_image
+        published: $published
+        show_on_navbar: $show_on_navbar
+        show_on_footer: $show_on_footer
         updated_at: "now()"
       }
     ) {
@@ -51,6 +60,9 @@ const UPDATE_PAGE = `
       meta_title
       meta_description
       og_image
+      published
+      show_on_navbar
+      show_on_footer
       updated_at
     }
   }
@@ -106,7 +118,7 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json();
-    const { meta_title, meta_description, og_image } = body;
+    const { meta_title, meta_description, og_image, published, show_on_navbar, show_on_footer } = body;
     const pageId = params.page_id;
 
     if (!pageId) {
@@ -116,13 +128,20 @@ export async function PATCH(
       );
     }
 
-    // Update page
-    const result = await adminGraphqlRequest(UPDATE_PAGE, {
+    // Build variables object, only including defined values
+    const variables: any = {
       page_id: pageId,
-      meta_title,
-      meta_description,
-      og_image,
-    });
+    };
+
+    if (meta_title !== undefined) variables.meta_title = meta_title;
+    if (meta_description !== undefined) variables.meta_description = meta_description;
+    if (og_image !== undefined) variables.og_image = og_image;
+    if (published !== undefined) variables.published = published;
+    if (show_on_navbar !== undefined) variables.show_on_navbar = show_on_navbar;
+    if (show_on_footer !== undefined) variables.show_on_footer = show_on_footer;
+
+    // Update page
+    const result = await adminGraphqlRequest(UPDATE_PAGE, variables);
 
     if (!(result as any).update_web_pages_by_pk) {
       throw new Error('Failed to update page');

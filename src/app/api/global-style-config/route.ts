@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     const result = await graphqlRequest<{
       restaurants_by_pk: {
         restaurant_id: string;
-        global_styles: string | null;
+        global_styles: string | object | null;
       } | null;
     }>(query, { restaurant_id: restaurantId });
 
@@ -77,10 +77,19 @@ export async function GET(request: NextRequest) {
 
     // Parse global_styles JSON or return default configuration
     let globalStyles: GlobalStyleConfig;
-    
+
     if (restaurant.global_styles) {
       try {
-        globalStyles = JSON.parse(restaurant.global_styles);
+        // Check if it's already an object (parsed by GraphQL) or a string
+        if (typeof restaurant.global_styles === 'string') {
+          globalStyles = JSON.parse(restaurant.global_styles);
+        } else if (typeof restaurant.global_styles === 'object') {
+          // Already an object, use it directly
+          globalStyles = restaurant.global_styles as GlobalStyleConfig;
+        } else {
+          console.warn('Unexpected global_styles type:', typeof restaurant.global_styles);
+          globalStyles = getDefaultConfig(restaurantId);
+        }
       } catch (parseError) {
         console.error('Error parsing global_styles JSON:', parseError);
         globalStyles = getDefaultConfig(restaurantId);
@@ -126,7 +135,7 @@ export async function POST(request: NextRequest) {
 
     // Update restaurant's global_styles column in database
     const mutation = `
-      mutation UpdateRestaurantGlobalStyles($restaurant_id: uuid!, $global_styles: String!) {
+      mutation UpdateRestaurantGlobalStyles($restaurant_id: uuid!, $global_styles: jsonb!) {
         update_restaurants_by_pk(
           pk_columns: { restaurant_id: $restaurant_id }
           _set: { global_styles: $global_styles }
@@ -144,7 +153,7 @@ export async function POST(request: NextRequest) {
       } | null;
     }>(mutation, {
       restaurant_id: restaurantId,
-      global_styles: JSON.stringify(config)
+      global_styles: config
     });
 
     if (result.errors) {

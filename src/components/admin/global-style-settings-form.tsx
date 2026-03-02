@@ -130,6 +130,18 @@ const BORDER_OPTIONS = [
   { value: '2px solid currentColor', label: 'Current Color (2px)' },
 ];
 
+const FONT_WEIGHT_OPTIONS = [
+  { value: 100, label: 'Thin (100)' },
+  { value: 200, label: 'Extra Light (200)' },
+  { value: 300, label: 'Light (300)' },
+  { value: 400, label: 'Normal (400)' },
+  { value: 500, label: 'Medium (500)' },
+  { value: 600, label: 'Semi Bold (600)' },
+  { value: 700, label: 'Bold (700)' },
+  { value: 800, label: 'Extra Bold (800)' },
+  { value: 900, label: 'Black (900)' },
+];
+
 // Helper function to get padding from button size
 const getButtonPadding = (size: 'small' | 'medium' | 'large' = 'medium'): string => {
   const sizeOption = BUTTON_SIZE_OPTIONS.find(option => option.value === size);
@@ -499,17 +511,19 @@ export default function GlobalStyleSettingsForm() {
               <div className={styles.formGroup}>
                 <label className={styles.label}>
                   Font Weight
-                  <span className={styles.labelHint}>100-900</span>
+                  <span className={styles.labelHint}>Boldness of text</span>
                 </label>
-                <input
-                  type="number"
-                  min="100"
-                  max="900"
-                  step="100"
+                <select
                   value={titleFontWeight}
                   onChange={(e) => setTitleFontWeight(parseInt(e.target.value))}
-                  className={styles.numberInput}
-                />
+                  className={styles.select}
+                >
+                  {FONT_WEIGHT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className={styles.formGroup}>
@@ -636,17 +650,19 @@ export default function GlobalStyleSettingsForm() {
               <div className={styles.formGroup}>
                 <label className={styles.label}>
                   Font Weight
-                  <span className={styles.labelHint}>100-900</span>
+                  <span className={styles.labelHint}>Boldness of text</span>
                 </label>
-                <input
-                  type="number"
-                  min="100"
-                  max="900"
-                  step="100"
+                <select
                   value={subheadingFontWeight}
                   onChange={(e) => setSubheadingFontWeight(parseInt(e.target.value))}
-                  className={styles.numberInput}
-                />
+                  className={styles.select}
+                >
+                  {FONT_WEIGHT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className={styles.formGroup}>
@@ -773,17 +789,19 @@ export default function GlobalStyleSettingsForm() {
               <div className={styles.formGroup}>
                 <label className={styles.label}>
                   Font Weight
-                  <span className={styles.labelHint}>100-900</span>
+                  <span className={styles.labelHint}>Boldness of text</span>
                 </label>
-                <input
-                  type="number"
-                  min="100"
-                  max="900"
-                  step="100"
+                <select
                   value={paragraphFontWeight}
                   onChange={(e) => setParagraphFontWeight(parseInt(e.target.value))}
-                  className={styles.numberInput}
-                />
+                  className={styles.select}
+                >
+                  {FONT_WEIGHT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className={styles.formGroup}>
@@ -970,17 +988,19 @@ export default function GlobalStyleSettingsForm() {
               <div className={styles.formGroup}>
                 <label className={styles.label}>
                   Font Weight
-                  <span className={styles.labelHint}>100-900</span>
+                  <span className={styles.labelHint}>Boldness of text</span>
                 </label>
-                <input
-                  type="number"
-                  min="100"
-                  max="900"
-                  step="100"
+                <select
                   value={primaryButtonFontWeight}
                   onChange={(e) => setPrimaryButtonFontWeight(parseInt(e.target.value))}
-                  className={styles.numberInput}
-                />
+                  className={styles.select}
+                >
+                  {FONT_WEIGHT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className={styles.formGroup}>
@@ -1223,17 +1243,19 @@ export default function GlobalStyleSettingsForm() {
               <div className={styles.formGroup}>
                 <label className={styles.label}>
                   Font Weight
-                  <span className={styles.labelHint}>100-900</span>
+                  <span className={styles.labelHint}>Boldness of text</span>
                 </label>
-                <input
-                  type="number"
-                  min="100"
-                  max="900"
-                  step="100"
+                <select
                   value={secondaryButtonFontWeight}
                   onChange={(e) => setSecondaryButtonFontWeight(parseInt(e.target.value))}
-                  className={styles.numberInput}
-                />
+                  className={styles.select}
+                >
+                  {FONT_WEIGHT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className={styles.formGroup}>

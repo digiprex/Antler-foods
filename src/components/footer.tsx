@@ -39,6 +39,17 @@ export default function Footer(props: FooterProps) {
     copyrightTextColor = '#ffffff',
     logoUrl,
     restaurant_id,
+    fontFamily = 'Inter, system-ui, sans-serif',
+    fontSize = '0.9375rem',
+    fontWeight = 400,
+    textTransform = 'none',
+    headingFontFamily = 'Inter, system-ui, sans-serif',
+    headingFontSize = '1.125rem',
+    headingFontWeight = 600,
+    headingTextTransform = 'uppercase',
+    copyrightFontFamily = 'Inter, system-ui, sans-serif',
+    copyrightFontSize = '0.875rem',
+    copyrightFontWeight = 400,
   } = props;
 
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -155,7 +166,7 @@ export default function Footer(props: FooterProps) {
   };
 
   const renderDefaultLayout = () => (
-    <div className={`${styles.defaultLayout} ${showNewsletter ? styles.defaultLayoutWithNewsletter : ''}`}>
+    <div className={styles.defaultLayout}>
       {/* Left Section: Logo, About, Social Media */}
       <div className={styles.leftSection}>
         {logoUrl ? (
@@ -196,7 +207,7 @@ export default function Footer(props: FooterProps) {
         <div className={styles.centerSection}>
           <h4 className={styles.sectionTitle}>Quick Links</h4>
           <div className={styles.quickLinks}>
-            {columns.map((column, index) => 
+            {columns.map((column, index) =>
               column.links.map((link, linkIndex) => (
                 <a key={`${index}-${linkIndex}`} href={link.href} className={styles.quickLink}>
                   {link.label}
@@ -237,35 +248,6 @@ export default function Footer(props: FooterProps) {
           </div>
         )}
       </div>
-
-      {/* Newsletter Section */}
-      {showNewsletter && (
-        <div className={styles.newsletterSection}>
-          <h4 className={styles.sectionTitle}>{newsletterTitle}</h4>
-          <form onSubmit={handleNewsletterSubmit} className={styles.newsletterForm}>
-            <input
-              type="email"
-              value={newsletterEmail}
-              onChange={(e) => setNewsletterEmail(e.target.value)}
-              placeholder={newsletterPlaceholder}
-              className={styles.newsletterInput}
-              required
-              disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
-            />
-            <button
-              type="submit"
-              className={styles.newsletterButton}
-              disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
-              style={{
-                backgroundColor: newsletterStatus === 'success' ? '#10b981' : undefined,
-                cursor: newsletterStatus === 'success' ? 'default' : undefined,
-              }}
-            >
-              {newsletterStatus === 'loading' ? 'Subscribing...' : newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
-            </button>
-          </form>
-        </div>
-      )}
     </div>
   );
 
@@ -402,18 +384,59 @@ export default function Footer(props: FooterProps) {
         <div className={styles.contactColumn}>
           <h4 className={styles.columnTitle}>Contact</h4>
           <div className={styles.contactList}>
-            {address && <div className={styles.contactItem}>📍 {address}</div>}
+            {address && (
+              <div className={styles.contactItem}>
+                <span>📍</span>
+                <span>{address}</span>
+              </div>
+            )}
             {email && (
               <div className={styles.contactItem}>
-                <a href={`mailto:${email}`} className={styles.footerLink}>📧 {email}</a>
+                <span>📧</span>
+                <a href={`mailto:${email}`} className={styles.footerLink}>{email}</a>
               </div>
             )}
             {phone && (
               <div className={styles.contactItem}>
-                <a href={`tel:${phone}`} className={styles.footerLink}>📞 {phone}</a>
+                <span>📞</span>
+                <a href={`tel:${phone}`} className={styles.footerLink}>{phone}</a>
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Newsletter Column - Compulsory for 4 Columns Layout */}
+      {layout === 'columns-4' && (
+        <div className={styles.newsletterColumn}>
+          <h4 className={styles.columnTitle}>{newsletterTitle}</h4>
+          <form onSubmit={handleNewsletterSubmit} className={styles.newsletterForm}>
+            <input
+              type="email"
+              value={newsletterEmail}
+              onChange={(e) => setNewsletterEmail(e.target.value)}
+              placeholder={newsletterPlaceholder}
+              className={styles.newsletterInput}
+              required
+              disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
+            />
+            <button
+              type="submit"
+              className={styles.newsletterButton}
+              disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
+              style={{
+                backgroundColor: newsletterStatus === 'success' ? '#10b981' : undefined,
+                cursor: newsletterStatus === 'success' ? 'default' : undefined,
+              }}
+            >
+              {newsletterStatus === 'loading' ? 'Subscribing...' : newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
+            </button>
+          </form>
+          {newsletterMessage && (
+            <div className={`${styles.newsletterMessage} ${newsletterStatus === 'error' ? styles.error : styles.success}`}>
+              {newsletterMessage}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -528,8 +551,6 @@ export default function Footer(props: FooterProps) {
       case 'columns-3':
       case 'columns-4':
         return renderColumnsLayout();
-      case 'minimal':
-        return renderCenteredLayout();
       case 'restaurant':
         return renderRestaurantLayout();
       case 'default':
@@ -545,6 +566,17 @@ export default function Footer(props: FooterProps) {
     '--footer-link-color': linkColor,
     '--copyright-bg-color': copyrightBgColor,
     '--copyright-text-color': copyrightTextColor,
+    '--footer-font-family': fontFamily,
+    '--footer-font-size': fontSize,
+    '--footer-font-weight': fontWeight,
+    '--footer-text-transform': textTransform,
+    '--footer-heading-font-family': headingFontFamily,
+    '--footer-heading-font-size': headingFontSize,
+    '--footer-heading-font-weight': headingFontWeight,
+    '--footer-heading-text-transform': headingTextTransform,
+    '--footer-copyright-font-family': copyrightFontFamily,
+    '--footer-copyright-font-size': copyrightFontSize,
+    '--footer-copyright-font-weight': copyrightFontWeight,
   } as React.CSSProperties;
 
   // Determine footer class based on layout
@@ -554,8 +586,6 @@ export default function Footer(props: FooterProps) {
     ? `${styles.footer} ${styles.footerColumns3}`
     : layout === 'columns-4'
     ? `${styles.footer} ${styles.footerColumns4}`
-    : layout === 'minimal'
-    ? `${styles.footer} ${styles.footerMinimal}`
     : layout === 'restaurant'
     ? `${styles.footer} ${styles.footerRestaurant}`
     : `${styles.footer} ${styles.footerDefault}`;

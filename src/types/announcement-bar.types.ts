@@ -42,9 +42,11 @@ export interface AnnouncementBarConfig {
   linkColor?: string;
   
   // Typography
+  fontFamily?: string;
   fontSize?: string;
-  fontWeight?: string;
-  
+  fontWeight?: number;
+  textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+
   // Spacing
   padding?: string;
   height?: string;
@@ -86,8 +88,10 @@ export const DEFAULT_ANNOUNCEMENT_BAR_CONFIG: AnnouncementBarConfig = {
   bgColor: '#000000',
   textColor: '#ffffff',
   linkColor: '#ffffff',
+  fontFamily: 'Inter, system-ui, sans-serif',
   fontSize: '14px',
-  fontWeight: 'normal',
+  fontWeight: 400,
+  textTransform: 'none',
   padding: '8px 16px',
   height: 'auto',
   isScrolling: false,

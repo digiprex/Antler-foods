@@ -21,6 +21,44 @@ import Footer from '@/components/footer';
 import Toast from '@/components/ui/toast';
 import styles from './footer-settings-form.module.css';
 
+// Font options for footer text
+const FONT_OPTIONS = [
+  { value: 'Inter, system-ui, sans-serif', label: 'Inter (Default)' },
+  { value: 'Roboto, sans-serif', label: 'Roboto' },
+  { value: 'Open Sans, sans-serif', label: 'Open Sans' },
+  { value: 'Lato, sans-serif', label: 'Lato' },
+  { value: 'Montserrat, sans-serif', label: 'Montserrat' },
+  { value: 'Poppins, sans-serif', label: 'Poppins' },
+  { value: 'Playfair Display, serif', label: 'Playfair Display' },
+  { value: 'Merriweather, serif', label: 'Merriweather' },
+  { value: 'Arial, sans-serif', label: 'Arial' },
+  { value: 'Helvetica, sans-serif', label: 'Helvetica' },
+];
+
+const FONT_SIZE_OPTIONS = [
+  { value: '0.75rem', label: 'Extra Small (12px)' },
+  { value: '0.875rem', label: 'Small (14px)' },
+  { value: '0.9375rem', label: 'Base (15px)' },
+  { value: '1rem', label: 'Medium (16px)' },
+  { value: '1.125rem', label: 'Large (18px)' },
+  { value: '1.25rem', label: 'Extra Large (20px)' },
+];
+
+const FONT_WEIGHT_OPTIONS = [
+  { value: 300, label: 'Light (300)' },
+  { value: 400, label: 'Normal (400)' },
+  { value: 500, label: 'Medium (500)' },
+  { value: 600, label: 'Semi Bold (600)' },
+  { value: 700, label: 'Bold (700)' },
+];
+
+const TEXT_TRANSFORM_OPTIONS = [
+  { value: 'none', label: 'None (Default)' },
+  { value: 'uppercase', label: 'UPPERCASE' },
+  { value: 'lowercase', label: 'lowercase' },
+  { value: 'capitalize', label: 'Capitalize Each Word' },
+];
+
 // Restaurant ID should be provided dynamically - no default static ID
 
 export default function FooterSettingsForm() {
@@ -32,7 +70,7 @@ export default function FooterSettingsForm() {
   
   // Form state
   const [layout, setLayout] = useState<NonNullable<FooterConfig['layout']>>(
-    'columns-3',
+    'columns-4',
   );
   const [aboutContent, setAboutContent] = useState('');
   const [email, setEmail] = useState('');
@@ -45,6 +83,21 @@ export default function FooterSettingsForm() {
   const [copyrightTextColor, setCopyrightTextColor] = useState('#ffffff');
   const [showNewsletter, setShowNewsletter] = useState(false);
   const [showSocialMedia, setShowSocialMedia] = useState(true);
+
+  // Font styling state
+  const [fontFamily, setFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [fontSize, setFontSize] = useState('0.9375rem');
+  const [fontWeight, setFontWeight] = useState<number>(400);
+  const [textTransform, setTextTransform] = useState<'none' | 'uppercase' | 'lowercase' | 'capitalize'>('none');
+
+  const [headingFontFamily, setHeadingFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [headingFontSize, setHeadingFontSize] = useState('1.125rem');
+  const [headingFontWeight, setHeadingFontWeight] = useState<number>(600);
+  const [headingTextTransform, setHeadingTextTransform] = useState<'none' | 'uppercase' | 'lowercase' | 'capitalize'>('uppercase');
+
+  const [copyrightFontFamily, setCopyrightFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [copyrightFontSize, setCopyrightFontSize] = useState('0.875rem');
+  const [copyrightFontWeight, setCopyrightFontWeight] = useState<number>(400);
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -78,7 +131,7 @@ export default function FooterSettingsForm() {
   // Initialize form with fetched config
   useEffect(() => {
     if (config) {
-      setLayout(config.layout || 'columns-3');
+      setLayout(config.layout || 'columns-4');
       setAboutContent(config.aboutContent || '');
       setEmail(config.email || '');
       setPhone(config.phone || '');
@@ -90,8 +143,68 @@ export default function FooterSettingsForm() {
       setCopyrightTextColor(config.copyrightTextColor || '#ffffff');
       setShowNewsletter(config.showNewsletter || false);
       setShowSocialMedia(config.showSocialMedia !== false);
+      setFontFamily(config.fontFamily || 'Inter, system-ui, sans-serif');
+      setFontSize(config.fontSize || '0.9375rem');
+      setFontWeight(config.fontWeight || 400);
+      setTextTransform(config.textTransform || 'none');
+      setHeadingFontFamily(config.headingFontFamily || 'Inter, system-ui, sans-serif');
+      setHeadingFontSize(config.headingFontSize || '1.125rem');
+      setHeadingFontWeight(config.headingFontWeight || 600);
+      setHeadingTextTransform(config.headingTextTransform || 'uppercase');
+      setCopyrightFontFamily(config.copyrightFontFamily || 'Inter, system-ui, sans-serif');
+      setCopyrightFontSize(config.copyrightFontSize || '0.875rem');
+      setCopyrightFontWeight(config.copyrightFontWeight || 400);
     }
   }, [config]);
+
+  // Automatically disable newsletter when default layout is selected
+  // Automatically enable newsletter when restaurant or columns-4 layout is selected
+  useEffect(() => {
+    if (layout === 'default') {
+      setShowNewsletter(false);
+    } else if (layout === 'restaurant' || layout === 'columns-4') {
+      setShowNewsletter(true);
+    }
+  }, [layout]);
+
+  // Load Google Fonts dynamically for preview
+  useEffect(() => {
+    const fontsToLoad = new Set<string>();
+
+    // Extract font names from font families
+    const extractFontName = (fontFamily: string) => {
+      const fontName = fontFamily.split(',')[0].trim().replace(/['"]/g, '');
+      // Only load Google Fonts (exclude system fonts)
+      if (!['Inter', 'Arial', 'Helvetica', 'system-ui', 'sans-serif', 'serif'].includes(fontName)) {
+        return fontName;
+      }
+      return null;
+    };
+
+    const contentFont = extractFontName(fontFamily);
+    const headingFont = extractFontName(headingFontFamily);
+    const copyrightFont = extractFontName(copyrightFontFamily);
+
+    if (contentFont) fontsToLoad.add(contentFont);
+    if (headingFont) fontsToLoad.add(headingFont);
+    if (copyrightFont) fontsToLoad.add(copyrightFont);
+
+    if (fontsToLoad.size > 0) {
+      // Create Google Fonts link
+      const fontFamilies = Array.from(fontsToLoad)
+        .map(font => font.replace(/ /g, '+'))
+        .join('&family=');
+
+      const link = document.createElement('link');
+      link.href = `https://fonts.googleapis.com/css2?family=${fontFamilies}&display=swap`;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+
+      return () => {
+        document.head.removeChild(link);
+      };
+    }
+  }, [fontFamily, headingFontFamily, copyrightFontFamily]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,9 +227,20 @@ export default function FooterSettingsForm() {
         linkColor,
         copyrightBgColor,
         copyrightTextColor,
-        showNewsletter,
+        showNewsletter: layout === 'default' ? false : (layout === 'restaurant' || layout === 'columns-4') ? true : showNewsletter, // Force newsletter off for default, on for restaurant and columns-4
         showSocialMedia,
         columns: config?.columns || [],
+        fontFamily,
+        fontSize,
+        fontWeight,
+        textTransform,
+        headingFontFamily,
+        headingFontSize,
+        headingFontWeight,
+        headingTextTransform,
+        copyrightFontFamily,
+        copyrightFontSize,
+        copyrightFontWeight,
       });
 
       setToastMessage('Footer settings saved successfully!');
@@ -156,11 +280,11 @@ export default function FooterSettingsForm() {
             <div>
               <h1 className={styles.formTitle}>Footer Settings</h1>
               <p className={styles.formSubtitle}>Customize your website footer</p>
-              {restaurantNameFromQuery && (
+              {/* {restaurantNameFromQuery && (
                 <p className={styles.formSubtitle}>
                   Restaurant: {restaurantNameFromQuery}
                 </p>
-              )}
+              )} */}
             </div>
             <div className={styles.headerActions}>
               <button
@@ -250,22 +374,6 @@ export default function FooterSettingsForm() {
                     <div className={styles.layoutCardDesc}>4 Columns + Nav</div>
                   </div>
 
-                  {/* 3 Columns Layout */}
-                  <div
-                    className={`${styles.layoutCard} ${layout === 'columns-3' ? styles.layoutCardActive : ''}`}
-                    onClick={() => setLayout('columns-3')}
-                  >
-                    <div className={styles.layoutPreview}>
-                      <div className={styles.layoutPreviewFooter}>
-                        <div className={styles.layoutPreviewSection}></div>
-                        <div className={styles.layoutPreviewSection}></div>
-                        <div className={styles.layoutPreviewSection}></div>
-                      </div>
-                    </div>
-                    <div className={styles.layoutCardName}>3 Columns</div>
-                    <div className={styles.layoutCardDesc}>Multi-column</div>
-                  </div>
-
                   {/* 4 Columns Layout */}
                   <div
                     className={`${styles.layoutCard} ${layout === 'columns-4' ? styles.layoutCardActive : ''}`}
@@ -283,19 +391,6 @@ export default function FooterSettingsForm() {
                     <div className={styles.layoutCardDesc}>Wide Layout</div>
                   </div>
 
-                  {/* Minimal Layout */}
-                  <div
-                    className={`${styles.layoutCard} ${layout === 'minimal' ? styles.layoutCardActive : ''}`}
-                    onClick={() => setLayout('minimal')}
-                  >
-                    <div className={styles.layoutPreview}>
-                      <div className={styles.layoutPreviewFooterMinimal}>
-                        <div className={styles.layoutPreviewSectionSmall}></div>
-                      </div>
-                    </div>
-                    <div className={styles.layoutCardName}>Minimal</div>
-                    <div className={styles.layoutCardDesc}>Simple & Clean</div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -496,29 +591,260 @@ export default function FooterSettingsForm() {
               </div>
             </div>
 
-            {/* Additional Options */}
+            {/* Content Text Font Styling */}
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>⚡</span>
-                Additional Options
+                <span className={styles.sectionIcon}>🔤</span>
+                Content Text Font Styling
               </h3>
 
               <div className={styles.formGroup}>
                 <label className={styles.label}>
-                  Newsletter Signup
-                  <span className={styles.labelHint}>Show newsletter form</span>
+                  Font Family
+                  <span className={styles.labelHint}>Choose content text font</span>
                 </label>
-                <label className={styles.toggleSwitch}>
-                  <input
-                    type="checkbox"
-                    checked={showNewsletter}
-                    onChange={(e) => setShowNewsletter(e.target.checked)}
-                    className={styles.toggleInput}
-                  />
-                  <span className={styles.toggleSlider}></span>
+                <select
+                  value={fontFamily}
+                  onChange={(e) => setFontFamily(e.target.value)}
+                  className={styles.select}
+                >
+                  {FONT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value} style={{ fontFamily: option.value }}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.colorFieldsGrid}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Font Size
+                    <span className={styles.labelHint}>Content text size</span>
+                  </label>
+                  <select
+                    value={fontSize}
+                    onChange={(e) => setFontSize(e.target.value)}
+                    className={styles.select}
+                  >
+                    {FONT_SIZE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Font Weight
+                    <span className={styles.labelHint}>Content text weight</span>
+                  </label>
+                  <select
+                    value={fontWeight}
+                    onChange={(e) => setFontWeight(Number(e.target.value))}
+                    className={styles.select}
+                  >
+                    {FONT_WEIGHT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Text Transform
+                  <span className={styles.labelHint}>Content text case</span>
                 </label>
+                <select
+                  value={textTransform}
+                  onChange={(e) => setTextTransform(e.target.value as 'none' | 'uppercase' | 'lowercase' | 'capitalize')}
+                  className={styles.select}
+                >
+                  {TEXT_TRANSFORM_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
+
+            {/* Heading Text Font Styling */}
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}>📝</span>
+                Heading Text Font Styling
+              </h3>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Font Family
+                  <span className={styles.labelHint}>Choose heading font</span>
+                </label>
+                <select
+                  value={headingFontFamily}
+                  onChange={(e) => setHeadingFontFamily(e.target.value)}
+                  className={styles.select}
+                >
+                  {FONT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value} style={{ fontFamily: option.value }}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.colorFieldsGrid}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Font Size
+                    <span className={styles.labelHint}>Heading text size (larger)</span>
+                  </label>
+                  <select
+                    value={headingFontSize}
+                    onChange={(e) => setHeadingFontSize(e.target.value)}
+                    className={styles.select}
+                  >
+                    {FONT_SIZE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Font Weight
+                    <span className={styles.labelHint}>Heading text weight</span>
+                  </label>
+                  <select
+                    value={headingFontWeight}
+                    onChange={(e) => setHeadingFontWeight(Number(e.target.value))}
+                    className={styles.select}
+                  >
+                    {FONT_WEIGHT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Text Transform
+                  <span className={styles.labelHint}>Heading text case</span>
+                </label>
+                <select
+                  value={headingTextTransform}
+                  onChange={(e) => setHeadingTextTransform(e.target.value as 'none' | 'uppercase' | 'lowercase' | 'capitalize')}
+                  className={styles.select}
+                >
+                  {TEXT_TRANSFORM_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Copyright Text Font Styling */}
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}>©️</span>
+                Copyright Text Font Styling
+              </h3>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Font Family
+                  <span className={styles.labelHint}>Choose copyright font</span>
+                </label>
+                <select
+                  value={copyrightFontFamily}
+                  onChange={(e) => setCopyrightFontFamily(e.target.value)}
+                  className={styles.select}
+                >
+                  {FONT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value} style={{ fontFamily: option.value }}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.colorFieldsGrid}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Font Size
+                    <span className={styles.labelHint}>Copyright text size</span>
+                  </label>
+                  <select
+                    value={copyrightFontSize}
+                    onChange={(e) => setCopyrightFontSize(e.target.value)}
+                    className={styles.select}
+                  >
+                    {FONT_SIZE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Font Weight
+                    <span className={styles.labelHint}>Copyright text weight</span>
+                  </label>
+                  <select
+                    value={copyrightFontWeight}
+                    onChange={(e) => setCopyrightFontWeight(Number(e.target.value))}
+                    className={styles.select}
+                  >
+                    {FONT_WEIGHT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Options - hide for Three Section (default), Restaurant (4 Columns + Nav), and 4 Columns layouts */}
+            {layout !== 'default' && layout !== 'restaurant' && layout !== 'columns-4' && (
+              <div className={styles.section}>
+                <h3 className={styles.sectionTitle}>
+                  <span className={styles.sectionIcon}>⚡</span>
+                  Additional Options
+                </h3>
+
+                {/* Newsletter option */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Newsletter Signup
+                    <span className={styles.labelHint}>Show newsletter form</span>
+                  </label>
+                  <label className={styles.toggleSwitch}>
+                    <input
+                      type="checkbox"
+                      checked={showNewsletter}
+                      onChange={(e) => setShowNewsletter(e.target.checked)}
+                      className={styles.toggleInput}
+                    />
+                    <span className={styles.toggleSlider}></span>
+                  </label>
+                </div>
+              </div>
+            )}
 
             {/* Save Button */}
             <div className={styles.formActions}>
@@ -586,6 +912,17 @@ export default function FooterSettingsForm() {
                     linkColor={linkColor}
                     copyrightBgColor={copyrightBgColor}
                     copyrightTextColor={copyrightTextColor}
+                    fontFamily={fontFamily}
+                    fontSize={fontSize}
+                    fontWeight={fontWeight}
+                    textTransform={textTransform}
+                    headingFontFamily={headingFontFamily}
+                    headingFontSize={headingFontSize}
+                    headingFontWeight={headingFontWeight}
+                    headingTextTransform={headingTextTransform}
+                    copyrightFontFamily={copyrightFontFamily}
+                    copyrightFontSize={copyrightFontSize}
+                    copyrightFontWeight={copyrightFontWeight}
                   />
                 </div>
               </div>

@@ -216,13 +216,13 @@ export async function GET(request: Request) {
     const restaurantEmail = restaurantData?.email || '';
     const restaurantPhone = restaurantData?.phone_number || '';
     
-    // Build complete address from restaurant table fields
+    // Build complete address from restaurant table fields, avoiding duplication
     const addressParts = [];
     if (restaurantData?.address) addressParts.push(restaurantData.address);
-    if (restaurantData?.city) addressParts.push(restaurantData.city);
-    if (restaurantData?.state) addressParts.push(restaurantData.state);
+    if (restaurantData?.city && restaurantData.city !== restaurantData?.address) addressParts.push(restaurantData.city);
+    if (restaurantData?.state && restaurantData.state !== restaurantData?.city) addressParts.push(restaurantData.state);
     if (restaurantData?.postal_code) addressParts.push(restaurantData.postal_code);
-    if (restaurantData?.country) addressParts.push(restaurantData.country);
+    if (restaurantData?.country && restaurantData.country !== restaurantData?.state) addressParts.push(restaurantData.country);
     const restaurantAddress = addressParts.join(', ');
     
     // Build social links from restaurant table
@@ -280,8 +280,9 @@ export async function GET(request: Request) {
       links: pageLinks,
     }] : [];
 
-    // Combine pages column with any additional columns from template menu_items
-    const allColumns = [...pagesColumn, ...(template.menu_items || [])];
+    // Use only dynamic pages from database, ignore template menu_items to avoid duplication
+    // The pages are already filtered for show_on_footer=true and published=true
+    const allColumns = pagesColumn;
 
     // Transform template structure to FooterConfig
     // Use name, email, phone, address and social links from restaurant table, fallback to template config
@@ -304,6 +305,17 @@ export async function GET(request: Request) {
       showNewsletter: template.config?.showNewsletter || false,
       showSocialMedia: template.config?.showSocialMedia !== false,
       showLocations: template.config?.showLocations !== false,
+      fontFamily: template.config?.fontFamily || 'Inter, system-ui, sans-serif',
+      fontSize: template.config?.fontSize || '0.9375rem',
+      fontWeight: template.config?.fontWeight || 400,
+      textTransform: template.config?.textTransform || 'none',
+      headingFontFamily: template.config?.headingFontFamily || 'Inter, system-ui, sans-serif',
+      headingFontSize: template.config?.headingFontSize || '1.125rem',
+      headingFontWeight: template.config?.headingFontWeight || 600,
+      headingTextTransform: template.config?.headingTextTransform || 'uppercase',
+      copyrightFontFamily: template.config?.copyrightFontFamily || 'Inter, system-ui, sans-serif',
+      copyrightFontSize: template.config?.copyrightFontSize || '0.875rem',
+      copyrightFontWeight: template.config?.copyrightFontWeight || 400,
     };
 
     const response: FooterConfigResponse = {
@@ -373,6 +385,17 @@ export async function POST(request: Request) {
       showNewsletter: body.showNewsletter,
       showSocialMedia: body.showSocialMedia,
       showLocations: body.showLocations,
+      fontFamily: body.fontFamily,
+      fontSize: body.fontSize,
+      fontWeight: body.fontWeight,
+      textTransform: body.textTransform,
+      headingFontFamily: body.headingFontFamily,
+      headingFontSize: body.headingFontSize,
+      headingFontWeight: body.headingFontWeight,
+      headingTextTransform: body.headingTextTransform,
+      copyrightFontFamily: body.copyrightFontFamily,
+      copyrightFontSize: body.copyrightFontSize,
+      copyrightFontWeight: body.copyrightFontWeight,
     };
 
     const menu_items = body.columns || [];
@@ -410,6 +433,17 @@ export async function POST(request: Request) {
       showNewsletter: template.config?.showNewsletter,
       showSocialMedia: template.config?.showSocialMedia,
       showLocations: template.config?.showLocations,
+      fontFamily: template.config?.fontFamily,
+      fontSize: template.config?.fontSize,
+      fontWeight: template.config?.fontWeight,
+      textTransform: template.config?.textTransform,
+      headingFontFamily: template.config?.headingFontFamily,
+      headingFontSize: template.config?.headingFontSize,
+      headingFontWeight: template.config?.headingFontWeight,
+      headingTextTransform: template.config?.headingTextTransform,
+      copyrightFontFamily: template.config?.copyrightFontFamily,
+      copyrightFontSize: template.config?.copyrightFontSize,
+      copyrightFontWeight: template.config?.copyrightFontWeight,
     };
 
     const response: FooterConfigResponse = {

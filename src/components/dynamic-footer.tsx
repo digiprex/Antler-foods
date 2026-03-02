@@ -151,6 +151,17 @@ export default function DynamicFooter({
       linkColor={config.linkColor}
       copyrightBgColor={config.copyrightBgColor}
       copyrightTextColor={config.copyrightTextColor}
+      fontFamily={config.fontFamily}
+      fontSize={config.fontSize}
+      fontWeight={config.fontWeight}
+      textTransform={config.textTransform}
+      headingFontFamily={config.headingFontFamily}
+      headingFontSize={config.headingFontSize}
+      headingFontWeight={config.headingFontWeight}
+      headingTextTransform={config.headingTextTransform}
+      copyrightFontFamily={config.copyrightFontFamily}
+      copyrightFontSize={config.copyrightFontSize}
+      copyrightFontWeight={config.copyrightFontWeight}
     />
   );
 }

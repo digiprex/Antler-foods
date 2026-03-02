@@ -119,12 +119,14 @@ export async function GET(request: NextRequest) {
     console.log('[Location Config] Template query result:', JSON.stringify(data, null, 2));
 
     // Get google_place_id from restaurant table
-    const googlePlaceId = data.restaurants?.[0]?.google_place_id || '';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const googlePlaceId = (data as any).restaurants?.[0]?.google_place_id || '';
     
-    console.log('[Location Config] Restaurant data:', data.restaurants);
+    console.log('[Location Config] Restaurant data:', (data as any).restaurants);
     console.log('[Location Config] Google Place ID:', googlePlaceId);
 
-    if (!data.templates || data.templates.length === 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!(data as any).templates || (data as any).templates.length === 0) {
       // Return default config if no template exists
       const defaultConfig = {
         enabled: false,
@@ -143,7 +145,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const template = data.templates[0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const template = (data as any).templates[0];
 
     // Transform template structure to LocationConfig
     const config = {
@@ -188,8 +191,10 @@ export async function POST(request: NextRequest) {
     });
 
     // Step 2: Mark current template as deleted (if exists)
-    if (currentData.templates && currentData.templates.length > 0) {
-      const currentTemplate = currentData.templates[0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((currentData as any).templates && (currentData as any).templates.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const currentTemplate = (currentData as any).templates[0];
       await graphqlRequest(MARK_AS_DELETED, {
         template_id: currentTemplate.template_id,
       });
@@ -216,11 +221,13 @@ export async function POST(request: NextRequest) {
       page_id: page_id,
     });
 
-    if (!insertedData.insert_templates_one) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!(insertedData as any).insert_templates_one) {
       throw new Error('Failed to insert new template');
     }
 
-    const template = insertedData.insert_templates_one;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const template = (insertedData as any).insert_templates_one;
     console.log('[Location Config] Created new template:', template.template_id);
 
     // Transform back to LocationConfig

@@ -3,7 +3,7 @@
  * Provides data fetching and update functionality for announcement bar settings
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { AnnouncementBarConfig, AnnouncementBarConfigResponse } from '@/types/announcement-bar.types';
 
 /**
@@ -14,18 +14,18 @@ export function useAnnouncementBarConfig({ apiEndpoint }: { apiEndpoint: string 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchConfig = async () => {
+  const fetchConfig = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch(apiEndpoint);
       const data: AnnouncementBarConfigResponse = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
-      
+
       if (data.success) {
         setConfig(data.data);
       } else {
@@ -38,7 +38,7 @@ export function useAnnouncementBarConfig({ apiEndpoint }: { apiEndpoint: string 
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiEndpoint]);
 
   useEffect(() => {
     if (apiEndpoint) {

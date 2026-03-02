@@ -49,12 +49,11 @@ export interface FooterConfig {
   showPoweredBy?: boolean;
 
   // Styling
-  layout?: 'default' | 'centered' | 'columns-3' | 'columns-4' | 'minimal' | 'restaurant';
+  layout?: 'default' | 'centered' | 'columns-3' | 'columns-4' | 'restaurant';
   // Layout descriptions:
   // - default: Three sections (Left: Brand/About/Social | Center: Location | Right: Contact/ScrollTop)
   // - centered: All content centered
   // - columns-3/4: Multi-column layout with links
-  // - minimal: Simple centered layout
   // - restaurant: Four columns with brand, address, contact, and scroll button + nav links below
   bgColor?: string;
   textColor?: string;
@@ -62,6 +61,23 @@ export interface FooterConfig {
   borderColor?: string;
   copyrightBgColor?: string;
   copyrightTextColor?: string;
+
+  // Font styling for footer content
+  fontFamily?: string;
+  fontSize?: string;
+  fontWeight?: number;
+  textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+
+  // Font styling for headings (slightly larger)
+  headingFontFamily?: string;
+  headingFontSize?: string;
+  headingFontWeight?: number;
+  headingTextTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+
+  // Font styling for copyright section
+  copyrightFontFamily?: string;
+  copyrightFontSize?: string;
+  copyrightFontWeight?: number;
 
   // Additional options
   showNewsletter?: boolean;
@@ -132,4 +148,15 @@ export const DEFAULT_FOOTER_CONFIG: FooterConfig = {
   newsletterPlaceholder: "Enter your email",
   showSocialMedia: true,
   showLocations: true,
+  fontFamily: "Inter, system-ui, sans-serif",
+  fontSize: "0.9375rem",
+  fontWeight: 400,
+  textTransform: "none",
+  headingFontFamily: "Inter, system-ui, sans-serif",
+  headingFontSize: "1.125rem",
+  headingFontWeight: 600,
+  headingTextTransform: "uppercase",
+  copyrightFontFamily: "Inter, system-ui, sans-serif",
+  copyrightFontSize: "0.875rem",
+  copyrightFontWeight: 400,
 };

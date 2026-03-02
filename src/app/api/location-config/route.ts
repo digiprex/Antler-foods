@@ -96,22 +96,28 @@ async function graphqlRequest<T>(query: string, variables?: Record<string, unkno
   return adminGraphqlRequest<T>(query, variables);
 }
 
+interface LocationTemplate {
+  category: string;
+  config: Record<string, unknown>;
+  created_at: string;
+  is_deleted: boolean;
+  name: string;
+  restaurant_id: string;
+  template_id: string;
+  page_id: string;
+  updated_at: string;
+}
+
 interface LocationConfigResponse {
-  templates?: Array<{
-    category: string;
-    config: Record<string, unknown>;
-    created_at: string;
-    is_deleted: boolean;
-    name: string;
-    restaurant_id: string;
-    template_id: string;
-    page_id: string;
-    updated_at: string;
-  }>;
+  templates?: LocationTemplate[];
   restaurants?: Array<{
     google_place_id?: string;
     restaurant_id: string;
   }>;
+}
+
+interface InsertLocationTemplateResponse {
+  insert_templates_one: LocationTemplate;
 }
 
 export async function GET(request: NextRequest) {
@@ -200,7 +206,7 @@ export async function POST(request: NextRequest) {
     console.log('[Location Config] Saving config for restaurant:', restaurant_id, 'page_id:', page_id);
 
     // Step 1: Get current template to mark as deleted
-    const currentData = await graphqlRequest(GET_LOCATION_CONFIG, {
+    const currentData = await graphqlRequest<LocationConfigResponse>(GET_LOCATION_CONFIG, {
       restaurant_id: restaurant_id,
       page_id: page_id,
     });
@@ -226,7 +232,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Step 3: Insert new template
-    const insertedData = await graphqlRequest(INSERT_TEMPLATE, {
+    const insertedData = await graphqlRequest<InsertLocationTemplateResponse>(INSERT_TEMPLATE, {
       restaurant_id: restaurant_id,
       name: name,
       category: 'Location',

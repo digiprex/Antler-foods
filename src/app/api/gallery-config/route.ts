@@ -16,6 +16,40 @@ import type { GalleryConfig, GalleryConfigResponse } from '@/types/gallery.types
 import { DEFAULT_GALLERY_CONFIG } from '@/types/gallery.types';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+// GraphQL response types
+interface RestaurantByDomainResponse {
+  restaurants: Array<{
+    restaurant_id: string;
+  }>;
+}
+
+interface PageBySlugResponse {
+  web_pages: Array<{
+    page_id: string;
+  }>;
+}
+
+interface GalleryTemplate {
+  category: string;
+  config: Record<string, unknown>;
+  created_at: string;
+  is_deleted: boolean;
+  menu_items: unknown[];
+  name: string;
+  restaurant_id: string;
+  template_id: string;
+  updated_at: string;
+  page_id?: string;
+}
+
+interface GalleryTemplateResponse {
+  templates: GalleryTemplate[];
+}
+
+interface InsertGalleryTemplateResponse {
+  insert_templates_one: GalleryTemplate;
+}
+
 /**
  * GraphQL query to fetch gallery configuration from templates
  * Searches by restaurant_id and category, excludes deleted templates
@@ -127,10 +161,10 @@ export async function GET(request: Request) {
           }
         `;
 
-        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, { domain });
+        const domainData = await graphqlRequest<RestaurantByDomainResponse>(GET_RESTAURANT_BY_DOMAIN, { domain });
 
-        if ((domainData as any).restaurants && (domainData as any).restaurants.length > 0) {
-          restaurantId = (domainData as any).restaurants[0].restaurant_id;
+        if (domainData.restaurants && domainData.restaurants.length > 0) {
+          restaurantId = domainData.restaurants[0].restaurant_id;
         }
       } catch (error) {
         console.error('[Gallery Config] Error fetching restaurant ID by domain:', error);
@@ -164,13 +198,13 @@ export async function GET(request: Request) {
           }
         `;
 
-        const pageData = await graphqlRequest(GET_PAGE_BY_SLUG, {
+        const pageData = await graphqlRequest<PageBySlugResponse>(GET_PAGE_BY_SLUG, {
           restaurant_id: restaurantId,
           url_slug: urlSlug,
         });
 
-        if ((pageData as any).web_pages && (pageData as any).web_pages.length > 0) {
-          pageId = (pageData as any).web_pages[0].page_id;
+        if (pageData.web_pages && pageData.web_pages.length > 0) {
+          pageId = pageData.web_pages[0].page_id;
         }
       } catch (error) {
         console.error('[Gallery Config] Error fetching page_id:', error);
@@ -179,7 +213,7 @@ export async function GET(request: Request) {
 
     // Use page-specific query if page_id is available
     const data = pageId
-      ? await graphqlRequest(`
+      ? await graphqlRequest<GalleryTemplateResponse>(`
           query GetGalleryConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
             templates(
               where: {
@@ -207,9 +241,9 @@ export async function GET(request: Request) {
           restaurant_id: restaurantId,
           page_id: pageId,
         })
-      : await graphqlRequest(GET_GALLERY_CONFIG, { restaurant_id: restaurantId });
+      : await graphqlRequest<GalleryTemplateResponse>(GET_GALLERY_CONFIG, { restaurant_id: restaurantId });
 
-    if (!(data as any).templates || (data as any).templates.length === 0) {
+    if (!data.templates || data.templates.length === 0) {
       const response: GalleryConfigResponse = {
         success: true,
         data: DEFAULT_GALLERY_CONFIG,
@@ -217,11 +251,11 @@ export async function GET(request: Request) {
       return NextResponse.json(response);
     }
 
-    const template = (data as any).templates[0];
+    const template = data.templates[0];
     const config: GalleryConfig = {
       ...DEFAULT_GALLERY_CONFIG,
       ...template.config,
-      layout: template.name as any,
+      layout: template.name as GalleryConfig['layout'],
       restaurant_id: restaurantId,
     };
 
@@ -260,7 +294,7 @@ export async function POST(request: Request) {
 
     // Get current template to mark as deleted
     const currentData = pageId
-      ? await graphqlRequest(`
+      ? await graphqlRequest<GalleryTemplateResponse>(`
           query GetGalleryConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
             templates(
               where: {
@@ -279,17 +313,17 @@ export async function POST(request: Request) {
           restaurant_id: restaurantId,
           page_id: pageId,
         })
-      : await graphqlRequest(GET_GALLERY_CONFIG, { restaurant_id: restaurantId });
+      : await graphqlRequest<GalleryTemplateResponse>(GET_GALLERY_CONFIG, { restaurant_id: restaurantId });
 
     // Mark current template as deleted (if exists)
-    if ((currentData as any).templates && (currentData as any).templates.length > 0) {
+    if (currentData.templates && currentData.templates.length > 0) {
       await graphqlRequest(MARK_AS_DELETED, {
-        template_id: (currentData as any).templates[0].template_id,
+        template_id: currentData.templates[0].template_id,
       });
     }
 
     // Prepare gallery configuration
-    const { restaurant_id: _restaurant_id, layout, page_id: _pageId, ...configData } = body;
+    const { layout, ...configData } = body;
     const name = layout || 'grid';
     const config = {
       ...configData,
@@ -297,7 +331,7 @@ export async function POST(request: Request) {
     };
 
     // Insert new template
-    const insertedData = await graphqlRequest(INSERT_TEMPLATE, {
+    const insertedData = await graphqlRequest<InsertGalleryTemplateResponse>(INSERT_TEMPLATE, {
       restaurant_id: restaurantId,
       name: name,
       category: 'Gallery',
@@ -306,14 +340,15 @@ export async function POST(request: Request) {
       page_id: pageId,
     });
 
-    if (!(insertedData as any).insert_templates_one) {
+    if (!insertedData.insert_templates_one) {
       throw new Error('Failed to insert template');
     }
 
-    const template = (insertedData as any).insert_templates_one;
+    const template = insertedData.insert_templates_one;
     const responseConfig: GalleryConfig = {
+      ...DEFAULT_GALLERY_CONFIG,
       ...template.config,
-      layout: template.name as any,
+      layout: template.name as GalleryConfig['layout'],
       restaurant_id: restaurantId,
     };
 

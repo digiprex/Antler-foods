@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const {
-      form_id: _form_id,
       form_title,
       restaurant_id,
       data,

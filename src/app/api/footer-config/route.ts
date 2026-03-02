@@ -15,6 +15,65 @@ import { NextResponse } from 'next/server';
 import type { FooterConfig, FooterConfigResponse } from '@/types/footer.types';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+// GraphQL response types
+interface RestaurantData {
+  name?: string;
+  email?: string;
+  phone_number?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postal_code?: string;
+  insta_link?: string;
+  fb_link?: string;
+  yt_link?: string;
+  tiktok_link?: string;
+  gmb_link?: string;
+  doordash_link?: string;
+  grubhub_link?: string;
+  ubereats_link?: string;
+  yelp_link?: string;
+  is_deleted?: boolean;
+}
+
+interface TemplateData {
+  category: string;
+  config?: Record<string, unknown>;
+  created_at: string;
+  is_deleted: boolean;
+  menu_items?: unknown[];
+  name: string;
+  restaurant_id: string;
+  template_id: string;
+  updated_at: string;
+}
+
+interface WebPageData {
+  page_id: string;
+  name: string;
+  url_slug: string;
+}
+
+interface FooterConfigQueryResponse {
+  templates: TemplateData[];
+  restaurants: RestaurantData[];
+  web_pages: WebPageData[];
+}
+
+interface DomainQueryResponse {
+  restaurants: Array<{
+    restaurant_id: string;
+    custom_domain: string;
+    staging_domain: string;
+    is_deleted: boolean;
+  }>;
+}
+
+interface InsertTemplateResponse {
+  insert_templates_one: TemplateData;
+}
+
 // Restaurant ID must be provided dynamically via query parameters or domain lookup
 
 /**
@@ -168,12 +227,12 @@ export async function GET(request: Request) {
           }
         `;
 
-        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, {
+        const domainData = await graphqlRequest<DomainQueryResponse>(GET_RESTAURANT_BY_DOMAIN, {
           domain: domain,
         });
 
-        if ((domainData as any).restaurants && (domainData as any).restaurants.length > 0) {
-          const restaurant = (domainData as any).restaurants[0];
+        if (domainData.restaurants && domainData.restaurants.length > 0) {
+          const restaurant = domainData.restaurants[0];
           if (!restaurant.is_deleted) {
             restaurantId = restaurant.restaurant_id;
             console.log('[Footer Config] Found restaurant for domain:', domain, '->', restaurantId);
@@ -202,14 +261,14 @@ export async function GET(request: Request) {
     // Footer is global for the restaurant - always use general template (no page_id)
     console.log('[Footer Config] Using restaurant_id:', restaurantId);
 
-    const data = await graphqlRequest(GET_FOOTER_CONFIG, {
+    const data = await graphqlRequest<FooterConfigQueryResponse>(GET_FOOTER_CONFIG, {
       restaurant_id: restaurantId,
     });
 
     console.log('[Footer Config] Template query result (restaurant-wide):', JSON.stringify(data, null, 2));
 
     // Extract name, email, phone, address and social links from restaurant table
-    const restaurantData = (data as any).restaurants?.[0];
+    const restaurantData = data.restaurants?.[0];
     const restaurantName = restaurantData?.name || '';
     const restaurantEmail = restaurantData?.email || '';
     const restaurantPhone = restaurantData?.phone_number || '';
@@ -254,7 +313,7 @@ export async function GET(request: Request) {
       socialLinks.push({ platform: 'yelp' as const, url: restaurantData.yelp_link, order: order++ });
     }
 
-    if (!(data as any).templates || (data as any).templates.length === 0) {
+    if (!data.templates || data.templates.length === 0) {
       // Return 404 if no footer template exists - don't show footer
       const response = {
         success: false,
@@ -264,10 +323,10 @@ export async function GET(request: Request) {
       return NextResponse.json(response, { status: 404 });
     }
 
-    const template = (data as any).templates[0];
+    const template = data.templates[0];
 
     // Transform web_pages to footer links
-    const pageLinks = ((data as any).web_pages || []).map((page: any) => ({
+    const pageLinks = (data.web_pages || []).map((page: WebPageData) => ({
       label: page.name,
       href: `/${page.url_slug}`,
     }));
@@ -279,27 +338,27 @@ export async function GET(request: Request) {
     }] : [];
 
     // Combine pages column with any additional columns from template menu_items
-    const allColumns = [...pagesColumn, ...(template.menu_items || [])];
+    const allColumns = [...pagesColumn, ...(Array.isArray(template.menu_items) ? template.menu_items as FooterConfig['columns'] : [])];
 
     // Transform template structure to FooterConfig
     // Use name, email, phone, address and social links from restaurant table, fallback to template config
     const config: FooterConfig = {
-      restaurantName: restaurantName || template.config?.restaurantName || 'Restaurant',
-      aboutContent: template.config?.aboutContent || '',
-      email: restaurantEmail || template.config?.email || '',
-      phone: restaurantPhone || template.config?.phone || '',
-      address: restaurantAddress || template.config?.address || '',
+      restaurantName: restaurantName || (typeof template.config?.restaurantName === 'string' ? template.config.restaurantName : '') || 'Restaurant',
+      aboutContent: (typeof template.config?.aboutContent === 'string' ? template.config.aboutContent : '') || '',
+      email: restaurantEmail || (typeof template.config?.email === 'string' ? template.config.email : '') || '',
+      phone: restaurantPhone || (typeof template.config?.phone === 'string' ? template.config.phone : '') || '',
+      address: restaurantAddress || (typeof template.config?.address === 'string' ? template.config.address : '') || '',
       columns: allColumns, // Use pages with show_on_footer=true + any additional columns
-      socialLinks: socialLinks.length > 0 ? socialLinks : (template.config?.socialLinks || []),
-      copyrightText: template.config?.copyrightText || `© ${new Date().getFullYear()} Antler Foods. All rights reserved.`,
+      socialLinks: socialLinks.length > 0 ? socialLinks : (Array.isArray(template.config?.socialLinks) ? template.config.socialLinks : []),
+      copyrightText: (typeof template.config?.copyrightText === 'string' ? template.config.copyrightText : '') || `© ${new Date().getFullYear()} Antler Foods. All rights reserved.`,
       showPoweredBy: template.config?.showPoweredBy !== false,
-      layout: template.name,
-      bgColor: template.config?.bgColor || '#1f2937',
-      textColor: template.config?.textColor || '#f9fafb',
-      linkColor: template.config?.linkColor || '#9ca3af',
-      copyrightBgColor: template.config?.copyrightBgColor || '#000000',
-      copyrightTextColor: template.config?.copyrightTextColor || '#ffffff',
-      showNewsletter: template.config?.showNewsletter || false,
+      layout: template.name as FooterConfig['layout'],
+      bgColor: (typeof template.config?.bgColor === 'string' ? template.config.bgColor : '') || '#1f2937',
+      textColor: (typeof template.config?.textColor === 'string' ? template.config.textColor : '') || '#f9fafb',
+      linkColor: (typeof template.config?.linkColor === 'string' ? template.config.linkColor : '') || '#9ca3af',
+      copyrightBgColor: (typeof template.config?.copyrightBgColor === 'string' ? template.config.copyrightBgColor : '') || '#000000',
+      copyrightTextColor: (typeof template.config?.copyrightTextColor === 'string' ? template.config.copyrightTextColor : '') || '#ffffff',
+      showNewsletter: Boolean(template.config?.showNewsletter) || false,
       showSocialMedia: template.config?.showSocialMedia !== false,
       showLocations: template.config?.showLocations !== false,
     };
@@ -343,13 +402,13 @@ export async function POST(request: Request) {
     }
 
     // Step 1: Get current template to mark as deleted
-    const currentData = await graphqlRequest(GET_FOOTER_CONFIG, {
+    const currentData = await graphqlRequest<FooterConfigQueryResponse>(GET_FOOTER_CONFIG, {
       restaurant_id: restaurantId,
     });
 
     // Step 2: Mark current template as deleted (if exists)
-    if ((currentData as any).templates && (currentData as any).templates.length > 0) {
-      const currentTemplate = (currentData as any).templates[0];
+    if (currentData.templates && currentData.templates.length > 0) {
+      const currentTemplate = currentData.templates[0];
 
       await graphqlRequest(MARK_AS_DELETED, {
         template_id: currentTemplate.template_id,
@@ -376,7 +435,7 @@ export async function POST(request: Request) {
     const menu_items = body.columns || [];
 
     // Step 3: Insert new template
-    const insertedData = await graphqlRequest(INSERT_TEMPLATE, {
+    const insertedData = await graphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
       restaurant_id: restaurantId,
       name: name,
       category: 'Footer',
@@ -384,30 +443,30 @@ export async function POST(request: Request) {
       menu_items: menu_items,
     });
 
-    if (!(insertedData as any).insert_templates_one) {
+    if (!insertedData.insert_templates_one) {
       throw new Error('Failed to insert new template');
     }
 
-    const template = (insertedData as any).insert_templates_one;
+    const template = insertedData.insert_templates_one;
 
     // Transform back to FooterConfig
     // Note: restaurantName, email, phone, address and socialLinks will be fetched from restaurant table on next GET request
     const responseConfig: FooterConfig = {
       restaurantName: '', // Will be fetched from restaurant table
-      aboutContent: template.config?.aboutContent,
-      layout: template.name,
-      columns: template.menu_items,
+      aboutContent: (typeof template.config?.aboutContent === 'string' ? template.config.aboutContent : '') || '',
+      layout: template.name as FooterConfig['layout'],
+      columns: Array.isArray(template.menu_items) ? template.menu_items as FooterConfig['columns'] : [],
       socialLinks: [], // Will be fetched from restaurant table
-      bgColor: template.config?.bgColor,
-      textColor: template.config?.textColor,
-      linkColor: template.config?.linkColor,
-      copyrightBgColor: template.config?.copyrightBgColor,
-      copyrightTextColor: template.config?.copyrightTextColor,
-      copyrightText: template.config?.copyrightText,
-      showPoweredBy: template.config?.showPoweredBy,
-      showNewsletter: template.config?.showNewsletter,
-      showSocialMedia: template.config?.showSocialMedia,
-      showLocations: template.config?.showLocations,
+      bgColor: (typeof template.config?.bgColor === 'string' ? template.config.bgColor : '') || '#1f2937',
+      textColor: (typeof template.config?.textColor === 'string' ? template.config.textColor : '') || '#f9fafb',
+      linkColor: (typeof template.config?.linkColor === 'string' ? template.config.linkColor : '') || '#9ca3af',
+      copyrightBgColor: (typeof template.config?.copyrightBgColor === 'string' ? template.config.copyrightBgColor : '') || '#000000',
+      copyrightTextColor: (typeof template.config?.copyrightTextColor === 'string' ? template.config.copyrightTextColor : '') || '#ffffff',
+      copyrightText: (typeof template.config?.copyrightText === 'string' ? template.config.copyrightText : '') || `© ${new Date().getFullYear()} Antler Foods. All rights reserved.`,
+      showPoweredBy: Boolean(template.config?.showPoweredBy) !== false,
+      showNewsletter: Boolean(template.config?.showNewsletter) || false,
+      showSocialMedia: Boolean(template.config?.showSocialMedia) !== false,
+      showLocations: Boolean(template.config?.showLocations) !== false,
     };
 
     const response: FooterConfigResponse = {

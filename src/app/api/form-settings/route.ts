@@ -9,6 +9,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+// GraphQL response types
+interface FormTemplate {
+  template_id: string;
+  category: string;
+  name: string;
+  config: Record<string, unknown>;
+  restaurant_id: string;
+  page_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface FormSettingsQueryResponse {
+  templates: FormTemplate[];
+}
+
+interface InsertFormTemplateResponse {
+  insert_templates_one: FormTemplate;
+}
+
 /**
  * GraphQL query to fetch form settings from templates
  */
@@ -101,12 +121,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Query form settings from templates table
-    const data = await adminGraphqlRequest(GET_FORM_SETTINGS, {
+    const data = await adminGraphqlRequest<FormSettingsQueryResponse>(GET_FORM_SETTINGS, {
       restaurant_id: restaurantId,
       page_id: pageId
     });
 
-    const template = (data as any).templates?.[0] || null;
+    const template = data.templates?.[0] || null;
 
     if (!template) {
       return NextResponse.json({
@@ -180,14 +200,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 1: Get current template to mark as deleted
-    const currentData = await adminGraphqlRequest(GET_FORM_SETTINGS, {
+    const currentData = await adminGraphqlRequest<FormSettingsQueryResponse>(GET_FORM_SETTINGS, {
       restaurant_id,
       page_id
     });
 
     // Step 2: Mark current template as deleted (if exists)
-    if ((currentData as any).templates && (currentData as any).templates.length > 0) {
-      const currentTemplate = (currentData as any).templates[0];
+    if (currentData.templates && currentData.templates.length > 0) {
+      const currentTemplate = currentData.templates[0];
       await adminGraphqlRequest(MARK_AS_DELETED, {
         template_id: currentTemplate.template_id,
       });
@@ -208,7 +228,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Step 4: Insert new template
-    const insertedData = await adminGraphqlRequest(INSERT_TEMPLATE, {
+    const insertedData = await adminGraphqlRequest<InsertFormTemplateResponse>(INSERT_TEMPLATE, {
       restaurant_id,
       page_id,
       name: layout, // Layout goes in the name field
@@ -216,11 +236,11 @@ export async function POST(request: NextRequest) {
       config,
     });
 
-    if (!(insertedData as any).insert_templates_one) {
+    if (!insertedData.insert_templates_one) {
       throw new Error('Failed to insert new template');
     }
 
-    const template = (insertedData as any).insert_templates_one;
+    const template = insertedData.insert_templates_one;
 
     return NextResponse.json({
       success: true,

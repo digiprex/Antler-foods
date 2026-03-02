@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 
@@ -238,7 +238,7 @@ export default function PageSettingsSelector() {
 
   const paramsString = buildParams();
 
-  const sectionsData = [
+  const sectionsData = useMemo(() => [
     {
       name: 'Hero Settings',
       category: 'Hero',
@@ -309,7 +309,7 @@ export default function PageSettingsSelector() {
       route: '/admin/form-settings',
       layouts: ['Centered', 'Split Right', 'Split Left', 'Image Top', 'Background Image']
     }
-  ];
+  ], []);
 
   // Function to fetch page and sections data
   const fetchPageAndSections = useCallback(async () => {

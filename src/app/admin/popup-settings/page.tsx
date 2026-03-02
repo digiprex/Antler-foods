@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
@@ -25,7 +25,6 @@ interface MediaFile {
 }
 
 export default function PopupSettingsPage() {
-  const _router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');

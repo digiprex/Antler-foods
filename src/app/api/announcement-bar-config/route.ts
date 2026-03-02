@@ -17,6 +17,41 @@ import type { AnnouncementBarConfig, AnnouncementBarConfigResponse } from '@/typ
 const HASURA_URL = process.env.HASURA_GRAPHQL_URL || 'https://pycfacumenjefxtblime.hasura.us-east-1.nhost.run/v1/graphql';
 const HASURA_ADMIN_SECRET = process.env.HASURA_ADMIN_SECRET || "i;8zmVF8SvnMiX5gao@F'a6,uJ%WphsD";
 
+interface RestaurantByDomainResponse {
+  restaurants: Array<{
+    restaurant_id: string;
+    custom_domain?: string;
+    staging_domain?: string;
+    is_deleted: boolean;
+  }>;
+}
+
+interface AnnouncementBarConfigQueryResponse {
+  templates: Array<{
+    category: string;
+    config: any;
+    created_at: string;
+    is_deleted: boolean;
+    menu_items: any[];
+    name: string;
+    restaurant_id: string;
+    template_id: string;
+    updated_at: string;
+  }>;
+  restaurants: Array<{
+    name?: string;
+    restaurant_id: string;
+    address?: string;
+    phone_number?: string;
+    email?: string;
+    fb_link?: string;
+    insta_link?: string;
+    yt_link?: string;
+    tiktok_link?: string;
+    gmb_link?: string;
+  }>;
+}
+
 /**
  * GraphQL query to fetch announcement bar configuration from templates
  * Searches by restaurant_id and category, excludes deleted templates
@@ -108,7 +143,7 @@ const INSERT_TEMPLATE = `
 /**
  * Helper function to make GraphQL requests
  */
-async function graphqlRequest(query: string, variables?: Record<string, unknown>) {
+async function graphqlRequest<T = unknown>(query: string, variables?: Record<string, unknown>): Promise<T> {
   const response = await fetch(HASURA_URL, {
     method: 'POST',
     headers: {
@@ -169,7 +204,7 @@ export async function GET(request: Request) {
           }
         `;
 
-        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, {
+        const domainData = await graphqlRequest<RestaurantByDomainResponse>(GET_RESTAURANT_BY_DOMAIN, {
           domain: domain,
         });
 
@@ -198,7 +233,7 @@ export async function GET(request: Request) {
 
     console.log('[Announcement Bar Config] Using restaurant_id:', restaurantId);
 
-    const data = await graphqlRequest(GET_ANNOUNCEMENT_BAR_CONFIG, {
+    const data = await graphqlRequest<AnnouncementBarConfigQueryResponse>(GET_ANNOUNCEMENT_BAR_CONFIG, {
       restaurant_id: restaurantId,
     });
 
@@ -319,19 +354,19 @@ export async function POST(request: Request) {
     }
     
     // Step 1: Get current template to mark as deleted
-    const currentData = await graphqlRequest(GET_ANNOUNCEMENT_BAR_CONFIG, {
+    const currentData = await graphqlRequest<AnnouncementBarConfigQueryResponse>(GET_ANNOUNCEMENT_BAR_CONFIG, {
       restaurant_id: restaurantId,
     });
-    
+
     // Step 2: Mark current template as deleted (if exists)
     if (currentData.templates && currentData.templates.length > 0) {
       const currentTemplate = currentData.templates[0];
-      
-      await graphqlRequest(MARK_AS_DELETED, {
+
+      await graphqlRequest<any>(MARK_AS_DELETED, {
         template_id: currentTemplate.template_id,
       });
     }
-    
+
     // Transform AnnouncementBarConfig to template structure
     const name = body.layout || 'text-only'; // layout goes to name field
     const config = {
@@ -356,7 +391,7 @@ export async function POST(request: Request) {
     };
 
     // Step 3: Insert new template (without social media icons)
-    const insertedData = await graphqlRequest(INSERT_TEMPLATE, {
+    const insertedData = await graphqlRequest<any>(INSERT_TEMPLATE, {
       restaurant_id: restaurantId,
       name: name,
       category: 'AnnouncementBar',
@@ -368,9 +403,9 @@ export async function POST(request: Request) {
     }
 
     const template = insertedData.insert_templates_one;
-    
+
     // Step 4: Get restaurant data for social media icons
-    const restaurantData = await graphqlRequest(GET_ANNOUNCEMENT_BAR_CONFIG, {
+    const restaurantData = await graphqlRequest<AnnouncementBarConfigQueryResponse>(GET_ANNOUNCEMENT_BAR_CONFIG, {
       restaurant_id: restaurantId,
     });
     

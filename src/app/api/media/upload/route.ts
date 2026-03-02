@@ -14,12 +14,37 @@ import {
   resolveStorageApiUrl,
 } from '@/lib/server/nhost-config';
 
+interface MediaRecord {
+  id: string;
+  file_id: string;
+  type: string;
+  restaurant_id: string;
+  created_at: string;
+}
+
+interface InsertMediaResponse {
+  insert_medias_one: MediaRecord;
+}
+
+interface GraphQLResponse<T> {
+  data?: T;
+  errors?: Array<{ message: string; [key: string]: unknown }>;
+}
+
 async function graphqlRequest<T>(
   query: string,
   variables: Record<string, unknown> = {},
-) {
-  const data = await adminGraphqlRequest<T>(query, variables);
-  return { data };
+): Promise<GraphQLResponse<T>> {
+  try {
+    const data = await adminGraphqlRequest<T>(query, variables);
+    return { data };
+  } catch (error) {
+    return {
+      errors: [{
+        message: error instanceof Error ? error.message : 'Unknown GraphQL error'
+      }]
+    };
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -169,7 +194,7 @@ export async function POST(request: NextRequest) {
       }
     `;
 
-    const mediaResult = await graphqlRequest(insertMediaMutation, {
+    const mediaResult = await graphqlRequest<InsertMediaResponse>(insertMediaMutation, {
       object: {
         file_id: fileId,
         restaurant_id: restaurantId,
@@ -188,6 +213,13 @@ export async function POST(request: NextRequest) {
 
     const media = mediaResult.data?.insert_medias_one;
     console.log('[Media Upload] Media record created:', media);
+
+    if (!media) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to create media record - no data returned' },
+        { status: 500 }
+      );
+    }
 
     // Return the complete media object with file details
     return NextResponse.json({

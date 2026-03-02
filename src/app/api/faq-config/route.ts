@@ -24,6 +24,15 @@ import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
 // Restaurant ID must be provided dynamically via query parameters or domain lookup
 
+interface RestaurantByDomainResponse {
+  restaurants: Array<{
+    restaurant_id: string;
+    custom_domain?: string;
+    staging_domain?: string;
+    is_deleted: boolean;
+  }>;
+}
+
 /**
  * GraphQL query to fetch FAQ configuration from templates
  * Searches by restaurant_id and category, excludes deleted templates
@@ -189,7 +198,7 @@ export async function GET(request: Request) {
             }
           `;
 
-        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, {
+        const domainData = await graphqlRequest<RestaurantByDomainResponse>(GET_RESTAURANT_BY_DOMAIN, {
           domain: domain,
         }) as { restaurants?: Array<{ restaurant_id: string; is_deleted: boolean }> };
 

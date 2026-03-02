@@ -10,9 +10,33 @@ import { adminGraphqlRequest } from '@/lib/server/api-auth';
 async function graphqlRequest<T>(
   query: string,
   variables: Record<string, unknown> = {},
-) {
+): Promise<{ data: T; errors?: any }> {
   const data = await adminGraphqlRequest<T>(query, variables);
   return { data };
+}
+
+interface Review {
+  review_id: string;
+  restaurant_id: string;
+  source: string;
+  external_review_id?: string;
+  rating: number;
+  author_name: string | null;
+  review_text: string | null;
+  author_url?: string;
+  review_url?: string;
+  published_at: string;
+  is_hidden: boolean;
+  created_by_user_id?: string;
+  created_at: string;
+  updated_at: string;
+  is_deleted: boolean;
+  avatar_url: string | null;
+  avatar_file_id?: string;
+}
+
+interface GetReviewsResponse {
+  reviews: Review[];
 }
 
 export async function GET(request: NextRequest) {
@@ -72,7 +96,7 @@ export async function GET(request: NextRequest) {
       variables.limit = parseInt(limit, 10);
     }
 
-    const result = await graphqlRequest(query, variables);
+    const result = await graphqlRequest<GetReviewsResponse>(query, variables);
 
     if (result.errors) {
       console.error('[Reviews API] GraphQL errors:', result.errors);

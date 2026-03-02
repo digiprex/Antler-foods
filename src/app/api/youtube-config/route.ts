@@ -10,6 +10,25 @@ import type { YouTubeConfig, YouTubeConfigResponse } from '@/types/youtube.types
 import { DEFAULT_YOUTUBE_CONFIG } from '@/types/youtube.types';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+interface RestaurantByDomainResponse {
+  restaurants: Array<{ restaurant_id: string }>;
+}
+
+interface YouTubeConfigQueryResponse {
+  templates: Array<{
+    category: string;
+    config: any;
+    created_at: string;
+    is_deleted: boolean;
+    menu_items: any[];
+    name: string;
+    restaurant_id: string;
+    template_id: string;
+    updated_at: string;
+    page_id?: string;
+  }>;
+}
+
 /**
  * GraphQL query to fetch YouTube configuration
  */
@@ -116,7 +135,7 @@ export async function GET(request: Request) {
           }
         `;
 
-        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, { domain });
+        const domainData = await graphqlRequest<RestaurantByDomainResponse>(GET_RESTAURANT_BY_DOMAIN, { domain });
 
         if (domainData.restaurants && domainData.restaurants.length > 0) {
           restaurantId = domainData.restaurants[0].restaurant_id;
@@ -135,7 +154,7 @@ export async function GET(request: Request) {
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    const data = await graphqlRequest(GET_YOUTUBE_CONFIG, { restaurant_id: restaurantId });
+    const data = await graphqlRequest<YouTubeConfigQueryResponse>(GET_YOUTUBE_CONFIG, { restaurant_id: restaurantId });
 
     if (!data.templates || data.templates.length === 0) {
       const response: YouTubeConfigResponse = {
@@ -184,11 +203,11 @@ export async function POST(request: Request) {
     }
 
     // Get current template to mark as deleted
-    const currentData = await graphqlRequest(GET_YOUTUBE_CONFIG, { restaurant_id: restaurantId });
+    const currentData = await graphqlRequest<YouTubeConfigQueryResponse>(GET_YOUTUBE_CONFIG, { restaurant_id: restaurantId });
 
     // Mark current template as deleted (if exists)
     if (currentData.templates && currentData.templates.length > 0) {
-      await graphqlRequest(MARK_AS_DELETED, {
+      await graphqlRequest<any>(MARK_AS_DELETED, {
         template_id: currentData.templates[0].template_id,
       });
     }
@@ -202,7 +221,7 @@ export async function POST(request: Request) {
     };
 
     // Insert new template
-    const insertedData = await graphqlRequest(INSERT_TEMPLATE, {
+    const insertedData = await graphqlRequest<any>(INSERT_TEMPLATE, {
       restaurant_id: restaurantId,
       name: name,
       category: 'YouTube',

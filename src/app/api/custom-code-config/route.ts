@@ -87,10 +87,24 @@ const INSERT_TEMPLATE = `
   }
 `;
 
+interface CustomCodeConfigQueryResponse {
+  templates: Array<{
+    category: string;
+    config: any;
+    created_at: string;
+    is_deleted: boolean;
+    name: string;
+    restaurant_id: string;
+    page_id: string;
+    template_id: string;
+    updated_at: string;
+  }>;
+}
+
 /**
  * Helper function to make GraphQL requests
  */
-async function graphqlRequest(query: string, variables?: Record<string, unknown>) {
+async function graphqlRequest<T = unknown>(query: string, variables?: Record<string, unknown>): Promise<T> {
   const response = await fetch(HASURA_URL, {
     method: 'POST',
     headers: {
@@ -133,7 +147,7 @@ export async function GET(request: Request) {
       } as CustomCodeConfigResponse, { status: 400 });
     }
 
-    const data = await graphqlRequest(GET_CUSTOM_CODE_CONFIG, {
+    const data = await graphqlRequest<CustomCodeConfigQueryResponse>(GET_CUSTOM_CODE_CONFIG, {
       restaurant_id: restaurantId,
       page_id: pageId,
     });
@@ -199,7 +213,7 @@ export async function POST(request: Request) {
     }
 
     // Get current template to mark as deleted
-    const currentData = await graphqlRequest(GET_CUSTOM_CODE_CONFIG, {
+    const currentData = await graphqlRequest<CustomCodeConfigQueryResponse>(GET_CUSTOM_CODE_CONFIG, {
       restaurant_id: restaurantId,
       page_id: pageId,
     });
@@ -207,7 +221,7 @@ export async function POST(request: Request) {
     // Mark current template as deleted (if exists)
     if (currentData.templates && currentData.templates.length > 0) {
       const currentTemplate = currentData.templates[0];
-      await graphqlRequest(MARK_AS_DELETED, {
+      await graphqlRequest<any>(MARK_AS_DELETED, {
         template_id: currentTemplate.template_id,
       });
     }
@@ -224,7 +238,7 @@ export async function POST(request: Request) {
     };
 
     // Insert new template
-    const insertedData = await graphqlRequest(INSERT_TEMPLATE, {
+    const insertedData = await graphqlRequest<any>(INSERT_TEMPLATE, {
       restaurant_id: restaurantId,
       page_id: pageId,
       name: 'custom-code',

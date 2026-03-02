@@ -16,6 +16,58 @@ import type { HeroConfig, HeroConfigResponse } from '@/types/hero.types';
 import { DEFAULT_HERO_CONFIG } from '@/types/hero.types';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+// GraphQL response types
+interface RestaurantByDomainResponse {
+  restaurants: Array<{
+    restaurant_id: string;
+    name?: string;
+    custom_domain?: string;
+    staging_domain?: string;
+    is_deleted: boolean;
+  }>;
+}
+
+interface PageBySlugResponse {
+  web_pages: Array<{
+    page_id: string;
+    url_slug: string;
+    name: string;
+    restaurant_id: string;
+  }>;
+}
+
+interface HeroTemplate {
+  category: string;
+  config: Record<string, unknown>;
+  created_at: string;
+  is_deleted: boolean;
+  menu_items: unknown[];
+  name: string;
+  restaurant_id: string;
+  template_id: string;
+  updated_at: string;
+  page_id?: string;
+  order_index?: number;
+}
+
+interface HeroTemplateResponse {
+  templates: HeroTemplate[];
+}
+
+interface InsertHeroTemplateResponse {
+  insert_templates_one: HeroTemplate;
+}
+
+interface MaxOrderIndexResponse {
+  templates_aggregate: {
+    aggregate: {
+      max: {
+        order_index: number | null;
+      };
+    };
+  };
+}
+
 // Restaurant ID must be provided dynamically via query parameters or domain lookup
 
 /**
@@ -158,14 +210,14 @@ export async function GET(request: Request) {
           }
         `;
         
-        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, {
+        const domainData = await graphqlRequest<RestaurantByDomainResponse>(GET_RESTAURANT_BY_DOMAIN, {
           domain: domain,
         });
         
         console.log('[Hero Config] Domain lookup result for', domain, ':', JSON.stringify(domainData, null, 2));
 
-        if ((domainData as any).restaurants && (domainData as any).restaurants.length > 0) {
-          const restaurant = (domainData as any).restaurants[0];
+        if (domainData.restaurants && domainData.restaurants.length > 0) {
+          const restaurant = domainData.restaurants[0];
           if (!restaurant.is_deleted) {
             restaurantId = restaurant.restaurant_id;
             console.log('[Hero Config] Found restaurant for domain:', domain, '->', restaurantId);
@@ -207,11 +259,11 @@ export async function GET(request: Request) {
           `;
           
           try {
-            const stagingResult = await graphqlRequest(GET_BY_STAGING, { domain });
+            const stagingResult = await graphqlRequest<RestaurantByDomainResponse>(GET_BY_STAGING, { domain });
             console.log('[Hero Config] Staging domain query result:', JSON.stringify(stagingResult, null, 2));
 
-            if ((stagingResult as any).restaurants && (stagingResult as any).restaurants.length > 0) {
-              restaurantId = (stagingResult as any).restaurants[0].restaurant_id;
+            if (stagingResult.restaurants && stagingResult.restaurants.length > 0) {
+              restaurantId = stagingResult.restaurants[0].restaurant_id;
               console.log('[Hero Config] Found restaurant via staging_domain:', restaurantId);
             }
           } catch (stagingError) {
@@ -220,11 +272,11 @@ export async function GET(request: Request) {
           
           if (!restaurantId) {
             try {
-              const customResult = await graphqlRequest(GET_BY_CUSTOM, { domain });
+              const customResult = await graphqlRequest<RestaurantByDomainResponse>(GET_BY_CUSTOM, { domain });
               console.log('[Hero Config] Custom domain query result:', JSON.stringify(customResult, null, 2));
 
-              if ((customResult as any).restaurants && (customResult as any).restaurants.length > 0) {
-                restaurantId = (customResult as any).restaurants[0].restaurant_id;
+              if (customResult.restaurants && customResult.restaurants.length > 0) {
+                restaurantId = customResult.restaurants[0].restaurant_id;
                 console.log('[Hero Config] Found restaurant via custom_domain:', restaurantId);
               }
             } catch (customError) {
@@ -271,15 +323,15 @@ export async function GET(request: Request) {
 
         console.log('[Hero Config] Looking up page for url_slug:', urlSlug, 'restaurant_id:', restaurantId);
 
-        const pageData = await graphqlRequest(GET_PAGE_BY_SLUG, {
+        const pageData = await graphqlRequest<PageBySlugResponse>(GET_PAGE_BY_SLUG, {
           restaurant_id: restaurantId,
           url_slug: urlSlug,
         });
 
         console.log('[Hero Config] Page lookup result:', JSON.stringify(pageData, null, 2));
 
-        if ((pageData as any).web_pages && (pageData as any).web_pages.length > 0) {
-          pageId = (pageData as any).web_pages[0].page_id;
+        if (pageData.web_pages && pageData.web_pages.length > 0) {
+          pageId = pageData.web_pages[0].page_id;
           console.log('[Hero Config] Found page_id for', urlSlug, ':', pageId);
         } else {
           console.log('[Hero Config] No page found for url_slug:', urlSlug);
@@ -292,7 +344,7 @@ export async function GET(request: Request) {
 
     // Use page-specific query if page_id is available, otherwise use general query
     const data = pageId
-      ? await graphqlRequest(`
+      ? await graphqlRequest<HeroTemplateResponse>(`
           query GetHeroConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
             templates(
               where: {
@@ -320,13 +372,13 @@ export async function GET(request: Request) {
           restaurant_id: restaurantId,
           page_id: pageId,
         })
-      : await graphqlRequest(GET_HERO_CONFIG, {
+      : await graphqlRequest<HeroTemplateResponse>(GET_HERO_CONFIG, {
           restaurant_id: restaurantId,
         });
 
     console.log('[Hero Config] Template query result:', JSON.stringify(data, null, 2));
 
-    if (!(data as any).templates || (data as any).templates.length === 0) {
+    if (!data.templates || data.templates.length === 0) {
       // Return default config if template doesn't exist
       // Include restaurant_id so page-client can resolve the restaurant
       const response: HeroConfigResponse = {
@@ -340,13 +392,13 @@ export async function GET(request: Request) {
       return NextResponse.json(response);
     }
 
-    const template = (data as any).templates[0]; // Get most recent non-deleted template
+    const template = data.templates[0]; // Get most recent non-deleted template
     
     // The config field contains the complete hero configuration
     const config: HeroConfig = {
       ...DEFAULT_HERO_CONFIG,
       ...template.config,
-      layout: template.name, // name field contains layout type
+      layout: template.name as HeroConfig['layout'], // name field contains layout type
       restaurant_id: restaurantId,
     };
 
@@ -392,7 +444,7 @@ export async function POST(request: Request) {
     // When new_section is true, we want to ADD a new hero, not replace the existing one
     if (!isNewSection) {
       const currentData = pageId
-        ? await graphqlRequest(`
+        ? await graphqlRequest<HeroTemplateResponse>(`
             query GetHeroConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
               templates(
                 where: {
@@ -413,13 +465,13 @@ export async function POST(request: Request) {
             restaurant_id: restaurantId,
             page_id: pageId,
           })
-        : await graphqlRequest(GET_HERO_CONFIG, {
+        : await graphqlRequest<HeroTemplateResponse>(GET_HERO_CONFIG, {
             restaurant_id: restaurantId,
           });
 
       // Mark current template as deleted (if exists)
-      if ((currentData as any).templates && (currentData as any).templates.length > 0) {
-        const currentTemplate = (currentData as any).templates[0];
+      if (currentData.templates && currentData.templates.length > 0) {
+        const currentTemplate = currentData.templates[0];
 
         await graphqlRequest(MARK_AS_DELETED, {
           template_id: currentTemplate.template_id,
@@ -428,7 +480,7 @@ export async function POST(request: Request) {
     }
 
     // Prepare hero configuration
-    const { restaurant_id: _restaurantId, layout, page_id: _pageId, new_section: _newSection, ...configData } = body;
+    const { layout, ...configData } = body;
     const name = layout || 'centered-large'; // layout goes to name field
 
     // The entire hero config (except layout, page_id, new_section) goes into the config field
@@ -443,12 +495,12 @@ export async function POST(request: Request) {
     let orderIndex = null;
     if (isNewSection && pageId) {
       try {
-        const maxOrderData = await graphqlRequest(GET_MAX_ORDER_INDEX, {
+        const maxOrderData = await graphqlRequest<MaxOrderIndexResponse>(GET_MAX_ORDER_INDEX, {
           restaurant_id: restaurantId,
           page_id: pageId,
         });
 
-        const maxOrder = (maxOrderData as any).templates_aggregate?.aggregate?.max?.order_index;
+        const maxOrder = maxOrderData.templates_aggregate?.aggregate?.max?.order_index;
         // If there's a max order, add 1; otherwise start at 0
         orderIndex = maxOrder !== null && maxOrder !== undefined ? maxOrder + 1 : 0;
         console.log('[Hero Config POST] New section order_index:', orderIndex, '(max was:', maxOrder, ')');
@@ -460,7 +512,7 @@ export async function POST(request: Request) {
     }
 
     // Step 4: Insert new template with page_id and order_index
-    const insertedData = await graphqlRequest(INSERT_TEMPLATE, {
+    const insertedData = await graphqlRequest<InsertHeroTemplateResponse>(INSERT_TEMPLATE, {
       restaurant_id: restaurantId,
       name: name,
       category: 'Hero',
@@ -470,16 +522,17 @@ export async function POST(request: Request) {
       order_index: orderIndex,
     });
 
-    if (!(insertedData as any).insert_templates_one) {
+    if (!insertedData.insert_templates_one) {
       throw new Error('Failed to insert new template');
     }
 
-    const template = (insertedData as any).insert_templates_one;
+    const template = insertedData.insert_templates_one;
     
     // Transform back to HeroConfig
     const responseConfig: HeroConfig = {
+      ...DEFAULT_HERO_CONFIG,
       ...template.config,
-      layout: template.name,
+      layout: template.name as HeroConfig['layout'],
       restaurant_id: restaurantId,
     };
 

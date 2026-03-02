@@ -8,6 +8,13 @@
 import { NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+interface NewsletterResponse {
+  insert_newsletter_one: {
+    email: string;
+    restaurant_id: string;
+  };
+}
+
 /**
  * GraphQL mutation to insert newsletter subscription
  */
@@ -64,7 +71,7 @@ export async function POST(request: Request) {
     }
 
     // Insert newsletter subscription
-    const data = await graphqlRequest(INSERT_NEWSLETTER, {
+    const data = await graphqlRequest<NewsletterResponse>(INSERT_NEWSLETTER, {
       email: body.email,
       restaurant_id: body.restaurant_id,
     });

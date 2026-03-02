@@ -10,9 +10,23 @@ import { adminGraphqlRequest } from '@/lib/server/api-auth';
 async function graphqlRequest<T>(
   query: string,
   variables: Record<string, unknown> = {},
-) {
+): Promise<{ data: T; errors?: any }> {
   const data = await adminGraphqlRequest<T>(query, variables);
   return { data };
+}
+
+interface InsertReviewResponse {
+  insert_reviews_one: {
+    review_id: string;
+    restaurant_id: string;
+    source: string;
+    rating: number;
+    author_name: string | null;
+    review_text: string | null;
+    avatar_url: string | null;
+    published_at: string;
+    created_at: string;
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -65,7 +79,7 @@ export async function POST(request: NextRequest) {
       }
     `;
 
-    const result = await graphqlRequest(mutation, {
+    const result = await graphqlRequest<InsertReviewResponse>(mutation, {
       review: {
         restaurant_id,
         source: source || 'manual',

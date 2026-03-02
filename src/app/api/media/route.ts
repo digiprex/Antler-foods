@@ -34,12 +34,25 @@ interface FilesResponse {
   files: FileData[];
 }
 
+interface GraphQLResponse<T> {
+  data?: T;
+  errors?: Array<{ message: string; [key: string]: unknown }>;
+}
+
 async function graphqlRequest<T>(
   query: string,
   variables: Record<string, unknown> = {},
-) {
-  const data = await adminGraphqlRequest<T>(query, variables);
-  return { data };
+): Promise<GraphQLResponse<T>> {
+  try {
+    const data = await adminGraphqlRequest<T>(query, variables);
+    return { data };
+  } catch (error) {
+    return {
+      errors: [{
+        message: error instanceof Error ? error.message : 'Unknown GraphQL error'
+      }]
+    };
+  }
 }
 
 export async function GET(request: NextRequest) {

@@ -16,6 +16,20 @@ import type { ScrollingTextConfig, ScrollingTextConfigResponse } from '@/types/s
 const HASURA_URL = process.env.HASURA_GRAPHQL_URL || 'https://pycfacumenjefxtblime.hasura.us-east-1.nhost.run/v1/graphql';
 const HASURA_ADMIN_SECRET = process.env.HASURA_ADMIN_SECRET || "i;8zmVF8SvnMiX5gao@F'a6,uJ%WphsD";
 
+interface ScrollingTextConfigQueryResponse {
+  templates: Array<{
+    category: string;
+    config: any;
+    created_at: string;
+    is_deleted: boolean;
+    name: string;
+    restaurant_id: string;
+    page_id: string;
+    template_id: string;
+    updated_at: string;
+  }>;
+}
+
 /**
  * GraphQL query to fetch scrolling text configuration from templates
  */
@@ -90,7 +104,7 @@ const INSERT_TEMPLATE = `
 /**
  * Helper function to make GraphQL requests
  */
-async function graphqlRequest(query: string, variables?: Record<string, unknown>) {
+async function graphqlRequest<T = unknown>(query: string, variables?: Record<string, unknown>): Promise<T> {
   const response = await fetch(HASURA_URL, {
     method: 'POST',
     headers: {
@@ -133,7 +147,7 @@ export async function GET(request: Request) {
       } as ScrollingTextConfigResponse, { status: 400 });
     }
 
-    const data = await graphqlRequest(GET_SCROLLING_TEXT_CONFIG, {
+    const data = await graphqlRequest<ScrollingTextConfigQueryResponse>(GET_SCROLLING_TEXT_CONFIG, {
       restaurant_id: restaurantId,
       page_id: pageId,
     });
@@ -194,7 +208,7 @@ export async function POST(request: Request) {
     }
 
     // Get current template to mark as deleted
-    const currentData = await graphqlRequest(GET_SCROLLING_TEXT_CONFIG, {
+    const currentData = await graphqlRequest<ScrollingTextConfigQueryResponse>(GET_SCROLLING_TEXT_CONFIG, {
       restaurant_id: restaurantId,
       page_id: pageId,
     });
@@ -202,7 +216,7 @@ export async function POST(request: Request) {
     // Mark current template as deleted (if exists)
     if (currentData.templates && currentData.templates.length > 0) {
       const currentTemplate = currentData.templates[0];
-      await graphqlRequest(MARK_AS_DELETED, {
+      await graphqlRequest<any>(MARK_AS_DELETED, {
         template_id: currentTemplate.template_id,
       });
     }
@@ -217,7 +231,7 @@ export async function POST(request: Request) {
     };
 
     // Insert new template
-    const insertedData = await graphqlRequest(INSERT_TEMPLATE, {
+    const insertedData = await graphqlRequest<any>(INSERT_TEMPLATE, {
       restaurant_id: restaurantId,
       page_id: pageId,
       name: 'scrolling-text',

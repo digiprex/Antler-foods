@@ -10,6 +10,31 @@ import type { ReviewConfig, ReviewConfigResponse } from '@/types/review.types';
 import { DEFAULT_REVIEW_CONFIG } from '@/types/review.types';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+interface RestaurantByDomainResponse {
+  restaurants: Array<{ restaurant_id: string }>;
+}
+
+interface ReviewConfigQueryResponse {
+  templates: Array<{
+    category: string;
+    config: any;
+    created_at: string;
+    is_deleted: boolean;
+    menu_items: any[];
+    name: string;
+    restaurant_id: string;
+    template_id: string;
+    updated_at: string;
+    page_id?: string;
+  }>;
+}
+
+interface PageBySlugResponse {
+  web_pages: Array<{
+    page_id: string;
+  }>;
+}
+
 /**
  * GraphQL query to fetch review configuration from templates
  */
@@ -123,7 +148,7 @@ export async function GET(request: NextRequest) {
           }
         `;
 
-        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, { domain });
+        const domainData = await graphqlRequest<RestaurantByDomainResponse>(GET_RESTAURANT_BY_DOMAIN, { domain });
 
         if (domainData.restaurants && domainData.restaurants.length > 0) {
           restaurantId = domainData.restaurants[0].restaurant_id;
@@ -160,7 +185,7 @@ export async function GET(request: NextRequest) {
           }
         `;
 
-        const pageData = await graphqlRequest(GET_PAGE_BY_SLUG, {
+        const pageData = await graphqlRequest<PageBySlugResponse>(GET_PAGE_BY_SLUG, {
           restaurant_id: restaurantId,
           url_slug: urlSlug,
         });
@@ -175,7 +200,7 @@ export async function GET(request: NextRequest) {
 
     // Use page-specific query if page_id is available
     const data = pageId
-      ? await graphqlRequest(`
+      ? await graphqlRequest<ReviewConfigQueryResponse>(`
           query GetReviewConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
             templates(
               where: {
@@ -203,7 +228,7 @@ export async function GET(request: NextRequest) {
           restaurant_id: restaurantId,
           page_id: pageId,
         })
-      : await graphqlRequest(GET_REVIEW_CONFIG, { restaurant_id: restaurantId });
+      : await graphqlRequest<ReviewConfigQueryResponse>(GET_REVIEW_CONFIG, { restaurant_id: restaurantId });
 
     if (!data.templates || data.templates.length === 0) {
       const response: ReviewConfigResponse = {
@@ -256,7 +281,7 @@ export async function POST(request: NextRequest) {
 
     // Get current template to mark as deleted
     const currentData = pageId
-      ? await graphqlRequest(`
+      ? await graphqlRequest<ReviewConfigQueryResponse>(`
           query GetReviewConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
             templates(
               where: {
@@ -275,11 +300,11 @@ export async function POST(request: NextRequest) {
           restaurant_id: restaurantId,
           page_id: pageId,
         })
-      : await graphqlRequest(GET_REVIEW_CONFIG, { restaurant_id: restaurantId });
+      : await graphqlRequest<ReviewConfigQueryResponse>(GET_REVIEW_CONFIG, { restaurant_id: restaurantId });
 
     // Mark current template as deleted (if exists)
     if (currentData.templates && currentData.templates.length > 0) {
-      await graphqlRequest(MARK_AS_DELETED, {
+      await graphqlRequest<any>(MARK_AS_DELETED, {
         template_id: currentData.templates[0].template_id,
       });
     }
@@ -293,7 +318,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Insert new template
-    const insertedData = await graphqlRequest(INSERT_TEMPLATE, {
+    const insertedData = await graphqlRequest<any>(INSERT_TEMPLATE, {
       restaurant_id: restaurantId,
       name: name,
       category: 'Reviews',

@@ -15,6 +15,49 @@ import { NextResponse } from 'next/server';
 import type { NavbarConfig, NavbarConfigResponse } from '@/types/navbar.types';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+// GraphQL response types
+interface RestaurantByDomainResponse {
+  restaurants: Array<{
+    restaurant_id: string;
+    custom_domain?: string;
+    staging_domain?: string;
+    is_deleted: boolean;
+  }>;
+}
+
+interface RestaurantData {
+  name?: string;
+  restaurant_id: string;
+}
+
+interface WebPageData {
+  page_id: string;
+  name: string;
+  url_slug: string;
+}
+
+interface NavbarTemplate {
+  category: string;
+  config?: Record<string, unknown>;
+  created_at: string;
+  is_deleted: boolean;
+  menu_items?: unknown[];
+  name: string;
+  restaurant_id: string;
+  template_id: string;
+  updated_at: string;
+}
+
+interface NavbarConfigQueryResponse {
+  templates: NavbarTemplate[];
+  restaurants: RestaurantData[];
+  web_pages: WebPageData[];
+}
+
+interface InsertNavbarTemplateResponse {
+  insert_templates_one: NavbarTemplate;
+}
+
 // Restaurant ID must be provided dynamically via query parameters or domain lookup
 
 /**
@@ -152,12 +195,12 @@ export async function GET(request: Request) {
           }
         `;
 
-        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, {
+        const domainData = await graphqlRequest<RestaurantByDomainResponse>(GET_RESTAURANT_BY_DOMAIN, {
           domain: domain,
         });
 
-        if ((domainData as any).restaurants && (domainData as any).restaurants.length > 0) {
-          const restaurant = (domainData as any).restaurants[0];
+        if (domainData.restaurants && domainData.restaurants.length > 0) {
+          const restaurant = domainData.restaurants[0];
           if (!restaurant.is_deleted) {
             restaurantId = restaurant.restaurant_id;
             console.log('[Navbar Config] Found restaurant for domain:', domain, '->', restaurantId);
@@ -220,13 +263,13 @@ export async function GET(request: Request) {
     // Transform template structure to NavbarConfig
     const config: NavbarConfig = {
       restaurantName: restaurantName, // Get from restaurant table
-      layout: template.name, // name field contains layout type
+      layout: template.name as NavbarConfig['layout'], // name field contains layout type
       leftNavItems: navItems, // Use pages with show_on_navbar=true
       rightNavItems: [],
-      ctaButton: template.config?.ctaButton,
-      position: template.config?.position || 'absolute',
-      bgColor: template.config?.bgColor || '#ffffff',
-      textColor: template.config?.textColor || '#000000',
+      ctaButton: template.config?.ctaButton as NavbarConfig['ctaButton'],
+      position: (typeof template.config?.position === 'string' ? template.config.position : 'absolute') as NavbarConfig['position'],
+      bgColor: (typeof template.config?.bgColor === 'string' ? template.config.bgColor : '') || '#ffffff',
+      textColor: (typeof template.config?.textColor === 'string' ? template.config.textColor : '') || '#000000',
       buttonBgColor: '#000000',
       buttonTextColor: '#ffffff',
     };
@@ -275,15 +318,15 @@ export async function POST(request: Request) {
     }
     
     // Step 1: Get current template to mark as deleted and preserve menu_items
-    const currentData = await graphqlRequest(GET_NAVBAR_CONFIG, {
+    const currentData = await graphqlRequest<NavbarConfigQueryResponse>(GET_NAVBAR_CONFIG, {
       restaurant_id: restaurantId,
     });
 
-    let menu_items = [];
+    let menu_items: unknown[] = [];
 
     // Step 2: Mark current template as deleted (if exists) and get menu_items
-    if ((currentData as any).templates && (currentData as any).templates.length > 0) {
-      const currentTemplate = (currentData as any).templates[0];
+    if (currentData.templates && currentData.templates.length > 0) {
+      const currentTemplate = currentData.templates[0];
 
       // Preserve menu_items from old record
       menu_items = currentTemplate.menu_items || [];
@@ -303,7 +346,7 @@ export async function POST(request: Request) {
     };
 
     // Step 3: Insert new template with preserved menu_items
-    const insertedData = await graphqlRequest(INSERT_TEMPLATE, {
+    const insertedData = await graphqlRequest<InsertNavbarTemplateResponse>(INSERT_TEMPLATE, {
       restaurant_id: restaurantId,
       name: name,
       category: 'Navbar',
@@ -311,22 +354,22 @@ export async function POST(request: Request) {
       menu_items: menu_items, // Use menu_items from old record
     });
 
-    if (!(insertedData as any).insert_templates_one) {
+    if (!insertedData.insert_templates_one) {
       throw new Error('Failed to insert new template');
     }
 
-    const template = (insertedData as any).insert_templates_one;
+    const template = insertedData.insert_templates_one;
     
     // Transform back to NavbarConfig
     const responseConfig: NavbarConfig = {
       restaurantName: 'Restaurant', // Note: POST doesn't fetch restaurant name, should be handled by GET
-      layout: template.name,
-      leftNavItems: template.menu_items,
+      layout: template.name as NavbarConfig['layout'],
+      leftNavItems: (template.menu_items || []) as NavbarConfig['leftNavItems'],
       rightNavItems: [],
-      ctaButton: template.config?.ctaButton,
-      position: template.config?.position,
-      bgColor: template.config?.bgColor,
-      textColor: template.config?.textColor,
+      ctaButton: template.config?.ctaButton as NavbarConfig['ctaButton'],
+      position: template.config?.position as NavbarConfig['position'],
+      bgColor: template.config?.bgColor as string,
+      textColor: template.config?.textColor as string,
     };
 
     const response: NavbarConfigResponse = {

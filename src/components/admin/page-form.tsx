@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { insertPage, updatePage, getPageById } from '@/lib/graphql/queries';
 import type { PageItem, CreatePageInput, UpdatePageInput } from '@/types/pages.types';
 import { ImageGalleryModal } from './image-gallery-modal';
@@ -468,6 +468,7 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
 }
 
 export default function PageFormPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const pageId = searchParams.get('page_id');
   const restaurantId = searchParams.get('restaurant_id');
@@ -478,7 +479,7 @@ export default function PageFormPage() {
     if (restaurantId) params.set('restaurant_id', restaurantId);
     params.set('success', pageId ? 'updated' : 'created');
     
-    window.location.href = `/admin/pages-settings?${params.toString()}`;
+    router.replace(`/admin/pages-settings?${params.toString()}`);
   };
 
   const handleCancel = () => {
@@ -486,7 +487,7 @@ export default function PageFormPage() {
     const params = new URLSearchParams();
     if (restaurantId) params.set('restaurant_id', restaurantId);
     
-    window.location.href = `/admin/pages-settings?${params.toString()}`;
+    router.replace(`/admin/pages-settings?${params.toString()}`);
   };
 
   return (

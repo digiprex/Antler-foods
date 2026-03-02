@@ -22,6 +22,43 @@ import Navbar from '@/components/navbar';
 import Toast from '@/components/ui/toast';
 import styles from './navbar-settings-form.module.css';
 
+// Font options for navbar menu text
+const FONT_OPTIONS = [
+  { value: 'Inter, system-ui, sans-serif', label: 'Inter (Default)' },
+  { value: 'Roboto, sans-serif', label: 'Roboto' },
+  { value: 'Open Sans, sans-serif', label: 'Open Sans' },
+  { value: 'Lato, sans-serif', label: 'Lato' },
+  { value: 'Montserrat, sans-serif', label: 'Montserrat' },
+  { value: 'Poppins, sans-serif', label: 'Poppins' },
+  { value: 'Playfair Display, serif', label: 'Playfair Display' },
+  { value: 'Merriweather, serif', label: 'Merriweather' },
+  { value: 'Arial, sans-serif', label: 'Arial' },
+  { value: 'Helvetica, sans-serif', label: 'Helvetica' },
+];
+
+const FONT_SIZE_OPTIONS = [
+  { value: '0.75rem', label: 'Extra Small (12px)' },
+  { value: '0.875rem', label: 'Small (14px)' },
+  { value: '1rem', label: 'Base (16px)' },
+  { value: '1.125rem', label: 'Medium (18px)' },
+  { value: '1.25rem', label: 'Large (20px)' },
+];
+
+const FONT_WEIGHT_OPTIONS = [
+  { value: 300, label: 'Light (300)' },
+  { value: 400, label: 'Normal (400)' },
+  { value: 500, label: 'Medium (500)' },
+  { value: 600, label: 'Semi Bold (600)' },
+  { value: 700, label: 'Bold (700)' },
+];
+
+const TEXT_TRANSFORM_OPTIONS = [
+  { value: 'none', label: 'None (Default)' },
+  { value: 'uppercase', label: 'UPPERCASE' },
+  { value: 'lowercase', label: 'lowercase' },
+  { value: 'capitalize', label: 'Capitalize Each Word' },
+];
+
 // Restaurant ID should be provided dynamically - no default static ID
 
 export default function NavbarSettingsForm() {
@@ -61,6 +98,10 @@ export default function NavbarSettingsForm() {
   const [bgColor, setBgColor] = useState('#ffffff');
   const [textColor, setTextColor] = useState('#000000');
   const [logoSize, setLogoSize] = useState<number>(40);
+  const [fontFamily, setFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [fontSize, setFontSize] = useState('1rem');
+  const [fontWeight, setFontWeight] = useState<number>(400);
+  const [textTransform, setTextTransform] = useState<'none' | 'uppercase' | 'lowercase' | 'capitalize'>('uppercase');
   const [showOrderButton, setShowOrderButton] = useState(true);
   const [orderButtonText, setOrderButtonText] = useState('Order Online');
   const [orderButtonHref, setOrderButtonHref] = useState('/menu');
@@ -74,6 +115,19 @@ export default function NavbarSettingsForm() {
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
 
+  // Load Google Fonts dynamically
+  useEffect(() => {
+    // Check if fonts are already loaded
+    const existingLink = document.getElementById('navbar-google-fonts');
+    if (!existingLink) {
+      const link = document.createElement('link');
+      link.id = 'navbar-google-fonts';
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;600;700&family=Lato:wght@300;400;700&family=Montserrat:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Merriweather:wght@300;400;700&display=swap';
+      document.head.appendChild(link);
+    }
+  }, []);
+
   // Initialize form with fetched config
   useEffect(() => {
     if (config) {
@@ -82,6 +136,10 @@ export default function NavbarSettingsForm() {
       setBgColor(config.bgColor || '#ffffff');
       setTextColor(config.textColor || '#000000');
       setLogoSize(config.logoSize || 40);
+      setFontFamily(config.fontFamily || 'Inter, system-ui, sans-serif');
+      setFontSize(config.fontSize || '1rem');
+      setFontWeight(config.fontWeight || 400);
+      setTextTransform(config.textTransform || 'uppercase');
       setShowOrderButton(!!config.ctaButton);
       setOrderButtonText(config.ctaButton?.label || 'Order Online');
       setOrderButtonHref(config.ctaButton?.href || '/menu');
@@ -108,6 +166,10 @@ export default function NavbarSettingsForm() {
         bgColor,
         textColor,
         logoSize,
+        fontFamily,
+        fontSize,
+        fontWeight,
+        textTransform,
         ctaButton: showOrderButton
           ? {
               label: orderButtonText,
@@ -155,11 +217,11 @@ export default function NavbarSettingsForm() {
             <div>
               <h1 className={styles.formTitle}>Navigation Bar Settings</h1>
               <p className={styles.formSubtitle}>Customize your website navigation</p>
-              {restaurantNameFromQuery && (
+              {/* {restaurantNameFromQuery && (
                 <p className={styles.formSubtitle}>
                   Restaurant: {restaurantNameFromQuery}
                 </p>
-              )}
+              )} */}
             </div>
             <div className={styles.headerActions}>
               <button
@@ -438,6 +500,43 @@ export default function NavbarSettingsForm() {
                 </div>
               </div>
 
+              {/* Current Logo Display */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Restaurant Logo
+                  <span className={styles.labelHint}>Logo from restaurant settings</span>
+                </label>
+                <div className={styles.logoPreview}>
+                  {config?.logoUrl ? (
+                    <div className={styles.logoPreviewContainer}>
+                      <img
+                        src={config.logoUrl}
+                        alt={config.restaurantName || 'Restaurant Logo'}
+                        className={styles.logoPreviewImage}
+                        style={{ height: `${logoSize}px` }}
+                      />
+                      <span className={styles.logoPreviewName}>{config.restaurantName}</span>
+                    </div>
+                  ) : (
+                    <div className={styles.logoPreviewPlaceholder}>
+                      <div className={styles.logoInitialsPreview}>
+                        {config?.restaurantName
+                          ? config.restaurantName
+                              .split(' ')
+                              .map(word => word[0])
+                              .join('')
+                              .toUpperCase()
+                              .slice(0, 3)
+                          : 'R'}
+                      </div>
+                      <span className={styles.logoPreviewName}>
+                        {config?.restaurantName || 'Restaurant'} (Initials)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Logo Size */}
               <div className={styles.formGroup}>
                 <label className={styles.label}>
@@ -465,6 +564,94 @@ export default function NavbarSettingsForm() {
                   />
                   <span className={styles.rangeUnit}>px</span>
                 </div>
+              </div>
+
+              {/* Font Family */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Menu Font
+                  <span className={styles.labelHint}>Font family for menu items</span>
+                </label>
+                <select
+                  value={fontFamily}
+                  onChange={(e) => setFontFamily(e.target.value)}
+                  className={styles.select}
+                  style={{ fontFamily: fontFamily }}
+                >
+                  {FONT_OPTIONS.map((option) => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                      style={{ fontFamily: option.value }}
+                    >
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Font Size and Weight Grid */}
+              <div className={styles.colorFieldsGrid}>
+                {/* Font Size */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Menu Font Size
+                    <span className={styles.labelHint}>Text size</span>
+                  </label>
+                  <select
+                    value={fontSize}
+                    onChange={(e) => setFontSize(e.target.value)}
+                    className={styles.select}
+                  >
+                    {FONT_SIZE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Font Weight */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Menu Font Weight
+                    <span className={styles.labelHint}>Text boldness</span>
+                  </label>
+                  <select
+                    value={fontWeight}
+                    onChange={(e) => setFontWeight(parseInt(e.target.value))}
+                    className={styles.select}
+                  >
+                    {FONT_WEIGHT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Text Transform */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Menu Text Style
+                  <span className={styles.labelHint}>Letter casing</span>
+                </label>
+                <select
+                  value={textTransform}
+                  onChange={(e) => setTextTransform(e.target.value as any)}
+                  className={styles.select}
+                >
+                  {TEXT_TRANSFORM_OPTIONS.map((option) => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                      style={{ textTransform: option.value as any }}
+                    >
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -636,6 +823,10 @@ export default function NavbarSettingsForm() {
                     textColor={textColor}
                     buttonBgColor="#000000"
                     buttonTextColor="#ffffff"
+                    fontFamily={fontFamily}
+                    fontSize={fontSize}
+                    fontWeight={fontWeight}
+                    textTransform={textTransform}
                   />
                 </div>
               </div>

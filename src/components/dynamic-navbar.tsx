@@ -83,7 +83,14 @@ export default function DynamicNavbar({
         // Validate response structure
         if (navbarData.success && navbarData.data) {
           // Merge with defaults to ensure all required fields are present
-          setConfig({ ...DEFAULT_NAVBAR_CONFIG, ...navbarData.data });
+          const mergedConfig = { ...DEFAULT_NAVBAR_CONFIG, ...navbarData.data };
+          console.log('[DynamicNavbar] 🎨 Navbar config loaded:', {
+            restaurantName: mergedConfig.restaurantName,
+            logoUrl: mergedConfig.logoUrl,
+            layout: mergedConfig.layout,
+            position: mergedConfig.position,
+          });
+          setConfig(mergedConfig);
         } else {
           throw new Error(navbarData.error || 'Invalid API response structure');
         }
@@ -157,6 +164,10 @@ export default function DynamicNavbar({
       borderWidth={config.borderWidth}
       bagCount={config.bagCount}
       additionalText={config.additionalText}
+      fontFamily={config.fontFamily}
+      fontSize={config.fontSize}
+      fontWeight={config.fontWeight}
+      textTransform={config.textTransform}
     />
   );
 }

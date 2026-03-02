@@ -46,6 +46,12 @@ export interface NavbarConfig {
   buttonTextColor?: string;
   borderColor?: string;
   borderWidth?: string;
+
+  // Font styling for navbar menu items
+  fontFamily?: string;
+  fontSize?: string;
+  fontWeight?: number;
+  textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
   
   // Additional features
   bagCount?: number;
@@ -70,6 +76,7 @@ export interface NavbarConfigResponse {
  */
 export const DEFAULT_NAVBAR_CONFIG: NavbarConfig = {
   restaurantName: "Restaurant",
+  logoUrl: undefined, // Will be populated from restaurants table
   logoSize: 40,
   leftNavItems: [
     { label: 'Collection', href: '#collection', order: 1 },
@@ -78,7 +85,7 @@ export const DEFAULT_NAVBAR_CONFIG: NavbarConfig = {
   rightNavItems: [],
   ctaButton: {
     label: 'Order Online',
-    href: '#order',
+    href: '/menu',
   },
   layout: 'bordered-centered',
   position: 'absolute',

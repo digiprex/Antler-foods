@@ -204,6 +204,12 @@ export async function GET(request: Request) {
     const restaurantName = restaurantData?.name || 'Restaurant';
     const logoUrl = restaurantData?.logo || undefined;
 
+    console.log('[Navbar Config] 🏪 Restaurant data:', {
+      name: restaurantName,
+      logo: logoUrl,
+      hasLogo: !!logoUrl,
+    });
+
     if (!(data as any).templates || (data as any).templates.length === 0) {
       // Return 404 if no navbar template exists - don't show navbar
       const response = {
@@ -236,7 +242,18 @@ export async function GET(request: Request) {
       textColor: template.config?.textColor || '#000000',
       buttonBgColor: '#000000',
       buttonTextColor: '#ffffff',
+      fontFamily: template.config?.fontFamily || 'Inter, system-ui, sans-serif',
+      fontSize: template.config?.fontSize || '1rem',
+      fontWeight: template.config?.fontWeight || 400,
+      textTransform: template.config?.textTransform || 'uppercase',
     };
+
+    console.log('[Navbar Config] ✅ Final config being sent:', {
+      restaurantName: config.restaurantName,
+      logoUrl: config.logoUrl,
+      hasLogo: !!config.logoUrl,
+      leftNavItems: config.leftNavItems?.length,
+    });
 
     const response: NavbarConfigResponse = {
       success: true,
@@ -307,6 +324,10 @@ export async function POST(request: Request) {
       textColor: body.textColor,
       position: body.position,
       logoSize: body.logoSize,
+      fontFamily: body.fontFamily,
+      fontSize: body.fontSize,
+      fontWeight: body.fontWeight,
+      textTransform: body.textTransform,
       ctaButton: body.ctaButton,
     };
 

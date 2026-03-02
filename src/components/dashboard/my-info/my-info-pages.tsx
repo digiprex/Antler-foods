@@ -1057,15 +1057,13 @@ export function MyInfoBrandPage() {
                 <span className="text-xs font-medium text-[#8b98a5]">No logo</span>
               )}
             </div>
-            <p className="text-xs text-[#6b7a86]">
+            {/* <p className="text-xs text-[#6b7a86]">
               {logoFileId ? (
-                <>
-                  File ID: <span className="font-mono text-[11px]">{logoFileId}</span>
-                </>
+                <span className="font-mono text-[11px]">{logoFileId}</span>
               ) : (
                 'Logo is stored as URL + file id for stable delivery and easy asset tracking.'
               )}
-            </p>
+            </p> */}
           </div>
         </div>
 

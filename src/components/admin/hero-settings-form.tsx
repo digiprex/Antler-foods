@@ -14,6 +14,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Hero from '@/components/hero';
 import Toast from '@/components/ui/toast';
 import { ImageGalleryModal } from './image-gallery-modal';
@@ -29,6 +30,7 @@ interface HeroSettingsFormProps {
 }
 
 export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsFormProps) {
+  const router = useRouter();
   const { config, loading, error: fetchError, refetch } = useHeroConfig({ fetchOnMount: !isNewSection });
   const { updateHero, updating, error: updateError } = useUpdateHeroConfig();
 
@@ -48,7 +50,7 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
   const [currentMediaField, setCurrentMediaField] = useState<MediaFieldType | null>(null);
 
   // Get restaurant ID and other params from URL
-  const searchParams = new URLSearchParams(window.location.search);
+  const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id') || '';
   const restaurantName = searchParams.get('restaurant_name') || '';
 
@@ -132,7 +134,7 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
         if (restaurantId) params.set('restaurant_id', restaurantId);
         if (restaurantName) params.set('restaurant_name', restaurantName);
         if (pageId) params.set('page_id', pageId);
-        window.location.href = `/admin/page-settings?${params.toString()}`;
+        router.replace(`/admin/page-settings?${params.toString()}`);
       }, 1500);
     } catch (err) {
       console.error('Failed to save hero config:', err);

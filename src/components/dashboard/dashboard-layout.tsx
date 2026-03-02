@@ -11,7 +11,6 @@ import {
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getRoleFromHasuraClaims, getUserRole } from '@/lib/auth/get-user-role';
 import type { AppRole } from '@/lib/auth/get-user-role';
-import { nhost } from '@/lib/nhost';
 import {
   LOGIN_ROUTE,
   UNAUTHORIZED_ROUTE,
@@ -32,8 +31,6 @@ import {
 interface DashboardLayoutProps {
   children: ReactNode;
 }
-
-const AUTH_BOOTSTRAP_TIMEOUT_MS = 1800;
 
 function resolveActiveRailTab(
   pathname: string,
@@ -118,7 +115,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { signOut } = useSignOut();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [claimsWaitElapsed, setClaimsWaitElapsed] = useState(false);
-  const [isAuthBootstrapReady, setIsAuthBootstrapReady] = useState(false);
   const [isRouteLoading, setIsRouteLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedRestaurant, setSelectedRestaurant] =
@@ -143,33 +139,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   const activeTab = pathBasedTab;
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    const settleInitialAuthState = async () => {
-      try {
-        await Promise.race([
-          nhost.auth.isAuthenticatedAsync(),
-          new Promise<void>((resolve) =>
-            setTimeout(resolve, AUTH_BOOTSTRAP_TIMEOUT_MS),
-          ),
-        ]);
-      } catch {
-        // Ignore bootstrap errors and let auth guards handle redirects.
-      } finally {
-        if (!isCancelled) {
-          setIsAuthBootstrapReady(true);
-        }
-      }
-    };
-
-    void settleInitialAuthState();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     const restaurantScope = parseRestaurantScopeFromPath(pathname);
@@ -268,7 +237,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   useEffect(() => {
-    if (!isAuthBootstrapReady || isStatusLoading) {
+    if (isStatusLoading) {
       return;
     }
 
@@ -311,7 +280,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [
     expectedRoleRouteSegment,
-    isAuthBootstrapReady,
     isAuthenticated,
     isRoleResolved,
     isStatusLoading,
@@ -388,7 +356,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   if (
-    !isAuthBootstrapReady ||
     isStatusLoading ||
     (isAuthenticated && !isRoleResolved)
   ) {

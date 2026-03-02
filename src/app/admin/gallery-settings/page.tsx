@@ -73,24 +73,18 @@ export default function GallerySettingsPage() {
     try {
       // Try without type filter first to see if any media exists
       const url = `/api/media?restaurant_id=${restaurantId}`;
-      console.log('[Gallery Settings] Fetching media from:', url);
 
       const response = await fetch(url);
       const data = await response.json();
 
-      console.log('[Gallery Settings] Media API response:', data);
 
       if (data.success) {
-        console.log('[Gallery Settings] Loaded media files:', data.data?.length || 0);
-        console.log('[Gallery Settings] Media data:', data.data);
 
         // Filter for images on the client side if needed
         const allMedia = data.data || [];
-        console.log('[Gallery Settings] All media types:', allMedia.map((m: any) => m.type));
 
         // Add some test data if no media is found for debugging
         if (allMedia.length === 0) {
-          console.log('[Gallery Settings] No media found, you may need to upload some images first');
         }
 
         // For now, show all media files
@@ -202,7 +196,6 @@ export default function GallerySettingsPage() {
       // Upload files one by one
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        console.log(`[Gallery Settings] Uploading file ${i + 1}/${files.length}:`, file.name);
 
         setUploadProgress(prev => ({ ...prev, [file.name]: 0 }));
 
@@ -583,13 +576,11 @@ export default function GallerySettingsPage() {
                               
                               // Try alternative URLs if available
                               if (media.file.urlWithAuth && target.src !== media.file.urlWithAuth) {
-                                console.log('[Gallery Settings] Trying URL with auth:', media.file.urlWithAuth);
                                 target.src = media.file.urlWithAuth;
                                 return;
                               }
                               
                               if (media.file.directUrl && target.src !== media.file.directUrl) {
-                                console.log('[Gallery Settings] Trying direct URL:', media.file.directUrl);
                                 target.src = media.file.directUrl;
                                 return;
                               }

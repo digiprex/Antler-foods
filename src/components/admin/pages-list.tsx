@@ -92,26 +92,36 @@ export function PagesList({ restaurantId }: PagesListProps) {
     }
 
     try {
+      console.log('[Pages List] 👁️ Viewing page:', page.name, 'slug:', page.url_slug);
       const res = await fetch(`/api/admin/restaurant-staging?restaurant_id=${encodeURIComponent(page.restaurant_id)}`);
       if (!res.ok) throw new Error('Failed to fetch restaurant staging domain');
       const data = await res.json();
+      console.log('[Pages List] 🏪 Restaurant data:', data);
+
       if (!data.success || !data.data) throw new Error(data.error || 'No staging domain');
 
       let domain = data.data.staging_domain;
+      console.log('[Pages List] 🌐 Staging domain from DB:', domain);
+
       if (!domain) {
-        alert('Staging domain not configured for this restaurant');
+        alert('⚠️ Staging domain not configured!\n\nPlease go to Location Settings and set the staging_domain field.\n\nFor localhost development, set it to: localhost:3000');
         return;
       }
 
-      // Ensure protocol
+      // Ensure protocol (use http for localhost, https for others)
       if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
-        domain = `https://${domain}`;
+        if (domain.includes('localhost') || domain.startsWith('192.168.') || domain.startsWith('127.0.0.1')) {
+          domain = `http://${domain}`;
+        } else {
+          domain = `https://${domain}`;
+        }
       }
 
       const url = `${domain.replace(/\/$/, '')}/${page.url_slug.replace(/^\//, '')}`;
+      console.log('[Pages List] 🚀 Opening URL:', url);
       window.open(url, '_blank');
     } catch (err) {
-      console.error(err);
+      console.error('[Pages List] ❌ Error:', err);
       alert(err instanceof Error ? err.message : 'Failed to open page');
     }
   };

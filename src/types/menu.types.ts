@@ -9,9 +9,12 @@ export interface MenuItem {
   description?: string;
   price: string;
   image?: string;
+  backgroundImage?: string; // Background image for the item card
   category?: string;
   featured?: boolean;
   dietary?: string[]; // e.g., ['vegetarian', 'gluten-free', 'vegan']
+  ctaLabel?: string; // Call-to-action button label
+  ctaLink?: string; // Call-to-action button link
 }
 
 export interface MenuCategory {
@@ -44,13 +47,6 @@ export interface MenuConfig {
   // Menu Data
   categories?: MenuCategory[];
   featuredItems?: MenuItem[];
-
-  // Call-to-action button
-  ctaButton?: MenuButton;
-
-  // Media
-  backgroundImage?: string;
-  headerImage?: string;
 
   // Layout options
   layout?:

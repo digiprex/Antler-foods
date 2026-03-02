@@ -201,9 +201,9 @@ export default function CustomCodeSettingsForm() {
             <div>
               <h1 className={styles.formTitle}>Custom Code Settings</h1>
               <p className={styles.formSubtitle}>Add custom HTML/CSS/JS or embed iframe content</p>
-              {restaurantNameFromQuery && (
+              {restaurantIdFromQuery && (
                 <p className={styles.formSubtitle}>
-                  Restaurant: {restaurantNameFromQuery}
+                  Restaurant: {restaurantIdFromQuery}
                 </p>
               )}
             </div>

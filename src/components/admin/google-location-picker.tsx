@@ -18,15 +18,7 @@ interface GoogleLocationPickerProps {
   onLocationUpdate: (updates: Partial<LocationItem>) => void;
 }
 
-// Google Maps types
-declare global {
-  interface Window {
-    google: typeof google;
-    initGoogleMaps: () => void;
-    googleMapsLoaded?: boolean;
-    googleMapsLoading?: boolean;
-  }
-}
+// Google Maps types are declared in src/types/google-maps.d.ts
 
 // Cache for Google Maps script loading
 let googleMapsLoadPromise: Promise<void> | null = null;
@@ -91,8 +83,8 @@ function GoogleLocationPicker({
 }: GoogleLocationPickerProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [marker, setMarker] = useState<google.maps.Marker | null>(null);
+  const [map, setMap] = useState<any>(null);
+  const [marker, setMarker] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const mapInitialized = useRef(false);

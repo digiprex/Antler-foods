@@ -23,6 +23,9 @@ interface FormField {
   type: string;
   required?: boolean;
   options?: string[];
+  order?: number;
+  id?: string;
+  placeholder?: string;
 }
 
 interface Form {
@@ -39,6 +42,8 @@ interface MediaFile {
     url: string;
     name?: string;
   };
+  url?: string;
+  name?: string;
 }
 
 interface FormSettingsConfig {
@@ -788,7 +793,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                           {/* Form content */}
                           <form>
                             {selectedForm.fields && selectedForm.fields
-                              .sort((a, b) => a.order - b.order)
+                              .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
                               .slice(0, 3) // Show only first 3 fields for preview
                               .map((field, index) => (
                                 <div key={field.id || index} style={{ marginBottom: '1rem' }}>
@@ -904,7 +909,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                           {/* Form content */}
                           <form>
                             {selectedForm.fields && selectedForm.fields
-                              .sort((a, b) => a.order - b.order)
+                              .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
                               .slice(0, 3)
                               .map((field, index) => (
                                 <div key={field.id || index} style={{ marginBottom: '1rem' }}>
@@ -995,7 +1000,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                         </div>
                         <form style={{ maxWidth: '400px', margin: '0 auto' }}>
                           {selectedForm.fields && selectedForm.fields
-                            .sort((a, b) => a.order - b.order)
+                            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
                             .slice(0, 3)
                             .map((field, index) => (
                               <div key={field.id || index} style={{ marginBottom: '1rem' }}>
@@ -1094,7 +1099,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                           </div>
                           <form>
                             {selectedForm.fields && selectedForm.fields
-                              .sort((a, b) => a.order - b.order)
+                              .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
                               .slice(0, 3)
                               .map((field, index) => (
                                 <div key={field.id || index} style={{ marginBottom: '1rem' }}>
@@ -1167,7 +1172,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                           </div>
                           <form>
                             {selectedForm.fields && selectedForm.fields
-                              .sort((a, b) => a.order - b.order)
+                              .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
                               .slice(0, 3)
                               .map((field, index) => (
                                 <div key={field.id || index} style={{ marginBottom: '1rem' }}>
@@ -1234,7 +1239,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                         
                         <form style={{ maxWidth: '500px', margin: '0 auto' }}>
                           {selectedForm.fields && selectedForm.fields
-                            .sort((a, b) => a.order - b.order)
+                            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
                             .slice(0, 4) // Show more fields for centered layout
                             .map((field, index) => (
                               <div key={field.id || index} style={{ marginBottom: '1rem' }}>
@@ -1408,7 +1413,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                     >
                       {(media.file?.url || media.url) ? (
                         <Image
-                          src={media.file?.url || media.url}
+                          src={media.file?.url || media.url || ''}
                           alt={media.file?.name || media.name || 'Image'}
                           width={150}
                           height={150}

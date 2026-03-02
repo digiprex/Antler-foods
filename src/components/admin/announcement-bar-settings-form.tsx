@@ -239,9 +239,9 @@ export default function AnnouncementBarSettingsForm() {
             <div>
               <h1 className={styles.formTitle}>Announcement Bar Settings</h1>
               <p className={styles.formSubtitle}>Configure your announcement bar</p>
-              {restaurantNameFromQuery && (
+              {restaurantIdFromQuery && (
                 <p className={styles.formSubtitle}>
-                  Restaurant: {restaurantNameFromQuery}
+                  Restaurant: {restaurantIdFromQuery}
                 </p>
               )}
             </div>

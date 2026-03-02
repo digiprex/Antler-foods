@@ -31,6 +31,26 @@ async function graphqlRequest<T>(query: string, variables?: Record<string, unkno
   return adminGraphqlRequest<T>(query, variables);
 }
 
+interface WebsiteInfo {
+  created_at: string;
+  custom_domain: string;
+  favicon_url: string | null;
+  global_styles: any;
+  google_analytics_id: string | null;
+  id: string;
+  is_deleted: boolean;
+  is_published: boolean;
+  logo: string | null;
+  restaurant_id: string;
+  staging_domain: string | null;
+  updated_at: string;
+  vercel_project_id: string | null;
+}
+
+interface GetWebsiteInfoResponse {
+  websites_by_pk: WebsiteInfo | null;
+}
+
 export async function GET(request: Request) {
   try {
     // Get the host from the request headers
@@ -39,7 +59,7 @@ export async function GET(request: Request) {
     // Remove port if present for custom domain lookup
     const customDomain = host.split(':')[0];
 
-    const data = await graphqlRequest(GET_WEBSITE_INFO, {
+    const data = await graphqlRequest<GetWebsiteInfoResponse>(GET_WEBSITE_INFO, {
       custom_domain: customDomain,
     });
 

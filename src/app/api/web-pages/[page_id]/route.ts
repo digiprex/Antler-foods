@@ -104,8 +104,9 @@ export async function GET(
 
   } catch (error) {
     console.error('Web Pages API GET error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }
@@ -128,17 +129,27 @@ export async function PATCH(
       );
     }
 
-    // Build variables object, only including defined values
+    // Fetch current page to preserve existing values
+    const currentPage = await adminGraphqlRequest(GET_PAGE, { page_id: pageId });
+    const existingPage = (currentPage as any).web_pages_by_pk;
+
+    if (!existingPage) {
+      return NextResponse.json(
+        { success: false, error: 'Page not found' },
+        { status: 404 }
+      );
+    }
+
+    // Build variables object, using existing values for fields not being updated
     const variables: any = {
       page_id: pageId,
+      meta_title: meta_title !== undefined && meta_title !== null ? meta_title : existingPage.meta_title,
+      meta_description: meta_description !== undefined && meta_description !== null ? meta_description : existingPage.meta_description,
+      og_image: og_image !== undefined && og_image !== null ? og_image : existingPage.og_image,
+      published: typeof published === 'boolean' ? published : existingPage.published,
+      show_on_navbar: typeof show_on_navbar === 'boolean' ? show_on_navbar : existingPage.show_on_navbar,
+      show_on_footer: typeof show_on_footer === 'boolean' ? show_on_footer : existingPage.show_on_footer,
     };
-
-    if (meta_title !== undefined) variables.meta_title = meta_title;
-    if (meta_description !== undefined) variables.meta_description = meta_description;
-    if (og_image !== undefined) variables.og_image = og_image;
-    if (published !== undefined) variables.published = published;
-    if (show_on_navbar !== undefined) variables.show_on_navbar = show_on_navbar;
-    if (show_on_footer !== undefined) variables.show_on_footer = show_on_footer;
 
     // Update page
     const result = await adminGraphqlRequest(UPDATE_PAGE, variables);
@@ -156,8 +167,9 @@ export async function PATCH(
 
   } catch (error) {
     console.error('Web Pages API PATCH error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }

@@ -91,14 +91,13 @@ export function SearchBox({
     const normalizedSearch = searchValue.trim().toLowerCase();
 
     if (!normalizedSearch) {
-      return restaurants.slice(0, 8);
+      return restaurants;
     }
 
     return restaurants
       .filter((restaurant) =>
         restaurant.name.toLowerCase().includes(normalizedSearch),
-      )
-      .slice(0, 8);
+      );
   }, [restaurants, searchValue]);
 
   const onInputChange = (nextValue: string) => {
@@ -157,7 +156,7 @@ export function SearchBox({
         </div>
 
         {isOpen ? (
-          <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-xl border border-[#d7e2e6] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
+          <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-[400px] overflow-y-auto overflow-x-hidden rounded-xl border border-[#d7e2e6] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
             {isLoading ? (
               <p className="px-4 py-3 text-sm text-[#647384]">
                 Loading restaurants...

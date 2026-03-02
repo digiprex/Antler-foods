@@ -38,6 +38,10 @@ export default function PageSettingsSelector() {
   const [showOnNavbar, setShowOnNavbar] = useState<boolean>(false);
   const [showOnFooter, setShowOnFooter] = useState<boolean>(false);
   const [updatingVisibility, setUpdatingVisibility] = useState(false);
+  const [pageName, setPageName] = useState<string>('');
+  const [pageSlug, setPageSlug] = useState<string>('');
+  const [editingPageInfo, setEditingPageInfo] = useState(false);
+  const [updatingPageInfo, setUpdatingPageInfo] = useState(false);
 
   // Function to render section preview based on category
   const renderSectionPreview = (category: string, config?: any) => {
@@ -324,6 +328,8 @@ export default function PageSettingsSelector() {
           setPagePublished(pageData.data.published || false);
           setShowOnNavbar(pageData.data.show_on_navbar || false);
           setShowOnFooter(pageData.data.show_on_footer || false);
+          setPageName(pageData.data.name || '');
+          setPageSlug(pageData.data.url_slug || '');
         }
       } catch (err) {
         console.error('Error fetching page details:', err);
@@ -616,6 +622,47 @@ export default function PageSettingsSelector() {
     }
   };
 
+  const handleSavePageInfo = async () => {
+    if (!pageId) return;
+
+    // Validate slug format
+    const slugPattern = /^[a-z0-9-]+$/;
+    if (pageSlug && !slugPattern.test(pageSlug)) {
+      alert('URL slug can only contain lowercase letters, numbers, and hyphens');
+      return;
+    }
+
+    if (!pageName.trim()) {
+      alert('Page name is required');
+      return;
+    }
+
+    setUpdatingPageInfo(true);
+    try {
+      const response = await fetch(`/api/web-pages/${pageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: pageName.trim(),
+          url_slug: pageSlug.trim(),
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setEditingPageInfo(false);
+        alert('Page information updated successfully!');
+      } else {
+        alert('Failed to update page information: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error updating page information:', error);
+      alert('Error updating page information');
+    } finally {
+      setUpdatingPageInfo(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="p-6">
@@ -704,6 +751,110 @@ export default function PageSettingsSelector() {
           <p className="text-gray-600">
             Manage sections configured for this page. Click on any section to configure it.
           </p>
+
+          {/* Page Information Settings */}
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">Page Information</h3>
+              {!editingPageInfo ? (
+                <button
+                  onClick={() => setEditingPageInfo(true)}
+                  className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setEditingPageInfo(false);
+                      // Reset to original values
+                      fetchPageAndSections();
+                    }}
+                    disabled={updatingPageInfo}
+                    className="px-3 py-1.5 text-xs bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSavePageInfo}
+                    disabled={updatingPageInfo}
+                    className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1 disabled:opacity-50"
+                  >
+                    {updatingPageInfo ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Save
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+            {!editingPageInfo ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Page Name</label>
+                  <div className="text-sm text-gray-900 font-medium">{pageName || 'Not set'}</div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">URL Slug</label>
+                  <div className="text-sm text-gray-900 font-mono bg-white px-2 py-1 rounded border border-gray-200">
+                    /{pageSlug || 'not-set'}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="page-name-input" className="block text-xs font-medium text-gray-700 mb-1">
+                    Page Name *
+                  </label>
+                  <input
+                    id="page-name-input"
+                    type="text"
+                    value={pageName}
+                    onChange={(e) => setPageName(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                    placeholder="About Us"
+                    required
+                    disabled
+                  />
+                </div>
+                <div>
+                  <label htmlFor="page-slug-input" className="block text-xs font-medium text-gray-700 mb-1">
+                    URL Slug *
+                  </label>
+                  <div className="flex items-center border border-gray-300 rounded-lg bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+                    <span className="px-3 text-sm text-gray-500 border-r border-gray-300">/</span>
+                    <input
+                      id="page-slug-input"
+                      type="text"
+                      value={pageSlug}
+                      onChange={(e) => setPageSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                      className="flex-1 px-3 py-2 text-sm focus:outline-none font-mono"
+                      placeholder="about-us"
+                      pattern="[a-z0-9-]+"
+                      required
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Only lowercase letters, numbers, and hyphens
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Page Visibility Settings */}
           <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">

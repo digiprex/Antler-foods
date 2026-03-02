@@ -23,6 +23,7 @@ import { loginSchema, type LoginFormValues } from '@/lib/validation/auth';
 export function LoginForm() {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const { isAuthenticated, isLoading: isStatusLoading } =
     useAuthenticationStatus();
   const user = useUserData();
@@ -69,6 +70,7 @@ export function LoginForm() {
   });
 
   const onSubmit = handleSubmit(async ({ email, password }) => {
+    setHasSubmitted(true);
     setFormError(null);
 
     if (!isNhostConfigured) {
@@ -86,9 +88,6 @@ export function LoginForm() {
       );
       return;
     }
-
-    const signedInRole = getUserRole(result.user);
-    router.replace(getRoleDashboardRoute(signedInRole) || DEFAULT_AUTH_REDIRECT);
   });
 
   return (
@@ -112,7 +111,7 @@ export function LoginForm() {
         />
       </div>
 
-      {formError || error ? (
+      {formError || (hasSubmitted && error) ? (
         <p className="rounded-lg border border-[#f4c7c7] bg-[#fff5f5] px-3 py-2 text-[11px] font-medium leading-relaxed text-[#b33838]">
           {formError ?? error?.message}
         </p>

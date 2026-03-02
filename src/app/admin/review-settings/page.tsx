@@ -28,18 +28,6 @@ export default function ReviewSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [showAddReviewForm, setShowAddReviewForm] = useState(false);
-  const [addingReview, setAddingReview] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string>('');
-  const [newReview, setNewReview] = useState({
-    author_name: '',
-    rating: 5,
-    review_text: '',
-    source: 'manual',
-    avatar_url: '',
-    published_at: new Date().toISOString().split('T')[0],
-  });
 
   useEffect(() => {
     if (restaurantId) {
@@ -114,104 +102,12 @@ export default function ReviewSettingsPage() {
     }
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleAddReview = async () => {
-    if (!restaurantId) return;
-
-    setAddingReview(true);
-    try {
-      let avatarUrl = '';
-
-      // Upload avatar if file is selected
-      if (avatarFile) {
-        const formData = new FormData();
-        formData.append('file', avatarFile);
-        formData.append('restaurant_id', restaurantId);
-        formData.append('type', 'image');
-
-        const uploadResponse = await fetch('/api/media/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const uploadData = await uploadResponse.json();
-
-        if (uploadData.success && uploadData.data && uploadData.data.file) {
-          avatarUrl = uploadData.data.file.url;
-        } else {
-          setToast({ message: 'Error uploading avatar', type: 'error' });
-          setTimeout(() => setToast(null), 3000);
-          setAddingReview(false);
-          return;
-        }
-      }
-
-      const response = await fetch('/api/reviews/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...newReview,
-          avatar_url: avatarUrl || null,
-          restaurant_id: restaurantId,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setToast({ message: 'Review added successfully!', type: 'success' });
-        setTimeout(() => setToast(null), 3000);
-
-        // Reset form
-        setNewReview({
-          author_name: '',
-          rating: 5,
-          review_text: '',
-          source: 'manual',
-          avatar_url: '',
-          published_at: new Date().toISOString().split('T')[0],
-        });
-        handleCloseAddReviewModal();
-
-        // Refresh reviews list
-        await fetchReviews();
-      } else {
-        setToast({ message: 'Error adding review: ' + data.error, type: 'error' });
-        setTimeout(() => setToast(null), 3000);
-      }
-    } catch (error) {
-      console.error('Error adding review:', error);
-      setToast({ message: 'Error adding review', type: 'error' });
-      setTimeout(() => setToast(null), 3000);
-    } finally {
-      setAddingReview(false);
-    }
-  };
-
   const handleBack = () => {
     const params = new URLSearchParams();
     if (restaurantId) params.set('restaurant_id', restaurantId);
     if (restaurantName) params.set('restaurant_name', restaurantName);
     if (pageId) params.set('page_id', pageId);
     router.push(`/admin/page-settings?${params.toString()}`);
-  };
-
-  const handleCloseAddReviewModal = () => {
-    setShowAddReviewForm(false);
-    setAvatarFile(null);
-    setAvatarPreview('');
   };
 
   if (!restaurantId) {
@@ -489,22 +385,6 @@ export default function ReviewSettingsPage() {
                   </div>
                 </div>
 
-                {/* Add Review Button */}
-                <div className={styles.section}>
-                  <div className={styles.formGroup}>
-                    <h3 className={styles.sectionTitle}>
-                      <span className={styles.sectionIcon}>➕</span>
-                      Add Review
-                    </h3>
-                    <button
-                      onClick={() => setShowAddReviewForm(true)}
-                      className={`${styles.button} ${styles.primaryButton}`}
-                    >
-                      + Add New Review
-                    </button>
-                  </div>
-                </div>
-
                 {/* Available Reviews */}
                 <div className={styles.section}>
                   <h3 className={styles.sectionTitle}>
@@ -696,159 +576,6 @@ export default function ReviewSettingsPage() {
                 className={`${styles.button} ${styles.secondaryButton}`}
               >
                 Close Preview
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Review Modal */}
-      {showAddReviewForm && (
-        <div className={styles.modal} onClick={handleCloseAddReviewModal}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-            <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>
-                Add New Review
-              </h2>
-              <button
-                onClick={handleCloseAddReviewModal}
-                className={styles.modalCloseButton}
-              >
-                ×
-              </button>
-            </div>
-
-            <div className={styles.modalBody}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Author Name
-                  <span className={styles.labelHint}>Reviewer's name</span>
-                </label>
-                <input
-                  type="text"
-                  value={newReview.author_name}
-                  onChange={(e) => setNewReview({ ...newReview, author_name: e.target.value })}
-                  className={styles.textInput}
-                  placeholder="John Doe"
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Rating
-                  <span className={styles.labelHint}>1 to 5 stars</span>
-                </label>
-                <select
-                  value={newReview.rating}
-                  onChange={(e) => setNewReview({ ...newReview, rating: parseInt(e.target.value) })}
-                  className={styles.select}
-                >
-                  <option value="5">5 Stars</option>
-                  <option value="4">4 Stars</option>
-                  <option value="3">3 Stars</option>
-                  <option value="2">2 Stars</option>
-                  <option value="1">1 Star</option>
-                </select>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Review Text
-                  <span className={styles.labelHint}>Review content</span>
-                </label>
-                <textarea
-                  value={newReview.review_text}
-                  onChange={(e) => setNewReview({ ...newReview, review_text: e.target.value })}
-                  rows={4}
-                  className={styles.textArea}
-                  placeholder="This restaurant has amazing food and great service..."
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Avatar Image
-                  <span className={styles.labelHint}>Optional profile picture</span>
-                </label>
-                {!avatarPreview ? (
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    className={styles.textInput}
-                    style={{ padding: '0.75rem' }}
-                  />
-                ) : (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem',
-                    padding: '1rem',
-                    background: '#f9fafb',
-                    borderRadius: '0.5rem',
-                    border: '1px solid #e5e7eb'
-                  }}>
-                    <img
-                      src={avatarPreview}
-                      alt="Avatar preview"
-                      style={{
-                        width: '60px',
-                        height: '60px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        border: '2px solid #e5e7eb',
-                      }}
-                    />
-                    <button
-                      onClick={() => {
-                        setAvatarFile(null);
-                        setAvatarPreview('');
-                      }}
-                      className={`${styles.button} ${styles.secondaryButton}`}
-                      type="button"
-                      style={{ padding: '0.5rem 1rem' }}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Published Date
-                  <span className={styles.labelHint}>When the review was published</span>
-                </label>
-                <input
-                  type="date"
-                  value={newReview.published_at}
-                  onChange={(e) => setNewReview({ ...newReview, published_at: e.target.value })}
-                  className={styles.textInput}
-                />
-              </div>
-            </div>
-
-            <div className={styles.modalFooter}>
-              <button
-                onClick={handleCloseAddReviewModal}
-                className={`${styles.button} ${styles.secondaryButton}`}
-                disabled={addingReview}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddReview}
-                disabled={addingReview || !newReview.author_name || !newReview.review_text}
-                className={`${styles.button} ${styles.primaryButton}`}
-              >
-                {addingReview ? (
-                  <>
-                    <span className={styles.spinner}></span>
-                    Adding...
-                  </>
-                ) : (
-                  'Add Review'
-                )}
               </button>
             </div>
           </div>

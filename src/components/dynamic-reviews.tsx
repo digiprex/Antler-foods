@@ -20,42 +20,53 @@ interface DynamicReviewsProps {
 export default function DynamicReviews({ restaurantId, pageId, showLoading = false, configData }: DynamicReviewsProps) {
   const [config, setConfig] = useState<ReviewConfig | null>(configData || null);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(!configData);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // If configData is provided, use it directly
-    if (configData) {
-      setConfig(configData as ReviewConfig);
-      setLoading(false);
-      // Note: We don't fetch reviews here because configData might already include them
-      // or they should be fetched separately if needed
-      return;
-    }
-
     const fetchData = async () => {
-      if (!restaurantId) return;
+      if (!restaurantId) {
+        setLoading(false);
+        return;
+      }
 
       setLoading(true);
       try {
-        // Fetch review config
-        const configUrl = `/api/review-config?restaurant_id=${restaurantId}${pageId ? `&page_id=${pageId}` : ''}`;
-        const configResponse = await fetch(configUrl);
-        const configData = await configResponse.json();
+        let nextConfig: ReviewConfig | null = null;
 
-        if (configData.success && configData.data) {
-          setConfig(configData.data);
+        if (configData) {
+          nextConfig = configData as ReviewConfig;
+          setConfig(nextConfig);
+        } else {
+          // Fetch review config
+          const configUrl = `/api/review-config?restaurant_id=${restaurantId}${pageId ? `&page_id=${pageId}` : ''}`;
+          const configResponse = await fetch(configUrl);
+          const fetchedConfigData = await configResponse.json();
 
-          // Fetch reviews
-          const reviewsUrl = `/api/reviews?restaurant_id=${restaurantId}${configData.data.maxReviews ? `&limit=${configData.data.maxReviews}` : ''}`;
+          if (fetchedConfigData.success && fetchedConfigData.data) {
+            nextConfig = fetchedConfigData.data;
+            setConfig(nextConfig);
+          } else {
+            setConfig(null);
+          }
+        }
+
+        if (nextConfig) {
+          // Always fetch reviews, including when config is passed from page template
+          const reviewsUrl = `/api/reviews?restaurant_id=${restaurantId}${nextConfig.maxReviews ? `&limit=${nextConfig.maxReviews}` : ''}`;
           const reviewsResponse = await fetch(reviewsUrl);
           const reviewsData = await reviewsResponse.json();
 
           if (reviewsData.success) {
-            setReviews(reviewsData.data);
+            setReviews(Array.isArray(reviewsData.data) ? reviewsData.data : []);
+          } else {
+            setReviews([]);
           }
+        } else {
+          setReviews([]);
         }
       } catch (error) {
         console.error('Error fetching reviews:', error);
+        setReviews([]);
       } finally {
         setLoading(false);
       }
@@ -72,9 +83,9 @@ export default function DynamicReviews({ restaurantId, pageId, showLoading = fal
     );
   }
 
-  if (!config || reviews.length === 0) {
+  if (!config) {
     return null;
   }
 
-  return <Reviews {...config} reviews={reviews} />;
+  return <Reviews {...config} reviews={reviews} restaurantId={restaurantId} />;
 }

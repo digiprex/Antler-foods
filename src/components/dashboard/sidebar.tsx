@@ -86,14 +86,14 @@ export function Sidebar({
             label: 'Reviews',
             icon: <UsersIcon />,
           },
-          // {
+          //{
           //   href: buildRestaurantScopedHref(
           //     `${dashboardBasePath}/assets`,
           //     selectedRestaurant,
           //   ),
           //   label: 'Assets',
           //   icon: <AssetsIcon />,
-          // },
+          //},
         ];
       })()
     : [];

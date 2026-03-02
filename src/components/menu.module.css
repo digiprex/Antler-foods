@@ -1,0 +1,334 @@
+/* Menu Section Styles */
+
+.menuSection {
+  padding: 4rem 2rem;
+  width: 100%;
+}
+
+.menuContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.menuHeader {
+  margin-bottom: 3rem;
+}
+
+.menuTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.025em;
+}
+
+.menuSubtitle {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 0 0 0.75rem 0;
+}
+
+.menuDescription {
+  font-size: 1rem;
+  margin: 0;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Categories */
+.menuCategories {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.menuCategory {
+  width: 100%;
+}
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.categoryIcon {
+  font-size: 2rem;
+}
+
+.categoryName {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.categoryDescription {
+  font-size: 0.9375rem;
+  margin: 0 0 1.5rem 0;
+}
+
+/* Category Items - Different Layouts */
+.categoryItems {
+  display: grid;
+  gap: 1.5rem;
+}
+
+/* Grid Layout (default) */
+.categoryItems.layout-grid {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+/* List Layout */
+.categoryItems.layout-list {
+  grid-template-columns: 1fr;
+}
+
+/* Two Column Layout */
+.categoryItems.layout-two-column {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Single Column Layout */
+.categoryItems.layout-single-column {
+  grid-template-columns: 1fr;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* Masonry Layout */
+.categoryItems.layout-masonry {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-auto-flow: dense;
+}
+
+/* Featured Grid */
+.categoryItems.layout-featured-grid {
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+}
+
+/* Minimal Layout */
+.categoryItems.layout-minimal {
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+/* Tabs, Accordion, Carousel - use grid as base */
+.categoryItems.layout-tabs,
+.categoryItems.layout-accordion,
+.categoryItems.layout-carousel {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+/* Menu Item Card */
+.menuItem {
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.menuItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.menuItemImage {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.menuItemImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.menuItemContent {
+  padding: 1.25rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.menuItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.menuItemName {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+}
+
+.menuItemPrice {
+  font-size: 1.125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.menuItemDescription {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin: 0 0 0.75rem 0;
+}
+
+.menuItemDietary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.dietaryBadge {
+  padding: 0.25rem 0.625rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1.5px solid;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+/* List Layout Specific Styles */
+.layout-list .menuItem {
+  flex-direction: row;
+  align-items: center;
+}
+
+.layout-list .menuItemImage {
+  width: 150px;
+  height: 150px;
+  flex-shrink: 0;
+}
+
+.layout-list .menuItemContent {
+  flex: 1;
+}
+
+/* Minimal Layout Specific Styles */
+.layout-minimal .menuItem {
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0;
+  padding: 1rem 0;
+  background: transparent !important;
+}
+
+.layout-minimal .menuItem:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.layout-minimal .menuItemImage {
+  display: none;
+}
+
+.layout-minimal .menuItemContent {
+  padding: 0;
+}
+
+.layout-minimal .menuItemHeader {
+  margin-bottom: 0.25rem;
+}
+
+.layout-minimal .menuItemDescription {
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 4rem 2rem;
+  font-size: 1.125rem;
+}
+
+/* CTA Button */
+.menuCta {
+  display: flex;
+  justify-content: center;
+  margin-top: 3rem;
+}
+
+.ctaButton {
+  display: inline-block;
+  padding: 0.875rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: 2px solid;
+}
+
+.ctaButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .menuSection {
+    padding: 3rem 1.5rem;
+  }
+
+  .menuTitle {
+    font-size: 2rem;
+  }
+
+  .menuSubtitle {
+    font-size: 1.125rem;
+  }
+
+  .categoryName {
+    font-size: 1.5rem;
+  }
+
+  .categoryItems.layout-grid,
+  .categoryItems.layout-two-column,
+  .categoryItems.layout-masonry,
+  .categoryItems.layout-featured-grid,
+  .categoryItems.layout-tabs,
+  .categoryItems.layout-accordion,
+  .categoryItems.layout-carousel {
+    grid-template-columns: 1fr;
+  }
+
+  .layout-list .menuItem {
+    flex-direction: column;
+  }
+
+  .layout-list .menuItemImage {
+    width: 100%;
+    height: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .menuSection {
+    padding: 2rem 1rem;
+  }
+
+  .menuTitle {
+    font-size: 1.75rem;
+  }
+
+  .categoryName {
+    font-size: 1.25rem;
+  }
+
+  .categoryIcon {
+    font-size: 1.5rem;
+  }
+}

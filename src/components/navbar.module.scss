@@ -101,6 +101,14 @@ $cta-hover-bg-color: rgb(31 41 55);
       flex: 1;
     }
   }
+
+  // Explicitly show logo on desktop
+  .brandLogo {
+    @media (min-width: 768px) {
+      display: flex;
+      align-items: center;
+    }
+  }
 }
 
 .desktopNavCentered {
@@ -189,7 +197,7 @@ $cta-hover-bg-color: rgb(31 41 55);
   align-items: center;
   justify-content: center;
   padding: 0.5rem;
-  color: black;
+  color: var(--navbar-text-color, black);
   background: none;
   border: none;
   cursor: pointer;
@@ -282,11 +290,12 @@ $cta-hover-bg-color: rgb(31 41 55);
 
 .additionalText {
   display: none;
-  text-transform: uppercase;
+  text-transform: var(--navbar-text-transform, uppercase);
   letter-spacing: 0.1em;
-  font-size: $nav-link-font-size;
-  font-weight: 700;
-  color: $nav-link-color;
+  font-family: var(--navbar-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--navbar-font-size, $nav-link-font-size);
+  font-weight: var(--navbar-font-weight, 700);
+  color: var(--navbar-text-color, $nav-link-color);
   white-space: nowrap;
 
   @media (min-width: 768px) {
@@ -337,6 +346,14 @@ $cta-hover-bg-color: rgb(31 41 55);
   .rightSection {
     @media (min-width: 768px) {
       flex: 1;
+    }
+  }
+
+  // Explicitly show logo on desktop
+  .brandLogo {
+    @media (min-width: 768px) {
+      display: flex;
+      align-items: center;
     }
   }
 }
@@ -420,10 +437,11 @@ $cta-hover-bg-color: rgb(31 41 55);
 }
 
 .navLink {
-  text-transform: uppercase;
+  text-transform: var(--navbar-text-transform, uppercase);
   letter-spacing: 0.1em;
-  font-size: $nav-link-font-size;
-  font-weight: 700;
+  font-family: var(--navbar-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--navbar-font-size, $nav-link-font-size);
+  font-weight: var(--navbar-font-weight, 700);
   color: var(--navbar-text-color, $nav-link-color);
   transition: color 0.2s;
 
@@ -437,7 +455,7 @@ $cta-hover-bg-color: rgb(31 41 55);
   align-items: center;
   justify-content: center;
   padding: 0.5rem;
-  color: black;
+  color: var(--navbar-text-color, black);
   background: none;
   border: none;
   cursor: pointer;
@@ -475,18 +493,20 @@ $cta-hover-bg-color: rgb(31 41 55);
 
 .bagLink {
   display: none;
-  text-transform: uppercase;
+  text-transform: var(--navbar-text-transform, uppercase);
   letter-spacing: 0.1em;
-  font-size: $nav-link-font-size;
-  font-weight: 700;
-  color: $nav-link-color;
+  font-family: var(--navbar-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--navbar-font-size, $nav-link-font-size);
+  font-weight: var(--navbar-font-weight, 700);
+  color: var(--navbar-text-color, $nav-link-color);
   transition: color 0.2s;
 
   @media (min-width: 768px) {
     display: block;
 
     &:hover {
-      color: $nav-link-hover-color;
+      color: var(--navbar-text-color, $nav-link-hover-color);
+      opacity: 0.8;
     }
   }
 }
@@ -496,8 +516,9 @@ $cta-hover-bg-color: rgb(31 41 55);
   padding: 0.625rem 1.5rem;
   background-color: var(--button-bg-color, $cta-bg-color);
   color: var(--button-text-color, $cta-text-color);
-  text-transform: uppercase;
+  text-transform: var(--navbar-text-transform, uppercase);
   letter-spacing: 0.1em;
+  font-family: var(--navbar-font-family, 'Inter, system-ui, sans-serif');
   font-size: $nav-link-font-size;
   font-weight: 700;
   border-radius: 0.25rem;
@@ -561,7 +582,7 @@ $cta-hover-bg-color: rgb(31 41 55);
   align-items: center;
   justify-content: center;
   padding: 0.5rem;
-  color: black;
+  color: var(--navbar-text-color, black);
   background: none;
   border: none;
   cursor: pointer;
@@ -582,14 +603,16 @@ $cta-hover-bg-color: rgb(31 41 55);
 
 .sidebarLink {
   font-size: 1.5rem;
-  text-transform: uppercase;
+  text-transform: var(--navbar-text-transform, uppercase);
   letter-spacing: 0.2em;
-  font-weight: 300;
-  color: rgb(31 41 55);
+  font-family: var(--navbar-font-family, 'Inter, system-ui, sans-serif');
+  font-weight: var(--navbar-font-weight, 300);
+  color: var(--navbar-text-color, rgb(31 41 55));
   transition: color 0.2s;
 
   &:hover {
-    color: black;
+    color: var(--navbar-text-color, black);
+    opacity: 0.8;
   }
 }
 
@@ -599,8 +622,9 @@ $cta-hover-bg-color: rgb(31 41 55);
   margin-top: 1rem;
   background-color: var(--button-bg-color, $cta-bg-color);
   color: var(--button-text-color, $cta-text-color);
-  text-transform: uppercase;
+  text-transform: var(--navbar-text-transform, uppercase);
   letter-spacing: 0.2em;
+  font-family: var(--navbar-font-family, 'Inter, system-ui, sans-serif');
   font-size: 1rem;
   font-weight: 700;
   border-radius: 0.25rem;

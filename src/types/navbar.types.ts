@@ -14,6 +14,7 @@ export interface CTAButton {
   id?: string;
   label: string;
   href: string;
+  style?: 'primary' | 'secondary';
   bgColor?: string;
   textColor?: string;
 }
@@ -23,6 +24,7 @@ export interface NavbarConfig {
   restaurant_id?: string; // Restaurant ID for database operations
   // Logo configuration
   logoUrl?: string;
+  logoSize?: number; // Logo size in pixels
   restaurantName: string;
   
   // Navigation items
@@ -44,6 +46,12 @@ export interface NavbarConfig {
   buttonTextColor?: string;
   borderColor?: string;
   borderWidth?: string;
+
+  // Font styling for navbar menu items
+  fontFamily?: string;
+  fontSize?: string;
+  fontWeight?: number;
+  textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
   
   // Additional features
   bagCount?: number;
@@ -68,6 +76,8 @@ export interface NavbarConfigResponse {
  */
 export const DEFAULT_NAVBAR_CONFIG: NavbarConfig = {
   restaurantName: "Restaurant",
+  logoUrl: undefined, // Will be populated from restaurants table
+  logoSize: 40,
   leftNavItems: [
     { label: 'Collection', href: '#collection', order: 1 },
     { label: 'Archive', href: '#archive', order: 2 },
@@ -75,7 +85,7 @@ export const DEFAULT_NAVBAR_CONFIG: NavbarConfig = {
   rightNavItems: [],
   ctaButton: {
     label: 'Order Online',
-    href: '#order',
+    href: '/menu',
   },
   layout: 'bordered-centered',
   position: 'absolute',

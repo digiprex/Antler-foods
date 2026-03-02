@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
 import DynamicHero from '@/components/dynamic-hero';
+import DynamicMenu from '@/components/dynamic-menu';
 import DynamicCustomCode from '@/components/dynamic-custom-code';
 import DynamicFAQ from '@/components/dynamic-faq';
 import DynamicGallery from '@/components/dynamic-gallery';
@@ -36,26 +37,33 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
       try {
         setLoading(true);
 
-        // Get current domain
+        // Get current domain (includes port for localhost, e.g., localhost:3000)
         const domain = window.location.host;
+        console.log('[Page Client] 🌐 Resolving restaurant from domain:', domain);
+        console.log('[Page Client] 📄 Page slug:', slug);
 
-        // First, resolve restaurant ID from domain
+        // Resolve restaurant ID from domain
         const heroResponse = await fetch(`/api/hero-config?domain=${domain}&url_slug=${slug}`);
+        console.log('[Page Client] 🔍 Hero API response status:', heroResponse.status);
 
         if (!heroResponse.ok) {
           throw new Error('Failed to resolve restaurant from domain');
         }
 
         const heroData = await heroResponse.json();
+        console.log('[Page Client] 📦 Hero API data:', heroData);
 
         if (!heroData.success) {
           throw new Error(heroData.error || 'Failed to get restaurant configuration');
         }
 
         let resolvedRestaurantId = heroData.data?.restaurant_id;
+        console.log('[Page Client] 🏪 Resolved restaurant_id:', resolvedRestaurantId);
 
         // Development fallback for localhost
         if (!resolvedRestaurantId && domain.includes('localhost')) {
+          console.warn('[Page Client] ⚠️ No restaurant found for localhost');
+          console.warn('[Page Client] 💡 Tip: Set staging_domain to "' + domain + '" in Location Settings');
           // Add your restaurant ID here for local development
           const FALLBACK_RESTAURANT_ID = ''; // TODO: Add restaurant ID from database
           if (FALLBACK_RESTAURANT_ID) {
@@ -176,20 +184,18 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
                 🔧 How to Fix This
               </div>
               <div style={{ marginBottom: '16px' }}>
-                <strong>Option 1: Configure Staging Domain</strong>
+                <strong>Step 1: Configure Staging Domain</strong>
                 <ol style={{ marginTop: '8px', marginLeft: '20px', lineHeight: '1.8' }}>
                   <li>Go to Admin Panel → Location Settings</li>
-                  <li>Set staging domain to: <code style={{ backgroundColor: '#fcd34d', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>{typeof window !== 'undefined' ? window.location.host : 'localhost:3000'}</code></li>
-                  <li>Save changes</li>
-                  <li>Refresh this page</li>
+                  <li>Set <strong>staging_domain</strong> to: <code style={{ backgroundColor: '#fcd34d', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>{typeof window !== 'undefined' ? window.location.host : 'localhost:3000'}</code></li>
+                  <li>Click "Save Changes"</li>
+                  <li>Come back to this page and refresh</li>
                 </ol>
               </div>
-              <div>
-                <strong>Option 2: Use Admin View Button</strong>
-                <ul style={{ marginTop: '8px', marginLeft: '20px', lineHeight: '1.8' }}>
-                  <li>Access pages through Admin Panel → Pages → View button</li>
-                  <li>This automatically uses your configured staging domain</li>
-                </ul>
+              <div style={{ padding: '12px', backgroundColor: '#fff9e6', borderRadius: '6px', fontSize: '13px', marginTop: '12px' }}>
+                <strong>📍 Current Domain:</strong> <code style={{ backgroundColor: '#fcd34d', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>{typeof window !== 'undefined' ? window.location.host : 'localhost:3000'}</code>
+                <br /><br />
+                The staging_domain in your restaurant settings must <strong>exactly match</strong> this domain (including port number for localhost).
               </div>
             </div>
           )}
@@ -224,15 +230,6 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
   const templates = pageData?.data?.templates || [];
   const sortedTemplates = templates.sort((a: any, b: any) => (a.order_index ?? 999) - (b.order_index ?? 999));
 
-  console.log('[Page Client] Total templates:', templates.length);
-  console.log('[Page Client] Templates:', templates.map((t: any) => ({
-    id: t.template_id,
-    category: t.category,
-    name: t.name,
-    order_index: t.order_index,
-    has_config: !!t.config
-  })));
-
   // Render component based on category
   const renderSection = (template: any) => {
     const pageId = pageData?.data?.page?.page_id;
@@ -242,13 +239,14 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
 
     switch (category.toLowerCase()) {
       case 'hero':
-        console.log('[Page Client] Rendering hero with template:', {
-          template_id: template.template_id,
-          name: template.name,
-          config: template.config,
-          order_index: template.order_index
-        });
         return <DynamicHero
+          key={uniqueKey}
+          restaurantId={restaurantId}
+          configData={template.config ? { ...template.config, layout: template.name } : undefined}
+          showLoading={true}
+        />;
+      case 'menu':
+        return <DynamicMenu
           key={uniqueKey}
           restaurantId={restaurantId}
           configData={template.config ? { ...template.config, layout: template.name } : undefined}

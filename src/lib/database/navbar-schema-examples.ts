@@ -239,7 +239,7 @@ INSERT INTO nav_items (id, label, href, item_order, position_type, navbar_config
 INSERT INTO cta_buttons (
   id, label, href, bg_color, text_color, navbar_config_id
 ) VALUES (
-  'cta-1', 'Order Online', '/order', '#000000', '#ffffff', 'navbar-1'
+  'cta-1', 'Order Online', '/menu', '#000000', '#ffffff', 'navbar-1'
 );
 */
 

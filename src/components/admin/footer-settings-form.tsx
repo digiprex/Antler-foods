@@ -201,15 +201,102 @@ export default function FooterSettingsForm() {
                   Layout Type
                   <span className={styles.labelHint}>Choose a footer style</span>
                 </label>
-                <select
-                  value={layout}
-                  onChange={(e) => setLayout(e.target.value as NonNullable<FooterConfig['layout']>)}
-                  className={styles.select}
-                >
-                  <option value="default">Three Section (Brand | Location | Contact)</option>
-                  <option value="centered">Centered</option>
-                  <option value="restaurant">Restaurant Style (4 Columns + Nav)</option>
-                </select>
+
+                <div className={styles.layoutGrid}>
+                  {/* Default Layout */}
+                  <div
+                    className={`${styles.layoutCard} ${layout === 'default' ? styles.layoutCardActive : ''}`}
+                    onClick={() => setLayout('default')}
+                  >
+                    <div className={styles.layoutPreview}>
+                      <div className={styles.layoutPreviewFooter}>
+                        <div className={styles.layoutPreviewSection}></div>
+                        <div className={styles.layoutPreviewSection}></div>
+                        <div className={styles.layoutPreviewSection}></div>
+                      </div>
+                    </div>
+                    <div className={styles.layoutCardName}>Three Section</div>
+                    <div className={styles.layoutCardDesc}>Brand, Location, Contact</div>
+                  </div>
+
+                  {/* Centered Layout */}
+                  <div
+                    className={`${styles.layoutCard} ${layout === 'centered' ? styles.layoutCardActive : ''}`}
+                    onClick={() => setLayout('centered')}
+                  >
+                    <div className={styles.layoutPreview}>
+                      <div className={styles.layoutPreviewFooterCentered}>
+                        <div className={styles.layoutPreviewSectionCenter}></div>
+                      </div>
+                    </div>
+                    <div className={styles.layoutCardName}>Centered</div>
+                    <div className={styles.layoutCardDesc}>All Centered</div>
+                  </div>
+
+                  {/* Restaurant Layout */}
+                  <div
+                    className={`${styles.layoutCard} ${layout === 'restaurant' ? styles.layoutCardActive : ''}`}
+                    onClick={() => setLayout('restaurant')}
+                  >
+                    <div className={styles.layoutPreview}>
+                      <div className={styles.layoutPreviewFooterRestaurant}>
+                        <div className={styles.layoutPreviewSection}></div>
+                        <div className={styles.layoutPreviewSection}></div>
+                        <div className={styles.layoutPreviewSection}></div>
+                        <div className={styles.layoutPreviewSection}></div>
+                      </div>
+                    </div>
+                    <div className={styles.layoutCardName}>Restaurant</div>
+                    <div className={styles.layoutCardDesc}>4 Columns + Nav</div>
+                  </div>
+
+                  {/* 3 Columns Layout */}
+                  <div
+                    className={`${styles.layoutCard} ${layout === 'columns-3' ? styles.layoutCardActive : ''}`}
+                    onClick={() => setLayout('columns-3')}
+                  >
+                    <div className={styles.layoutPreview}>
+                      <div className={styles.layoutPreviewFooter}>
+                        <div className={styles.layoutPreviewSection}></div>
+                        <div className={styles.layoutPreviewSection}></div>
+                        <div className={styles.layoutPreviewSection}></div>
+                      </div>
+                    </div>
+                    <div className={styles.layoutCardName}>3 Columns</div>
+                    <div className={styles.layoutCardDesc}>Multi-column</div>
+                  </div>
+
+                  {/* 4 Columns Layout */}
+                  <div
+                    className={`${styles.layoutCard} ${layout === 'columns-4' ? styles.layoutCardActive : ''}`}
+                    onClick={() => setLayout('columns-4')}
+                  >
+                    <div className={styles.layoutPreview}>
+                      <div className={styles.layoutPreviewFooterRestaurant}>
+                        <div className={styles.layoutPreviewSection}></div>
+                        <div className={styles.layoutPreviewSection}></div>
+                        <div className={styles.layoutPreviewSection}></div>
+                        <div className={styles.layoutPreviewSection}></div>
+                      </div>
+                    </div>
+                    <div className={styles.layoutCardName}>4 Columns</div>
+                    <div className={styles.layoutCardDesc}>Wide Layout</div>
+                  </div>
+
+                  {/* Minimal Layout */}
+                  <div
+                    className={`${styles.layoutCard} ${layout === 'minimal' ? styles.layoutCardActive : ''}`}
+                    onClick={() => setLayout('minimal')}
+                  >
+                    <div className={styles.layoutPreview}>
+                      <div className={styles.layoutPreviewFooterMinimal}>
+                        <div className={styles.layoutPreviewSectionSmall}></div>
+                      </div>
+                    </div>
+                    <div className={styles.layoutCardName}>Minimal</div>
+                    <div className={styles.layoutCardDesc}>Simple & Clean</div>
+                  </div>
+                </div>
               </div>
             </div>
 

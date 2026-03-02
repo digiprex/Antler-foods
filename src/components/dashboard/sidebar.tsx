@@ -123,6 +123,14 @@ export function Sidebar({
         },
         {
           href: buildRestaurantScopedHref(
+            `/admin/global-style-settings`,
+            selectedRestaurant,
+          ),
+          label: 'Global Style',
+          icon: <GlobalStyleIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
             `/admin/announcement-bar-settings`,
             selectedRestaurant,
           ),
@@ -751,6 +759,26 @@ function EyeIcon() {
     >
       <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
       <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function GlobalStyleIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+      <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+      <path d="M9 9h.01" />
+      <path d="M15 9h.01" />
     </svg>
   );
 }

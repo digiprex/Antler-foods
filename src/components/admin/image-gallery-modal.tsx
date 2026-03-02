@@ -57,7 +57,7 @@ export function ImageGalleryModal({
       formData.append('file', file);
       formData.append('restaurant_id', restaurantId);
 
-      const response = await fetch('/api/media', {
+      const response = await fetch('/api/media/upload', {
         method: 'POST',
         body: formData,
       });

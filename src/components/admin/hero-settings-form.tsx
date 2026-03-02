@@ -149,6 +149,19 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
     setFormConfig(prev => prev ? { ...prev, ...updates } : null);
   };
 
+  const handleLayoutChange = (newLayout: string) => {
+    if (!formConfig) return;
+
+    // Clear all media when layout changes
+    setFormConfig(prev => prev ? {
+      ...prev,
+      layout: newLayout as any,
+      image: undefined,
+      backgroundImage: undefined,
+      videoUrl: undefined,
+    } : null);
+  };
+
   const updatePrimaryButton = (updates: Partial<HeroButton>) => {
     if (!formConfig) return;
     setFormConfig(prev => prev ? ({
@@ -256,8 +269,12 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
 
       case 'default':
       case 'centered-large':
+        // Default and centered-large layouts use only background image, no hero image
+        fields.showBackgroundImage = true;
+        break;
+
       default:
-        // These layouts can use both hero image and background image
+        // Other layouts can use both hero image and background image
         fields.showHeroImage = true;
         fields.showBackgroundImage = true;
         break;
@@ -388,6 +405,240 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
     }
   };
 
+  // Render full-size placeholder preview for modal
+  const renderFullLayoutPreview = (layoutType: string) => {
+    if (!formConfig) return null;
+
+    const placeholderStyles = {
+      container: {
+        width: '100%',
+        minHeight: '400px',
+        background: formConfig.bgColor || '#ffffff',
+        color: formConfig.textColor || '#000000',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '3rem 1.5rem',
+        position: 'relative' as const,
+        overflow: 'hidden' as const,
+      },
+      headline: {
+        fontSize: '2.5rem',
+        fontWeight: '700',
+        marginBottom: '1rem',
+        background: '#e2e8f0',
+        height: '3rem',
+        borderRadius: '8px',
+      },
+      subheadline: {
+        fontSize: '1.25rem',
+        marginBottom: '1rem',
+        background: '#e2e8f0',
+        height: '1.5rem',
+        borderRadius: '6px',
+      },
+      description: {
+        fontSize: '1rem',
+        marginBottom: '2rem',
+        background: '#e2e8f0',
+        height: '4rem',
+        borderRadius: '6px',
+      },
+      button: {
+        padding: '0.75rem 2rem',
+        background: '#cbd5e1',
+        borderRadius: '6px',
+        marginRight: '1rem',
+        display: 'inline-block',
+        width: '150px',
+        height: '3rem',
+      },
+      imageBox: {
+        background: 'linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)',
+        borderRadius: '12px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '3rem',
+        color: '#64748b',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+      },
+    };
+
+    const hasContent = formConfig.headline || formConfig.subheadline || formConfig.description;
+
+    // Show actual content if available, otherwise show placeholder
+    if (hasContent) {
+      return <Hero {...formConfig} />;
+    }
+
+    // Show placeholder layout preview
+    switch (layoutType) {
+      case 'split':
+        return (
+          <div style={{...placeholderStyles.container, flexDirection: 'row', gap: '3rem', flexWrap: 'wrap'}}>
+            <div style={{flex: 1, minWidth: '300px'}}>
+              <div style={{...placeholderStyles.headline, width: '80%'}} />
+              <div style={{...placeholderStyles.subheadline, width: '70%'}} />
+              <div style={{...placeholderStyles.description, width: '90%'}} />
+              <div style={{display: 'flex', gap: '1rem', flexWrap: 'wrap'}}>
+                <div style={placeholderStyles.button} />
+                <div style={placeholderStyles.button} />
+              </div>
+            </div>
+            <div style={{...placeholderStyles.imageBox, flex: 1, minWidth: '300px', minHeight: '300px'}}>
+              📷
+            </div>
+          </div>
+        );
+
+      case 'split-reverse':
+        return (
+          <div style={{...placeholderStyles.container, flexDirection: 'row-reverse', gap: '3rem', flexWrap: 'wrap'}}>
+            <div style={{flex: 1, minWidth: '300px'}}>
+              <div style={{...placeholderStyles.headline, width: '80%'}} />
+              <div style={{...placeholderStyles.subheadline, width: '70%'}} />
+              <div style={{...placeholderStyles.description, width: '90%'}} />
+              <div style={{display: 'flex', gap: '1rem', flexWrap: 'wrap'}}>
+                <div style={placeholderStyles.button} />
+                <div style={placeholderStyles.button} />
+              </div>
+            </div>
+            <div style={{...placeholderStyles.imageBox, flex: 1, minWidth: '300px', minHeight: '300px'}}>
+              📷
+            </div>
+          </div>
+        );
+
+      case 'video-background':
+        return (
+          <div style={{...placeholderStyles.container, background: 'linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.4))', color: '#fff', minHeight: '500px'}}>
+            <div style={{position: 'absolute', top: '20px', right: '20px', fontSize: '2rem', opacity: 0.5}}>🎥 Video Background</div>
+            <div style={{textAlign: 'center', maxWidth: '800px'}}>
+              <div style={{...placeholderStyles.headline, background: 'rgba(255,255,255,0.2)', margin: '0 auto 1rem'}} />
+              <div style={{...placeholderStyles.subheadline, background: 'rgba(255,255,255,0.2)', margin: '0 auto 1rem'}} />
+              <div style={{...placeholderStyles.description, background: 'rgba(255,255,255,0.2)', margin: '0 auto 2rem'}} />
+              <div style={{display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap'}}>
+                <div style={{...placeholderStyles.button, background: 'rgba(255,255,255,0.3)'}} />
+                <div style={{...placeholderStyles.button, background: 'rgba(255,255,255,0.3)'}} />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'side-by-side':
+        return (
+          <div style={{...placeholderStyles.container, gap: '2rem', flexWrap: 'wrap'}}>
+            <div style={{flex: 1, minWidth: '300px'}}>
+              <div style={{...placeholderStyles.headline, width: '90%'}} />
+              <div style={{...placeholderStyles.description, width: '85%'}} />
+              <div style={placeholderStyles.button} />
+            </div>
+            <div style={{...placeholderStyles.imageBox, flex: 1, minWidth: '300px', minHeight: '300px'}}>
+              📷
+            </div>
+          </div>
+        );
+
+      case 'with-features':
+        return (
+          <div style={{...placeholderStyles.container, flexDirection: 'column'}}>
+            <div style={{textAlign: 'center', marginBottom: '3rem', maxWidth: '800px', width: '100%'}}>
+              <div style={{...placeholderStyles.headline, margin: '0 auto 1rem'}} />
+              <div style={{...placeholderStyles.description, margin: '0 auto 2rem'}} />
+              <div style={{display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap'}}>
+                <div style={placeholderStyles.button} />
+                <div style={placeholderStyles.button} />
+              </div>
+            </div>
+            <div style={{display: 'flex', gap: '2rem', width: '100%', maxWidth: '1000px', flexWrap: 'wrap'}}>
+              {[1, 2, 3].map(i => (
+                <div key={i} style={{flex: 1, minWidth: '200px', background: '#fef3c7', padding: '2rem', borderRadius: '12px', textAlign: 'center'}}>
+                  <div style={{fontSize: '2rem', marginBottom: '1rem'}}>✨</div>
+                  <div style={{background: '#fbbf24', height: '1.5rem', borderRadius: '4px', marginBottom: '0.5rem'}} />
+                  <div style={{background: '#fbbf24', height: '3rem', borderRadius: '4px', opacity: 0.6}} />
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'minimal':
+        return (
+          <div style={{...placeholderStyles.container, minHeight: '300px'}}>
+            <div style={{textAlign: 'center', maxWidth: '600px', width: '100%'}}>
+              <div style={{...placeholderStyles.headline, width: '80%', margin: '0 auto 1rem'}} />
+              <div style={{...placeholderStyles.subheadline, width: '60%', margin: '0 auto 2rem'}} />
+              <div style={{display: 'flex', justifyContent: 'center'}}>
+                <div style={placeholderStyles.button} />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'full-height':
+        return (
+          <div style={{...placeholderStyles.container, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#fff', minHeight: '600px'}}>
+            <div style={{textAlign: 'center', maxWidth: '800px', width: '100%'}}>
+              <div style={{...placeholderStyles.headline, background: 'rgba(255,255,255,0.2)', margin: '0 auto 1rem'}} />
+              <div style={{...placeholderStyles.subheadline, background: 'rgba(255,255,255,0.2)', margin: '0 auto 1rem'}} />
+              <div style={{...placeholderStyles.description, background: 'rgba(255,255,255,0.2)', margin: '0 auto 2rem'}} />
+              <div style={{display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap'}}>
+                <div style={{...placeholderStyles.button, background: 'rgba(255,255,255,0.3)'}} />
+              </div>
+            </div>
+            <div style={{position: 'absolute', bottom: '30px', fontSize: '2rem'}}>⬇ Scroll Down</div>
+          </div>
+        );
+
+      case 'offset':
+        return (
+          <div style={{...placeholderStyles.container, position: 'relative', minHeight: '450px'}}>
+            <div style={{position: 'absolute', left: '5%', top: '15%', zIndex: 2, maxWidth: '45%', minWidth: '280px'}}>
+              <div style={{...placeholderStyles.headline, width: '90%'}} />
+              <div style={{...placeholderStyles.subheadline, width: '80%'}} />
+              <div style={{...placeholderStyles.description, width: '85%'}} />
+              <div style={placeholderStyles.button} />
+            </div>
+            <div style={{...placeholderStyles.imageBox, position: 'absolute', right: '5%', top: '25%', width: '45%', minWidth: '280px', height: '280px'}}>
+              📷
+            </div>
+          </div>
+        );
+
+      case 'centered-large':
+        return (
+          <div style={{...placeholderStyles.container, minHeight: '500px'}}>
+            <div style={{textAlign: 'center', maxWidth: '900px', width: '100%'}}>
+              <div style={{...placeholderStyles.headline, height: '4rem', margin: '0 auto 1.5rem'}} />
+              <div style={{...placeholderStyles.subheadline, width: '70%', margin: '0 auto 1rem'}} />
+              <div style={{...placeholderStyles.description, width: '85%', margin: '0 auto 2rem'}} />
+              <div style={{display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap'}}>
+                <div style={placeholderStyles.button} />
+                <div style={placeholderStyles.button} />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'default':
+      default:
+        return (
+          <div style={{...placeholderStyles.container}}>
+            <div style={{textAlign: 'center', maxWidth: '700px', width: '100%'}}>
+              <div style={{...placeholderStyles.headline, margin: '0 auto 1rem'}} />
+              <div style={{...placeholderStyles.subheadline, margin: '0 auto 1rem'}} />
+              <div style={{...placeholderStyles.description, margin: '0 auto 2rem'}} />
+              <div style={{display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap'}}>
+                <div style={placeholderStyles.button} />
+                <div style={placeholderStyles.button} />
+              </div>
+            </div>
+          </div>
+        );
+    }
+  };
+
   if (loading) {
     return (
       <div className={styles.container}>
@@ -462,7 +713,7 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
                     <div
                       key={option.value}
                       className={`${styles.layoutOption} ${formConfig.layout === option.value ? styles.selected : ''}`}
-                      onClick={() => updateConfig({ layout: option.value as any })}
+                      onClick={() => handleLayoutChange(option.value)}
                     >
                       <div className={styles.layoutPreview}>
                         {renderLayoutPreview(option.value)}
@@ -709,6 +960,9 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
                                     onClick={() => openGalleryModal('hero_image')}
                                     className={styles.changeMediaButton}
                                   >
+                                    <svg style={{width: '18px', height: '18px', marginRight: '6px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
                                     Change Image
                                   </button>
                                   <button
@@ -716,6 +970,9 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
                                     onClick={() => updateConfig({ image: undefined })}
                                     className={styles.removeMediaButton}
                                   >
+                                    <svg style={{width: '18px', height: '18px', marginRight: '6px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
                                     Remove
                                   </button>
                                 </div>
@@ -727,8 +984,11 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
                                 className={styles.uploadButton}
                                 disabled={!restaurantId}
                               >
-                                <span className={styles.uploadIcon}>📁</span>
-                                Choose from Gallery
+                                <svg style={{width: '64px', height: '64px', marginBottom: '12px', color: '#667eea'}} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span style={{fontSize: '1.125rem', fontWeight: '700', marginBottom: '6px'}}>Choose Hero Image</span>
+                                <span style={{fontSize: '0.875rem', fontWeight: '400', opacity: '0.7'}}>Browse your media gallery or upload new</span>
                               </button>
                             )}
                           </div>
@@ -1078,15 +1338,14 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
             <div className={styles.previewModalBody}>
               <div className={styles.previewDevice}>
                 <div className={styles.previewContainer}>
-                  <Hero
-                    key={`${formConfig.layout}-${formConfig.image?.url}-${formConfig.videoUrl}-${formConfig.backgroundImage}-${Date.now()}`}
-                    {...formConfig}
-                  />
+                  {renderFullLayoutPreview(formConfig.layout || 'default')}
                 </div>
               </div>
               <p className={styles.previewNote}>
                 <span className={styles.previewIcon}>👁</span>
-                Preview shows how your hero section will appear on the website
+                {formConfig.headline || formConfig.subheadline || formConfig.description
+                  ? 'Preview shows how your hero section will appear on the website'
+                  : 'Placeholder layout preview - Add content to see actual preview'}
               </p>
             </div>
           </div>

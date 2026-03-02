@@ -15,6 +15,7 @@ export interface CTAButton {
 
 export interface NavbarProps {
   logoUrl?: string;
+  logoSize?: number; // Logo size in pixels
   restaurantName?: string;
   leftNavItems?: NavItem[];
   rightNavItems?: NavItem[];
@@ -30,6 +31,10 @@ export interface NavbarProps {
   additionalText?: string; // For split layout - text to display before button (e.g., "STANDORT: 50 | 100")
   borderColor?: string; // For bordered layouts - border color
   borderWidth?: string; // For bordered layouts - border width (e.g., '2px')
+  fontFamily?: string; // Font family for navbar menu items
+  fontSize?: string; // Font size for navbar menu items
+  fontWeight?: number; // Font weight for navbar menu items
+  textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize'; // Text transformation for navbar menu items
 }
 
 // Default dynamic values
@@ -59,6 +64,7 @@ const getInitials = (name: string): string => {
 
 export default function Navbar({
   logoUrl,
+  logoSize = 40,
   restaurantName = DEFAULT_RESTAURANT_NAME,
   leftNavItems = DEFAULT_LEFT_NAV_ITEMS,
   rightNavItems = DEFAULT_RIGHT_NAV_ITEMS,
@@ -73,7 +79,11 @@ export default function Navbar({
   layout = 'bordered-centered',
   additionalText,
   borderColor = '#000000',
-  borderWidth = '2px'
+  borderWidth = '2px',
+  fontFamily = 'Inter, system-ui, sans-serif',
+  fontSize = '1rem',
+  fontWeight = 400,
+  textTransform = 'uppercase'
 }: NavbarProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -93,8 +103,22 @@ export default function Navbar({
   }, []);
 
   // Determine what to display for the brand
+  useEffect(() => {
+    console.log('[Navbar] 🎨 Logo props:', {
+      logoUrl,
+      hasLogoUrl: !!logoUrl,
+      restaurantName,
+      logoSize,
+    });
+  }, [logoUrl, restaurantName, logoSize]);
+
   const brandDisplay = logoUrl ? (
-    <img src={logoUrl} alt={restaurantName} className={styles.logoImage} />
+    <img
+      src={logoUrl}
+      alt={restaurantName}
+      className={styles.logoImage}
+      style={{ height: `${logoSize}px`, width: 'auto' }}
+    />
   ) : (
     <span className={styles.logoInitials}>{getInitials(restaurantName)}</span>
   );
@@ -120,6 +144,10 @@ export default function Navbar({
     '--button-text-color': buttonTextColor,
     '--border-color': borderColor,
     '--border-width': borderWidth,
+    '--navbar-font-family': fontFamily,
+    '--navbar-font-size': fontSize,
+    '--navbar-font-weight': fontWeight,
+    '--navbar-text-transform': textTransform,
   } as React.CSSProperties;
 
   // Add class for bordered layout when position is relative or static (with border)
@@ -223,8 +251,6 @@ export default function Navbar({
                 {ctaButton.label}
               </a>
             )}
-            
-            <div className={styles.sidebarBrand}>{brandDisplay}</div>
           </div>
         </div>
       </>
@@ -383,8 +409,6 @@ export default function Navbar({
               {ctaButton.label}
             </a>
           )}
-          
-          <div className={styles.sidebarBrand}>{brandDisplay}</div>
         </div>
       </div>
     </>

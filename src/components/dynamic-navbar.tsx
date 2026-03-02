@@ -83,7 +83,14 @@ export default function DynamicNavbar({
         // Validate response structure
         if (navbarData.success && navbarData.data) {
           // Merge with defaults to ensure all required fields are present
-          setConfig({ ...DEFAULT_NAVBAR_CONFIG, ...navbarData.data });
+          const mergedConfig = { ...DEFAULT_NAVBAR_CONFIG, ...navbarData.data };
+          console.log('[DynamicNavbar] 🎨 Navbar config loaded:', {
+            restaurantName: mergedConfig.restaurantName,
+            logoUrl: mergedConfig.logoUrl,
+            layout: mergedConfig.layout,
+            position: mergedConfig.position,
+          });
+          setConfig(mergedConfig);
         } else {
           throw new Error(navbarData.error || 'Invalid API response structure');
         }
@@ -100,6 +107,17 @@ export default function DynamicNavbar({
 
     fetchNavbarConfig();
   }, [apiEndpoint, overrideConfig]);
+
+  // Set CSS variable when navbar position changes
+  useEffect(() => {
+    if (config?.position === 'fixed') {
+      document.documentElement.style.setProperty('--navbar-is-fixed', '1');
+      document.documentElement.style.setProperty('--navbar-height', '80px'); // Adjust as needed
+    } else {
+      document.documentElement.style.setProperty('--navbar-is-fixed', '0');
+      document.documentElement.style.setProperty('--navbar-height', '0px');
+    }
+  }, [config?.position]);
 
   // Loading state
   if (loading) {
@@ -130,6 +148,7 @@ export default function DynamicNavbar({
   return (
     <Navbar
       logoUrl={config.logoUrl}
+      logoSize={config.logoSize}
       restaurantName={config.restaurantName}
       leftNavItems={config.leftNavItems}
       rightNavItems={config.rightNavItems}
@@ -145,6 +164,10 @@ export default function DynamicNavbar({
       borderWidth={config.borderWidth}
       bagCount={config.bagCount}
       additionalText={config.additionalText}
+      fontFamily={config.fontFamily}
+      fontSize={config.fontSize}
+      fontWeight={config.fontWeight}
+      textTransform={config.textTransform}
     />
   );
 }

@@ -15,6 +15,7 @@ export interface CTAButton {
 
 export interface NavbarProps {
   logoUrl?: string;
+  logoSize?: number; // Logo size in pixels
   restaurantName?: string;
   leftNavItems?: NavItem[];
   rightNavItems?: NavItem[];
@@ -59,6 +60,7 @@ const getInitials = (name: string): string => {
 
 export default function Navbar({
   logoUrl,
+  logoSize = 40,
   restaurantName = DEFAULT_RESTAURANT_NAME,
   leftNavItems = DEFAULT_LEFT_NAV_ITEMS,
   rightNavItems = DEFAULT_RIGHT_NAV_ITEMS,
@@ -94,7 +96,12 @@ export default function Navbar({
 
   // Determine what to display for the brand
   const brandDisplay = logoUrl ? (
-    <img src={logoUrl} alt={restaurantName} className={styles.logoImage} />
+    <img
+      src={logoUrl}
+      alt={restaurantName}
+      className={styles.logoImage}
+      style={{ height: `${logoSize}px`, width: 'auto' }}
+    />
   ) : (
     <span className={styles.logoInitials}>{getInitials(restaurantName)}</span>
   );
@@ -223,8 +230,6 @@ export default function Navbar({
                 {ctaButton.label}
               </a>
             )}
-            
-            <div className={styles.sidebarBrand}>{brandDisplay}</div>
           </div>
         </div>
       </>
@@ -383,8 +388,6 @@ export default function Navbar({
               {ctaButton.label}
             </a>
           )}
-          
-          <div className={styles.sidebarBrand}>{brandDisplay}</div>
         </div>
       </div>
     </>

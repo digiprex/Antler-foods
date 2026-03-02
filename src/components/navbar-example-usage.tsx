@@ -60,7 +60,7 @@ export function Example2_ManualFetching() {
           rightNavItems: [],
           ctaButton: {
             label: 'Order Online',
-            href: '/order',
+            href: '/menu',
           },
         });
       } finally {
@@ -117,7 +117,7 @@ export function Example3_StaticWithOverrides() {
         ],
         ctaButton: {
           label: 'Order Now',
-          href: '/order',
+          href: '/menu',
         },
         layout: 'bordered-centered',
         position: 'absolute',

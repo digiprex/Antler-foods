@@ -141,6 +141,7 @@ export default function DynamicNavbar({
   return (
     <Navbar
       logoUrl={config.logoUrl}
+      logoSize={config.logoSize}
       restaurantName={config.restaurantName}
       leftNavItems={config.leftNavItems}
       rightNavItems={config.rightNavItems}

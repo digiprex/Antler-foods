@@ -14,6 +14,7 @@ export interface CTAButton {
   id?: string;
   label: string;
   href: string;
+  style?: 'primary' | 'secondary';
   bgColor?: string;
   textColor?: string;
 }
@@ -23,6 +24,7 @@ export interface NavbarConfig {
   restaurant_id?: string; // Restaurant ID for database operations
   // Logo configuration
   logoUrl?: string;
+  logoSize?: number; // Logo size in pixels
   restaurantName: string;
   
   // Navigation items
@@ -68,6 +70,7 @@ export interface NavbarConfigResponse {
  */
 export const DEFAULT_NAVBAR_CONFIG: NavbarConfig = {
   restaurantName: "Restaurant",
+  logoSize: 40,
   leftNavItems: [
     { label: 'Collection', href: '#collection', order: 1 },
     { label: 'Archive', href: '#archive', order: 2 },

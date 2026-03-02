@@ -60,9 +60,11 @@ export default function NavbarSettingsForm() {
   >('absolute');
   const [bgColor, setBgColor] = useState('#ffffff');
   const [textColor, setTextColor] = useState('#000000');
+  const [logoSize, setLogoSize] = useState<number>(40);
   const [showOrderButton, setShowOrderButton] = useState(true);
   const [orderButtonText, setOrderButtonText] = useState('Order Online');
-  const [orderButtonHref, setOrderButtonHref] = useState('/order');
+  const [orderButtonHref, setOrderButtonHref] = useState('/menu');
+  const [buttonStyle, setButtonStyle] = useState<'primary' | 'secondary'>('primary');
   
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -79,9 +81,11 @@ export default function NavbarSettingsForm() {
       setPosition(config.position || 'absolute');
       setBgColor(config.bgColor || '#ffffff');
       setTextColor(config.textColor || '#000000');
+      setLogoSize(config.logoSize || 40);
       setShowOrderButton(!!config.ctaButton);
       setOrderButtonText(config.ctaButton?.label || 'Order Online');
-      setOrderButtonHref(config.ctaButton?.href || '/order');
+      setOrderButtonHref(config.ctaButton?.href || '/menu');
+      setButtonStyle(config.ctaButton?.style || 'primary');
     }
   }, [config]);
 
@@ -103,10 +107,12 @@ export default function NavbarSettingsForm() {
         position,
         bgColor,
         textColor,
+        logoSize,
         ctaButton: showOrderButton
           ? {
               label: orderButtonText,
               href: orderButtonHref,
+              style: buttonStyle,
             }
           : undefined,
       });
@@ -195,18 +201,131 @@ export default function NavbarSettingsForm() {
                   Layout Type
                   <span className={styles.labelHint}>Choose a navigation style</span>
                 </label>
-                <select
-                  value={layout}
-                  onChange={(e) => setLayout(e.target.value as any)}
-                  className={styles.select}
-                >
-                  <option value="default">Default - Standard Navigation</option>
-                  <option value="centered">Centered - All Items Center</option>
-                  <option value="logo-center">Logo Center - Logo in Middle</option>
-                  <option value="bordered-centered">Bordered Centered - With Border</option>
-                  <option value="stacked">Stacked - Vertical Layout</option>
-                  <option value="split">Split - Left & Right Aligned</option>
-                </select>
+                <div className={styles.layoutCardGrid}>
+                  {/* Default Layout */}
+                  <div
+                    className={`${styles.layoutCard} ${layout === 'default' ? styles.layoutCardActive : ''}`}
+                    onClick={() => setLayout('default')}
+                  >
+                    <div className={styles.layoutPreview}>
+                      <div className={styles.layoutPreviewNav}>
+                        <div className={styles.layoutPreviewLogo}></div>
+                        <div className={styles.layoutPreviewItems}>
+                          <div className={styles.layoutPreviewItem}></div>
+                          <div className={styles.layoutPreviewItem}></div>
+                          <div className={styles.layoutPreviewItem}></div>
+                        </div>
+                        <div className={styles.layoutPreviewButton}></div>
+                      </div>
+                    </div>
+                    <div className={styles.layoutCardName}>Default</div>
+                    <div className={styles.layoutCardDesc}>Standard Navigation</div>
+                  </div>
+
+                  {/* Centered Layout */}
+                  <div
+                    className={`${styles.layoutCard} ${layout === 'centered' ? styles.layoutCardActive : ''}`}
+                    onClick={() => setLayout('centered')}
+                  >
+                    <div className={styles.layoutPreview}>
+                      <div className={styles.layoutPreviewNav}>
+                        <div className={styles.layoutPreviewLogo}></div>
+                        <div className={styles.layoutPreviewItemsCentered}>
+                          <div className={styles.layoutPreviewItem}></div>
+                          <div className={styles.layoutPreviewItem}></div>
+                          <div className={styles.layoutPreviewItem}></div>
+                        </div>
+                        <div className={styles.layoutPreviewButton}></div>
+                      </div>
+                    </div>
+                    <div className={styles.layoutCardName}>Centered</div>
+                    <div className={styles.layoutCardDesc}>All Items Center</div>
+                  </div>
+
+                  {/* Logo Center Layout */}
+                  <div
+                    className={`${styles.layoutCard} ${layout === 'logo-center' ? styles.layoutCardActive : ''}`}
+                    onClick={() => setLayout('logo-center')}
+                  >
+                    <div className={styles.layoutPreview}>
+                      <div className={styles.layoutPreviewNav}>
+                        <div className={styles.layoutPreviewItems}>
+                          <div className={styles.layoutPreviewItem}></div>
+                          <div className={styles.layoutPreviewItem}></div>
+                        </div>
+                        <div className={styles.layoutPreviewLogoCenter}></div>
+                        <div className={styles.layoutPreviewItems}>
+                          <div className={styles.layoutPreviewItem}></div>
+                          <div className={styles.layoutPreviewButton}></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className={styles.layoutCardName}>Logo Center</div>
+                    <div className={styles.layoutCardDesc}>Logo in Middle</div>
+                  </div>
+
+                  {/* Bordered Centered Layout */}
+                  <div
+                    className={`${styles.layoutCard} ${layout === 'bordered-centered' ? styles.layoutCardActive : ''}`}
+                    onClick={() => setLayout('bordered-centered')}
+                  >
+                    <div className={styles.layoutPreview}>
+                      <div className={`${styles.layoutPreviewNav} ${styles.layoutPreviewNavBordered}`}>
+                        <div className={styles.layoutPreviewLogo}></div>
+                        <div className={styles.layoutPreviewItemsCentered}>
+                          <div className={styles.layoutPreviewItem}></div>
+                          <div className={styles.layoutPreviewItem}></div>
+                          <div className={styles.layoutPreviewItem}></div>
+                        </div>
+                        <div className={styles.layoutPreviewButton}></div>
+                      </div>
+                    </div>
+                    <div className={styles.layoutCardName}>Bordered Centered</div>
+                    <div className={styles.layoutCardDesc}>With Border</div>
+                  </div>
+
+                  {/* Stacked Layout */}
+                  <div
+                    className={`${styles.layoutCard} ${layout === 'stacked' ? styles.layoutCardActive : ''}`}
+                    onClick={() => setLayout('stacked')}
+                  >
+                    <div className={styles.layoutPreview}>
+                      <div className={styles.layoutPreviewNavStacked}>
+                        <div className={styles.layoutPreviewLogoCenter}></div>
+                        <div className={styles.layoutPreviewItemsRow}>
+                          <div className={styles.layoutPreviewItem}></div>
+                          <div className={styles.layoutPreviewItem}></div>
+                          <div className={styles.layoutPreviewItem}></div>
+                          <div className={styles.layoutPreviewButton}></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className={styles.layoutCardName}>Stacked</div>
+                    <div className={styles.layoutCardDesc}>Vertical Layout</div>
+                  </div>
+
+                  {/* Split Layout */}
+                  <div
+                    className={`${styles.layoutCard} ${layout === 'split' ? styles.layoutCardActive : ''}`}
+                    onClick={() => setLayout('split')}
+                  >
+                    <div className={styles.layoutPreview}>
+                      <div className={styles.layoutPreviewNav}>
+                        <div className={styles.layoutPreviewItems}>
+                          <div className={styles.layoutPreviewItem}></div>
+                          <div className={styles.layoutPreviewItem}></div>
+                        </div>
+                        <div className={styles.layoutPreviewLogoCenter}></div>
+                        <div className={styles.layoutPreviewItems}>
+                          <div className={styles.layoutPreviewItem}></div>
+                          <div className={styles.layoutPreviewButton}></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className={styles.layoutCardName}>Split</div>
+                    <div className={styles.layoutCardDesc}>Left & Right Aligned</div>
+                  </div>
+                </div>
               </div>
 
               {/* Position */}
@@ -255,65 +374,96 @@ export default function NavbarSettingsForm() {
                 Colors & Styling
               </h3>
 
-              {/* Background Color */}
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Background Color
-                  <span className={styles.labelHint}>Navbar background</span>
-                </label>
-                <div className={styles.colorInputGroup}>
-                  <input
-                    type="color"
-                    value={bgColor}
-                    onChange={(e) => setBgColor(e.target.value)}
-                    className={styles.colorInput}
-                  />
-                  <input
-                    type="text"
-                    value={bgColor}
-                    onChange={(e) => setBgColor(e.target.value)}
-                    className={styles.colorHexInput}
-                    placeholder="#ffffff"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setBgColor('#ffffff')}
-                    className={styles.clearButton}
-                    title="Reset to default"
-                  >
-                    ↺
-                  </button>
+              <div className={styles.colorFieldsGrid}>
+                {/* Background Color */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Background Color
+                    <span className={styles.labelHint}>Navbar background</span>
+                  </label>
+                  <div className={styles.colorInputGroup}>
+                    <input
+                      type="color"
+                      value={bgColor}
+                      onChange={(e) => setBgColor(e.target.value)}
+                      className={styles.colorInput}
+                    />
+                    <input
+                      type="text"
+                      value={bgColor}
+                      onChange={(e) => setBgColor(e.target.value)}
+                      className={styles.colorHexInput}
+                      placeholder="#ffffff"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setBgColor('#ffffff')}
+                      className={styles.clearButton}
+                      title="Reset to default"
+                    >
+                      ↺
+                    </button>
+                  </div>
+                </div>
+
+                {/* Text Color */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Text Color
+                    <span className={styles.labelHint}>Link and text color</span>
+                  </label>
+                  <div className={styles.colorInputGroup}>
+                    <input
+                      type="color"
+                      value={textColor}
+                      onChange={(e) => setTextColor(e.target.value)}
+                      className={styles.colorInput}
+                    />
+                    <input
+                      type="text"
+                      value={textColor}
+                      onChange={(e) => setTextColor(e.target.value)}
+                      className={styles.colorHexInput}
+                      placeholder="#000000"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setTextColor('#000000')}
+                      className={styles.clearButton}
+                      title="Reset to default"
+                    >
+                      ↺
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Text Color */}
+              {/* Logo Size */}
               <div className={styles.formGroup}>
                 <label className={styles.label}>
-                  Text Color
-                  <span className={styles.labelHint}>Link and text color</span>
+                  Logo Size
+                  <span className={styles.labelHint}>Height in pixels (20-100)</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <div className={styles.rangeInputGroup}>
+                  <div className={styles.rangeSliderWrapper} style={{ '--range-value': `${((logoSize - 20) / 80) * 100}%` } as React.CSSProperties}>
+                    <input
+                      type="range"
+                      min="20"
+                      max="100"
+                      value={logoSize}
+                      onChange={(e) => setLogoSize(parseInt(e.target.value))}
+                      className={styles.rangeInput}
+                    />
+                  </div>
                   <input
-                    type="color"
-                    value={textColor}
-                    onChange={(e) => setTextColor(e.target.value)}
-                    className={styles.colorInput}
+                    type="number"
+                    min="20"
+                    max="100"
+                    value={logoSize}
+                    onChange={(e) => setLogoSize(parseInt(e.target.value))}
+                    className={styles.numberInput}
                   />
-                  <input
-                    type="text"
-                    value={textColor}
-                    onChange={(e) => setTextColor(e.target.value)}
-                    className={styles.colorHexInput}
-                    placeholder="#000000"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setTextColor('#000000')}
-                    className={styles.clearButton}
-                    title="Reset to default"
-                  >
-                    ↺
-                  </button>
+                  <span className={styles.rangeUnit}>px</span>
                 </div>
               </div>
             </div>
@@ -342,37 +492,76 @@ export default function NavbarSettingsForm() {
                 </label>
               </div>
 
-              {/* Order Online Button Text (shown when toggle is on) */}
+              {/* Button Style & Settings (shown when toggle is on) */}
               {showOrderButton && (
-                <div className={styles.buttonSettings}>
+                <>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
-                      Button Text
-                      <span className={styles.labelHint}>What the button says</span>
+                      Button Style
+                      <span className={styles.labelHint}>Visual appearance</span>
                     </label>
-                    <input
-                      type="text"
-                      value={orderButtonText}
-                      onChange={(e) => setOrderButtonText(e.target.value)}
-                      className={styles.textInput}
-                      placeholder="Order Online"
-                    />
+                    <div className={styles.radioGroup}>
+                      <label className={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          value="primary"
+                          checked={buttonStyle === 'primary'}
+                          onChange={(e) => setButtonStyle(e.target.value as 'primary' | 'secondary')}
+                          className={styles.radioInput}
+                        />
+                        <span className={styles.radioButton}></span>
+                        <span className={styles.radioText}>
+                          <strong>Primary</strong>
+                          <small>Filled button</small>
+                        </span>
+                      </label>
+                      <label className={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          value="secondary"
+                          checked={buttonStyle === 'secondary'}
+                          onChange={(e) => setButtonStyle(e.target.value as 'primary' | 'secondary')}
+                          className={styles.radioInput}
+                        />
+                        <span className={styles.radioButton}></span>
+                        <span className={styles.radioText}>
+                          <strong>Secondary</strong>
+                          <small>Outlined button</small>
+                        </span>
+                      </label>
+                    </div>
                   </div>
 
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Button Link
-                      <span className={styles.labelHint}>Where it navigates</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={orderButtonHref}
-                      onChange={(e) => setOrderButtonHref(e.target.value)}
-                      className={styles.textInput}
-                      placeholder="/order"
-                    />
+                  <div className={styles.buttonSettings}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>
+                        Button Text
+                        <span className={styles.labelHint}>What the button says</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={orderButtonText}
+                        onChange={(e) => setOrderButtonText(e.target.value)}
+                        className={styles.textInput}
+                        placeholder="Order Online"
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>
+                        Button Link
+                        <span className={styles.labelHint}>Where it navigates</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={orderButtonHref}
+                        onChange={(e) => setOrderButtonHref(e.target.value)}
+                        className={styles.textInput}
+                        placeholder="/menu"
+                      />
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
 
@@ -423,9 +612,10 @@ export default function NavbarSettingsForm() {
               <div className={styles.previewDevice}>
                 <div className={styles.previewContainer}>
                   <Navbar
-                    key={`${bgColor}-${textColor}-${showOrderButton}`}
+                    key={`${bgColor}-${textColor}-${showOrderButton}-${logoSize}`}
                     restaurantName={config?.restaurantName || 'Restaurant Name'}
                     logoUrl={config?.logoUrl}
+                    logoSize={logoSize}
                     leftNavItems={config?.leftNavItems || [
                       { label: 'Menu', href: '#menu' },
                       { label: 'About', href: '#about' },

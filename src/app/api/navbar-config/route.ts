@@ -50,6 +50,7 @@ const GET_NAVBAR_CONFIG = `
     ) {
       name
       restaurant_id
+      logo
     }
     web_pages(
       where: {
@@ -181,7 +182,7 @@ export async function GET(request: Request) {
           rightNavItems: [],
           ctaButton: {
             label: 'Order Online',
-            href: '/order',
+            href: '/menu',
           },
         },
         error: 'restaurant_id is required. Provide it as a query parameter or ensure the domain is properly configured.'
@@ -198,8 +199,10 @@ export async function GET(request: Request) {
 
     console.log('[Navbar Config] Template query result (restaurant-wide):', JSON.stringify(data, null, 2));
 
-    // Get restaurant name from database
-    const restaurantName = (data as any).restaurants?.[0]?.name || 'Restaurant';
+    // Get restaurant data from database
+    const restaurantData = (data as any).restaurants?.[0];
+    const restaurantName = restaurantData?.name || 'Restaurant';
+    const logoUrl = restaurantData?.logo || undefined;
 
     if (!(data as any).templates || (data as any).templates.length === 0) {
       // Return 404 if no navbar template exists - don't show navbar
@@ -222,6 +225,8 @@ export async function GET(request: Request) {
     // Transform template structure to NavbarConfig
     const config: NavbarConfig = {
       restaurantName: restaurantName, // Get from restaurant table
+      logoUrl: logoUrl, // Get logo from restaurant table
+      logoSize: template.config?.logoSize || 40, // Get logo size from config
       layout: template.name, // name field contains layout type
       leftNavItems: navItems, // Use pages with show_on_navbar=true
       rightNavItems: [],
@@ -250,7 +255,7 @@ export async function GET(request: Request) {
         rightNavItems: [],
         ctaButton: {
           label: 'Order Online',
-          href: '/order',
+          href: '/menu',
         },
       },
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -301,6 +306,7 @@ export async function POST(request: Request) {
       bgColor: body.bgColor,
       textColor: body.textColor,
       position: body.position,
+      logoSize: body.logoSize,
       ctaButton: body.ctaButton,
     };
 

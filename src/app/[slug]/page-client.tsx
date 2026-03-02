@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
 import DynamicHero from '@/components/dynamic-hero';
+import DynamicMenu from '@/components/dynamic-menu';
 import DynamicCustomCode from '@/components/dynamic-custom-code';
 import DynamicFAQ from '@/components/dynamic-faq';
 import DynamicGallery from '@/components/dynamic-gallery';
@@ -249,6 +250,19 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           order_index: template.order_index
         });
         return <DynamicHero
+          key={uniqueKey}
+          restaurantId={restaurantId}
+          configData={template.config ? { ...template.config, layout: template.name } : undefined}
+          showLoading={true}
+        />;
+      case 'menu':
+        console.log('[Page Client] Rendering menu with template:', {
+          template_id: template.template_id,
+          name: template.name,
+          config: template.config,
+          order_index: template.order_index
+        });
+        return <DynamicMenu
           key={uniqueKey}
           restaurantId={restaurantId}
           configData={template.config ? { ...template.config, layout: template.name } : undefined}

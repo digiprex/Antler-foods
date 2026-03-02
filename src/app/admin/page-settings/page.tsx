@@ -6,6 +6,7 @@ import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 
 // Import dynamic components for previews
 import DynamicHero from '@/components/dynamic-hero';
+import DynamicMenu from '@/components/dynamic-menu';
 import DynamicGallery from '@/components/dynamic-gallery';
 import DynamicReviews from '@/components/dynamic-reviews';
 import DynamicTimeline from '@/components/dynamic-timeline';
@@ -53,6 +54,12 @@ export default function PageSettingsSelector() {
         return (
           <div style={previewStyle}>
             <DynamicHero restaurantId={restaurantId} configData={config} showLoading={false} />
+          </div>
+        );
+      case 'menu':
+        return (
+          <div style={previewStyle}>
+            <DynamicMenu restaurantId={restaurantId} configData={config} showLoading={false} />
           </div>
         );
       case 'gallery':
@@ -226,6 +233,13 @@ export default function PageSettingsSelector() {
       description: 'Configure hero content and media for this page',
       route: '/admin/hero-settings',
       layouts: ['Centered', 'Split', 'Full Width', 'Video Background', 'Minimal', 'Card Style']
+    },
+    {
+      name: 'Menu Settings',
+      category: 'Menu',
+      description: 'Configure menu layout, categories, and items for this page',
+      route: '/admin/menu-settings',
+      layouts: ['Grid', 'List', 'Masonry', 'Carousel', 'Tabs', 'Accordion', 'Two Column', 'Single Column', 'Featured Grid', 'Minimal']
     },
     {
       name: 'FAQ Settings',

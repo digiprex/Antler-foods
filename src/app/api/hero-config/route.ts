@@ -439,9 +439,9 @@ export async function POST(request: Request) {
 
     console.log('[Hero Config POST] Saving hero with page_id:', pageId);
 
-    // Step 3: Calculate order_index for new sections
-    let orderIndex = null;
-    if (isNewSection && pageId) {
+    // Step 3: Calculate order_index - always set a valid number
+    let orderIndex: number = 0; // Default to 0
+    if (pageId) {
       try {
         const maxOrderData = await graphqlRequest(GET_MAX_ORDER_INDEX, {
           restaurant_id: restaurantId,
@@ -449,14 +449,25 @@ export async function POST(request: Request) {
         });
 
         const maxOrder = (maxOrderData as any).templates_aggregate?.aggregate?.max?.order_index;
-        // If there's a max order, add 1; otherwise start at 0
-        orderIndex = maxOrder !== null && maxOrder !== undefined ? maxOrder + 1 : 0;
-        console.log('[Hero Config POST] New section order_index:', orderIndex, '(max was:', maxOrder, ')');
+
+        if (isNewSection) {
+          // For new sections, add 1 to max order (or start at 0)
+          orderIndex = maxOrder !== null && maxOrder !== undefined ? maxOrder + 1 : 0;
+          console.log('[Hero Config POST] New section order_index:', orderIndex, '(max was:', maxOrder, ')');
+        } else {
+          // For updates to existing sections, keep the same order (use max order or 0)
+          orderIndex = maxOrder !== null && maxOrder !== undefined ? maxOrder : 0;
+          console.log('[Hero Config POST] Update section order_index:', orderIndex);
+        }
       } catch (err) {
         console.error('[Hero Config POST] Error getting max order_index:', err);
-        // If we can't get max order, use timestamp as fallback
-        orderIndex = Date.now();
+        // If we can't get max order, use 0 as fallback
+        orderIndex = 0;
       }
+    } else {
+      // If no pageId, use 0 as default order_index
+      orderIndex = 0;
+      console.log('[Hero Config POST] No page_id, using default order_index: 0');
     }
 
     // Step 4: Insert new template with page_id and order_index

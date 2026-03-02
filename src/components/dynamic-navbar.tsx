@@ -101,6 +101,17 @@ export default function DynamicNavbar({
     fetchNavbarConfig();
   }, [apiEndpoint, overrideConfig]);
 
+  // Set CSS variable when navbar position changes
+  useEffect(() => {
+    if (config?.position === 'fixed') {
+      document.documentElement.style.setProperty('--navbar-is-fixed', '1');
+      document.documentElement.style.setProperty('--navbar-height', '80px'); // Adjust as needed
+    } else {
+      document.documentElement.style.setProperty('--navbar-is-fixed', '0');
+      document.documentElement.style.setProperty('--navbar-height', '0px');
+    }
+  }, [config?.position]);
+
   // Loading state
   if (loading) {
     if (showLoadingSkeleton) {

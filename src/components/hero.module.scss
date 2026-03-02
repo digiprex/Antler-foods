@@ -11,7 +11,7 @@
   background-color: var(--hero-bg-color, #ffffff);
   color: var(--hero-text-color, #000000);
   min-height: var(--hero-min-height, 600px);
-  padding-top: var(--hero-padding-top, 6rem);
+  padding-top: calc(var(--hero-padding-top, 6rem) + (var(--navbar-is-fixed, 0) * var(--navbar-height, 80px)));
   padding-bottom: var(--hero-padding-bottom, 6rem);
   overflow: hidden;
   

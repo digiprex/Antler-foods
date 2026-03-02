@@ -30,10 +30,6 @@
   // Columns layout styles
 }
 
-.footerMinimal {
-  // Minimal layout styles
-}
-
 .footerRestaurant {
   // Restaurant layout styles
   background-color: var(--footer-bg-color, #f5f5f5);
@@ -65,20 +61,25 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  align-items: flex-start;
+  align-items: center;
+  text-align: center;
 }
 
 .quickLinks {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  align-items: flex-start;
+  align-items: center;
+  text-align: center;
 }
 
 .quickLink {
+  font-family: var(--footer-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-font-size, 0.9375rem);
+  font-weight: var(--footer-font-weight, 400);
+  text-transform: var(--footer-text-transform, none);
   color: var(--footer-link-color, #9ca3af);
   text-decoration: none;
-  font-size: 0.9375rem;
   transition: opacity 0.2s ease;
 
   &:hover {
@@ -90,14 +91,17 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  align-items: flex-start;
+  align-items: flex-end;
+  text-align: right;
 }
 
 .newsletterSection {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  align-items: flex-start;
+  align-items: flex-end;
+  text-align: right;
+  width: 100%;
 }
 
 /* Logo & Brand */
@@ -108,8 +112,10 @@
 }
 
 .brandName {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-family: var(--footer-heading-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-heading-font-size, 1.5rem);
+  font-weight: var(--footer-heading-font-weight, 700);
+  text-transform: var(--footer-heading-text-transform, uppercase);
   margin: 0;
   line-height: 1.2;
   color: var(--footer-text-color, #f9fafb);
@@ -117,7 +123,10 @@
 
 /* About Text */
 .aboutText {
-  font-size: 0.9375rem;
+  font-family: var(--footer-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-font-size, 0.9375rem);
+  font-weight: var(--footer-font-weight, 400);
+  text-transform: var(--footer-text-transform, none);
   line-height: 1.6;
   opacity: 0.9;
   margin: 0;
@@ -147,8 +156,10 @@
 
 /* Section Titles */
 .sectionTitle {
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-family: var(--footer-heading-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-heading-font-size, 1.125rem);
+  font-weight: var(--footer-heading-font-weight, 600);
+  text-transform: var(--footer-heading-text-transform, uppercase);
   margin: 0 0 1rem 0;
   opacity: 1;
   color: var(--footer-text-color, #f9fafb);
@@ -166,7 +177,10 @@
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  font-size: 0.9375rem;
+  font-family: var(--footer-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-font-size, 0.9375rem);
+  font-weight: var(--footer-font-weight, 400);
+  text-transform: var(--footer-text-transform, none);
   line-height: 1.6;
   color: var(--footer-text-color, #f9fafb);
 }
@@ -182,14 +196,18 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  align-items: flex-start;
+  align-items: flex-end;
+  text-align: right;
 }
 
 .contactItem {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  font-size: 0.9375rem;
+  font-family: var(--footer-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-font-size, 0.9375rem);
+  font-weight: var(--footer-font-weight, 400);
+  text-transform: var(--footer-text-transform, none);
   color: var(--footer-text-color, #f9fafb);
   line-height: 1.6;
 }
@@ -201,6 +219,10 @@
 }
 
 .contactLink {
+  font-family: var(--footer-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-font-size, 0.9375rem);
+  font-weight: var(--footer-font-weight, 400);
+  text-transform: var(--footer-text-transform, none);
   color: var(--footer-link-color, #9ca3af);
   text-decoration: none;
   transition: opacity 0.2s ease;
@@ -271,14 +293,19 @@
 }
 
 .brandNameCentered {
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-family: var(--footer-heading-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-heading-font-size, 1.75rem);
+  font-weight: var(--footer-heading-font-weight, 700);
+  text-transform: var(--footer-heading-text-transform, uppercase);
   margin: 0;
   color: var(--footer-text-color, #f9fafb);
 }
 
 .aboutTextCentered {
-  font-size: 1rem;
+  font-family: var(--footer-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-font-size, 1rem);
+  font-weight: var(--footer-font-weight, 400);
+  text-transform: var(--footer-text-transform, none);
   line-height: 1.6;
   opacity: 0.9;
   margin: 0;
@@ -295,11 +322,18 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  font-size: 0.9375rem;
+  font-family: var(--footer-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-font-size, 0.9375rem);
+  font-weight: var(--footer-font-weight, 400);
+  text-transform: var(--footer-text-transform, none);
   color: var(--footer-text-color, #f9fafb);
 }
 
 .infoItem {
+  font-family: var(--footer-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-font-size, 0.9375rem);
+  font-weight: var(--footer-font-weight, 400);
+  text-transform: var(--footer-text-transform, none);
   opacity: 0.9;
 }
 
@@ -312,8 +346,10 @@
 }
 
 .newsletterTitleCentered {
-  font-size: 1rem;
-  font-weight: 600;
+  font-family: var(--footer-heading-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-heading-font-size, 1rem);
+  font-weight: var(--footer-heading-font-weight, 600);
+  text-transform: var(--footer-heading-text-transform, uppercase);
   margin: 0;
   color: var(--footer-text-color, #f9fafb);
 }
@@ -386,22 +422,25 @@
 }
 
 .linkColumn,
-.contactColumn {
+.contactColumn,
+.newsletterColumn {
   display: flex;
   flex-direction: column;
   gap: 1rem;
   align-items: flex-start;
+  text-align: left;
 }
 
 .columnTitle {
-  font-size: 1rem;
-  font-weight: 600;
+  font-family: var(--footer-heading-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-heading-font-size, 1rem);
+  font-weight: var(--footer-heading-font-weight, 600);
+  text-transform: var(--footer-heading-text-transform, uppercase);
   margin: 0 0 0.75rem 0;
   opacity: 1;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-size: 0.875rem;
   color: var(--footer-text-color, #f9fafb);
+  text-align: left;
 }
 
 .linkList {
@@ -411,14 +450,25 @@
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
+  align-items: flex-start;
+  text-align: left;
+
+  li {
+    width: 100%;
+    text-align: left;
+  }
 }
 
 .footerLink {
+  font-family: var(--footer-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-font-size, 0.9375rem);
+  font-weight: var(--footer-font-weight, 400);
+  text-transform: var(--footer-text-transform, none);
   color: var(--footer-link-color, #9ca3af);
   text-decoration: none;
-  font-size: 0.9375rem;
   transition: opacity 0.2s ease;
   display: inline-block;
+  text-align: left;
 
   &:hover {
     opacity: 0.7;
@@ -429,7 +479,34 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  font-size: 0.9375rem;
+  font-family: var(--footer-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-font-size, 0.9375rem);
+  font-weight: var(--footer-font-weight, 400);
+  text-transform: var(--footer-text-transform, none);
+  align-items: flex-start;
+  text-align: left;
+}
+
+/* Contact items in columns layout */
+.contactColumn .contactItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  line-height: 1.6;
+  width: 100%;
+  text-align: left;
+
+  span:first-child {
+    flex-shrink: 0;
+    font-size: 1.125rem;
+  }
+
+  span:last-child,
+  a {
+    flex: 1;
+    color: var(--footer-text-color, #f9fafb);
+    text-align: left;
+  }
 }
 
 /* Bottom Bar */
@@ -440,13 +517,18 @@
   padding: 1.5rem 2rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   margin-top: 2rem;
-  font-size: 0.875rem;
+  font-family: var(--footer-copyright-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-copyright-font-size, 0.875rem);
+  font-weight: var(--footer-copyright-font-weight, 400);
   background-color: var(--copyright-bg-color, transparent);
   color: var(--copyright-text-color, var(--footer-text-color, #f9fafb));
   width: 100%;
 }
 
 .copyright {
+  font-family: var(--footer-copyright-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-copyright-font-size, 0.875rem);
+  font-weight: var(--footer-copyright-font-weight, 400);
   margin: 0;
   text-align: center;
 }
@@ -502,6 +584,46 @@
   .rightSection,
   .newsletterSection {
     align-items: flex-start;
+    text-align: left;
+  }
+
+  .centerSection {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .quickLinks {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .rightSection,
+  .newsletterSection {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .contactDetails {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  /* Ensure contact items are left-aligned on mobile */
+  .contactColumn .contactItem {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .contactList {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .rightSection .newsletterForm,
+  .newsletterSection .newsletterForm,
+  .newsletterColumn .newsletterForm {
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
   .logo {
@@ -526,6 +648,11 @@
     gap: 2rem;
   }
 
+  /* 4 columns layout also uses single column on mobile */
+  .footerColumns4 .columnsLayout {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
 
   .scrollTopFixed {
     width: 44px;
@@ -584,12 +711,18 @@
   .columnsLayout {
     gap: 1.5rem;
   }
+
+  /* 4 columns layout uses single column on small mobile */
+  .footerColumns4 .columnsLayout {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 }
 
 /* Restaurant Layout (Colors of India style) */
 .restaurantLayout {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 3rem;
   margin-bottom: 2rem;
   padding: 2rem 0;
@@ -597,7 +730,7 @@
 }
 
 .restaurantLayoutWithNewsletter {
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   align-items: start;
 }
 
@@ -648,12 +781,116 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  align-items: flex-start;
+  text-align: left;
+}
+
+/* Restaurant Address Section */
+.restaurantAddress {
+  align-items: center;
+  text-align: center;
+}
+
+.restaurantAddress .sectionTitleUpper {
+  text-align: center;
+}
+
+.restaurantAddress .addressText {
+  text-align: center;
+}
+
+/* Restaurant Contact Section */
+.restaurantContact {
+  align-items: center;
+  text-align: center;
+}
+
+.restaurantContact .sectionTitleUpper {
+  text-align: center;
+}
+
+.restaurantContact .contactList {
+  align-items: center;
+  text-align: center;
+}
+
+.restaurantContact .contactItem {
+  justify-content: center;
+  text-align: center;
+}
+
+/* Restaurant Newsletter Section */
+.restaurantNewsletter {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.restaurantNewsletter .sectionTitleUpper {
+  text-align: right;
 }
 
 .newsletterForm {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  width: 100%;
+}
+
+/* Newsletter form for columns layout */
+.newsletterColumn .newsletterForm {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.newsletterColumn .newsletterInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.newsletterColumn .newsletterButton {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Restaurant layout newsletter form */
+.restaurantNewsletter .newsletterForm {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.restaurantNewsletter .newsletterInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.restaurantNewsletter .newsletterButton {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Newsletter form for default layout right section */
+.rightSection .newsletterForm,
+.newsletterSection .newsletterForm {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.rightSection .newsletterInput,
+.newsletterSection .newsletterInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.rightSection .newsletterButton,
+.newsletterSection .newsletterButton {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .newsletterInput {
@@ -695,17 +932,41 @@
   }
 }
 
-.sectionTitleUpper {
+.newsletterMessage {
+  font-family: var(--footer-font-family, 'Inter, system-ui, sans-serif');
   font-size: 0.875rem;
-  font-weight: 700;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+
+  &.success {
+    color: #10b981;
+    background-color: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  &.error {
+    color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+}
+
+.sectionTitleUpper {
+  font-family: var(--footer-heading-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-heading-font-size, 0.875rem);
+  font-weight: var(--footer-heading-font-weight, 700);
+  text-transform: var(--footer-heading-text-transform, uppercase);
   margin: 0;
-  text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--footer-text-color, #333);
 }
 
 .addressText {
-  font-size: 0.9375rem;
+  font-family: var(--footer-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-font-size, 0.9375rem);
+  font-weight: var(--footer-font-weight, 400);
+  text-transform: var(--footer-text-transform, none);
   line-height: 1.6;
   color: var(--footer-text-color, #333);
 }
@@ -717,10 +978,15 @@
   border-top: 1px solid rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
 }
 
 .navLink {
-  font-size: 0.9375rem;
+  font-family: var(--footer-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-font-size, 0.9375rem);
+  font-weight: var(--footer-font-weight, 400);
+  text-transform: var(--footer-text-transform, none);
   color: var(--footer-text-color, #333);
   text-decoration: none;
   transition: opacity 0.2s ease;
@@ -736,13 +1002,18 @@
   align-items: center;
   padding: 1.5rem 2rem;
   margin-top: 2rem;
-  font-size: 0.875rem;
+  font-family: var(--footer-copyright-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-copyright-font-size, 0.875rem);
+  font-weight: var(--footer-copyright-font-weight, 400);
   background-color: var(--copyright-bg-color, transparent);
   color: var(--copyright-text-color, var(--footer-text-color, #333));
   width: 100%;
 }
 
 .bottomBarRestaurant .copyright {
+  font-family: var(--footer-copyright-font-family, 'Inter, system-ui, sans-serif');
+  font-size: var(--footer-copyright-font-size, 0.875rem);
+  font-weight: var(--footer-copyright-font-weight, 400);
   text-align: center;
 }
 
@@ -782,6 +1053,50 @@
     gap: 1rem;
     align-items: flex-start;
     text-align: left;
+    justify-content: flex-start;
+  }
+
+  .restaurantAddress,
+  .restaurantContact,
+  .restaurantNewsletter {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  /* Ensure all section titles are left-aligned in restaurant layout on mobile */
+  .restaurantAddress .sectionTitleUpper,
+  .restaurantContact .sectionTitleUpper,
+  .restaurantNewsletter .sectionTitleUpper {
+    text-align: left;
+  }
+
+  /* Ensure address and contact list items are left-aligned */
+  .restaurantAddress .addressText {
+    text-align: left;
+  }
+
+  .restaurantContact .contactList {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .restaurantContact .contactItem {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .restaurantNewsletter .newsletterForm {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .restaurantBrand {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .socialLinksLarge {
+    justify-content: flex-start;
   }
 
   .bottomBarRestaurant {

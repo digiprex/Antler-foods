@@ -37,6 +37,8 @@ const GET_PAGE = `
 const UPDATE_PAGE = `
   mutation UpdatePage(
     $page_id: uuid!
+    $name: String
+    $url_slug: String
     $meta_title: String
     $meta_description: String
     $og_image: String
@@ -47,6 +49,8 @@ const UPDATE_PAGE = `
     update_web_pages_by_pk(
       pk_columns: { page_id: $page_id }
       _set: {
+        name: $name
+        url_slug: $url_slug
         meta_title: $meta_title
         meta_description: $meta_description
         og_image: $og_image
@@ -57,6 +61,8 @@ const UPDATE_PAGE = `
       }
     ) {
       page_id
+      name
+      url_slug
       meta_title
       meta_description
       og_image
@@ -119,7 +125,7 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json();
-    const { meta_title, meta_description, og_image, published, show_on_navbar, show_on_footer } = body;
+    const { name, url_slug, meta_title, meta_description, og_image, published, show_on_navbar, show_on_footer } = body;
     const pageId = params.page_id;
 
     if (!pageId) {
@@ -143,6 +149,8 @@ export async function PATCH(
     // Build variables object, using existing values for fields not being updated
     const variables: any = {
       page_id: pageId,
+      name: name !== undefined && name !== null ? name : existingPage.name,
+      url_slug: url_slug !== undefined && url_slug !== null ? url_slug : existingPage.url_slug,
       meta_title: meta_title !== undefined && meta_title !== null ? meta_title : existingPage.meta_title,
       meta_description: meta_description !== undefined && meta_description !== null ? meta_description : existingPage.meta_description,
       og_image: og_image !== undefined && og_image !== null ? og_image : existingPage.og_image,

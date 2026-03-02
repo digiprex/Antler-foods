@@ -27,6 +27,8 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
   const [loading, setLoading] = useState(!config);
   const [error, setError] = useState<string | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  const [currentContactIndex, setCurrentContactIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Fetch config if not provided as prop
   useEffect(() => {
@@ -34,6 +36,38 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
       fetchAnnouncementBarConfig();
     }
   }, [config, restaurantId, domain]);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Auto carousel for contact information on mobile
+  useEffect(() => {
+    if (!isMobile || !announcementConfig) return;
+
+    // Count available contact items
+    const hasAddress = (announcementConfig.showAddress !== false) && announcementConfig.address?.trim();
+    const hasPhone = (announcementConfig.showPhone !== false) && announcementConfig.phone?.trim();
+    const hasEmail = (announcementConfig.showEmail !== false) && announcementConfig.email?.trim();
+
+    const contactItems = [hasAddress, hasPhone, hasEmail].filter(Boolean);
+
+    if (contactItems.length <= 1) return; // No need for carousel if only one item
+
+    const interval = setInterval(() => {
+      setCurrentContactIndex((prev) => (prev + 1) % contactItems.length);
+    }, 3000); // Change every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [isMobile, announcementConfig]);
 
   // Update CSS variable when component renders with data and handle resize
   useEffect(() => {
@@ -135,8 +169,10 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
   const containerStyle: React.CSSProperties = {
     backgroundColor: announcementConfig.bgColor || '#000000',
     color: announcementConfig.textColor || '#ffffff',
+    fontFamily: announcementConfig.fontFamily || 'Inter, system-ui, sans-serif',
     fontSize: announcementConfig.fontSize || '14px',
-    fontWeight: announcementConfig.fontWeight || 'normal',
+    fontWeight: announcementConfig.fontWeight || 400,
+    textTransform: announcementConfig.textTransform || 'none',
     padding: announcementConfig.padding || '8px 16px',
     position: 'fixed',
     top: 0,
@@ -158,6 +194,52 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
     transition: 'opacity 0.2s ease',
   };
 
+  // Prepare contact items for carousel
+  const contactItems = [];
+  if (hasAddress) {
+    contactItems.push({
+      type: 'address',
+      content: (
+        <span className={styles.contactItem} key="address">
+          <span className={styles.contactIcon}>📍</span>
+          {announcementConfig.address}
+        </span>
+      )
+    });
+  }
+  if (hasPhone) {
+    contactItems.push({
+      type: 'phone',
+      content: (
+        <a
+          href={`tel:${announcementConfig.phone}`}
+          style={linkStyle}
+          className={styles.contactItem}
+          key="phone"
+        >
+          <span className={styles.contactIcon}>📞</span>
+          {announcementConfig.phone}
+        </a>
+      )
+    });
+  }
+  if (hasEmail) {
+    contactItems.push({
+      type: 'email',
+      content: (
+        <a
+          href={`mailto:${announcementConfig.email}`}
+          style={linkStyle}
+          className={styles.contactItem}
+          key="email"
+        >
+          <span className={styles.contactIcon}>✉️</span>
+          {announcementConfig.email}
+        </a>
+      )
+    });
+  }
+
   return (
     <div
       ref={barRef}
@@ -172,33 +254,16 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
       )}
 
       {/* Contact Information */}
-      {showContactInfo && (
-        <div className={styles.contactInfo}>
-          {hasAddress && (
-            <span className={styles.contactItem}>
-              <span className={styles.contactIcon}>📍</span>
-              {announcementConfig.address}
-            </span>
-          )}
-          {hasPhone && (
-            <a
-              href={`tel:${announcementConfig.phone}`}
-              style={linkStyle}
-              className={styles.contactItem}
-            >
-              <span className={styles.contactIcon}>📞</span>
-              {announcementConfig.phone}
-            </a>
-          )}
-          {hasEmail && (
-            <a
-              href={`mailto:${announcementConfig.email}`}
-              style={linkStyle}
-              className={styles.contactItem}
-            >
-              <span className={styles.contactIcon}>✉️</span>
-              {announcementConfig.email}
-            </a>
+      {showContactInfo && contactItems.length > 0 && (
+        <div className={`${styles.contactInfo} ${isMobile && contactItems.length > 1 ? styles.carouselMode : ''}`}>
+          {isMobile && contactItems.length > 1 ? (
+            // Mobile: Show only current item with fade animation
+            <div className={styles.carouselItem} key={currentContactIndex}>
+              {contactItems[currentContactIndex].content}
+            </div>
+          ) : (
+            // Desktop: Show all items
+            contactItems.map(item => item.content)
           )}
         </div>
       )}

@@ -35,6 +35,17 @@
   flex-wrap: wrap;
 }
 
+.contactInfo.carouselMode {
+  position: relative;
+  min-height: 24px;
+  width: 100%;
+  justify-content: center;
+}
+
+.carouselItem {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
 .contactItem {
   display: flex;
   align-items: center;
@@ -143,6 +154,18 @@
   white-space: nowrap;
 }
 
+/* Carousel fade animation */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* High contrast mode support */
 @media (prefers-contrast: high) {
   .announcementBar {
@@ -159,12 +182,16 @@
   .socialIcon {
     transition: none;
   }
-  
+
   .socialIcon:hover {
     transform: none;
   }
-  
+
   .scrolling {
+    animation: none;
+  }
+
+  .carouselItem {
     animation: none;
   }
 }

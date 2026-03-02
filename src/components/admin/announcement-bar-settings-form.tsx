@@ -28,7 +28,7 @@ export default function AnnouncementBarSettingsForm() {
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
   const restaurantNameFromQuery = searchParams.get('restaurant_name')?.trim() ?? '';
   const restaurantId = restaurantIdFromQuery || '';
-  
+
   const configApiEndpoint = useMemo(
     () => `/api/announcement-bar-config?restaurant_id=${encodeURIComponent(restaurantId)}`,
     [restaurantId],
@@ -53,7 +53,11 @@ export default function AnnouncementBarSettingsForm() {
   const [bgColor, setBgColor] = useState('#000000');
   const [textColor, setTextColor] = useState('#ffffff');
   const [linkColor, setLinkColor] = useState('#ffffff');
-  
+  const [fontFamily, setFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [fontSize, setFontSize] = useState('14px');
+  const [fontWeight, setFontWeight] = useState<number>(400);
+  const [textTransform, setTextTransform] = useState<'none' | 'uppercase' | 'lowercase' | 'capitalize'>('none');
+
   // Toast state
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -62,15 +66,8 @@ export default function AnnouncementBarSettingsForm() {
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
 
-  // Validate that restaurant ID is provided
-  if (!restaurantId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
-      </div>
-    );
-  }
+  // Mobile carousel state for preview
+  const [previewContactIndex, setPreviewContactIndex] = useState(0);
 
   // Initialize form with fetched config
   useEffect(() => {
@@ -88,8 +85,40 @@ export default function AnnouncementBarSettingsForm() {
       setBgColor(config.bgColor || '#000000');
       setTextColor(config.textColor || '#ffffff');
       setLinkColor(config.linkColor || '#ffffff');
+      setFontFamily(config.fontFamily || 'Inter, system-ui, sans-serif');
+      setFontSize(config.fontSize || '14px');
+      setFontWeight(config.fontWeight || 400);
+      setTextTransform(config.textTransform || 'none');
     }
   }, [config]);
+
+  // Prepare contact items for preview carousel
+  const previewContactItems = useMemo(() => {
+    const items = [];
+    const showContactInPreview = (layout === 'contact-info' || layout === 'contact-social' || layout === 'full');
+
+    if (showContactInPreview && showAddress && address) {
+      items.push({ type: 'address', content: `📍 ${address}` });
+    }
+    if (showContactInPreview && showPhone && phone) {
+      items.push({ type: 'phone', content: `📞 ${phone}` });
+    }
+    if (showContactInPreview && showEmail && email) {
+      items.push({ type: 'email', content: `✉️ ${email}` });
+    }
+    return items;
+  }, [layout, showAddress, address, showPhone, phone, showEmail, email]);
+
+  // Auto-rotate contact items in preview
+  useEffect(() => {
+    if (previewContactItems.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setPreviewContactIndex((prev) => (prev + 1) % previewContactItems.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [previewContactItems.length]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,6 +147,10 @@ export default function AnnouncementBarSettingsForm() {
         bgColor,
         textColor,
         linkColor,
+        fontFamily,
+        fontSize,
+        fontWeight,
+        textTransform,
       });
 
       setToastMessage('Announcement bar settings saved successfully!');
@@ -183,6 +216,10 @@ export default function AnnouncementBarSettingsForm() {
       <div style={{
         backgroundColor: bgColor,
         color: textColor,
+        fontFamily: fontFamily,
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        textTransform: textTransform,
         padding: '8px 16px',
         display: 'flex',
         alignItems: 'center',
@@ -192,9 +229,16 @@ export default function AnnouncementBarSettingsForm() {
         minHeight: '40px',
       }}>
         {showTextInPreview && <span>{text}</span>}
-        {showContactInPreview && showAddress && address && <span>📍 {address}</span>}
-        {showContactInPreview && showPhone && phone && <span>📞 {phone}</span>}
-        {showContactInPreview && showEmail && email && <span>✉️ {email}</span>}
+        {showContactInPreview && previewContactItems.length > 0 && (
+          <span
+            key={previewContactIndex}
+            style={{
+              animation: previewContactItems.length > 1 ? 'fadeIn 0.5s ease-in-out' : 'none'
+            }}
+          >
+            {previewContactItems[previewContactIndex]?.content}
+          </span>
+        )}
         {showSocialInPreview && socialMediaIcons.filter(icon => icon.url).map((icon, index) => (
           <a
             key={index}
@@ -222,6 +266,16 @@ export default function AnnouncementBarSettingsForm() {
     );
   }
 
+  // Validate that restaurant ID is provided
+  if (!restaurantId) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+        <h2>Error</h2>
+        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
       {/* Toast Notification */}
@@ -240,11 +294,11 @@ export default function AnnouncementBarSettingsForm() {
             <div>
               <h1 className={styles.formTitle}>Announcement Bar Settings</h1>
               <p className={styles.formSubtitle}>Configure your announcement bar</p>
-              {restaurantNameFromQuery && (
+              {/* {restaurantNameFromQuery && (
                 <p className={styles.formSubtitle}>
                   Restaurant: {restaurantNameFromQuery}
                 </p>
-              )}
+              )} */}
             </div>
             <div className={styles.headerActions}>
               <button
@@ -323,20 +377,6 @@ export default function AnnouncementBarSettingsForm() {
                 <span className={styles.sectionIcon}>📝</span>
                 Content
               </h3>
-
-              {layout === 'contact-social' && (
-                <div style={{
-                  padding: '0.75rem 1rem',
-                  background: '#eff6ff',
-                  borderRadius: '8px',
-                  border: '1px solid #bfdbfe',
-                  color: '#1e40af',
-                  fontSize: '0.875rem',
-                  marginBottom: '1rem'
-                }}>
-                  ℹ️ Contact + Social Media layout selected - Contact details and social icons will be shown
-                </div>
-              )}
 
               {/* Text Content - Show only for text-only and full layouts */}
               {(layout === 'text-only' || layout === 'full') && (
@@ -606,6 +646,95 @@ export default function AnnouncementBarSettingsForm() {
                     ↺
                   </button>
                 </div>
+              </div>
+            </div>
+
+            {/* Typography Section */}
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}>✍️</span>
+                Typography
+              </h3>
+
+              {/* Font Family */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Font Family
+                  <span className={styles.labelHint}>Choose font style</span>
+                </label>
+                <select
+                  value={fontFamily}
+                  onChange={(e) => setFontFamily(e.target.value)}
+                  className={styles.select}
+                  style={{ fontFamily: fontFamily }}
+                >
+                  <option value="Inter, system-ui, sans-serif" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Inter (Default)</option>
+                  <option value="Roboto, sans-serif" style={{ fontFamily: 'Roboto, sans-serif' }}>Roboto</option>
+                  <option value="Open Sans, sans-serif" style={{ fontFamily: 'Open Sans, sans-serif' }}>Open Sans</option>
+                  <option value="Lato, sans-serif" style={{ fontFamily: 'Lato, sans-serif' }}>Lato</option>
+                  <option value="Montserrat, sans-serif" style={{ fontFamily: 'Montserrat, sans-serif' }}>Montserrat</option>
+                  <option value="Poppins, sans-serif" style={{ fontFamily: 'Poppins, sans-serif' }}>Poppins</option>
+                  <option value="Playfair Display, serif" style={{ fontFamily: 'Playfair Display, serif' }}>Playfair Display</option>
+                  <option value="Merriweather, serif" style={{ fontFamily: 'Merriweather, serif' }}>Merriweather</option>
+                  <option value="Arial, sans-serif" style={{ fontFamily: 'Arial, sans-serif' }}>Arial</option>
+                  <option value="Helvetica, sans-serif" style={{ fontFamily: 'Helvetica, sans-serif' }}>Helvetica</option>
+                </select>
+              </div>
+
+              {/* Font Size */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Font Size
+                  <span className={styles.labelHint}>Text size in pixels</span>
+                </label>
+                <select
+                  value={fontSize}
+                  onChange={(e) => setFontSize(e.target.value)}
+                  className={styles.select}
+                >
+                  <option value="12px">12px (Small)</option>
+                  <option value="14px">14px (Default)</option>
+                  <option value="16px">16px (Medium)</option>
+                  <option value="18px">18px (Large)</option>
+                  <option value="20px">20px (Extra Large)</option>
+                </select>
+              </div>
+
+              {/* Font Weight */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Font Weight
+                  <span className={styles.labelHint}>Text thickness</span>
+                </label>
+                <select
+                  value={fontWeight}
+                  onChange={(e) => setFontWeight(Number(e.target.value))}
+                  className={styles.select}
+                >
+                  <option value={300}>Light (300)</option>
+                  <option value={400}>Normal (400)</option>
+                  <option value={500}>Medium (500)</option>
+                  <option value={600}>Semi Bold (600)</option>
+                  <option value={700}>Bold (700)</option>
+                </select>
+              </div>
+
+              {/* Text Transform */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Text Transform
+                  <span className={styles.labelHint}>Text capitalization</span>
+                </label>
+                <select
+                  value={textTransform}
+                  onChange={(e) => setTextTransform(e.target.value as 'none' | 'uppercase' | 'lowercase' | 'capitalize')}
+                  className={styles.select}
+                >
+                  <option value="none">None (Default)</option>
+                  <option value="uppercase">UPPERCASE</option>
+                  <option value="lowercase">lowercase</option>
+                  <option value="capitalize">Capitalize Each Word</option>
+                </select>
               </div>
             </div>
 

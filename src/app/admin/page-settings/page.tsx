@@ -39,34 +39,32 @@ export default function PageSettingsSelector() {
   const [updatingVisibility, setUpdatingVisibility] = useState(false);
 
   // Function to render section preview based on category
-  const renderSectionPreview = (category: string) => {
+  const renderSectionPreview = (category: string, config?: any) => {
     if (!restaurantId || !pageId) return null;
 
     const previewStyle = {
-      maxHeight: '400px',
+      maxHeight: '500px',
       overflow: 'auto',
-      border: '1px solid #e5e7eb',
-      borderRadius: '8px',
-      backgroundColor: '#f9fafb'
+      width: '100%',
     } as React.CSSProperties;
 
     switch (category.toLowerCase()) {
       case 'hero':
         return (
           <div style={previewStyle}>
-            <DynamicHero restaurantId={restaurantId} showLoading={false} />
+            <DynamicHero restaurantId={restaurantId} configData={config} showLoading={false} />
           </div>
         );
       case 'gallery':
         return (
           <div style={previewStyle}>
-            <DynamicGallery restaurantId={restaurantId} />
+            <DynamicGallery restaurantId={restaurantId} configData={config} />
           </div>
         );
       case 'reviews':
         return (
           <div style={previewStyle}>
-            <DynamicReviews restaurantId={restaurantId} pageId={pageId} />
+            <DynamicReviews restaurantId={restaurantId} pageId={pageId} configData={config} />
           </div>
         );
       case 'youtube':
@@ -150,7 +148,7 @@ export default function PageSettingsSelector() {
       case 'timeline':
         return (
           <div style={previewStyle}>
-            <DynamicTimeline restaurantId={restaurantId} pageId={pageId} />
+            <DynamicTimeline restaurantId={restaurantId} pageId={pageId} configData={config} />
           </div>
         );
       case 'faq':
@@ -158,41 +156,33 @@ export default function PageSettingsSelector() {
           <div style={previewStyle}>
             <DynamicFAQ
               restaurantId={restaurantId}
+              configData={config}
               showLoading={false}
-              fallbackConfig={{
-                faqs: [
-                  { id: '1', question: 'What are your opening hours?', answer: 'We are open daily from 11 AM to 10 PM.' },
-                  { id: '2', question: 'Do you take reservations?', answer: 'Yes, we accept reservations. Please call us or book online.' }
-                ],
-                layout: 'accordion',
-                title: 'Frequently Asked Questions',
-                subtitle: 'Find answers to common questions'
-              }}
             />
           </div>
         );
       case 'location':
         return (
           <div style={previewStyle}>
-            <DynamicLocation restaurantId={restaurantId} pageId={pageId} />
+            <DynamicLocation restaurantId={restaurantId} pageId={pageId} configData={config} />
           </div>
         );
       case 'scrollingtext':
         return (
           <div style={previewStyle}>
-            <DynamicScrollingText restaurantId={restaurantId} pageId={pageId} showLoading={false} />
+            <DynamicScrollingText restaurantId={restaurantId} pageId={pageId} configData={config} showLoading={false} />
           </div>
         );
       case 'customcode':
         return (
           <div style={previewStyle}>
-            <DynamicCustomCode restaurantId={restaurantId} pageId={pageId} showLoading={false} />
+            <DynamicCustomCode restaurantId={restaurantId} pageId={pageId} configData={config} showLoading={false} />
           </div>
         );
       case 'form':
         return (
           <div style={previewStyle}>
-            <DynamicForm restaurantId={restaurantId} pageId={pageId} showLoading={false} />
+            <DynamicForm restaurantId={restaurantId} pageId={pageId} configData={config} showLoading={false} />
           </div>
         );
       case 'seo':
@@ -885,8 +875,8 @@ export default function PageSettingsSelector() {
                             Live Preview - How it appears to customers
                           </h4>
                         </div>
-                        <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                          {renderSectionPreview(section.category)}
+                        <div className="border border-gray-200 rounded-lg overflow-hidden">
+                          {renderSectionPreview(section.category, section.config)}
                         </div>
                       </div>
                     </div>

@@ -63,16 +63,21 @@ function hasValidCoordinates(lat?: number, lng?: number) {
 }
 
 function buildMapQuery({ placeId, lat, lng, address, name }: GoogleMapTarget) {
+  if (hasValidCoordinates(lat, lng)) {
+    return `${lat},${lng}`;
+  }
+
+  const textQuery = [normalizeText(name), normalizeText(address)].filter(Boolean).join(', ');
+  if (textQuery) {
+    return textQuery;
+  }
+
   const normalizedPlaceId = normalizeText(placeId);
   if (normalizedPlaceId) {
     return `place_id:${normalizedPlaceId}`;
   }
 
-  if (hasValidCoordinates(lat, lng)) {
-    return `${lat},${lng}`;
-  }
-
-  return [normalizeText(name), normalizeText(address)].filter(Boolean).join(', ');
+  return '';
 }
 
 function buildGoogleMapsEmbedUrl(target: GoogleMapTarget) {
@@ -81,7 +86,8 @@ function buildGoogleMapsEmbedUrl(target: GoogleMapTarget) {
     return null;
   }
 
-  return `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+  const zoom = hasValidCoordinates(target.lat, target.lng) ? '17' : '15';
+  return `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=${zoom}&output=embed`;
 }
 
 function buildGoogleMapsDirectionsUrl(target: GoogleMapTarget) {

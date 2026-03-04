@@ -61,7 +61,7 @@ export function useUpdateScrollingTextConfig() {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const updateScrollingText = async (config: Partial<ScrollingTextConfig> & { restaurant_id: string; page_id: string }) => {
+  const updateScrollingText = async (config: Partial<ScrollingTextConfig> & { restaurant_id: string; page_id: string; template_id?: string | null }) => {
     try {
       setUpdating(true);
       setError(null);

@@ -38,6 +38,31 @@ const GET_REVIEW_CONFIG = `
   }
 `;
 
+const GET_REVIEW_CONFIG_BY_TEMPLATE = `
+  query GetReviewConfigByTemplate($restaurant_id: uuid!, $template_id: uuid!) {
+    templates(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        template_id: {_eq: $template_id},
+        category: {_eq: "Reviews"},
+        is_deleted: {_eq: false}
+      },
+      limit: 1
+    ) {
+      category
+      config
+      created_at
+      is_deleted
+      menu_items
+      name
+      restaurant_id
+      template_id
+      updated_at
+      page_id
+    }
+  }
+`;
+
 /**
  * GraphQL mutation to mark current template as deleted
  */
@@ -102,6 +127,7 @@ export async function GET(request: NextRequest) {
     const domain = searchParams.get('domain') || request.headers.get('host');
     const urlSlug = searchParams.get('url_slug');
     let pageId = searchParams.get('page_id');
+    let templateId = searchParams.get('template_id') || null;
 
     // If domain is provided but no restaurantId, fetch restaurantId from domain
     if (domain && !searchParams.get('restaurant_id')) {
@@ -125,8 +151,8 @@ export async function GET(request: NextRequest) {
 
         const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, { domain });
 
-        if (domainData.restaurants && domainData.restaurants.length > 0) {
-          restaurantId = domainData.restaurants[0].restaurant_id;
+        if ((domainData as any).restaurants && (domainData as any).restaurants.length > 0) {
+          restaurantId = (domainData as any).restaurants[0].restaurant_id;
         }
       } catch (error) {
         console.error('[Review Config] Error fetching restaurant ID by domain:', error);
@@ -165,47 +191,58 @@ export async function GET(request: NextRequest) {
           url_slug: urlSlug,
         });
 
-        if (pageData.web_pages && pageData.web_pages.length > 0) {
-          pageId = pageData.web_pages[0].page_id;
+        if ((pageData as any).web_pages && (pageData as any).web_pages.length > 0) {
+          pageId = (pageData as any).web_pages[0].page_id;
         }
       } catch (error) {
         console.error('[Review Config] Error fetching page_id:', error);
       }
     }
 
-    // Use page-specific query if page_id is available
-    const data = pageId
-      ? await graphqlRequest(`
-          query GetReviewConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
-            templates(
-              where: {
-                restaurant_id: {_eq: $restaurant_id},
-                page_id: {_eq: $page_id},
-                category: {_eq: "Reviews"},
-                is_deleted: {_eq: false}
-              },
-              order_by: {created_at: desc},
-              limit: 1
-            ) {
-              category
-              config
-              created_at
-              is_deleted
-              menu_items
-              name
-              restaurant_id
-              template_id
-              updated_at
-              page_id
-            }
+    // Determine which query to use based on available parameters
+    let data: any;
+    if (templateId) {
+      // If template_id is provided, fetch that specific template
+      data = await graphqlRequest(GET_REVIEW_CONFIG_BY_TEMPLATE, {
+        restaurant_id: restaurantId,
+        template_id: templateId
+      });
+    } else if (pageId) {
+      // If page_id is provided, fetch the most recent review for that page
+      data = await graphqlRequest(`
+        query GetReviewConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
+          templates(
+            where: {
+              restaurant_id: {_eq: $restaurant_id},
+              page_id: {_eq: $page_id},
+              category: {_eq: "Reviews"},
+              is_deleted: {_eq: false}
+            },
+            order_by: {created_at: desc},
+            limit: 1
+          ) {
+            category
+            config
+            created_at
+            is_deleted
+            menu_items
+            name
+            restaurant_id
+            template_id
+            updated_at
+            page_id
           }
-        `, {
-          restaurant_id: restaurantId,
-          page_id: pageId,
-        })
-      : await graphqlRequest(GET_REVIEW_CONFIG, { restaurant_id: restaurantId });
+        }
+      `, {
+        restaurant_id: restaurantId,
+        page_id: pageId,
+      });
+    } else {
+      // Fallback to restaurant-level review
+      data = await graphqlRequest(GET_REVIEW_CONFIG, { restaurant_id: restaurantId });
+    }
 
-    if (!data.templates || data.templates.length === 0) {
+    if (!(data as any).templates || (data as any).templates.length === 0) {
       const response: ReviewConfigResponse = {
         success: true,
         data: DEFAULT_REVIEW_CONFIG,
@@ -252,37 +289,17 @@ export async function POST(request: NextRequest) {
       throw new Error('restaurant_id is required');
     }
 
+    // Check if this is editing an existing template or creating a new one
+    const templateId = body.template_id || null;
     const pageId = body.page_id || null;
 
-    // Get current template to mark as deleted
-    const currentData = pageId
-      ? await graphqlRequest(`
-          query GetReviewConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
-            templates(
-              where: {
-                restaurant_id: {_eq: $restaurant_id},
-                page_id: {_eq: $page_id},
-                category: {_eq: "Reviews"},
-                is_deleted: {_eq: false}
-              },
-              order_by: {created_at: desc},
-              limit: 1
-            ) {
-              template_id
-            }
-          }
-        `, {
-          restaurant_id: restaurantId,
-          page_id: pageId,
-        })
-      : await graphqlRequest(GET_REVIEW_CONFIG, { restaurant_id: restaurantId });
-
-    // Mark current template as deleted (if exists)
-    if (currentData.templates && currentData.templates.length > 0) {
+    // Step 2: If template_id is provided, mark that specific template as deleted (editing existing section)
+    if (templateId) {
       await graphqlRequest(MARK_AS_DELETED, {
-        template_id: currentData.templates[0].template_id,
+        template_id: templateId,
       });
     }
+    // If no template_id, this is a new section - don't delete any existing templates
 
     // Prepare review configuration
     const { restaurant_id, layout, page_id: _pageId, ...configData } = body;
@@ -302,11 +319,11 @@ export async function POST(request: NextRequest) {
       page_id: pageId,
     });
 
-    if (!insertedData.insert_templates_one) {
+    if (!(insertedData as any).insert_templates_one) {
       throw new Error('Failed to insert template');
     }
 
-    const template = insertedData.insert_templates_one;
+    const template = (insertedData as any).insert_templates_one;
     const responseConfig: ReviewConfig = {
       ...template.config,
       layout: template.name as any,

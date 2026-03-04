@@ -38,7 +38,8 @@ export default function DynamicReviews({ restaurantId, pageId, showLoading = fal
           setConfig(nextConfig);
         } else {
           // Fetch review config
-          const configUrl = `/api/review-config?restaurant_id=${restaurantId}${pageId ? `&page_id=${pageId}` : ''}`;
+          let configUrl = `/api/review-config?restaurant_id=${restaurantId}`;
+          if (pageId) configUrl += `&page_id=${pageId}`;
           const configResponse = await fetch(configUrl);
           const fetchedConfigData = await configResponse.json();
 

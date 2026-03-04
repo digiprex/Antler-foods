@@ -46,6 +46,39 @@ const GET_LOCATION_CONFIG = `
   }
 `;
 
+const GET_LOCATION_CONFIG_BY_TEMPLATE = `
+  query GetLocationConfigByTemplate($restaurant_id: uuid!, $template_id: uuid!) {
+    templates(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        template_id: {_eq: $template_id},
+        category: {_eq: "Location"},
+        is_deleted: {_eq: false}
+      },
+      limit: 1
+    ) {
+      category
+      config
+      created_at
+      is_deleted
+      name
+      restaurant_id
+      template_id
+      page_id
+      updated_at
+    }
+    restaurants(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        is_deleted: {_eq: false}
+      }
+    ) {
+      google_place_id
+      restaurant_id
+    }
+  }
+`;
+
 /**
  * GraphQL mutation to mark current template as deleted
  */
@@ -101,6 +134,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const restaurantId = searchParams.get('restaurant_id');
     const pageId = searchParams.get('page_id');
+    const templateId = searchParams.get('template_id') || null;
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -111,10 +145,16 @@ export async function GET(request: NextRequest) {
 
     console.log('[Location Config] Using restaurant_id:', restaurantId, 'page_id:', pageId);
 
-    const data = await graphqlRequest(GET_LOCATION_CONFIG, {
-      restaurant_id: restaurantId,
-      page_id: pageId,
-    });
+    // Determine which query to use based on available parameters
+    const data = templateId
+      ? await graphqlRequest(GET_LOCATION_CONFIG_BY_TEMPLATE, {
+          restaurant_id: restaurantId,
+          template_id: templateId,
+        })
+      : await graphqlRequest(GET_LOCATION_CONFIG, {
+          restaurant_id: restaurantId,
+          page_id: pageId,
+        });
 
     console.log('[Location Config] Template query result:', JSON.stringify(data, null, 2));
 
@@ -173,7 +213,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { restaurant_id, page_id, layout, ...configData } = body;
+    const { restaurant_id, page_id, template_id, layout, ...configData } = body;
 
     if (!restaurant_id) {
       return NextResponse.json(
@@ -182,24 +222,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Location Config] Saving config for restaurant:', restaurant_id, 'page_id:', page_id);
+    console.log('[Location Config] Saving config for restaurant:', restaurant_id, 'page_id:', page_id, 'template_id:', template_id);
 
-    // Step 1: Get current template to mark as deleted
-    const currentData = await graphqlRequest(GET_LOCATION_CONFIG, {
-      restaurant_id: restaurant_id,
-      page_id: page_id,
-    });
-
-    // Step 2: Mark current template as deleted (if exists)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((currentData as any).templates && (currentData as any).templates.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const currentTemplate = (currentData as any).templates[0];
+    // Step 2: If template_id is provided, mark that specific template as deleted (editing existing section)
+    if (template_id) {
       await graphqlRequest(MARK_AS_DELETED, {
-        template_id: currentTemplate.template_id,
+        template_id: template_id,
       });
-      console.log('[Location Config] Marked old template as deleted:', currentTemplate.template_id);
+      console.log('[Location Config] Marked specific template as deleted:', template_id);
     }
+    // If no template_id, this is a new section - don't delete any existing templates
 
     // Transform LocationConfig to template structure
     const name = layout || 'default'; // layout goes to name field

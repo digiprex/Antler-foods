@@ -99,6 +99,31 @@ const GET_FAQ_CONFIG_BY_PAGE = `
   }
 `;
 
+const GET_FAQ_CONFIG_BY_TEMPLATE = `
+  query GetFAQConfigByTemplate($restaurant_id: uuid!, $template_id: uuid!) {
+    templates(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        template_id: {_eq: $template_id},
+        category: {_eq: "FAQ"},
+        is_deleted: {_eq: false}
+      },
+      limit: 1
+    ) {
+      category
+      config
+      created_at
+      is_deleted
+      menu_items
+      name
+      restaurant_id
+      template_id
+      updated_at
+      page_id
+    }
+  }
+`;
+
 /**
  * GraphQL mutation to mark current template as deleted
  * Uses template_id as primary key
@@ -161,6 +186,7 @@ export async function GET(request: Request) {
     let restaurantId = searchParams.get('restaurant_id');
     let pageId = searchParams.get('page_id') || null;
     let urlSlug = searchParams.get('url_slug') || null;
+    let templateId = searchParams.get('template_id') || null;
     const domain = searchParams.get('domain') || request.headers.get('host');
 
     // If domain is provided but no restaurantId, fetch restaurantId from domain
@@ -262,9 +288,24 @@ export async function GET(request: Request) {
       }
     }
 
-    const data = finalPageId
-      ? await graphqlRequest(GET_FAQ_CONFIG_BY_PAGE, { restaurant_id: restaurantId, page_id: finalPageId })
-      : await graphqlRequest(GET_FAQ_CONFIG, { restaurant_id: restaurantId });
+    // Determine which query to use based on available parameters
+    let data;
+    if (templateId) {
+      // If template_id is provided, fetch that specific template
+      data = await graphqlRequest(GET_FAQ_CONFIG_BY_TEMPLATE, {
+        restaurant_id: restaurantId,
+        template_id: templateId
+      });
+    } else if (finalPageId) {
+      // If page_id is provided, fetch the most recent FAQ for that page
+      data = await graphqlRequest(GET_FAQ_CONFIG_BY_PAGE, {
+        restaurant_id: restaurantId,
+        page_id: finalPageId
+      });
+    } else {
+      // Fallback to restaurant-level FAQ
+      data = await graphqlRequest(GET_FAQ_CONFIG, { restaurant_id: restaurantId });
+    }
 
     if (!(data as any).templates || (data as any).templates.length === 0) {
       // Return 404 if template doesn't exist (frontend will not render section)
@@ -309,8 +350,8 @@ export async function GET(request: Request) {
 }
 
 /**
- * POST endpoint to update FAQ configuration
- * Marks current template as deleted and inserts new one
+ * POST endpoint to create or update FAQ configuration
+ * Creates new template for new sections, updates existing template for edits
  */
 export async function POST(request: Request) {
   try {
@@ -323,7 +364,8 @@ export async function POST(request: Request) {
       throw new Error('restaurant_id is required in request body');
     }
 
-    // Step 1: Get current template to mark as deleted (consider optional page_id or url_slug)
+    // Check if this is editing an existing template or creating a new one
+    const templateId = body.template_id || null;
     const pageId = body.page_id || null;
     const urlSlug = body.url_slug || null;
 
@@ -349,18 +391,13 @@ export async function POST(request: Request) {
       }
     }
 
-    const currentData = finalPageId
-      ? await graphqlRequest(GET_FAQ_CONFIG_BY_PAGE, { restaurant_id: restaurantId, page_id: finalPageId })
-      : await graphqlRequest(GET_FAQ_CONFIG, { restaurant_id: restaurantId });
-
-    // Step 2: Mark current template as deleted (if exists)
-    if ((currentData as any).templates && (currentData as any).templates.length > 0) {
-      const currentTemplate = (currentData as any).templates[0];
-
+    // Step 2: If template_id is provided, mark that specific template as deleted (editing existing section)
+    if (templateId) {
       await graphqlRequest(MARK_AS_DELETED, {
-        template_id: currentTemplate.template_id,
+        template_id: templateId,
       });
     }
+    // If no template_id, this is a new section - don't delete any existing templates
 
     // Transform FAQ config to template structure
     const name = body.layout || 'accordion'; // layout goes to name field

@@ -45,6 +45,31 @@ const GET_GALLERY_CONFIG = `
   }
 `;
 
+const GET_GALLERY_CONFIG_BY_TEMPLATE = `
+  query GetGalleryConfigByTemplate($restaurant_id: uuid!, $template_id: uuid!) {
+    templates(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        template_id: {_eq: $template_id},
+        category: {_eq: "Gallery"},
+        is_deleted: {_eq: false}
+      },
+      limit: 1
+    ) {
+      category
+      config
+      created_at
+      is_deleted
+      menu_items
+      name
+      restaurant_id
+      template_id
+      updated_at
+      page_id
+    }
+  }
+`;
+
 /**
  * GraphQL mutation to mark current template as deleted
  */
@@ -106,6 +131,7 @@ export async function GET(request: Request) {
     const domain = searchParams.get('domain') || request.headers.get('host');
     const urlSlug = searchParams.get('url_slug');
     let pageId = searchParams.get('page_id');
+    let templateId = searchParams.get('template_id') || null;
 
     // If domain is provided but no restaurantId, fetch restaurantId from domain
     if (domain && !searchParams.get('restaurant_id')) {
@@ -177,37 +203,48 @@ export async function GET(request: Request) {
       }
     }
 
-    // Use page-specific query if page_id is available
-    const data = pageId
-      ? await graphqlRequest(`
-          query GetGalleryConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
-            templates(
-              where: {
-                restaurant_id: {_eq: $restaurant_id},
-                page_id: {_eq: $page_id},
-                category: {_eq: "Gallery"},
-                is_deleted: {_eq: false}
-              },
-              order_by: {created_at: desc},
-              limit: 1
-            ) {
-              category
-              config
-              created_at
-              is_deleted
-              menu_items
-              name
-              restaurant_id
-              template_id
-              updated_at
-              page_id
-            }
+    // Determine which query to use based on available parameters
+    let data;
+    if (templateId) {
+      // If template_id is provided, fetch that specific template
+      data = await graphqlRequest(GET_GALLERY_CONFIG_BY_TEMPLATE, {
+        restaurant_id: restaurantId,
+        template_id: templateId
+      });
+    } else if (pageId) {
+      // If page_id is provided, fetch the most recent gallery for that page
+      data = await graphqlRequest(`
+        query GetGalleryConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
+          templates(
+            where: {
+              restaurant_id: {_eq: $restaurant_id},
+              page_id: {_eq: $page_id},
+              category: {_eq: "Gallery"},
+              is_deleted: {_eq: false}
+            },
+            order_by: {created_at: desc},
+            limit: 1
+          ) {
+            category
+            config
+            created_at
+            is_deleted
+            menu_items
+            name
+            restaurant_id
+            template_id
+            updated_at
+            page_id
           }
-        `, {
-          restaurant_id: restaurantId,
-          page_id: pageId,
-        })
-      : await graphqlRequest(GET_GALLERY_CONFIG, { restaurant_id: restaurantId });
+        }
+      `, {
+        restaurant_id: restaurantId,
+        page_id: pageId,
+      });
+    } else {
+      // Fallback to restaurant-level gallery
+      data = await graphqlRequest(GET_GALLERY_CONFIG, { restaurant_id: restaurantId });
+    }
 
     if (!(data as any).templates || (data as any).templates.length === 0) {
       const response: GalleryConfigResponse = {
@@ -256,37 +293,17 @@ export async function POST(request: Request) {
       throw new Error('restaurant_id is required');
     }
 
+    // Check if this is editing an existing template or creating a new one
+    const templateId = body.template_id || null;
     const pageId = body.page_id || null;
 
-    // Get current template to mark as deleted
-    const currentData = pageId
-      ? await graphqlRequest(`
-          query GetGalleryConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
-            templates(
-              where: {
-                restaurant_id: {_eq: $restaurant_id},
-                page_id: {_eq: $page_id},
-                category: {_eq: "Gallery"},
-                is_deleted: {_eq: false}
-              },
-              order_by: {created_at: desc},
-              limit: 1
-            ) {
-              template_id
-            }
-          }
-        `, {
-          restaurant_id: restaurantId,
-          page_id: pageId,
-        })
-      : await graphqlRequest(GET_GALLERY_CONFIG, { restaurant_id: restaurantId });
-
-    // Mark current template as deleted (if exists)
-    if ((currentData as any).templates && (currentData as any).templates.length > 0) {
+    // Step 2: If template_id is provided, mark that specific template as deleted (editing existing section)
+    if (templateId) {
       await graphqlRequest(MARK_AS_DELETED, {
-        template_id: (currentData as any).templates[0].template_id,
+        template_id: templateId,
       });
     }
+    // If no template_id, this is a new section - don't delete any existing templates
 
     // Prepare gallery configuration
     const { restaurant_id, layout, page_id: _pageId, ...configData } = body;

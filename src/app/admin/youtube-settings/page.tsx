@@ -19,6 +19,11 @@ export default function YouTubeSettingsPage() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
+  const pageId = searchParams.get('page_id');
+  
+  // Check if this is a new section being created or editing existing
+  const isNewSection = searchParams.get('new_section') === 'true';
+  const templateId = searchParams.get('template_id') || null;
 
   const [config, setConfig] = useState<YouTubeConfig>(DEFAULT_YOUTUBE_CONFIG);
   const [loading, setLoading] = useState(false);
@@ -27,15 +32,23 @@ export default function YouTubeSettingsPage() {
   const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
-    if (restaurantId) {
+    if (restaurantId && !isNewSection) {
       fetchYouTubeConfig();
     }
-  }, [restaurantId]);
+  }, [restaurantId, pageId, templateId, isNewSection]);
 
   const fetchYouTubeConfig = async () => {
+    // Don't fetch existing config if this is a new section
+    if (isNewSection) return;
+    
     setLoading(true);
     try {
-      const url = `/api/youtube-config?restaurant_id=${restaurantId}`;
+      const params = new URLSearchParams();
+      if (restaurantId) params.append('restaurant_id', restaurantId);
+      if (pageId) params.append('page_id', pageId);
+      if (templateId) params.append('template_id', templateId);
+      
+      const url = `/api/youtube-config?${params.toString()}`;
       const response = await fetch(url);
       const data = await response.json();
 
@@ -60,13 +73,18 @@ export default function YouTubeSettingsPage() {
         body: JSON.stringify({
           ...config,
           restaurant_id: restaurantId,
+          page_id: pageId || null,
+          template_id: templateId || null,
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        setToast({ message: 'YouTube settings saved successfully!', type: 'success' });
+        setToast({
+          message: isNewSection ? 'YouTube section created successfully!' : 'YouTube settings saved successfully!',
+          type: 'success'
+        });
         setTimeout(() => setToast(null), 3000);
       } else {
         setToast({ message: 'Error saving settings: ' + data.error, type: 'error' });
@@ -140,9 +158,14 @@ export default function YouTubeSettingsPage() {
           <div className={styles.formSection}>
             <div className={styles.formHeader}>
               <div>
-                <h1 className={styles.formTitle}>YouTube Settings</h1>
+                <h1 className={styles.formTitle}>
+                  {isNewSection ? 'Add New YouTube Section' : 'Edit YouTube Settings'}
+                </h1>
                 <p className={styles.formSubtitle}>
-                  Configure YouTube video display for your restaurant website
+                  {isNewSection
+                    ? 'Create a new YouTube video section for this page'
+                    : 'Configure YouTube video display for your restaurant website'
+                  }
                 </p>
                 {restaurantName && (
                   <p className={styles.formSubtitle}>
@@ -422,7 +445,7 @@ export default function YouTubeSettingsPage() {
                     ) : (
                       <>
                         <span>💾</span>
-                        Save YouTube Settings
+                        {isNewSection ? 'Create YouTube Section' : 'Save YouTube Settings'}
                       </>
                     )}
                   </button>

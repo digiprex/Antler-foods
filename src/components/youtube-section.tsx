@@ -12,19 +12,37 @@ import type { YouTubeConfig } from '@/types/youtube.types';
 
 interface YouTubeSectionProps {
   restaurantId: string;
+  pageId?: string;
 }
 
-export default function YouTubeSection({ restaurantId }: YouTubeSectionProps): JSX.Element | null {
+export default function YouTubeSection({ restaurantId, pageId }: YouTubeSectionProps): JSX.Element | null {
   const [config, setConfig] = useState<YouTubeConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchYouTubeConfig();
-  }, [restaurantId]);
+  }, [restaurantId, pageId]);
 
   const fetchYouTubeConfig = async () => {
     try {
-      const response = await fetch(`/api/youtube-config?restaurant_id=${restaurantId}`);
+      // Build API endpoint with restaurant_id and page_id or auto-detected url_slug
+      let apiEndpoint = `/api/youtube-config?restaurant_id=${restaurantId}`;
+
+      // If pageId is provided, use it directly
+      if (pageId) {
+        apiEndpoint = `/api/youtube-config?restaurant_id=${restaurantId}&page_id=${pageId}`;
+      } else {
+        // Fallback to url_slug detection for backward compatibility
+        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+        const pathSegments = currentPath.split('/').filter(Boolean);
+        const urlSlug = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : '';
+
+        if (urlSlug && urlSlug !== restaurantId) {
+          apiEndpoint = `/api/youtube-config?restaurant_id=${restaurantId}&url_slug=${urlSlug}`;
+        }
+      }
+
+      const response = await fetch(apiEndpoint);
       const data = await response.json();
 
       if (data.success && data.data && data.data.enabled && data.data.videoUrl) {

@@ -229,6 +229,12 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
   // Get templates array and sort by order_index
   const templates = pageData?.data?.templates || [];
   const sortedTemplates = templates.sort((a: any, b: any) => (a.order_index ?? 999) - (b.order_index ?? 999));
+  
+  // Debug: Log section ordering
+  console.log('[Page Client] 📋 Section ordering for page:', slug);
+  sortedTemplates.forEach((template: any, index: number) => {
+    console.log(`[Page Client] ${index + 1}. ${template.category} (order_index: ${template.order_index ?? 'undefined'}, template_id: ${template.template_id})`);
+  });
 
   // Render component based on category
   const renderSection = (template: any) => {
@@ -274,21 +280,40 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           showLoading={true}
         />;
       case 'faq':
+        // Transform template data to match FAQ config format
+        const faqConfigData = template.config ? {
+          ...template.config,
+          layout: template.name || 'accordion',
+          faqs: template.menu_items || []
+        } : undefined;
+        
         return <DynamicFAQ
           key={uniqueKey}
           restaurantId={restaurantId}
-          configData={template.config}
+          pageId={pageId}
+          configData={faqConfigData}
           showLoading={true}
         />;
       case 'gallery':
+        // Transform template data to match Gallery config format
+        const galleryConfigData = template.config ? {
+          ...template.config,
+          layout: template.name || 'grid'
+        } : undefined;
+        
         return <DynamicGallery
           key={uniqueKey}
           restaurantId={restaurantId}
-          configData={template.config}
+          pageId={pageId}
+          configData={galleryConfigData}
           showLoading={true}
         />;
       case 'youtube':
-        return <YouTubeSection key={uniqueKey} restaurantId={restaurantId} />;
+        return <YouTubeSection
+          key={uniqueKey}
+          restaurantId={restaurantId}
+          pageId={pageId}
+        />;
       case 'location':
         return <DynamicLocation
           key={uniqueKey}
@@ -297,10 +322,17 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           showLoading={true}
         />;
       case 'reviews':
+        // Transform template data to match Review config format
+        const reviewConfigData = template.config ? {
+          ...template.config,
+          layout: template.name || 'grid'
+        } : undefined;
+        
         return <DynamicReviews
           key={uniqueKey}
           restaurantId={restaurantId}
-          configData={template.config}
+          pageId={pageId}
+          configData={reviewConfigData}
           showLoading={true}
         />;
       case 'form':

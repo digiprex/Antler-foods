@@ -69,13 +69,27 @@ export default function PageSettingsSelector() {
       case 'gallery':
         return (
           <div style={previewStyle}>
-            <DynamicGallery restaurantId={restaurantId} configData={config} />
+            <DynamicGallery
+              restaurantId={restaurantId}
+              pageId={pageId}
+              configData={config ? {
+                ...config,
+                layout: config.layout || 'grid'
+              } : undefined}
+            />
           </div>
         );
       case 'reviews':
         return (
           <div style={previewStyle}>
-            <DynamicReviews restaurantId={restaurantId} pageId={pageId} configData={config} />
+            <DynamicReviews
+              restaurantId={restaurantId}
+              pageId={pageId}
+              configData={config ? {
+                ...config,
+                layout: config.layout || 'grid'
+              } : undefined}
+            />
           </div>
         );
       case 'youtube':
@@ -167,7 +181,12 @@ export default function PageSettingsSelector() {
           <div style={previewStyle}>
             <DynamicFAQ
               restaurantId={restaurantId}
-              configData={config}
+              pageId={pageId}
+              configData={config ? {
+                ...config,
+                layout: config.layout || 'accordion',
+                faqs: config.faqs || []
+              } : undefined}
               showLoading={false}
             />
           </div>
@@ -1007,7 +1026,9 @@ export default function PageSettingsSelector() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                router.push(`${section.route}?${paramsString}`);
+                                const editParams = new URLSearchParams(paramsString);
+                                editParams.set('template_id', section.template_id);
+                                router.push(`${section.route}?${editParams.toString()}`);
                               }}
                               className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
                             >

@@ -46,6 +46,71 @@ interface DynamicLocationProps {
   configData?: Partial<LocationConfig>;
 }
 
+interface GoogleMapTarget {
+  placeId?: string;
+  lat?: number;
+  lng?: number;
+  address?: string;
+  name?: string;
+}
+
+function normalizeText(value?: string | null) {
+  return typeof value === 'string' && value.trim() ? value.trim() : '';
+}
+
+function hasValidCoordinates(lat?: number, lng?: number) {
+  return Number.isFinite(lat) && Number.isFinite(lng);
+}
+
+function buildMapQuery({ placeId, lat, lng, address, name }: GoogleMapTarget) {
+  if (hasValidCoordinates(lat, lng)) {
+    return `${lat},${lng}`;
+  }
+
+  const textQuery = [normalizeText(name), normalizeText(address)].filter(Boolean).join(', ');
+  if (textQuery) {
+    return textQuery;
+  }
+
+  const normalizedPlaceId = normalizeText(placeId);
+  if (normalizedPlaceId) {
+    return `place_id:${normalizedPlaceId}`;
+  }
+
+  return '';
+}
+
+function buildGoogleMapsEmbedUrl(target: GoogleMapTarget) {
+  const query = buildMapQuery(target);
+  if (!query) {
+    return null;
+  }
+
+  const zoom = hasValidCoordinates(target.lat, target.lng) ? '17' : '15';
+  return `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=${zoom}&output=embed`;
+}
+
+function buildGoogleMapsDirectionsUrl(target: GoogleMapTarget) {
+  const normalizedPlaceId = normalizeText(target.placeId);
+  if (normalizedPlaceId) {
+    return `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(normalizedPlaceId)}`;
+  }
+
+  if (hasValidCoordinates(target.lat, target.lng)) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${target.lat},${target.lng}`)}`;
+  }
+
+  const locationText = [normalizeText(target.name), normalizeText(target.address)]
+    .filter(Boolean)
+    .join(', ');
+
+  if (locationText) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationText)}`;
+  }
+
+  return 'https://www.google.com/maps';
+}
+
 export default function DynamicLocation({ restaurantId, pageId, showLoading = false, configData }: DynamicLocationProps) {
   const [config, setConfig] = useState<LocationConfig | null>(configData || null);
   const [placeDetails, setPlaceDetails] = useState<PlaceDetails | null>(null);
@@ -196,99 +261,89 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
     });
   };
 
-  // Simple Map Preview Component
-  const SimpleMapPreview = ({ lat, lng, name }: { lat: number; lng: number; name: string }) => {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    
-    // Check if we have valid coordinates
-    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-      return (
-        <div style={{
-          width: '100%',
-          height: '100%',
-          minHeight: '200px',
-          backgroundColor: '#e8e8e8',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <div style={{ textAlign: 'center', opacity: 0.6 }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🗺️</div>
-            <p style={{ fontSize: '0.875rem', color: '#666' }}>Map Preview</p>
-          </div>
-        </div>
-      );
-    }
-
-    // If no API key, show placeholder
-    if (!apiKey) {
-      return (
-        <div style={{
-          width: '100%',
-          height: '100%',
-          minHeight: '200px',
-          backgroundColor: '#e8e8e8',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <div style={{ textAlign: 'center', opacity: 0.6 }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🗺️</div>
-            <p style={{ fontSize: '0.875rem', color: '#666' }}>Map Preview</p>
-          </div>
-        </div>
-      );
-    }
-
-    // Use Google Static Maps API for preview
-    const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?` +
-      `center=${lat},${lng}&` +
-      `zoom=15&` +
-      `size=600x400&` +
-      `markers=color:red%7C${lat},${lng}&` +
-      `key=${apiKey}`;
+  // Simple map preview with resilient provider fallback.
+  const SimpleMapPreview = ({
+    lat,
+    lng,
+    name,
+    address,
+    placeId,
+    directionsUrl,
+  }: {
+    lat?: number;
+    lng?: number;
+    name: string;
+    address?: string;
+    placeId?: string;
+    directionsUrl: string;
+  }) => {
+    const embedUrl = buildGoogleMapsEmbedUrl({ placeId, lat, lng, address, name });
+    const mapLabel = normalizeText(name) || 'Our location';
 
     return (
-      <div style={{
-        width: '100%',
-        height: '100%',
-        minHeight: '200px',
-        backgroundColor: '#e8e8e8',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        <img
-          src={staticMapUrl}
-          alt={`Map showing ${name}`}
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          minHeight: '220px',
+          backgroundColor: '#e8e8e8',
+          position: 'relative',
+          overflow: 'hidden',
+          aspectRatio: '16 / 10',
+        }}
+      >
+        {embedUrl ? (
+          <iframe
+            src={embedUrl}
+            title={`Map showing ${mapLabel}`}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none',
+              display: 'block',
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              color: '#4b5563',
+              padding: '1rem',
+            }}
+          >
+            Map preview unavailable
+          </div>
+        )}
+
+        <a
+          href={directionsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Open ${mapLabel} in Google Maps`}
           style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            display: 'block',
+            position: 'absolute',
+            right: '0.75rem',
+            bottom: '0.75rem',
+            zIndex: 2,
+            backgroundColor: 'rgba(17, 24, 39, 0.84)',
+            color: '#ffffff',
+            textDecoration: 'none',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            letterSpacing: '0.02em',
+            padding: '0.45rem 0.65rem',
+            borderRadius: '999px',
           }}
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.style.display = 'none';
-            const parent = target.parentElement;
-            if (parent) {
-              parent.innerHTML = `
-                <div style="
-                  width: 100%;
-                  height: 100%;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  text-align: center;
-                ">
-                  <div style="opacity: 0.6;">
-                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">🗺️</div>
-                    <p style="font-size: 0.875rem; color: #666; margin: 0;">Map Preview</p>
-                  </div>
-                </div>
-              `;
-            }
-          }}
-        />
+        >
+          Open in Maps
+        </a>
       </div>
     );
   };
@@ -303,6 +358,14 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
     const lng = typeof placeDetails.geometry.location.lng === 'function'
       ? placeDetails.geometry.location.lng()
       : placeDetails.geometry.location.lng;
+    const mapTarget = {
+      placeId: config.google_place_id,
+      lat,
+      lng,
+      address: placeDetails.formatted_address,
+      name: placeDetails.name,
+    };
+    const directionsUrl = buildGoogleMapsDirectionsUrl(mapTarget);
 
     // Default Layout
     if (layout === 'default') {
@@ -353,7 +416,7 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
           <p style={{ fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8, color: config.textColor || '#666666' }}>
             {config.description}
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2" style={{ alignItems: 'start' }}>
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -405,10 +468,17 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
               border: '1px solid rgba(0, 0, 0, 0.1)',
               borderRadius: '12px',
               padding: '1rem',
-              height: '400px',
+              minHeight: 'clamp(280px, 52vw, 400px)',
               overflow: 'hidden',
             }}>
-              <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
+              <SimpleMapPreview
+                lat={lat}
+                lng={lng}
+                name={placeDetails.name}
+                address={placeDetails.formatted_address}
+                placeId={config.google_place_id}
+                directionsUrl={directionsUrl}
+              />
             </div>
           </div>
         </div>
@@ -482,7 +552,7 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
           <p style={{ fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8, color: config.textColor || '#666666' }}>
             {config.description}
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -524,10 +594,17 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
               border: '1px solid rgba(0, 0, 0, 0.1)',
               borderRadius: '12px',
               padding: '1rem',
-              height: '500px',
+              minHeight: 'clamp(320px, 56vw, 500px)',
               overflow: 'hidden',
             }}>
-              <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
+              <SimpleMapPreview
+                lat={lat}
+                lng={lng}
+                name={placeDetails.name}
+                address={placeDetails.formatted_address}
+                placeId={config.google_place_id}
+                directionsUrl={directionsUrl}
+              />
             </div>
           </div>
         </div>
@@ -541,7 +618,7 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
           <h2 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'center', color: config.textColor || '#000000' }}>
             {config.title}
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '1.5rem', alignItems: 'stretch' }}>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" style={{ alignItems: 'stretch' }}>
             {/* Info Card */}
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -572,18 +649,25 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
                     ))}
                   </div>
                 )}
-                <button style={{
-                  marginTop: '1rem',
-                  padding: '0.75rem 1.5rem',
-                  backgroundColor: '#8b0000',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                }}>
+                <a
+                  href={directionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Get directions to ${placeDetails.name}`}
+                  style={{
+                    marginTop: '1rem',
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#8b0000',
+                    color: '#fff',
+                    borderRadius: '6px',
+                    fontWeight: '600',
+                    textAlign: 'center',
+                    textDecoration: 'none',
+                    display: 'inline-block',
+                  }}
+                >
                   GET DIRECTIONS
-                </button>
+                </a>
               </div>
             </div>
 
@@ -593,9 +677,16 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
               borderRadius: '8px',
               overflow: 'hidden',
               position: 'relative',
-              minHeight: '400px',
+              minHeight: 'clamp(280px, 58vw, 420px)',
             }}>
-              <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
+              <SimpleMapPreview
+                lat={lat}
+                lng={lng}
+                name={placeDetails.name}
+                address={placeDetails.formatted_address}
+                placeId={config.google_place_id}
+                directionsUrl={directionsUrl}
+              />
             </div>
           </div>
         </div>
@@ -701,7 +792,7 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
           <p style={{ fontSize: '1rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.7, color: config.textColor || '#666666' }}>
             {config.description}
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '0', border: '1px solid rgba(0, 0, 0, 0.1)', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#fff' }}>
+          <div className="grid grid-cols-1 overflow-hidden lg:grid-cols-[350px_minmax(0,1fr)]" style={{ gap: '0', border: '1px solid rgba(0, 0, 0, 0.1)', borderRadius: '12px', backgroundColor: '#fff' }}>
             {/* Sidebar with location list */}
             <div style={{
               backgroundColor: '#f8f9fa',
@@ -738,20 +829,27 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
                       ))}
                     </div>
                   )}
-                  <button style={{
-                    marginTop: '1rem',
-                    width: '100%',
-                    padding: '0.625rem',
-                    backgroundColor: '#8b0000',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                  }}>
+                  <a
+                    href={directionsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Open ${placeDetails.name} on Google Maps`}
+                    style={{
+                      marginTop: '1rem',
+                      width: '100%',
+                      padding: '0.625rem',
+                      backgroundColor: '#8b0000',
+                      color: '#fff',
+                      borderRadius: '6px',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      textAlign: 'center',
+                      textDecoration: 'none',
+                      display: 'inline-block',
+                    }}
+                  >
                     SELECT LOCATION
-                  </button>
+                  </a>
                 </div>
               </div>
             </div>
@@ -759,10 +857,17 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
             {/* Map area */}
             <div style={{
               backgroundColor: '#e8e8e8',
-              minHeight: '600px',
+              minHeight: 'clamp(320px, 60vw, 600px)',
               position: 'relative',
             }}>
-              <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
+              <SimpleMapPreview
+                lat={lat}
+                lng={lng}
+                name={placeDetails.name}
+                address={placeDetails.formatted_address}
+                placeId={config.google_place_id}
+                directionsUrl={directionsUrl}
+              />
             </div>
           </div>
         </div>
@@ -788,7 +893,14 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
             justifyContent: 'center',
             opacity: 0.3,
           }}>
-            <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
+            <SimpleMapPreview
+              lat={lat}
+              lng={lng}
+              name={placeDetails.name}
+              address={placeDetails.formatted_address}
+              placeId={config.google_place_id}
+              directionsUrl={directionsUrl}
+            />
           </div>
 
           {/* Floating location card */}
@@ -836,21 +948,28 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
                   </div>
                 )}
               </div>
-              <button style={{
-                marginTop: '2rem',
-                width: '100%',
-                padding: '1rem',
-                backgroundColor: '#8b0000',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(139, 0, 0, 0.3)',
-              }}>
+              <a
+                href={directionsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Get directions to ${placeDetails.name}`}
+                style={{
+                  marginTop: '2rem',
+                  width: '100%',
+                  padding: '1rem',
+                  backgroundColor: '#8b0000',
+                  color: '#fff',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  boxShadow: '0 4px 12px rgba(139, 0, 0, 0.3)',
+                  display: 'inline-block',
+                  textAlign: 'center',
+                  textDecoration: 'none',
+                }}
+              >
                 GET DIRECTIONS
-              </button>
+              </a>
             </div>
           </div>
         </div>

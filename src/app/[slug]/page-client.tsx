@@ -21,6 +21,7 @@ import DynamicTimeline from '@/components/dynamic-timeline';
 import DynamicForm from '@/components/dynamic-form';
 import Popup from '@/components/popup';
 import YouTubeSection from '@/components/youtube-section';
+import CustomSection from '@/components/custom-section';
 
 interface DynamicPageClientProps {
   slug: string;
@@ -395,6 +396,18 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           pageId={pageId}
           templateId={template.template_id}
           showLoading={true}
+        />;
+      case 'customsection':
+        // Transform template data to match CustomSection config format
+        const customSectionConfigData = template.config ? {
+          ...template.config,
+          layout: template.name || 'layout-1'
+        } : undefined;
+
+        return <CustomSection
+          key={uniqueKey}
+          {...customSectionConfigData}
+          restaurant_id={restaurantId}
         />;
       default:
         console.warn('Unknown section category:', category);

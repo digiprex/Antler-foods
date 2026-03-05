@@ -15,6 +15,7 @@ import DynamicLocation from '@/components/dynamic-location';
 import DynamicScrollingText from '@/components/dynamic-scrolling-text';
 import DynamicCustomCode from '@/components/dynamic-custom-code';
 import DynamicForm from '@/components/dynamic-form';
+import CustomSection from '@/components/custom-section';
 
 export default function PageSettingsSelector() {
   const router = useRouter();
@@ -274,6 +275,22 @@ export default function PageSettingsSelector() {
             />
           </div>
         );
+      case 'customsection':
+        // Get the template to extract layout from template.name
+        const customSectionTemplate = sectionTemplates.get(templateId || '');
+        const customSectionConfigWithLayout = config ? {
+          ...config,
+          layout: customSectionTemplate?.name || config.layout || 'layout-1'
+        } : undefined;
+
+        return (
+          <div style={previewStyle}>
+            <CustomSection
+              {...customSectionConfigWithLayout}
+              restaurant_id={restaurantId}
+            />
+          </div>
+        );
       case 'seo':
         return (
           <div style={previewStyle}>
@@ -385,6 +402,13 @@ export default function PageSettingsSelector() {
       description: 'Configure form display with multiple layout options',
       route: '/admin/form-settings',
       layouts: ['Centered', 'Split Right', 'Split Left', 'Image Top', 'Background Image']
+    },
+    {
+      name: 'Custom Section',
+      category: 'CustomSection',
+      description: 'Create custom content sections with 32 professional layout options',
+      route: '/admin/custom-section-settings',
+      layouts: ['Full-width Overlay', 'Split Left', 'Video Background', 'Curved Green', 'Circular Image', 'Split Right', 'Image Left', 'Centered Content', 'Large Image', 'Centered Top Image', 'Two Column', 'Boxed Content', 'Image Grid', 'Stacked Cards', 'Asymmetric Split', 'Featured Sidebar', 'Magazine Style', 'Overlapping Blocks', 'Modern Card', 'Split with Accent', 'Hero Bottom Content', 'Zigzag Pattern', 'Centered Side Panels', 'Full Screen Video', 'Grid Showcase', 'Minimal Centered', 'Split Diagonal', 'Triple Section', 'Layered Content', 'Full Width Banner', 'Image Carousel', 'Interactive Hover']
     }
   ];
 

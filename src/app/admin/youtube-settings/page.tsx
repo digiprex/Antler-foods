@@ -62,6 +62,15 @@ export default function YouTubeSettingsPage() {
     }
   };
 
+  const handleBack = () => {
+    const params = new URLSearchParams();
+    if (restaurantId) params.append('restaurant_id', restaurantId);
+    if (restaurantName) params.append('restaurant_name', restaurantName);
+    if (pageId) params.append('page_id', pageId);
+
+    router.push(`/admin/page-settings?${params.toString()}`);
+  };
+
   const handleSave = async () => {
     if (!restaurantId) return;
 
@@ -156,6 +165,12 @@ export default function YouTubeSettingsPage() {
       <div className={styles.container}>
         <div className={styles.singleLayout}>
           <div className={styles.formSection}>
+            <button
+              onClick={handleBack}
+              className={`${styles.button} ${styles.secondaryButton} ${styles.backButton}`}
+            >
+              ← Back to Page Settings
+            </button>
             <div className={styles.formHeader}>
               <div>
                 <h1 className={styles.formTitle}>
@@ -431,7 +446,7 @@ export default function YouTubeSettingsPage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className={styles.formActions} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                <div className={styles.formActions}>
                   <button
                     onClick={handleSave}
                     disabled={saving}

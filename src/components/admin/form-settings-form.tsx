@@ -12,6 +12,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Toast from '@/components/ui/toast';
 import styles from './hero-settings-form.module.css';
 import galleryStyles from './gallery-settings-form.module.css';
@@ -35,7 +36,7 @@ interface FormSettingsConfig {
   imageUrl?: string;
   showImage: boolean;
   imagePosition: 'left' | 'right' | 'top' | 'background';
-  enabled: boolean;
+  isEnabled: boolean;
 }
 
 interface FormSettingsFormProps {
@@ -44,6 +45,12 @@ interface FormSettingsFormProps {
 }
 
 export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsFormProps) {
+  const searchParams = useSearchParams();
+
+  // Check if this is a new section being created or editing existing
+  const isNewSection = searchParams.get('new_section') === 'true';
+  const templateId = searchParams.get('template_id') || null;
+
   // Toast state
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -64,7 +71,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
     textColor: '#111827',
     showImage: false,
     imagePosition: 'right',
-    enabled: true,
+    isEnabled: true,
   });
 
   // Preview visibility state
@@ -166,12 +173,23 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
 
   // Load existing configuration
   useEffect(() => {
+    // Skip fetching if this is a new section
+    if (isNewSection) {
+      return;
+    }
+
     const fetchConfig = async () => {
       try {
         const params = new URLSearchParams({
           restaurant_id: restaurantId,
-          ...(pageId && { page_id: pageId }),
         });
+
+        // Add template_id or page_id
+        if (templateId) {
+          params.append('template_id', templateId);
+        } else if (pageId) {
+          params.append('page_id', pageId);
+        }
 
         const response = await fetch(`/api/form-settings?${params.toString()}`);
         const data = await response.json();
@@ -190,7 +208,8 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
     if (restaurantId) {
       fetchConfig();
     }
-  }, [restaurantId, pageId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurantId, pageId, templateId, isNewSection]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,13 +229,18 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
           ...config,
           restaurant_id: restaurantId,
           page_id: pageId || null,
+          template_id: templateId || null,
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        setToastMessage('Form settings saved successfully!');
+        setToastMessage(
+          isNewSection
+            ? 'Form section created successfully!'
+            : 'Form settings saved successfully!'
+        );
         setToastType('success');
         setShowToast(true);
       } else {
@@ -302,9 +326,8 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
 
   if (loadingForms) {
     return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.spinner}></div>
-        <p>Loading forms...</p>
+      <div className={styles.container}>
+        <div className={styles.loading}>Loading...</div>
       </div>
     );
   }
@@ -325,8 +348,15 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
         <div className={styles.formSection}>
           <div className={styles.formHeader}>
             <div>
-              <h1 className={styles.formTitle}>Form Display Settings</h1>
-              <p className={styles.formSubtitle}>Configure how your form will be displayed on your website</p>
+              <h1 className={styles.formTitle}>
+                {isNewSection ? 'Add New Form Section' : 'Edit Form Display Settings'}
+              </h1>
+              <p className={styles.formSubtitle}>
+                {isNewSection
+                  ? 'Create a new form display section for this page'
+                  : 'Configure how your form will be displayed on your website'
+                }
+              </p>
             </div>
             <div className={styles.headerActions}>
               <button
@@ -356,8 +386,8 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                 <label className={styles.toggleSwitch}>
                   <input
                     type="checkbox"
-                    checked={config.enabled}
-                    onChange={(e) => updateConfig({ enabled: e.target.checked })}
+                    checked={config.isEnabled}
+                    onChange={(e) => updateConfig({ isEnabled: e.target.checked })}
                     className={styles.toggleInput}
                   />
                   <span className={styles.toggleSlider}></span>
@@ -471,14 +501,61 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                           onClick={() => updateConfig({ layout: layout.value })}
                         >
                           <div className={styles.layoutPreview}>
-                            <div style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '1.5rem'
-                            }}>
-                              {layout.icon}
-                            </div>
+                            {/* Visual preview based on layout type */}
+                            {layout.value === 'centered' && (
+                              <div style={{ padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'center' }}>
+                                <div style={{ width: '80%', height: '3px', backgroundColor: '#3b82f6', borderRadius: '1px' }} />
+                                <div style={{ width: '60%', height: '2px', backgroundColor: '#9ca3af', borderRadius: '1px' }} />
+                                <div style={{ width: '100%', marginTop: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                  <div style={{ width: '100%', height: '6px', backgroundColor: '#e5e7eb', borderRadius: '1px' }} />
+                                  <div style={{ width: '100%', height: '6px', backgroundColor: '#e5e7eb', borderRadius: '1px' }} />
+                                </div>
+                              </div>
+                            )}
+                            {layout.value === 'split-right' && (
+                              <div style={{ padding: '0.5rem', display: 'flex', gap: '0.25rem' }}>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                  <div style={{ width: '80%', height: '2px', backgroundColor: '#3b82f6', borderRadius: '1px' }} />
+                                  <div style={{ width: '100%', height: '5px', backgroundColor: '#e5e7eb', borderRadius: '1px', marginTop: '0.15rem' }} />
+                                  <div style={{ width: '100%', height: '5px', backgroundColor: '#e5e7eb', borderRadius: '1px' }} />
+                                </div>
+                                <div style={{ flex: 1, backgroundColor: '#f3f4f6', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
+                                  📷
+                                </div>
+                              </div>
+                            )}
+                            {layout.value === 'split-left' && (
+                              <div style={{ padding: '0.5rem', display: 'flex', gap: '0.25rem' }}>
+                                <div style={{ flex: 1, backgroundColor: '#f3f4f6', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
+                                  📷
+                                </div>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                  <div style={{ width: '80%', height: '2px', backgroundColor: '#3b82f6', borderRadius: '1px' }} />
+                                  <div style={{ width: '100%', height: '5px', backgroundColor: '#e5e7eb', borderRadius: '1px', marginTop: '0.15rem' }} />
+                                  <div style={{ width: '100%', height: '5px', backgroundColor: '#e5e7eb', borderRadius: '1px' }} />
+                                </div>
+                              </div>
+                            )}
+                            {layout.value === 'image-top' && (
+                              <div style={{ padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                <div style={{ width: '100%', height: '20px', backgroundColor: '#f3f4f6', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' }}>
+                                  📷
+                                </div>
+                                <div style={{ width: '80%', height: '2px', backgroundColor: '#3b82f6', borderRadius: '1px', alignSelf: 'center' }} />
+                                <div style={{ width: '100%', height: '5px', backgroundColor: '#e5e7eb', borderRadius: '1px' }} />
+                                <div style={{ width: '100%', height: '5px', backgroundColor: '#e5e7eb', borderRadius: '1px' }} />
+                              </div>
+                            )}
+                            {layout.value === 'background-image' && (
+                              <div style={{ padding: '0.5rem', position: 'relative' }}>
+                                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#f3f4f6', opacity: 0.3, borderRadius: '2px' }} />
+                                <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '0.15rem', alignItems: 'center', padding: '0.5rem' }}>
+                                  <div style={{ width: '80%', height: '3px', backgroundColor: '#3b82f6', borderRadius: '1px' }} />
+                                  <div style={{ width: '100%', height: '5px', backgroundColor: '#e5e7eb', borderRadius: '1px', marginTop: '0.15rem' }} />
+                                  <div style={{ width: '100%', height: '5px', backgroundColor: '#e5e7eb', borderRadius: '1px' }} />
+                                </div>
+                              </div>
+                            )}
                           </div>
                           <div className={styles.layoutName}>{layout.name}</div>
                           <div className={styles.layoutDescription}>{layout.description}</div>
@@ -546,12 +623,23 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                     <h3 className={styles.sectionTitle}>
                       <span className={styles.sectionIcon}>🖼️</span>
                       Image Configuration
+                      <span style={{
+                        marginLeft: '0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: '500',
+                        padding: '0.25rem 0.5rem',
+                        backgroundColor: '#fef3c7',
+                        color: '#92400e',
+                        borderRadius: '4px'
+                      }}>
+                        Required
+                      </span>
                     </h3>
 
                     <div className={styles.formGroup}>
                       <label className={styles.label}>
-                        Form Image
-                        <span className={styles.labelHint}>Choose an image to display with your form</span>
+                        Form Image *
+                        <span className={styles.labelHint}>Choose an image to display with your form (required for this layout)</span>
                       </label>
                       
                       {/* Image Preview */}
@@ -618,15 +706,30 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                       )}
 
                       {/* Image Selection Button */}
-                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
                         <button
                           type="button"
                           onClick={() => setShowImageGallery(true)}
-                          className={styles.secondaryButton}
-                          style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
+                          className={config.imageUrl ? styles.secondaryButton : styles.button}
+                          style={{
+                            fontSize: '0.875rem',
+                            padding: '0.5rem 1rem',
+                            backgroundColor: config.imageUrl ? undefined : '#3b82f6',
+                            color: config.imageUrl ? undefined : 'white',
+                            border: config.imageUrl ? undefined : 'none'
+                          }}
                         >
-                          📁 Choose from Gallery
+                          📁 {config.imageUrl ? 'Change Image' : 'Choose from Gallery'}
                         </button>
+                        {!config.imageUrl && (
+                          <span style={{
+                            fontSize: '0.75rem',
+                            color: '#dc2626',
+                            fontWeight: '500'
+                          }}>
+                            ⚠️ Image required for this layout
+                          </span>
+                        )}
                       </div>
 
                     </div>
@@ -710,7 +813,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                 className={styles.saveButton}
               >
                 <span>💾</span>
-                Save Form Settings
+                {isNewSection ? 'Create Form Section' : 'Save Form Settings'}
               </button>
             </div>
           </form>

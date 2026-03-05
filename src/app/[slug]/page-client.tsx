@@ -283,17 +283,13 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           showLoading={true}
         />;
       case 'timeline':
-        // Transform template data to match Timeline config format
-        const timelineConfigData = template.config ? {
-          ...template.config,
-          layout: template.name || 'vertical'
-        } : undefined;
-
+        // Pass template_id to fetch specific instance of timeline
+        // This ensures each section loads its own unique data
         return <DynamicTimeline
           key={uniqueKey}
           restaurantId={restaurantId}
           pageId={pageId}
-          configData={timelineConfigData}
+          templateId={template.template_id}
           showLoading={true}
         />;
       case 'faq':
@@ -359,17 +355,13 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           showLoading={true}
         />;
       case 'form':
-        // Transform template data to match Form config format
-        const formConfigData = template.config ? {
-          ...template.config,
-          layout: template.name || 'centered'
-        } : undefined;
-
+        // Pass template_id to fetch specific instance of form
+        // This ensures each section loads its own unique data
         return <DynamicForm
           key={uniqueKey}
           restaurantId={restaurantId}
           pageId={pageId}
-          configData={formConfigData}
+          templateId={template.template_id}
           showLoading={true}
         />;
       default:

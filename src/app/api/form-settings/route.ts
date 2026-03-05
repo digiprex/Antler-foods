@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
 /**
- * GraphQL query to fetch form settings from templates
+ * GraphQL query to fetch form settings from templates by page_id
  */
 const GET_FORM_SETTINGS = `
   query GetFormSettings($restaurant_id: uuid!, $page_id: uuid) {
@@ -22,6 +22,32 @@ const GET_FORM_SETTINGS = `
         is_deleted: { _eq: false }
       }
       order_by: { created_at: desc }
+      limit: 1
+    ) {
+      template_id
+      category
+      name
+      config
+      restaurant_id
+      page_id
+      created_at
+      updated_at
+    }
+  }
+`;
+
+/**
+ * GraphQL query to fetch form settings from templates by template_id
+ */
+const GET_FORM_SETTINGS_BY_TEMPLATE = `
+  query GetFormSettingsByTemplate($restaurant_id: uuid!, $template_id: uuid!) {
+    templates(
+      where: {
+        restaurant_id: { _eq: $restaurant_id }
+        template_id: { _eq: $template_id }
+        category: { _eq: "Form" }
+        is_deleted: { _eq: false }
+      }
       limit: 1
     ) {
       template_id
@@ -85,6 +111,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const restaurantId = searchParams.get('restaurant_id');
     const pageId = searchParams.get('page_id');
+    const templateId = searchParams.get('template_id');
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -93,18 +120,24 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!pageId) {
+    // page_id is only required if template_id is not provided
+    if (!templateId && !pageId) {
       return NextResponse.json(
-        { success: false, error: 'Page ID is required' },
+        { success: false, error: 'Either Page ID or Template ID is required' },
         { status: 400 }
       );
     }
 
     // Query form settings from templates table
-    const data = await adminGraphqlRequest(GET_FORM_SETTINGS, {
-      restaurant_id: restaurantId,
-      page_id: pageId
-    });
+    const data = templateId
+      ? await adminGraphqlRequest(GET_FORM_SETTINGS_BY_TEMPLATE, {
+          restaurant_id: restaurantId,
+          template_id: templateId,
+        })
+      : await adminGraphqlRequest(GET_FORM_SETTINGS, {
+          restaurant_id: restaurantId,
+          page_id: pageId,
+        });
 
     const template = (data as any).templates?.[0] || null;
 
@@ -131,7 +164,9 @@ export async function GET(request: NextRequest) {
         imageUrl: config.imageUrl,
         showImage: config.showImage,
         imagePosition: config.imagePosition,
-        enabled: config.enabled,
+        buttonColor: config.buttonColor,
+        buttonText: config.buttonText,
+        isEnabled: config.enabled ?? config.isEnabled ?? true,
       }
     });
 
@@ -159,7 +194,8 @@ export async function POST(request: NextRequest) {
       imageUrl,
       showImage,
       imagePosition,
-      enabled,
+      isEnabled,
+      enabled, // For backwards compatibility
       restaurant_id,
       page_id,
       template_id,
@@ -173,9 +209,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!page_id) {
+    if (!page_id && !template_id) {
       return NextResponse.json(
-        { success: false, error: 'Page ID is required' },
+        { success: false, error: 'Either Page ID or Template ID is required' },
         { status: 400 }
       );
     }
@@ -199,7 +235,7 @@ export async function POST(request: NextRequest) {
       imageUrl,
       showImage,
       imagePosition,
-      enabled: enabled !== undefined ? enabled : true,
+      isEnabled: isEnabled !== undefined ? isEnabled : (enabled !== undefined ? enabled : true),
     };
 
     // Step 4: Insert new template

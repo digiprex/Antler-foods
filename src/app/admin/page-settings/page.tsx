@@ -1162,7 +1162,7 @@ export default function PageSettingsSelector() {
                   <h3 className="text-xl font-semibold text-[#111827]">Delete Section</h3>
                 </div>
                 <p className="text-sm text-[#556678] leading-relaxed">
-                  Are you sure you want to delete <strong>{sectionToDelete.name}</strong>? This will soft delete the section and it can be restored from the database if needed.
+                  Are you sure you want to delete <strong>{sectionToDelete.name}</strong>?
                 </p>
                 <div className="mt-8 flex justify-end gap-3">
                   <button

@@ -33,33 +33,69 @@ export async function GET(request: NextRequest) {
     const page_id = searchParams.get('page_id');
     const template_id = searchParams.get('template_id') || null;
 
-    if (!restaurant_id || !page_id) {
+    if (!restaurant_id) {
       return NextResponse.json(
-        { success: false, error: 'Restaurant ID and Page ID are required' },
+        { success: false, error: 'Restaurant ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // page_id is only required if template_id is not provided
+    if (!template_id && !page_id) {
+      return NextResponse.json(
+        { success: false, error: 'Either Page ID or Template ID is required' },
         { status: 400 }
       );
     }
 
     // Fetch timeline configuration from templates table
-    const query = `
-      query GetTimelineConfig($restaurant_id: uuid!, $page_id: uuid!) {
-        templates(
-          where: {
-            restaurant_id: { _eq: $restaurant_id }
-            page_id: { _eq: $page_id }
-            category: { _eq: "timeline" }
-            is_deleted: { _eq: false }
+    let query: string;
+    let variables: any;
+
+    if (template_id) {
+      // Fetch by template_id
+      query = `
+        query GetTimelineConfigByTemplate($restaurant_id: uuid!, $template_id: uuid!) {
+          templates(
+            where: {
+              restaurant_id: { _eq: $restaurant_id }
+              template_id: { _eq: $template_id }
+              category: { _eq: "timeline" }
+              is_deleted: { _eq: false }
+            }
+            limit: 1
+          ) {
+            template_id
+            restaurant_id
+            page_id
+            config
           }
-          order_by: { created_at: desc }
-          limit: 1
-        ) {
-          template_id
-          restaurant_id
-          page_id
-          config
         }
-      }
-    `;
+      `;
+      variables = { restaurant_id, template_id };
+    } else {
+      // Fetch by page_id
+      query = `
+        query GetTimelineConfig($restaurant_id: uuid!, $page_id: uuid!) {
+          templates(
+            where: {
+              restaurant_id: { _eq: $restaurant_id }
+              page_id: { _eq: $page_id }
+              category: { _eq: "timeline" }
+              is_deleted: { _eq: false }
+            }
+            order_by: { created_at: desc }
+            limit: 1
+          ) {
+            template_id
+            restaurant_id
+            page_id
+            config
+          }
+        }
+      `;
+      variables = { restaurant_id, page_id };
+    }
 
     const response = await fetch(HASURA_ENDPOINT as string, {
       method: 'POST',
@@ -69,7 +105,7 @@ export async function GET(request: NextRequest) {
       },
       body: JSON.stringify({
         query,
-        variables: { restaurant_id, page_id },
+        variables,
       }),
     });
 

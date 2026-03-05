@@ -15,6 +15,7 @@ import type { TimelineConfig, TimelineItem } from '@/types/timeline.types';
 interface DynamicTimelineProps {
   restaurantId?: string;
   pageId?: string;
+  templateId?: string;
   showLoading?: boolean;
   configData?: Partial<TimelineConfig>;
 }
@@ -22,10 +23,11 @@ interface DynamicTimelineProps {
 export default function DynamicTimeline({
   restaurantId,
   pageId,
+  templateId,
   showLoading = false,
   configData
 }: DynamicTimelineProps) {
-  const [timelineConfig, setTimelineConfig] = useState<TimelineConfig | null>(configData || null);
+  const [timelineConfig, setTimelineConfig] = useState<TimelineConfig | null>((configData as TimelineConfig) || null);
   const [loading, setLoading] = useState(!configData);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,9 +48,19 @@ export default function DynamicTimeline({
       setLoading(true);
       setError(null);
 
-      const response = await fetch(
-        `/api/timeline-config?restaurant_id=${restaurantId}&page_id=${pageId}`
-      );
+      // Build API URL with appropriate parameters
+      let url = `/api/timeline-config?restaurant_id=${restaurantId}`;
+
+      // If templateId is provided, use it for specific template fetch
+      if (templateId) {
+        url += `&template_id=${templateId}`;
+        console.log('[Timeline] Fetching by template_id:', templateId);
+      } else if (pageId) {
+        url += `&page_id=${pageId}`;
+        console.log('[Timeline] Fetching by page_id:', pageId);
+      }
+
+      const response = await fetch(url);
       const data = await response.json();
 
       if (!response.ok) {
@@ -73,7 +85,7 @@ export default function DynamicTimeline({
   useEffect(() => {
     fetchTimelineConfig();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restaurantId, pageId, configData]);
+  }, [restaurantId, pageId, templateId, configData]);
 
   // Show loading state if enabled
   if (loading && showLoading) {

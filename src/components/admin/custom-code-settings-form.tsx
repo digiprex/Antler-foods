@@ -90,10 +90,23 @@ export default function CustomCodeSettingsForm() {
   const restaurantId = restaurantIdFromQuery || '';
   const pageId = pageIdFromQuery || '';
 
-  const configApiEndpoint = useMemo(
-    () => `/api/custom-code-config?restaurant_id=${encodeURIComponent(restaurantId)}&page_id=${encodeURIComponent(pageId)}`,
-    [restaurantId, pageId],
-  );
+  // Check if this is a new section being created or editing existing
+  const isNewSection = searchParams.get('new_section') === 'true';
+  const templateId = searchParams.get('template_id') || null;
+
+  const configApiEndpoint = useMemo(() => {
+    if (isNewSection) {
+      // For new sections, return empty endpoint to skip fetching
+      return '';
+    }
+    let endpoint = `/api/custom-code-config?restaurant_id=${encodeURIComponent(restaurantId)}`;
+    if (templateId) {
+      endpoint += `&template_id=${encodeURIComponent(templateId)}`;
+    } else if (pageId) {
+      endpoint += `&page_id=${encodeURIComponent(pageId)}`;
+    }
+    return endpoint;
+  }, [restaurantId, pageId, templateId, isNewSection]);
 
   const { config, loading, error: fetchError } = useCustomCodeConfig({
     apiEndpoint: configApiEndpoint,
@@ -117,15 +130,6 @@ export default function CustomCodeSettingsForm() {
 
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
-
-  if (!restaurantId || !pageId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID and Page ID are required. Please provide them via URL parameters.</p>
-      </div>
-    );
-  }
 
   // Initialize form with fetched config
   useEffect(() => {
@@ -155,6 +159,7 @@ export default function CustomCodeSettingsForm() {
       await updateCustomCode({
         restaurant_id: restaurantId,
         page_id: pageId,
+        template_id: templateId || undefined,
         isEnabled,
         codeType,
         htmlCode,
@@ -165,7 +170,11 @@ export default function CustomCodeSettingsForm() {
         iframeWidth,
       });
 
-      setToastMessage('Custom code settings saved successfully!');
+      setToastMessage(
+        isNewSection
+          ? 'Custom code section created successfully!'
+          : 'Custom code settings saved successfully!'
+      );
       setToastType('success');
       setShowToast(true);
     } catch (err) {
@@ -175,6 +184,17 @@ export default function CustomCodeSettingsForm() {
       setShowToast(true);
     }
   };
+
+  if (!restaurantId || !pageId) {
+    return (
+      <div className={styles.container}>
+        <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+          <h2>Error</h2>
+          <p>Restaurant ID and Page ID are required. Please provide them via URL parameters.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -200,8 +220,15 @@ export default function CustomCodeSettingsForm() {
         <div className={styles.formSection}>
           <div className={styles.formHeader}>
             <div>
-              <h1 className={styles.formTitle}>Custom Code Settings</h1>
-              <p className={styles.formSubtitle}>Add custom HTML/CSS/JS or embed iframe content</p>
+              <h1 className={styles.formTitle}>
+                {isNewSection ? 'Add New Custom Code Section' : 'Edit Custom Code Settings'}
+              </h1>
+              <p className={styles.formSubtitle}>
+                {isNewSection
+                  ? 'Create a new custom code section for this page'
+                  : 'Add custom HTML/CSS/JS or embed iframe content'
+                }
+              </p>
               {restaurantNameFromQuery && (
                 <p className={styles.formSubtitle}>
                   Restaurant: {restaurantNameFromQuery}
@@ -404,7 +431,7 @@ export default function CustomCodeSettingsForm() {
                 ) : (
                   <>
                     <span>💾</span>
-                    Save Changes
+                    {isNewSection ? 'Create Custom Code Section' : 'Save Changes'}
                   </>
                 )}
               </button>

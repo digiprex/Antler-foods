@@ -43,8 +43,12 @@ export function useTimelineConfig({ apiEndpoint }: { apiEndpoint: string }) {
   useEffect(() => {
     if (apiEndpoint) {
       fetchConfig();
+    } else {
+      // If no endpoint provided (new section), set loading to false
+      setLoading(false);
     }
-  }, [apiEndpoint, fetchConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiEndpoint]);
 
   return {
     config,
@@ -61,7 +65,7 @@ export function useUpdateTimelineConfig() {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const updateTimeline = async (config: Partial<TimelineConfig> & { restaurant_id: string; page_id: string }) => {
+  const updateTimeline = async (config: Partial<TimelineConfig> & { restaurant_id: string; page_id: string; template_id?: string }) => {
     try {
       setUpdating(true);
       setError(null);

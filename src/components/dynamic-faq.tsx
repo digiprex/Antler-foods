@@ -27,6 +27,7 @@ interface FAQConfig {
 
 interface DynamicFAQProps {
   restaurantId?: string;
+  pageId?: string;
   showLoading?: boolean;
   fallbackConfig?: Partial<FAQConfig>;
   configData?: Partial<FAQConfig>;
@@ -34,14 +35,21 @@ interface DynamicFAQProps {
 
 export default function DynamicFAQ({
   restaurantId,
+  pageId,
   showLoading = false,
   fallbackConfig = {},
   configData
 }: DynamicFAQProps) {
-  // Build API endpoint with restaurant_id and auto-detected url_slug - memoized to prevent infinite loop
+  // Build API endpoint with restaurant_id and page_id or auto-detected url_slug - memoized to prevent infinite loop
   const apiEndpoint = useMemo(() => {
     if (!restaurantId || configData) return undefined; // Skip API if configData provided
 
+    // If pageId is provided, use it directly
+    if (pageId) {
+      return `/api/faq-config?restaurant_id=${restaurantId}&page_id=${pageId}`;
+    }
+
+    // Fallback to url_slug detection for backward compatibility
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
     const pathSegments = currentPath.split('/').filter(Boolean);
     const urlSlug = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : '';
@@ -51,7 +59,7 @@ export default function DynamicFAQ({
       : `/api/faq-config?restaurant_id=${restaurantId}`;
 
     return endpoint;
-  }, [restaurantId, configData]);
+  }, [restaurantId, pageId, configData]);
 
   const { config: fetchedConfig, loading, error } = useFAQConfig({
     apiEndpoint,

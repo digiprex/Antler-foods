@@ -11,14 +11,15 @@ import { useEffect, useState } from 'react';
 interface ScrollingTextConfig {
   isEnabled?: boolean;
   text?: string;
-  backgroundColor?: string;
+  bgColor?: string;
   textColor?: string;
-  speed?: string;
+  scrollSpeed?: string;
 }
 
 interface DynamicScrollingTextProps {
   restaurantId?: string;
   pageId?: string;
+  templateId?: string;
   showLoading?: boolean;
   configData?: Partial<ScrollingTextConfig>;
 }
@@ -26,6 +27,7 @@ interface DynamicScrollingTextProps {
 export default function DynamicScrollingText({
   restaurantId,
   pageId,
+  templateId,
   showLoading = true,
   configData
 }: DynamicScrollingTextProps) {
@@ -48,10 +50,18 @@ export default function DynamicScrollingText({
       }
 
       try {
-        const url = pageId 
-          ? `/api/scrolling-text-config?restaurant_id=${restaurantId}&page_id=${pageId}`
-          : `/api/scrolling-text-config?restaurant_id=${restaurantId}`;
-        
+        // Build API URL with appropriate parameters
+        let url = `/api/scrolling-text-config?restaurant_id=${restaurantId}`;
+
+        // If templateId is provided, use it for specific template fetch
+        if (templateId) {
+          url += `&template_id=${templateId}`;
+          console.log('[ScrollingText] Fetching by template_id:', templateId);
+        } else if (pageId) {
+          url += `&page_id=${pageId}`;
+          console.log('[ScrollingText] Fetching by page_id:', pageId);
+        }
+
         const response = await fetch(url);
         const data = await response.json();
 
@@ -69,7 +79,7 @@ export default function DynamicScrollingText({
     };
 
     fetchConfig();
-  }, [restaurantId, pageId, configData]);
+  }, [restaurantId, pageId, templateId, configData]);
 
   // Show loading state
   if (loading && showLoading) {
@@ -93,36 +103,19 @@ export default function DynamicScrollingText({
 
   // Show error state or if disabled
   if (error || !config || !config.isEnabled) {
-    return (
-      <div style={{
-        minHeight: '60px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#f3f4f6',
-        border: '2px dashed #d1d5db',
-        borderRadius: '8px'
-      }}>
-        <div style={{
-          textAlign: 'center',
-          color: '#6b7280'
-        }}>
-          <p>📜 Scrolling Text (Not configured or disabled)</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   // Render scrolling text
   const {
     text = 'Sample scrolling text',
-    backgroundColor = '#000000',
+    bgColor = '#000000',
     textColor = '#ffffff',
-    speed = 'medium'
+    scrollSpeed = 'medium'
   } = config;
 
   const getAnimationDuration = () => {
-    switch (speed) {
+    switch (scrollSpeed) {
       case 'slow': return '20s';
       case 'fast': return '8s';
       default: return '12s';
@@ -132,7 +125,7 @@ export default function DynamicScrollingText({
   return (
     <div
       style={{
-        backgroundColor,
+        backgroundColor: bgColor,
         color: textColor,
         padding: '12px 0',
         overflow: 'hidden',

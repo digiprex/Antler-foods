@@ -30,6 +30,10 @@ export default function GallerySettingsPage() {
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
   const pageId = searchParams.get('page_id');
+  
+  // Check if this is a new section being created or editing existing
+  const isNewSection = searchParams.get('new_section') === 'true';
+  const templateId = searchParams.get('template_id') || null;
 
   const [config, setConfig] = useState<GalleryConfig>(DEFAULT_GALLERY_CONFIG);
   const [loading, setLoading] = useState(false);
@@ -44,15 +48,23 @@ export default function GallerySettingsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
-    if (restaurantId) {
+    if (restaurantId && !isNewSection) {
       fetchGalleryConfig();
     }
-  }, [restaurantId, pageId]);
+  }, [restaurantId, pageId, templateId, isNewSection]);
 
   const fetchGalleryConfig = async () => {
+    // Don't fetch existing config if this is a new section
+    if (isNewSection) return;
+    
     setLoading(true);
     try {
-      const url = `/api/gallery-config?restaurant_id=${restaurantId}${pageId ? `&page_id=${pageId}` : ''}`;
+      const params = new URLSearchParams();
+      if (restaurantId) params.append('restaurant_id', restaurantId);
+      if (pageId) params.append('page_id', pageId);
+      if (templateId) params.append('template_id', templateId);
+      
+      const url = `/api/gallery-config?${params.toString()}`;
       const response = await fetch(url);
       const data = await response.json();
 
@@ -118,13 +130,17 @@ export default function GallerySettingsPage() {
           ...config,
           restaurant_id: restaurantId,
           page_id: pageId || null,
+          template_id: templateId || null,
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        setToast({ message: 'Gallery settings saved successfully!', type: 'success' });
+        setToast({
+          message: isNewSection ? 'Gallery section created successfully!' : 'Gallery settings saved successfully!',
+          type: 'success'
+        });
         setTimeout(() => setToast(null), 3000);
       } else {
         setToast({ message: 'Error saving settings: ' + data.error, type: 'error' });
@@ -265,9 +281,14 @@ export default function GallerySettingsPage() {
 
               <div className={styles.formHeader}>
                 <div>
-                  <h1 className={styles.formTitle}>Gallery Settings</h1>
+                  <h1 className={styles.formTitle}>
+                    {isNewSection ? 'Add New Gallery Section' : 'Edit Gallery Settings'}
+                  </h1>
                   <p className={styles.formSubtitle}>
-                    Customize your website gallery section
+                    {isNewSection
+                      ? 'Create a new gallery section for this page'
+                      : 'Customize your website gallery section'
+                    }
                   </p>
                   {restaurantName && (
                     <p className={styles.formSubtitle}>
@@ -471,7 +492,7 @@ export default function GallerySettingsPage() {
                       ) : (
                         <>
                           <span>💾</span>
-                          Save Gallery Settings
+                          {isNewSection ? 'Create Gallery Section' : 'Save Gallery Settings'}
                         </>
                       )}
                     </button>

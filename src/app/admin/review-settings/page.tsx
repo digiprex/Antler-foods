@@ -21,6 +21,10 @@ export default function ReviewSettingsPage() {
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
   const pageId = searchParams.get('page_id');
+  
+  // Check if this is a new section being created or editing existing
+  const isNewSection = searchParams.get('new_section') === 'true';
+  const templateId = searchParams.get('template_id') || null;
 
   const [config, setConfig] = useState<ReviewConfig>(DEFAULT_REVIEW_CONFIG);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -30,16 +34,26 @@ export default function ReviewSettingsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
-    if (restaurantId) {
+    if (restaurantId && !isNewSection) {
       fetchReviewConfig();
+    }
+    if (restaurantId) {
       fetchReviews();
     }
-  }, [restaurantId, pageId]);
+  }, [restaurantId, pageId, templateId, isNewSection]);
 
   const fetchReviewConfig = async () => {
+    // Don't fetch existing config if this is a new section
+    if (isNewSection) return;
+    
     setLoading(true);
     try {
-      const url = `/api/review-config?restaurant_id=${restaurantId}${pageId ? `&page_id=${pageId}` : ''}`;
+      const params = new URLSearchParams();
+      if (restaurantId) params.append('restaurant_id', restaurantId);
+      if (pageId) params.append('page_id', pageId);
+      if (templateId) params.append('template_id', templateId);
+      
+      const url = `/api/review-config?${params.toString()}`;
       const response = await fetch(url);
       const data = await response.json();
 
@@ -81,13 +95,17 @@ export default function ReviewSettingsPage() {
           ...config,
           restaurant_id: restaurantId,
           page_id: pageId || null,
+          template_id: templateId || null,
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        setToast({ message: 'Review settings saved successfully!', type: 'success' });
+        setToast({
+          message: isNewSection ? 'Review section created successfully!' : 'Review settings saved successfully!',
+          type: 'success'
+        });
         setTimeout(() => setToast(null), 3000);
       } else {
         setToast({ message: 'Error saving settings: ' + data.error, type: 'error' });
@@ -138,9 +156,14 @@ export default function ReviewSettingsPage() {
 
             <div className={styles.formHeader}>
               <div>
-                <h1 className={styles.formTitle}>Review Settings</h1>
+                <h1 className={styles.formTitle}>
+                  {isNewSection ? 'Add New Review Section' : 'Edit Review Settings'}
+                </h1>
                 <p className={styles.formSubtitle}>
-                  Customize how customer reviews are displayed on your website
+                  {isNewSection
+                    ? 'Create a new review section for this page'
+                    : 'Customize how customer reviews are displayed on your website'
+                  }
                 </p>
                 {restaurantName && (
                   <p className={styles.formSubtitle}>
@@ -539,7 +562,7 @@ export default function ReviewSettingsPage() {
                     ) : (
                       <>
                         <span>💾</span>
-                        Save Review Settings
+                        {isNewSection ? 'Create Review Section' : 'Save Review Settings'}
                       </>
                     )}
                   </button>

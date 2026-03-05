@@ -41,10 +41,14 @@ export function useScrollingTextConfig({ apiEndpoint }: { apiEndpoint: string })
   };
 
   useEffect(() => {
-    if (apiEndpoint) {
+    if (apiEndpoint && apiEndpoint.trim() !== '') {
       fetchConfig();
+    } else {
+      // If no valid endpoint, stop loading immediately
+      setLoading(false);
+      setConfig(null);
     }
-  }, [apiEndpoint, fetchConfig]);
+  }, [apiEndpoint]);
 
   return {
     config,
@@ -61,7 +65,7 @@ export function useUpdateScrollingTextConfig() {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const updateScrollingText = async (config: Partial<ScrollingTextConfig> & { restaurant_id: string; page_id: string }) => {
+  const updateScrollingText = async (config: Partial<ScrollingTextConfig> & { restaurant_id: string; page_id: string; template_id?: string | null }) => {
     try {
       setUpdating(true);
       setError(null);

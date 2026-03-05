@@ -41,6 +41,10 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
   const finalRestaurantId = restaurantIdFromQuery || restaurantId || '';
   
+  // Check if this is a new section being created or editing existing
+  const isNewSection = searchParams.get('new_section') === 'true';
+  const templateId = searchParams.get('template_id') || null;
+  
   // Form state
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [layout, setLayout] = useState<'list' | 'accordion' | 'grid'>('accordion');
@@ -59,14 +63,20 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
   
   const configApiEndpoint = useMemo(
     () => {
+      // Don't fetch existing config if this is a new section
+      if (isNewSection) return undefined;
+      
       const params = new URLSearchParams({ restaurant_id: finalRestaurantId });
       const currentPageId = pageId || resolvedPageId;
       if (currentPageId) {
         params.append('page_id', currentPageId);
       }
+      if (templateId) {
+        params.append('template_id', templateId);
+      }
       return `/api/faq-config?${params.toString()}`;
     },
-    [finalRestaurantId, pageId, resolvedPageId],
+    [finalRestaurantId, pageId, resolvedPageId, isNewSection, templateId],
   );
 
   const { config, loading: fetchLoading, error: fetchError } = useFAQConfig({
@@ -84,9 +94,9 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
     );
   }
 
-  // Initialize form with fetched config
+  // Initialize form with fetched config (only for existing sections)
   useEffect(() => {
-    if (config) {
+    if (config && !isNewSection) {
       setLayout(config.layout || 'accordion');
       setBgColor(config.bgColor || '#ffffff');
       setTextColor(config.textColor || '#111827');
@@ -94,7 +104,7 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
       setSubtitle(config.subtitle || 'Find answers to common questions');
       setFaqs(config.faqs || []);
     }
-  }, [config]);
+  }, [config, isNewSection]);
 
   const addFAQ = () => {
     setFaqs((s) => [...s, { id: String(Date.now()), question: '', answer: '' }]);
@@ -174,6 +184,7 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
         subtitle: string;
         faqs: FAQ[];
         page_id?: string;
+        template_id?: string;
       } = {
         restaurant_id: finalRestaurantId,
         layout,
@@ -186,6 +197,9 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
 
       if (pageId) payload.page_id = pageId;
       else if (resolvedPageId) payload.page_id = resolvedPageId;
+      
+      // Include template_id when editing existing section
+      if (templateId) payload.template_id = templateId;
 
       // Debug: log payload so developer can verify page_id presence
       try {
@@ -197,7 +211,7 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
 
       await updateFAQConfig(payload);
       
-      setToastMessage('FAQ settings saved successfully!');
+      setToastMessage(isNewSection ? 'FAQ section created successfully!' : 'FAQ settings saved successfully!');
       setToastType('success');
       setShowToast(true);
     } catch (err) {
@@ -323,8 +337,15 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
         <div className={styles.formSection}>
           <div className={styles.formHeader}>
             <div>
-              <h1 className={styles.formTitle}>FAQ Settings</h1>
-              <p className={styles.formSubtitle}>Manage frequently asked questions</p>
+              <h1 className={styles.formTitle}>
+                {isNewSection ? 'Add New FAQ Section' : 'Edit FAQ Settings'}
+              </h1>
+              <p className={styles.formSubtitle}>
+                {isNewSection
+                  ? 'Create a new FAQ section for this page'
+                  : 'Manage frequently asked questions'
+                }
+              </p>
               {restaurantNameFromQuery && (
                 <p className={styles.formSubtitle}>
                   Restaurant: {restaurantNameFromQuery}
@@ -570,12 +591,12 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
                 {updating ? (
                   <>
                     <span className={styles.spinner}></span>
-                    Saving...
+                    {isNewSection ? 'Creating...' : 'Saving...'}
                   </>
                 ) : (
                   <>
                     <span>💾</span>
-                    Save Changes
+                    {isNewSection ? 'Create FAQ Section' : 'Save Changes'}
                   </>
                 )}
               </button>

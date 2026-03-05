@@ -110,6 +110,7 @@ export function useFAQConfig({ apiEndpoint, overrideConfig }: UseFAQConfigProps)
 interface UpdateFAQConfigData {
   restaurant_id: string;
   page_id?: string;
+  template_id?: string;
   layout: 'list' | 'accordion' | 'grid';
   bgColor: string;
   textColor: string;

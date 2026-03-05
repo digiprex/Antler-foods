@@ -26,6 +26,10 @@ export default function ScrollingTextSettingsForm() {
   const pageIdFromQuery = searchParams.get('page_id')?.trim() ?? '';
   const restaurantId = restaurantIdFromQuery || '';
   const pageId = pageIdFromQuery || '';
+  
+  // Check if this is a new section being created or editing existing
+  const isNewSection = searchParams.get('new_section') === 'true';
+  const templateId = searchParams.get('template_id') || null;
 
   if (!restaurantId || !pageId) {
     return (
@@ -37,12 +41,22 @@ export default function ScrollingTextSettingsForm() {
   }
 
   const configApiEndpoint = useMemo(
-    () => `/api/scrolling-text-config?restaurant_id=${encodeURIComponent(restaurantId)}&page_id=${encodeURIComponent(pageId)}`,
-    [restaurantId, pageId],
+    () => {
+      // Don't fetch existing config if this is a new section
+      if (isNewSection) return undefined;
+      
+      const params = new URLSearchParams();
+      params.append('restaurant_id', restaurantId);
+      params.append('page_id', pageId);
+      if (templateId) params.append('template_id', templateId);
+      
+      return `/api/scrolling-text-config?${params.toString()}`;
+    },
+    [restaurantId, pageId, templateId, isNewSection],
   );
 
   const { config, loading, error: fetchError } = useScrollingTextConfig({
-    apiEndpoint: configApiEndpoint,
+    apiEndpoint: configApiEndpoint || '',
   });
   const { updateScrollingText, updating, error: updateError } = useUpdateScrollingTextConfig();
 
@@ -61,16 +75,16 @@ export default function ScrollingTextSettingsForm() {
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
 
-  // Initialize form with fetched config
+  // Initialize form with fetched config (only for existing sections)
   useEffect(() => {
-    if (config) {
+    if (config && !isNewSection) {
       setIsEnabled(config.isEnabled ?? false);
       setText(config.text || '');
       setBgColor(config.bgColor || '#000000');
       setTextColor(config.textColor || '#ffffff');
       setScrollSpeed(config.scrollSpeed || 'medium');
     }
-  }, [config]);
+  }, [config, isNewSection]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +100,7 @@ export default function ScrollingTextSettingsForm() {
       await updateScrollingText({
         restaurant_id: restaurantId,
         page_id: pageId,
+        template_id: templateId,
         isEnabled,
         text,
         bgColor,
@@ -93,7 +108,7 @@ export default function ScrollingTextSettingsForm() {
         scrollSpeed,
       });
 
-      setToastMessage('Scrolling text settings saved successfully!');
+      setToastMessage(isNewSection ? 'Scrolling text section created successfully!' : 'Scrolling text settings saved successfully!');
       setToastType('success');
       setShowToast(true);
     } catch (err) {
@@ -196,8 +211,15 @@ export default function ScrollingTextSettingsForm() {
         <div className={styles.formSection}>
           <div className={styles.formHeader}>
             <div>
-              <h1 className={styles.formTitle}>Scrolling Text Settings</h1>
-              <p className={styles.formSubtitle}>Configure your scrolling text banner</p>
+              <h1 className={styles.formTitle}>
+                {isNewSection ? 'Add New Scrolling Text Section' : 'Edit Scrolling Text Settings'}
+              </h1>
+              <p className={styles.formSubtitle}>
+                {isNewSection
+                  ? 'Create a new scrolling text section for this page'
+                  : 'Configure your scrolling text banner'
+                }
+              </p>
               {restaurantNameFromQuery && (
                 <p className={styles.formSubtitle}>
                   Restaurant: {restaurantNameFromQuery}
@@ -381,7 +403,7 @@ export default function ScrollingTextSettingsForm() {
                 ) : (
                   <>
                     <span>💾</span>
-                    Save Changes
+                    {isNewSection ? 'Create Scrolling Text Section' : 'Save Changes'}
                   </>
                 )}
               </button>

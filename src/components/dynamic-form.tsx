@@ -20,6 +20,7 @@ interface FormField {
 
 interface FormConfig {
   isEnabled?: boolean;
+  form_id?: string;
   title?: string;
   description?: string;
   layout?: string;
@@ -28,7 +29,7 @@ interface FormConfig {
   buttonColor?: string;
   buttonText?: string;
   imageUrl?: string;
-  selectedFormId?: string;
+  selectedFormId?: string; // Backwards compatibility
 }
 
 interface Form {
@@ -40,6 +41,7 @@ interface Form {
 interface DynamicFormProps {
   restaurantId?: string;
   pageId?: string;
+  templateId?: string;
   showLoading?: boolean;
   configData?: Partial<FormConfig>;
 }
@@ -47,6 +49,7 @@ interface DynamicFormProps {
 export default function DynamicForm({
   restaurantId,
   pageId,
+  templateId,
   showLoading = true,
   configData
 }: DynamicFormProps) {
@@ -69,11 +72,18 @@ export default function DynamicForm({
       }
 
       try {
-        // Fetch form configuration
-        const configUrl = pageId 
-          ? `/api/form-settings?restaurant_id=${restaurantId}&page_id=${pageId}`
-          : `/api/form-settings?restaurant_id=${restaurantId}`;
-        
+        // Build API URL with appropriate parameters
+        let configUrl = `/api/form-settings?restaurant_id=${restaurantId}`;
+
+        // If templateId is provided, use it for specific template fetch
+        if (templateId) {
+          configUrl += `&template_id=${templateId}`;
+          console.log('[Form] Fetching by template_id:', templateId);
+        } else if (pageId) {
+          configUrl += `&page_id=${pageId}`;
+          console.log('[Form] Fetching by page_id:', pageId);
+        }
+
         const configResponse = await fetch(configUrl);
         const configData = await configResponse.json();
 
@@ -81,10 +91,10 @@ export default function DynamicForm({
           setConfig(configData.data);
 
           // If a form is selected, fetch the form details
-          if (configData.data.selectedFormId) {
-            const formResponse = await fetch(`/api/forms?restaurant_id=${restaurantId}&form_id=${configData.data.selectedFormId}`);
+          if (configData.data.form_id) {
+            const formResponse = await fetch(`/api/forms?restaurant_id=${restaurantId}&form_id=${configData.data.form_id}`);
             const formData = await formResponse.json();
-            
+
             if (formData.success && formData.data && formData.data.length > 0) {
               setForm(formData.data[0]);
             }
@@ -98,7 +108,7 @@ export default function DynamicForm({
     };
 
     fetchConfig();
-  }, [restaurantId, pageId, configData]);
+  }, [restaurantId, pageId, templateId, configData]);
 
   // Show loading state
   if (loading && showLoading) {
@@ -269,7 +279,8 @@ export default function DynamicForm({
 
   // Add preview indicator if using sample data or if disabled
   const isUsingSampleData = !config || !form;
-  const isDisabled = config && !config.isEnabled;
+  // Check for both 'enabled' and 'isEnabled' for backwards compatibility
+  const isDisabled = config && !(config.isEnabled ?? (config as any).enabled ?? true);
 
   // Render based on layout
   if (layout === 'split' && imageUrl) {

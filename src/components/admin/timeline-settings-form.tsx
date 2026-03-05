@@ -27,19 +27,23 @@ export default function TimelineSettingsForm() {
   const restaurantId = restaurantIdFromQuery || '';
   const pageId = pageIdFromQuery || '';
 
-  if (!restaurantId || !pageId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID and Page ID are required. Please provide them via URL parameters.</p>
-      </div>
-    );
-  }
+  // Check if this is a new section being created or editing existing
+  const isNewSection = searchParams.get('new_section') === 'true';
+  const templateId = searchParams.get('template_id') || null;
 
-  const configApiEndpoint = useMemo(
-    () => `/api/timeline-config?restaurant_id=${encodeURIComponent(restaurantId)}&page_id=${encodeURIComponent(pageId)}`,
-    [restaurantId, pageId],
-  );
+  const configApiEndpoint = useMemo(() => {
+    if (isNewSection) {
+      // For new sections, return empty endpoint to skip fetching
+      return '';
+    }
+    let endpoint = `/api/timeline-config?restaurant_id=${encodeURIComponent(restaurantId)}`;
+    if (templateId) {
+      endpoint += `&template_id=${encodeURIComponent(templateId)}`;
+    } else if (pageId) {
+      endpoint += `&page_id=${encodeURIComponent(pageId)}`;
+    }
+    return endpoint;
+  }, [restaurantId, pageId, templateId, isNewSection]);
 
   const { config, loading, error: fetchError } = useTimelineConfig({
     apiEndpoint: configApiEndpoint,
@@ -98,6 +102,7 @@ export default function TimelineSettingsForm() {
       await updateTimeline({
         restaurant_id: restaurantId,
         page_id: pageId,
+        template_id: templateId || undefined,
         isEnabled,
         layout,
         title,
@@ -109,7 +114,11 @@ export default function TimelineSettingsForm() {
         lineColor,
       });
 
-      setToastMessage('Timeline settings saved successfully!');
+      setToastMessage(
+        isNewSection
+          ? 'Timeline section created successfully!'
+          : 'Timeline settings saved successfully!'
+      );
       setToastType('success');
       setShowToast(true);
     } catch (err) {
@@ -165,6 +174,17 @@ export default function TimelineSettingsForm() {
     setItems(newItems);
   };
 
+  if (!restaurantId || !pageId) {
+    return (
+      <div className={styles.container}>
+        <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
+          <h2>Error</h2>
+          <p>Restaurant ID and Page ID are required. Please provide them via URL parameters.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className={styles.container}>
@@ -189,8 +209,15 @@ export default function TimelineSettingsForm() {
         <div className={styles.formSection}>
           <div className={styles.formHeader}>
             <div>
-              <h1 className={styles.formTitle}>Timeline Settings</h1>
-              <p className={styles.formSubtitle}>Configure timeline display and content</p>
+              <h1 className={styles.formTitle}>
+                {isNewSection ? 'Add New Timeline Section' : 'Edit Timeline Settings'}
+              </h1>
+              <p className={styles.formSubtitle}>
+                {isNewSection
+                  ? 'Create a new timeline section for this page'
+                  : 'Configure timeline display and content'
+                }
+              </p>
               {restaurantNameFromQuery && (
                 <p className={styles.formSubtitle}>
                   Restaurant: {restaurantNameFromQuery}
@@ -527,7 +554,7 @@ export default function TimelineSettingsForm() {
                 ) : (
                   <>
                     <span>💾</span>
-                    Save Changes
+                    {isNewSection ? 'Create Timeline Section' : 'Save Changes'}
                   </>
                 )}
               </button>

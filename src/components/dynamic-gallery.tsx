@@ -18,6 +18,11 @@ interface DynamicGalleryProps {
   restaurantId?: string;
 
   /**
+   * Page ID to fetch configuration for
+   */
+  pageId?: string;
+
+  /**
    * Fallback configuration if API fails
    */
   fallbackConfig?: Partial<GalleryConfig>;
@@ -35,6 +40,7 @@ interface DynamicGalleryProps {
 
 export default function DynamicGallery({
   restaurantId,
+  pageId,
   fallbackConfig,
   configData,
   showLoading = true
@@ -62,13 +68,18 @@ export default function DynamicGallery({
           url.searchParams.set('restaurant_id', restaurantId);
         }
 
-        // Automatically detect URL slug from current page
-        const currentPath = window.location.pathname;
-        const pathSegments = currentPath.split('/').filter(Boolean);
-        if (pathSegments.length > 0) {
-          const urlSlug = pathSegments[pathSegments.length - 1];
-          url.searchParams.set('url_slug', urlSlug);
-          console.log('[DynamicGallery] Auto-detected url_slug:', urlSlug);
+        // If pageId is provided, use it directly
+        if (pageId) {
+          url.searchParams.set('page_id', pageId);
+        } else {
+          // Fallback to auto-detecting URL slug from current page
+          const currentPath = window.location.pathname;
+          const pathSegments = currentPath.split('/').filter(Boolean);
+          if (pathSegments.length > 0) {
+            const urlSlug = pathSegments[pathSegments.length - 1];
+            url.searchParams.set('url_slug', urlSlug);
+            console.log('[DynamicGallery] Auto-detected url_slug:', urlSlug);
+          }
         }
 
         const response = await fetch(url.toString());
@@ -99,7 +110,7 @@ export default function DynamicGallery({
     };
 
     fetchConfig();
-  }, [restaurantId, fallbackConfig, configData]);
+  }, [restaurantId, pageId, fallbackConfig, configData]);
 
   // Show loading state
   if (loading && showLoading) {

@@ -44,6 +44,30 @@ const GET_CUSTOM_CODE_CONFIG = `
   }
 `;
 
+const GET_CUSTOM_CODE_CONFIG_BY_TEMPLATE = `
+  query GetCustomCodeConfigByTemplate($restaurant_id: uuid!, $template_id: uuid!) {
+    templates(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        template_id: {_eq: $template_id},
+        category: {_eq: "CustomCode"},
+        is_deleted: {_eq: false}
+      },
+      limit: 1
+    ) {
+      category
+      config
+      created_at
+      is_deleted
+      name
+      restaurant_id
+      page_id
+      template_id
+      updated_at
+    }
+  }
+`;
+
 /**
  * GraphQL mutation to mark current template as deleted
  */
@@ -124,19 +148,35 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const restaurantId = searchParams.get('restaurant_id');
     const pageId = searchParams.get('page_id');
+    const templateId = searchParams.get('template_id') || null;
 
-    if (!restaurantId || !pageId) {
+    if (!restaurantId) {
       return NextResponse.json({
         success: false,
         data: null,
-        error: 'restaurant_id and page_id are required'
+        error: 'restaurant_id is required'
       } as CustomCodeConfigResponse, { status: 400 });
     }
 
-    const data = await graphqlRequest(GET_CUSTOM_CODE_CONFIG, {
-      restaurant_id: restaurantId,
-      page_id: pageId,
-    });
+    // page_id is only required if template_id is not provided
+    if (!templateId && !pageId) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: 'Either page_id or template_id is required'
+      } as CustomCodeConfigResponse, { status: 400 });
+    }
+
+    // Determine which query to use based on available parameters
+    const data = templateId
+      ? await graphqlRequest(GET_CUSTOM_CODE_CONFIG_BY_TEMPLATE, {
+          restaurant_id: restaurantId,
+          template_id: templateId,
+        })
+      : await graphqlRequest(GET_CUSTOM_CODE_CONFIG, {
+          restaurant_id: restaurantId,
+          page_id: pageId,
+        });
 
     if (!data.templates || data.templates.length === 0) {
       // Return default disabled configuration
@@ -159,7 +199,7 @@ export async function GET(request: Request) {
 
     const config: CustomCodeConfig = {
       restaurant_id: restaurantId,
-      page_id: pageId,
+      page_id: pageId || undefined,
       isEnabled: template.config?.isEnabled ?? false,
       codeType: template.config?.codeType || 'html',
       htmlCode: template.config?.htmlCode || '',
@@ -193,24 +233,19 @@ export async function POST(request: Request) {
 
     const restaurantId = body.restaurant_id;
     const pageId = body.page_id;
+    const templateId = body.template_id || null;
 
     if (!restaurantId || !pageId) {
       throw new Error('restaurant_id and page_id are required in request body');
     }
 
-    // Get current template to mark as deleted
-    const currentData = await graphqlRequest(GET_CUSTOM_CODE_CONFIG, {
-      restaurant_id: restaurantId,
-      page_id: pageId,
-    });
-
-    // Mark current template as deleted (if exists)
-    if (currentData.templates && currentData.templates.length > 0) {
-      const currentTemplate = currentData.templates[0];
+    // Step 2: If template_id is provided, mark that specific template as deleted (editing existing section)
+    if (templateId) {
       await graphqlRequest(MARK_AS_DELETED, {
-        template_id: currentTemplate.template_id,
+        template_id: templateId,
       });
     }
+    // If no template_id, this is a new section - don't delete any existing templates
 
     const config = {
       isEnabled: body.isEnabled,

@@ -12,19 +12,45 @@ import type { YouTubeConfig } from '@/types/youtube.types';
 
 interface YouTubeSectionProps {
   restaurantId: string;
+  pageId?: string;
+  templateId?: string;
+  configData?: Partial<YouTubeConfig>;
 }
 
-export default function YouTubeSection({ restaurantId }: YouTubeSectionProps): JSX.Element | null {
+export default function YouTubeSection({ restaurantId, pageId, templateId }: YouTubeSectionProps): JSX.Element | null {
   const [config, setConfig] = useState<YouTubeConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchYouTubeConfig();
-  }, [restaurantId]);
+  }, [restaurantId, pageId, templateId]);
 
   const fetchYouTubeConfig = async () => {
     try {
-      const response = await fetch(`/api/youtube-config?restaurant_id=${restaurantId}`);
+      // Build API endpoint with restaurant_id and appropriate identifier
+      let apiEndpoint = `/api/youtube-config?restaurant_id=${restaurantId}`;
+
+      // If templateId is provided, use it for specific template fetch
+      if (templateId) {
+        apiEndpoint += `&template_id=${templateId}`;
+        console.log('[YouTube] Fetching by template_id:', templateId);
+      } else if (pageId) {
+        // If pageId is provided, use it directly
+        apiEndpoint += `&page_id=${pageId}`;
+        console.log('[YouTube] Fetching by page_id:', pageId);
+      } else {
+        // Fallback to url_slug detection for backward compatibility
+        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+        const pathSegments = currentPath.split('/').filter(Boolean);
+        const urlSlug = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : '';
+
+        if (urlSlug && urlSlug !== restaurantId) {
+          apiEndpoint += `&url_slug=${urlSlug}`;
+          console.log('[YouTube] Fetching by url_slug:', urlSlug);
+        }
+      }
+
+      const response = await fetch(apiEndpoint);
       const data = await response.json();
 
       if (data.success && data.data && data.data.enabled && data.data.videoUrl) {

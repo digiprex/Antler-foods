@@ -31,6 +31,42 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [topSpacing, setTopSpacing] = useState<string>('0px');
+
+  // Calculate dynamic top spacing based on navbar and announcement bar
+  useEffect(() => {
+    const calculateSpacing = () => {
+      const navbarHeight = getComputedStyle(document.documentElement).getPropertyValue('--navbar-height').trim();
+      const announcementHeight = getComputedStyle(document.documentElement).getPropertyValue('--announcement-bar-height').trim();
+      
+      // Parse values and provide fallbacks
+      const navbarPx = navbarHeight && navbarHeight !== '0px' ? navbarHeight : '0px';
+      const announcementPx = announcementHeight && announcementHeight !== '0px' ? announcementHeight : '0px';
+      
+      // If both are 0px, no spacing needed
+      if (navbarPx === '0px' && announcementPx === '0px') {
+        setTopSpacing('0px');
+      } else {
+        // Use CSS calc to add them together
+        setTopSpacing(`calc(${navbarPx} + ${announcementPx})`);
+      }
+    };
+
+    // Calculate initially
+    calculateSpacing();
+
+    // Recalculate when CSS variables change (debounced)
+    const observer = new MutationObserver(() => {
+      setTimeout(calculateSpacing, 100);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['style']
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const fetchPageData = async () => {
@@ -376,8 +412,10 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       {/* Navbar is automatically rendered by ConditionalNavbar in root layout */}
 
-      {/* Add top spacing to prevent navbar overlap */}
-      <div style={{ paddingTop: '80px' }}>
+      {/* Dynamic top spacing to prevent navbar overlap - only when navbar is fixed or absolute */}
+      <div style={{
+        paddingTop: topSpacing
+      }}>
         {/* Universal Popup - Only show on homepage */}
         {slug === 'home' && <Popup restaurantId={restaurantId} />}
 

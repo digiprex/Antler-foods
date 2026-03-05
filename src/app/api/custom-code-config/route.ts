@@ -12,6 +12,7 @@
 
 import { NextResponse } from 'next/server';
 import type { CustomCodeConfig, CustomCodeConfigResponse } from '@/types/custom-code.types';
+import { DEFAULT_CUSTOM_CODE_CONFIG } from '@/types/custom-code.types';
 
 const HASURA_URL = process.env.HASURA_GRAPHQL_URL || 'https://pycfacumenjefxtblime.hasura.us-east-1.nhost.run/v1/graphql';
 const HASURA_ADMIN_SECRET = process.env.HASURA_ADMIN_SECRET || "i;8zmVF8SvnMiX5gao@F'a6,uJ%WphsD";
@@ -140,6 +141,25 @@ async function graphqlRequest(query: string, variables?: any) {
   return data.data;
 }
 
+function pickSectionStyleConfig(source: Record<string, unknown>) {
+  return {
+    is_custom: source.is_custom === true,
+    buttonStyleVariant: source.buttonStyleVariant === 'secondary' ? 'secondary' : 'primary',
+    titleFontFamily: source.titleFontFamily,
+    titleFontSize: source.titleFontSize,
+    titleFontWeight: source.titleFontWeight,
+    titleColor: source.titleColor,
+    subtitleFontFamily: source.subtitleFontFamily,
+    subtitleFontSize: source.subtitleFontSize,
+    subtitleFontWeight: source.subtitleFontWeight,
+    subtitleColor: source.subtitleColor,
+    bodyFontFamily: source.bodyFontFamily,
+    bodyFontSize: source.bodyFontSize,
+    bodyFontWeight: source.bodyFontWeight,
+    bodyColor: source.bodyColor,
+  } as const;
+}
+
 /**
  * GET endpoint to fetch custom code configuration
  */
@@ -183,31 +203,47 @@ export async function GET(request: Request) {
       return NextResponse.json({
         success: true,
         data: {
-          isEnabled: false,
-          codeType: 'html',
-          htmlCode: '',
-          cssCode: '',
-          jsCode: '',
-          iframeUrl: '',
-          iframeHeight: '500px',
-          iframeWidth: '100%',
+          ...DEFAULT_CUSTOM_CODE_CONFIG,
+          restaurant_id: restaurantId,
+          page_id: pageId || undefined,
         } as CustomCodeConfig,
       } as CustomCodeConfigResponse);
     }
 
     const template = data.templates[0];
+    const templateConfig = (template.config || {}) as Record<string, unknown>;
 
     const config: CustomCodeConfig = {
+      ...DEFAULT_CUSTOM_CODE_CONFIG,
       restaurant_id: restaurantId,
-      page_id: pageId || undefined,
-      isEnabled: template.config?.isEnabled ?? false,
-      codeType: template.config?.codeType || 'html',
-      htmlCode: template.config?.htmlCode || '',
-      cssCode: template.config?.cssCode || '',
-      jsCode: template.config?.jsCode || '',
-      iframeUrl: template.config?.iframeUrl || '',
-      iframeHeight: template.config?.iframeHeight || '500px',
-      iframeWidth: template.config?.iframeWidth || '100%',
+      page_id: template.page_id || pageId || undefined,
+      isEnabled: templateConfig.isEnabled === true,
+      codeType: templateConfig.codeType === 'iframe' ? 'iframe' : 'html',
+      htmlCode:
+        typeof templateConfig.htmlCode === 'string'
+          ? templateConfig.htmlCode
+          : DEFAULT_CUSTOM_CODE_CONFIG.htmlCode,
+      cssCode:
+        typeof templateConfig.cssCode === 'string'
+          ? templateConfig.cssCode
+          : DEFAULT_CUSTOM_CODE_CONFIG.cssCode,
+      jsCode:
+        typeof templateConfig.jsCode === 'string'
+          ? templateConfig.jsCode
+          : DEFAULT_CUSTOM_CODE_CONFIG.jsCode,
+      iframeUrl:
+        typeof templateConfig.iframeUrl === 'string'
+          ? templateConfig.iframeUrl
+          : DEFAULT_CUSTOM_CODE_CONFIG.iframeUrl,
+      iframeHeight:
+        typeof templateConfig.iframeHeight === 'string'
+          ? templateConfig.iframeHeight
+          : DEFAULT_CUSTOM_CODE_CONFIG.iframeHeight,
+      iframeWidth:
+        typeof templateConfig.iframeWidth === 'string'
+          ? templateConfig.iframeWidth
+          : DEFAULT_CUSTOM_CODE_CONFIG.iframeWidth,
+      ...pickSectionStyleConfig(templateConfig),
     };
 
     return NextResponse.json({
@@ -256,6 +292,7 @@ export async function POST(request: Request) {
       iframeUrl: body.iframeUrl,
       iframeHeight: body.iframeHeight,
       iframeWidth: body.iframeWidth,
+      ...pickSectionStyleConfig(body as Record<string, unknown>),
     };
 
     // Insert new template
@@ -272,18 +309,39 @@ export async function POST(request: Request) {
     }
 
     const template = insertedData.insert_templates_one;
+    const insertedConfig = (template.config || {}) as Record<string, unknown>;
 
     const responseConfig: CustomCodeConfig = {
+      ...DEFAULT_CUSTOM_CODE_CONFIG,
       restaurant_id: restaurantId,
       page_id: pageId,
-      isEnabled: template.config?.isEnabled,
-      codeType: template.config?.codeType,
-      htmlCode: template.config?.htmlCode,
-      cssCode: template.config?.cssCode,
-      jsCode: template.config?.jsCode,
-      iframeUrl: template.config?.iframeUrl,
-      iframeHeight: template.config?.iframeHeight,
-      iframeWidth: template.config?.iframeWidth,
+      isEnabled: insertedConfig.isEnabled === true,
+      codeType: insertedConfig.codeType === 'iframe' ? 'iframe' : 'html',
+      htmlCode:
+        typeof insertedConfig.htmlCode === 'string'
+          ? insertedConfig.htmlCode
+          : DEFAULT_CUSTOM_CODE_CONFIG.htmlCode,
+      cssCode:
+        typeof insertedConfig.cssCode === 'string'
+          ? insertedConfig.cssCode
+          : DEFAULT_CUSTOM_CODE_CONFIG.cssCode,
+      jsCode:
+        typeof insertedConfig.jsCode === 'string'
+          ? insertedConfig.jsCode
+          : DEFAULT_CUSTOM_CODE_CONFIG.jsCode,
+      iframeUrl:
+        typeof insertedConfig.iframeUrl === 'string'
+          ? insertedConfig.iframeUrl
+          : DEFAULT_CUSTOM_CODE_CONFIG.iframeUrl,
+      iframeHeight:
+        typeof insertedConfig.iframeHeight === 'string'
+          ? insertedConfig.iframeHeight
+          : DEFAULT_CUSTOM_CODE_CONFIG.iframeHeight,
+      iframeWidth:
+        typeof insertedConfig.iframeWidth === 'string'
+          ? insertedConfig.iframeWidth
+          : DEFAULT_CUSTOM_CODE_CONFIG.iframeWidth,
+      ...pickSectionStyleConfig(insertedConfig),
     };
 
     return NextResponse.json({

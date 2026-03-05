@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import type { SectionStyleConfig } from '@/types/section-style.types';
 
 interface FAQ {
   id: string;
@@ -12,7 +13,7 @@ interface FAQ {
   answer: string;
 }
 
-interface FAQConfig {
+interface FAQConfig extends SectionStyleConfig {
   layout: 'list' | 'accordion' | 'grid';
   bgColor: string;
   textColor: string;
@@ -117,6 +118,20 @@ interface UpdateFAQConfigData {
   title: string;
   subtitle: string;
   faqs: FAQ[];
+  is_custom?: boolean;
+  buttonStyleVariant?: 'primary' | 'secondary';
+  titleFontFamily?: string;
+  titleFontSize?: string;
+  titleFontWeight?: number;
+  titleColor?: string;
+  subtitleFontFamily?: string;
+  subtitleFontSize?: string;
+  subtitleFontWeight?: number;
+  subtitleColor?: string;
+  bodyFontFamily?: string;
+  bodyFontSize?: string;
+  bodyFontWeight?: number;
+  bodyColor?: string;
 }
 
 export function useUpdateFAQConfig() {

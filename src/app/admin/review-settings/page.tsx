@@ -12,8 +12,38 @@ import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { useState, useEffect } from 'react';
 import type { ReviewConfig, Review } from '@/types/review.types';
 import { DEFAULT_REVIEW_CONFIG } from '@/types/review.types';
+import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import styles from '@/components/admin/gallery-settings-form.module.css';
 import Reviews from '@/components/reviews';
+
+const FONT_FAMILY_OPTIONS = [
+  { value: 'Inter, system-ui, sans-serif', label: 'Inter (Default)' },
+  { value: 'Poppins, sans-serif', label: 'Poppins' },
+  { value: 'Montserrat, sans-serif', label: 'Montserrat' },
+  { value: 'Open Sans, sans-serif', label: 'Open Sans' },
+  { value: 'Roboto, sans-serif', label: 'Roboto' },
+  { value: 'Lato, sans-serif', label: 'Lato' },
+  { value: 'Playfair Display, serif', label: 'Playfair Display' },
+];
+
+const FONT_SIZE_OPTIONS = [
+  { value: '0.875rem', label: 'Small (14px)' },
+  { value: '1rem', label: 'Base (16px)' },
+  { value: '1.125rem', label: 'Medium (18px)' },
+  { value: '1.25rem', label: 'Large (20px)' },
+  { value: '1.5rem', label: 'XL (24px)' },
+  { value: '1.875rem', label: '2XL (30px)' },
+  { value: '2.25rem', label: '3XL (36px)' },
+];
+
+const FONT_WEIGHT_OPTIONS = [
+  { value: 300, label: 'Light (300)' },
+  { value: 400, label: 'Normal (400)' },
+  { value: 500, label: 'Medium (500)' },
+  { value: 600, label: 'Semi Bold (600)' },
+  { value: 700, label: 'Bold (700)' },
+  { value: 800, label: 'Extra Bold (800)' },
+];
 
 export default function ReviewSettingsPage() {
   const router = useRouter();
@@ -25,8 +55,12 @@ export default function ReviewSettingsPage() {
   // Check if this is a new section being created or editing existing
   const isNewSection = searchParams.get('new_section') === 'true';
   const templateId = searchParams.get('template_id') || null;
+  const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
 
-  const [config, setConfig] = useState<ReviewConfig>(DEFAULT_REVIEW_CONFIG);
+  const [config, setConfig] = useState<ReviewConfig>({
+    ...DEFAULT_REVIEW_CONFIG,
+    ...sectionStyleDefaults,
+  });
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -34,31 +68,42 @@ export default function ReviewSettingsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
-    if (restaurantId && !isNewSection) {
+    if (restaurantId) {
       fetchReviewConfig();
     }
     if (restaurantId) {
       fetchReviews();
     }
-  }, [restaurantId, pageId, templateId, isNewSection]);
+  }, [restaurantId, pageId, templateId, isNewSection, sectionStyleDefaults]);
+
+  useEffect(() => {
+    if (!isNewSection) return;
+    setConfig((prev) => ({
+      ...DEFAULT_REVIEW_CONFIG,
+      ...sectionStyleDefaults,
+      ...prev,
+    }));
+  }, [isNewSection, sectionStyleDefaults]);
 
   const fetchReviewConfig = async () => {
-    // Don't fetch existing config if this is a new section
-    if (isNewSection) return;
-    
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (restaurantId) params.append('restaurant_id', restaurantId);
       if (pageId) params.append('page_id', pageId);
       if (templateId) params.append('template_id', templateId);
+      if (isNewSection) params.append('new_section', 'true');
       
       const url = `/api/review-config?${params.toString()}`;
       const response = await fetch(url);
       const data = await response.json();
 
       if (data.success && data.data) {
-        setConfig(data.data);
+        setConfig({
+          ...DEFAULT_REVIEW_CONFIG,
+          ...sectionStyleDefaults,
+          ...data.data,
+        });
       }
     } catch (error) {
       console.error('Error fetching review config:', error);
@@ -118,6 +163,14 @@ export default function ReviewSettingsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleTypographyChange = (field: keyof ReviewConfig, value: string | number) => {
+    setConfig((prev) => ({
+      ...prev,
+      [field]: value,
+      is_custom: true,
+    }));
   };
 
   const handleBack = () => {
@@ -244,7 +297,7 @@ export default function ReviewSettingsPage() {
                     </label>
                     <select
                       value={config.layout}
-                      onChange={(e) => setConfig({ ...config, layout: e.target.value as any })}
+                      onChange={(e) => setConfig({ ...config, layout: e.target.value as ReviewConfig['layout'] })}
                       className={styles.select}
                     >
                       <option value="grid">Grid - Card layout</option>
@@ -260,7 +313,7 @@ export default function ReviewSettingsPage() {
                     </label>
                     <select
                       value={config.columns}
-                      onChange={(e) => setConfig({ ...config, columns: Number(e.target.value) as any })}
+                      onChange={(e) => setConfig({ ...config, columns: Number(e.target.value) as ReviewConfig['columns'] })}
                       className={styles.select}
                     >
                       <option value="2">2 Columns</option>
@@ -408,6 +461,236 @@ export default function ReviewSettingsPage() {
                   </div>
                 </div>
 
+                {/* Typography Settings */}
+                <div className={styles.section}>
+                  <h3 className={styles.sectionTitle}>
+                    <span className={styles.sectionIcon}>Aa</span>
+                    Typography
+                  </h3>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                      Use Section Custom Typography
+                      <span className={styles.labelHint}>
+                        When disabled, this section uses live global typography settings
+                      </span>
+                    </label>
+                    <select
+                      value={config.is_custom ? 'true' : 'false'}
+                      onChange={(e) =>
+                        setConfig({ ...config, is_custom: e.target.value === 'true' })
+                      }
+                      className={styles.select}
+                    >
+                      <option value="false">No - Use Global Typography</option>
+                      <option value="true">Yes - Use Custom Typography</option>
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                      Button Style Source
+                      <span className={styles.labelHint}>
+                        Use global primary or secondary button style for section buttons
+                      </span>
+                    </label>
+                    <select
+                      value={config.buttonStyleVariant || 'primary'}
+                      onChange={(e) =>
+                        setConfig({
+                          ...config,
+                          buttonStyleVariant:
+                            e.target.value === 'secondary' ? 'secondary' : 'primary',
+                        })
+                      }
+                      className={styles.select}
+                    >
+                      <option value="primary">Global Primary Button</option>
+                      <option value="secondary">Global Secondary Button</option>
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Title Font Family</label>
+                    <select
+                      value={config.titleFontFamily || DEFAULT_REVIEW_CONFIG.titleFontFamily}
+                      onChange={(e) => handleTypographyChange('titleFontFamily', e.target.value)}
+                      className={styles.select}
+                      disabled={!config.is_custom}
+                    >
+                      {FONT_FAMILY_OPTIONS.map((font) => (
+                        <option key={`review-title-font-${font.value}`} value={font.value}>
+                          {font.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Title Font Size</label>
+                    <select
+                      value={config.titleFontSize || DEFAULT_REVIEW_CONFIG.titleFontSize}
+                      onChange={(e) => handleTypographyChange('titleFontSize', e.target.value)}
+                      className={styles.select}
+                      disabled={!config.is_custom}
+                    >
+                      {FONT_SIZE_OPTIONS.map((fontSize) => (
+                        <option key={`review-title-size-${fontSize.value}`} value={fontSize.value}>
+                          {fontSize.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Title Font Weight</label>
+                    <select
+                      value={config.titleFontWeight || DEFAULT_REVIEW_CONFIG.titleFontWeight}
+                      onChange={(e) => handleTypographyChange('titleFontWeight', Number(e.target.value))}
+                      className={styles.select}
+                      disabled={!config.is_custom}
+                    >
+                      {FONT_WEIGHT_OPTIONS.map((weight) => (
+                        <option key={`review-title-weight-${weight.value}`} value={weight.value}>
+                          {weight.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Title Color</label>
+                    <input
+                      type="color"
+                      value={config.titleColor || DEFAULT_REVIEW_CONFIG.titleColor}
+                      onChange={(e) => handleTypographyChange('titleColor', e.target.value)}
+                      className={styles.textInput}
+                      style={{ height: '50px', cursor: 'pointer' }}
+                      disabled={!config.is_custom}
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Subtitle Font Family</label>
+                    <select
+                      value={config.subtitleFontFamily || DEFAULT_REVIEW_CONFIG.subtitleFontFamily}
+                      onChange={(e) => handleTypographyChange('subtitleFontFamily', e.target.value)}
+                      className={styles.select}
+                      disabled={!config.is_custom}
+                    >
+                      {FONT_FAMILY_OPTIONS.map((font) => (
+                        <option key={`review-subtitle-font-${font.value}`} value={font.value}>
+                          {font.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Subtitle Font Size</label>
+                    <select
+                      value={config.subtitleFontSize || DEFAULT_REVIEW_CONFIG.subtitleFontSize}
+                      onChange={(e) => handleTypographyChange('subtitleFontSize', e.target.value)}
+                      className={styles.select}
+                      disabled={!config.is_custom}
+                    >
+                      {FONT_SIZE_OPTIONS.map((fontSize) => (
+                        <option key={`review-subtitle-size-${fontSize.value}`} value={fontSize.value}>
+                          {fontSize.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Subtitle Font Weight</label>
+                    <select
+                      value={config.subtitleFontWeight || DEFAULT_REVIEW_CONFIG.subtitleFontWeight}
+                      onChange={(e) => handleTypographyChange('subtitleFontWeight', Number(e.target.value))}
+                      className={styles.select}
+                      disabled={!config.is_custom}
+                    >
+                      {FONT_WEIGHT_OPTIONS.map((weight) => (
+                        <option key={`review-subtitle-weight-${weight.value}`} value={weight.value}>
+                          {weight.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Subtitle Color</label>
+                    <input
+                      type="color"
+                      value={config.subtitleColor || DEFAULT_REVIEW_CONFIG.subtitleColor}
+                      onChange={(e) => handleTypographyChange('subtitleColor', e.target.value)}
+                      className={styles.textInput}
+                      style={{ height: '50px', cursor: 'pointer' }}
+                      disabled={!config.is_custom}
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Body Font Family</label>
+                    <select
+                      value={config.bodyFontFamily || DEFAULT_REVIEW_CONFIG.bodyFontFamily}
+                      onChange={(e) => handleTypographyChange('bodyFontFamily', e.target.value)}
+                      className={styles.select}
+                      disabled={!config.is_custom}
+                    >
+                      {FONT_FAMILY_OPTIONS.map((font) => (
+                        <option key={`review-body-font-${font.value}`} value={font.value}>
+                          {font.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Body Font Size</label>
+                    <select
+                      value={config.bodyFontSize || DEFAULT_REVIEW_CONFIG.bodyFontSize}
+                      onChange={(e) => handleTypographyChange('bodyFontSize', e.target.value)}
+                      className={styles.select}
+                      disabled={!config.is_custom}
+                    >
+                      {FONT_SIZE_OPTIONS.map((fontSize) => (
+                        <option key={`review-body-size-${fontSize.value}`} value={fontSize.value}>
+                          {fontSize.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Body Font Weight</label>
+                    <select
+                      value={config.bodyFontWeight || DEFAULT_REVIEW_CONFIG.bodyFontWeight}
+                      onChange={(e) => handleTypographyChange('bodyFontWeight', Number(e.target.value))}
+                      className={styles.select}
+                      disabled={!config.is_custom}
+                    >
+                      {FONT_WEIGHT_OPTIONS.map((weight) => (
+                        <option key={`review-body-weight-${weight.value}`} value={weight.value}>
+                          {weight.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Body Color</label>
+                    <input
+                      type="color"
+                      value={config.bodyColor || DEFAULT_REVIEW_CONFIG.bodyColor}
+                      onChange={(e) => handleTypographyChange('bodyColor', e.target.value)}
+                      className={styles.textInput}
+                      style={{ height: '50px', cursor: 'pointer' }}
+                      disabled={!config.is_custom}
+                    />
+                  </div>
+                </div>
+
                 {/* Available Reviews */}
                 <div className={styles.section}>
                   <h3 className={styles.sectionTitle}>
@@ -469,7 +752,7 @@ export default function ReviewSettingsPage() {
                               WebkitBoxOrient: 'vertical',
                               overflow: 'hidden',
                             }}>
-                              "{review.review_text}"
+                              &quot;{review.review_text}&quot;
                             </p>
                           )}
 

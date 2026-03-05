@@ -172,6 +172,12 @@ export default function PageSettingsSelector() {
 
         return (
           <div style={previewStyle}>
+            <DynamicReviews
+              restaurantId={restaurantId}
+              pageId={pageId}
+              templateId={templateId}
+              configData={reviewsConfigWithLayout}
+            />
             <div style={zoomContainerStyle}>
               <DynamicReviews
                 restaurantId={restaurantId}

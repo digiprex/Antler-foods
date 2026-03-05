@@ -9,6 +9,9 @@
 
 import { useMemo } from 'react';
 import { useFAQConfig } from '@/hooks/use-faq-config';
+import type { SectionStyleConfig } from '@/types/section-style.types';
+import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
+import { getSectionTypographyStyles } from '@/lib/section-style';
 
 interface FAQ {
   id: string;
@@ -16,7 +19,7 @@ interface FAQ {
   answer: string;
 }
 
-interface FAQConfig {
+interface FAQConfig extends SectionStyleConfig {
   faqs: FAQ[];
   layout: 'list' | 'accordion' | 'grid';
   bgColor: string;
@@ -65,6 +68,13 @@ export default function DynamicFAQ({
     apiEndpoint,
     overrideConfig: configData
   });
+  const globalStyleEndpoint = restaurantId
+    ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`
+    : '/api/global-style-config';
+  const { config: globalStyles } = useGlobalStyleConfig({
+    apiEndpoint: globalStyleEndpoint,
+    fetchOnMount: Boolean(restaurantId),
+  });
 
   // Default configuration structure (no default FAQs)
   const defaultConfig: FAQConfig = {
@@ -106,6 +116,11 @@ export default function DynamicFAQ({
     return null; // Nothing to render
   }
 
+  const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
+    mergedConfig,
+    globalStyles,
+  );
+
   const renderFAQs = () => {
     const { faqs, layout } = mergedConfig as FAQConfig;
 
@@ -129,7 +144,8 @@ export default function DynamicFAQ({
               <h3 style={{ 
                 fontWeight: '600',
                 marginBottom: '0.75rem',
-                color: (mergedConfig as FAQConfig).textColor
+                color: (mergedConfig as FAQConfig).textColor,
+                ...subtitleStyle,
               }}>
                 {faq.question}
               </h3>
@@ -137,7 +153,8 @@ export default function DynamicFAQ({
                 fontSize: '0.9rem',
                 lineHeight: '1.6',
                 color: (mergedConfig as FAQConfig).textColor,
-                opacity: 0.8
+                opacity: 0.8,
+                ...bodyStyle,
               }}>
                 {faq.answer}
               </p>
@@ -155,7 +172,8 @@ export default function DynamicFAQ({
               <h3 style={{ 
                 fontWeight: '600',
                 marginBottom: '0.75rem',
-                color: (mergedConfig as FAQConfig).textColor
+                color: (mergedConfig as FAQConfig).textColor,
+                ...subtitleStyle,
               }}>
                 {faq.question}
               </h3>
@@ -163,7 +181,8 @@ export default function DynamicFAQ({
                 fontSize: '0.9rem',
                 lineHeight: '1.6',
                 color: (mergedConfig as FAQConfig).textColor,
-                opacity: 0.8
+                opacity: 0.8,
+                ...bodyStyle,
               }}>
                 {faq.answer}
               </p>
@@ -186,12 +205,13 @@ export default function DynamicFAQ({
               padding: '1rem'
             }}
           >
-              <summary style={{ 
+            <summary style={{ 
               fontWeight: '600',
               cursor: 'pointer',
               color: (mergedConfig as FAQConfig).textColor,
               fontSize: '1rem',
-              marginBottom: '0.5rem'
+              marginBottom: '0.5rem',
+              ...subtitleStyle,
             }}>
               {faq.question}
             </summary>
@@ -201,7 +221,8 @@ export default function DynamicFAQ({
               color: (mergedConfig as FAQConfig).textColor,
               opacity: 0.8,
               marginTop: '0.75rem',
-              paddingLeft: '0.5rem'
+              paddingLeft: '0.5rem',
+              ...bodyStyle,
             }}>
               {faq.answer}
             </p>
@@ -215,16 +236,16 @@ export default function DynamicFAQ({
     <section style={{ 
       padding: '80px 2rem',
       backgroundColor: (mergedConfig as FAQConfig).bgColor,
-      color: (mergedConfig as FAQConfig).textColor
+      color: (mergedConfig as FAQConfig).textColor,
+      ...bodyStyle,
     }}>
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         {(mergedConfig as FAQConfig).title && (
           <h2 style={{ 
-            fontSize: '2rem', 
-            fontWeight: 'bold', 
             textAlign: 'center',
             marginBottom: (mergedConfig as FAQConfig).subtitle ? '0.5rem' : '3rem',
-            color: (mergedConfig as FAQConfig).textColor
+            color: (mergedConfig as FAQConfig).textColor,
+            ...titleStyle,
           }}>
             {(mergedConfig as FAQConfig).title}
           </h2>
@@ -236,7 +257,8 @@ export default function DynamicFAQ({
             textAlign: 'center',
             marginBottom: '3rem',
             color: (mergedConfig as FAQConfig).textColor,
-            opacity: 0.8
+            opacity: 0.8,
+            ...subtitleStyle,
           }}>
             {(mergedConfig as FAQConfig).subtitle}
           </p>

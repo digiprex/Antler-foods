@@ -21,6 +21,8 @@ import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { useState, useEffect } from 'react';
 import type { GalleryConfig } from '@/types/gallery.types';
 import { DEFAULT_GALLERY_CONFIG } from '@/types/gallery.types';
+import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
+import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import styles from '@/components/admin/gallery-settings-form.module.css';
 import Gallery from '@/components/gallery';
 
@@ -34,8 +36,12 @@ export default function GallerySettingsPage() {
   // Check if this is a new section being created or editing existing
   const isNewSection = searchParams.get('new_section') === 'true';
   const templateId = searchParams.get('template_id') || null;
+  const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
 
-  const [config, setConfig] = useState<GalleryConfig>(DEFAULT_GALLERY_CONFIG);
+  const [config, setConfig] = useState<GalleryConfig>({
+    ...DEFAULT_GALLERY_CONFIG,
+    ...sectionStyleDefaults,
+  });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showMediaModal, setShowMediaModal] = useState(false);
@@ -53,6 +59,15 @@ export default function GallerySettingsPage() {
     }
   }, [restaurantId, pageId, templateId, isNewSection]);
 
+  useEffect(() => {
+    if (!isNewSection) return;
+    setConfig((prev) => ({
+      ...DEFAULT_GALLERY_CONFIG,
+      ...sectionStyleDefaults,
+      ...prev,
+    }));
+  }, [isNewSection, sectionStyleDefaults]);
+
   const fetchGalleryConfig = async () => {
     // Don't fetch existing config if this is a new section
     if (isNewSection) return;
@@ -69,7 +84,11 @@ export default function GallerySettingsPage() {
       const data = await response.json();
 
       if (data.success && data.data) {
-        setConfig(data.data);
+        setConfig({
+          ...DEFAULT_GALLERY_CONFIG,
+          ...sectionStyleDefaults,
+          ...data.data,
+        });
       }
     } catch (error) {
       console.error('Error fetching gallery config:', error);
@@ -266,6 +285,14 @@ export default function GallerySettingsPage() {
     setConfig({ ...config, images: newImages });
   };
 
+  useEffect(() => {
+    setConfig((prev) => ({
+      ...DEFAULT_GALLERY_CONFIG,
+      ...sectionStyleDefaults,
+      ...prev,
+    }));
+  }, [sectionStyleDefaults]);
+
   return (
     <DashboardLayout>
       {restaurantId && restaurantName ? (
@@ -428,6 +455,17 @@ export default function GallerySettingsPage() {
                         style={{ height: '50px', cursor: 'pointer' }}
                       />
                     </div>
+                  </div>
+
+                  <div className={styles.section}>
+                    <h3 className={styles.sectionTitle}>
+                      <span className={styles.sectionIcon}>Aa</span>
+                      Typography & Buttons
+                    </h3>
+                    <SectionTypographyControls
+                      value={config}
+                      onChange={(updates) => setConfig({ ...config, ...updates })}
+                    />
                   </div>
 
                   {/* Images */}

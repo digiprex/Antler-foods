@@ -7,6 +7,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { SectionStyleConfig } from '@/types/section-style.types';
+import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
+import {
+  getSectionTypographyStyles,
+  getSelectedGlobalButtonStyle,
+  getButtonInlineStyle,
+} from '@/lib/section-style';
 
 interface FormField {
   field_id: string;
@@ -18,7 +25,7 @@ interface FormField {
   options?: string[];
 }
 
-interface FormConfig {
+interface FormConfig extends SectionStyleConfig {
   isEnabled?: boolean;
   form_id?: string;
   title?: string;
@@ -56,6 +63,13 @@ export default function DynamicForm({
   const [config, setConfig] = useState<FormConfig | null>(configData || null);
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(!configData);
+  const globalStyleEndpoint = restaurantId
+    ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`
+    : '/api/global-style-config';
+  const { config: globalStyles } = useGlobalStyleConfig({
+    apiEndpoint: globalStyleEndpoint,
+    fetchOnMount: Boolean(restaurantId),
+  });
 
   useEffect(() => {
     // If configData is provided, use it directly
@@ -166,6 +180,13 @@ export default function DynamicForm({
     buttonText = 'Submit',
     imageUrl
   } = displayConfig;
+  const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
+    displayConfig,
+    globalStyles,
+  );
+  const buttonStyle = getButtonInlineStyle(
+    getSelectedGlobalButtonStyle(displayConfig, globalStyles),
+  );
 
   const renderFormFields = () => {
     if (!displayForm || !displayForm.fields) {
@@ -187,7 +208,8 @@ export default function DynamicForm({
               fontSize: '14px',
               fontWeight: '500',
               color: textColor,
-              marginBottom: '4px'
+              marginBottom: '4px',
+              ...subtitleStyle,
             }}>
               {field.label} {field.required && <span style={{ color: '#ef4444' }}>*</span>}
             </label>
@@ -252,15 +274,17 @@ export default function DynamicForm({
 
         <button
           style={{
-            backgroundColor: buttonColor,
-            color: '#ffffff',
+            backgroundColor: buttonStyle.backgroundColor || buttonColor,
+            color: buttonStyle.color || '#ffffff',
             padding: '12px 24px',
-            border: 'none',
+            border: buttonStyle.border || 'none',
             borderRadius: '6px',
             fontSize: '14px',
             fontWeight: '500',
+            fontFamily: buttonStyle.fontFamily,
             cursor: 'not-allowed',
-            opacity: 0.7
+            opacity: 0.7,
+            ...buttonStyle,
           }}
           disabled
         >
@@ -274,7 +298,8 @@ export default function DynamicForm({
     backgroundColor,
     color: textColor,
     padding: '40px 20px',
-    borderRadius: '8px'
+    borderRadius: '8px',
+    ...bodyStyle,
   };
 
   // Add preview indicator if using sample data or if disabled
@@ -301,8 +326,8 @@ export default function DynamicForm({
         )}
         <div style={{ display: 'flex', gap: '40px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ flex: '1', minWidth: '300px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px', color: textColor }}>{title}</h2>
-            <p style={{ fontSize: '16px', marginBottom: '24px', color: textColor, opacity: 0.8 }}>{description}</p>
+            <h2 style={{ marginBottom: '8px', color: textColor, ...titleStyle }}>{title}</h2>
+            <p style={{ marginBottom: '24px', color: textColor, opacity: 0.8, ...subtitleStyle }}>{description}</p>
             {renderFormFields()}
           </div>
           <div style={{ flex: '1', minWidth: '300px' }}>
@@ -339,8 +364,8 @@ export default function DynamicForm({
         </div>
       )}
       <div style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px', color: textColor }}>{title}</h2>
-        <p style={{ fontSize: '16px', marginBottom: '24px', color: textColor, opacity: 0.8 }}>{description}</p>
+        <h2 style={{ marginBottom: '8px', color: textColor, ...titleStyle }}>{title}</h2>
+        <p style={{ marginBottom: '24px', color: textColor, opacity: 0.8, ...subtitleStyle }}>{description}</p>
         <div style={{ textAlign: 'left' }}>
           {renderFormFields()}
         </div>

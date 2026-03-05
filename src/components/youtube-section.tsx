@@ -9,6 +9,8 @@
 
 import React, { useEffect, useState } from 'react';
 import type { YouTubeConfig } from '@/types/youtube.types';
+import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
+import { getSectionTypographyStyles } from '@/lib/section-style';
 
 interface YouTubeSectionProps {
   restaurantId: string;
@@ -19,6 +21,11 @@ interface YouTubeSectionProps {
 
 export default function YouTubeSection({ restaurantId, pageId, templateId, configData }: YouTubeSectionProps): JSX.Element | null {
   const [config, setConfig] = useState<YouTubeConfig | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { config: globalStyles } = useGlobalStyleConfig({
+    apiEndpoint: `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`,
+    fetchOnMount: Boolean(restaurantId),
+  });
   const [isLoading, setIsLoading] = useState(!configData);
 
   useEffect(() => {
@@ -152,6 +159,10 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
 
   const renderContent = () => {
     if (!config) return null;
+    const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
+      config,
+      globalStyles,
+    );
 
     const layout = config.layout || 'default';
 
@@ -162,12 +173,12 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
           {config.showTitle !== false && (config.title || config.description) && (
             <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
               {config.title && (
-                <h2 style={{ fontSize: '2.5rem', fontWeight: '700', color: config.textColor || '#ffffff', marginBottom: '1rem' }}>
+                <h2 style={{ color: config.textColor || '#ffffff', marginBottom: '1rem', ...titleStyle }}>
                   {config.title}
                 </h2>
               )}
               {config.description && (
-                <p style={{ fontSize: '1.25rem', color: config.textColor || '#ffffff', opacity: 0.9, maxWidth: '800px', margin: '0 auto' }}>
+                <p style={{ color: config.textColor || '#ffffff', opacity: 0.9, maxWidth: '800px', margin: '0 auto', ...bodyStyle }}>
                   {config.description}
                 </p>
               )}
@@ -185,12 +196,12 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
           {config.showTitle !== false && (config.title || config.description) && (
             <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
               {config.title && (
-                <h2 style={{ fontSize: '2.5rem', fontWeight: '700', color: config.textColor || '#ffffff', marginBottom: '1rem' }}>
+                <h2 style={{ color: config.textColor || '#ffffff', marginBottom: '1rem', ...titleStyle }}>
                   {config.title}
                 </h2>
               )}
               {config.description && (
-                <p style={{ fontSize: '1.25rem', color: config.textColor || '#ffffff', opacity: 0.9 }}>
+                <p style={{ color: config.textColor || '#ffffff', opacity: 0.9, ...bodyStyle }}>
                   {config.description}
                 </p>
               )}
@@ -210,12 +221,12 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
             {config.showTitle !== false && (config.title || config.description) && (
               <div>
                 {config.title && (
-                  <h2 style={{ fontSize: '2.5rem', fontWeight: '700', color: config.textColor || '#ffffff', marginBottom: '1.5rem' }}>
+                  <h2 style={{ color: config.textColor || '#ffffff', marginBottom: '1.5rem', ...titleStyle }}>
                     {config.title}
                   </h2>
                 )}
                 {config.description && (
-                  <p style={{ fontSize: '1.125rem', lineHeight: '1.75', color: config.textColor || '#ffffff', opacity: 0.9 }}>
+                  <p style={{ lineHeight: '1.75', color: config.textColor || '#ffffff', opacity: 0.9, ...bodyStyle }}>
                     {config.description}
                   </p>
                 )}
@@ -234,12 +245,12 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
             {config.showTitle !== false && (config.title || config.description) && (
               <div>
                 {config.title && (
-                  <h2 style={{ fontSize: '2.5rem', fontWeight: '700', color: config.textColor || '#ffffff', marginBottom: '1.5rem' }}>
+                  <h2 style={{ color: config.textColor || '#ffffff', marginBottom: '1.5rem', ...titleStyle }}>
                     {config.title}
                   </h2>
                 )}
                 {config.description && (
-                  <p style={{ fontSize: '1.125rem', lineHeight: '1.75', color: config.textColor || '#ffffff', opacity: 0.9 }}>
+                  <p style={{ lineHeight: '1.75', color: config.textColor || '#ffffff', opacity: 0.9, ...bodyStyle }}>
                     {config.description}
                   </p>
                 )}
@@ -261,12 +272,12 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
           {config.showTitle !== false && (config.title || config.description) && (
             <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: '2rem', maxWidth: '800px' }}>
               {config.title && (
-                <h2 style={{ fontSize: '3rem', fontWeight: '700', color: config.textColor || '#ffffff', marginBottom: '1.5rem', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+                <h2 style={{ color: config.textColor || '#ffffff', marginBottom: '1.5rem', textShadow: '0 2px 10px rgba(0,0,0,0.5)', ...titleStyle }}>
                   {config.title}
                 </h2>
               )}
               {config.description && (
-                <p style={{ fontSize: '1.5rem', color: config.textColor || '#ffffff', opacity: 0.9, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+                <p style={{ color: config.textColor || '#ffffff', opacity: 0.9, textShadow: '0 2px 10px rgba(0,0,0,0.5)', ...subtitleStyle }}>
                   {config.description}
                 </p>
               )}
@@ -283,12 +294,12 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
           {config.showTitle !== false && (config.title || config.description) && (
             <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
               {config.title && (
-                <h2 style={{ fontSize: '2.5rem', fontWeight: '700', color: config.textColor || '#ffffff', marginBottom: '1rem' }}>
+                <h2 style={{ color: config.textColor || '#ffffff', marginBottom: '1rem', ...titleStyle }}>
                   {config.title}
                 </h2>
               )}
               {config.description && (
-                <p style={{ fontSize: '1.25rem', color: config.textColor || '#ffffff', opacity: 0.9 }}>
+                <p style={{ color: config.textColor || '#ffffff', opacity: 0.9, ...bodyStyle }}>
                   {config.description}
                 </p>
               )}

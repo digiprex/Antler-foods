@@ -16,6 +16,9 @@ import { useSearchParams } from 'next/navigation';
 import { useScrollingTextConfig, useUpdateScrollingTextConfig } from '@/hooks/use-scrolling-text-config';
 import type { ScrollingTextConfig } from '@/types/scrolling-text.types';
 import { SCROLL_SPEEDS } from '@/types/scrolling-text.types';
+import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
+import type { SectionStyleConfig } from '@/types/section-style.types';
+import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import Toast from '@/components/ui/toast';
 import styles from './announcement-bar-settings-form.module.css'; // Reuse existing styles
 
@@ -26,6 +29,7 @@ export default function ScrollingTextSettingsForm() {
   const pageIdFromQuery = searchParams.get('page_id')?.trim() ?? '';
   const restaurantId = restaurantIdFromQuery || '';
   const pageId = pageIdFromQuery || '';
+  const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
   
   // Check if this is a new section being created or editing existing
   const isNewSection = searchParams.get('new_section') === 'true';
@@ -66,6 +70,9 @@ export default function ScrollingTextSettingsForm() {
   const [bgColor, setBgColor] = useState('#000000');
   const [textColor, setTextColor] = useState('#ffffff');
   const [scrollSpeed, setScrollSpeed] = useState<'slow' | 'medium' | 'fast'>('medium');
+  const [sectionStyle, setSectionStyle] = useState<SectionStyleConfig>(
+    sectionStyleDefaults,
+  );
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -83,8 +90,20 @@ export default function ScrollingTextSettingsForm() {
       setBgColor(config.bgColor || '#000000');
       setTextColor(config.textColor || '#ffffff');
       setScrollSpeed(config.scrollSpeed || 'medium');
+      setSectionStyle((prev) => ({
+        ...sectionStyleDefaults,
+        ...prev,
+        ...config,
+      }));
     }
-  }, [config, isNewSection]);
+  }, [config, isNewSection, sectionStyleDefaults]);
+
+  useEffect(() => {
+    setSectionStyle((prev) => ({
+      ...sectionStyleDefaults,
+      ...prev,
+    }));
+  }, [sectionStyleDefaults]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,6 +125,7 @@ export default function ScrollingTextSettingsForm() {
         bgColor,
         textColor,
         scrollSpeed,
+        ...sectionStyle,
       });
 
       setToastMessage(isNewSection ? 'Scrolling text section created successfully!' : 'Scrolling text settings saved successfully!');
@@ -386,6 +406,19 @@ export default function ScrollingTextSettingsForm() {
                   <option value="fast">Fast</option>
                 </select>
               </div>
+            </div>
+
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}>Aa</span>
+                Typography & Buttons
+              </h3>
+              <SectionTypographyControls
+                value={sectionStyle}
+                onChange={(updates) =>
+                  setSectionStyle((prev) => ({ ...prev, ...updates }))
+                }
+              />
             </div>
 
             {/* Save Button */}

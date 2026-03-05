@@ -7,8 +7,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { SectionStyleConfig } from '@/types/section-style.types';
+import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
+import { getSectionTypographyStyles } from '@/lib/section-style';
 
-interface ScrollingTextConfig {
+interface ScrollingTextConfig extends SectionStyleConfig {
   isEnabled?: boolean;
   text?: string;
   bgColor?: string;
@@ -34,6 +37,13 @@ export default function DynamicScrollingText({
   const [config, setConfig] = useState<ScrollingTextConfig | null>(configData || null);
   const [loading, setLoading] = useState(!configData);
   const [error, setError] = useState<string | null>(null);
+  const globalStyleEndpoint = restaurantId
+    ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`
+    : '/api/global-style-config';
+  const { config: globalStyles } = useGlobalStyleConfig({
+    apiEndpoint: globalStyleEndpoint,
+    fetchOnMount: Boolean(restaurantId),
+  });
 
   useEffect(() => {
     // If configData is provided, use it directly
@@ -122,6 +132,8 @@ export default function DynamicScrollingText({
     }
   };
 
+  const { bodyStyle } = getSectionTypographyStyles(config, globalStyles);
+
   return (
     <div
       style={{
@@ -130,7 +142,8 @@ export default function DynamicScrollingText({
         padding: '12px 0',
         overflow: 'hidden',
         whiteSpace: 'nowrap',
-        position: 'relative'
+        position: 'relative',
+        ...bodyStyle,
       }}
     >
       <div

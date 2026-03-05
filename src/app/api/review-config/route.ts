@@ -8,6 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { ReviewConfig, ReviewConfigResponse } from '@/types/review.types';
 import { DEFAULT_REVIEW_CONFIG } from '@/types/review.types';
+import type { GlobalStyleConfig } from '@/types/global-style.types';
+import { DEFAULT_GLOBAL_STYLE_CONFIG } from '@/types/global-style.types';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
 /**
@@ -59,6 +61,14 @@ const GET_REVIEW_CONFIG_BY_TEMPLATE = `
       template_id
       updated_at
       page_id
+    }
+  }
+`;
+
+const GET_RESTAURANT_GLOBAL_STYLES = `
+  query GetRestaurantGlobalStyles($restaurant_id: uuid!) {
+    restaurants_by_pk(restaurant_id: $restaurant_id) {
+      global_styles
     }
   }
 `;
@@ -117,6 +127,105 @@ async function graphqlRequest<T>(
   return adminGraphqlRequest<T>(query, variables);
 }
 
+function parseGlobalStyles(rawGlobalStyles: unknown): GlobalStyleConfig | null {
+  if (!rawGlobalStyles) {
+    return null;
+  }
+
+  if (typeof rawGlobalStyles === 'string') {
+    try {
+      return JSON.parse(rawGlobalStyles) as GlobalStyleConfig;
+    } catch (error) {
+      console.warn('[Review Config] Failed to parse global_styles JSON:', error);
+      return null;
+    }
+  }
+
+  if (typeof rawGlobalStyles === 'object') {
+    return rawGlobalStyles as GlobalStyleConfig;
+  }
+
+  return null;
+}
+
+function toFontWeight(value: unknown, fallback: number): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+}
+
+function toStringValue(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim() ? value : fallback;
+}
+
+function getTypographyDefaults(globalStyles: GlobalStyleConfig | null) {
+  const mergedGlobalStyles: GlobalStyleConfig = {
+    ...DEFAULT_GLOBAL_STYLE_CONFIG,
+    ...(globalStyles || {}),
+    title: {
+      ...DEFAULT_GLOBAL_STYLE_CONFIG.title,
+      ...(globalStyles?.title || {}),
+    },
+    subheading: {
+      ...DEFAULT_GLOBAL_STYLE_CONFIG.subheading,
+      ...(globalStyles?.subheading || {}),
+    },
+    paragraph: {
+      ...DEFAULT_GLOBAL_STYLE_CONFIG.paragraph,
+      ...(globalStyles?.paragraph || {}),
+    },
+  };
+
+  return {
+    titleFontFamily: mergedGlobalStyles.title?.fontFamily || 'Inter, system-ui, sans-serif',
+    titleFontSize: mergedGlobalStyles.title?.fontSize || '2.25rem',
+    titleFontWeight: mergedGlobalStyles.title?.fontWeight || 700,
+    titleColor: mergedGlobalStyles.title?.color || '#111827',
+    subtitleFontFamily: mergedGlobalStyles.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
+    subtitleFontSize: mergedGlobalStyles.subheading?.fontSize || '1.5rem',
+    subtitleFontWeight: mergedGlobalStyles.subheading?.fontWeight || 600,
+    subtitleColor: mergedGlobalStyles.subheading?.color || '#374151',
+    bodyFontFamily: mergedGlobalStyles.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
+    bodyFontSize: mergedGlobalStyles.paragraph?.fontSize || '1rem',
+    bodyFontWeight: mergedGlobalStyles.paragraph?.fontWeight || 400,
+    bodyColor: mergedGlobalStyles.paragraph?.color || '#6b7280',
+  };
+}
+
+function buildTypographyConfig(
+  sourceConfig: Record<string, unknown>,
+  typographyDefaults: ReturnType<typeof getTypographyDefaults>,
+  isCustom: boolean,
+) {
+  if (!isCustom) {
+    return typographyDefaults;
+  }
+
+  return {
+    titleFontFamily: toStringValue(sourceConfig.titleFontFamily, typographyDefaults.titleFontFamily),
+    titleFontSize: toStringValue(sourceConfig.titleFontSize, typographyDefaults.titleFontSize),
+    titleFontWeight: toFontWeight(sourceConfig.titleFontWeight, typographyDefaults.titleFontWeight),
+    titleColor: toStringValue(sourceConfig.titleColor, typographyDefaults.titleColor),
+    subtitleFontFamily: toStringValue(sourceConfig.subtitleFontFamily, typographyDefaults.subtitleFontFamily),
+    subtitleFontSize: toStringValue(sourceConfig.subtitleFontSize, typographyDefaults.subtitleFontSize),
+    subtitleFontWeight: toFontWeight(sourceConfig.subtitleFontWeight, typographyDefaults.subtitleFontWeight),
+    subtitleColor: toStringValue(sourceConfig.subtitleColor, typographyDefaults.subtitleColor),
+    bodyFontFamily: toStringValue(sourceConfig.bodyFontFamily, typographyDefaults.bodyFontFamily),
+    bodyFontSize: toStringValue(sourceConfig.bodyFontSize, typographyDefaults.bodyFontSize),
+    bodyFontWeight: toFontWeight(sourceConfig.bodyFontWeight, typographyDefaults.bodyFontWeight),
+    bodyColor: toStringValue(sourceConfig.bodyColor, typographyDefaults.bodyColor),
+  };
+}
+
 /**
  * GET endpoint to fetch review configuration
  */
@@ -127,7 +236,8 @@ export async function GET(request: NextRequest) {
     const domain = searchParams.get('domain') || request.headers.get('host');
     const urlSlug = searchParams.get('url_slug');
     let pageId = searchParams.get('page_id');
-    let templateId = searchParams.get('template_id') || null;
+    const templateId = searchParams.get('template_id') || null;
+    const isNewSection = searchParams.get('new_section') === 'true';
 
     // If domain is provided but no restaurantId, fetch restaurantId from domain
     if (domain && !searchParams.get('restaurant_id')) {
@@ -167,6 +277,13 @@ export async function GET(request: NextRequest) {
       };
       return NextResponse.json(errorResponse, { status: 400 });
     }
+
+    const globalStylesResult = await graphqlRequest<{
+      restaurants_by_pk: { global_styles: unknown } | null;
+    }>(GET_RESTAURANT_GLOBAL_STYLES, { restaurant_id: restaurantId });
+
+    const globalStyles = parseGlobalStyles(globalStylesResult?.restaurants_by_pk?.global_styles);
+    const typographyDefaults = getTypographyDefaults(globalStyles);
 
     // If url_slug is provided, fetch page_id from web_pages table
     if (urlSlug && !pageId) {
@@ -242,20 +359,48 @@ export async function GET(request: NextRequest) {
       data = await graphqlRequest(GET_REVIEW_CONFIG, { restaurant_id: restaurantId });
     }
 
+    if (isNewSection && !templateId) {
+      const response: ReviewConfigResponse = {
+        success: true,
+        data: {
+          ...DEFAULT_REVIEW_CONFIG,
+          ...typographyDefaults,
+          is_custom: false,
+          restaurant_id: restaurantId,
+          page_id: pageId || null,
+        },
+      };
+      return NextResponse.json(response);
+    }
+
     if (!(data as any).templates || (data as any).templates.length === 0) {
       const response: ReviewConfigResponse = {
         success: true,
-        data: DEFAULT_REVIEW_CONFIG,
+        data: {
+          ...DEFAULT_REVIEW_CONFIG,
+          ...typographyDefaults,
+          is_custom: false,
+          restaurant_id: restaurantId,
+          page_id: pageId || null,
+        },
       };
       return NextResponse.json(response);
     }
 
     const template = data.templates[0];
+    const templateConfig = (template.config || {}) as Record<string, unknown>;
+    const isCustom = templateConfig.is_custom === true;
+    const typographyConfig = buildTypographyConfig(templateConfig, typographyDefaults, isCustom);
+
     const config: ReviewConfig = {
       ...DEFAULT_REVIEW_CONFIG,
-      ...template.config,
+      ...(templateConfig as Partial<ReviewConfig>),
+      ...typographyConfig,
+      is_custom: isCustom,
       layout: template.name as any,
       restaurant_id: restaurantId,
+      template_id: template.template_id,
+      page_id: template.page_id ?? pageId ?? null,
     };
 
     const response: ReviewConfigResponse = {
@@ -289,6 +434,12 @@ export async function POST(request: NextRequest) {
       throw new Error('restaurant_id is required');
     }
 
+    const globalStylesResult = await graphqlRequest<{
+      restaurants_by_pk: { global_styles: unknown } | null;
+    }>(GET_RESTAURANT_GLOBAL_STYLES, { restaurant_id: restaurantId });
+    const globalStyles = parseGlobalStyles(globalStylesResult?.restaurants_by_pk?.global_styles);
+    const typographyDefaults = getTypographyDefaults(globalStyles);
+
     // Check if this is editing an existing template or creating a new one
     const templateId = body.template_id || null;
     const pageId = body.page_id || null;
@@ -302,10 +453,20 @@ export async function POST(request: NextRequest) {
     // If no template_id, this is a new section - don't delete any existing templates
 
     // Prepare review configuration
-    const { restaurant_id, layout, page_id: _pageId, ...configData } = body;
+    const payload = body as Record<string, unknown>;
+    const layout = payload.layout;
+    const configData = { ...payload };
+    delete configData.restaurant_id;
+    delete configData.page_id;
+    delete configData.template_id;
+    delete configData.layout;
+    const isCustom = configData.is_custom === true;
+    const typographyConfig = buildTypographyConfig(configData, typographyDefaults, isCustom);
     const name = layout || 'grid';
     const config = {
       ...configData,
+      ...typographyConfig,
+      is_custom: isCustom,
       restaurant_id: restaurantId,
     };
 
@@ -324,10 +485,19 @@ export async function POST(request: NextRequest) {
     }
 
     const template = (insertedData as any).insert_templates_one;
+    const insertedTemplateConfig = (template.config || {}) as Record<string, unknown>;
+    const insertedIsCustom = insertedTemplateConfig.is_custom === true;
+    const insertedTypographyConfig = buildTypographyConfig(insertedTemplateConfig, typographyDefaults, insertedIsCustom);
+
     const responseConfig: ReviewConfig = {
-      ...template.config,
+      ...DEFAULT_REVIEW_CONFIG,
+      ...(insertedTemplateConfig as Partial<ReviewConfig>),
+      ...insertedTypographyConfig,
+      is_custom: insertedIsCustom,
       layout: template.name as any,
       restaurant_id: restaurantId,
+      template_id: template.template_id,
+      page_id: template.page_id ?? pageId ?? null,
     };
 
     const response: ReviewConfigResponse = {

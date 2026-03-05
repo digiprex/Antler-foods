@@ -9,12 +9,19 @@
 import React from 'react';
 import type { MenuConfig } from '@/types/menu.types';
 import styles from './menu.module.css';
+import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
+import {
+  getSectionTypographyStyles,
+  getSelectedGlobalButtonStyle,
+  getButtonInlineStyle,
+} from '@/lib/section-style';
 
 interface MenuProps extends Partial<MenuConfig> {
   className?: string;
 }
 
 export default function Menu({
+  restaurant_id,
   title = 'Our Menu',
   subtitle,
   description,
@@ -31,10 +38,56 @@ export default function Menu({
   showDietaryInfo = false,
   textAlign = 'center',
   className,
+  is_custom,
+  buttonStyleVariant,
+  titleFontFamily,
+  titleFontSize,
+  titleFontWeight,
+  titleColor,
+  subtitleFontFamily,
+  subtitleFontSize,
+  subtitleFontWeight,
+  subtitleColor,
+  bodyFontFamily,
+  bodyFontSize,
+  bodyFontWeight,
+  bodyColor,
 }: MenuProps) {
+  const globalStyleEndpoint = restaurant_id
+    ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurant_id)}`
+    : '/api/global-style-config';
+  const { config: globalStyles } = useGlobalStyleConfig({
+    apiEndpoint: globalStyleEndpoint,
+    fetchOnMount: Boolean(restaurant_id),
+  });
+  const sectionStyleConfig = {
+    is_custom,
+    buttonStyleVariant,
+    titleFontFamily,
+    titleFontSize,
+    titleFontWeight,
+    titleColor,
+    subtitleFontFamily,
+    subtitleFontSize,
+    subtitleFontWeight,
+    subtitleColor,
+    bodyFontFamily,
+    bodyFontSize,
+    bodyFontWeight,
+    bodyColor,
+  };
+  const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
+    sectionStyleConfig,
+    globalStyles,
+  );
+  const ctaButtonStyle = getButtonInlineStyle(
+    getSelectedGlobalButtonStyle(sectionStyleConfig, globalStyles),
+  );
+
   const containerStyle = {
     backgroundColor: bgColor,
     color: textColor,
+    ...bodyStyle,
   };
 
   const renderMenuItem = (item: any, index: number) => (
@@ -102,17 +155,17 @@ export default function Menu({
         {/* Header */}
         <div className={styles.menuHeader} style={{ textAlign }}>
           {title && (
-            <h2 className={styles.menuTitle} style={{ color: textColor }}>
+            <h2 className={styles.menuTitle} style={{ color: textColor, ...titleStyle }}>
               {title}
             </h2>
           )}
           {subtitle && (
-            <p className={styles.menuSubtitle} style={{ color: textColor, opacity: 0.8 }}>
+            <p className={styles.menuSubtitle} style={{ color: textColor, opacity: 0.8, ...subtitleStyle }}>
               {subtitle}
             </p>
           )}
           {description && (
-            <p className={styles.menuDescription} style={{ color: textColor, opacity: 0.7 }}>
+            <p className={styles.menuDescription} style={{ color: textColor, opacity: 0.7, ...bodyStyle }}>
               {description}
             </p>
           )}
@@ -136,9 +189,13 @@ export default function Menu({
               href={ctaButton.href}
               className={styles.ctaButton}
               style={{
-                backgroundColor: ctaButton.bgColor || accentColor,
-                color: ctaButton.textColor || '#ffffff',
-                borderColor: ctaButton.borderColor || 'transparent',
+                ...ctaButtonStyle,
+                backgroundColor:
+                  ctaButtonStyle.backgroundColor ||
+                  ctaButton.bgColor ||
+                  accentColor,
+                color: ctaButtonStyle.color || ctaButton.textColor || '#ffffff',
+                borderColor: ctaButtonStyle.borderColor || ctaButton.borderColor || 'transparent',
               }}
             >
               {ctaButton.label}

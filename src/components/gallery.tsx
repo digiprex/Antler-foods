@@ -8,10 +8,13 @@
 
 import { useState } from 'react';
 import type { GalleryConfig, GalleryImage } from '@/types/gallery.types';
+import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
+import { getSectionTypographyStyles } from '@/lib/section-style';
 
 interface GalleryProps extends Partial<GalleryConfig> {}
 
 export default function Gallery({
+  restaurant_id,
   title = 'Our Gallery',
   subtitle,
   description,
@@ -26,9 +29,47 @@ export default function Gallery({
   maxWidth = '1200px',
   showCaptions = true,
   enableLightbox = true,
+  is_custom,
+  titleFontFamily,
+  titleFontSize,
+  titleFontWeight,
+  titleColor,
+  subtitleFontFamily,
+  subtitleFontSize,
+  subtitleFontWeight,
+  subtitleColor,
+  bodyFontFamily,
+  bodyFontSize,
+  bodyFontWeight,
+  bodyColor,
 }: GalleryProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const globalStyleEndpoint = restaurant_id
+    ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurant_id)}`
+    : '/api/global-style-config';
+  const { config: globalStyles } = useGlobalStyleConfig({
+    apiEndpoint: globalStyleEndpoint,
+    fetchOnMount: Boolean(restaurant_id),
+  });
+  const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
+    {
+      is_custom,
+      titleFontFamily,
+      titleFontSize,
+      titleFontWeight,
+      titleColor,
+      subtitleFontFamily,
+      subtitleFontSize,
+      subtitleFontWeight,
+      subtitleColor,
+      bodyFontFamily,
+      bodyFontSize,
+      bodyFontWeight,
+      bodyColor,
+    },
+    globalStyles,
+  );
 
   if (images.length === 0) {
     return null;
@@ -68,23 +109,23 @@ export default function Gallery({
   };
 
   return (
-    <section style={{ backgroundColor: bgColor, color: textColor, padding }}>
+    <section style={{ backgroundColor: bgColor, color: textColor, padding, ...bodyStyle }}>
       <div style={{ maxWidth, margin: '0 auto' }}>
         {/* Header */}
         {(title || subtitle || description) && (
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             {subtitle && (
-              <p style={{ fontSize: '0.875rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', opacity: 0.7 }}>
+              <p style={{ textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', opacity: 0.7, ...subtitleStyle }}>
                 {subtitle}
               </p>
             )}
             {title && (
-              <h2 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+              <h2 style={{ marginBottom: '1rem', ...titleStyle }}>
                 {title}
               </h2>
             )}
             {description && (
-              <p style={{ fontSize: '1.125rem', opacity: 0.8, maxWidth: '800px', margin: '0 auto' }}>
+              <p style={{ opacity: 0.8, maxWidth: '800px', margin: '0 auto', ...bodyStyle }}>
                 {description}
               </p>
             )}

@@ -14,6 +14,9 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Toast from '@/components/ui/toast';
+import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
+import type { SectionStyleConfig } from '@/types/section-style.types';
+import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import styles from './hero-settings-form.module.css';
 import galleryStyles from './gallery-settings-form.module.css';
 
@@ -25,7 +28,7 @@ interface Form {
   created_at: string;
 }
 
-interface FormSettingsConfig {
+interface FormSettingsConfig extends SectionStyleConfig {
   form_id: string;
   layout: string;
   title: string;
@@ -46,6 +49,7 @@ interface FormSettingsFormProps {
 
 export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsFormProps) {
   const searchParams = useSearchParams();
+  const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
 
   // Check if this is a new section being created or editing existing
   const isNewSection = searchParams.get('new_section') === 'true';
@@ -72,6 +76,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
     showImage: false,
     imagePosition: 'right',
     isEnabled: true,
+    ...sectionStyleDefaults,
   });
 
   // Preview visibility state
@@ -195,10 +200,11 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
         const data = await response.json();
 
         if (data.success && data.data) {
-          setConfig({
-            ...config,
+          setConfig((prev) => ({
+            ...sectionStyleDefaults,
+            ...prev,
             ...data.data,
-          });
+          }));
         }
       } catch (error) {
         console.error('Error loading form settings:', error);
@@ -209,7 +215,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
       fetchConfig();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restaurantId, pageId, templateId, isNewSection]);
+  }, [restaurantId, pageId, templateId, isNewSection, sectionStyleDefaults]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -257,6 +263,13 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
   const updateConfig = (updates: Partial<FormSettingsConfig>) => {
     setConfig((prev) => ({ ...prev, ...updates }));
   };
+
+  useEffect(() => {
+    setConfig((prev) => ({
+      ...sectionStyleDefaults,
+      ...prev,
+    }));
+  }, [sectionStyleDefaults]);
 
   // Handle image upload
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -805,6 +818,17 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                 </div>
               </>
             )}
+
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}>Aa</span>
+                Typography & Buttons
+              </h3>
+              <SectionTypographyControls
+                value={config}
+                onChange={(updates) => updateConfig(updates)}
+              />
+            </div>
 
             {/* Save Button */}
             <div className={styles.formActions}>

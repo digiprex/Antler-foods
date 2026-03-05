@@ -22,6 +22,25 @@
 import { NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+function pickSectionStyleConfig(source: Record<string, unknown>) {
+  return {
+    is_custom: source.is_custom === true,
+    buttonStyleVariant: source.buttonStyleVariant === 'secondary' ? 'secondary' : 'primary',
+    titleFontFamily: source.titleFontFamily ?? 'Inter, system-ui, sans-serif',
+    titleFontSize: source.titleFontSize ?? '2.25rem',
+    titleFontWeight: source.titleFontWeight ?? 700,
+    titleColor: source.titleColor ?? '#111827',
+    subtitleFontFamily: source.subtitleFontFamily ?? 'Inter, system-ui, sans-serif',
+    subtitleFontSize: source.subtitleFontSize ?? '1.5rem',
+    subtitleFontWeight: source.subtitleFontWeight ?? 600,
+    subtitleColor: source.subtitleColor ?? '#374151',
+    bodyFontFamily: source.bodyFontFamily ?? 'Inter, system-ui, sans-serif',
+    bodyFontSize: source.bodyFontSize ?? '1rem',
+    bodyFontWeight: source.bodyFontWeight ?? 400,
+    bodyColor: source.bodyColor ?? '#6b7280',
+  } as const;
+}
+
 // Restaurant ID must be provided dynamically via query parameters or domain lookup
 
 /**
@@ -328,6 +347,7 @@ export async function GET(request: Request) {
       title: template.config?.title || 'Frequently Asked Questions',
       subtitle: template.config?.subtitle || 'Find answers to common questions',
       faqs: template.menu_items || [], // FAQ items stored in menu_items
+      ...pickSectionStyleConfig((template.config || {}) as Record<string, unknown>),
     };
 
     const response = {
@@ -406,6 +426,7 @@ export async function POST(request: Request) {
       textColor: body.textColor,
       title: body.title,
       subtitle: body.subtitle,
+      ...pickSectionStyleConfig(body as Record<string, unknown>),
     };
 
     // FAQ items go to menu_items field
@@ -435,6 +456,7 @@ export async function POST(request: Request) {
       title: template.config?.title,
       subtitle: template.config?.subtitle,
       faqs: template.menu_items,
+      ...pickSectionStyleConfig((template.config || {}) as Record<string, unknown>),
     };
 
     const response = {

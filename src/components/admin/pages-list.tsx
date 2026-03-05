@@ -155,9 +155,9 @@ export function PagesList({ restaurantId }: PagesListProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#667eea] mx-auto mb-4"></div>
-          <p className="text-[#556678] text-base">Loading pages...</p>
+        <div className="inline-flex items-center gap-3 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3.5">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
+          <p className="text-sm font-medium text-gray-700">Loading pages...</p>
         </div>
       </div>
     );
@@ -166,18 +166,21 @@ export function PagesList({ restaurantId }: PagesListProps) {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <div className="text-center max-w-md">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+            <svg className="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-[#111827] mb-2">Error Loading Pages</h2>
-          <p className="text-[#556678] max-w-md mb-6">{error}</p>
+          <h2 className="mb-2 text-xl font-bold text-gray-900">Error Loading Pages</h2>
+          <p className="mb-6 text-sm text-gray-600">{error}</p>
           <button
             onClick={loadPages}
-            className="rounded-xl bg-[#667eea] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5b21b6]"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-purple-700 hover:to-purple-800"
           >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
             Try Again
           </button>
         </div>
@@ -188,15 +191,25 @@ export function PagesList({ restaurantId }: PagesListProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[28px] font-semibold text-[#111827]">Pages</h1>
-          <p className="text-[#556678] mt-1">Manage your website pages</p>
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+            <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Pages</h1>
+            <p className="mt-0.5 text-sm text-gray-600">Manage your website pages</p>
+          </div>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="rounded-xl bg-[#667eea] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5b21b6] shadow-sm hover:shadow-md"
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-purple-700 hover:to-purple-800"
         >
-          + Create Page
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Create Page
         </button>
       </div>
 
@@ -229,168 +242,221 @@ export function PagesList({ restaurantId }: PagesListProps) {
 
       {/* Delete confirmation modal */}
       {confirmDeleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-          <div className="fixed inset-0" onClick={cancelDelete} />
-          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] z-50 animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-8">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-[#111827]">Confirm Delete</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
+          <div className="fixed inset-0 bg-black/50" onClick={cancelDelete} />
+          <div className="relative z-50 w-full max-w-md animate-in fade-in zoom-in-95 rounded-2xl border border-red-200 bg-white p-6 shadow-2xl duration-200">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-red-100">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
               </div>
-              <p className="text-sm text-[#556678] leading-relaxed">
-                Are you sure you want to delete this page? This action can be undone by restoring the record in the database.
-              </p>
-              <div className="mt-8 flex justify-end gap-3">
-                <button
-                  onClick={cancelDelete}
-                  className="rounded-xl border border-[#d2dee4] bg-white px-5 py-2.5 text-sm font-medium text-[#111827] transition hover:bg-[#f7fafc]"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
-                >
-                  Delete Page
-                </button>
-              </div>
+              <h3 className="text-xl font-bold text-gray-900">Confirm Delete</h3>
+            </div>
+            <p className="mt-4 text-sm leading-relaxed text-gray-600">
+              Are you sure you want to delete this page? This action can be undone by restoring the record in the database.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={cancelDelete}
+                className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+                Delete Page
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {pages.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="text-7xl mb-6">📄</div>
-          <h3 className="text-xl font-semibold text-[#111827] mb-2">No pages found</h3>
-          <p className="text-[#556678] mb-8">Create your first page to get started.</p>
+        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-purple-200 bg-purple-50/30 py-16">
+          <svg className="h-20 w-20 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+          </svg>
+          <h3 className="mt-4 text-xl font-bold text-gray-900">No pages found</h3>
+          <p className="mt-2 text-sm text-gray-600">Create your first page to get started.</p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="rounded-xl bg-[#667eea] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#5b21b6] shadow-sm hover:shadow-md"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-purple-700 hover:to-purple-800"
           >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
             Create Your First Page
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#d7e2e6] overflow-hidden shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-[#e5e7eb]">
-              <thead className="bg-[#f8fbfd]">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gradient-to-r from-purple-50 to-purple-100/50">
                 <tr>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-[#556678] uppercase tracking-wider">
+                  <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-gray-700">
                     Page
                   </th>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-[#556678] uppercase tracking-wider">
+                  <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-gray-700">
                     URL Slug
                   </th>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-[#556678] uppercase tracking-wider">
+                  <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-gray-700">
                     Status
                   </th>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-[#556678] uppercase tracking-wider">
+                  <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-gray-700">
                     Visibility
                   </th>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-[#556678] uppercase tracking-wider">
+                  <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-gray-700">
                     Updated
                   </th>
-                  <th className="px-6 py-3.5 text-right text-xs font-semibold text-[#556678] uppercase tracking-wider">
+                  <th className="px-6 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-gray-700">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-[#e5e7eb]">
+              <tbody className="divide-y divide-gray-100 bg-white">
                 {pages.map((page) => (
-                  <tr key={page.page_id} className="hover:bg-[#f9fafb] transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                  <tr key={page.page_id} className="transition-colors hover:bg-purple-50/50">
+                    <td className="whitespace-nowrap px-6 py-4">
                       <div>
-                        <div className="text-sm font-semibold text-[#111827]">
+                        <div className="text-sm font-semibold text-gray-900">
                           {page.name}
                         </div>
                         {page.meta_title && (
-                          <div className="text-sm text-[#6b7280] mt-0.5">
+                          <div className="mt-0.5 text-xs text-gray-600">
                             {page.meta_title}
                           </div>
                         )}
                         {page.is_system_page && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-[#ede9fe] text-[#667eea] mt-1">
-                            System Page
+                          <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">
+                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                            </svg>
+                            System
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <code className="text-sm text-[#556678] bg-[#f3f4f6] px-2.5 py-1 rounded-md font-mono">
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <code className="rounded-lg bg-gray-100 px-2.5 py-1 font-mono text-xs text-gray-700">
                         /{page.url_slug}
                       </code>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="whitespace-nowrap px-6 py-4">
                       <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
                           page.published
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-amber-50 text-amber-700'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-amber-100 text-amber-700'
                         }`}
                       >
-                        {page.published ? 'Published' : 'Draft'}
+                        {page.published ? (
+                          <>
+                            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                            </svg>
+                            Published
+                          </>
+                        ) : (
+                          <>
+                            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+                            </svg>
+                            Draft
+                          </>
+                        )}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex gap-2">
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <div className="flex gap-1.5">
                         {page.show_on_navbar && (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-[#f3f4f6] text-[#374151]">
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-purple-100 px-2 py-1 text-xs font-semibold text-purple-700">
+                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                            </svg>
                             Navbar
                           </span>
                         )}
                         {page.show_on_footer && (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-[#f3f4f6] text-[#374151]">
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700">
+                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 5.25l-7.5 7.5-7.5-7.5m15 6l-7.5 7.5-7.5-7.5" />
+                            </svg>
                             Footer
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6b7280]">
-                      {new Date(page.updated_at).toLocaleDateString()}
+                    <td className="whitespace-nowrap px-6 py-4 text-xs text-gray-600">
+                      {new Date(page.updated_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-3">
+                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => togglePublish(page.page_id, page.published)}
                           disabled={updatingPublishId === page.page_id}
-                          className={`font-medium transition disabled:opacity-50 ${
+                          className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition disabled:cursor-not-allowed disabled:opacity-60 ${
                             page.published
-                              ? 'text-amber-600 hover:text-amber-700'
-                              : 'text-emerald-600 hover:text-emerald-700'
+                              ? 'border-amber-200 text-amber-600 hover:bg-amber-50'
+                              : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
                           }`}
+                          title={page.published ? 'Unpublish' : 'Publish'}
                         >
-                          {updatingPublishId === page.page_id
-                            ? 'Updating...'
-                            : page.published
-                              ? 'Unpublish'
-                              : 'Publish'
-                          }
+                          {updatingPublishId === page.page_id ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                          ) : page.published ? (
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                            </svg>
+                          ) : (
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          )}
                         </button>
                         <button
                           onClick={() => handleEdit(page)}
-                          className="text-[#667eea] hover:text-[#5b21b6] font-medium transition"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-purple-200 text-purple-600 transition hover:bg-purple-50"
+                          title="Edit page"
                         >
-                          Edit
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                          </svg>
                         </button>
                         <button
                           onClick={() => handleView(page)}
-                          className="text-[#6b7280] hover:text-[#111827] font-medium transition"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-600 transition hover:bg-gray-50"
+                          title="View page"
                         >
-                          View
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                          </svg>
                         </button>
                         {!page.is_system_page && (
                           <button
                             onClick={() => handleDelete(page.page_id)}
                             disabled={deletingId === page.page_id}
-                            className="text-red-600 hover:text-red-700 font-medium transition disabled:opacity-50"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            title="Delete page"
                           >
-                            {deletingId === page.page_id ? 'Deleting...' : 'Delete'}
+                            {deletingId === page.page_id ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                            ) : (
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                              </svg>
+                            )}
                           </button>
                         )}
                       </div>

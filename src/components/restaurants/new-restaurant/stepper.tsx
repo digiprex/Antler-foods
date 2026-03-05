@@ -19,43 +19,51 @@ export function Stepper({
   onStepSelect,
 }: StepperProps) {
   return (
-    <div className="flex flex-wrap items-center gap-3 md:gap-5">
+    <div className="flex flex-wrap items-center gap-4 md:gap-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       {STEPS.map((item, index) => {
         const isCompleted =
           item.step === 1 && currentStep > 1 && isStepOneComplete;
         const isActive = currentStep === item.step;
 
         return (
-          <div key={item.step} className="flex items-center gap-3">
+          <div key={item.step} className="flex items-center gap-4">
             <button
               type="button"
               onClick={() => onStepSelect(item.step)}
-              className="inline-flex items-center gap-3 rounded-lg px-1 py-0.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#667eea]"
+              className="group inline-flex items-center gap-3 rounded-xl px-2 py-1 text-left transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
             >
               <StepCircle
                 step={item.step}
                 isCompleted={isCompleted}
                 isActive={isActive}
               />
-              <span
-                className={
-                  isCompleted || isActive
-                    ? 'text-[17px] font-medium text-[#111827]'
-                    : 'text-[17px] text-[#78838d]'
-                }
-              >
-                {item.label}
-              </span>
+              <div className="flex flex-col">
+                <span className="text-xs font-medium text-gray-500">
+                  Step {item.step}
+                </span>
+                <span
+                  className={
+                    isCompleted || isActive
+                      ? 'text-base font-semibold text-gray-900'
+                      : 'text-base font-medium text-gray-500'
+                  }
+                >
+                  {item.label}
+                </span>
+              </div>
             </button>
 
             {index < STEPS.length - 1 ? (
-              <div
-                className={`h-px w-16 md:w-20 ${
+              <div className="flex h-12 items-center">
+                <svg className={`h-5 w-8 ${
                   isConnectorActive(item.step, currentStep, isStepOneComplete)
-                    ? 'bg-[#8b9dff]'
-                    : 'bg-[#dde5e9]'
-                }`}
-              />
+                    ? 'text-purple-500'
+                    : 'text-gray-300'
+                }`} fill="none" viewBox="0 0 32 20" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22 10L32 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M26 6L30 10L26 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
             ) : null}
           </div>
         );
@@ -72,11 +80,11 @@ interface StepCircleProps {
 
 function StepCircle({ step, isCompleted, isActive }: StepCircleProps) {
   const baseStyles =
-    'inline-flex h-10 w-10 items-center justify-center rounded-full text-lg';
+    'inline-flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold shadow-sm transition-all';
 
   if (isCompleted) {
     return (
-      <span className={`${baseStyles} bg-[#ede9fe] text-[#667eea]`}>
+      <span className={`${baseStyles} bg-gradient-to-br from-purple-500 to-purple-600 text-white`}>
         <CheckIcon />
       </span>
     );
@@ -84,14 +92,14 @@ function StepCircle({ step, isCompleted, isActive }: StepCircleProps) {
 
   if (isActive) {
     return (
-      <span className={`${baseStyles} bg-[#667eea] font-semibold text-white`}>
+      <span className={`${baseStyles} bg-gradient-to-br from-purple-500 to-purple-600 text-white ring-4 ring-purple-100`}>
         {step}
       </span>
     );
   }
 
   return (
-    <span className={`${baseStyles} bg-[#eceef0] font-semibold text-[#626f79]`}>
+    <span className={`${baseStyles} bg-gray-100 text-gray-500 border-2 border-gray-200`}>
       {step}
     </span>
   );

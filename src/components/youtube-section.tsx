@@ -1,10 +1,3 @@
-/**
- * YouTube Section Component
- *
- * Displays a configurable YouTube video section based on settings from the database
- * Supports multiple layouts and customization options
- */
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -21,6 +14,7 @@ interface YouTubeSectionProps {
 
 export default function YouTubeSection({ restaurantId, pageId, templateId, configData }: YouTubeSectionProps): JSX.Element | null {
   const [config, setConfig] = useState<YouTubeConfig | null>((configData as YouTubeConfig) || null);
+
   const [isLoading, setIsLoading] = useState(!configData);
   const { config: globalStyles } = useGlobalStyleConfig({
     apiEndpoint: `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`,
@@ -54,9 +48,11 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
         console.log('[YouTube] Fetching by page_id:', pageId);
       } else {
         // Fallback to url_slug detection for backward compatibility
-        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+        const currentPath =
+          typeof window !== 'undefined' ? window.location.pathname : '';
         const pathSegments = currentPath.split('/').filter(Boolean);
-        const urlSlug = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : '';
+        const urlSlug =
+          pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : '';
 
         if (urlSlug && urlSlug !== restaurantId) {
           apiEndpoint += `&url_slug=${urlSlug}`;
@@ -67,7 +63,12 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
       const response = await fetch(apiEndpoint);
       const data = await response.json();
 
-      if (data.success && data.data && data.data.enabled && data.data.videoUrl) {
+      if (
+        data.success &&
+        data.data &&
+        data.data.enabled &&
+        data.data.videoUrl
+      ) {
         setConfig(data.data);
       }
     } catch (error) {
@@ -134,7 +135,8 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
           height: 0,
           overflow: 'hidden',
           borderRadius: '12px',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          boxShadow:
+            '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
         }}
       >
         <iframe
@@ -231,6 +233,47 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
                 )}
               </div>
             )}
+          {renderVideoEmbed()}
+        </div>
+      );
+    }
+
+    // Split Left - Video on left, content on right
+    if (layout === 'split-left') {
+      return (
+        <div
+          style={{
+            maxWidth: config.maxWidth || '1200px',
+            margin: '0 auto',
+            padding: '4rem 1.5rem',
+          }}
+        >
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '4rem',
+              alignItems: 'center',
+            }}
+          >
+            <div>{renderVideoEmbed()}</div>
+            {config.showTitle !== false &&
+              (config.title || config.description) && (
+                <div>
+                  {config.title && (
+                    <h2 style={{ marginBottom: '1.5rem', ...titleStyle }}>
+                      {config.title}
+                    </h2>
+                  )}
+                  {config.description && (
+                    <p
+                      style={{ lineHeight: '1.75', opacity: 0.9, ...bodyStyle }}
+                    >
+                      {config.description}
+                    </p>
+                  )}
+                </div>
+              )}
           </div>
         </div>
       );
@@ -264,8 +307,26 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
     // Background - Video takes full width with overlay content
     if (layout === 'background') {
       return (
-        <div style={{ position: 'relative', width: '100%', minHeight: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0.3 }}>
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            minHeight: '600px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              opacity: 0.3,
+            }}
+          >
             {renderVideoEmbed()}
           </div>
           {config.showTitle !== false && (config.title || config.description) && (

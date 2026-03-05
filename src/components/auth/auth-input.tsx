@@ -40,14 +40,14 @@ export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(
               aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
               aria-pressed={isPasswordVisible}
               onClick={() => setIsPasswordVisible((prev) => !prev)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#8d7568] transition hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#9ca3af] transition hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
             >
               {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           ) : null}
         </div>
         {error ? (
-          <p className="text-[11px] font-medium text-[#cc3e3e]">{error}</p>
+          <p className="text-xs font-medium text-red-600">{error}</p>
         ) : null}
       </div>
     );

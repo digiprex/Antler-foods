@@ -206,88 +206,118 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
 
   if (loadingPage) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#667eea] mx-auto mb-4"></div>
-          <p className="text-[#556678]">Loading page...</p>
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="inline-flex items-center gap-3 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3.5">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
+          <p className="text-sm font-medium text-gray-700">Loading page...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-3xl border border-[#d7e2e6] overflow-hidden">
-        <div className="border-b border-[#d8e3e7] px-8 py-5">
-          <h2 className="text-[28px] font-semibold text-[#111827]">
-            {isEditing ? 'Edit Page' : 'Create New Page'}
-          </h2>
-          <p className="text-sm text-[#556678] mt-1">
-            {isEditing ? 'Update page information and settings' : 'Add a new page to your website'}
-          </p>
+    <div className="mx-auto max-w-4xl">
+      <div className="overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm">
+        <div className="border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white px-8 py-6">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+              <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                {isEditing ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                )}
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-gray-900">
+                {isEditing ? 'Edit Page' : 'Create New Page'}
+              </h2>
+              <p className="mt-0.5 text-sm text-gray-600">
+                {isEditing ? 'Update page information and settings' : 'Add a new page to your website'}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8 p-8">
           {error && (
-            <div className="rounded-xl border border-[#f4c3c3] bg-[#fff5f5] px-4 py-3">
-              <div className="flex items-start gap-3">
-                <span className="text-[#e57373] text-lg">⚠️</span>
-                <div>
-                  <h3 className="text-sm font-semibold text-[#c62828]">Error</h3>
-                  <p className="text-sm text-[#d32f2f] mt-0.5">{error}</p>
-                </div>
+            <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5">
+              <svg className="h-5 w-5 flex-shrink-0 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <div>
+                <h3 className="text-sm font-bold text-red-900">Error</h3>
+                <p className="mt-0.5 text-sm text-red-800">{error}</p>
               </div>
             </div>
           )}
 
           {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-1.5">
-              <label htmlFor="name" className="block text-sm font-medium text-[#374151] mb-1.5">
-                Page Name *
-              </label>
-              <input
-                type="text"
-                id="name"
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                className="h-12 w-full px-3 border border-[#d4e0e6] rounded-xl bg-white text-base text-[#101827] placeholder:text-[#a0acb7] focus:outline-none focus:border-[#667eea] focus:ring-2 focus:ring-[#667eea]/20"
-                placeholder="About Us"
-                required
-              />
+          <div className="space-y-5 rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50/50 to-white p-6">
+            <div className="flex items-center gap-2 border-b border-purple-100 pb-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-gray-900">Basic Information</h3>
             </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="url_slug" className="block text-sm font-medium text-[#374151] mb-1.5">
-                URL Slug *
-              </label>
-              <div className="flex min-h-12 items-center rounded-xl border border-[#d4e0e6] bg-white">
-                <span className="ml-3 flex items-center gap-2 border-r border-[#d6e0e5] pr-3 text-[#556678]">
-                  /
-                </span>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="name" className="block text-sm font-semibold text-gray-700">
+                  Page Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
-                  id="url_slug"
-                  value={formData.url_slug}
-                  onChange={(e) => handleInputChange('url_slug', e.target.value)}
-                  className="h-12 w-full bg-transparent px-3 text-base text-[#101827] placeholder:text-[#a0acb7] focus:outline-none"
-                  placeholder="about-us"
-                  pattern="[a-z0-9-]+"
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3.5 text-base text-gray-900 placeholder:text-gray-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  placeholder="About Us"
                   required
                 />
               </div>
-              <p className="text-xs text-[#6b7280] mt-1">
-                Only lowercase letters, numbers, and hyphens allowed
-              </p>
+
+              <div className="space-y-2">
+                <label htmlFor="url_slug" className="block text-sm font-semibold text-gray-700">
+                  URL Slug <span className="text-red-500">*</span>
+                </label>
+                <div className="flex min-h-11 items-center rounded-lg border border-gray-300 bg-white focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-200">
+                  <span className="ml-3 flex items-center gap-2 border-r border-gray-300 pr-3 text-sm font-mono text-gray-600">
+                    /
+                  </span>
+                  <input
+                    type="text"
+                    id="url_slug"
+                    value={formData.url_slug}
+                    onChange={(e) => handleInputChange('url_slug', e.target.value)}
+                    className="h-11 w-full bg-transparent px-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    placeholder="about-us"
+                    pattern="[a-z0-9-]+"
+                    required
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Only lowercase letters, numbers, and hyphens allowed
+                </p>
+              </div>
             </div>
           </div>
 
           {/* SEO Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-[#111827]">SEO Settings</h3>
+          <div className="space-y-5 rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50/50 to-white p-6">
+            <div className="flex items-center gap-2 border-b border-purple-100 pb-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-gray-900">SEO Settings</h3>
+            </div>
 
-            <div className="space-y-1.5">
-              <label htmlFor="meta_title" className="block text-sm font-medium text-[#374151] mb-1.5">
+            <div className="space-y-2">
+              <label htmlFor="meta_title" className="block text-sm font-semibold text-gray-700">
                 Meta Title
               </label>
               <input
@@ -295,17 +325,17 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                 id="meta_title"
                 value={formData.meta_title}
                 onChange={(e) => handleInputChange('meta_title', e.target.value)}
-                className="h-12 w-full px-3 border border-[#d4e0e6] rounded-xl bg-white text-base text-[#101827] placeholder:text-[#a0acb7] focus:outline-none focus:border-[#667eea] focus:ring-2 focus:ring-[#667eea]/20"
+                className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3.5 text-base text-gray-900 placeholder:text-gray-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 placeholder="Page title for search engines"
                 maxLength={60}
               />
-              <p className="text-xs text-[#6b7280] mt-1">
+              <p className="mt-1 text-xs text-gray-500">
                 {formData.meta_title.length}/60 characters (recommended)
               </p>
             </div>
 
-            <div className="space-y-1.5">
-              <label htmlFor="meta_description" className="block text-sm font-medium text-[#374151] mb-1.5">
+            <div className="space-y-2">
+              <label htmlFor="meta_description" className="block text-sm font-semibold text-gray-700">
                 Meta Description
               </label>
               <textarea
@@ -313,19 +343,19 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                 value={formData.meta_description}
                 onChange={(e) => handleInputChange('meta_description', e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-[#d4e0e6] rounded-xl bg-white text-base text-[#101827] placeholder:text-[#a0acb7] focus:outline-none focus:border-[#667eea] focus:ring-2 focus:ring-[#667eea]/20"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-900 placeholder:text-gray-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 placeholder="Brief description for search engines"
                 maxLength={160}
               />
-              <p className="text-xs text-[#6b7280] mt-1">
+              <p className="mt-1 text-xs text-gray-500">
                 {formData.meta_description.length}/160 characters (recommended)
               </p>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-[#374151] mb-1.5">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
                 Open Graph Image
-                <span className="text-[#6b7280] font-normal ml-2">(Recommended: 1200x630px)</span>
+                <span className="ml-2 text-xs font-normal text-gray-500">(Recommended: 1200x630px)</span>
               </label>
               <div className="space-y-3">
                 {formData.og_image && (
@@ -333,14 +363,16 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                     <img
                       src={formData.og_image}
                       alt="Open Graph preview"
-                      className="w-48 h-auto rounded-xl border border-[#d4e0e6]"
+                      className="h-auto w-48 rounded-lg border-2 border-purple-200"
                     />
                     <button
                       type="button"
                       onClick={() => handleInputChange('og_image', '')}
-                      className="absolute top-2 right-2 bg-[#e57373] text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-[#d32f2f] transition text-sm"
+                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-sm text-white transition hover:bg-red-700"
                     >
-                      ×
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                     </button>
                   </div>
                 )}
@@ -350,20 +382,23 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                       type="button"
                       onClick={openImageGallery}
                       disabled={!restaurantId}
-                      className="rounded-xl bg-[#667eea] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#cfc8ff] disabled:text-[#f8f7ff]"
+                      className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      📁 Choose Image from Gallery
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                      </svg>
+                      Choose Image from Gallery
                     </button>
                     {!restaurantId && (
-                      <p className="text-xs text-[#d32f2f]">Restaurant ID is required to select images</p>
+                      <p className="text-xs text-red-600">Restaurant ID is required to select images</p>
                     )}
                   </>
                 )}
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label htmlFor="keywords" className="block text-sm font-medium text-[#374151] mb-1.5">
+            <div className="space-y-2">
+              <label htmlFor="keywords" className="block text-sm font-semibold text-gray-700">
                 Keywords (comma-separated)
               </label>
               <textarea
@@ -371,84 +406,113 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                 value={formData.keywords}
                 onChange={(e) => handleInputChange('keywords', e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-[#d4e0e6] rounded-xl bg-white text-base text-[#101827] placeholder:text-[#a0acb7] focus:outline-none focus:border-[#667eea] focus:ring-2 focus:ring-[#667eea]/20"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-900 placeholder:text-gray-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 placeholder="restaurant, food, about"
               />
-              <p className="text-xs text-[#6b7280] mt-1">
+              <p className="mt-1 text-xs text-gray-500">
                 Optional comma-separated tags (converted to JSON on save)
               </p>
             </div>
           </div>
 
           {/* Visibility Settings */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-[#111827]">Visibility Settings</h3>
+          <div className="space-y-5 rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50/50 to-white p-6">
+            <div className="flex items-center gap-2 border-b border-purple-100 pb-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-gray-900">Visibility Settings</h3>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label htmlFor="published" className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 transition hover:border-purple-300 hover:bg-purple-50/50">
                 <input
                   type="checkbox"
                   id="published"
                   checked={formData.published}
                   onChange={(e) => handleInputChange('published', e.target.checked)}
-                  className="h-4 w-4 text-[#667eea] focus:ring-[#667eea] border-[#d4e0e6] rounded"
+                  className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
                 />
-                <label htmlFor="published" className="ml-2 block text-sm text-[#374151]">
-                  Published
-                </label>
-              </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm font-semibold text-gray-900">Published</span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-gray-600">Make page visible to public</p>
+                </div>
+              </label>
 
-              <div className="flex items-center">
+              <label htmlFor="show_on_navbar" className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 transition hover:border-purple-300 hover:bg-purple-50/50">
                 <input
                   type="checkbox"
                   id="show_on_navbar"
                   checked={formData.show_on_navbar}
                   onChange={(e) => handleInputChange('show_on_navbar', e.target.checked)}
-                  className="h-4 w-4 text-[#667eea] focus:ring-[#667eea] border-[#d4e0e6] rounded"
+                  className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
                 />
-                <label htmlFor="show_on_navbar" className="ml-2 block text-sm text-[#374151]">
-                  Show in Navigation
-                </label>
-              </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                    <span className="text-sm font-semibold text-gray-900">Show in Navigation</span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-gray-600">Display in navbar menu</p>
+                </div>
+              </label>
 
-              <div className="flex items-center">
+              <label htmlFor="show_on_footer" className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 transition hover:border-purple-300 hover:bg-purple-50/50">
                 <input
                   type="checkbox"
                   id="show_on_footer"
                   checked={formData.show_on_footer}
                   onChange={(e) => handleInputChange('show_on_footer', e.target.checked)}
-                  className="h-4 w-4 text-[#667eea] focus:ring-[#667eea] border-[#d4e0e6] rounded"
+                  className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
                 />
-                <label htmlFor="show_on_footer" className="ml-2 block text-sm text-[#374151]">
-                  Show in Footer
-                </label>
-              </div>
-
-              {/* System Page flag removed from UI */}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 5.25l-7.5 7.5-7.5-7.5m15 6l-7.5 7.5-7.5-7.5" />
+                    </svg>
+                    <span className="text-sm font-semibold text-gray-900">Show in Footer</span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-gray-600">Display in footer links</p>
+                </div>
+              </label>
             </div>
           </div>
 
           {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 pt-6 border-t border-[#d8e3e7]">
+          <div className="flex items-center justify-end gap-3 border-t border-purple-100 pt-6">
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-xl border border-[#d2dee4] bg-white px-5 py-2 text-sm font-medium text-[#111827] transition hover:bg-[#f7fafc]"
+              className="rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="rounded-xl bg-[#667eea] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#cfc8ff] disabled:text-[#f8f7ff]"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                   {isEditing ? 'Updating...' : 'Creating...'}
-                </div>
+                </>
               ) : (
-                isEditing ? 'Update Page' : 'Create Page'
+                <>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                  {isEditing ? 'Update Page' : 'Create Page'}
+                </>
               )}
             </button>
           </div>

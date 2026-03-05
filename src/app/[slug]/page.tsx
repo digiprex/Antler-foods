@@ -76,16 +76,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       { cache: 'no-store' }
     );
 
-    let restaurantName = '';
     let faviconUrl = null;
     if (restaurantResponse.ok) {
       const restaurantData = await restaurantResponse.json();
-      restaurantName = restaurantData.data?.restaurant_name || '';
       faviconUrl = restaurantData.data?.favicon_url || null;
     }
 
     // Generate dynamic SEO
-    const seoConfig = generateDynamicSEO(pageResponseData, restaurantName);
+    const seoConfig = generateDynamicSEO(pageResponseData);
     const metadata = generateSEOMetadata(seoConfig);
 
     // Add custom favicon if available

@@ -316,11 +316,18 @@ function MyInfoWorkspaceShell({
 
   return (
     <section className="grid gap-6">
-      <div className="rounded-3xl border border-[#d7e2e6] bg-white p-4">
-        <h2 className="px-2 text-sm font-semibold uppercase tracking-wide text-[#60707c]">
-          Information
-        </h2>
-        <nav className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="rounded-2xl border border-purple-100 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2 px-1">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+            <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-base font-bold tracking-tight text-gray-900">
+            Information
+          </h2>
+        </div>
+        <nav className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {MY_INFO_TABS.map((tab) => {
             const isActive = tab.key === activeTab;
 
@@ -336,17 +343,17 @@ function MyInfoWorkspaceShell({
                   setPendingTab(tab.key);
                   emitDashboardRouteLoadingStart();
                 }}
-                className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                className={`group flex items-center gap-3 rounded-xl border px-4 py-3.5 text-sm font-semibold transition-all ${
                   isActive
-                    ? 'border-[#9eb7ff] bg-[#eef3ff] text-[#12203d]'
-                    : 'border-[#dfe7ec] text-[#5d6b77] hover:bg-[#f8fafb]'
+                    ? 'border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100/50 text-gray-900 shadow-sm'
+                    : 'border-gray-200 text-gray-600 hover:border-purple-200 hover:bg-purple-50/50 hover:text-gray-900'
                 }`}
               >
                 {pendingTab === tab.key ? (
                   <PurpleDotSpinner size="inline" />
                 ) : (
                   <span
-                    className={isActive ? 'text-[#2f4fb6]' : 'text-[#7b8a96]'}
+                    className={`transition-colors ${isActive ? 'text-purple-600' : 'text-gray-400 group-hover:text-purple-500'}`}
                   >
                     {tab.icon}
                   </span>
@@ -524,14 +531,24 @@ function Header({
   restaurantName: string;
 }) {
   return (
-    <div className="space-y-1">
-      <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">
-        {title}
-      </h1>
-      <p className="text-lg text-[#5f6c78]">{subtitle}</p>
-      <p className="text-sm font-medium text-[#111827]">
-        Restaurant: {restaurantName}
-      </p>
+    <div className="flex items-center gap-4">
+      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+        <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+          {title}
+        </h1>
+        <p className="text-sm text-gray-600">{subtitle}</p>
+        <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-purple-700">
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          {restaurantName}
+        </p>
+      </div>
     </div>
   );
 }
@@ -996,18 +1013,38 @@ export function MyInfoBrandPage() {
 
       <form
         onSubmit={onSubmit}
-        className="space-y-6 rounded-3xl border border-[#d7e2e6] bg-white p-8"
+        className="space-y-6 rounded-2xl border border-gray-200 bg-white p-8 shadow-sm"
       >
         <FormMessage notice={notice} />
 
-        <div className="rounded-2xl border border-[#d7e2e6] bg-[#f8fafb] p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold text-[#111827]">Logo</h3>
-              <p className="text-xs text-[#5f6c78]">
-                Upload restaurant logo (PNG/JPG/WebP, up to 10MB).
+        <div className="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-white p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-gray-900">Restaurant Logo</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Upload your restaurant logo (PNG, JPG, or WebP, max 10MB)
               </p>
             </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border-2 border-gray-200 bg-white shadow-sm">
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt={`${legalName || restaurant.name} logo`}
+                  className="h-full w-full object-contain p-2"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-1">
+                  <svg className="h-8 w-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-xs font-medium text-gray-400">No logo</span>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-2">
               <input
                 id="brand-logo-upload"
@@ -1020,50 +1057,35 @@ export function MyInfoBrandPage() {
               <label
                 htmlFor="brand-logo-upload"
                 className={cx(
-                  'inline-flex cursor-pointer items-center rounded-xl border px-4 py-2 text-sm font-semibold transition',
+                  'inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition',
                   isSaving || isLogoUploading
-                    ? 'cursor-not-allowed border-[#d7dfea] bg-[#eef2f7] text-[#8b98a5] pointer-events-none'
-                    : 'border-[#bac8d5] bg-white text-[#2a3a4d] hover:bg-[#f2f6fb]',
+                    ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 pointer-events-none'
+                    : 'border-purple-300 bg-white text-purple-700 hover:bg-purple-50 hover:border-purple-400',
                 )}
               >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
                 {isLogoUploading
                   ? 'Uploading...'
                   : logoUrl
-                    ? 'Replace logo'
-                    : 'Upload logo'}
+                    ? 'Replace Logo'
+                    : 'Upload Logo'}
               </label>
               {logoUrl || logoFileId ? (
                 <button
                   type="button"
                   onClick={onRemoveLogo}
                   disabled={isSaving || isLogoUploading}
-                  className="inline-flex items-center rounded-xl border border-[#efc4c4] bg-white px-4 py-2 text-sm font-semibold text-[#c23939] transition hover:bg-[#fff5f5] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
                   Remove
                 </button>
               ) : null}
             </div>
-          </div>
-
-          <div className="mt-4 flex items-center gap-4">
-            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-[#d7e2e6] bg-white">
-              {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt={`${legalName || restaurant.name} logo`}
-                  className="h-full w-full object-contain p-1"
-                />
-              ) : (
-                <span className="text-xs font-medium text-[#8b98a5]">No logo</span>
-              )}
-            </div>
-            {/* <p className="text-xs text-[#6b7a86]">
-              {logoFileId ? (
-                <span className="font-mono text-[11px]">{logoFileId}</span>
-              ) : (
-                'Logo is stored as URL + file id for stable delivery and easy asset tracking.'
-              )}
-            </p> */}
           </div>
         </div>
 
@@ -1111,24 +1133,33 @@ export function MyInfoBrandPage() {
           />
         </div>
 
-        <div className="space-y-4 rounded-2xl border border-[#d7e2e6] bg-[#f8fafb] p-4">
-          <div>
-            <h3 className="text-lg font-semibold text-[#111827]">
-              Cuisine types
-            </h3>
-            <p className="text-sm text-[#5f6c78]">
-              Manage cuisines similar to add-restaurant setup.
-            </p>
+        <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
+              <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-gray-900">
+                Cuisine Types
+              </h3>
+              <p className="text-sm text-gray-600">
+                Select all cuisine types that describe your restaurant
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 rounded-xl border border-[#d2dde2] bg-white px-3 py-2">
-            <SearchIcon />
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <SearchIcon />
+            </div>
             <input
               type="text"
               value={cuisineSearchTerm}
               onChange={(event) => setCuisineSearchTerm(event.target.value)}
-              placeholder="Search cuisine types"
-              className="w-full bg-transparent text-sm text-[#111827] placeholder:text-[#8ea0af] outline-none"
+              placeholder="Search cuisine types..."
+              className="w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-100"
             />
           </div>
 
@@ -1137,13 +1168,13 @@ export function MyInfoBrandPage() {
               {selectedCuisineTypes.map((label) => (
                 <span
                   key={label}
-                  className="inline-flex items-center gap-1 rounded-full bg-[#e7f0ff] px-3 py-1 text-sm font-medium text-[#22458f]"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-3 py-1.5 text-sm font-medium text-purple-800"
                 >
                   {label}
                   <button
                     type="button"
                     onClick={() => onCuisineTypeToggle(label)}
-                    className="rounded-full p-0.5 transition hover:bg-[#d2e4ff]"
+                    className="rounded-full p-0.5 transition hover:bg-purple-200"
                     aria-label="Remove cuisine"
                   >
                     <CloseIcon />
@@ -1153,21 +1184,32 @@ export function MyInfoBrandPage() {
             </div>
           ) : null}
 
-          <div className="overflow-hidden rounded-xl border border-[#d2dde2] bg-white">
+          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
             {isCuisineLoading ? (
-              <p className="px-4 py-3 text-sm text-[#5f6c78]">
-                Loading cuisines...
-              </p>
+              <div className="flex items-center justify-center px-4 py-8">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span className="text-sm font-medium">Loading cuisines...</span>
+                </div>
+              </div>
             ) : null}
 
             {cuisineError ? (
-              <p className="px-4 py-3 text-sm text-[#a72b2b]">{cuisineError}</p>
+              <div className="flex items-center gap-2 px-4 py-3 text-sm text-red-600">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                {cuisineError}
+              </div>
             ) : null}
 
             {!isCuisineLoading &&
             !cuisineError &&
             !filteredCuisineCategories.length ? (
-              <p className="px-4 py-3 text-sm text-[#5f6c78]">
+              <p className="px-4 py-3 text-sm text-gray-500">
                 No cuisine categories found.
               </p>
             ) : null}
@@ -1178,7 +1220,7 @@ export function MyInfoBrandPage() {
               return (
                 <div
                   key={category.id}
-                  className="border-b border-[#e2e8ee] last:border-b-0"
+                  className="border-b border-gray-100 last:border-b-0"
                 >
                   <button
                     type="button"
@@ -1188,14 +1230,14 @@ export function MyInfoBrandPage() {
                         [category.id]: !isExpanded,
                       }))
                     }
-                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold text-[#1f2937] transition hover:bg-[#f8fafb]"
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-gray-900 transition hover:bg-gray-50"
                   >
                     <ChevronRightIcon isExpanded={isExpanded} />
                     {category.label}
                   </button>
 
                   {isExpanded ? (
-                    <div className="grid gap-2 border-t border-[#eef2f5] p-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-2 border-t border-gray-100 p-4 sm:grid-cols-2 lg:grid-cols-3">
                       {category.cuisineTypes.map((type) => {
                         const isSelected = selectedCuisineTypes.includes(
                           type.label,
@@ -1207,10 +1249,10 @@ export function MyInfoBrandPage() {
                             type="button"
                             onClick={() => onCuisineTypeToggle(type.label)}
                             className={cx(
-                              'rounded-lg border px-3 py-2 text-left text-sm transition',
+                              'rounded-lg border px-3 py-2 text-left text-sm font-medium transition',
                               isSelected
-                                ? 'border-[#90b2ff] bg-[#e7f0ff] text-[#1f3f86]'
-                                : 'border-[#d7e2e6] bg-white text-[#27303a] hover:bg-[#f8fafb]',
+                                ? 'border-purple-500 bg-purple-100 text-purple-900'
+                                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50',
                             )}
                           >
                             {type.label}
@@ -1282,9 +1324,24 @@ export function MyInfoBrandPage() {
         <button
           type="submit"
           disabled={isSaving}
-          className="inline-flex items-center rounded-xl bg-[#667eea] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#5b6dd6] disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:from-purple-600 hover:to-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isSaving ? 'Saving...' : 'Save brand'}
+          {isSaving ? (
+            <>
+              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Saving...
+            </>
+          ) : (
+            <>
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Save Brand Information
+            </>
+          )}
         </button>
       </form>
     </MyInfoWorkspaceShell>
@@ -3409,7 +3466,7 @@ export function MyInfoGalleryPage() {
       />
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
-        <div className="space-y-4 rounded-3xl border border-[#d7e2e6] bg-gradient-to-br from-[#f8f4ff] via-white to-[#eef2ff] p-6 shadow-sm">
+        <div className="space-y-4 rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-purple-50/50 p-6 shadow-sm">
           <FormMessage notice={notice} />
           <FileUpload
             accept="both"
@@ -3420,56 +3477,92 @@ export function MyInfoGalleryPage() {
           />
         </div>
 
-        <div className="rounded-3xl border border-[#d7e2e6] bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-wide text-[#6d7c88]">
-            Media overview
-          </p>
+        <div className="rounded-2xl border border-purple-100 bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <p className="text-sm font-bold tracking-tight text-gray-900">
+              Media overview
+            </p>
+          </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-[#d9d9ff] bg-[#f5f3ff] px-4 py-3">
-              <p className="text-xs font-medium text-[#6d6ca8]">
-                Gallery images
-              </p>
-              <p className="mt-1 text-2xl font-semibold text-[#2b2c6f]">
+            <div className="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100/50 px-4 py-3.5">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p className="text-xs font-semibold text-purple-700">
+                  Gallery images
+                </p>
+              </div>
+              <p className="mt-2 text-2xl font-bold text-gray-900">
                 {totalGalleryImages}
               </p>
             </div>
-            <div className="rounded-2xl border border-[#d9d9ff] bg-[#f5f3ff] px-4 py-3">
-              <p className="text-xs font-medium text-[#6d6ca8]">
-                Gallery videos
-              </p>
-              <p className="mt-1 text-2xl font-semibold text-[#2b2c6f]">
+            <div className="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100/50 px-4 py-3.5">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <p className="text-xs font-semibold text-purple-700">
+                  Gallery videos
+                </p>
+              </div>
+              <p className="mt-2 text-2xl font-bold text-gray-900">
                 {totalGalleryVideos}
               </p>
             </div>
           </div>
-          <p className="mt-4 text-xs text-[#6a7a87]">
+          <p className="mt-4 flex items-center gap-1.5 text-xs text-gray-600">
+            <svg className="h-3.5 w-3.5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             Use the top-right icons to view, download, hide, or delete quickly.
           </p>
           {totalHiddenItems > 0 ? (
-            <p className="mt-1 text-xs font-medium text-[#6f4cf6]">
-              Hidden images: {totalHiddenItems}
+            <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-purple-700">
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+              </svg>
+              Hidden items: {totalHiddenItems}
             </p>
           ) : null}
         </div>
       </div>
 
-      <div className="rounded-3xl border border-[#d7e2e6] bg-gradient-to-br from-white via-[#fcfdff] to-[#f6f7fb] p-6 shadow-sm">
+      <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-white via-purple-50/20 to-white p-6 shadow-sm">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-2xl font-semibold text-[#111827]">
-            Existing Media
-          </h2>
-          <p className="text-xs font-medium text-[#6c7a87]">
-            Hover image cards for quick actions
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900">
+              Existing Media
+            </h2>
+          </div>
+          <p className="hidden text-xs font-medium text-gray-500 sm:block">
+            Hover cards for quick actions
           </p>
         </div>
 
         {isLoading ? (
-          <div className="mt-4 flex items-center gap-3 text-[#5f6c78]">
+          <div className="mt-6 flex items-center gap-3 text-gray-600">
             <PurpleDotSpinner size="sm" />
-            <p>Loading gallery...</p>
+            <p className="text-sm">Loading gallery...</p>
           </div>
         ) : items.length === 0 ? (
-          <p className="mt-4 text-[#5f6c78]">No gallery media found yet.</p>
+          <div className="mt-6 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-purple-200 bg-purple-50/30 py-12">
+            <svg className="h-12 w-12 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+            </svg>
+            <p className="mt-3 text-sm font-medium text-gray-600">No gallery media found yet.</p>
+            <p className="mt-1 text-xs text-gray-500">Upload images or videos to get started.</p>
+          </div>
         ) : (
           <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
             {items.map((item, index) => {
@@ -3487,20 +3580,20 @@ export function MyInfoGalleryPage() {
                 <article
                   key={item.id}
                   className={cx(
-                    'group overflow-hidden rounded-2xl border bg-[#f8fafb]',
+                    'group overflow-hidden rounded-xl border bg-white shadow-sm transition-all hover:shadow-md',
                     isHidden
-                      ? 'border-[#c6b8ff] opacity-65'
-                      : 'border-[#d7e2e6]',
+                      ? 'border-purple-300 opacity-60 ring-1 ring-purple-200'
+                      : 'border-gray-200 hover:border-purple-200',
                   )}
                 >
-                  <div className="relative h-24 w-full overflow-hidden">
+                  <div className="relative h-28 w-full overflow-hidden">
                     {isVideo ? (
                       <video
                         src={item.url}
                         muted
                         playsInline
                         preload="metadata"
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-110"
                       />
                     ) : (
                       <Image
@@ -3508,12 +3601,15 @@ export function MyInfoGalleryPage() {
                         alt={`Gallery image ${index + 1}`}
                         fill
                         unoptimized
-                        className="object-cover transition duration-300 group-hover:scale-105"
+                        className="object-cover transition duration-300 group-hover:scale-110"
                       />
                     )}
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/55 to-transparent" />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/60 to-transparent" />
                     {isHidden ? (
-                      <span className="absolute left-2 top-2 rounded-md bg-[#6f4cf6cc] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                      <span className="absolute left-2 top-2 flex items-center gap-1 rounded-lg bg-purple-600/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm backdrop-blur-sm">
+                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
                         Hidden
                       </span>
                     ) : null}
@@ -3583,12 +3679,23 @@ export function MyInfoGalleryPage() {
                       </MediaActionIconButton>
                     </div>
                   </div>
-                  <div className="px-2.5 py-2">
-                    <p className="text-[11px] text-[#60707c]">
-                      {item.created_at
-                        ? new Date(item.created_at).toLocaleString()
-                        : 'Uploaded recently'}
-                    </p>
+                  <div className="border-t border-gray-100 bg-gray-50/50 px-3 py-2">
+                    <div className="flex items-center gap-1.5">
+                      <svg className="h-3 w-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className="text-[10px] font-medium text-gray-600">
+                        {item.created_at
+                          ? new Date(item.created_at).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
+                          : 'Recently uploaded'}
+                      </p>
+                    </div>
                   </div>
                 </article>
               );

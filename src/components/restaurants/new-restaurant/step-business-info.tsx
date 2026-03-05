@@ -48,15 +48,26 @@ export function StepBusinessInfo({
 
   if (!franchiseId) {
     return (
-      <div className="space-y-4 rounded-xl border border-[#f2c7c7] bg-[#fff5f5] px-4 py-4">
-        <p className="text-sm text-[#b33838]">
-          Franchise context is missing. Please complete Step 1 first.
-        </p>
+      <div className="space-y-4 rounded-xl border border-red-200 bg-red-50 px-5 py-4">
+        <div className="flex items-start gap-3">
+          <svg className="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div className="flex-1">
+            <p className="font-semibold text-red-900">Missing Franchise Context</p>
+            <p className="text-sm text-red-700">
+              Please complete Step 1 first to set up the franchise information.
+            </p>
+          </div>
+        </div>
         <button
           type="button"
           onClick={onBackToStepOne}
-          className="rounded-lg border border-[#e3b4b4] bg-white px-3 py-1.5 text-sm font-medium text-[#8f2f2f] transition hover:bg-[#fff0f0]"
+          className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
         >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
           Back to Step 1
         </button>
       </div>
@@ -65,6 +76,20 @@ export function StepBusinessInfo({
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 shadow-md">
+          <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-2xl font-bold tracking-tight text-gray-900">
+            Business Information
+          </h3>
+          <p className="text-sm text-gray-600">Enter business and owner details</p>
+        </div>
+      </div>
+
       <FormSelectInput
         label="Business type"
         name="businessType"
@@ -137,25 +162,41 @@ export function StepBusinessInfo({
               });
             }
           }}
-          className="inline-flex items-center gap-2 rounded-xl border border-[#cfc5ff] bg-[#f4f1ff] px-4 py-2 text-sm font-semibold text-[#4a35b4] transition hover:bg-[#ece7ff]"
+          className="inline-flex items-center gap-2 rounded-xl border-2 border-purple-300 bg-white px-5 py-2.5 text-sm font-semibold text-purple-700 transition-all hover:border-purple-400 hover:bg-purple-50"
         >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            {shouldCreateOwner ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            )}
+          </svg>
           {shouldCreateOwner ? 'Remove owner details' : 'Add owner'}
         </button>
         {ownerToggleError ? (
-          <p className="text-xs text-[#d83f3f]">{ownerToggleError}</p>
+          <p className="text-xs text-red-600 font-medium">{ownerToggleError}</p>
         ) : null}
       </div>
 
       {shouldCreateOwner ? (
-        <div className="rounded-2xl border border-[#d8e4ea] bg-[#f8fbfd] p-4">
-          <h4 className="text-lg font-semibold text-[#111827]">
-            Owner assignment
-          </h4>
-          <p className="mt-1 text-sm text-[#5b6b79]">
-            Create production owner account and link it to this franchise.
-          </p>
+        <div className="rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 to-white p-6 shadow-sm">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
+              <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h4 className="text-lg font-bold text-gray-900">
+                Owner Assignment
+              </h4>
+              <p className="text-sm text-gray-600">
+                Create production owner account and link it to this franchise.
+              </p>
+            </div>
+          </div>
 
-          <div className="mt-4 grid gap-5">
+          <div className="grid gap-5">
             <FormTextInput
               label="Owner email"
               name="ownerEmail"

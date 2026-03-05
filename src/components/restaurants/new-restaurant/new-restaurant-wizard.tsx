@@ -462,6 +462,22 @@ export function NewRestaurantWizard() {
     };
   }, [isSavingStepTwo]);
 
+  // Lock body scroll when loader is visible
+  useEffect(() => {
+    if (isSavingStepTwo && saveProgressMessage) {
+      // Store original overflow value
+      const originalOverflow = document.body.style.overflow;
+
+      // Lock scroll
+      document.body.style.overflow = 'hidden';
+
+      // Cleanup: restore original overflow
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isSavingStepTwo, saveProgressMessage]);
+
   const setStepErrors = (
     fieldNames: readonly string[],
     issues: Array<{ path: PropertyKey[]; message: string }>,
@@ -935,42 +951,61 @@ export function NewRestaurantWizard() {
         {currentStep === 1 &&
         !isStepOneRegistrationOpen &&
         recentlyCreatedRestaurants.length > 0 ? (
-          <div className="space-y-3 rounded-2xl border border-[#d7e2e6] bg-[#f8fbfd] p-4">
+          <div className="space-y-4 rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-6 shadow-sm">
             <div className="flex items-center justify-between gap-3">
-              <h4 className="text-lg font-semibold text-[#111827]">
-                Recently created restaurants
-              </h4>
-              <p className="text-xs text-[#607180]">
+              <div className="flex items-center gap-2">
+                <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h4 className="text-lg font-bold text-gray-900">
+                  Recently Created
+                </h4>
+              </div>
+              <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
                 {isLoadingRecentRestaurants
                   ? 'Refreshing...'
-                  : 'Showing latest 4 (read-only)'}
-              </p>
+                  : `${recentlyCreatedRestaurants.length} restaurants`}
+              </span>
             </div>
 
-            <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               {recentlyCreatedRestaurants.map((restaurant) => (
                 <div
                   key={restaurant.id}
-                  className="rounded-xl border border-[#d9e3e8] bg-white p-4"
+                  className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-purple-200 hover:shadow-md"
                 >
-                  <div className="mb-2 flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-lg font-semibold text-[#111827]">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <p className="text-base font-bold text-gray-900 group-hover:text-purple-600 transition-colors">
                         {restaurant.name || 'Saved restaurant'}
                       </p>
-                      <p className="text-sm text-[#5d6c78]">
+                      <p className="mt-1 text-sm text-gray-600">
                         {restaurant.address || 'Address not available'}
                       </p>
                     </div>
-                    <p className="text-xs font-medium text-[#667085]">
-                      {formatRecentCreatedAt(restaurant.createdAt)}
-                    </p>
                   </div>
-                  <p className="text-sm text-[#4d6070]">
-                    {restaurant.hasGooglePlace
-                      ? 'Google place: yes'
-                      : 'Google place: no'}
-                  </p>
+                  <div className="flex items-center justify-between gap-3 pt-3 border-t border-gray-100">
+                    <div className="flex items-center gap-1.5">
+                      {restaurant.hasGooglePlace ? (
+                        <>
+                          <svg className="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                          </svg>
+                          <span className="text-xs font-medium text-green-700">Google Place</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
+                          </svg>
+                          <span className="text-xs font-medium text-gray-500">No Google Place</span>
+                        </>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {formatRecentCreatedAt(restaurant.createdAt)}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -979,14 +1014,17 @@ export function NewRestaurantWizard() {
       </div>
 
       {hasFooterActions ? (
-        <div className="flex justify-end border-t border-[#d8e3e7] bg-[#f3f7f9] px-8 py-5">
+        <div className="flex justify-end border-t border-gray-200 bg-gray-50 px-8 py-6">
           <div className="flex items-center gap-3">
             {showBackButton ? (
               <button
                 type="button"
                 onClick={onBack}
-                className="rounded-xl border border-[#d2dee4] bg-white px-5 py-2 text-[18px] font-medium text-[#111827] transition hover:bg-[#f7fafc]"
+                className="inline-flex items-center gap-2 rounded-lg border-2 border-gray-300 bg-white px-6 py-2.5 text-base font-semibold text-gray-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gray-400 hover:shadow-md active:translate-y-0"
               >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
                 Back
               </button>
             ) : null}
@@ -996,9 +1034,24 @@ export function NewRestaurantWizard() {
                 type="button"
                 onClick={onContinue}
                 disabled={!isStepOneComplete || isBusy}
-                className="rounded-xl bg-[#667eea] px-6 py-2 text-[18px] font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#cfc8ff] disabled:text-[#f8f7ff]"
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 px-8 py-2.5 text-base font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
               >
-                {isBusy ? 'Saving...' : 'Continue'}
+                {isBusy ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </>
+                )}
               </button>
             ) : null}
 
@@ -1007,9 +1060,24 @@ export function NewRestaurantWizard() {
                 type="button"
                 onClick={onContinue}
                 disabled={!isStepOneComplete || !isStepTwoComplete || isBusy}
-                className="rounded-xl bg-[#667eea] px-6 py-2 text-[18px] font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#cfc8ff] disabled:text-[#f8f7ff]"
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 px-8 py-2.5 text-base font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
               >
-                {isBusy ? 'Saving...' : 'Save restaurant'}
+                {isBusy ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save Restaurant
+                  </>
+                )}
               </button>
             ) : null}
           </div>

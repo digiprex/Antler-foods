@@ -155,85 +155,127 @@ export function RestaurantsListPage() {
   };
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">
-          Restaurants
-        </h1>
-        <p className="text-sm font-medium text-[#5f6c78]">
-          Total restaurants: {restaurants.length}
-        </p>
+    <section className="space-y-6">
+      <div className="flex items-center gap-4">
+        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+          <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Restaurants
+          </h1>
+          <p className="text-sm text-gray-600">
+            Manage all restaurant locations ({restaurants.length} total)
+          </p>
+        </div>
       </div>
 
-      <div className="rounded-3xl border border-[#d7e2e6] bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d7e2e6] px-6 py-5">
-          <h2 className="text-3xl font-semibold text-[#111827]">Restaurants</h2>
-          <div className="w-full max-w-sm">
+      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 px-6 py-5">
+          <h2 className="text-xl font-bold text-gray-900">All Restaurants</h2>
+          <div className="relative w-full max-w-md">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
             <input
               type="text"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search restaurants..."
-              className="h-11 w-full rounded-xl border border-[#d4e0e6] px-4 text-sm text-[#1f2937] placeholder:text-[#8b9baa] focus:border-[#667eea] focus:outline-none focus:ring-2 focus:ring-[#ede9fe]"
+              placeholder="Search by name, domain, owner..."
+              className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-100"
             />
           </div>
         </div>
 
         {successMessage ? (
-          <p className="mx-6 mt-5 rounded-xl border border-[#d5cfff] bg-[#f3f1ff] px-4 py-3 text-sm text-[#4d3cae]">
-            {successMessage}
-          </p>
+          <div className="mx-6 mt-5 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+            <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm font-medium text-green-900">{successMessage}</p>
+          </div>
         ) : null}
 
         {isLoading ? (
-          <p className="px-6 py-5 text-sm text-[#5f6c78]">
-            Loading restaurants...
-          </p>
+          <div className="flex items-center justify-center px-6 py-12">
+            <div className="flex items-center gap-3 text-gray-600">
+              <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span className="text-sm font-medium">Loading restaurants...</span>
+            </div>
+          </div>
         ) : null}
 
         {errorMessage ? (
-          <p className="mx-6 my-5 rounded-xl border border-[#d5cfff] bg-[#f3f1ff] px-4 py-3 text-sm text-[#4d3cae]">
-            {errorMessage}
-          </p>
+          <div className="mx-6 my-5 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+            <svg className="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <p className="text-sm font-medium text-red-900">{errorMessage}</p>
+          </div>
         ) : null}
 
         {!isLoading && !errorMessage ? (
           filteredRestaurants.length ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-[#e2eaee]">
-                <thead className="bg-[#f7fafc]">
-                  <tr className="text-left text-xs font-semibold uppercase tracking-wide text-[#6b7a88]">
-                    <th className="px-6 py-3">Name</th>
-                    <th className="px-6 py-3">Contact</th>
-                    <th className="px-6 py-3">Owner</th>
-                    <th className="px-6 py-3">Domain</th>
-                    <th className="px-6 py-3">Created</th>
-                    <th className="px-6 py-3 text-right">Actions</th>
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr className="text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
+                    <th className="px-6 py-4">Restaurant</th>
+                    <th className="px-6 py-4">Contact Info</th>
+                    <th className="px-6 py-4">Owner</th>
+                    <th className="px-6 py-4">Domain</th>
+                    <th className="px-6 py-4">Created</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#eef3f6]">
+                <tbody className="divide-y divide-gray-100 bg-white">
                   {paginatedRestaurants.map((restaurant) => (
-                    <tr key={restaurant.id} className="align-top">
+                    <tr key={restaurant.id} className="align-top transition hover:bg-gray-50">
                       <td className="px-6 py-4">
-                        <p className="font-semibold text-[#111827]">
-                          {restaurant.name}
-                        </p>
-                        <p className="text-xs text-[#7a8996]">
-                          ID: {restaurant.id}
-                        </p>
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              {restaurant.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              ID: {restaurant.id.slice(0, 8)}...
+                            </p>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-[#334155]">
-                        <p>{restaurant.phoneNumber || 'N/A'}</p>
-                        <p>{restaurant.email || 'N/A'}</p>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        <div className="space-y-1">
+                          <p className="flex items-center gap-1.5">
+                            <svg className="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            {restaurant.phoneNumber || 'N/A'}
+                          </p>
+                          <p className="flex items-center gap-1.5">
+                            <svg className="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            {restaurant.email || 'N/A'}
+                          </p>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-[#334155]">
-                        <p>{restaurant.ownerName || 'N/A'}</p>
-                        <p>{restaurant.ownerEmail || 'N/A'}</p>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        <div className="space-y-1">
+                          <p className="font-medium">{restaurant.ownerName || 'N/A'}</p>
+                          <p className="text-xs text-gray-500">{restaurant.ownerEmail || 'N/A'}</p>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-[#334155]">
+                      <td className="px-6 py-4 text-sm">
                         <DomainCell restaurant={restaurant} />
                       </td>
-                      <td className="px-6 py-4 text-sm text-[#334155]">
+                      <td className="px-6 py-4 text-sm text-gray-600">
                         {formatDate(restaurant.createdAt)}
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -243,7 +285,7 @@ export function RestaurantsListPage() {
                           disabled={
                             deletingRestaurantId === restaurant.id || isLoading
                           }
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#cec4ff] text-[#5b3fd4] transition hover:bg-[#f4f1ff] disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                           aria-label={`Delete ${restaurant.name}`}
                           title="Delete restaurant"
                         >
@@ -256,18 +298,26 @@ export function RestaurantsListPage() {
               </table>
             </div>
           ) : (
-            <p className="px-6 py-5 text-sm text-[#5f6c78]">
-              {restaurants.length
-                ? 'No restaurants match your search.'
-                : 'No restaurants found in the restaurants table.'}
-            </p>
+            <div className="flex flex-col items-center justify-center px-6 py-12">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+                <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <p className="mt-4 text-sm font-medium text-gray-900">
+                {restaurants.length ? 'No restaurants match your search' : 'No restaurants found'}
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                {restaurants.length ? 'Try adjusting your search terms' : 'Get started by adding your first restaurant'}
+              </p>
+            </div>
           )
         ) : null}
 
         {!isLoading && !errorMessage && filteredRestaurants.length > 0 ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e2eaee] bg-[#fbfdff] px-6 py-4">
-            <p className="text-sm text-[#5f6c78]">
-              Showing {pageStart}-{pageEnd} of {filteredRestaurants.length}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
+            <p className="text-sm font-medium text-gray-600">
+              Showing <span className="font-semibold text-gray-900">{pageStart}-{pageEnd}</span> of <span className="font-semibold text-gray-900">{filteredRestaurants.length}</span> restaurants
             </p>
 
             <div className="flex items-center gap-2">
@@ -277,8 +327,11 @@ export function RestaurantsListPage() {
                   setCurrentPage((previous) => Math.max(1, previous - 1))
                 }
                 disabled={currentPage === 1}
-                className="rounded-lg border border-[#d4e0e6] bg-white px-3 py-1.5 text-sm font-medium text-[#334155] transition hover:bg-[#f7fafc] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
                 Previous
               </button>
 
@@ -287,10 +340,10 @@ export function RestaurantsListPage() {
                   key={page}
                   type="button"
                   onClick={() => setCurrentPage(page)}
-                  className={`h-8 min-w-8 rounded-md px-2 text-sm font-medium transition ${
+                  className={`h-9 min-w-[36px] rounded-lg px-3 text-sm font-semibold transition ${
                     currentPage === page
-                      ? 'bg-[#667eea] text-white'
-                      : 'border border-[#d4e0e6] bg-white text-[#334155] hover:bg-[#f7fafc]'
+                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
+                      : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
                   {page}
@@ -305,9 +358,12 @@ export function RestaurantsListPage() {
                   )
                 }
                 disabled={currentPage === totalPages}
-                className="rounded-lg border border-[#d4e0e6] bg-white px-3 py-1.5 text-sm font-medium text-[#334155] transition hover:bg-[#f7fafc] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Next
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
               </button>
             </div>
           </div>
@@ -315,21 +371,30 @@ export function RestaurantsListPage() {
       </div>
 
       {restaurantPendingDelete ? (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#1f1147]/38 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[#cec4ff] bg-white p-6 shadow-[0_28px_70px_rgba(48,25,106,0.30)]">
-            <h3 className="text-2xl font-semibold text-[#101827]">
-              Delete restaurant?
-            </h3>
-            <p className="mt-3 text-sm leading-6 text-[#5f6c78]">
-              Do you really want to delete this restaurant?
-            </p>
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900">
+                  Delete Restaurant
+                </h3>
+                <p className="mt-2 text-sm text-gray-600">
+                  Are you sure you want to delete <span className="font-semibold text-gray-900">"{restaurantPendingDelete.name}"</span>? This action cannot be undone.
+                </p>
+              </div>
+            </div>
 
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setRestaurantPendingDelete(null)}
                 disabled={Boolean(deletingRestaurantId)}
-                className="rounded-lg border border-[#d2c8ff] bg-white px-4 py-2 text-sm font-medium text-[#413c68] transition hover:bg-[#f4f1ff] disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -337,9 +402,24 @@ export function RestaurantsListPage() {
                 type="button"
                 onClick={() => void onConfirmDeleteRestaurant()}
                 disabled={Boolean(deletingRestaurantId)}
-                className="inline-flex items-center rounded-lg bg-[#667eea] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-red-500 to-red-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:from-red-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {deletingRestaurantId ? 'Deleting...' : 'Delete'}
+                {deletingRestaurantId ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete Restaurant
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -352,25 +432,32 @@ export function RestaurantsListPage() {
 function DomainCell({ restaurant }: { restaurant: RestaurantListItem }) {
   const preferredDomain = getPreferredDomain(restaurant);
   if (!preferredDomain) {
-    return <p>N/A</p>;
+    return <p className="text-gray-500">N/A</p>;
   }
 
   const href = toExternalUrl(preferredDomain);
   const isProductionDomain = Boolean(restaurant.customDomain.trim());
 
   return (
-    <div className="space-y-0.5">
+    <div className="space-y-1">
       <a
         href={href}
         target="_blank"
         rel="noreferrer noopener"
-        className="text-[#5b3fd4] underline decoration-[#c8bcff] underline-offset-2 transition hover:text-[#4728cc]"
+        className="flex items-center gap-1.5 font-medium text-purple-600 transition hover:text-purple-700 hover:underline"
       >
         {preferredDomain}
+        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
       </a>
-      <p className="text-xs text-[#7a8996]">
+      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+        isProductionDomain
+          ? 'bg-green-100 text-green-800'
+          : 'bg-amber-100 text-amber-800'
+      }`}>
         {isProductionDomain ? 'Production' : 'Staging'}
-      </p>
+      </span>
     </div>
   );
 }

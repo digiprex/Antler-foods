@@ -22,9 +22,6 @@ interface WebsiteData {
   staging_domain: string | null;
   updated_at: string;
   vercel_project_id: string | null;
-  restaurant?: {
-    name: string;
-  };
 }
 
 interface WebsiteByPkResponse {
@@ -51,9 +48,6 @@ const GET_WEBSITE_INFO = `
       staging_domain
       updated_at
       vercel_project_id
-      restaurant {
-        name
-      }
     }
   }
 `;
@@ -80,9 +74,6 @@ const GET_WEBSITE_INFO_BY_RESTAURANT_ID = `
       staging_domain
       updated_at
       vercel_project_id
-      restaurant {
-        name
-      }
     }
   }
 `;
@@ -141,7 +132,6 @@ export async function GET(request: Request) {
         custom_domain: website.custom_domain,
         logo: website.logo,
         favicon_url: website.favicon_url,
-        restaurant_name: website.restaurant?.name || '',
         is_published: website.is_published,
         is_deleted: website.is_deleted,
       },

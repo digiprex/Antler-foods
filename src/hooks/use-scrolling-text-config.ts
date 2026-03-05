@@ -41,10 +41,14 @@ export function useScrollingTextConfig({ apiEndpoint }: { apiEndpoint: string })
   };
 
   useEffect(() => {
-    if (apiEndpoint) {
+    if (apiEndpoint && apiEndpoint.trim() !== '') {
       fetchConfig();
+    } else {
+      // If no valid endpoint, stop loading immediately
+      setLoading(false);
+      setConfig(null);
     }
-  }, [apiEndpoint, fetchConfig]);
+  }, [apiEndpoint]);
 
   return {
     config,

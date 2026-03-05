@@ -150,11 +150,20 @@ export async function GET(request: Request) {
     const pageId = searchParams.get('page_id');
     const templateId = searchParams.get('template_id') || null;
 
-    if (!restaurantId || !pageId) {
+    if (!restaurantId) {
       return NextResponse.json({
         success: false,
         data: null,
-        error: 'restaurant_id and page_id are required'
+        error: 'restaurant_id is required'
+      } as ScrollingTextConfigResponse, { status: 400 });
+    }
+
+    // page_id is only required if template_id is not provided
+    if (!templateId && !pageId) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: 'Either page_id or template_id is required'
       } as ScrollingTextConfigResponse, { status: 400 });
     }
 

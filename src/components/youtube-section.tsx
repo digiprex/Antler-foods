@@ -13,24 +13,31 @@ import type { YouTubeConfig } from '@/types/youtube.types';
 interface YouTubeSectionProps {
   restaurantId: string;
   pageId?: string;
+  templateId?: string;
+  configData?: Partial<YouTubeConfig>;
 }
 
-export default function YouTubeSection({ restaurantId, pageId }: YouTubeSectionProps): JSX.Element | null {
+export default function YouTubeSection({ restaurantId, pageId, templateId }: YouTubeSectionProps): JSX.Element | null {
   const [config, setConfig] = useState<YouTubeConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchYouTubeConfig();
-  }, [restaurantId, pageId]);
+  }, [restaurantId, pageId, templateId]);
 
   const fetchYouTubeConfig = async () => {
     try {
-      // Build API endpoint with restaurant_id and page_id or auto-detected url_slug
+      // Build API endpoint with restaurant_id and appropriate identifier
       let apiEndpoint = `/api/youtube-config?restaurant_id=${restaurantId}`;
 
-      // If pageId is provided, use it directly
-      if (pageId) {
-        apiEndpoint = `/api/youtube-config?restaurant_id=${restaurantId}&page_id=${pageId}`;
+      // If templateId is provided, use it for specific template fetch
+      if (templateId) {
+        apiEndpoint += `&template_id=${templateId}`;
+        console.log('[YouTube] Fetching by template_id:', templateId);
+      } else if (pageId) {
+        // If pageId is provided, use it directly
+        apiEndpoint += `&page_id=${pageId}`;
+        console.log('[YouTube] Fetching by page_id:', pageId);
       } else {
         // Fallback to url_slug detection for backward compatibility
         const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
@@ -38,7 +45,8 @@ export default function YouTubeSection({ restaurantId, pageId }: YouTubeSectionP
         const urlSlug = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : '';
 
         if (urlSlug && urlSlug !== restaurantId) {
-          apiEndpoint = `/api/youtube-config?restaurant_id=${restaurantId}&url_slug=${urlSlug}`;
+          apiEndpoint += `&url_slug=${urlSlug}`;
+          console.log('[YouTube] Fetching by url_slug:', urlSlug);
         }
       }
 

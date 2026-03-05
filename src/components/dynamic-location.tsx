@@ -42,6 +42,7 @@ interface PlaceDetails {
 interface DynamicLocationProps {
   restaurantId?: string;
   pageId?: string;
+  templateId?: string;
   showLoading?: boolean;
   configData?: Partial<LocationConfig>;
 }
@@ -111,18 +112,33 @@ function buildGoogleMapsDirectionsUrl(target: GoogleMapTarget) {
   return 'https://www.google.com/maps';
 }
 
-export default function DynamicLocation({ restaurantId, pageId, showLoading = false, configData }: DynamicLocationProps) {
-  const [config, setConfig] = useState<LocationConfig | null>(configData || null);
+export default function DynamicLocation({ restaurantId, pageId, templateId, showLoading = false, configData }: DynamicLocationProps) {
+  const [config, setConfig] = useState<LocationConfig | null>(null);
   const [placeDetails, setPlaceDetails] = useState<PlaceDetails | null>(null);
-  const [isLoading, setIsLoading] = useState(!configData);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchLocationConfig = async () => {
     // If configData is provided, use it directly
     if (configData) {
-      setConfig(configData as LocationConfig);
-      if (configData.google_place_id) {
+      console.log('[Location] configData provided:', {
+        enabled: configData.enabled,
+        hasGooglePlaceId: !!configData.google_place_id,
+        googlePlaceId: configData.google_place_id,
+        layout: configData.layout,
+        fullConfigData: configData
+      });
+
+      // Check if the config is enabled before setting it
+      if (configData.enabled !== false && configData.google_place_id) {
+        console.log('[Location] Config is enabled and has place ID, setting config and fetching details');
+        setConfig(configData as LocationConfig);
         fetchPlaceDetails(configData.google_place_id);
+        // Don't set isLoading to false here - wait for place details to load
       } else {
+        console.log('[Location] Config disabled or missing place ID:', {
+          enabled: configData.enabled,
+          hasPlaceId: !!configData.google_place_id
+        });
         setIsLoading(false);
       }
       return;
@@ -134,31 +150,25 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
     }
 
     try {
-      // First try with page_id if provided
+      // Build API URL with appropriate parameters
       let params = new URLSearchParams();
       if (restaurantId) params.append('restaurant_id', restaurantId);
-      if (pageId) params.append('page_id', pageId);
 
-      console.log('[Location] Fetching location config:', { restaurantId, pageId });
+      // If templateId is provided, use it for specific template fetch
+      if (templateId) {
+        params.append('template_id', templateId);
+        console.log('[Location] Fetching location config by template_id:', { restaurantId, templateId });
+      } else if (pageId) {
+        params.append('page_id', pageId);
+        console.log('[Location] Fetching location config by page_id:', { restaurantId, pageId });
+      } else {
+        console.log('[Location] Fetching restaurant-level location config:', { restaurantId });
+      }
 
       let response = await fetch(`/api/location-config?${params.toString()}`);
       let data = await response.json();
 
-      console.log('[Location] API response (page-specific):', data);
-
-      // If no page-specific config found and we had a pageId, try restaurant-level config
-      if ((!data.success || !data.data || !data.data.enabled) && pageId) {
-        console.log('[Location] Trying restaurant-level config');
-        
-        params = new URLSearchParams();
-        if (restaurantId) params.append('restaurant_id', restaurantId);
-        // Don't include page_id for restaurant-level config
-        
-        response = await fetch(`/api/location-config?${params.toString()}`);
-        data = await response.json();
-        
-        console.log('[Location] API response (restaurant-level):', data);
-      }
+      console.log('[Location] API response:', data);
 
       if (data.success && data.data && data.data.enabled && data.data.google_place_id) {
         console.log('[Location] Config enabled, fetching place details for:', data.data.google_place_id);
@@ -182,12 +192,13 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
   useEffect(() => {
     fetchLocationConfig();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restaurantId, pageId, configData]);
+  }, [restaurantId, pageId, templateId, configData]);
 
   const fetchPlaceDetails = async (placeId: string) => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
       console.error('[Location] Google Maps API key not configured');
+      setIsLoading(false);
       return;
     }
 
@@ -212,6 +223,7 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
 
       script.onerror = () => {
         console.error('[Location] Failed to load Google Maps');
+        setIsLoading(false);
       };
 
       document.head.appendChild(script);
@@ -229,6 +241,7 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
   const getPlaceDetails = (placeId: string) => {
     if (typeof window === 'undefined' || !window.google?.maps || !(window.google.maps as any).places) {
       console.error('[Location] Google Maps not loaded');
+      setIsLoading(false);
       return;
     }
 
@@ -255,8 +268,10 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
       if (status === (window.google?.maps as any)?.places?.PlacesServiceStatus?.OK && place) {
         console.log('[Location] Successfully fetched place details:', place.name);
         setPlaceDetails(place);
+        setIsLoading(false);
       } else {
         console.error('[Location] Failed to fetch place details:', status);
+        setIsLoading(false);
       }
     });
   };
@@ -1001,8 +1016,13 @@ export default function DynamicLocation({ restaurantId, pageId, showLoading = fa
     console.log('[Location] Not rendering - missing config or place details:', {
       hasConfig: !!config,
       hasPlaceDetails: !!placeDetails,
-      configData: config
+      configEnabled: config?.enabled,
+      configData: config,
+      isStillLoading: isLoading
     });
+
+    // If still loading and showLoading is false, render nothing silently
+    // Otherwise, we already showed the loading state above
     return null;
   }
 

@@ -229,7 +229,7 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
   // Get templates array and sort by order_index
   const templates = pageData?.data?.templates || [];
   const sortedTemplates = templates.sort((a: any, b: any) => (a.order_index ?? 999) - (b.order_index ?? 999));
-  
+
   // Debug: Log section ordering
   console.log('[Page Client] 📋 Section ordering for page:', slug);
   sortedTemplates.forEach((template: any, index: number) => {
@@ -259,24 +259,41 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           showLoading={true}
         />;
       case 'customcode':
+        // Transform template data to match CustomCode config format
+        const customCodeConfigData = template.config ? {
+          ...template.config,
+          layout: template.name || 'html'
+        } : undefined;
+
         return <DynamicCustomCode
           key={uniqueKey}
           restaurantId={restaurantId}
           pageId={pageId}
+          configData={customCodeConfigData}
           showLoading={true}
         />;
       case 'scrollingtext':
+        // Pass template_id to fetch specific instance of scrolling text
+        // This ensures each section loads its own unique data
         return <DynamicScrollingText
           key={uniqueKey}
           restaurantId={restaurantId}
           pageId={pageId}
+          templateId={template.template_id}
           showLoading={true}
         />;
       case 'timeline':
+        // Transform template data to match Timeline config format
+        const timelineConfigData = template.config ? {
+          ...template.config,
+          layout: template.name || 'vertical'
+        } : undefined;
+
         return <DynamicTimeline
           key={uniqueKey}
           restaurantId={restaurantId}
           pageId={pageId}
+          configData={timelineConfigData}
           showLoading={true}
         />;
       case 'faq':
@@ -286,7 +303,7 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           layout: template.name || 'accordion',
           faqs: template.menu_items || []
         } : undefined;
-        
+
         return <DynamicFAQ
           key={uniqueKey}
           restaurantId={restaurantId}
@@ -300,7 +317,7 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           ...template.config,
           layout: template.name || 'grid'
         } : undefined;
-        
+
         return <DynamicGallery
           key={uniqueKey}
           restaurantId={restaurantId}
@@ -309,16 +326,22 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           showLoading={true}
         />;
       case 'youtube':
+        // Pass template_id to fetch specific instance of YouTube section
+        // This ensures each section loads its own unique data
         return <YouTubeSection
           key={uniqueKey}
           restaurantId={restaurantId}
           pageId={pageId}
+          templateId={template.template_id}
         />;
       case 'location':
+        // Pass template_id to fetch specific instance of location
+        // This ensures each section loads its own unique data
         return <DynamicLocation
           key={uniqueKey}
           restaurantId={restaurantId}
           pageId={pageId}
+          templateId={template.template_id}
           showLoading={true}
         />;
       case 'reviews':
@@ -327,7 +350,7 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           ...template.config,
           layout: template.name || 'grid'
         } : undefined;
-        
+
         return <DynamicReviews
           key={uniqueKey}
           restaurantId={restaurantId}
@@ -336,10 +359,17 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           showLoading={true}
         />;
       case 'form':
+        // Transform template data to match Form config format
+        const formConfigData = template.config ? {
+          ...template.config,
+          layout: template.name || 'centered'
+        } : undefined;
+
         return <DynamicForm
           key={uniqueKey}
           restaurantId={restaurantId}
           pageId={pageId}
+          configData={formConfigData}
           showLoading={true}
         />;
       default:
@@ -358,20 +388,23 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       {/* Navbar is automatically rendered by ConditionalNavbar in root layout */}
 
-      {/* Universal Popup - Only show on homepage */}
-      {slug === 'home' && <Popup restaurantId={restaurantId} />}
+      {/* Add top spacing to prevent navbar overlap */}
+      <div style={{ paddingTop: '80px' }}>
+        {/* Universal Popup - Only show on homepage */}
+        {slug === 'home' && <Popup restaurantId={restaurantId} />}
 
-      {/* Render sections in order based on order_index */}
-      {sortedTemplates.length > 0 ? (
-        sortedTemplates.map((template: any) => renderSection(template))
-      ) : (
-        <div style={{ padding: '40px', textAlign: 'center', backgroundColor: 'white', margin: '20px', borderRadius: '8px' }}>
-          <h3>No sections found for this page</h3>
-          <p>This page doesn't have any sections configured yet.</p>
-          <p>Page ID: {pageData?.data?.page?.page_id}</p>
-          <p>Restaurant ID: {restaurantId}</p>
-        </div>
-      )}
+        {/* Render sections in order based on order_index */}
+        {sortedTemplates.length > 0 ? (
+          sortedTemplates.map((template: any) => renderSection(template))
+        ) : (
+          <div style={{ padding: '40px', textAlign: 'center', backgroundColor: 'white', margin: '20px', borderRadius: '8px' }}>
+            <h3>No sections found for this page</h3>
+            <p>This page doesn't have any sections configured yet.</p>
+            <p>Page ID: {pageData?.data?.page?.page_id}</p>
+            <p>Restaurant ID: {restaurantId}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

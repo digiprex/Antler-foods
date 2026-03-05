@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const restaurant_id = searchParams.get('restaurant_id');
     const page_id = searchParams.get('page_id');
+    const template_id = searchParams.get('template_id') || null;
 
     if (!restaurant_id || !page_id) {
       return NextResponse.json(
@@ -153,6 +154,7 @@ export async function POST(request: NextRequest) {
     const {
       restaurant_id,
       page_id,
+      template_id,
       isEnabled,
       layout,
       title,
@@ -184,34 +186,32 @@ export async function POST(request: NextRequest) {
       lineColor: lineColor || '#d1d5db',
     };
 
-    // Soft delete existing templates
-    const deleteMutation = `
-      mutation SoftDeleteTimeline($restaurant_id: uuid!, $page_id: uuid!) {
-        update_templates(
-          where: {
-            restaurant_id: { _eq: $restaurant_id }
-            page_id: { _eq: $page_id }
-            category: { _eq: "timeline" }
-            is_deleted: { _eq: false }
+    // Step 2: If template_id is provided, mark that specific template as deleted (editing existing section)
+    if (template_id) {
+      const deleteMutation = `
+        mutation SoftDeleteSpecificTimeline($template_id: uuid!) {
+          update_templates_by_pk(
+            pk_columns: { template_id: $template_id }
+            _set: { is_deleted: true }
+          ) {
+            template_id
           }
-          _set: { is_deleted: true }
-        ) {
-          affected_rows
         }
-      }
-    `;
+      `;
 
-    await fetch(HASURA_ENDPOINT as string, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-hasura-admin-secret': HASURA_ADMIN_SECRET as string,
-      },
-      body: JSON.stringify({
-        query: deleteMutation,
-        variables: { restaurant_id, page_id },
-      }),
-    });
+      await fetch(HASURA_ENDPOINT as string, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-hasura-admin-secret': HASURA_ADMIN_SECRET as string,
+        },
+        body: JSON.stringify({
+          query: deleteMutation,
+          variables: { template_id },
+        }),
+      });
+    }
+    // If no template_id, this is a new section - don't delete any existing templates
 
     // Insert new template
     const insertMutation = `

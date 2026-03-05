@@ -162,6 +162,7 @@ export async function POST(request: NextRequest) {
       enabled,
       restaurant_id,
       page_id,
+      template_id,
     } = body;
 
     // Validate required fields
@@ -179,19 +180,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 1: Get current template to mark as deleted
-    const currentData = await adminGraphqlRequest(GET_FORM_SETTINGS, {
-      restaurant_id,
-      page_id
-    });
-
-    // Step 2: Mark current template as deleted (if exists)
-    if ((currentData as any).templates && (currentData as any).templates.length > 0) {
-      const currentTemplate = (currentData as any).templates[0];
+    // Step 2: If template_id is provided, mark that specific template as deleted (editing existing section)
+    if (template_id) {
       await adminGraphqlRequest(MARK_AS_DELETED, {
-        template_id: currentTemplate.template_id,
+        template_id: template_id,
       });
     }
+    // If no template_id, this is a new section - don't delete any existing templates
 
     // Step 3: Prepare configuration to store in templates table
     const config = {

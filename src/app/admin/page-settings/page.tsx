@@ -50,9 +50,17 @@ export default function PageSettingsSelector() {
     if (!restaurantId || !pageId) return null;
 
     const previewStyle = {
-      maxHeight: '500px',
-      overflow: 'auto',
+      maxHeight: '400px',
+      overflow: 'hidden',
       width: '100%',
+      borderRadius: '8px',
+    } as React.CSSProperties;
+
+    const zoomContainerStyle = {
+      transform: 'scale(0.65)',
+      transformOrigin: 'top left',
+      width: '153.85%', // 100% / 0.65 to compensate for scale
+      height: 'auto',
     } as React.CSSProperties;
 
     switch (category.toLowerCase()) {
@@ -76,11 +84,13 @@ export default function PageSettingsSelector() {
 
         return (
           <div style={previewStyle}>
-            <DynamicHero
-              restaurantId={restaurantId}
-              configData={heroConfigWithLayout}
-              showLoading={false}
-            />
+            <div style={zoomContainerStyle}>
+              <DynamicHero
+                restaurantId={restaurantId}
+                configData={heroConfigWithLayout}
+                showLoading={false}
+              />
+            </div>
           </div>
         );
       case 'menu':
@@ -103,11 +113,13 @@ export default function PageSettingsSelector() {
 
         return (
           <div style={previewStyle}>
-            <DynamicMenu
-              restaurantId={restaurantId}
-              configData={menuConfigWithLayout}
-              showLoading={false}
-            />
+            <div style={zoomContainerStyle}>
+              <DynamicMenu
+                restaurantId={restaurantId}
+                configData={menuConfigWithLayout}
+                showLoading={false}
+              />
+            </div>
           </div>
         );
       case 'gallery':
@@ -130,11 +142,13 @@ export default function PageSettingsSelector() {
 
         return (
           <div style={previewStyle}>
-            <DynamicGallery
-              restaurantId={restaurantId}
-              pageId={pageId}
-              configData={galleryConfigWithLayout}
-            />
+            <div style={zoomContainerStyle}>
+              <DynamicGallery
+                restaurantId={restaurantId}
+                pageId={pageId}
+                configData={galleryConfigWithLayout}
+              />
+            </div>
           </div>
         );
       case 'reviews':
@@ -157,34 +171,40 @@ export default function PageSettingsSelector() {
 
         return (
           <div style={previewStyle}>
-            <DynamicReviews
-              restaurantId={restaurantId}
-              pageId={pageId}
-              configData={reviewsConfigWithLayout}
-            />
+            <div style={zoomContainerStyle}>
+              <DynamicReviews
+                restaurantId={restaurantId}
+                pageId={pageId}
+                configData={reviewsConfigWithLayout}
+              />
+            </div>
           </div>
         );
       case 'youtube':
         return (
           <div style={previewStyle}>
-            <DynamicYouTube
-              restaurantId={restaurantId}
-              pageId={pageId}
-              templateId={templateId}
-              configData={config}
-              showLoading={false}
-            />
+            <div style={zoomContainerStyle}>
+              <DynamicYouTube
+                restaurantId={restaurantId}
+                pageId={pageId}
+                templateId={templateId}
+                configData={config}
+                showLoading={false}
+              />
+            </div>
           </div>
         );
       case 'timeline':
         return (
           <div style={previewStyle}>
-            <DynamicTimeline
-              restaurantId={restaurantId}
-              pageId={pageId}
-              templateId={templateId}
-              showLoading={false}
-            />
+            <div style={zoomContainerStyle}>
+              <DynamicTimeline
+                restaurantId={restaurantId}
+                pageId={pageId}
+                templateId={templateId}
+                showLoading={false}
+              />
+            </div>
           </div>
         );
       case 'faq':
@@ -209,56 +229,66 @@ export default function PageSettingsSelector() {
 
         return (
           <div style={previewStyle}>
-            <DynamicFAQ
-              restaurantId={restaurantId}
-              pageId={pageId}
-              configData={faqConfigWithLayout}
-              showLoading={false}
-            />
+            <div style={zoomContainerStyle}>
+              <DynamicFAQ
+                restaurantId={restaurantId}
+                pageId={pageId}
+                configData={faqConfigWithLayout}
+                showLoading={false}
+              />
+            </div>
           </div>
         );
       case 'location':
         return (
           <div style={previewStyle}>
-            <DynamicLocation
-              restaurantId={restaurantId}
-              pageId={pageId}
-              templateId={templateId}
-              showLoading={false}
-            />
+            <div style={zoomContainerStyle}>
+              <DynamicLocation
+                restaurantId={restaurantId}
+                pageId={pageId}
+                templateId={templateId}
+                showLoading={false}
+              />
+            </div>
           </div>
         );
       case 'scrollingtext':
         return (
           <div style={previewStyle}>
-            <DynamicScrollingText
-              restaurantId={restaurantId}
-              pageId={pageId}
-              templateId={templateId}
-              showLoading={false}
-            />
+            <div style={zoomContainerStyle}>
+              <DynamicScrollingText
+                restaurantId={restaurantId}
+                pageId={pageId}
+                templateId={templateId}
+                showLoading={false}
+              />
+            </div>
           </div>
         );
       case 'customcode':
         return (
           <div style={previewStyle}>
-            <DynamicCustomCode
-              restaurantId={restaurantId}
-              pageId={pageId}
-              templateId={templateId}
-              showLoading={false}
-            />
+            <div style={zoomContainerStyle}>
+              <DynamicCustomCode
+                restaurantId={restaurantId}
+                pageId={pageId}
+                templateId={templateId}
+                showLoading={false}
+              />
+            </div>
           </div>
         );
       case 'form':
         return (
           <div style={previewStyle}>
-            <DynamicForm
-              restaurantId={restaurantId}
-              pageId={pageId}
-              templateId={templateId}
-              showLoading={false}
-            />
+            <div style={zoomContainerStyle}>
+              <DynamicForm
+                restaurantId={restaurantId}
+                pageId={pageId}
+                templateId={templateId}
+                showLoading={false}
+              />
+            </div>
           </div>
         );
       case 'customsection':
@@ -271,10 +301,12 @@ export default function PageSettingsSelector() {
 
         return (
           <div style={previewStyle}>
-            <CustomSection
-              {...customSectionConfigWithLayout}
-              restaurant_id={restaurantId}
-            />
+            <div style={zoomContainerStyle}>
+              <CustomSection
+                {...customSectionConfigWithLayout}
+                restaurant_id={restaurantId}
+              />
+            </div>
           </div>
         );
       case 'seo':
@@ -1005,16 +1037,16 @@ export default function PageSettingsSelector() {
                   {existingSectionsData.map((section, idx) => (
                     <div
                       key={section.template_id}
-                      className="bg-white border border-green-200 rounded-lg shadow hover:shadow-md transition-all group"
+                      className="bg-white border-2 border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:border-blue-300 transition-all duration-300 group overflow-hidden"
                     >
                       {/* Section Header */}
-                      <div className="p-5 border-b border-gray-100">
+                      <div className="p-6 border-b-2 border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
-                              <div className="font-semibold text-gray-900">{section.name}</div>
-                              <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded flex-shrink-0">
-                                ✓ Added
+                              <div className="font-bold text-lg text-gray-900">{section.name}</div>
+                              <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 rounded-full font-semibold flex-shrink-0 border border-green-200">
+                                ✓ Active
                               </span>
                               {(() => {
                                 // Count instances of this section type
@@ -1022,7 +1054,7 @@ export default function PageSettingsSelector() {
                                 if (instanceCount > 1) {
                                   const instanceNumber = existingSectionsData.filter(s => s.category === section.category).findIndex(s => s.template_id === section.template_id) + 1;
                                   return (
-                                    <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded flex-shrink-0 font-medium">
+                                    <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 rounded-full font-semibold flex-shrink-0 border border-purple-200">
                                       Instance #{instanceNumber}
                                     </span>
                                   );
@@ -1031,8 +1063,8 @@ export default function PageSettingsSelector() {
                               })()}
                             </div>
                             <div className="text-sm text-gray-600 mb-3">{section.description}</div>
-                            <div className="flex flex-wrap gap-2">
-                              <span className="text-xs font-medium text-gray-500">Layout:</span>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Layout:</span>
                               {(() => {
                                 // Layout is stored in template.name (section.layout)
                                 // Fallback to config fields for backwards compatibility
@@ -1046,7 +1078,7 @@ export default function PageSettingsSelector() {
                                   'Default';
 
                                 return (
-                                  <span className="text-xs px-2 py-1 bg-green-50 text-green-700 rounded font-medium">
+                                  <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 rounded-full font-semibold border border-blue-200">
                                     {selectedLayout}
                                   </span>
                                 );
@@ -1055,18 +1087,18 @@ export default function PageSettingsSelector() {
                           </div>
                           <div className="flex items-center gap-2 ml-4">
                             {/* Order Controls */}
-                            <div className="flex flex-col gap-1">
+                            <div className="flex flex-col gap-1.5">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   moveSectionUp(idx);
                                 }}
                                 disabled={idx === 0}
-                                className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                className="px-3 py-1.5 text-xs bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg hover:from-gray-200 hover:to-gray-300 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 font-medium shadow-sm"
                                 title="Move up"
                               >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
                                 </svg>
                                 Up
                               </button>
@@ -1076,18 +1108,18 @@ export default function PageSettingsSelector() {
                                   moveSectionDown(idx);
                                 }}
                                 disabled={idx === existingSectionsData.length - 1}
-                                className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                className="px-3 py-1.5 text-xs bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg hover:from-gray-200 hover:to-gray-300 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 font-medium shadow-sm"
                                 title="Move down"
                               >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                                 </svg>
                                 Down
                               </button>
                             </div>
-                            
+
                             {/* Order Index Display */}
-                            <div className="text-xs text-gray-500 px-2 py-1 bg-gray-50 rounded">
+                            <div className="text-xs text-gray-700 px-3 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg font-bold border border-indigo-200">
                               #{idx + 1}
                             </div>
 
@@ -1099,10 +1131,10 @@ export default function PageSettingsSelector() {
                                 editParams.set('template_id', section.template_id);
                                 router.push(`${section.route}?${editParams.toString()}`);
                               }}
-                              className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+                              className="px-4 py-2.5 text-sm bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center gap-2 font-semibold shadow-md hover:shadow-lg"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                               Edit
                             </button>
@@ -1111,10 +1143,10 @@ export default function PageSettingsSelector() {
                                 e.stopPropagation();
                                 handleDeleteClick(section.name, section.template_id);
                               }}
-                              className="px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1"
+                              className="px-4 py-2.5 text-sm bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 flex items-center gap-2 font-semibold shadow-md hover:shadow-lg"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
                               Delete
                             </button>
@@ -1123,14 +1155,15 @@ export default function PageSettingsSelector() {
                       </div>
 
                       {/* Live Preview */}
-                      <div className="p-5">
-                        <div className="mb-3">
-                          <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                            <span className="text-green-600">👁️</span>
-                            Live Preview - How it appears to customers
+                      <div className="p-6 bg-gray-50">
+                        <div className="mb-4">
+                          <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2 uppercase tracking-wide">
+                            <span className="text-lg">👁️</span>
+                            Live Preview
                           </h4>
+                          <p className="text-xs text-gray-600 mt-1">How it appears to your customers</p>
                         </div>
-                        <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="border-2 border-gray-300 rounded-xl overflow-hidden bg-white shadow-inner">
                           {renderSectionPreview(section.category, section.config, section.template_id)}
                         </div>
                       </div>

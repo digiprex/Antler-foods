@@ -32,16 +32,16 @@ input[type="text"], input[type="email"], input[type="password"], input[type="url
 
 @layer components {
   .auth-input {
-    @apply h-11 w-full rounded-lg border border-[#d5ddd8] bg-white px-3.5 text-[13px] font-medium text-ink shadow-sm outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15 focus:shadow-md;
-    @apply placeholder:text-[#9ba5a0] placeholder:font-normal;
+    @apply h-11 w-full rounded-lg border border-[#e5e7eb] bg-white px-3.5 text-sm font-medium text-ink shadow-sm outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/20 focus:shadow-md;
+    @apply placeholder:text-[#9ca3af] placeholder:font-normal;
   }
 
   .auth-primary-btn {
-    @apply inline-flex h-10 items-center justify-center rounded-lg bg-gradient-to-r from-accent to-[#4ebf71] px-7 text-[13px] font-semibold tracking-wide text-white shadow-md transition-all hover:-translate-y-0.5 hover:from-accentDark hover:to-[#3ca95e] hover:shadow-lg active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0;
+    @apply inline-flex h-11 items-center justify-center rounded-lg bg-gradient-to-r from-accent to-[#a78bfa] px-7 text-sm font-semibold tracking-wide text-white shadow-lg transition-all hover:-translate-y-0.5 hover:from-accentDark hover:to-[#9333ea] hover:shadow-xl active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0;
   }
 
   .auth-link {
-    @apply text-accent transition-colors hover:text-accentDark hover:underline;
+    @apply text-accent font-semibold transition-colors hover:text-accentDark hover:underline underline-offset-2;
   }
 
   .line-clamp-2 {

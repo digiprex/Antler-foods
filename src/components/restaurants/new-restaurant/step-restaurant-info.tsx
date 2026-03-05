@@ -536,8 +536,8 @@ export function StepRestaurantInfo({
     <div className="space-y-6">
       <div className="space-y-3">
         <h3 className="text-[22px] font-semibold tracking-tight text-[#111827]">
-          Restaurant Setup
-        </h3>
+            Restaurant Setup
+          </h3>
         {ENABLE_EXISTING_FRANCHISE ? (
           <HelperCallout>
             Choose whether you are creating a new franchise with its first
@@ -545,7 +545,7 @@ export function StepRestaurantInfo({
           </HelperCallout>
         ) : (
           <HelperCallout>
-            Create a new franchise with its first restaurant.
+            Create a new restaurant.
           </HelperCallout>
         )}
       </div>
@@ -556,25 +556,31 @@ export function StepRestaurantInfo({
             type="button"
             onClick={onChooseCreateRestaurant}
             className={cx(
-              'rounded-xl border px-4 py-2 text-sm font-semibold transition',
+              'inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-semibold transition-all',
               mode === 'create'
-                ? 'border-[#667eea] bg-[#ede9fe] text-[#5b21b6]'
-                : 'border-[#d3e0e6] bg-white text-[#334155] hover:bg-[#f6f5ff]',
+                ? 'border-purple-500 bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md hover:shadow-lg'
+                : 'border-gray-300 bg-white text-gray-700 hover:border-purple-300 hover:bg-purple-50',
             )}
           >
-            + Add new restaurant
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Add new restaurant
           </button>
           {ENABLE_EXISTING_FRANCHISE ? (
             <button
               type="button"
               onClick={onChooseExistingRestaurant}
               className={cx(
-                'rounded-xl border px-4 py-2 text-sm font-semibold transition',
+                'inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-semibold transition-all',
                 mode === 'existing'
-                  ? 'border-[#667eea] bg-[#ede9fe] text-[#5b21b6]'
-                  : 'border-[#d3e0e6] bg-white text-[#334155] hover:bg-[#f6f5ff]',
+                  ? 'border-purple-500 bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md hover:shadow-lg'
+                  : 'border-gray-300 bg-white text-gray-700 hover:border-purple-300 hover:bg-purple-50',
               )}
             >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
               Existing franchise
             </button>
           ) : null}
@@ -650,30 +656,44 @@ export function StepRestaurantInfo({
       </div>
 
       {isRegistrationPanelOpen ? (
-        <section className="space-y-5 rounded-2xl border border-[#d7e2e6] bg-[#f8fafb] p-6">
-          <div className="flex items-center justify-between border-b border-[#d7e2e6] pb-4">
-            <h4 className="text-[22px] font-semibold tracking-tight text-[#111827]">
-              Add New Restaurant
-            </h4>
+        <section className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between border-b border-gray-200 pb-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 shadow-md">
+                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <h4 className="text-xl font-bold tracking-tight text-gray-900">
+                Restaurant Details
+              </h4>
+            </div>
             <button
               type="button"
               onClick={() => setIsRegistrationPanelOpen(false)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#d8e3e8] text-[#4c6073] transition hover:bg-[#f4f8fa]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition hover:bg-gray-50 hover:text-gray-900"
               aria-label="Close add restaurant form"
             >
               <PanelCloseIcon />
             </button>
           </div>
 
-          <div className="space-y-7">
+          <div className="space-y-8">
             <div className="space-y-5">
-              <div>
-                <h5 className="text-[22px] font-semibold text-[#111827]">
-                  Basic Information
-                </h5>
-                <p className="text-[16px] text-[#556678]">
-                  Enter the restaurant location details and registration data.
-                </p>
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
+                  <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h5 className="text-lg font-bold text-gray-900">
+                    Basic Information
+                  </h5>
+                  <p className="text-sm text-gray-600">
+                    Enter the restaurant location details and registration data.
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -726,49 +746,67 @@ export function StepRestaurantInfo({
                 ) : null}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-sm text-[#526274]">
-                <span>Can&apos;t find the place in the list?</span>
-                <button
-                  type="button"
-                  onClick={onResetPlaceCategories}
-                  className="font-medium text-[#667eea] hover:text-[#5b21b6]"
-                >
-                  Reset place categories
-                </button>
-                {hasGoogleMapsApiKey ? (
-                  <>
-                    {isGooglePlacesReady && !googlePlacesError ? (
-                      <span className="text-[#667eea]">
-                        Google Places enabled. Select a place to autofill
-                        details.
-                      </span>
-                    ) : null}
-                    {!isGooglePlacesReady && !googlePlacesError ? (
-                      <span className="text-[#64748b]">
-                        Loading Google Places...
-                      </span>
-                    ) : null}
-                    {googlePlacesError ? (
-                      <span className="text-[#b45309]">
-                        Google Places unavailable right now. Enter details
-                        manually.
-                      </span>
-                    ) : null}
-                    {selectedPlace ? (
-                      <button
-                        type="button"
-                        onClick={clearSelectedPlace}
-                        className="font-medium text-[#4b5563] hover:text-[#1f2937]"
-                      >
-                        Clear selected place
-                      </button>
-                    ) : null}
-                  </>
-                ) : (
-                  <span className="text-[#b45309]">
-                    Google Places is disabled for now. Enter details manually.
-                  </span>
-                )}
+              <div className="rounded-lg border border-purple-100 bg-purple-50 px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
+                  <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-medium">Can&apos;t find the place?</span>
+                  <button
+                    type="button"
+                    onClick={onResetPlaceCategories}
+                    className="font-semibold text-purple-600 hover:text-purple-700 hover:underline"
+                  >
+                    Reset categories
+                  </button>
+                </div>
+                <div className="mt-2 space-y-2 text-sm">
+                  {hasGoogleMapsApiKey ? (
+                    <>
+                      {/* {isGooglePlacesReady && !googlePlacesError ? (
+                        <div className="flex items-center gap-2 text-purple-700">
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>Google Places enabled. Select to autofill details.</span>
+                        </div>
+                      ) : null} */}
+                      {!isGooglePlacesReady && !googlePlacesError ? (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>Loading Google Places...</span>
+                        </div>
+                      ) : null}
+                      {googlePlacesError ? (
+                        <div className="flex items-center gap-2 text-amber-700">
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                          <span>Google Places unavailable. Enter details manually.</span>
+                        </div>
+                      ) : null}
+                      {/* {selectedPlace ? (
+                        <button
+                          type="button"
+                          onClick={clearSelectedPlace}
+                          className="font-semibold text-gray-700 hover:text-gray-900 hover:underline"
+                        >
+                          Clear selected place
+                        </button>
+                      ) : null} */}
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-2 text-amber-700">
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span>Google Places disabled. Enter details manually.</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <FormTextInput
@@ -821,14 +859,20 @@ export function StepRestaurantInfo({
             </div>
 
             <div className="space-y-4">
-              <div>
-                <h5 className="text-[22px] font-semibold text-[#111827]">
-                  Food Categories &amp; Cuisine Types
-                </h5>
-                <p className="text-[16px] text-[#556678]">
-                  Select all food categories and cuisine types that apply to
-                  this restaurant.
-                </p>
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
+                  <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h5 className="text-lg font-bold text-gray-900">
+                    Food Categories &amp; Cuisine Types
+                  </h5>
+                  <p className="text-sm text-gray-600">
+                    Select all food categories and cuisine types that apply to this restaurant.
+                  </p>
+                </div>
               </div>
 
               <div className="rounded-xl border border-[#d3dfe6] bg-white px-3 py-2">
@@ -940,14 +984,20 @@ export function StepRestaurantInfo({
             </div>
 
             <div className="space-y-4">
-              <div>
-                <h5 className="text-[22px] font-semibold text-[#111827]">
-                  Restaurant Type &amp; Service Model
-                </h5>
-                <p className="text-[16px] text-[#556678]">
-                  Choose the format that best describes this restaurant&apos;s
-                  service style.
-                </p>
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
+                  <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h5 className="text-lg font-bold text-gray-900">
+                    Restaurant Type &amp; Service Model
+                  </h5>
+                  <p className="text-sm text-gray-600">
+                    Choose the format that best describes this restaurant&apos;s service style.
+                  </p>
+                </div>
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">

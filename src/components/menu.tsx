@@ -86,7 +86,6 @@ export default function Menu({
 
   const containerStyle = {
     backgroundColor: bgColor,
-    color: textColor,
     ...bodyStyle,
   };
 
@@ -155,17 +154,17 @@ export default function Menu({
         {/* Header */}
         <div className={styles.menuHeader} style={{ textAlign }}>
           {title && (
-            <h2 className={styles.menuTitle} style={{ color: textColor, ...titleStyle }}>
+            <h2 className={styles.menuTitle} style={titleStyle}>
               {title}
             </h2>
           )}
           {subtitle && (
-            <p className={styles.menuSubtitle} style={{ color: textColor, opacity: 0.8, ...subtitleStyle }}>
+            <p className={styles.menuSubtitle} style={{ opacity: 0.8, ...subtitleStyle }}>
               {subtitle}
             </p>
           )}
           {description && (
-            <p className={styles.menuDescription} style={{ color: textColor, opacity: 0.7, ...bodyStyle }}>
+            <p className={styles.menuDescription} style={{ opacity: 0.7, ...bodyStyle }}>
               {description}
             </p>
           )}

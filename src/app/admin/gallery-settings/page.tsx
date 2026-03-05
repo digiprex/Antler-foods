@@ -57,7 +57,7 @@ export default function GallerySettingsPage() {
     if (restaurantId && !isNewSection) {
       fetchGalleryConfig();
     }
-  }, [restaurantId, pageId, templateId, isNewSection]);
+  }, [restaurantId, pageId, templateId, isNewSection, sectionStyleDefaults]);
 
   useEffect(() => {
     if (!isNewSection) return;

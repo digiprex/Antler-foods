@@ -109,7 +109,7 @@ export default function Gallery({
   };
 
   return (
-    <section style={{ backgroundColor: bgColor, color: textColor, padding, ...bodyStyle }}>
+    <section style={{ backgroundColor: bgColor, padding, ...bodyStyle }}>
       <div style={{ maxWidth, margin: '0 auto' }}>
         {/* Header */}
         {(title || subtitle || description) && (

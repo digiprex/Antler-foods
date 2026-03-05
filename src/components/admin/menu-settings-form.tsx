@@ -18,7 +18,9 @@ import { useRouter } from 'next/navigation';
 import Toast from '@/components/ui/toast';
 import { ImageGalleryModal } from './image-gallery-modal';
 import { useMenuConfig, useUpdateMenuConfig } from '@/hooks/use-menu-config';
+import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import type { MenuConfig, MenuButton, MenuCategory, MenuItem } from '@/types/menu.types';
+import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import styles from './menu-settings-form.module.css';
 
 type MediaFieldType = 'header_image' | 'background_image';
@@ -53,6 +55,7 @@ export default function MenuSettingsForm({ pageId, isNewSection }: MenuSettingsF
   const restaurantId = searchParams.get('restaurant_id') || '';
   const restaurantName = searchParams.get('restaurant_name') || '';
   const pageName = searchParams.get('page_name') || '';
+  const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
 
   // Validate that restaurant ID is provided
   if (!restaurantId) {
@@ -83,6 +86,7 @@ export default function MenuSettingsForm({ pageId, isNewSection }: MenuSettingsF
     if (isNewSection && !formConfig) {
       // For new sections, use default empty config
       setFormConfig({
+        ...sectionStyleDefaults,
         title: '',
         subtitle: '',
         description: '',
@@ -108,9 +112,20 @@ export default function MenuSettingsForm({ pageId, isNewSection }: MenuSettingsF
         featuredItems: [],
       });
     } else if (config && !formConfig) {
-      setFormConfig(config);
+      setFormConfig({ ...sectionStyleDefaults, ...config });
     }
-  }, [config, formConfig, isNewSection]);
+  }, [config, formConfig, isNewSection, sectionStyleDefaults]);
+
+  useEffect(() => {
+    setFormConfig((prev) =>
+      prev
+        ? {
+            ...sectionStyleDefaults,
+            ...prev,
+          }
+        : prev,
+    );
+  }, [sectionStyleDefaults]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -605,6 +620,14 @@ export default function MenuSettingsForm({ pageId, isNewSection }: MenuSettingsF
                 rows={3}
               />
             </div>
+          </section>
+
+          <section className={styles.section}>
+            <h3 className={styles.sectionTitle}>Typography & Buttons</h3>
+            <SectionTypographyControls
+              value={formConfig}
+              onChange={(updates) => updateConfig(updates)}
+            />
           </section>
 
           {/* CTA Button */}

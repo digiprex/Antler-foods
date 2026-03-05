@@ -4,6 +4,8 @@
  * Type definitions for the timeline feature
  */
 
+import type { SectionStyleConfig } from '@/types/section-style.types';
+
 export type TimelineLayout = 'alternating' | 'left' | 'right' | 'center';
 
 export interface TimelineItem {
@@ -14,7 +16,7 @@ export interface TimelineItem {
   order: number;
 }
 
-export interface TimelineConfig {
+export interface TimelineConfig extends SectionStyleConfig {
   restaurant_id: string;
   page_id: string;
   isEnabled: boolean;

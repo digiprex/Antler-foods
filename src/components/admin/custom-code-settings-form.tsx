@@ -15,6 +15,9 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useCustomCodeConfig, useUpdateCustomCodeConfig } from '@/hooks/use-custom-code-config';
 import type { CustomCodeConfig, CustomCodeType } from '@/types/custom-code.types';
+import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
+import type { SectionStyleConfig } from '@/types/section-style.types';
+import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import Toast from '@/components/ui/toast';
 import styles from './announcement-bar-settings-form.module.css'; // Reuse existing styles
 
@@ -89,6 +92,7 @@ export default function CustomCodeSettingsForm() {
   const pageIdFromQuery = searchParams.get('page_id')?.trim() ?? '';
   const restaurantId = restaurantIdFromQuery || '';
   const pageId = pageIdFromQuery || '';
+  const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
 
   // Check if this is a new section being created or editing existing
   const isNewSection = searchParams.get('new_section') === 'true';
@@ -122,6 +126,9 @@ export default function CustomCodeSettingsForm() {
   const [iframeUrl, setIframeUrl] = useState('');
   const [iframeHeight, setIframeHeight] = useState('500px');
   const [iframeWidth, setIframeWidth] = useState('100%');
+  const [sectionStyle, setSectionStyle] = useState<SectionStyleConfig>(
+    sectionStyleDefaults,
+  );
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -142,8 +149,20 @@ export default function CustomCodeSettingsForm() {
       setIframeUrl(config.iframeUrl || '');
       setIframeHeight(config.iframeHeight || '500px');
       setIframeWidth(config.iframeWidth || '100%');
+      setSectionStyle((prev) => ({
+        ...sectionStyleDefaults,
+        ...prev,
+        ...config,
+      }));
     }
-  }, [config]);
+  }, [config, sectionStyleDefaults]);
+
+  useEffect(() => {
+    setSectionStyle((prev) => ({
+      ...sectionStyleDefaults,
+      ...prev,
+    }));
+  }, [sectionStyleDefaults]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,6 +187,7 @@ export default function CustomCodeSettingsForm() {
         iframeUrl,
         iframeHeight,
         iframeWidth,
+        ...sectionStyle,
       });
 
       setToastMessage(
@@ -415,6 +435,19 @@ export default function CustomCodeSettingsForm() {
                 </div>
               </div>
             )}
+
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}>Aa</span>
+                Typography & Buttons
+              </h3>
+              <SectionTypographyControls
+                value={sectionStyle}
+                onChange={(updates) =>
+                  setSectionStyle((prev) => ({ ...prev, ...updates }))
+                }
+              />
+            </div>
 
             {/* Save Button */}
             <div className={styles.formActions}>

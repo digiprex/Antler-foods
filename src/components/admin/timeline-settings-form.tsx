@@ -16,6 +16,9 @@ import { useSearchParams } from 'next/navigation';
 import { useTimelineConfig, useUpdateTimelineConfig } from '@/hooks/use-timeline-config';
 import type { TimelineConfig, TimelineLayout, TimelineItem } from '@/types/timeline.types';
 import { TIMELINE_LAYOUTS } from '@/types/timeline.types';
+import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
+import type { SectionStyleConfig } from '@/types/section-style.types';
+import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import Toast from '@/components/ui/toast';
 import styles from './announcement-bar-settings-form.module.css';
 
@@ -26,6 +29,7 @@ export default function TimelineSettingsForm() {
   const pageIdFromQuery = searchParams.get('page_id')?.trim() ?? '';
   const restaurantId = restaurantIdFromQuery || '';
   const pageId = pageIdFromQuery || '';
+  const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
 
   // Check if this is a new section being created or editing existing
   const isNewSection = searchParams.get('new_section') === 'true';
@@ -60,6 +64,9 @@ export default function TimelineSettingsForm() {
   const [textColor, setTextColor] = useState('#111827');
   const [accentColor, setAccentColor] = useState('#10b981');
   const [lineColor, setLineColor] = useState('#d1d5db');
+  const [sectionStyle, setSectionStyle] = useState<SectionStyleConfig>(
+    sectionStyleDefaults,
+  );
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -85,8 +92,20 @@ export default function TimelineSettingsForm() {
       setTextColor(config.textColor || '#111827');
       setAccentColor(config.accentColor || '#10b981');
       setLineColor(config.lineColor || '#d1d5db');
+      setSectionStyle((prev) => ({
+        ...sectionStyleDefaults,
+        ...prev,
+        ...config,
+      }));
     }
-  }, [config]);
+  }, [config, sectionStyleDefaults]);
+
+  useEffect(() => {
+    setSectionStyle((prev) => ({
+      ...sectionStyleDefaults,
+      ...prev,
+    }));
+  }, [sectionStyleDefaults]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,6 +131,7 @@ export default function TimelineSettingsForm() {
         textColor,
         accentColor,
         lineColor,
+        ...sectionStyle,
       });
 
       setToastMessage(
@@ -537,6 +557,19 @@ export default function TimelineSettingsForm() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}>Aa</span>
+                Typography & Buttons
+              </h3>
+              <SectionTypographyControls
+                value={sectionStyle}
+                onChange={(updates) =>
+                  setSectionStyle((prev) => ({ ...prev, ...updates }))
+                }
+              />
             </div>
 
             {/* Save Button */}

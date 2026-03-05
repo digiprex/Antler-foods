@@ -15,6 +15,9 @@ import { useSearchParams } from 'next/navigation';
 import { getPageById } from '@/lib/graphql/queries';
 import type { PageItem } from '@/types/pages.types';
 import { useFAQConfig, useUpdateFAQConfig } from '@/hooks/use-faq-config';
+import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
+import type { SectionStyleConfig } from '@/types/section-style.types';
+import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import Toast from '@/components/ui/toast';
 import styles from './faq-settings-form.module.css';
 
@@ -40,6 +43,7 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
   const [resolvedPageId, setResolvedPageId] = useState<string | null>(pageId || null);
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
   const finalRestaurantId = restaurantIdFromQuery || restaurantId || '';
+  const sectionStyleDefaults = useSectionStyleDefaults(finalRestaurantId);
   
   // Check if this is a new section being created or editing existing
   const isNewSection = searchParams.get('new_section') === 'true';
@@ -52,6 +56,9 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
   const [textColor, setTextColor] = useState<string>('#111827');
   const [title, setTitle] = useState<string>('Frequently Asked Questions');
   const [subtitle, setSubtitle] = useState<string>('Find answers to common questions');
+  const [sectionStyle, setSectionStyle] = useState<SectionStyleConfig>(
+    sectionStyleDefaults,
+  );
   
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -103,8 +110,20 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
       setTitle(config.title || 'Frequently Asked Questions');
       setSubtitle(config.subtitle || 'Find answers to common questions');
       setFaqs(config.faqs || []);
+      setSectionStyle((prev) => ({
+        ...sectionStyleDefaults,
+        ...prev,
+        ...config,
+      }));
     }
-  }, [config, isNewSection]);
+  }, [config, isNewSection, sectionStyleDefaults]);
+
+  useEffect(() => {
+    setSectionStyle((prev) => ({
+      ...sectionStyleDefaults,
+      ...prev,
+    }));
+  }, [sectionStyleDefaults]);
 
   const addFAQ = () => {
     setFaqs((s) => [...s, { id: String(Date.now()), question: '', answer: '' }]);
@@ -193,6 +212,7 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
         title,
         subtitle,
         faqs,
+        ...sectionStyle,
       };
 
       if (pageId) payload.page_id = pageId;
@@ -523,6 +543,19 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
                   </button>
                 </div>
               </div>
+            </div>
+
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}>Aa</span>
+                Typography & Buttons
+              </h3>
+              <SectionTypographyControls
+                value={sectionStyle}
+                onChange={(updates) =>
+                  setSectionStyle((prev) => ({ ...prev, ...updates }))
+                }
+              />
             </div>
 
             {/* FAQ Management Section */}

@@ -11,6 +11,12 @@
 
 import { useEffect, useState } from 'react';
 import type { ReviewConfig, Review } from '@/types/review.types';
+import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
+import {
+  getSectionTypographyStyles,
+  getSelectedGlobalButtonStyle,
+  getButtonInlineStyle,
+} from '@/lib/section-style';
 
 interface ReviewsProps extends Partial<ReviewConfig> {
   reviews?: Review[];
@@ -53,6 +59,20 @@ export default function Reviews({
   starColor = '#fbbf24',
   padding = '4rem 2rem',
   maxWidth = '1200px',
+  is_custom = false,
+  buttonStyleVariant,
+  titleFontFamily,
+  titleFontSize,
+  titleFontWeight,
+  titleColor,
+  subtitleFontFamily,
+  subtitleFontSize,
+  subtitleFontWeight,
+  subtitleColor,
+  bodyFontFamily,
+  bodyFontSize,
+  bodyFontWeight,
+  bodyColor,
 }: ReviewsProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -71,8 +91,39 @@ export default function Reviews({
   const [modalError, setModalError] = useState<string | null>(null);
   const [modalSuccess, setModalSuccess] = useState<string | null>(null);
   const [liveReviews, setLiveReviews] = useState<Review[]>(reviews);
+  const globalStyleEndpoint = restaurantId
+    ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`
+    : '/api/global-style-config';
+  const { config: globalStyles } = useGlobalStyleConfig({
+    apiEndpoint: globalStyleEndpoint,
+    fetchOnMount: Boolean(restaurantId),
+  });
 
   const displayReviews = maxReviews ? liveReviews.slice(0, maxReviews) : liveReviews;
+  const effectiveBodyColor = bodyColor || textColor;
+  const sectionStyleConfig = {
+    is_custom,
+    buttonStyleVariant,
+    titleFontFamily,
+    titleFontSize,
+    titleFontWeight,
+    titleColor,
+    subtitleFontFamily,
+    subtitleFontSize,
+    subtitleFontWeight,
+    subtitleColor,
+    bodyFontFamily,
+    bodyFontSize,
+    bodyFontWeight,
+    bodyColor: effectiveBodyColor,
+  };
+  const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
+    sectionStyleConfig,
+    globalStyles,
+  );
+  const selectedButtonStyle = getButtonInlineStyle(
+    getSelectedGlobalButtonStyle(sectionStyleConfig, globalStyles),
+  );
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }).map((_, index) => (
@@ -340,7 +391,7 @@ export default function Reviews({
   };
 
   return (
-    <section style={{ backgroundColor: bgColor, color: textColor, padding }}>
+    <section style={{ backgroundColor: bgColor, padding, ...bodyStyle }}>
       <div style={{ maxWidth, margin: '0 auto' }}>
         {(title || subtitle || description) && (
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -353,6 +404,7 @@ export default function Reviews({
                   letterSpacing: '0.05em',
                   marginBottom: '0.5rem',
                   opacity: 0.7,
+                  ...subtitleStyle,
                 }}
               >
                 {subtitle}
@@ -364,6 +416,7 @@ export default function Reviews({
                   fontSize: '2.5rem',
                   fontWeight: 'bold',
                   marginBottom: '1rem',
+                  ...titleStyle,
                 }}
               >
                 {title}
@@ -376,6 +429,7 @@ export default function Reviews({
                   opacity: 0.8,
                   maxWidth: '800px',
                   margin: '0 auto',
+                  ...bodyStyle,
                 }}
               >
                 {description}
@@ -396,16 +450,20 @@ export default function Reviews({
             onClick={openModal}
             disabled={!restaurantId}
             style={{
-              border: 'none',
-              borderRadius: '999px',
+              border: selectedButtonStyle.border || 'none',
+              borderRadius: selectedButtonStyle.borderRadius || '999px',
               padding: '0.7rem 1.2rem',
-              fontSize: '0.9rem',
-              fontWeight: 700,
+              fontSize: selectedButtonStyle.fontSize || '0.9rem',
+              fontWeight: selectedButtonStyle.fontWeight || 700,
+              fontFamily: selectedButtonStyle.fontFamily,
+              textTransform: selectedButtonStyle.textTransform,
               cursor: restaurantId ? 'pointer' : 'not-allowed',
-              color: '#ffffff',
-              background: restaurantId
-                ? 'linear-gradient(135deg, #6f4cf6, #5e3de1)'
-                : '#c9ced6',
+              color: selectedButtonStyle.color || '#ffffff',
+              background:
+                selectedButtonStyle.backgroundColor ||
+                (restaurantId
+                  ? 'linear-gradient(135deg, #6f4cf6, #5e3de1)'
+                  : '#c9ced6'),
               boxShadow: restaurantId
                 ? '0 8px 20px rgba(111, 76, 246, 0.25)'
                 : 'none',
@@ -473,7 +531,7 @@ export default function Reviews({
                           fontSize: '0.9375rem',
                           lineHeight: '1.6',
                           marginBottom: '1rem',
-                          color: textColor,
+                          color: effectiveBodyColor,
                         }}
                       >
                         {`\u201C${review.review_text}\u201D`}
@@ -657,7 +715,7 @@ export default function Reviews({
                       style={{
                         fontSize: '0.9375rem',
                         lineHeight: '1.6',
-                        color: textColor,
+                        color: effectiveBodyColor,
                         margin: 0,
                       }}
                     >
@@ -706,7 +764,7 @@ export default function Reviews({
                       fontSize: '0.9375rem',
                       lineHeight: '1.6',
                       marginBottom: '1rem',
-                      color: textColor,
+                      color: effectiveBodyColor,
                       flex: 1,
                     }}
                   >

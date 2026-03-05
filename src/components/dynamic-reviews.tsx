@@ -13,11 +13,12 @@ import type { ReviewConfig, Review } from '@/types/review.types';
 interface DynamicReviewsProps {
   restaurantId?: string;
   pageId?: string;
+  templateId?: string;
   showLoading?: boolean;
   configData?: Partial<ReviewConfig>;
 }
 
-export default function DynamicReviews({ restaurantId, pageId, showLoading = false, configData }: DynamicReviewsProps) {
+export default function DynamicReviews({ restaurantId, pageId, templateId, showLoading = false, configData }: DynamicReviewsProps) {
   const [config, setConfig] = useState<ReviewConfig | null>(configData || null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +34,19 @@ export default function DynamicReviews({ restaurantId, pageId, showLoading = fal
       try {
         let nextConfig: ReviewConfig | null = null;
 
-        if (configData) {
+        if (templateId) {
+          let configUrl = `/api/review-config?restaurant_id=${restaurantId}&template_id=${templateId}`;
+          if (pageId) configUrl += `&page_id=${pageId}`;
+          const configResponse = await fetch(configUrl);
+          const fetchedConfigData = await configResponse.json();
+
+          if (fetchedConfigData.success && fetchedConfigData.data) {
+            nextConfig = fetchedConfigData.data;
+            setConfig(nextConfig);
+          } else {
+            setConfig(null);
+          }
+        } else if (configData) {
           nextConfig = configData as ReviewConfig;
           setConfig(nextConfig);
         } else {
@@ -74,7 +87,7 @@ export default function DynamicReviews({ restaurantId, pageId, showLoading = fal
     };
 
     fetchData();
-  }, [restaurantId, pageId, configData]);
+  }, [restaurantId, pageId, templateId, configData]);
 
   if (loading && showLoading) {
     return (

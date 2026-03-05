@@ -3,6 +3,8 @@
  * These types define the structure of data that will come from the database/API
  */
 
+import type { SectionStyleConfig } from '@/types/section-style.types';
+
 export interface GalleryImage {
   id?: string;
   url: string;
@@ -13,7 +15,7 @@ export interface GalleryImage {
   order?: number;
 }
 
-export interface GalleryConfig {
+export interface GalleryConfig extends SectionStyleConfig {
   id?: string;
   restaurant_id?: string; // Restaurant ID for database operations
 
@@ -73,4 +75,18 @@ export const DEFAULT_GALLERY_CONFIG: GalleryConfig = {
   enableLightbox: true,
   autoplay: false,
   autoplaySpeed: 3000,
+  is_custom: false,
+  buttonStyleVariant: 'primary',
+  titleFontFamily: 'Inter, system-ui, sans-serif',
+  titleFontSize: '2.25rem',
+  titleFontWeight: 700,
+  titleColor: '#111827',
+  subtitleFontFamily: 'Inter, system-ui, sans-serif',
+  subtitleFontSize: '1.5rem',
+  subtitleFontWeight: 600,
+  subtitleColor: '#374151',
+  bodyFontFamily: 'Inter, system-ui, sans-serif',
+  bodyFontSize: '1rem',
+  bodyFontWeight: 400,
+  bodyColor: '#6b7280',
 };

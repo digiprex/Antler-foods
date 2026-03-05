@@ -7,6 +7,7 @@ export interface LocationConfig {
   restaurant_id?: string;
   page_id?: string;
   google_place_id?: string;
+  template_id?: string;
 
   // Display options
   enabled?: boolean;
@@ -25,6 +26,24 @@ export interface LocationConfig {
   bgColor?: string;
   textColor?: string;
   maxWidth?: string;
+  is_custom?: boolean;
+  buttonStyleVariant?: 'primary' | 'secondary';
+  titleFontFamily?: string;
+  titleFontSize?: string;
+  titleFontWeight?: number;
+  titleColor?: string;
+  subtitleFontFamily?: string;
+  subtitleFontSize?: string;
+  subtitleFontWeight?: number;
+  subtitleColor?: string;
+  descriptionFontFamily?: string;
+  descriptionFontSize?: string;
+  descriptionFontWeight?: number;
+  descriptionColor?: string;
+  bodyFontFamily?: string;
+  bodyFontSize?: string;
+  bodyFontWeight?: number;
+  bodyColor?: string;
 
   // Metadata
   created_at?: string;
@@ -68,5 +87,23 @@ export const DEFAULT_LOCATION_CONFIG: LocationConfig = {
   bgColor: '#ffffff',
   textColor: '#000000',
   maxWidth: '1200px',
+  is_custom: false,
+  buttonStyleVariant: 'primary',
+  titleFontFamily: 'Inter, system-ui, sans-serif',
+  titleFontSize: '2.25rem',
+  titleFontWeight: 700,
+  titleColor: '#111827',
+  subtitleFontFamily: 'Inter, system-ui, sans-serif',
+  subtitleFontSize: '1.5rem',
+  subtitleFontWeight: 600,
+  subtitleColor: '#374151',
+  descriptionFontFamily: 'Inter, system-ui, sans-serif',
+  descriptionFontSize: '1rem',
+  descriptionFontWeight: 400,
+  descriptionColor: '#6b7280',
+  bodyFontFamily: 'Inter, system-ui, sans-serif',
+  bodyFontSize: '1rem',
+  bodyFontWeight: 400,
+  bodyColor: '#6b7280',
   locations: [],
 };

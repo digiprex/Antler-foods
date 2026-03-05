@@ -11,6 +11,8 @@
 
 import { useState, useEffect } from 'react';
 import type { TimelineConfig, TimelineItem } from '@/types/timeline.types';
+import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
+import { getSectionTypographyStyles } from '@/lib/section-style';
 
 interface DynamicTimelineProps {
   restaurantId?: string;
@@ -30,6 +32,13 @@ export default function DynamicTimeline({
   const [timelineConfig, setTimelineConfig] = useState<TimelineConfig | null>((configData as TimelineConfig) || null);
   const [loading, setLoading] = useState(!configData);
   const [error, setError] = useState<string | null>(null);
+  const globalStyleEndpoint = restaurantId
+    ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`
+    : '/api/global-style-config';
+  const { config: globalStyles } = useGlobalStyleConfig({
+    apiEndpoint: globalStyleEndpoint,
+    fetchOnMount: Boolean(restaurantId),
+  });
 
   const fetchTimelineConfig = async () => {
     // If configData is provided, use it directly
@@ -117,6 +126,10 @@ export default function DynamicTimeline({
     accentColor,
     lineColor,
   } = timelineConfig;
+  const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
+    timelineConfig,
+    globalStyles,
+  );
 
   return (
     <section
@@ -125,6 +138,7 @@ export default function DynamicTimeline({
         padding: '4rem 2rem',
         backgroundColor: backgroundColor || '#ffffff',
         color: textColor || '#111827',
+        ...bodyStyle,
       }}
     >
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
@@ -133,18 +147,17 @@ export default function DynamicTimeline({
           <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
             <h2 style={{
               margin: 0,
-              fontSize: '2.5rem',
-              fontWeight: 'bold',
-              color: textColor || '#111827'
+              color: textColor || '#111827',
+              ...titleStyle,
             }}>
               {title}
             </h2>
             {subtitle && (
               <p style={{
                 margin: '1rem 0 0',
-                fontSize: '1.25rem',
                 color: textColor || '#111827',
-                opacity: 0.7
+                opacity: 0.7,
+                ...subtitleStyle,
               }}>
                 {subtitle}
               </p>

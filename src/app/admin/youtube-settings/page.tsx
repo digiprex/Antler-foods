@@ -12,6 +12,8 @@ import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { useState, useEffect } from 'react';
 import type { YouTubeConfig } from '@/types/youtube.types';
 import { DEFAULT_YOUTUBE_CONFIG } from '@/types/youtube.types';
+import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
+import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import styles from '@/components/admin/gallery-settings-form.module.css';
 
 export default function YouTubeSettingsPage() {
@@ -24,8 +26,12 @@ export default function YouTubeSettingsPage() {
   // Check if this is a new section being created or editing existing
   const isNewSection = searchParams.get('new_section') === 'true';
   const templateId = searchParams.get('template_id') || null;
+  const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
 
-  const [config, setConfig] = useState<YouTubeConfig>(DEFAULT_YOUTUBE_CONFIG);
+  const [config, setConfig] = useState<YouTubeConfig>({
+    ...DEFAULT_YOUTUBE_CONFIG,
+    ...sectionStyleDefaults,
+  });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -35,7 +41,16 @@ export default function YouTubeSettingsPage() {
     if (restaurantId && !isNewSection) {
       fetchYouTubeConfig();
     }
-  }, [restaurantId, pageId, templateId, isNewSection]);
+  }, [restaurantId, pageId, templateId, isNewSection, sectionStyleDefaults]);
+
+  useEffect(() => {
+    if (!isNewSection) return;
+    setConfig((prev) => ({
+      ...DEFAULT_YOUTUBE_CONFIG,
+      ...sectionStyleDefaults,
+      ...prev,
+    }));
+  }, [isNewSection, sectionStyleDefaults]);
 
   const fetchYouTubeConfig = async () => {
     // Don't fetch existing config if this is a new section
@@ -53,7 +68,11 @@ export default function YouTubeSettingsPage() {
       const data = await response.json();
 
       if (data.success && data.data) {
-        setConfig(data.data);
+        setConfig({
+          ...DEFAULT_YOUTUBE_CONFIG,
+          ...sectionStyleDefaults,
+          ...data.data,
+        });
       }
     } catch (error) {
       console.error('Error fetching YouTube config:', error);
@@ -443,6 +462,17 @@ export default function YouTubeSettingsPage() {
                       placeholder="1200px"
                     />
                   </div>
+                </div>
+
+                <div className={styles.section}>
+                  <h3 className={styles.sectionTitle}>
+                    <span className={styles.sectionIcon}>Aa</span>
+                    Typography & Buttons
+                  </h3>
+                  <SectionTypographyControls
+                    value={config}
+                    onChange={(updates) => setConfig({ ...config, ...updates })}
+                  />
                 </div>
 
                 {/* Action Buttons */}

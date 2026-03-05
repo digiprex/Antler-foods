@@ -6,9 +6,11 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { HeroConfig } from '@/types/hero.types';
 import styles from './hero.module.scss';
+import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
+import { getSectionTypographyStyles } from '@/lib/section-style';
 
 interface HeroProps extends Partial<HeroConfig> {
   // Allow component to accept all HeroConfig properties as optional
@@ -38,6 +40,19 @@ export default function Hero(props: HeroProps) {
     showScrollIndicator = false,
     contentMaxWidth = '1200px',
     restaurant_id,
+    is_custom,
+    titleFontFamily,
+    titleFontSize,
+    titleFontWeight,
+    titleColor,
+    subtitleFontFamily,
+    subtitleFontSize,
+    subtitleFontWeight,
+    subtitleColor,
+    bodyFontFamily,
+    bodyFontSize,
+    bodyFontWeight,
+    bodyColor,
   } = props;
 
   // Debug logging in development
@@ -54,6 +69,31 @@ export default function Hero(props: HeroProps) {
   }
 
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const globalStyleEndpoint = restaurant_id
+    ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurant_id)}`
+    : '/api/global-style-config';
+  const { config: globalStyles } = useGlobalStyleConfig({
+    apiEndpoint: globalStyleEndpoint,
+    fetchOnMount: Boolean(restaurant_id),
+  });
+  const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
+    {
+      is_custom,
+      titleFontFamily,
+      titleFontSize,
+      titleFontWeight,
+      titleColor,
+      subtitleFontFamily,
+      subtitleFontSize,
+      subtitleFontWeight,
+      subtitleColor,
+      bodyFontFamily,
+      bodyFontSize,
+      bodyFontWeight,
+      bodyColor,
+    },
+    globalStyles,
+  );
 
   // Scroll indicator handler
   const scrollToContent = () => {
@@ -121,9 +161,9 @@ export default function Hero(props: HeroProps) {
   // Render content (headline, subheadline, description, buttons)
   const renderContent = (additionalClass?: string) => (
     <div className={`${styles.content} ${additionalClass || ''}`}>
-      {subheadline && <p className={styles.subheadline}>{subheadline}</p>}
-      <h1 className={styles.headline}>{headline}</h1>
-      {description && <p className={styles.description}>{description}</p>}
+      {subheadline && <p className={styles.subheadline} style={subtitleStyle}>{subheadline}</p>}
+      <h1 className={styles.headline} style={titleStyle}>{headline}</h1>
+      {description && <p className={styles.description} style={bodyStyle}>{description}</p>}
       {renderButtons()}
     </div>
   );

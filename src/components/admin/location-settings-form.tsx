@@ -15,6 +15,7 @@ import dynamic from 'next/dynamic';
 import Toast from '@/components/ui/toast';
 import type { LocationConfig } from '@/types/location.types';
 import { DEFAULT_LOCATION_CONFIG } from '@/types/location.types';
+import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import styles from './location-settings-form.module.css';
 
 // Dynamically import Google Location Picker to avoid SSR issues
@@ -23,6 +24,8 @@ const GoogleLocationPicker = dynamic(() => import('./google-location-picker'), {
 interface LocationSettingsFormProps {
   restaurantId: string;
   pageId?: string;
+  templateId?: string;
+  isNewSection?: boolean;
 }
 
 interface PlaceDetails {
@@ -49,10 +52,43 @@ interface PlaceDetails {
   }>;
 }
 
-export default function LocationSettingsForm({ restaurantId, pageId }: LocationSettingsFormProps) {
+const FONT_FAMILY_OPTIONS = [
+  { value: 'Inter, system-ui, sans-serif', label: 'Inter (Default)' },
+  { value: 'Poppins, sans-serif', label: 'Poppins' },
+  { value: 'Montserrat, sans-serif', label: 'Montserrat' },
+  { value: 'Open Sans, sans-serif', label: 'Open Sans' },
+  { value: 'Roboto, sans-serif', label: 'Roboto' },
+  { value: 'Lato, sans-serif', label: 'Lato' },
+  { value: 'Playfair Display, serif', label: 'Playfair Display' },
+];
+
+const FONT_SIZE_OPTIONS = [
+  { value: '0.875rem', label: 'Small (14px)' },
+  { value: '1rem', label: 'Base (16px)' },
+  { value: '1.125rem', label: 'Medium (18px)' },
+  { value: '1.25rem', label: 'Large (20px)' },
+  { value: '1.5rem', label: 'XL (24px)' },
+  { value: '1.875rem', label: '2XL (30px)' },
+  { value: '2.25rem', label: '3XL (36px)' },
+];
+
+const FONT_WEIGHT_OPTIONS = [
+  { value: 300, label: 'Light (300)' },
+  { value: 400, label: 'Normal (400)' },
+  { value: 500, label: 'Medium (500)' },
+  { value: 600, label: 'Semi Bold (600)' },
+  { value: 700, label: 'Bold (700)' },
+  { value: 800, label: 'Extra Bold (800)' },
+];
+
+export default function LocationSettingsForm({ restaurantId, pageId, templateId, isNewSection = false }: LocationSettingsFormProps) {
+  const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [config, setConfig] = useState<LocationConfig>(DEFAULT_LOCATION_CONFIG);
+  const [config, setConfig] = useState<LocationConfig>({
+    ...DEFAULT_LOCATION_CONFIG,
+    ...sectionStyleDefaults,
+  });
   const [placeDetails, setPlaceDetails] = useState<PlaceDetails | null>(null);
   const [googlePlaceId, setGooglePlaceId] = useState<string>('');
   const [loadingPlace, setLoadingPlace] = useState(false);
@@ -85,13 +121,19 @@ export default function LocationSettingsForm({ restaurantId, pageId }: LocationS
         const params = new URLSearchParams({
           restaurant_id: restaurantId,
           ...(pageId && { page_id: pageId }),
+          ...(templateId && { template_id: templateId }),
+          ...(isNewSection && { new_section: 'true' }),
         });
 
         const response = await fetch(`/api/location-config?${params}`);
         const data = await response.json();
 
         if (data.success) {
-          setConfig(data.data);
+          setConfig({
+            ...DEFAULT_LOCATION_CONFIG,
+            ...sectionStyleDefaults,
+            ...data.data,
+          });
 
           // Get google_place_id from restaurant data
           if (data.data.google_place_id) {
@@ -110,7 +152,16 @@ export default function LocationSettingsForm({ restaurantId, pageId }: LocationS
     };
 
     loadConfig();
-  }, [restaurantId, pageId]);
+  }, [restaurantId, pageId, templateId, isNewSection, sectionStyleDefaults]);
+
+  useEffect(() => {
+    if (!isNewSection) return;
+    setConfig((prev) => ({
+      ...DEFAULT_LOCATION_CONFIG,
+      ...sectionStyleDefaults,
+      ...prev,
+    }));
+  }, [isNewSection, sectionStyleDefaults]);
 
   // Fetch place details from Google Places API
   const fetchPlaceDetails = async (placeId: string) => {
@@ -205,6 +256,7 @@ export default function LocationSettingsForm({ restaurantId, pageId }: LocationS
           ...config,
           restaurant_id: restaurantId,
           page_id: pageId,
+          template_id: templateId,
           google_place_id: googlePlaceId,
         }),
       });
@@ -230,6 +282,13 @@ export default function LocationSettingsForm({ restaurantId, pageId }: LocationS
 
   const updateConfig = (updates: Partial<LocationConfig>) => {
     setConfig(prev => ({ ...prev, ...updates }));
+  };
+
+  const handleTypographyChange = (field: keyof LocationConfig, value: string | number) => {
+    updateConfig({
+      [field]: value,
+      is_custom: true,
+    });
   };
 
   if (loading) {
@@ -465,6 +524,254 @@ export default function LocationSettingsForm({ restaurantId, pageId }: LocationS
               value={config.maxWidth || ''}
               onChange={(e) => updateConfig({ maxWidth: e.target.value })}
               placeholder="1200px"
+            />
+          </div>
+        </div>
+
+        {/* Typography Settings */}
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            <span className={styles.sectionIcon}>Aa</span>
+            Typography
+          </h2>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <span>Use Section Custom Typography</span>
+              <span className={styles.labelHint}>
+                When disabled, this section uses live global typography settings
+              </span>
+            </label>
+            <select
+              className={styles.select}
+              value={config.is_custom ? 'true' : 'false'}
+              onChange={(e) => updateConfig({ is_custom: e.target.value === 'true' })}
+            >
+              <option value="false">No - Use Global Typography</option>
+              <option value="true">Yes - Use Custom Typography</option>
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <span>Button Style Source</span>
+              <span className={styles.labelHint}>
+                Use global primary or secondary button style for section buttons
+              </span>
+            </label>
+            <select
+              className={styles.select}
+              value={config.buttonStyleVariant || 'primary'}
+              onChange={(e) =>
+                updateConfig({
+                  buttonStyleVariant:
+                    e.target.value === 'secondary' ? 'secondary' : 'primary',
+                })
+              }
+            >
+              <option value="primary">Global Primary Button</option>
+              <option value="secondary">Global Secondary Button</option>
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <span>Title Font Family</span>
+            </label>
+            <select
+              className={styles.select}
+              value={config.titleFontFamily || DEFAULT_LOCATION_CONFIG.titleFontFamily}
+              onChange={(e) => handleTypographyChange('titleFontFamily', e.target.value)}
+              disabled={!config.is_custom}
+            >
+              {FONT_FAMILY_OPTIONS.map((font) => (
+                <option key={`location-title-font-${font.value}`} value={font.value}>
+                  {font.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <span>Title Font Size</span>
+            </label>
+            <select
+              className={styles.select}
+              value={config.titleFontSize || DEFAULT_LOCATION_CONFIG.titleFontSize}
+              onChange={(e) => handleTypographyChange('titleFontSize', e.target.value)}
+              disabled={!config.is_custom}
+            >
+              {FONT_SIZE_OPTIONS.map((fontSize) => (
+                <option key={`location-title-size-${fontSize.value}`} value={fontSize.value}>
+                  {fontSize.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <span>Title Font Weight</span>
+            </label>
+            <select
+              className={styles.select}
+              value={config.titleFontWeight || DEFAULT_LOCATION_CONFIG.titleFontWeight}
+              onChange={(e) => handleTypographyChange('titleFontWeight', Number(e.target.value))}
+              disabled={!config.is_custom}
+            >
+              {FONT_WEIGHT_OPTIONS.map((weight) => (
+                <option key={`location-title-weight-${weight.value}`} value={weight.value}>
+                  {weight.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <span>Title Color</span>
+            </label>
+            <input
+              type="color"
+              value={config.titleColor || DEFAULT_LOCATION_CONFIG.titleColor}
+              onChange={(e) => handleTypographyChange('titleColor', e.target.value)}
+              style={{ width: '100px', height: '44px', cursor: 'pointer' }}
+              disabled={!config.is_custom}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <span>Description Font Family</span>
+            </label>
+            <select
+              className={styles.select}
+              value={config.descriptionFontFamily || DEFAULT_LOCATION_CONFIG.descriptionFontFamily}
+              onChange={(e) => handleTypographyChange('descriptionFontFamily', e.target.value)}
+              disabled={!config.is_custom}
+            >
+              {FONT_FAMILY_OPTIONS.map((font) => (
+                <option key={`location-desc-font-${font.value}`} value={font.value}>
+                  {font.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <span>Description Font Size</span>
+            </label>
+            <select
+              className={styles.select}
+              value={config.descriptionFontSize || DEFAULT_LOCATION_CONFIG.descriptionFontSize}
+              onChange={(e) => handleTypographyChange('descriptionFontSize', e.target.value)}
+              disabled={!config.is_custom}
+            >
+              {FONT_SIZE_OPTIONS.map((fontSize) => (
+                <option key={`location-desc-size-${fontSize.value}`} value={fontSize.value}>
+                  {fontSize.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <span>Description Font Weight</span>
+            </label>
+            <select
+              className={styles.select}
+              value={config.descriptionFontWeight || DEFAULT_LOCATION_CONFIG.descriptionFontWeight}
+              onChange={(e) => handleTypographyChange('descriptionFontWeight', Number(e.target.value))}
+              disabled={!config.is_custom}
+            >
+              {FONT_WEIGHT_OPTIONS.map((weight) => (
+                <option key={`location-desc-weight-${weight.value}`} value={weight.value}>
+                  {weight.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <span>Description Color</span>
+            </label>
+            <input
+              type="color"
+              value={config.descriptionColor || DEFAULT_LOCATION_CONFIG.descriptionColor}
+              onChange={(e) => handleTypographyChange('descriptionColor', e.target.value)}
+              style={{ width: '100px', height: '44px', cursor: 'pointer' }}
+              disabled={!config.is_custom}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <span>Body Font Family</span>
+            </label>
+            <select
+              className={styles.select}
+              value={config.bodyFontFamily || DEFAULT_LOCATION_CONFIG.bodyFontFamily}
+              onChange={(e) => handleTypographyChange('bodyFontFamily', e.target.value)}
+              disabled={!config.is_custom}
+            >
+              {FONT_FAMILY_OPTIONS.map((font) => (
+                <option key={`location-body-font-${font.value}`} value={font.value}>
+                  {font.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <span>Body Font Size</span>
+            </label>
+            <select
+              className={styles.select}
+              value={config.bodyFontSize || DEFAULT_LOCATION_CONFIG.bodyFontSize}
+              onChange={(e) => handleTypographyChange('bodyFontSize', e.target.value)}
+              disabled={!config.is_custom}
+            >
+              {FONT_SIZE_OPTIONS.map((fontSize) => (
+                <option key={`location-body-size-${fontSize.value}`} value={fontSize.value}>
+                  {fontSize.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <span>Body Font Weight</span>
+            </label>
+            <select
+              className={styles.select}
+              value={config.bodyFontWeight || DEFAULT_LOCATION_CONFIG.bodyFontWeight}
+              onChange={(e) => handleTypographyChange('bodyFontWeight', Number(e.target.value))}
+              disabled={!config.is_custom}
+            >
+              {FONT_WEIGHT_OPTIONS.map((weight) => (
+                <option key={`location-body-weight-${weight.value}`} value={weight.value}>
+                  {weight.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <span>Body Color</span>
+            </label>
+            <input
+              type="color"
+              value={config.bodyColor || DEFAULT_LOCATION_CONFIG.bodyColor}
+              onChange={(e) => handleTypographyChange('bodyColor', e.target.value)}
+              style={{ width: '100px', height: '44px', cursor: 'pointer' }}
+              disabled={!config.is_custom}
             />
           </div>
         </div>

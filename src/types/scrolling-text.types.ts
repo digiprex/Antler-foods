@@ -2,7 +2,9 @@
  * Type definitions for scrolling text configuration
  */
 
-export interface ScrollingTextConfig {
+import type { SectionStyleConfig } from '@/types/section-style.types';
+
+export interface ScrollingTextConfig extends SectionStyleConfig {
   id?: string;
   restaurant_id?: string;
   page_id?: string;
@@ -45,6 +47,20 @@ export const DEFAULT_SCROLLING_TEXT_CONFIG: ScrollingTextConfig = {
   textColor: '#ffffff',
   fontSize: '16px',
   scrollSpeed: 'medium',
+  is_custom: false,
+  buttonStyleVariant: 'primary',
+  titleFontFamily: 'Inter, system-ui, sans-serif',
+  titleFontSize: '2.25rem',
+  titleFontWeight: 700,
+  titleColor: '#111827',
+  subtitleFontFamily: 'Inter, system-ui, sans-serif',
+  subtitleFontSize: '1.5rem',
+  subtitleFontWeight: 600,
+  subtitleColor: '#374151',
+  bodyFontFamily: 'Inter, system-ui, sans-serif',
+  bodyFontSize: '1rem',
+  bodyFontWeight: 400,
+  bodyColor: '#6b7280',
 };
 
 /**

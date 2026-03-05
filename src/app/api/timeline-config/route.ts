@@ -11,6 +11,64 @@ import { NextRequest, NextResponse } from 'next/server';
 const HASURA_ENDPOINT = process.env.HASURA_GRAPHQL_URL;
 const HASURA_ADMIN_SECRET = process.env.HASURA_ADMIN_SECRET;
 
+function pickSectionStyleConfig(source: Record<string, unknown>) {
+  return {
+    is_custom: source.is_custom === true,
+    buttonStyleVariant: source.buttonStyleVariant === 'secondary' ? 'secondary' : 'primary',
+    titleFontFamily:
+      typeof source.titleFontFamily === 'string'
+        ? source.titleFontFamily
+        : 'Inter, system-ui, sans-serif',
+    titleFontSize:
+      typeof source.titleFontSize === 'string' ? source.titleFontSize : '2.25rem',
+    titleFontWeight:
+      typeof source.titleFontWeight === 'number'
+        ? source.titleFontWeight
+        : 700,
+    titleColor: typeof source.titleColor === 'string' ? source.titleColor : '#111827',
+    subtitleFontFamily:
+      typeof source.subtitleFontFamily === 'string'
+        ? source.subtitleFontFamily
+        : 'Inter, system-ui, sans-serif',
+    subtitleFontSize:
+      typeof source.subtitleFontSize === 'string'
+        ? source.subtitleFontSize
+        : '1.5rem',
+    subtitleFontWeight:
+      typeof source.subtitleFontWeight === 'number'
+        ? source.subtitleFontWeight
+        : 600,
+    subtitleColor:
+      typeof source.subtitleColor === 'string' ? source.subtitleColor : '#374151',
+    bodyFontFamily:
+      typeof source.bodyFontFamily === 'string'
+        ? source.bodyFontFamily
+        : 'Inter, system-ui, sans-serif',
+    bodyFontSize:
+      typeof source.bodyFontSize === 'string' ? source.bodyFontSize : '1rem',
+    bodyFontWeight:
+      typeof source.bodyFontWeight === 'number' ? source.bodyFontWeight : 400,
+    bodyColor: typeof source.bodyColor === 'string' ? source.bodyColor : '#6b7280',
+  } as const;
+}
+
+function getDefaultTimelineConfig(restaurant_id: string, page_id?: string | null) {
+  return {
+    restaurant_id,
+    page_id: page_id || undefined,
+    isEnabled: false,
+    layout: 'alternating',
+    title: 'Our Journey',
+    subtitle: 'Key milestones in our story',
+    items: [],
+    backgroundColor: '#ffffff',
+    textColor: '#111827',
+    accentColor: '#10b981',
+    lineColor: '#d1d5db',
+    ...pickSectionStyleConfig({}),
+  };
+}
+
 /**
  * GET: Fetch timeline configuration
  */
@@ -125,27 +183,16 @@ export async function GET(request: NextRequest) {
       // Return default configuration
       return NextResponse.json({
         success: true,
-        data: {
-          restaurant_id,
-          page_id,
-          isEnabled: false,
-          layout: 'alternating',
-          title: 'Our Journey',
-          subtitle: 'Key milestones in our story',
-          items: [],
-          backgroundColor: '#ffffff',
-          textColor: '#111827',
-          accentColor: '#10b981',
-          lineColor: '#d1d5db',
-        },
+        data: getDefaultTimelineConfig(restaurant_id, page_id),
       });
     }
 
     // Extract config from JSONB field
-    const config = template.config || {};
+    const config = (template.config || {}) as Record<string, unknown>;
 
     // Map database fields to frontend format
     const timelineConfig = {
+      ...getDefaultTimelineConfig(template.restaurant_id, template.page_id),
       restaurant_id: template.restaurant_id,
       page_id: template.page_id,
       isEnabled: config.isEnabled ?? false,
@@ -157,6 +204,7 @@ export async function GET(request: NextRequest) {
       textColor: config.textColor || '#111827',
       accentColor: config.accentColor || '#10b981',
       lineColor: config.lineColor || '#d1d5db',
+      ...pickSectionStyleConfig(config),
     };
 
     return NextResponse.json({ success: true, data: timelineConfig });
@@ -220,6 +268,7 @@ export async function POST(request: NextRequest) {
       textColor: textColor || '#111827',
       accentColor: accentColor || '#10b981',
       lineColor: lineColor || '#d1d5db',
+      ...pickSectionStyleConfig(body as Record<string, unknown>),
     };
 
     // Step 2: If template_id is provided, mark that specific template as deleted (editing existing section)
@@ -304,6 +353,7 @@ export async function POST(request: NextRequest) {
     // Map back to frontend format
     const savedConfig = savedTemplate.config || {};
     const timelineConfig = {
+      ...getDefaultTimelineConfig(savedTemplate.restaurant_id, savedTemplate.page_id),
       restaurant_id: savedTemplate.restaurant_id,
       page_id: savedTemplate.page_id,
       isEnabled: savedConfig.isEnabled,
@@ -315,6 +365,7 @@ export async function POST(request: NextRequest) {
       textColor: savedConfig.textColor,
       accentColor: savedConfig.accentColor,
       lineColor: savedConfig.lineColor,
+      ...pickSectionStyleConfig(savedConfig as Record<string, unknown>),
     };
 
     return NextResponse.json({ success: true, data: timelineConfig });

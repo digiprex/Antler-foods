@@ -119,6 +119,7 @@ export default function PageSettingsSelector() {
             <DynamicReviews
               restaurantId={restaurantId}
               pageId={pageId}
+              templateId={templateId}
               configData={reviewsConfigWithLayout}
             />
           </div>

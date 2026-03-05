@@ -3,6 +3,8 @@
  * These types define the structure of data that will come from the database/API
  */
 
+import type { SectionStyleConfig } from '@/types/section-style.types';
+
 export interface HeroButton {
   id?: string;
   label: string;
@@ -26,7 +28,7 @@ export interface HeroImage {
   position?: 'left' | 'right' | 'center' | 'background';
 }
 
-export interface HeroConfig {
+export interface HeroConfig extends SectionStyleConfig {
   id?: string;
   restaurant_id?: string; // Restaurant ID for database operations
   
@@ -118,4 +120,18 @@ export const DEFAULT_HERO_CONFIG: HeroConfig = {
   minHeight: '600px',
   showScrollIndicator: false,
   contentMaxWidth: '1200px',
+  is_custom: false,
+  buttonStyleVariant: 'primary',
+  titleFontFamily: 'Inter, system-ui, sans-serif',
+  titleFontSize: '2.25rem',
+  titleFontWeight: 700,
+  titleColor: '#111827',
+  subtitleFontFamily: 'Inter, system-ui, sans-serif',
+  subtitleFontSize: '1.5rem',
+  subtitleFontWeight: 600,
+  subtitleColor: '#374151',
+  bodyFontFamily: 'Inter, system-ui, sans-serif',
+  bodyFontSize: '1rem',
+  bodyFontWeight: 400,
+  bodyColor: '#6b7280',
 };

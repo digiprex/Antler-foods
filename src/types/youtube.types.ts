@@ -2,7 +2,9 @@
  * Type definitions for YouTube video configuration
  */
 
-export interface YouTubeConfig {
+import type { SectionStyleConfig } from '@/types/section-style.types';
+
+export interface YouTubeConfig extends SectionStyleConfig {
   id?: string;
   restaurant_id?: string;
 
@@ -52,4 +54,18 @@ export const DEFAULT_YOUTUBE_CONFIG: YouTubeConfig = {
   textColor: '#ffffff',
   maxWidth: '1200px',
   aspectRatio: '16:9',
+  is_custom: false,
+  buttonStyleVariant: 'primary',
+  titleFontFamily: 'Inter, system-ui, sans-serif',
+  titleFontSize: '2.25rem',
+  titleFontWeight: 700,
+  titleColor: '#111827',
+  subtitleFontFamily: 'Inter, system-ui, sans-serif',
+  subtitleFontSize: '1.5rem',
+  subtitleFontWeight: 600,
+  subtitleColor: '#374151',
+  bodyFontFamily: 'Inter, system-ui, sans-serif',
+  bodyFontSize: '1rem',
+  bodyFontWeight: 400,
+  bodyColor: '#6b7280',
 };

@@ -285,14 +285,14 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
         return <DynamicHero
           key={uniqueKey}
           restaurantId={restaurantId}
-          configData={template.config ? { ...template.config, layout: template.name } : undefined}
+          configData={template.config ? { ...template.config, layout: template.name, restaurant_id: restaurantId } : undefined}
           showLoading={true}
         />;
       case 'menu':
         return <DynamicMenu
           key={uniqueKey}
           restaurantId={restaurantId}
-          configData={template.config ? { ...template.config, layout: template.name } : undefined}
+          configData={template.config ? { ...template.config, layout: template.name, restaurant_id: restaurantId } : undefined}
           showLoading={true}
         />;
       case 'customcode':
@@ -330,7 +330,8 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
         const faqConfigData = template.config ? {
           ...template.config,
           layout: template.name || 'accordion',
-          faqs: template.menu_items || []
+          faqs: template.menu_items || [],
+          restaurant_id: restaurantId,
         } : undefined;
 
         return <DynamicFAQ
@@ -344,7 +345,8 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
         // Transform template data to match Gallery config format
         const galleryConfigData = template.config ? {
           ...template.config,
-          layout: template.name || 'grid'
+          layout: template.name || 'grid',
+          restaurant_id: restaurantId,
         } : undefined;
 
         return <DynamicGallery
@@ -377,13 +379,15 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
         // Transform template data to match Review config format
         const reviewConfigData = template.config ? {
           ...template.config,
-          layout: template.name || 'grid'
+          layout: template.name || 'grid',
+          restaurant_id: restaurantId,
         } : undefined;
 
         return <DynamicReviews
           key={uniqueKey}
           restaurantId={restaurantId}
           pageId={pageId}
+          templateId={template.template_id}
           configData={reviewConfigData}
           showLoading={true}
         />;

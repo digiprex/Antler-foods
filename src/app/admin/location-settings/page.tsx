@@ -29,6 +29,8 @@ export default function LocationSettingsPage() {
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
   const pageId = searchParams.get('page_id');
+  const templateId = searchParams.get('template_id') || undefined;
+  const isNewSection = searchParams.get('new_section') === 'true';
 
   const handleBack = () => {
     const params = new URLSearchParams();
@@ -53,6 +55,8 @@ export default function LocationSettingsPage() {
               <LocationSettingsForm
                 restaurantId={restaurantId}
                 pageId={pageId || undefined}
+                templateId={templateId}
+                isNewSection={isNewSection}
               />
             </div>
           </div>

@@ -19,7 +19,9 @@ import Hero from '@/components/hero';
 import Toast from '@/components/ui/toast';
 import { ImageGalleryModal } from './image-gallery-modal';
 import { useHeroConfig, useUpdateHeroConfig } from '@/hooks/use-hero-config';
+import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import type { HeroConfig, HeroButton, HeroFeature } from '@/types/hero.types';
+import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import styles from './hero-settings-form.module.css';
 
 type MediaFieldType = 'hero_image' | 'background_video' | 'background_image';
@@ -53,6 +55,7 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id') || '';
   const restaurantName = searchParams.get('restaurant_name') || '';
+  const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
 
   // Validate that restaurant ID is provided
   if (!restaurantId) {
@@ -83,6 +86,7 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
     if (isNewSection && !formConfig) {
       // For new sections, use default empty config
       setFormConfig({
+        ...sectionStyleDefaults,
         headline: '',
         subheadline: '',
         description: '',
@@ -97,9 +101,20 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
         contentMaxWidth: '1200px',
       });
     } else if (config && !formConfig) {
-      setFormConfig(config);
+      setFormConfig({ ...sectionStyleDefaults, ...config });
     }
-  }, [config, formConfig, isNewSection]);
+  }, [config, formConfig, isNewSection, sectionStyleDefaults]);
+
+  useEffect(() => {
+    setFormConfig((prev) =>
+      prev
+        ? {
+            ...sectionStyleDefaults,
+            ...prev,
+          }
+        : prev,
+    );
+  }, [sectionStyleDefaults]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -774,6 +789,17 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
                   rows={3}
                 />
               </div>
+            </div>
+
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}>Aa</span>
+                Typography & Buttons
+              </h3>
+              <SectionTypographyControls
+                value={formConfig}
+                onChange={(updates) => updateConfig(updates)}
+              />
             </div>
 
             {/* Buttons Section */}

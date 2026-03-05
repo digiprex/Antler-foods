@@ -50,6 +50,11 @@ interface UseMenuConfigOptions {
   pageId?: string;
 
   /**
+   * Template ID to fetch a specific section instance
+   */
+  templateId?: string;
+
+  /**
    * Callback when fetch succeeds
    */
   onSuccess?: (config: MenuConfig) => void;
@@ -96,6 +101,7 @@ export function useMenuConfig(
     overrideConfig,
     restaurantId,
     pageId,
+    templateId,
     onSuccess,
     onError,
   } = options;
@@ -126,7 +132,9 @@ export function useMenuConfig(
       if (restaurantId) {
         url.searchParams.set('restaurant_id', restaurantId);
       }
-      if (pageId) {
+      if (templateId) {
+        url.searchParams.set('template_id', templateId);
+      } else if (pageId) {
         url.searchParams.set('page_id', pageId);
       }
 
@@ -166,7 +174,7 @@ export function useMenuConfig(
     } finally {
       setLoading(false);
     }
-  }, [apiEndpoint, overrideConfig, restaurantId, pageId, onSuccess, onError]);
+  }, [apiEndpoint, overrideConfig, restaurantId, pageId, templateId, onSuccess, onError]);
 
   const updateConfig = useCallback((updates: Partial<MenuConfig>) => {
     setConfig(prev => prev ? { ...prev, ...updates } : null);

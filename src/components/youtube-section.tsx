@@ -12,15 +12,9 @@ interface YouTubeSectionProps {
   configData?: Partial<YouTubeConfig>;
 }
 
-export default function YouTubeSection({
-  restaurantId,
-  pageId,
-  templateId,
-  configData,
-}: YouTubeSectionProps): JSX.Element | null {
-  const [config, setConfig] = useState<YouTubeConfig | null>(
-    (configData as YouTubeConfig) || null,
-  );
+export default function YouTubeSection({ restaurantId, pageId, templateId, configData }: YouTubeSectionProps): JSX.Element | null {
+  const [config, setConfig] = useState<YouTubeConfig | null>((configData as YouTubeConfig) || null);
+
   const [isLoading, setIsLoading] = useState(!configData);
   const { config: globalStyles } = useGlobalStyleConfig({
     apiEndpoint: `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`,
@@ -176,35 +170,21 @@ export default function YouTubeSection({
     // Default Layout - Centered video with title above
     if (layout === 'default') {
       return (
-        <div
-          style={{
-            maxWidth: config.maxWidth || '1200px',
-            margin: '0 auto',
-            padding: '4rem 1.5rem',
-          }}
-        >
-          {config.showTitle !== false &&
-            (config.title || config.description) && (
-              <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
-                {config.title && (
-                  <h2 style={{ marginBottom: '1rem', ...titleStyle }}>
-                    {config.title}
-                  </h2>
-                )}
-                {config.description && (
-                  <p
-                    style={{
-                      opacity: 0.9,
-                      maxWidth: '800px',
-                      margin: '0 auto',
-                      ...bodyStyle,
-                    }}
-                  >
-                    {config.description}
-                  </p>
-                )}
-              </div>
-            )}
+        <div style={{ maxWidth: config.maxWidth || '1200px', margin: '0 auto', padding: '4rem 1.5rem' }}>
+          {config.showTitle !== false && (config.title || config.description) && (
+            <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+              {config.title && (
+                <h2 style={{ marginBottom: '1rem', ...titleStyle }}>
+                  {config.title}
+                </h2>
+              )}
+              {config.description && (
+                <p style={{ opacity: 0.9, maxWidth: '800px', margin: '0 auto', ...bodyStyle }}>
+                  {config.description}
+                </p>
+              )}
+            </div>
+          )}
           {renderVideoEmbed()}
         </div>
       );
@@ -213,23 +193,41 @@ export default function YouTubeSection({
     // Theater Mode - Extra wide video
     if (layout === 'theater') {
       return (
-        <div
-          style={{
-            maxWidth: config.maxWidth || '1400px',
-            margin: '0 auto',
-            padding: '4rem 1.5rem',
-          }}
-        >
-          {config.showTitle !== false &&
-            (config.title || config.description) && (
-              <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+        <div style={{ maxWidth: config.maxWidth || '1400px', margin: '0 auto', padding: '4rem 1.5rem' }}>
+          {config.showTitle !== false && (config.title || config.description) && (
+            <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+              {config.title && (
+                <h2 style={{ marginBottom: '1rem', ...titleStyle }}>
+                  {config.title}
+                </h2>
+              )}
+              {config.description && (
+                <p style={{ opacity: 0.9, ...bodyStyle }}>
+                  {config.description}
+                </p>
+              )}
+            </div>
+          )}
+          {renderVideoEmbed()}
+        </div>
+      );
+    }
+
+    // Split Left - Video on left, content on right
+    if (layout === 'split-left') {
+      return (
+        <div style={{ maxWidth: config.maxWidth || '1200px', margin: '0 auto', padding: '4rem 1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
+            <div>{renderVideoEmbed()}</div>
+            {config.showTitle !== false && (config.title || config.description) && (
+              <div>
                 {config.title && (
-                  <h2 style={{ marginBottom: '1rem', ...titleStyle }}>
+                  <h2 style={{ marginBottom: '1.5rem', ...titleStyle }}>
                     {config.title}
                   </h2>
                 )}
                 {config.description && (
-                  <p style={{ opacity: 0.9, ...bodyStyle }}>
+                  <p style={{ lineHeight: '1.75', opacity: 0.9, ...bodyStyle }}>
                     {config.description}
                   </p>
                 )}
@@ -284,38 +282,22 @@ export default function YouTubeSection({
     // Split Right - Content on left, video on right
     if (layout === 'split-right') {
       return (
-        <div
-          style={{
-            maxWidth: config.maxWidth || '1200px',
-            margin: '0 auto',
-            padding: '4rem 1.5rem',
-          }}
-        >
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '4rem',
-              alignItems: 'center',
-            }}
-          >
-            {config.showTitle !== false &&
-              (config.title || config.description) && (
-                <div>
-                  {config.title && (
-                    <h2 style={{ marginBottom: '1.5rem', ...titleStyle }}>
-                      {config.title}
-                    </h2>
-                  )}
-                  {config.description && (
-                    <p
-                      style={{ lineHeight: '1.75', opacity: 0.9, ...bodyStyle }}
-                    >
-                      {config.description}
-                    </p>
-                  )}
-                </div>
-              )}
+        <div style={{ maxWidth: config.maxWidth || '1200px', margin: '0 auto', padding: '4rem 1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
+            {config.showTitle !== false && (config.title || config.description) && (
+              <div>
+                {config.title && (
+                  <h2 style={{ marginBottom: '1.5rem', ...titleStyle }}>
+                    {config.title}
+                  </h2>
+                )}
+                {config.description && (
+                  <p style={{ lineHeight: '1.75', opacity: 0.9, ...bodyStyle }}>
+                    {config.description}
+                  </p>
+                )}
+              </div>
+            )}
             <div>{renderVideoEmbed()}</div>
           </div>
         </div>
@@ -347,41 +329,20 @@ export default function YouTubeSection({
           >
             {renderVideoEmbed()}
           </div>
-          {config.showTitle !== false &&
-            (config.title || config.description) && (
-              <div
-                style={{
-                  position: 'relative',
-                  zIndex: 1,
-                  textAlign: 'center',
-                  padding: '2rem',
-                  maxWidth: '800px',
-                }}
-              >
-                {config.title && (
-                  <h2
-                    style={{
-                      marginBottom: '1.5rem',
-                      textShadow: '0 2px 10px rgba(0,0,0,0.5)',
-                      ...titleStyle,
-                    }}
-                  >
-                    {config.title}
-                  </h2>
-                )}
-                {config.description && (
-                  <p
-                    style={{
-                      opacity: 0.9,
-                      textShadow: '0 2px 10px rgba(0,0,0,0.5)',
-                      ...subtitleStyle,
-                    }}
-                  >
-                    {config.description}
-                  </p>
-                )}
-              </div>
-            )}
+          {config.showTitle !== false && (config.title || config.description) && (
+            <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: '2rem', maxWidth: '800px' }}>
+              {config.title && (
+                <h2 style={{ marginBottom: '1.5rem', textShadow: '0 2px 10px rgba(0,0,0,0.5)', ...titleStyle }}>
+                  {config.title}
+                </h2>
+              )}
+              {config.description && (
+                <p style={{ opacity: 0.9, textShadow: '0 2px 10px rgba(0,0,0,0.5)', ...subtitleStyle }}>
+                  {config.description}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       );
     }
@@ -389,28 +350,21 @@ export default function YouTubeSection({
     // Grid - Multiple videos (for future enhancement)
     if (layout === 'grid') {
       return (
-        <div
-          style={{
-            maxWidth: config.maxWidth || '1200px',
-            margin: '0 auto',
-            padding: '4rem 1.5rem',
-          }}
-        >
-          {config.showTitle !== false &&
-            (config.title || config.description) && (
-              <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
-                {config.title && (
-                  <h2 style={{ marginBottom: '1rem', ...titleStyle }}>
-                    {config.title}
-                  </h2>
-                )}
-                {config.description && (
-                  <p style={{ opacity: 0.9, ...bodyStyle }}>
-                    {config.description}
-                  </p>
-                )}
-              </div>
-            )}
+        <div style={{ maxWidth: config.maxWidth || '1200px', margin: '0 auto', padding: '4rem 1.5rem' }}>
+          {config.showTitle !== false && (config.title || config.description) && (
+            <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+              {config.title && (
+                <h2 style={{ marginBottom: '1rem', ...titleStyle }}>
+                  {config.title}
+                </h2>
+              )}
+              {config.description && (
+                <p style={{ opacity: 0.9, ...bodyStyle }}>
+                  {config.description}
+                </p>
+              )}
+            </div>
+          )}
           {renderVideoEmbed()}
         </div>
       );

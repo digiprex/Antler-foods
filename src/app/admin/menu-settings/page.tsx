@@ -33,6 +33,7 @@ export default function MenuSettingsPage() {
   const restaurantName = searchParams.get('restaurant_name');
   const pageId = searchParams.get('page_id');
   const pageName = searchParams.get('page_name');
+  const templateId = searchParams.get('template_id') || undefined;
   const isNewSection = searchParams.get('new_section') === 'true';
 
   const handleBack = () => {
@@ -56,7 +57,11 @@ export default function MenuSettingsPage() {
               >
                 ← Back to Page Settings
               </button>
-              <MenuSettingsForm pageId={pageId || undefined} isNewSection={isNewSection} />
+              <MenuSettingsForm
+                pageId={pageId || undefined}
+                templateId={templateId}
+                isNewSection={isNewSection}
+              />
             </div>
           </div>
         </div>

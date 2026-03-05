@@ -49,6 +49,9 @@ export interface MenuConfig extends SectionStyleConfig {
   // Menu Data
   categories?: MenuCategory[];
   featuredItems?: MenuItem[];
+  ctaButton?: MenuButton;
+  headerImage?: string;
+  backgroundImage?: string;
 
   // Layout options
   layout?:

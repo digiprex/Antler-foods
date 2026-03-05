@@ -137,7 +137,6 @@ export default function DynamicTimeline({
         width: '100%',
         padding: '4rem 2rem',
         backgroundColor: backgroundColor || '#ffffff',
-        color: textColor || '#111827',
         ...bodyStyle,
       }}
     >
@@ -147,7 +146,6 @@ export default function DynamicTimeline({
           <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
             <h2 style={{
               margin: 0,
-              color: textColor || '#111827',
               ...titleStyle,
             }}>
               {title}
@@ -155,7 +153,6 @@ export default function DynamicTimeline({
             {subtitle && (
               <p style={{
                 margin: '1rem 0 0',
-                color: textColor || '#111827',
                 opacity: 0.7,
                 ...subtitleStyle,
               }}>

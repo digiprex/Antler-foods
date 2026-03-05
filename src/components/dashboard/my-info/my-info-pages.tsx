@@ -3706,32 +3706,43 @@ export function MyInfoGalleryPage() {
 
       {previewImage ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#0b122080] p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           onClick={() => setPreviewImage(null)}
         >
           <div
-            className="w-full max-w-5xl overflow-hidden rounded-3xl border border-[#cfd7df] bg-white shadow-2xl"
+            className="w-full max-w-5xl overflow-hidden rounded-2xl border border-purple-200 bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-[#e3eaf0] px-4 py-3">
-              <div>
-                <h3 className="text-lg font-semibold text-[#0f172a]">
-                  {previewImage.title}
-                </h3>
-                <p className="text-xs text-[#5f6c78]">
-                  {previewImage.subtitle}
-                </p>
+            <div className="flex items-center justify-between border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    {previewImage.kind === 'video' ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    )}
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {previewImage.title}
+                  </h3>
+                  <p className="text-xs font-medium text-purple-600">
+                    {previewImage.subtitle}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setPreviewImage(null)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#d5dde5] text-[#374151] transition hover:bg-[#f4f7fa]"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700"
                 aria-label="Close preview"
               >
                 <CloseIcon />
               </button>
             </div>
-            <div className="relative h-[70vh] min-h-[320px] bg-[#0f172a]">
+            <div className="relative h-[70vh] min-h-[320px] bg-gray-900">
               {previewImage.kind === 'video' ? (
                 <video
                   src={previewImage.url}
@@ -4080,11 +4091,11 @@ function MediaActionIconButton({
       onClick={onClick}
       disabled={disabled}
       className={cx(
-        'inline-flex h-8 w-8 items-center justify-center rounded-full border text-white shadow-sm backdrop-blur-sm transition',
+        'inline-flex h-8 w-8 items-center justify-center rounded-lg border text-white shadow-sm backdrop-blur-sm transition-all',
         tone === 'danger'
-          ? 'border-red-300/70 bg-red-600/70 hover:bg-red-700/80'
-          : 'border-white/60 bg-black/55 hover:bg-black/75',
-        disabled ? 'cursor-not-allowed opacity-60' : '',
+          ? 'border-red-300/60 bg-red-600/60 hover:bg-red-700/75'
+          : 'border-white/50 bg-black/40 hover:bg-black/60',
+        disabled ? 'cursor-not-allowed opacity-50' : '',
       )}
     >
       {children}

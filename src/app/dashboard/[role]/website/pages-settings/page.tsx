@@ -10,12 +10,17 @@ export default function RoleWebsitePagesSettingsPage() {
 
   if (!restaurantId || !restaurantName) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-[#111827] mb-2">
+      <div className="flex min-h-[400px] items-center justify-center p-6">
+        <div className="max-w-md text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-purple-200">
+            <svg className="h-8 w-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          </div>
+          <h2 className="mb-2 text-xl font-bold text-gray-900">
             Select a Restaurant
           </h2>
-          <p className="text-[#6b7280] max-w-md">
+          <p className="text-sm text-gray-600">
             Please add or select a restaurant from the sidebar to manage pages.
           </p>
         </div>

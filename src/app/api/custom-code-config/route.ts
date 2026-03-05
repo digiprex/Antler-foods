@@ -142,21 +142,32 @@ async function graphqlRequest(query: string, variables?: any) {
 }
 
 function pickSectionStyleConfig(source: Record<string, unknown>) {
+  const asString = (value: unknown, fallback: string) =>
+    typeof value === 'string' && value.trim() ? value : fallback;
+  const asNumber = (value: unknown, fallback: number) => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return fallback;
+  };
+
   return {
     is_custom: source.is_custom === true,
     buttonStyleVariant: source.buttonStyleVariant === 'secondary' ? 'secondary' : 'primary',
-    titleFontFamily: source.titleFontFamily,
-    titleFontSize: source.titleFontSize,
-    titleFontWeight: source.titleFontWeight,
-    titleColor: source.titleColor,
-    subtitleFontFamily: source.subtitleFontFamily,
-    subtitleFontSize: source.subtitleFontSize,
-    subtitleFontWeight: source.subtitleFontWeight,
-    subtitleColor: source.subtitleColor,
-    bodyFontFamily: source.bodyFontFamily,
-    bodyFontSize: source.bodyFontSize,
-    bodyFontWeight: source.bodyFontWeight,
-    bodyColor: source.bodyColor,
+    titleFontFamily: asString(source.titleFontFamily, 'Inter, system-ui, sans-serif'),
+    titleFontSize: asString(source.titleFontSize, '2.25rem'),
+    titleFontWeight: asNumber(source.titleFontWeight, 700),
+    titleColor: asString(source.titleColor, '#111827'),
+    subtitleFontFamily: asString(source.subtitleFontFamily, 'Inter, system-ui, sans-serif'),
+    subtitleFontSize: asString(source.subtitleFontSize, '1.5rem'),
+    subtitleFontWeight: asNumber(source.subtitleFontWeight, 600),
+    subtitleColor: asString(source.subtitleColor, '#374151'),
+    bodyFontFamily: asString(source.bodyFontFamily, 'Inter, system-ui, sans-serif'),
+    bodyFontSize: asString(source.bodyFontSize, '1rem'),
+    bodyFontWeight: asNumber(source.bodyFontWeight, 400),
+    bodyColor: asString(source.bodyColor, '#6b7280'),
   } as const;
 }
 

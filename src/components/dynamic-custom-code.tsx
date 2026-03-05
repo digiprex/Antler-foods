@@ -22,6 +22,7 @@ interface CustomCodeConfig {
 interface DynamicCustomCodeProps {
   restaurantId?: string;
   pageId?: string;
+  templateId?: string;
   showLoading?: boolean;
   configData?: Partial<CustomCodeConfig>;
 }
@@ -85,6 +86,7 @@ function SafeHTMLRenderer({ htmlCode, cssCode, jsCode }: { htmlCode: string; css
 export default function DynamicCustomCode({
   restaurantId,
   pageId,
+  templateId,
   showLoading = true,
   configData
 }: DynamicCustomCodeProps) {
@@ -107,10 +109,18 @@ export default function DynamicCustomCode({
       }
 
       try {
-        const url = pageId 
-          ? `/api/custom-code-config?restaurant_id=${restaurantId}&page_id=${pageId}`
-          : `/api/custom-code-config?restaurant_id=${restaurantId}`;
-        
+        // Build API URL with appropriate parameters
+        let url = `/api/custom-code-config?restaurant_id=${restaurantId}`;
+
+        // If templateId is provided, use it for specific template fetch
+        if (templateId) {
+          url += `&template_id=${templateId}`;
+          console.log('[CustomCode] Fetching by template_id:', templateId);
+        } else if (pageId) {
+          url += `&page_id=${pageId}`;
+          console.log('[CustomCode] Fetching by page_id:', pageId);
+        }
+
         const response = await fetch(url);
         const data = await response.json();
 
@@ -128,7 +138,7 @@ export default function DynamicCustomCode({
     };
 
     fetchConfig();
-  }, [restaurantId, pageId, configData]);
+  }, [restaurantId, pageId, templateId, configData]);
 
   // Show loading state
   if (loading && showLoading) {

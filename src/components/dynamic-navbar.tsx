@@ -110,9 +110,9 @@ export default function DynamicNavbar({
 
   // Set CSS variable when navbar position changes
   useEffect(() => {
-    if (config?.position === 'fixed') {
+    if (config?.position === 'fixed' || config?.position === 'absolute') {
       document.documentElement.style.setProperty('--navbar-is-fixed', '1');
-      document.documentElement.style.setProperty('--navbar-height', '80px'); // Adjust as needed
+      document.documentElement.style.setProperty('--navbar-height', '80px'); // Standard navbar height
     } else {
       document.documentElement.style.setProperty('--navbar-is-fixed', '0');
       document.documentElement.style.setProperty('--navbar-height', '0px');

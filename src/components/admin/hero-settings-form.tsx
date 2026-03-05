@@ -28,12 +28,26 @@ type MediaFieldType = 'hero_image' | 'background_video' | 'background_image';
 
 interface HeroSettingsFormProps {
   pageId?: string;
+  templateId?: string;
   isNewSection?: boolean;
 }
 
-export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsFormProps) {
+export default function HeroSettingsForm({ pageId, templateId, isNewSection }: HeroSettingsFormProps) {
   const router = useRouter();
-  const { config, loading, error: fetchError, refetch } = useHeroConfig({ fetchOnMount: !isNewSection });
+  const searchParams = useSearchParams();
+  const restaurantId = searchParams.get('restaurant_id') || '';
+  const restaurantName = searchParams.get('restaurant_name') || '';
+  const {
+    config,
+    loading,
+    error: fetchError,
+    refetch,
+  } = useHeroConfig({
+    fetchOnMount: !isNewSection,
+    restaurantId,
+    pageId,
+    templateId,
+  });
   const { updateHero, updating, error: updateError } = useUpdateHeroConfig();
 
   // Toast state
@@ -52,9 +66,6 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
   const [currentMediaField, setCurrentMediaField] = useState<MediaFieldType | null>(null);
 
   // Get restaurant ID and other params from URL
-  const searchParams = useSearchParams();
-  const restaurantId = searchParams.get('restaurant_id') || '';
-  const restaurantName = searchParams.get('restaurant_name') || '';
   const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
 
   // Validate that restaurant ID is provided
@@ -135,6 +146,8 @@ export default function HeroSettingsForm({ pageId, isNewSection }: HeroSettingsF
       // Add new_section flag to indicate this should be inserted, not replaced
       if (isNewSection) {
         payload.new_section = true;
+      } else if (templateId) {
+        payload.template_id = templateId;
       }
 
       await updateHero(payload);

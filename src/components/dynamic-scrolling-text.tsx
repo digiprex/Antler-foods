@@ -138,7 +138,6 @@ export default function DynamicScrollingText({
     <div
       style={{
         backgroundColor: bgColor,
-        color: textColor,
         padding: '12px 0',
         overflow: 'hidden',
         whiteSpace: 'nowrap',

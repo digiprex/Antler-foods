@@ -27,12 +27,22 @@ type MediaFieldType = 'header_image' | 'background_image';
 
 interface MenuSettingsFormProps {
   pageId?: string;
+  templateId?: string;
   isNewSection?: boolean;
 }
 
-export default function MenuSettingsForm({ pageId, isNewSection }: MenuSettingsFormProps) {
+export default function MenuSettingsForm({ pageId, templateId, isNewSection }: MenuSettingsFormProps) {
   const router = useRouter();
-  const { config, loading, error: fetchError, refetch } = useMenuConfig({ fetchOnMount: !isNewSection });
+  const searchParams = new URLSearchParams(window.location.search);
+  const restaurantId = searchParams.get('restaurant_id') || '';
+  const restaurantName = searchParams.get('restaurant_name') || '';
+  const pageName = searchParams.get('page_name') || '';
+  const { config, loading, error: fetchError, refetch } = useMenuConfig({
+    fetchOnMount: !isNewSection,
+    restaurantId,
+    pageId,
+    templateId,
+  });
   const { updateMenu, updating, error: updateError } = useUpdateMenuConfig();
 
   // Toast state
@@ -51,10 +61,6 @@ export default function MenuSettingsForm({ pageId, isNewSection }: MenuSettingsF
   const [currentMediaField, setCurrentMediaField] = useState<MediaFieldType | null>(null);
 
   // Get restaurant ID and other params from URL
-  const searchParams = new URLSearchParams(window.location.search);
-  const restaurantId = searchParams.get('restaurant_id') || '';
-  const restaurantName = searchParams.get('restaurant_name') || '';
-  const pageName = searchParams.get('page_name') || '';
   const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
 
   // Validate that restaurant ID is provided
@@ -146,6 +152,8 @@ export default function MenuSettingsForm({ pageId, isNewSection }: MenuSettingsF
       // Add new_section flag to indicate this should be inserted, not replaced
       if (isNewSection) {
         payload.new_section = true;
+      } else if (templateId) {
+        payload.template_id = templateId;
       }
 
       await updateMenu(payload);

@@ -43,6 +43,16 @@ interface UseHeroConfigOptions {
    * Restaurant ID to fetch configuration for
    */
   restaurantId?: string;
+
+  /**
+   * Page ID to fetch configuration for
+   */
+  pageId?: string;
+
+  /**
+   * Template ID to fetch a specific section instance
+   */
+  templateId?: string;
   
   /**
    * Callback when fetch succeeds
@@ -90,6 +100,8 @@ export function useHeroConfig(
     fetchOnMount = true,
     overrideConfig,
     restaurantId,
+    pageId,
+    templateId,
     onSuccess,
     onError,
   } = options;
@@ -119,6 +131,11 @@ export function useHeroConfig(
       const url = new URL(apiEndpoint, window.location.origin);
       if (restaurantId) {
         url.searchParams.set('restaurant_id', restaurantId);
+      }
+      if (templateId) {
+        url.searchParams.set('template_id', templateId);
+      } else if (pageId) {
+        url.searchParams.set('page_id', pageId);
       }
       
       // Automatically detect URL slug from current page
@@ -157,7 +174,7 @@ export function useHeroConfig(
     } finally {
       setLoading(false);
     }
-  }, [apiEndpoint, overrideConfig, restaurantId, onSuccess, onError]);
+  }, [apiEndpoint, overrideConfig, restaurantId, pageId, templateId, onSuccess, onError]);
 
   const updateConfig = useCallback((updates: Partial<HeroConfig>) => {
     setConfig(prev => prev ? { ...prev, ...updates } : null);

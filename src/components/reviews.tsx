@@ -398,8 +398,6 @@ export default function Reviews({
             {subtitle && (
               <p
                 style={{
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   marginBottom: '0.5rem',
@@ -413,8 +411,6 @@ export default function Reviews({
             {title && (
               <h2
                 style={{
-                  fontSize: '2.5rem',
-                  fontWeight: 'bold',
                   marginBottom: '1rem',
                   ...titleStyle,
                 }}
@@ -425,7 +421,6 @@ export default function Reviews({
             {description && (
               <p
                 style={{
-                  fontSize: '1.125rem',
                   opacity: 0.8,
                   maxWidth: '800px',
                   margin: '0 auto',

@@ -46,6 +46,31 @@ const GET_HERO_CONFIG = `
   }
 `;
 
+const GET_HERO_CONFIG_BY_TEMPLATE = `
+  query GetHeroConfigByTemplate($restaurant_id: uuid!, $template_id: uuid!) {
+    templates(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        template_id: {_eq: $template_id},
+        category: {_eq: "Hero"},
+        is_deleted: {_eq: false}
+      },
+      limit: 1
+    ) {
+      category
+      config
+      created_at
+      is_deleted
+      menu_items
+      name
+      restaurant_id
+      template_id
+      updated_at
+      page_id
+    }
+  }
+`;
+
 /**
  * GraphQL mutation to mark current template as deleted
  * Uses template_id as primary key
@@ -129,6 +154,7 @@ export async function GET(request: Request) {
     const domain = searchParams.get('domain') || request.headers.get('host');
     const urlSlug = searchParams.get('url_slug');
     let pageId = searchParams.get('page_id');
+    const templateId = searchParams.get('template_id');
 
     // If domain is provided but no restaurantId, fetch restaurantId from domain
     if (domain && !searchParams.get('restaurant_id')) {
@@ -290,39 +316,44 @@ export async function GET(request: Request) {
       }
     }
 
-    // Use page-specific query if page_id is available, otherwise use general query
-    const data = pageId
-      ? await graphqlRequest(`
-          query GetHeroConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
-            templates(
-              where: {
-                restaurant_id: {_eq: $restaurant_id},
-                page_id: {_eq: $page_id},
-                category: {_eq: "Hero"},
-                is_deleted: {_eq: false}
-              },
-              order_by: {created_at: desc},
-              limit: 1
-            ) {
-              category
-              config
-              created_at
-              is_deleted
-              menu_items
-              name
-              restaurant_id
-              template_id
-              updated_at
-              page_id
-            }
-          }
-        `, {
+    // Use template-specific query first, then page-specific, otherwise general query
+    const data = templateId
+      ? await graphqlRequest(GET_HERO_CONFIG_BY_TEMPLATE, {
           restaurant_id: restaurantId,
-          page_id: pageId,
+          template_id: templateId,
         })
-      : await graphqlRequest(GET_HERO_CONFIG, {
-          restaurant_id: restaurantId,
-        });
+      : pageId
+        ? await graphqlRequest(`
+            query GetHeroConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
+              templates(
+                where: {
+                  restaurant_id: {_eq: $restaurant_id},
+                  page_id: {_eq: $page_id},
+                  category: {_eq: "Hero"},
+                  is_deleted: {_eq: false}
+                },
+                order_by: {created_at: desc},
+                limit: 1
+              ) {
+                category
+                config
+                created_at
+                is_deleted
+                menu_items
+                name
+                restaurant_id
+                template_id
+                updated_at
+                page_id
+              }
+            }
+          `, {
+            restaurant_id: restaurantId,
+            page_id: pageId,
+          })
+        : await graphqlRequest(GET_HERO_CONFIG, {
+            restaurant_id: restaurantId,
+          });
 
     console.log('[Hero Config] Template query result:', JSON.stringify(data, null, 2));
 
@@ -386,49 +417,56 @@ export async function POST(request: Request) {
 
     // Get page_id and new_section flag directly from request body
     const pageId = body.page_id || null;
+    const templateId = body.template_id || null;
     const isNewSection = body.new_section === true;
 
     // Step 1 & 2: Mark current template as deleted (ONLY if not adding a new section)
     // When new_section is true, we want to ADD a new hero, not replace the existing one
     if (!isNewSection) {
-      const currentData = pageId
-        ? await graphqlRequest(`
-            query GetHeroConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
-              templates(
-                where: {
-                  restaurant_id: {_eq: $restaurant_id},
-                  page_id: {_eq: $page_id},
-                  category: {_eq: "Hero"},
-                  is_deleted: {_eq: false}
-                },
-                order_by: {created_at: desc},
-                limit: 1
-              ) {
-                template_id
-                category
-                page_id
-              }
-            }
-          `, {
-            restaurant_id: restaurantId,
-            page_id: pageId,
-          })
-        : await graphqlRequest(GET_HERO_CONFIG, {
-            restaurant_id: restaurantId,
-          });
-
-      // Mark current template as deleted (if exists)
-      if ((currentData as any).templates && (currentData as any).templates.length > 0) {
-        const currentTemplate = (currentData as any).templates[0];
-
+      if (templateId) {
         await graphqlRequest(MARK_AS_DELETED, {
-          template_id: currentTemplate.template_id,
+          template_id: templateId,
         });
+      } else {
+        const currentData = pageId
+          ? await graphqlRequest(`
+              query GetHeroConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
+                templates(
+                  where: {
+                    restaurant_id: {_eq: $restaurant_id},
+                    page_id: {_eq: $page_id},
+                    category: {_eq: "Hero"},
+                    is_deleted: {_eq: false}
+                  },
+                  order_by: {created_at: desc},
+                  limit: 1
+                ) {
+                  template_id
+                  category
+                  page_id
+                }
+              }
+            `, {
+              restaurant_id: restaurantId,
+              page_id: pageId,
+            })
+          : await graphqlRequest(GET_HERO_CONFIG, {
+              restaurant_id: restaurantId,
+            });
+
+        // Mark current template as deleted (if exists)
+        if ((currentData as any).templates && (currentData as any).templates.length > 0) {
+          const currentTemplate = (currentData as any).templates[0];
+
+          await graphqlRequest(MARK_AS_DELETED, {
+            template_id: currentTemplate.template_id,
+          });
+        }
       }
     }
 
     // Prepare hero configuration
-    const { restaurant_id, layout, page_id: _pageId, new_section, ...configData } = body;
+    const { restaurant_id, layout, page_id: _pageId, new_section, template_id: _templateId, ...configData } = body;
     const name = layout || 'centered-large'; // layout goes to name field
 
     // The entire hero config (except layout, page_id, new_section) goes into the config field

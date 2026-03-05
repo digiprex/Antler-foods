@@ -45,6 +45,31 @@ const GET_MENU_CONFIG = `
   }
 `;
 
+const GET_MENU_CONFIG_BY_TEMPLATE = `
+  query GetMenuConfigByTemplate($restaurant_id: uuid!, $template_id: uuid!) {
+    templates(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        template_id: {_eq: $template_id},
+        category: {_eq: "Menu"},
+        is_deleted: {_eq: false}
+      },
+      limit: 1
+    ) {
+      category
+      config
+      created_at
+      is_deleted
+      menu_items
+      name
+      restaurant_id
+      template_id
+      updated_at
+      page_id
+    }
+  }
+`;
+
 /**
  * GraphQL mutation to mark current template as deleted
  * Uses template_id as primary key
@@ -128,6 +153,7 @@ export async function GET(request: Request) {
     const domain = searchParams.get('domain') || request.headers.get('host');
     const urlSlug = searchParams.get('url_slug');
     let pageId = searchParams.get('page_id');
+    const templateId = searchParams.get('template_id');
 
     // If domain is provided but no restaurantId, fetch restaurantId from domain
     if (domain && !searchParams.get('restaurant_id')) {
@@ -245,39 +271,44 @@ export async function GET(request: Request) {
       }
     }
 
-    // Query for template - if pageId exists, filter by it
-    const data = pageId
-      ? await graphqlRequest(`
-          query GetMenuConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
-            templates(
-              where: {
-                restaurant_id: {_eq: $restaurant_id},
-                page_id: {_eq: $page_id},
-                category: {_eq: "Menu"},
-                is_deleted: {_eq: false}
-              },
-              order_by: {created_at: desc},
-              limit: 1
-            ) {
-              category
-              config
-              created_at
-              is_deleted
-              menu_items
-              name
-              restaurant_id
-              template_id
-              updated_at
-              page_id
-            }
-          }
-        `, {
+    // Query for template - template_id has highest priority, then page_id
+    const data = templateId
+      ? await graphqlRequest(GET_MENU_CONFIG_BY_TEMPLATE, {
           restaurant_id: restaurantId,
-          page_id: pageId,
+          template_id: templateId,
         })
-      : await graphqlRequest(GET_MENU_CONFIG, {
-          restaurant_id: restaurantId,
-        });
+      : pageId
+        ? await graphqlRequest(`
+            query GetMenuConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
+              templates(
+                where: {
+                  restaurant_id: {_eq: $restaurant_id},
+                  page_id: {_eq: $page_id},
+                  category: {_eq: "Menu"},
+                  is_deleted: {_eq: false}
+                },
+                order_by: {created_at: desc},
+                limit: 1
+              ) {
+                category
+                config
+                created_at
+                is_deleted
+                menu_items
+                name
+                restaurant_id
+                template_id
+                updated_at
+                page_id
+              }
+            }
+          `, {
+            restaurant_id: restaurantId,
+            page_id: pageId,
+          })
+        : await graphqlRequest(GET_MENU_CONFIG, {
+            restaurant_id: restaurantId,
+          });
 
     console.log('[Menu Config] Template query result:', JSON.stringify(data, null, 2));
 
@@ -340,43 +371,50 @@ export async function POST(request: Request) {
 
     // Get page_id and new_section flag directly from request body
     const pageId = body.page_id || null;
+    const templateId = body.template_id || null;
     const isNewSection = body.new_section === true;
 
     // Mark current template as deleted (ONLY if not adding a new section)
     if (!isNewSection) {
-      const currentData = pageId
-        ? await graphqlRequest(`
-            query GetMenuConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
-              templates(
-                where: {
-                  restaurant_id: {_eq: $restaurant_id},
-                  page_id: {_eq: $page_id},
-                  category: {_eq: "Menu"},
-                  is_deleted: {_eq: false}
-                },
-                order_by: {created_at: desc},
-                limit: 1
-              ) {
-                template_id
-                category
-                page_id
-              }
-            }
-          `, {
-            restaurant_id: restaurantId,
-            page_id: pageId,
-          })
-        : await graphqlRequest(GET_MENU_CONFIG, {
-            restaurant_id: restaurantId,
-          });
-
-      // Mark current template as deleted (if exists)
-      if ((currentData as any).templates && (currentData as any).templates.length > 0) {
-        const currentTemplate = (currentData as any).templates[0];
-
+      if (templateId) {
         await graphqlRequest(MARK_AS_DELETED, {
-          template_id: currentTemplate.template_id,
+          template_id: templateId,
         });
+      } else {
+        const currentData = pageId
+          ? await graphqlRequest(`
+              query GetMenuConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
+                templates(
+                  where: {
+                    restaurant_id: {_eq: $restaurant_id},
+                    page_id: {_eq: $page_id},
+                    category: {_eq: "Menu"},
+                    is_deleted: {_eq: false}
+                  },
+                  order_by: {created_at: desc},
+                  limit: 1
+                ) {
+                  template_id
+                  category
+                  page_id
+                }
+              }
+            `, {
+              restaurant_id: restaurantId,
+              page_id: pageId,
+            })
+          : await graphqlRequest(GET_MENU_CONFIG, {
+              restaurant_id: restaurantId,
+            });
+
+        // Mark current template as deleted (if exists)
+        if ((currentData as any).templates && (currentData as any).templates.length > 0) {
+          const currentTemplate = (currentData as any).templates[0];
+
+          await graphqlRequest(MARK_AS_DELETED, {
+            template_id: currentTemplate.template_id,
+          });
+        }
       }
     }
 
@@ -386,6 +424,7 @@ export async function POST(request: Request) {
       layout,
       page_id: _pageId,
       new_section,
+      template_id: _templateId,
       categories,
       featuredItems,
       ...configData

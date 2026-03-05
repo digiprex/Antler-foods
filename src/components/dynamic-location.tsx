@@ -401,22 +401,16 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
     const buttonStyle = getButtonInlineStyle(
       getSelectedGlobalButtonStyle(config, globalStyles),
     );
-    const titleTypography = {
-      color: config.titleColor || config.textColor || '#000000',
-      ...titleStyle,
-    };
-    const descriptionTypography = {
-      color: config.descriptionColor || config.subtitleColor || config.bodyColor || config.textColor || '#666666',
-      ...subtitleStyle,
-    };
+    const titleTypography = titleStyle;
+    const descriptionTypography = subtitleStyle;
     // Default Layout
     if (layout === 'default') {
       return (
         <div style={{ maxWidth: config.maxWidth || '800px', margin: '0 auto', padding: '4rem 1.5rem', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '1rem', ...titleTypography }}>
+          <h2 style={{ ...titleTypography, fontSize: '2rem', fontWeight: '700', marginBottom: '1rem' }}>
             {config.title}
           </h2>
-          <p style={{ fontSize: '1.125rem', marginBottom: '2rem', opacity: 0.8, ...descriptionTypography }}>
+          <p style={{ ...descriptionTypography, fontSize: '1.125rem', marginBottom: '2rem', opacity: 0.8 }}>
             {config.description}
           </p>
           <div style={{
@@ -427,7 +421,7 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
             textAlign: 'left',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
           }}>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem', ...titleTypography }}>
+            <h3 style={{ ...titleTypography, fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem' }}>
               {placeDetails.name}
             </h3>
             <p style={{ marginBottom: '0.5rem', opacity: 0.9, color: config.textColor || '#666666' }}>
@@ -452,10 +446,10 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
     if (layout === 'grid') {
       return (
         <div style={{ maxWidth: config.maxWidth || '1200px', margin: '0 auto', padding: '4rem 1.5rem' }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center', ...titleTypography }}>
+          <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center' }}>
             {config.title}
           </h2>
-          <p style={{ fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8, ...descriptionTypography }}>
+          <p style={{ ...descriptionTypography, fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8 }}>
             {config.description}
           </p>
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-2" style={{ alignItems: 'start' }}>
@@ -466,7 +460,7 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
               padding: '2rem',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
             }}>
-              <h3 style={{ fontSize: '1.75rem', fontWeight: '600', marginBottom: '1.5rem', ...titleTypography }}>
+              <h3 style={{ ...titleTypography, fontSize: '1.75rem', fontWeight: '600', marginBottom: '1.5rem' }}>
                 {placeDetails.name}
               </h3>
               <div style={{ display: 'grid', gap: '1rem' }}>
@@ -531,10 +525,10 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
     if (layout === 'list') {
       return (
         <div style={{ maxWidth: config.maxWidth || '900px', margin: '0 auto', padding: '4rem 1.5rem' }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', ...titleTypography }}>
+          <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem' }}>
             {config.title}
           </h2>
-          <p style={{ fontSize: '1.125rem', marginBottom: '3rem', opacity: 0.8, ...descriptionTypography }}>
+          <p style={{ ...descriptionTypography, fontSize: '1.125rem', marginBottom: '3rem', opacity: 0.8 }}>
             {config.description}
           </p>
           <div style={{
@@ -544,7 +538,7 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
             padding: '2rem',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
           }}>
-            <h3 style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '1.5rem', ...titleTypography }}>
+            <h3 style={{ ...titleTypography, fontSize: '2rem', fontWeight: '600', marginBottom: '1.5rem' }}>
               {placeDetails.name}
             </h3>
             <div style={{ display: 'grid', gap: '1.5rem' }}>
@@ -588,10 +582,10 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
     if (layout === 'map') {
       return (
         <div style={{ maxWidth: config.maxWidth || '1400px', margin: '0 auto', padding: '4rem 1.5rem' }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center', ...titleTypography }}>
+          <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center' }}>
             {config.title}
           </h2>
-          <p style={{ fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8, ...descriptionTypography }}>
+          <p style={{ ...descriptionTypography, fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8 }}>
             {config.description}
           </p>
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
@@ -657,7 +651,7 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
     if (layout === 'compact') {
       return (
         <div style={{ maxWidth: config.maxWidth || '1100px', margin: '0 auto', padding: '4rem 1.5rem' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'center', ...titleTypography }}>
+          <h2 style={{ ...titleTypography, fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'center' }}>
             {config.title}
           </h2>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" style={{ alignItems: 'stretch' }}>
@@ -672,7 +666,7 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
               <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '0.25rem', color: config.textColor || '#1a1a1a' }}>
                 {placeDetails.name}
               </h3>
-              <p style={{ fontSize: '0.75rem', marginBottom: '1.5rem', textTransform: 'uppercase', letterSpacing: '0.5px', ...descriptionTypography }}>
+              <p style={{ ...descriptionTypography, fontSize: '0.75rem', marginBottom: '1.5rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 {config.description}
               </p>
               <div style={{ display: 'grid', gap: '1rem', fontSize: '0.875rem', color: '#333' }}>
@@ -742,10 +736,10 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
     if (layout === 'cards') {
       return (
         <div style={{ maxWidth: config.maxWidth || '1200px', margin: '0 auto', padding: '4rem 1.5rem' }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center', ...titleTypography }}>
+          <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center' }}>
             {config.title}
           </h2>
-          <p style={{ fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8, ...descriptionTypography }}>
+          <p style={{ ...descriptionTypography, fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8 }}>
             {config.description}
           </p>
           <div style={{
@@ -755,7 +749,7 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
             padding: '3rem',
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.08)',
           }}>
-            <h3 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'center', ...titleTypography }}>
+            <h3 style={{ ...titleTypography, fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'center' }}>
               {placeDetails.name}
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
@@ -831,10 +825,10 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
     if (layout === 'sidebar') {
       return (
         <div style={{ maxWidth: config.maxWidth || '1400px', margin: '0 auto', padding: '4rem 1.5rem' }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem', textAlign: 'center', ...titleTypography }}>
+          <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem', textAlign: 'center' }}>
             {config.title}
           </h2>
-          <p style={{ fontSize: '1rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.7, ...descriptionTypography }}>
+          <p style={{ ...descriptionTypography, fontSize: '1rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.7 }}>
             {config.description}
           </p>
           <div className="grid grid-cols-1 overflow-hidden lg:grid-cols-[350px_minmax(0,1fr)]" style={{ gap: '0', border: '1px solid rgba(0, 0, 0, 0.1)', borderRadius: '12px', backgroundColor: '#fff' }}>
@@ -969,13 +963,13 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
               boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
               border: '1px solid rgba(255, 255, 255, 0.2)',
             }}>
-              <h2 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '0.5rem', ...titleTypography }}>
+              <h2 style={{ ...titleTypography, fontSize: '2rem', fontWeight: '700', marginBottom: '0.5rem' }}>
                 {config.title}
               </h2>
-              <p style={{ fontSize: '0.9375rem', marginBottom: '2rem', ...descriptionTypography }}>
+              <p style={{ ...descriptionTypography, fontSize: '0.9375rem', marginBottom: '2rem' }}>
                 {config.description}
               </p>
-              <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1.5rem', ...titleTypography }}>
+              <h3 style={{ ...titleTypography, fontSize: '1.5rem', fontWeight: '700', marginBottom: '1.5rem' }}>
                 {placeDetails.name}
               </h3>
               <div style={{ display: 'grid', gap: '1rem', fontSize: '0.9375rem', color: config.textColor || '#333' }}>
@@ -1069,7 +1063,6 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
     <section
       style={{
         backgroundColor: config.bgColor || '#ffffff',
-        color: config.bodyColor || config.textColor || '#000000',
         width: '100%',
         ...bodyStyle,
       }}

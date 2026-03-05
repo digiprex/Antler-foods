@@ -205,9 +205,6 @@ export default function DynamicForm({
           <div key={field.field_id}>
             <label style={{
               display: 'block',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: textColor,
               marginBottom: '4px',
               ...subtitleStyle,
             }}>
@@ -278,13 +275,13 @@ export default function DynamicForm({
             color: buttonStyle.color || '#ffffff',
             padding: '12px 24px',
             border: buttonStyle.border || 'none',
-            borderRadius: '6px',
-            fontSize: '14px',
-            fontWeight: '500',
+            borderRadius: buttonStyle.borderRadius || '6px',
+            fontSize: buttonStyle.fontSize || '14px',
+            fontWeight: buttonStyle.fontWeight || '500',
             fontFamily: buttonStyle.fontFamily,
+            textTransform: buttonStyle.textTransform,
             cursor: 'not-allowed',
             opacity: 0.7,
-            ...buttonStyle,
           }}
           disabled
         >
@@ -296,7 +293,6 @@ export default function DynamicForm({
 
   const containerStyle = {
     backgroundColor,
-    color: textColor,
     padding: '40px 20px',
     borderRadius: '8px',
     ...bodyStyle,
@@ -326,8 +322,8 @@ export default function DynamicForm({
         )}
         <div style={{ display: 'flex', gap: '40px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ flex: '1', minWidth: '300px' }}>
-            <h2 style={{ marginBottom: '8px', color: textColor, ...titleStyle }}>{title}</h2>
-            <p style={{ marginBottom: '24px', color: textColor, opacity: 0.8, ...subtitleStyle }}>{description}</p>
+            <h2 style={{ marginBottom: '8px', ...titleStyle }}>{title}</h2>
+            <p style={{ marginBottom: '24px', opacity: 0.8, ...subtitleStyle }}>{description}</p>
             {renderFormFields()}
           </div>
           <div style={{ flex: '1', minWidth: '300px' }}>
@@ -364,8 +360,8 @@ export default function DynamicForm({
         </div>
       )}
       <div style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
-        <h2 style={{ marginBottom: '8px', color: textColor, ...titleStyle }}>{title}</h2>
-        <p style={{ marginBottom: '24px', color: textColor, opacity: 0.8, ...subtitleStyle }}>{description}</p>
+        <h2 style={{ marginBottom: '8px', ...titleStyle }}>{title}</h2>
+        <p style={{ marginBottom: '24px', opacity: 0.8, ...subtitleStyle }}>{description}</p>
         <div style={{ textAlign: 'left' }}>
           {renderFormFields()}
         </div>

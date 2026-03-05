@@ -11,8 +11,8 @@ const config: Config = {
       colors: {
         surface: "#f3f4f2",
         ink: "#0f1112",
-        accent: "#59c57a",
-        accentDark: "#43ad64",
+        accent: "#8b5cf6",
+        accentDark: "#7c3aed",
       },
       boxShadow: {
         soft: "0 18px 48px rgba(17, 24, 39, 0.12)",

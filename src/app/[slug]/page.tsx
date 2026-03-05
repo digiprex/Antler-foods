@@ -70,21 +70,34 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       return generateSEOMetadata();
     }
 
-    // Get restaurant name for better SEO
+    // Get restaurant name and favicon for better SEO
     const restaurantResponse = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/website-info?restaurant_id=${resolvedRestaurantId}`,
       { cache: 'no-store' }
     );
 
     let restaurantName = '';
+    let faviconUrl = null;
     if (restaurantResponse.ok) {
       const restaurantData = await restaurantResponse.json();
       restaurantName = restaurantData.data?.restaurant_name || '';
+      faviconUrl = restaurantData.data?.favicon_url || null;
     }
 
     // Generate dynamic SEO
     const seoConfig = generateDynamicSEO(pageResponseData, restaurantName);
-    return generateSEOMetadata(seoConfig);
+    const metadata = generateSEOMetadata(seoConfig);
+
+    // Add custom favicon if available
+    if (faviconUrl) {
+      metadata.icons = {
+        icon: faviconUrl,
+        shortcut: faviconUrl,
+        apple: faviconUrl,
+      };
+    }
+
+    return metadata;
 
   } catch (error) {
     console.error('Error generating metadata:', error);

@@ -5,10 +5,11 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CustomSection from '@/components/custom-section';
 import type { CustomSectionConfig } from '@/types/custom-section.types';
+import { ImageGalleryModal } from './image-gallery-modal';
 import styles from './gallery-settings-form.module.css';
 
 interface CustomSectionSettingsFormProps {
@@ -42,6 +43,242 @@ export default function CustomSectionSettingsForm({ pageId, isNewSection }: Cust
   const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [showImageGallery, setShowImageGallery] = useState(false);
+  const [imageFieldType, setImageFieldType] = useState<'image' | 'background'>('image');
+
+  // Helper function to determine what media is needed for each layout
+  const getMediaRequirements = (layout: LayoutType) => {
+    const requirements = {
+      needsImage: false,
+      needsVideo: false,
+      needsBackgroundImage: false,
+      imageLabel: 'Section Image',
+      imageHint: 'Upload an image for this layout',
+    };
+
+    switch (layout) {
+      // Background image layouts (overlay text)
+      case 'layout-1':
+        requirements.needsBackgroundImage = true;
+        requirements.imageLabel = 'Background Image';
+        requirements.imageHint = 'Full-width background image with overlay text';
+        break;
+
+      // Regular image layouts
+      case 'layout-2':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Left Side Image';
+        requirements.imageHint = 'Image displayed on the left side';
+        break;
+
+      case 'layout-4':
+      case 'layout-5':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Section Image';
+        requirements.imageHint = 'Image displayed with curved/circular styling';
+        break;
+
+      case 'layout-6':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Right Side Image';
+        requirements.imageHint = 'Image displayed on the right side';
+        break;
+
+      case 'layout-7':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Left Side Image';
+        requirements.imageHint = 'Image displayed on the left with spacing';
+        break;
+
+      case 'layout-8':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Side Images';
+        requirements.imageHint = 'Images for left and right sides (use same image for both)';
+        break;
+
+      case 'layout-9':
+      case 'layout-10':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Top Image';
+        requirements.imageHint = 'Large image displayed at the top';
+        break;
+
+      case 'layout-11':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Column Images';
+        requirements.imageHint = 'Images for two-column split layout';
+        break;
+
+      case 'layout-12':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Side Image';
+        requirements.imageHint = 'Image displayed beside boxed content';
+        break;
+
+      case 'layout-13':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Grid Images';
+        requirements.imageHint = 'Images for grid layout with center content';
+        break;
+
+      case 'layout-15':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Large Column Image';
+        requirements.imageHint = 'Image for the larger asymmetric column';
+        break;
+
+      case 'layout-16':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Featured Image';
+        requirements.imageHint = 'Large featured image with sidebar';
+        break;
+
+      case 'layout-17':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Magazine Image';
+        requirements.imageHint = 'Image for magazine-style layout';
+        break;
+
+      case 'layout-18':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Background Image';
+        requirements.imageHint = 'Image for overlapping content blocks';
+        break;
+
+      case 'layout-20':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Section Image';
+        requirements.imageHint = 'Image for split with background accent';
+        break;
+
+      case 'layout-21':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Hero Image';
+        requirements.imageHint = 'Large hero-style image at the top';
+        break;
+
+      case 'layout-22':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Zigzag Images';
+        requirements.imageHint = 'Images for zigzag pattern layout';
+        break;
+
+      case 'layout-25':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Grid Showcase Images';
+        requirements.imageHint = 'Multiple images for grid showcase';
+        break;
+
+      case 'layout-27':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Diagonal Section Image';
+        requirements.imageHint = 'Image for diagonal split layout';
+        break;
+
+      case 'layout-29':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Layered Background Image';
+        requirements.imageHint = 'Image for layered content background';
+        break;
+
+      case 'layout-31':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Carousel Images';
+        requirements.imageHint = 'Images for carousel layout';
+        break;
+
+      case 'layout-32':
+        requirements.needsImage = true;
+        requirements.imageLabel = 'Interactive Image';
+        requirements.imageHint = 'Image with hover interaction';
+        break;
+
+      // Video layouts
+      case 'layout-3':
+      case 'layout-24':
+        requirements.needsVideo = true;
+        break;
+
+      // Text-only layouts (no media needed)
+      case 'layout-14':
+      case 'layout-19':
+      case 'layout-23':
+      case 'layout-26':
+      case 'layout-28':
+      case 'layout-30':
+        // No media needed
+        break;
+    }
+
+    return requirements;
+  };
+
+  const mediaRequirements = getMediaRequirements(formData.layout || 'layout-1');
+
+  // Fetch existing custom section data when editing
+  useEffect(() => {
+    const fetchCustomSectionData = async () => {
+      if (isNewSection || !restaurantId) return;
+
+      try {
+        const params = new URLSearchParams();
+        params.set('restaurant_id', restaurantId);
+        if (pageId) {
+          params.set('page_id', pageId);
+        }
+
+        const response = await fetch(`/api/custom-section-config?${params.toString()}`);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          const config = data.data;
+          setFormData({
+            headline: config.headline || '',
+            subheadline: config.subheadline || '',
+            description: config.description || '',
+            layout: config.layout || 'layout-1',
+            bgColor: config.bgColor || '#ffffff',
+            textColor: config.textColor || '#000000',
+            paddingTop: config.paddingTop || '4rem',
+            paddingBottom: config.paddingBottom || '4rem',
+            minHeight: config.minHeight || '400px',
+            image: config.image,
+            videoUrl: config.videoUrl,
+            backgroundImage: config.backgroundImage,
+            primaryButton: config.primaryButton,
+            secondaryButton: config.secondaryButton,
+            overlayColor: config.overlayColor,
+            overlayOpacity: config.overlayOpacity,
+            textAlign: config.textAlign,
+            contentMaxWidth: config.contentMaxWidth,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching custom section data:', error);
+      }
+    };
+
+    fetchCustomSectionData();
+  }, [isNewSection, restaurantId, pageId]);
+
+  const handleOpenImageGallery = (type: 'image' | 'background') => {
+    setImageFieldType(type);
+    setShowImageGallery(true);
+  };
+
+  const handleImageSelect = (imageUrl: string) => {
+    if (imageFieldType === 'background') {
+      setFormData(prev => ({ ...prev, backgroundImage: imageUrl }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        image: {
+          url: imageUrl,
+          alt: prev.image?.alt || 'Section image'
+        }
+      }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -615,6 +852,210 @@ export default function CustomSectionSettingsForm({ pageId, isNewSection }: Cust
           </div>
         </div>
 
+        {/* Media Configuration - Conditional based on layout */}
+        {(mediaRequirements.needsImage || mediaRequirements.needsVideo || mediaRequirements.needsBackgroundImage) && (
+          <div className={styles.section}>
+            <h3 className={styles.sectionTitle}>
+              <span className={styles.sectionIcon}>📷</span>
+              Media Configuration
+            </h3>
+
+            {/* Image Upload */}
+            {(mediaRequirements.needsImage || mediaRequirements.needsBackgroundImage) && (
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  {mediaRequirements.imageLabel}
+                  <span className={styles.labelHint}>{mediaRequirements.imageHint}</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => handleOpenImageGallery(mediaRequirements.needsBackgroundImage ? 'background' : 'image')}
+                  className={`${styles.button} ${styles.secondaryButton}`}
+                  style={{
+                    width: '100%',
+                    padding: '0.875rem 1.5rem',
+                    justifyContent: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  📷 Select Image from Gallery
+                </button>
+                {formData.image?.url || formData.backgroundImage ? (
+                  <div style={{
+                    marginTop: '0.75rem',
+                    padding: '0.75rem',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    backgroundColor: '#f9fafb'
+                  }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: '#374151' }}>
+                      Selected Image:
+                    </div>
+                    <img
+                      src={mediaRequirements.needsBackgroundImage ? formData.backgroundImage : formData.image?.url}
+                      alt="Preview"
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '200px',
+                        borderRadius: '4px',
+                        objectFit: 'cover'
+                      }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{
+                    marginTop: '0.75rem',
+                    padding: '1.5rem',
+                    border: '2px dashed #e5e7eb',
+                    borderRadius: '8px',
+                    backgroundColor: '#f9fafb',
+                    textAlign: 'center',
+                    color: '#6b7280',
+                    fontSize: '0.875rem'
+                  }}>
+                    No image selected. Click the button above to choose an image.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Video URL */}
+            {mediaRequirements.needsVideo && (
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Video URL
+                  <span className={styles.labelHint}>YouTube, Vimeo, or direct video file URL</span>
+                </label>
+                <input
+                  type="url"
+                  value={formData.videoUrl || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, videoUrl: e.target.value }))}
+                  placeholder="https://www.youtube.com/watch?v=... or https://example.com/video.mp4"
+                  className={styles.textInput}
+                />
+                {formData.videoUrl && (
+                  <div style={{
+                    marginTop: '0.75rem',
+                    padding: '0.75rem',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    backgroundColor: '#f9fafb',
+                    fontSize: '0.875rem',
+                    color: '#6b7280'
+                  }}>
+                    <strong style={{ color: '#374151' }}>Note:</strong> Video will play as background. For YouTube/Vimeo, use embed URL format.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Button Configuration */}
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>
+            <span className={styles.sectionIcon}>🔘</span>
+            Button Configuration (Optional)
+          </h3>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                Primary Button Label
+                <span className={styles.labelHint}>Text displayed on the primary button</span>
+              </label>
+              <input
+                type="text"
+                value={formData.primaryButton?.label || ''}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  primaryButton: {
+                    ...prev.primaryButton,
+                    label: e.target.value,
+                    href: prev.primaryButton?.href || '',
+                    variant: prev.primaryButton?.variant || 'primary',
+                  }
+                }))}
+                placeholder="e.g., Learn More, Get Started, Order Now"
+                className={styles.textInput}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                Primary Button Link
+                <span className={styles.labelHint}>URL or page path where button navigates</span>
+              </label>
+              <input
+                type="text"
+                value={formData.primaryButton?.href || ''}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  primaryButton: {
+                    ...prev.primaryButton,
+                    label: prev.primaryButton?.label || '',
+                    href: e.target.value,
+                    variant: prev.primaryButton?.variant || 'primary',
+                  }
+                }))}
+                placeholder="https://example.com or /menu"
+                className={styles.textInput}
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                Secondary Button Label
+                <span className={styles.labelHint}>Text for optional secondary button</span>
+              </label>
+              <input
+                type="text"
+                value={formData.secondaryButton?.label || ''}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  secondaryButton: {
+                    ...prev.secondaryButton,
+                    label: e.target.value,
+                    href: prev.secondaryButton?.href || '',
+                    variant: prev.secondaryButton?.variant || 'secondary',
+                  }
+                }))}
+                placeholder="e.g., View Menu, Contact Us"
+                className={styles.textInput}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                Secondary Button Link
+                <span className={styles.labelHint}>URL or page path for secondary button</span>
+              </label>
+              <input
+                type="text"
+                value={formData.secondaryButton?.href || ''}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  secondaryButton: {
+                    ...prev.secondaryButton,
+                    label: prev.secondaryButton?.label || '',
+                    href: e.target.value,
+                    variant: prev.secondaryButton?.variant || 'secondary',
+                  }
+                }))}
+                placeholder="https://example.com or /contact"
+                className={styles.textInput}
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Colors & Styling */}
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>
@@ -702,7 +1143,14 @@ export default function CustomSectionSettingsForm({ pageId, isNewSection }: Cust
 
             {/* Modal Body */}
             <div className={styles.modalBody}>
-              {formData.headline || formData.subheadline || formData.description ? (
+              {formData.headline ||
+               formData.subheadline ||
+               formData.description ||
+               formData.image?.url ||
+               formData.backgroundImage ||
+               formData.videoUrl ||
+               formData.primaryButton?.label ||
+               formData.secondaryButton?.label ? (
                 <CustomSection {...formData} />
               ) : (
                 <div style={{
@@ -717,7 +1165,7 @@ export default function CustomSectionSettingsForm({ pageId, isNewSection }: Cust
                     No Content Yet
                   </h3>
                   <p style={{ fontSize: '0.875rem' }}>
-                    Add headline, subheadline, or description to see the preview
+                    Add content, images, or buttons to see the preview
                   </p>
                 </div>
               )}
@@ -735,6 +1183,16 @@ export default function CustomSectionSettingsForm({ pageId, isNewSection }: Cust
           </div>
         </div>
       )}
+
+      {/* Image Gallery Modal */}
+      <ImageGalleryModal
+        isOpen={showImageGallery}
+        onClose={() => setShowImageGallery(false)}
+        onSelect={handleImageSelect}
+        restaurantId={restaurantId}
+        title="Select Image"
+        description="Choose an image from your media library"
+      />
     </div>
   );
 }

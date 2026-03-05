@@ -63,6 +63,8 @@ export interface RestaurantDraftItem {
   doordashLink: string;
   logo: string;
   logoFileId: string;
+  faviconUrl: string;
+  faviconFileId: string;
   isDeleted: boolean | null;
 }
 
@@ -355,6 +357,87 @@ type RestaurantDraftVariant = {
 };
 
 const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
+  {
+    idField: "restaurant_id",
+    query: `
+      query GetRestaurantDraftByRestaurantIdWithFavicon($restaurantId: uuid!) {
+        restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
+          restaurant_id
+          franchise_id
+          name
+          address
+          city
+          state
+          country
+          postal_code
+          business_type
+          service_model
+          cuisine_types
+          phone_number
+          email
+          sms_name
+          poc_name
+          poc_phone_number
+          poc_email
+          google_place_id
+          gmb_link
+          fb_link
+          insta_link
+          yt_link
+          tiktok_link
+          yelp_link
+          ubereats_link
+          grubhub_link
+          doordash_link
+          logo
+          logo_file_id
+          favicon_url
+          favicon_file_id
+          is_deleted
+        }
+      }
+    `,
+  },
+  {
+    idField: "restaurant_id",
+    query: `
+      query GetRestaurantDraftByRestaurantIdWithFaviconUrl($restaurantId: uuid!) {
+        restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
+          restaurant_id
+          franchise_id
+          name
+          address
+          city
+          state
+          country
+          postal_code
+          business_type
+          service_model
+          cuisine_types
+          phone_number
+          email
+          sms_name
+          poc_name
+          poc_phone_number
+          poc_email
+          google_place_id
+          gmb_link
+          fb_link
+          insta_link
+          yt_link
+          tiktok_link
+          yelp_link
+          ubereats_link
+          grubhub_link
+          doordash_link
+          logo
+          logo_file_id
+          favicon_url
+          is_deleted
+        }
+      }
+    `,
+  },
   {
     idField: "restaurant_id",
     query: `
@@ -935,6 +1018,14 @@ function parseRestaurantDraft(rows: Array<Record<string, unknown>>, idField: str
     doordashLink: normalizeText(firstRow.doordash_link, ""),
     logo: normalizeText(firstRow.logo, ""),
     logoFileId: normalizeTextFromFieldCandidates(firstRow, ["logo_file_id"]),
+    faviconUrl: normalizeTextFromFieldCandidates(firstRow, [
+      "favicon_url",
+      "favicon",
+    ]),
+    faviconFileId: normalizeTextFromFieldCandidates(firstRow, [
+      "favicon_file_id",
+      "favicon_file",
+    ]),
     isDeleted: typeof firstRow.is_deleted === "boolean" ? firstRow.is_deleted : null,
   } satisfies RestaurantDraftItem;
 }

@@ -64,6 +64,16 @@ interface DeleteMediaApiResponse {
   error?: string;
 }
 
+interface RestaurantFaviconApiResponse {
+  success: boolean;
+  data?: {
+    restaurant_id?: string;
+    favicon_url?: string | null;
+    favicon_file_id?: string | null;
+  };
+  error?: string;
+}
+
 type MediaPreviewState = {
   url: string;
   title: string;
@@ -393,7 +403,47 @@ function useRestaurantScope(): RestaurantScope | null {
   };
 }
 
-function useRestaurantDraft(restaurantId: string | null) {
+async function fetchRestaurantFaviconSnapshot(restaurantId: string) {
+  try {
+    const response = await fetch(
+      `/api/restaurant-favicon?restaurant_id=${encodeURIComponent(restaurantId)}`,
+      {
+        cache: 'no-store',
+      },
+    );
+    const payload = (await response.json()) as RestaurantFaviconApiResponse;
+
+    if (!response.ok || !payload.success || !payload.data) {
+      return null;
+    }
+
+    const faviconUrl =
+      typeof payload.data.favicon_url === 'string'
+        ? payload.data.favicon_url.trim()
+        : '';
+    const faviconFileId =
+      typeof payload.data.favicon_file_id === 'string'
+        ? payload.data.favicon_file_id.trim()
+        : '';
+
+    if (!faviconUrl && !faviconFileId) {
+      return null;
+    }
+
+    return {
+      faviconUrl,
+      faviconFileId,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function useRestaurantDraft(
+  restaurantId: string | null,
+  options?: { hydrateFavicon?: boolean },
+) {
+  const hydrateFavicon = Boolean(options?.hydrateFavicon);
   const [draft, setDraft] = useState<RestaurantDraftItem | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(restaurantId));
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -410,11 +460,33 @@ function useRestaurantDraft(restaurantId: string | null) {
     setLoadError(null);
 
     try {
-      const nextDraft = await getRestaurantDraftById(restaurantId);
+      const faviconSnapshotPromise = hydrateFavicon
+        ? fetchRestaurantFaviconSnapshot(restaurantId)
+        : Promise.resolve(null);
+
+      const [loadedDraft, faviconSnapshot] = await Promise.all([
+        getRestaurantDraftById(restaurantId),
+        faviconSnapshotPromise,
+      ]);
+      let nextDraft = loadedDraft;
+
       if (!nextDraft) {
         setDraft(null);
         setLoadError('Restaurant details were not found for this selection.');
         return;
+      }
+
+      if (
+        hydrateFavicon &&
+        !nextDraft.faviconUrl &&
+        !nextDraft.faviconFileId &&
+        faviconSnapshot
+      ) {
+        nextDraft = {
+          ...nextDraft,
+          faviconUrl: faviconSnapshot.faviconUrl,
+          faviconFileId: faviconSnapshot.faviconFileId,
+        };
       }
 
       setDraft(nextDraft);
@@ -428,7 +500,7 @@ function useRestaurantDraft(restaurantId: string | null) {
     } finally {
       setIsLoading(false);
     }
-  }, [restaurantId]);
+  }, [hydrateFavicon, restaurantId]);
 
   useEffect(() => {
     void reload();
@@ -635,6 +707,7 @@ export function MyInfoBrandPage() {
   const restaurant = useRestaurantScope();
   const { draft, isLoading, loadError, reload } = useRestaurantDraft(
     restaurant?.id ?? null,
+    { hydrateFavicon: true },
   );
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState<SaveNotice | null>(null);
@@ -660,6 +733,9 @@ export function MyInfoBrandPage() {
   const [logoUrl, setLogoUrl] = useState('');
   const [logoFileId, setLogoFileId] = useState('');
   const [isLogoUploading, setIsLogoUploading] = useState(false);
+  const [faviconUrl, setFaviconUrl] = useState('');
+  const [faviconFileId, setFaviconFileId] = useState('');
+  const [isFaviconUploading, setIsFaviconUploading] = useState(false);
   const [cuisineSearchTerm, setCuisineSearchTerm] = useState('');
   const [selectedCuisineTypes, setSelectedCuisineTypes] = useState<string[]>(
     [],
@@ -697,6 +773,8 @@ export function MyInfoBrandPage() {
     setDoordashLink(draft.doordashLink || '');
     setLogoUrl(draft.logo || '');
     setLogoFileId(draft.logoFileId || '');
+    setFaviconUrl(draft.faviconUrl || '');
+    setFaviconFileId(draft.faviconFileId || '');
   }, [draft]);
 
   useEffect(() => {
@@ -932,6 +1010,85 @@ export function MyInfoBrandPage() {
     });
   };
 
+  const uploadFavicon = async (file: File) => {
+    if (!restaurant?.id) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setNotice({
+        tone: 'error',
+        message: 'Only image files are allowed for favicon upload.',
+      });
+      return;
+    }
+
+    setIsFaviconUploading(true);
+    setNotice(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('restaurant_id', restaurant.id);
+
+      const response = await fetch('/api/upload-optimized-media', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const payload = (await response.json()) as {
+        success?: boolean;
+        data?: { file_id?: string; url?: string };
+        error?: string;
+      };
+
+      if (!response.ok || !payload.success || !payload.data?.file_id) {
+        throw new Error(payload.error || 'Failed to upload favicon.');
+      }
+
+      const nextFaviconUrl =
+        payload.data.url ||
+        `/api/image-proxy?fileId=${encodeURIComponent(payload.data.file_id)}`;
+
+      setFaviconFileId(payload.data.file_id);
+      setFaviconUrl(nextFaviconUrl);
+      setNotice({
+        tone: 'success',
+        message: 'Favicon uploaded. Click Save brand to apply changes.',
+      });
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Failed to upload favicon.';
+      setNotice({
+        tone: 'error',
+        message,
+      });
+    } finally {
+      setIsFaviconUploading(false);
+    }
+  };
+
+  const onFaviconFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    void uploadFavicon(file);
+    event.target.value = '';
+  };
+
+  const onRemoveFavicon = () => {
+    setFaviconUrl('');
+    setFaviconFileId('');
+    setNotice({
+      tone: 'success',
+      message: 'Favicon removed. Click Save brand to apply changes.',
+    });
+  };
+
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setNotice(null);
@@ -963,6 +1120,14 @@ export function MyInfoBrandPage() {
     setIsSaving(true);
 
     try {
+      const currentFaviconUrl = faviconUrl.trim();
+      const currentFaviconFileId = faviconFileId.trim();
+      const existingFaviconUrl = (draft.faviconUrl || '').trim();
+      const existingFaviconFileId = (draft.faviconFileId || '').trim();
+      const shouldSyncFavicon =
+        currentFaviconUrl !== existingFaviconUrl ||
+        currentFaviconFileId !== existingFaviconFileId;
+
       await updateRestaurant(restaurant.id, {
         name: trimmedLegalName,
         sms_name: trimmedSmsName,
@@ -975,8 +1140,45 @@ export function MyInfoBrandPage() {
           .filter(Boolean),
         logo: logoUrl.trim() || null,
         logo_file_id: logoFileId.trim() || null,
+        favicon_url: currentFaviconUrl || null,
+        favicon_file_id: currentFaviconFileId || null,
         ...socialLinksPayload,
       });
+
+      if (shouldSyncFavicon) {
+        try {
+          const faviconResponse = await fetch('/api/restaurant-favicon', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              restaurant_id: restaurant.id,
+              favicon_url: currentFaviconUrl || null,
+              favicon_file_id: currentFaviconFileId || null,
+            }),
+          });
+
+          const faviconPayload = (await faviconResponse.json()) as {
+            success?: boolean;
+            error?: string;
+          };
+
+          if (!faviconResponse.ok || !faviconPayload.success) {
+            setNotice({
+              tone: 'error',
+              message:
+                faviconPayload.error ||
+                'Brand details were saved, but favicon failed to sync.',
+            });
+          }
+        } catch {
+          setNotice({
+            tone: 'error',
+            message: 'Brand details were saved, but favicon failed to sync.',
+          });
+        }
+      }
 
       setToastNotice({
         tone: 'success',
@@ -1017,12 +1219,13 @@ export function MyInfoBrandPage() {
       >
         <FormMessage notice={notice} />
 
-        <div className="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-white p-6">
-          <div className="flex items-start gap-4">
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-gray-900">Restaurant Logo</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Upload your restaurant logo (PNG, JPG, or WebP, max 10MB)
+        <div className="rounded-2xl border border-[#d7e2e6] bg-[#f8fafb] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-[#111827]">Logo</h3>
+              <p className="text-xs text-[#5f6c78]">
+                Upload restaurant logo (PNG/JPG/WebP, upto 5MB, Prefer below
+                1MB).
               </p>
             </div>
           </div>
@@ -1085,6 +1288,95 @@ export function MyInfoBrandPage() {
                   Remove
                 </button>
               ) : null}
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-4">
+            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-[#d7e2e6] bg-white">
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt={`${legalName || restaurant.name} logo`}
+                  className="h-full w-full object-contain p-1"
+                />
+              ) : (
+                <span className="text-xs font-medium text-[#8b98a5]">
+                  No logo
+                </span>
+              )}
+            </div>
+            {/* <p className="text-xs text-[#6b7a86]">
+              {logoFileId ? (
+                <span className="font-mono text-[11px]">{logoFileId}</span>
+              ) : (
+                'Logo is stored as URL + file id for stable delivery and easy asset tracking.'
+              )}
+            </p> */}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[#d7e2e6] bg-[#f8fafb] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-[#111827]">Favicon</h3>
+              <p className="text-xs text-[#5f6c78]">
+                Upload browser tab icon (PNG/JPG/ICO/WebP, upto 5MB, Prefer
+                below 1MB).
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="brand-favicon-upload"
+                type="file"
+                accept="image/*,.ico"
+                onChange={onFaviconFileChange}
+                disabled={isSaving || isFaviconUploading}
+                className="hidden"
+              />
+              <label
+                htmlFor="brand-favicon-upload"
+                className={cx(
+                  'inline-flex cursor-pointer items-center rounded-xl border px-4 py-2 text-sm font-semibold transition',
+                  isSaving || isFaviconUploading
+                    ? 'cursor-not-allowed border-[#d7dfea] bg-[#eef2f7] text-[#8b98a5] pointer-events-none'
+                    : 'border-[#bac8d5] bg-white text-[#2a3a4d] hover:bg-[#f2f6fb]',
+                )}
+              >
+                {isFaviconUploading
+                  ? 'Uploading...'
+                  : faviconUrl
+                    ? 'Replace favicon'
+                    : 'Upload favicon'}
+              </label>
+              {faviconUrl || faviconFileId ? (
+                <button
+                  type="button"
+                  onClick={onRemoveFavicon}
+                  disabled={isSaving || isFaviconUploading}
+                  className="inline-flex items-center rounded-xl border border-[#efc4c4] bg-white px-4 py-2 text-sm font-semibold text-[#c23939] transition hover:bg-[#fff5f5] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  Remove
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-[#d7e2e6] bg-white">
+              {faviconUrl ? (
+                <Image
+                  src={faviconUrl}
+                  alt={`${legalName || restaurant.name} favicon`}
+                  width={48}
+                  height={48}
+                  unoptimized
+                  className="h-full w-full object-contain p-1"
+                />
+              ) : (
+                <span className="text-[10px] font-medium text-[#8b98a5]">
+                  No icon
+                </span>
+              )}
             </div>
           </div>
         </div>

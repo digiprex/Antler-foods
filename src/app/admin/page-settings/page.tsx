@@ -16,6 +16,7 @@ import DynamicScrollingText from '@/components/dynamic-scrolling-text';
 import DynamicCustomCode from '@/components/dynamic-custom-code';
 import DynamicForm from '@/components/dynamic-form';
 import CustomSection from '@/components/custom-section';
+import DynamicYouTube from '@/components/dynamic-youtube';
 
 export default function PageSettingsSelector() {
   const router = useRouter();
@@ -58,6 +59,16 @@ export default function PageSettingsSelector() {
       case 'hero':
         // Get the template to extract layout from template.name
         const heroTemplate = sectionTemplates.get(templateId || '');
+
+        // Debug logging
+        console.log('Hero Preview Debug:', {
+          templateId,
+          hasTemplate: !!heroTemplate,
+          templateName: heroTemplate?.name,
+          configLayout: config?.layout,
+          finalLayout: heroTemplate?.name || config?.layout
+        });
+
         const heroConfigWithLayout = config ? {
           ...config,
           layout: heroTemplate?.name || config.layout
@@ -75,6 +86,16 @@ export default function PageSettingsSelector() {
       case 'menu':
         // Get the template to extract layout from template.name
         const menuTemplate = sectionTemplates.get(templateId || '');
+
+        // Debug logging
+        console.log('Menu Preview Debug:', {
+          templateId,
+          hasTemplate: !!menuTemplate,
+          templateName: menuTemplate?.name,
+          configLayout: config?.layout,
+          finalLayout: menuTemplate?.name || config?.layout
+        });
+
         const menuConfigWithLayout = config ? {
           ...config,
           layout: menuTemplate?.name || config.layout
@@ -92,6 +113,16 @@ export default function PageSettingsSelector() {
       case 'gallery':
         // Get the template to extract layout from template.name
         const galleryTemplate = sectionTemplates.get(templateId || '');
+
+        // Debug logging
+        console.log('Gallery Preview Debug:', {
+          templateId,
+          hasTemplate: !!galleryTemplate,
+          templateName: galleryTemplate?.name,
+          configLayout: config?.layout,
+          finalLayout: galleryTemplate?.name || config?.layout || 'grid'
+        });
+
         const galleryConfigWithLayout = config ? {
           ...config,
           layout: galleryTemplate?.name || config.layout || 'grid'
@@ -109,9 +140,19 @@ export default function PageSettingsSelector() {
       case 'reviews':
         // Get the template to extract layout from template.name
         const reviewsTemplate = sectionTemplates.get(templateId || '');
+
+        // Debug logging
+        console.log('Reviews Preview Debug:', {
+          templateId,
+          hasTemplate: !!reviewsTemplate,
+          templateName: reviewsTemplate?.name,
+          configLayout: config?.layout,
+          finalLayout: reviewsTemplate?.name || config?.layout || 'grid'
+        });
+
         const reviewsConfigWithLayout = config ? {
           ...config,
-          layout: reviewsTemplate?.name || config.layout || 'grid'
+          layout: reviewsTemplate?.name || config?.layout || 'grid'
         } : undefined;
 
         return (
@@ -126,79 +167,13 @@ export default function PageSettingsSelector() {
       case 'youtube':
         return (
           <div style={previewStyle}>
-            {(() => {
-              const config = sectionConfigs.get('YouTube Settings');
-              if (config && config.videoUrl) {
-                // Extract video ID from URL
-                const videoId = config.videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/)?.[1];
-
-                if (videoId) {
-                  return (
-                    <div style={{
-                      padding: '20px',
-                      backgroundColor: config.bgColor || '#000000',
-                      color: config.textColor || '#ffffff'
-                    }}>
-                      {config.showTitle && config.title && (
-                        <div style={{
-                          marginBottom: '20px',
-                          textAlign: 'center'
-                        }}>
-                          <h2 style={{
-                            fontSize: '24px',
-                            fontWeight: 'bold',
-                            margin: '0 0 8px 0'
-                          }}>
-                            {config.title}
-                          </h2>
-                          {config.description && (
-                            <p style={{
-                              fontSize: '14px',
-                              opacity: 0.9,
-                              margin: 0
-                            }}>
-                              {config.description}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                      <div style={{
-                        position: 'relative',
-                        paddingBottom: config.aspectRatio === '16:9' ? '56.25%' : '75%',
-                        height: 0,
-                        overflow: 'hidden',
-                        maxWidth: config.maxWidth || '1200px',
-                        margin: '0 auto',
-                        borderRadius: '8px'
-                      }}>
-                        <iframe
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            border: 'none'
-                          }}
-                          src={`https://www.youtube.com/embed/${videoId}?autoplay=0&controls=${config.controls ? 1 : 0}&loop=${config.loop ? 1 : 0}&mute=${config.mute ? 1 : 0}`}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          title="YouTube video preview"
-                        />
-                      </div>
-                    </div>
-                  );
-                }
-              }
-
-              return (
-                <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
-                  🎥 YouTube Video Section
-                  <br />
-                  <small>Configure section to see video preview</small>
-                </div>
-              );
-            })()}
+            <DynamicYouTube
+              restaurantId={restaurantId}
+              pageId={pageId}
+              templateId={templateId}
+              configData={config}
+              showLoading={false}
+            />
           </div>
         );
       case 'timeline':
@@ -215,9 +190,20 @@ export default function PageSettingsSelector() {
       case 'faq':
         // Get the template to extract layout from template.name
         const faqTemplate = sectionTemplates.get(templateId || '');
+
+        // Debug logging
+        console.log('FAQ Preview Debug:', {
+          templateId,
+          hasTemplate: !!faqTemplate,
+          templateName: faqTemplate?.name,
+          configLayout: config?.layout,
+          finalLayout: faqTemplate?.name || config?.layout || 'accordion',
+          faqsCount: config?.faqs?.length || 0
+        });
+
         const faqConfigWithLayout = config ? {
           ...config,
-          layout: faqTemplate?.name || config.layout || 'accordion',
+          layout: faqTemplate?.name || config?.layout || 'accordion',
           faqs: config.faqs || []
         } : undefined;
 

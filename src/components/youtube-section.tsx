@@ -17,13 +17,21 @@ interface YouTubeSectionProps {
   configData?: Partial<YouTubeConfig>;
 }
 
-export default function YouTubeSection({ restaurantId, pageId, templateId }: YouTubeSectionProps): JSX.Element | null {
+export default function YouTubeSection({ restaurantId, pageId, templateId, configData }: YouTubeSectionProps): JSX.Element | null {
   const [config, setConfig] = useState<YouTubeConfig | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!configData);
 
   useEffect(() => {
+    // If configData is provided, use it directly
+    if (configData) {
+      setConfig(configData as YouTubeConfig);
+      setIsLoading(false);
+      return;
+    }
+
+    // Otherwise fetch from API
     fetchYouTubeConfig();
-  }, [restaurantId, pageId, templateId]);
+  }, [restaurantId, pageId, templateId, configData]);
 
   const fetchYouTubeConfig = async () => {
     try {

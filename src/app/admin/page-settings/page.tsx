@@ -44,7 +44,7 @@ export default function PageSettingsSelector() {
   const [updatingPageInfo, setUpdatingPageInfo] = useState(false);
 
   // Function to render section preview based on category
-  const renderSectionPreview = (category: string, config?: any) => {
+  const renderSectionPreview = (category: string, config?: any, templateId?: string) => {
     if (!restaurantId || !pageId) return null;
 
     const previewStyle = {
@@ -55,40 +55,70 @@ export default function PageSettingsSelector() {
 
     switch (category.toLowerCase()) {
       case 'hero':
+        // Get the template to extract layout from template.name
+        const heroTemplate = sectionTemplates.get(templateId || '');
+        const heroConfigWithLayout = config ? {
+          ...config,
+          layout: heroTemplate?.name || config.layout
+        } : undefined;
+
         return (
           <div style={previewStyle}>
-            <DynamicHero restaurantId={restaurantId} configData={config} showLoading={false} />
+            <DynamicHero
+              restaurantId={restaurantId}
+              configData={heroConfigWithLayout}
+              showLoading={false}
+            />
           </div>
         );
       case 'menu':
+        // Get the template to extract layout from template.name
+        const menuTemplate = sectionTemplates.get(templateId || '');
+        const menuConfigWithLayout = config ? {
+          ...config,
+          layout: menuTemplate?.name || config.layout
+        } : undefined;
+
         return (
           <div style={previewStyle}>
-            <DynamicMenu restaurantId={restaurantId} configData={config} showLoading={false} />
+            <DynamicMenu
+              restaurantId={restaurantId}
+              configData={menuConfigWithLayout}
+              showLoading={false}
+            />
           </div>
         );
       case 'gallery':
+        // Get the template to extract layout from template.name
+        const galleryTemplate = sectionTemplates.get(templateId || '');
+        const galleryConfigWithLayout = config ? {
+          ...config,
+          layout: galleryTemplate?.name || config.layout || 'grid'
+        } : undefined;
+
         return (
           <div style={previewStyle}>
             <DynamicGallery
               restaurantId={restaurantId}
               pageId={pageId}
-              configData={config ? {
-                ...config,
-                layout: config.layout || 'grid'
-              } : undefined}
+              configData={galleryConfigWithLayout}
             />
           </div>
         );
       case 'reviews':
+        // Get the template to extract layout from template.name
+        const reviewsTemplate = sectionTemplates.get(templateId || '');
+        const reviewsConfigWithLayout = config ? {
+          ...config,
+          layout: reviewsTemplate?.name || config.layout || 'grid'
+        } : undefined;
+
         return (
           <div style={previewStyle}>
             <DynamicReviews
               restaurantId={restaurantId}
               pageId={pageId}
-              configData={config ? {
-                ...config,
-                layout: config.layout || 'grid'
-              } : undefined}
+              configData={reviewsConfigWithLayout}
             />
           </div>
         );
@@ -173,20 +203,29 @@ export default function PageSettingsSelector() {
       case 'timeline':
         return (
           <div style={previewStyle}>
-            <DynamicTimeline restaurantId={restaurantId} pageId={pageId} configData={config} />
+            <DynamicTimeline
+              restaurantId={restaurantId}
+              pageId={pageId}
+              templateId={templateId}
+              showLoading={false}
+            />
           </div>
         );
       case 'faq':
+        // Get the template to extract layout from template.name
+        const faqTemplate = sectionTemplates.get(templateId || '');
+        const faqConfigWithLayout = config ? {
+          ...config,
+          layout: faqTemplate?.name || config.layout || 'accordion',
+          faqs: config.faqs || []
+        } : undefined;
+
         return (
           <div style={previewStyle}>
             <DynamicFAQ
               restaurantId={restaurantId}
               pageId={pageId}
-              configData={config ? {
-                ...config,
-                layout: config.layout || 'accordion',
-                faqs: config.faqs || []
-              } : undefined}
+              configData={faqConfigWithLayout}
               showLoading={false}
             />
           </div>
@@ -194,25 +233,45 @@ export default function PageSettingsSelector() {
       case 'location':
         return (
           <div style={previewStyle}>
-            <DynamicLocation restaurantId={restaurantId} pageId={pageId} configData={config} />
+            <DynamicLocation
+              restaurantId={restaurantId}
+              pageId={pageId}
+              templateId={templateId}
+              showLoading={false}
+            />
           </div>
         );
       case 'scrollingtext':
         return (
           <div style={previewStyle}>
-            <DynamicScrollingText restaurantId={restaurantId} pageId={pageId} configData={config} showLoading={false} />
+            <DynamicScrollingText
+              restaurantId={restaurantId}
+              pageId={pageId}
+              templateId={templateId}
+              showLoading={false}
+            />
           </div>
         );
       case 'customcode':
         return (
           <div style={previewStyle}>
-            <DynamicCustomCode restaurantId={restaurantId} pageId={pageId} configData={config} showLoading={false} />
+            <DynamicCustomCode
+              restaurantId={restaurantId}
+              pageId={pageId}
+              templateId={templateId}
+              showLoading={false}
+            />
           </div>
         );
       case 'form':
         return (
           <div style={previewStyle}>
-            <DynamicForm restaurantId={restaurantId} pageId={pageId} configData={config} showLoading={false} />
+            <DynamicForm
+              restaurantId={restaurantId}
+              pageId={pageId}
+              templateId={templateId}
+              showLoading={false}
+            />
           </div>
         );
       case 'seo':
@@ -450,7 +509,8 @@ export default function PageSettingsSelector() {
       ...template.section,
       order_index: template.order_index ?? 999,
       template_id: template.template_id,
-      config: template.config
+      config: template.config,
+      layout: template.name // Add layout name from template.name
     }))
     .sort((a, b) => (a.order_index ?? 999) - (b.order_index ?? 999));
 
@@ -964,16 +1024,15 @@ export default function PageSettingsSelector() {
                             <div className="flex flex-wrap gap-2">
                               <span className="text-xs font-medium text-gray-500">Layout:</span>
                               {(() => {
-                                const config = section.config;
-                                console.log(`Layout debug for ${section.name} (${section.template_id}):`, config);
-
-                                // Try multiple possible layout field names
+                                // Layout is stored in template.name (section.layout)
+                                // Fallback to config fields for backwards compatibility
                                 const selectedLayout =
-                                  config?.layout ||
-                                  config?.layoutType ||
-                                  config?.selectedLayout ||
-                                  config?.layoutStyle ||
-                                  config?.displayLayout ||
+                                  section.layout ||
+                                  section.config?.layout ||
+                                  section.config?.layoutType ||
+                                  section.config?.selectedLayout ||
+                                  section.config?.layoutStyle ||
+                                  section.config?.displayLayout ||
                                   'Default';
 
                                 return (
@@ -1062,7 +1121,7 @@ export default function PageSettingsSelector() {
                           </h4>
                         </div>
                         <div className="border border-gray-200 rounded-lg overflow-hidden">
-                          {renderSectionPreview(section.category, section.config)}
+                          {renderSectionPreview(section.category, section.config, section.template_id)}
                         </div>
                       </div>
                     </div>

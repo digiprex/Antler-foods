@@ -259,17 +259,13 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           showLoading={true}
         />;
       case 'customcode':
-        // Transform template data to match CustomCode config format
-        const customCodeConfigData = template.config ? {
-          ...template.config,
-          layout: template.name || 'html'
-        } : undefined;
-
+        // Pass template_id to fetch specific instance of custom code
+        // This ensures each section loads its own unique data
         return <DynamicCustomCode
           key={uniqueKey}
           restaurantId={restaurantId}
           pageId={pageId}
-          configData={customCodeConfigData}
+          templateId={template.template_id}
           showLoading={true}
         />;
       case 'scrollingtext':

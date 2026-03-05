@@ -1,0 +1,927 @@
+// SCSS Variables for custom section layout
+$section-padding-mobile: 1.5rem;
+$section-padding-desktop: 3rem;
+$section-gap: 2rem;
+$headline-font-size-mobile: 1.5rem;
+$headline-font-size-desktop: 2.5rem;
+$subheadline-font-size: 1.25rem;
+$description-font-size: 1rem;
+$button-bg-color: #dc3545;
+$button-text-color: white;
+$button-hover-bg-color: #c82333;
+
+.customSection {
+  position: relative;
+  background-color: var(--section-bg-color, white);
+  color: var(--section-text-color, black);
+  padding: var(--section-padding-top, 4rem) 0 var(--section-padding-bottom, 4rem);
+  min-height: var(--section-min-height, 400px);
+  overflow: hidden;
+
+  &.hasBackground {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  &.hasVideo {
+    position: relative;
+  }
+}
+
+.container {
+  max-width: var(--section-content-max-width, 1200px);
+  margin: 0 auto;
+  padding: 0 $section-padding-mobile;
+
+  @media (min-width: 768px) {
+    padding: 0 $section-padding-desktop;
+  }
+}
+
+.content {
+  text-align: var(--section-text-align, center);
+}
+
+.contentCentered {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.contentLeft {
+  text-align: left;
+}
+
+.contentOverlay {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: white;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.headline {
+  font-size: $headline-font-size-mobile;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+
+  @media (min-width: 768px) {
+    font-size: $headline-font-size-desktop;
+  }
+}
+
+.subheadline {
+  font-size: $subheadline-font-size;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  opacity: 0.9;
+}
+
+.description {
+  font-size: $description-font-size;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  opacity: 0.8;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 1rem;
+  justify-content: var(--section-text-align, center);
+  flex-wrap: wrap;
+
+  @media (max-width: 767px) {
+    justify-content: center;
+  }
+}
+
+.button {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  background-color: $button-bg-color;
+  color: $button-text-color;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+
+  &:hover {
+    background-color: $button-hover-bg-color;
+    transform: translateY(-2px);
+  }
+
+  &.buttonSecondary {
+    background-color: transparent;
+    color: var(--section-text-color, black);
+    border-color: var(--section-text-color, black);
+
+    &:hover {
+      background-color: var(--section-text-color, black);
+      color: var(--section-bg-color, white);
+    }
+  }
+
+  &.buttonOutline {
+    background-color: transparent;
+    border-color: currentColor;
+
+    &:hover {
+      background-color: currentColor;
+      color: var(--section-bg-color, white);
+    }
+  }
+}
+
+.imageContainer {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.sectionImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+// Layout 1: Full-width image with overlay text
+.layout1 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 500px;
+  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), 
+              var(--section-bg-color, #333);
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(0,0,0,0.3), rgba(0,0,0,0.6));
+    z-index: 1;
+  }
+}
+
+// Layout 2: Split image left, content right
+.layout2 {
+  display: flex;
+  align-items: center;
+  gap: $section-gap;
+  min-height: 400px;
+
+  @media (max-width: 767px) {
+    flex-direction: column;
+  }
+
+  .imageSection {
+    flex: 1;
+    min-height: 300px;
+  }
+
+  .contentSection {
+    flex: 1;
+    padding: 2rem;
+  }
+}
+
+// Layout 3: Video background with centered content
+.layout3 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 600px;
+  color: white;
+
+  .videoContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+
+  .backgroundVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .videoOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.4);
+  }
+
+  .contentCentered {
+    position: relative;
+    z-index: 2;
+  }
+}
+
+// Layout 4: Curved green background with image
+.layout4 {
+  .curvedBackground {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border-radius: 50px;
+    padding: 3rem;
+    display: flex;
+    align-items: center;
+    gap: $section-gap;
+    color: white;
+
+    @media (max-width: 767px) {
+      flex-direction: column;
+      border-radius: 25px;
+      padding: 2rem;
+    }
+
+    .contentSection {
+      flex: 1;
+    }
+
+    .imageSection {
+      flex: 1;
+      max-width: 400px;
+    }
+  }
+}
+
+// Layout 5: Circular image with green background
+.layout5 {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  display: flex;
+  align-items: center;
+  gap: $section-gap;
+  padding: 3rem;
+  color: white;
+
+  @media (max-width: 767px) {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .circularImageSection {
+    flex: 0 0 200px;
+
+    .sectionImage {
+      border-radius: 50%;
+      width: 200px;
+      height: 200px;
+    }
+  }
+
+  .contentSection {
+    flex: 1;
+  }
+}
+
+// Layout 6: Image right, content left
+.layout6 {
+  display: flex;
+  align-items: center;
+  gap: $section-gap;
+  min-height: 400px;
+
+  @media (max-width: 767px) {
+    flex-direction: column-reverse;
+  }
+
+  .contentSection {
+    flex: 1;
+    padding: 2rem;
+  }
+
+  .imageSection {
+    flex: 1;
+    min-height: 300px;
+  }
+}
+
+// Layout 7: Image left, content right with spacing
+.layout7 {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+  min-height: 400px;
+
+  @media (max-width: 767px) {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .imageSection {
+    flex: 0 0 300px;
+    min-height: 300px;
+  }
+
+  .contentSection {
+    flex: 1;
+    padding: 2rem;
+  }
+}
+
+// Layout 8: Centered content with side images
+.layout8 {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  min-height: 400px;
+
+  @media (max-width: 767px) {
+    flex-direction: column;
+
+    .sideImageLeft,
+    .sideImageRight {
+      display: none;
+    }
+  }
+
+  .sideImageLeft,
+  .sideImageRight {
+    flex: 0 0 150px;
+    height: 200px;
+  }
+
+  .centerContent {
+    flex: 1;
+    text-align: center;
+    padding: 2rem;
+  }
+}
+
+// Layout 9: Large image with bottom content
+.layout9 {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+
+  .topImageSection {
+    width: 100%;
+    height: 300px;
+    margin-bottom: 2rem;
+  }
+
+  .bottomContentSection {
+    text-align: center;
+    padding: 2rem;
+  }
+}
+
+// Layout 10: Centered content with top image
+.layout10 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+
+  .topImageSection {
+    width: 100%;
+    max-width: 800px;
+    height: 300px;
+  }
+
+  .contentSection {
+    text-align: center;
+    max-width: 700px;
+  }
+}
+
+// Layout 11: Two column split with images
+.layout11 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+  }
+
+  .imageColumn {
+    min-height: 400px;
+  }
+}
+
+// Layout 12: Boxed content with side image
+.layout12 {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+
+  @media (max-width: 767px) {
+    flex-direction: column;
+  }
+
+  .boxedContent {
+    flex: 1;
+    padding: 3rem;
+    border: 2px solid currentColor;
+    border-radius: 12px;
+  }
+
+  .imageSection {
+    flex: 1;
+    min-height: 300px;
+  }
+}
+
+// Layout 13: Image grid with center content
+.layout13 {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 2rem;
+  align-items: center;
+
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+
+    .sideImage {
+      display: none;
+    }
+  }
+
+  .sideImage {
+    height: 250px;
+  }
+
+  .centerContent {
+    padding: 2rem;
+  }
+}
+
+// Layout 14: Stacked cards layout
+.layout14 {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  .card {
+    padding: 2.5rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Layout 15: Asymmetric split layout
+.layout15 {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+  align-items: center;
+
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+  }
+
+  .smallColumn {
+    padding: 2rem;
+  }
+
+  .largeColumn {
+    min-height: 400px;
+  }
+}
+
+// Layout 16: Featured image with sidebar
+.layout16 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+  }
+
+  .featuredImage {
+    min-height: 500px;
+  }
+
+  .sidebar {
+    padding: 2rem;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 8px;
+  }
+}
+
+// Layout 17: Magazine style layout
+.layout17 {
+  .magazineRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: center;
+
+    @media (max-width: 767px) {
+      grid-template-columns: 1fr;
+    }
+
+    .imageSection {
+      min-height: 350px;
+    }
+
+    .textSection {
+      padding: 2rem;
+    }
+  }
+}
+
+// Layout 18: Overlapping content blocks
+.layout18 {
+  position: relative;
+  min-height: 500px;
+
+  .imageBlock {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 60%;
+    height: 350px;
+    z-index: 1;
+
+    @media (max-width: 767px) {
+      position: relative;
+      width: 100%;
+    }
+  }
+
+  .textBlock {
+    position: absolute;
+    right: 0;
+    bottom: 50px;
+    width: 50%;
+    padding: 3rem;
+    background: white;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    z-index: 2;
+
+    @media (max-width: 767px) {
+      position: relative;
+      width: 100%;
+      margin-top: -50px;
+    }
+  }
+}
+
+// Layout 19: Modern card style
+.layout19 {
+  display: flex;
+  justify-content: center;
+
+  .modernCard {
+    max-width: 800px;
+    padding: 4rem;
+    border-radius: 20px;
+    background: white;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Layout 20: Split with background accent
+.layout20 {
+  .accentBackground {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    position: relative;
+    padding: 3rem;
+
+    @media (max-width: 767px) {
+      grid-template-columns: 1fr;
+    }
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+      z-index: -1;
+    }
+
+    .contentSection,
+    .imageSection {
+      min-height: 300px;
+    }
+  }
+}
+
+// Layout 21: Hero style with bottom content
+.layout21 {
+  display: flex;
+  flex-direction: column;
+  min-height: 600px;
+
+  .heroImage {
+    flex: 1;
+    min-height: 400px;
+    background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.5));
+  }
+
+  .bottomContent {
+    padding: 3rem 2rem;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.02);
+  }
+}
+
+// Layout 22: Zigzag pattern layout
+.layout22 {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+
+  .zigzagRow,
+  .zigzagRowReverse {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: center;
+
+    @media (max-width: 767px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .imageSection {
+    min-height: 300px;
+  }
+
+  .textSection {
+    padding: 2rem;
+  }
+}
+
+// Layout 23: Centered with side panels
+.layout23 {
+  display: grid;
+  grid-template-columns: 1fr 3fr 1fr;
+  gap: 2rem;
+  align-items: center;
+
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+
+    .sidePanel {
+      display: none;
+    }
+  }
+
+  .sidePanel {
+    height: 300px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    border-radius: 12px;
+  }
+
+  .centerPanel {
+    padding: 3rem;
+    text-align: center;
+  }
+}
+
+// Layout 24: Full screen video layout
+.layout24 {
+  position: relative;
+  min-height: 700px;
+  color: white;
+
+  .fullScreenVideo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+
+    .video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .videoOverlay {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 700px;
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+// Layout 25: Grid showcase layout
+.layout25 {
+  .gridShowcase {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .gridItem {
+      aspect-ratio: 1;
+      min-height: 200px;
+    }
+  }
+}
+
+// Layout 26: Minimal centered layout
+.layout26 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+
+  .minimalCenter {
+    max-width: 600px;
+    text-align: center;
+  }
+}
+
+// Layout 27: Split diagonal layout
+.layout27 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  position: relative;
+  overflow: hidden;
+
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+  }
+
+  .diagonalLeft,
+  .diagonalRight {
+    padding: 3rem;
+    min-height: 400px;
+  }
+
+  .diagonalLeft {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, transparent 100%);
+    clip-path: polygon(0 0, 100% 0, 85% 100%, 0% 100%);
+
+    @media (max-width: 767px) {
+      clip-path: none;
+    }
+  }
+
+  .diagonalRight {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Layout 28: Triple section layout
+.layout28 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+  }
+
+  .tripleSection {
+    padding: 2.5rem;
+    text-align: center;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+  }
+}
+
+// Layout 29: Layered content layout
+.layout29 {
+  position: relative;
+  min-height: 500px;
+
+  .layerBackground {
+    position: absolute;
+    left: 0;
+    top: 50px;
+    width: 55%;
+    height: 400px;
+    z-index: 1;
+    opacity: 0.8;
+
+    @media (max-width: 767px) {
+      position: relative;
+      width: 100%;
+      top: 0;
+    }
+  }
+
+  .layerForeground {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 55%;
+    padding: 3rem;
+    background: white;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    z-index: 2;
+
+    @media (max-width: 767px) {
+      position: relative;
+      width: 100%;
+      margin-top: -30px;
+    }
+  }
+}
+
+// Layout 30: Full width banner style
+.layout30 {
+  .fullBanner {
+    padding: 4rem 2rem;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border-radius: 20px;
+  }
+}
+
+// Layout 31: Image carousel layout
+.layout31 {
+  .carousel {
+    overflow: hidden;
+    border-radius: 12px;
+
+    .carouselTrack {
+      display: flex;
+      min-height: 400px;
+      transition: transform 0.5s ease;
+    }
+  }
+}
+
+// Layout 32: Interactive hover layout
+.layout32 {
+  .interactiveBlock {
+    position: relative;
+    min-height: 500px;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+
+    .hoverOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 2;
+      color: white;
+      padding: 2rem;
+    }
+
+    &:hover .hoverOverlay {
+      opacity: 1;
+    }
+  }
+}
+
+// Default layout
+.defaultLayout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  text-align: center;
+
+  .imageContainer {
+    max-width: 500px;
+    height: 300px;
+  }
+}

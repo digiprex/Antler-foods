@@ -137,30 +137,6 @@ export function SectionTypographyControls({
 
   return (
     <div style={{ display: 'grid', gap: 14 }}>
-      <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 12 }}>
-        <h4 style={{ margin: '0 0 10px 0', fontSize: 15, fontWeight: 700 }}>
-          Button Style Source
-        </h4>
-        <div>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-            Button Style
-          </label>
-          <select
-            value={value.buttonStyleVariant || 'primary'}
-            onChange={(e) =>
-              onChange({
-                buttonStyleVariant:
-                  e.target.value === 'secondary' ? 'secondary' : 'primary',
-              })
-            }
-            style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 8 }}
-          >
-            <option value="primary">Global Primary Button</option>
-            <option value="secondary">Global Secondary Button</option>
-          </select>
-        </div>
-      </div>
-
       <TypoGroup
         title="Title Typography"
         prefix="title"

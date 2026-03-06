@@ -17,7 +17,6 @@ import { useGlobalStyleConfig, useUpdateGlobalStyleConfig } from '@/hooks/use-gl
 import type { GlobalStyleConfig, FontStyle } from '@/types/global-style.types';
 import Toast from '@/components/ui/toast';
 import { loadGoogleFonts, preloadGoogleFonts } from '@/utils/google-fonts';
-import styles from './global-style-settings-form.module.css';
 
 // Font options - Popular Google Fonts
 const FONT_OPTIONS = [
@@ -149,20 +148,36 @@ const getButtonPadding = (size: 'small' | 'medium' | 'large' = 'medium'): string
 };
 
 export default function GlobalStyleSettingsForm() {
+  // Add animations
+  if (typeof document !== 'undefined') {
+    const styleId = 'global-style-animations';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+
   const searchParams = useSearchParams();
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
   const restaurantNameFromQuery = searchParams.get('restaurant_name')?.trim() ?? '';
   const restaurantId = restaurantIdFromQuery || '';
-  
-  // Validate that restaurant ID is provided
-  if (!restaurantId) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
-      </div>
-    );
-  }
 
   const configApiEndpoint = useMemo(
     () => `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`,
@@ -407,14 +422,32 @@ export default function GlobalStyleSettingsForm() {
 
   if (loading) {
     return (
-      <div className={styles.container}>
-        <div className={styles.loading}>Loading...</div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="inline-flex items-center gap-3 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3.5">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
+          <p className="text-sm font-medium text-gray-700">Loading global style settings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Validate that restaurant ID is provided
+  if (!restaurantId) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center p-8">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+          <svg className="mx-auto h-12 w-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <h2 className="mt-4 text-lg font-semibold text-red-900">Error</h2>
+          <p className="mt-2 text-sm text-red-700">Restaurant ID is required. Please provide it via URL parameter.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.container}>
+    <>
       {/* Toast Notification */}
       {showToast && (
         <Toast
@@ -424,201 +457,225 @@ export default function GlobalStyleSettingsForm() {
         />
       )}
 
-      <div className={styles.singleLayout}>
-        {/* Settings Form */}
-        <div className={styles.formSection}>
-          <div className={styles.formHeader}>
-            <div>
-              <h1 className={styles.formTitle}>Global Style Settings</h1>
-              <p className={styles.formSubtitle}>Configure typography for your website</p>
-              {restaurantNameFromQuery && (
-                <p className={styles.formSubtitle}>
-                  Restaurant: {restaurantNameFromQuery}
-                </p>
-              )}
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="mx-auto max-w-5xl">
+          {/* Page Header */}
+          <div className="mb-8 flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+                <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Global Style Settings</h1>
+                <p className="mt-1 text-sm text-gray-600">Configure typography for your website</p>
+              </div>
             </div>
-            <div className={styles.headerActions}>
-              <button
-                type="button"
-                onClick={() => setShowPreview(!showPreview)}
-                className={styles.previewToggleButton}
-                title={showPreview ? 'Hide Preview' : 'Show Live Preview'}
-              >
-                {showPreview ? '👁️‍🗨️' : '👁️'} {showPreview ? 'Hide' : 'Show'} Preview
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowPreview(!showPreview)}
+              className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {showPreview ? 'Hide' : 'Show'} Preview
+            </button>
           </div>
 
           {fetchError && (
-            <div className={styles.errorMessage}>
-              <span className={styles.errorIcon}>⚠</span>
+            <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+              <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
               <span>Error loading settings: {fetchError}</span>
             </div>
           )}
 
           {updateError && (
-            <div className={styles.errorMessage}>
-              <span className={styles.errorIcon}>⚠</span>
+            <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+              <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
               <span>Error saving settings: {updateError}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className={styles.form}>
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Title Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>📝</span>
-                Title Styling (H1, Main Headings)
-              </h3>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Font Family
-                  <span className={styles.labelHint}>Choose title font</span>
-                </label>
-                <select
-                  value={titleFontFamily}
-                  onChange={(e) => setTitleFontFamily(e.target.value)}
-                  className={styles.select}
-                  style={{ fontFamily: titleFontFamily }}
-                >
-                  {FONT_OPTIONS.map((font) => (
-                    <option key={font.value} value={font.value}>
-                      {font.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Font Size
-                  <span className={styles.labelHint}>Title size</span>
-                </label>
-                <select
-                  value={titleFontSize}
-                  onChange={(e) => setTitleFontSize(e.target.value)}
-                  className={styles.select}
-                >
-                  {FONT_SIZE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Font Weight
-                  <span className={styles.labelHint}>Boldness of text</span>
-                </label>
-                <select
-                  value={titleFontWeight}
-                  onChange={(e) => setTitleFontWeight(parseInt(e.target.value))}
-                  className={styles.select}
-                >
-                  {FONT_WEIGHT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Color
-                  <span className={styles.labelHint}>Text color</span>
-                </label>
-                <div className={styles.colorInputGroup}>
-                  <input
-                    type="color"
-                    value={titleColor}
-                    onChange={(e) => setTitleColor(e.target.value)}
-                    className={styles.colorInput}
-                  />
-                  <input
-                    type="text"
-                    value={titleColor}
-                    onChange={(e) => setTitleColor(e.target.value)}
-                    className={styles.colorHexInput}
-                    placeholder="#111827"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setTitleColor('#111827')}
-                    className={styles.clearButton}
-                    title="Reset to default"
-                  >
-                    ↺
-                  </button>
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
+                    <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Title Styling (H1, Main Headings)</h3>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Line Height
-                  <span className={styles.labelHint}>Line spacing</span>
-                </label>
-                <input
-                  type="text"
-                  value={titleLineHeight}
-                  onChange={(e) => setTitleLineHeight(e.target.value)}
-                  className={styles.textInput}
-                  placeholder="1.2"
-                />
-              </div>
+              <div className="grid gap-4 p-6 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-900">
+                    Font Family
+                  </label>
+                  <p className="mt-1 text-xs text-gray-600">Choose title font</p>
+                  <select
+                    value={titleFontFamily}
+                    onChange={(e) => setTitleFontFamily(e.target.value)}
+                    className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    style={{ fontFamily: titleFontFamily }}
+                  >
+                    {FONT_OPTIONS.map((font) => (
+                      <option key={font.value} value={font.value}>
+                        {font.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Letter Spacing
-                  <span className={styles.labelHint}>Character spacing</span>
-                </label>
-                <input
-                  type="text"
-                  value={titleLetterSpacing}
-                  onChange={(e) => setTitleLetterSpacing(e.target.value)}
-                  className={styles.textInput}
-                  placeholder="-0.025em"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-900">
+                    Font Size
+                  </label>
+                  <p className="mt-1 text-xs text-gray-600">Title size</p>
+                  <select
+                    value={titleFontSize}
+                    onChange={(e) => setTitleFontSize(e.target.value)}
+                    className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    {FONT_SIZE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Text Transform
-                  <span className={styles.labelHint}>Case transformation</span>
-                </label>
-                <select
-                  value={titleTextTransform}
-                  onChange={(e) => setTitleTextTransform(e.target.value as any)}
-                  className={styles.select}
-                >
-                  {TEXT_TRANSFORM_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                <div>
+                  <label className="block text-sm font-medium text-gray-900">
+                    Font Weight
+                  </label>
+                  <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
+                  <select
+                    value={titleFontWeight}
+                    onChange={(e) => setTitleFontWeight(parseInt(e.target.value))}
+                    className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    {FONT_WEIGHT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-900">
+                    Color
+                  </label>
+                  <p className="mt-1 text-xs text-gray-600">Text color</p>
+                  <div className="mt-2 flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={titleColor}
+                      onChange={(e) => setTitleColor(e.target.value)}
+                      className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
+                    />
+                    <input
+                      type="text"
+                      value={titleColor}
+                      onChange={(e) => setTitleColor(e.target.value)}
+                      className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="#111827"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setTitleColor('#111827')}
+                      className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                      title="Reset to default"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-900">
+                    Line Height
+                  </label>
+                  <p className="mt-1 text-xs text-gray-600">Line spacing</p>
+                  <input
+                    type="text"
+                    value={titleLineHeight}
+                    onChange={(e) => setTitleLineHeight(e.target.value)}
+                    className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="1.2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-900">
+                    Letter Spacing
+                  </label>
+                  <p className="mt-1 text-xs text-gray-600">Character spacing</p>
+                  <input
+                    type="text"
+                    value={titleLetterSpacing}
+                    onChange={(e) => setTitleLetterSpacing(e.target.value)}
+                    className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="-0.025em"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-900">
+                    Text Transform
+                  </label>
+                  <p className="mt-1 text-xs text-gray-600">Case transformation</p>
+                  <select
+                    value={titleTextTransform}
+                    onChange={(e) => setTitleTextTransform(e.target.value as any)}
+                    className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    {TEXT_TRANSFORM_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
             {/* Subheading Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>📄</span>
-                Subheading Styling (H2, H3, Section Headings)
-              </h3>
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
+                    <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Subheading Styling (H2, H3, Section Headings)</h3>
+                </div>
+              </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div className="grid gap-4 p-6 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Font Family
-                  <span className={styles.labelHint}>Choose subheading font</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Choose subheading font</p>
                 <select
                   value={subheadingFontFamily}
                   onChange={(e) => setSubheadingFontFamily(e.target.value)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   style={{ fontFamily: subheadingFontFamily }}
                 >
                   {FONT_OPTIONS.map((font) => (
@@ -629,15 +686,15 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Font Size
-                  <span className={styles.labelHint}>Subheading size</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Subheading size</p>
                 <select
                   value={subheadingFontSize}
                   onChange={(e) => setSubheadingFontSize(e.target.value)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {FONT_SIZE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -647,15 +704,15 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Font Weight
-                  <span className={styles.labelHint}>Boldness of text</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
                 <select
                   value={subheadingFontWeight}
                   onChange={(e) => setSubheadingFontWeight(parseInt(e.target.value))}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {FONT_WEIGHT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -665,73 +722,75 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Color
-                  <span className={styles.labelHint}>Text color</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <p className="mt-1 text-xs text-gray-600">Text color</p>
+                <div className="mt-2 flex items-center gap-3">
                   <input
                     type="color"
                     value={subheadingColor}
                     onChange={(e) => setSubheadingColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
                   />
                   <input
                     type="text"
                     value={subheadingColor}
                     onChange={(e) => setSubheadingColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#374151"
                   />
                   <button
                     type="button"
                     onClick={() => setSubheadingColor('#374151')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Line Height
-                  <span className={styles.labelHint}>Line spacing</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Line spacing</p>
                 <input
                   type="text"
                   value={subheadingLineHeight}
                   onChange={(e) => setSubheadingLineHeight(e.target.value)}
-                  className={styles.textInput}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="1.3"
                 />
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Letter Spacing
-                  <span className={styles.labelHint}>Character spacing</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Character spacing</p>
                 <input
                   type="text"
                   value={subheadingLetterSpacing}
                   onChange={(e) => setSubheadingLetterSpacing(e.target.value)}
-                  className={styles.textInput}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="-0.015em"
                 />
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Text Transform
-                  <span className={styles.labelHint}>Case transformation</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Case transformation</p>
                 <select
                   value={subheadingTextTransform}
                   onChange={(e) => setSubheadingTextTransform(e.target.value as any)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {TEXT_TRANSFORM_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -740,24 +799,32 @@ export default function GlobalStyleSettingsForm() {
                   ))}
                 </select>
               </div>
+              </div>
             </div>
 
             {/* Paragraph Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>📖</span>
-                Paragraph Styling (Body Text, Descriptions)
-              </h3>
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
+                    <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Paragraph Styling (Body Text, Descriptions)</h3>
+                </div>
+              </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div className="grid gap-4 p-6 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Font Family
-                  <span className={styles.labelHint}>Choose body text font</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Choose body text font</p>
                 <select
                   value={paragraphFontFamily}
                   onChange={(e) => setParagraphFontFamily(e.target.value)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   style={{ fontFamily: paragraphFontFamily }}
                 >
                   {FONT_OPTIONS.map((font) => (
@@ -768,15 +835,15 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Font Size
-                  <span className={styles.labelHint}>Body text size</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Body text size</p>
                 <select
                   value={paragraphFontSize}
                   onChange={(e) => setParagraphFontSize(e.target.value)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {FONT_SIZE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -786,15 +853,15 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Font Weight
-                  <span className={styles.labelHint}>Boldness of text</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
                 <select
                   value={paragraphFontWeight}
                   onChange={(e) => setParagraphFontWeight(parseInt(e.target.value))}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {FONT_WEIGHT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -804,73 +871,75 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Color
-                  <span className={styles.labelHint}>Text color</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <p className="mt-1 text-xs text-gray-600">Text color</p>
+                <div className="mt-2 flex items-center gap-3">
                   <input
                     type="color"
                     value={paragraphColor}
                     onChange={(e) => setParagraphColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
                   />
                   <input
                     type="text"
                     value={paragraphColor}
                     onChange={(e) => setParagraphColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#6b7280"
                   />
                   <button
                     type="button"
                     onClick={() => setParagraphColor('#6b7280')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Line Height
-                  <span className={styles.labelHint}>Line spacing</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Line spacing</p>
                 <input
                   type="text"
                   value={paragraphLineHeight}
                   onChange={(e) => setParagraphLineHeight(e.target.value)}
-                  className={styles.textInput}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="1.6"
                 />
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Letter Spacing
-                  <span className={styles.labelHint}>Character spacing</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Character spacing</p>
                 <input
                   type="text"
                   value={paragraphLetterSpacing}
                   onChange={(e) => setParagraphLetterSpacing(e.target.value)}
-                  className={styles.textInput}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="0"
                 />
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Text Transform
-                  <span className={styles.labelHint}>Case transformation</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Case transformation</p>
                 <select
                   value={paragraphTextTransform}
                   onChange={(e) => setParagraphTextTransform(e.target.value as any)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {TEXT_TRANSFORM_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -879,24 +948,32 @@ export default function GlobalStyleSettingsForm() {
                   ))}
                 </select>
               </div>
+              </div>
             </div>
 
             {/* Primary Button Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>🔵</span>
-                Primary Button Styling
-              </h3>
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
+                    <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Primary Button Styling</h3>
+                </div>
+              </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div className="grid gap-4 p-6 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Font Family
-                  <span className={styles.labelHint}>Choose button font</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Choose button font</p>
                 <select
                   value={primaryButtonFontFamily}
                   onChange={(e) => setPrimaryButtonFontFamily(e.target.value)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   style={{ fontFamily: primaryButtonFontFamily }}
                 >
                   {FONT_OPTIONS.map((font) => (
@@ -907,75 +984,79 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Background Color
-                  <span className={styles.labelHint}>Button background</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <p className="mt-1 text-xs text-gray-600">Button background</p>
+                <div className="mt-2 flex items-center gap-3">
                   <input
                     type="color"
                     value={primaryButtonBgColor}
                     onChange={(e) => setPrimaryButtonBgColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
                   />
                   <input
                     type="text"
                     value={primaryButtonBgColor}
                     onChange={(e) => setPrimaryButtonBgColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#2563eb"
                   />
                   <button
                     type="button"
                     onClick={() => setPrimaryButtonBgColor('#2563eb')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Text Color
-                  <span className={styles.labelHint}>Button text color</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <p className="mt-1 text-xs text-gray-600">Button text color</p>
+                <div className="mt-2 flex items-center gap-3">
                   <input
                     type="color"
                     value={primaryButtonColor}
                     onChange={(e) => setPrimaryButtonColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
                   />
                   <input
                     type="text"
                     value={primaryButtonColor}
                     onChange={(e) => setPrimaryButtonColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#ffffff"
                   />
                   <button
                     type="button"
                     onClick={() => setPrimaryButtonColor('#ffffff')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Font Size
-                  <span className={styles.labelHint}>Button text size</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Button text size</p>
                 <select
                   value={primaryButtonFontSize}
                   onChange={(e) => setPrimaryButtonFontSize(e.target.value)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {FONT_SIZE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -985,15 +1066,15 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Font Weight
-                  <span className={styles.labelHint}>Boldness of text</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
                 <select
                   value={primaryButtonFontWeight}
                   onChange={(e) => setPrimaryButtonFontWeight(parseInt(e.target.value))}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {FONT_WEIGHT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -1003,15 +1084,15 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Border Radius
-                  <span className={styles.labelHint}>Corner rounding</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Corner rounding</p>
                 <select
                   value={primaryButtonBorderRadius}
                   onChange={(e) => setPrimaryButtonBorderRadius(e.target.value)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {BORDER_RADIUS_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -1021,15 +1102,15 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Button Size
-                  <span className={styles.labelHint}>Determines padding</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Determines padding</p>
                 <select
                   value={primaryButtonSize}
                   onChange={(e) => setPrimaryButtonSize(e.target.value as 'small' | 'medium' | 'large')}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {BUTTON_SIZE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -1039,15 +1120,15 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Border
-                  <span className={styles.labelHint}>Button border style</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Button border style</p>
                 <select
                   value={primaryButtonBorder}
                   onChange={(e) => setPrimaryButtonBorder(e.target.value)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {BORDER_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -1057,75 +1138,79 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Hover Background Color
-                  <span className={styles.labelHint}>Background on hover</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <p className="mt-1 text-xs text-gray-600">Background on hover</p>
+                <div className="mt-2 flex items-center gap-3">
                   <input
                     type="color"
                     value={primaryButtonHoverBgColor}
                     onChange={(e) => setPrimaryButtonHoverBgColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
                   />
                   <input
                     type="text"
                     value={primaryButtonHoverBgColor}
                     onChange={(e) => setPrimaryButtonHoverBgColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#1d4ed8"
                   />
                   <button
                     type="button"
                     onClick={() => setPrimaryButtonHoverBgColor('#1d4ed8')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Hover Text Color
-                  <span className={styles.labelHint}>Text color on hover</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <p className="mt-1 text-xs text-gray-600">Text color on hover</p>
+                <div className="mt-2 flex items-center gap-3">
                   <input
                     type="color"
                     value={primaryButtonHoverColor}
                     onChange={(e) => setPrimaryButtonHoverColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
                   />
                   <input
                     type="text"
                     value={primaryButtonHoverColor}
                     onChange={(e) => setPrimaryButtonHoverColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#ffffff"
                   />
                   <button
                     type="button"
                     onClick={() => setPrimaryButtonHoverColor('#ffffff')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Text Transform
-                  <span className={styles.labelHint}>Case transformation</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Case transformation</p>
                 <select
                   value={primaryButtonTextTransform}
                   onChange={(e) => setPrimaryButtonTextTransform(e.target.value as any)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {TEXT_TRANSFORM_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -1134,24 +1219,32 @@ export default function GlobalStyleSettingsForm() {
                   ))}
                 </select>
               </div>
+              </div>
             </div>
 
             {/* Secondary Button Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>⚪</span>
-                Secondary Button Styling
-              </h3>
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
+                    <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Secondary Button Styling</h3>
+                </div>
+              </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div className="grid gap-4 p-6 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Font Family
-                  <span className={styles.labelHint}>Choose button font</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Choose button font</p>
                 <select
                   value={secondaryButtonFontFamily}
                   onChange={(e) => setSecondaryButtonFontFamily(e.target.value)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   style={{ fontFamily: secondaryButtonFontFamily }}
                 >
                   {FONT_OPTIONS.map((font) => (
@@ -1162,75 +1255,79 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Background Color
-                  <span className={styles.labelHint}>Button background</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <p className="mt-1 text-xs text-gray-600">Button background</p>
+                <div className="mt-2 flex items-center gap-3">
                   <input
                     type="color"
                     value={secondaryButtonBgColor}
                     onChange={(e) => setSecondaryButtonBgColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
                   />
                   <input
                     type="text"
                     value={secondaryButtonBgColor}
                     onChange={(e) => setSecondaryButtonBgColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#ffffff"
                   />
                   <button
                     type="button"
                     onClick={() => setSecondaryButtonBgColor('#ffffff')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Text Color
-                  <span className={styles.labelHint}>Button text color</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <p className="mt-1 text-xs text-gray-600">Button text color</p>
+                <div className="mt-2 flex items-center gap-3">
                   <input
                     type="color"
                     value={secondaryButtonColor}
                     onChange={(e) => setSecondaryButtonColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
                   />
                   <input
                     type="text"
                     value={secondaryButtonColor}
                     onChange={(e) => setSecondaryButtonColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#374151"
                   />
                   <button
                     type="button"
                     onClick={() => setSecondaryButtonColor('#374151')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Font Size
-                  <span className={styles.labelHint}>Button text size</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Button text size</p>
                 <select
                   value={secondaryButtonFontSize}
                   onChange={(e) => setSecondaryButtonFontSize(e.target.value)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {FONT_SIZE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -1240,15 +1337,15 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Font Weight
-                  <span className={styles.labelHint}>Boldness of text</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
                 <select
                   value={secondaryButtonFontWeight}
                   onChange={(e) => setSecondaryButtonFontWeight(parseInt(e.target.value))}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {FONT_WEIGHT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -1258,15 +1355,15 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Border Radius
-                  <span className={styles.labelHint}>Corner rounding</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Corner rounding</p>
                 <select
                   value={secondaryButtonBorderRadius}
                   onChange={(e) => setSecondaryButtonBorderRadius(e.target.value)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {BORDER_RADIUS_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -1276,15 +1373,15 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Button Size
-                  <span className={styles.labelHint}>Determines padding</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Determines padding</p>
                 <select
                   value={secondaryButtonSize}
                   onChange={(e) => setSecondaryButtonSize(e.target.value as 'small' | 'medium' | 'large')}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {BUTTON_SIZE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -1294,15 +1391,15 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Border
-                  <span className={styles.labelHint}>Button border style</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Button border style</p>
                 <select
                   value={secondaryButtonBorder}
                   onChange={(e) => setSecondaryButtonBorder(e.target.value)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {BORDER_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -1312,75 +1409,79 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Hover Background Color
-                  <span className={styles.labelHint}>Background on hover</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <p className="mt-1 text-xs text-gray-600">Background on hover</p>
+                <div className="mt-2 flex items-center gap-3">
                   <input
                     type="color"
                     value={secondaryButtonHoverBgColor}
                     onChange={(e) => setSecondaryButtonHoverBgColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
                   />
                   <input
                     type="text"
                     value={secondaryButtonHoverBgColor}
                     onChange={(e) => setSecondaryButtonHoverBgColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#f9fafb"
                   />
                   <button
                     type="button"
                     onClick={() => setSecondaryButtonHoverBgColor('#f9fafb')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Hover Text Color
-                  <span className={styles.labelHint}>Text color on hover</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <p className="mt-1 text-xs text-gray-600">Text color on hover</p>
+                <div className="mt-2 flex items-center gap-3">
                   <input
                     type="color"
                     value={secondaryButtonHoverColor}
                     onChange={(e) => setSecondaryButtonHoverColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
                   />
                   <input
                     type="text"
                     value={secondaryButtonHoverColor}
                     onChange={(e) => setSecondaryButtonHoverColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#111827"
                   />
                   <button
                     type="button"
                     onClick={() => setSecondaryButtonHoverColor('#111827')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900">
                   Text Transform
-                  <span className={styles.labelHint}>Case transformation</span>
                 </label>
+                <p className="mt-1 text-xs text-gray-600">Case transformation</p>
                 <select
                   value={secondaryButtonTextTransform}
                   onChange={(e) => setSecondaryButtonTextTransform(e.target.value as any)}
-                  className={styles.select}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {TEXT_TRANSFORM_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -1390,22 +1491,25 @@ export default function GlobalStyleSettingsForm() {
                 </select>
               </div>
             </div>
+            </div>
 
             {/* Save Button */}
-            <div className={styles.formActions}>
+            <div className="flex justify-end">
               <button
                 type="submit"
                 disabled={updating}
-                className={styles.saveButton}
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:from-purple-700 hover:to-purple-800 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {updating ? (
                   <>
-                    <span className={styles.spinner}></span>
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                     Saving...
                   </>
                 ) : (
                   <>
-                    <span>💾</span>
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h2m3-4H9a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-1m-1 4l-3 3m0 0l-3-3m3 3V3" />
+                    </svg>
                     Save Changes
                   </>
                 )}
@@ -1417,26 +1521,35 @@ export default function GlobalStyleSettingsForm() {
 
       {/* Preview Modal Popup */}
       {showPreview && (
-        <div className={styles.previewModal}>
-          <div className={styles.previewModalOverlay} onClick={() => setShowPreview(false)} />
-          <div className={styles.previewModalContent}>
-            <div className={styles.previewModalHeader}>
-              <h2 className={styles.previewModalTitle}>Typography Live Preview</h2>
-              <div className={styles.previewModalActions}>
-                <span className={styles.previewBadge}>Updates in real-time</span>
-                <button
-                  onClick={() => setShowPreview(false)}
-                  className={styles.previewModalClose}
-                  aria-label="Close preview"
-                >
-                  ✕
-                </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ animation: 'fadeIn 0.2s ease-out' }}>
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowPreview(false)} />
+          <div className="relative w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl" style={{ animation: 'slideUp 0.3s ease-out' }}>
+            <div className="flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
+                  <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Typography Live Preview</h2>
+                  <p className="text-xs text-gray-600">Updates in real-time</p>
+                </div>
               </div>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Close preview"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <div className={styles.previewModalBody}>
-              <div className={styles.previewContainer}>
+            <div className="p-6">
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
                 <h1
-                  className={styles.previewTitle}
                   style={{
                     fontFamily: titleFontFamily,
                     fontSize: titleFontSize,
@@ -1450,7 +1563,6 @@ export default function GlobalStyleSettingsForm() {
                   Sample Title Text
                 </h1>
                 <h2
-                  className={styles.previewSubheading}
                   style={{
                     fontFamily: subheadingFontFamily,
                     fontSize: subheadingFontSize,
@@ -1464,7 +1576,6 @@ export default function GlobalStyleSettingsForm() {
                   Sample Subheading Text
                 </h2>
                 <p
-                  className={styles.previewParagraph}
                   style={{
                     fontFamily: paragraphFontFamily,
                     fontSize: paragraphFontSize,
@@ -1532,14 +1643,16 @@ export default function GlobalStyleSettingsForm() {
                   </button>
                 </div>
               </div>
-              <p className={styles.previewNote}>
-                <span className={styles.previewIcon}>👁</span>
+              <p className="mt-4 text-center text-sm text-gray-600">
+                <svg className="inline-block h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 Preview shows how your typography and buttons will appear on the website
               </p>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

@@ -216,31 +216,6 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
     // Split Left - Video on left, content on right
     if (layout === 'split-left') {
       return (
-        <div style={{ maxWidth: config.maxWidth || '1200px', margin: '0 auto', padding: '4rem 1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
-            <div>{renderVideoEmbed()}</div>
-            {config.showTitle !== false && (config.title || config.description) && (
-              <div>
-                {config.title && (
-                  <h2 style={{ marginBottom: '1.5rem', ...titleStyle }}>
-                    {config.title}
-                  </h2>
-                )}
-                {config.description && (
-                  <p style={{ lineHeight: '1.75', opacity: 0.9, ...bodyStyle }}>
-                    {config.description}
-                  </p>
-                )}
-              </div>
-            )}
-          {renderVideoEmbed()}
-        </div>
-      );
-    }
-
-    // Split Left - Video on left, content on right
-    if (layout === 'split-left') {
-      return (
         <div
           style={{
             maxWidth: config.maxWidth || '1200px',

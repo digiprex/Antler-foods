@@ -25,6 +25,7 @@ export default function FormsPage() {
   const restaurantName = searchParams.get('restaurant_name');
 
   const [forms, setForms] = useState<Form[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -45,6 +46,7 @@ export default function FormsPage() {
 
   const fetchForms = async () => {
     try {
+      setLoading(true);
       setError(null);
 
       const response = await fetch(`/api/forms?restaurant_id=${restaurantId}`);
@@ -62,6 +64,8 @@ export default function FormsPage() {
     } catch (err) {
       console.error('Error fetching forms:', err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -148,14 +152,18 @@ export default function FormsPage() {
   if (!restaurantId || !restaurantName) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="text-6xl mb-4">📋</div>
-            <h2 className="text-xl font-semibold text-[#111827] mb-2">
-              Restaurant Required
+        <div className="flex min-h-[400px] items-center justify-center p-6">
+          <div className="max-w-md text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-purple-200">
+              <svg className="h-8 w-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+              </svg>
+            </div>
+            <h2 className="mb-2 text-xl font-bold text-gray-900">
+              Select a Restaurant
             </h2>
-            <p className="text-[#6b7280] max-w-md">
-              Please provide restaurant_id and restaurant_name parameters to manage forms.
+            <p className="text-sm text-gray-600">
+              Please add or select a restaurant from the sidebar to manage forms.
             </p>
           </div>
         </div>
@@ -178,129 +186,172 @@ export default function FormsPage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-[#111827]">Forms Management</h1>
-              <p className="text-[#6b7280] mt-1">
-                Create and manage dynamic forms for {restaurantName}
-              </p>
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+                <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">Forms Management</h1>
+                <p className="text-sm text-gray-600 mt-1">
+                  Create and manage dynamic forms for {restaurantName}
+                </p>
+              </div>
             </div>
             <button
               onClick={() => {
                 router.push(`/admin/forms/builder?restaurant_id=${restaurantId}&restaurant_name=${encodeURIComponent(restaurantName)}`);
               }}
-              className="bg-[#3b82f6] text-white px-4 py-2 rounded-lg hover:bg-[#2563eb] transition-colors flex items-center gap-2"
+              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-5 py-2.5 text-sm font-medium text-white shadow-md transition-all hover:from-purple-700 hover:to-purple-800 hover:shadow-lg"
             >
-              <span>➕</span>
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
               Create New Form
             </button>
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="inline-flex items-center gap-3 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3.5">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
+              <p className="text-sm font-medium text-gray-700">Loading forms...</p>
+            </div>
+          </div>
+        )}
+
         {/* Error State */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center">
-              <span className="text-red-500 text-xl mr-3">⚠️</span>
-              <div>
-                <h3 className="text-red-800 font-medium">Error Loading Forms</h3>
-                <p className="text-red-600 text-sm mt-1">{error}</p>
+        {!loading && error && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100">
+                <svg className="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-red-900">Error Loading Forms</h3>
+                <p className="mt-1 text-sm text-red-700">{error}</p>
+                <button
+                  onClick={fetchForms}
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
+                  Try Again
+                </button>
               </div>
             </div>
-            <button
-              onClick={fetchForms}
-              className="mt-3 bg-red-100 text-red-700 px-3 py-1 rounded text-sm hover:bg-red-200 transition-colors"
-            >
-              Try Again
-            </button>
           </div>
         )}
 
         {/* Forms List */}
-        {!error && (
-          <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb]">
+        {!loading && !error && (
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             {forms.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">📝</div>
-                <h3 className="text-lg font-medium text-[#111827] mb-2">No Forms Yet</h3>
-                <p className="text-[#6b7280] mb-6">
+              <div className="p-12 text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-purple-300 bg-purple-50">
+                  <svg className="h-8 w-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                  </svg>
+                </div>
+                <h3 className="mb-2 text-lg font-semibold text-gray-900">No Forms Yet</h3>
+                <p className="mb-6 text-sm text-gray-600">
                   Create your first form to get started with collecting customer information.
                 </p>
                 <button
                   onClick={() => {
                     router.push(`/admin/forms/builder?restaurant_id=${restaurantId}&restaurant_name=${encodeURIComponent(restaurantName)}`);
                   }}
-                  className="bg-[#3b82f6] text-white px-6 py-2 rounded-lg hover:bg-[#2563eb] transition-colors"
+                  className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-5 py-2.5 text-sm font-medium text-white shadow-md transition-all hover:from-purple-700 hover:to-purple-800 hover:shadow-lg"
                 >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
                   Create Your First Form
                 </button>
               </div>
             ) : (
               <div className="overflow-hidden">
-                <table className="min-w-full divide-y divide-[#e5e7eb]">
-                  <thead className="bg-[#f9fafb]">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gradient-to-r from-purple-50 to-purple-100/50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-purple-900">
                         Form Title
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-purple-900">
                         Email
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-purple-900">
                         Fields
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-purple-900">
                         Created
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-purple-900">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-[#e5e7eb]">
+                  <tbody className="divide-y divide-gray-200 bg-white">
                     {forms.map((form) => (
-                      <tr key={form.form_id} className="hover:bg-[#f9fafb]">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-[#111827]">
+                      <tr key={form.form_id} className="transition-colors hover:bg-gray-50">
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900">
                             {form.title}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-[#6b7280]">
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <div className="text-sm text-gray-600">
                             {form.email}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-[#6b7280]">
-                            {form.fields?.length || 0} fields
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-2.5 py-1 text-xs font-medium text-purple-700">
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                            </svg>
+                            {form.fields?.length || 0} {form.fields?.length === 1 ? 'field' : 'fields'}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-[#6b7280]">
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <div className="text-sm text-gray-600">
                             {formatDate(form.created_at)}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="whitespace-nowrap px-6 py-4">
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handlePreviewForm(form)}
-                              className="text-[#3b82f6] hover:text-[#2563eb] transition-colors"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-purple-200 bg-purple-50 text-purple-600 transition-all hover:bg-purple-100"
                               title="Preview Form"
                             >
-                              👁️
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
                             </button>
                             <button
                               onClick={() => handleEditForm(form)}
-                              className="text-[#059669] hover:text-[#047857] transition-colors"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-purple-200 bg-purple-50 text-purple-600 transition-all hover:bg-purple-100"
                               title="Edit Form"
                             >
-                              ✏️
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                              </svg>
                             </button>
                             <button
                               onClick={() => handleDeleteForm(form.form_id)}
-                              className="text-[#dc2626] hover:text-[#b91c1c] transition-colors"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 transition-all hover:bg-red-100"
                               title="Delete Form"
                             >
-                              🗑️
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                              </svg>
                             </button>
                           </div>
                         </td>
@@ -395,8 +446,8 @@ function PreviewModal({ form, onClose }: { form: Form; onClose: () => void }) {
     const value = formData[field.id] || '';
     const error = validationErrors[field.id];
 
-    const baseInputClasses = `w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6] ${
-      error ? 'border-red-500' : 'border-[#d1d5db]'
+    const baseInputClasses = `w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+      error ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
     }`;
 
     switch (field.type) {
@@ -489,29 +540,39 @@ function PreviewModal({ form, onClose }: { form: Form; onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="sticky top-0 bg-white border-b border-[#e5e7eb] px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-[#111827]">
-              {form.title}
-            </h2>
-            <p className="text-sm text-[#6b7280] mt-1">
-              Preview Mode - Submissions will be sent to: {form.email}
-            </p>
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">
+                {form.title}
+              </h2>
+              <p className="mt-0.5 text-xs text-gray-600">
+                Preview Mode - Submissions will be sent to: {form.email}
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="text-[#6b7280] hover:text-[#374151] transition-colors text-2xl leading-none"
+            className="shrink-0 rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
             title="Close"
           >
-            ×
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
@@ -538,38 +599,49 @@ function PreviewModal({ form, onClose }: { form: Form; onClose: () => void }) {
                   </div>
                 ))}
 
-              <div className="pt-4 flex items-center gap-3">
+              <div className="flex items-center gap-3 pt-4">
                 <button
                   type="submit"
-                  className="bg-[#3b82f6] text-white px-6 py-2 rounded-lg hover:bg-[#2563eb] transition-colors"
+                  className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-5 py-2.5 text-sm font-medium text-white shadow-md transition-all hover:from-purple-700 hover:to-purple-800 hover:shadow-lg"
                 >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
                   Submit Form (Preview)
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="bg-[#6b7280] text-white px-6 py-2 rounded-lg hover:bg-[#4b5563] transition-colors"
+                  className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                 >
                   Close Preview
                 </button>
               </div>
             </form>
           ) : (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-4">📝</div>
-              <p className="text-[#6b7280]">
+            <div className="py-8 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed border-purple-300 bg-purple-50">
+                <svg className="h-6 w-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-600">
                 This form has no fields yet.
               </p>
             </div>
           )}
 
           {/* Info Box */}
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start">
-              <span className="text-blue-500 text-xl mr-3">ℹ️</span>
+          <div className="mt-6 rounded-lg border border-purple-200 bg-purple-50 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-purple-100">
+                <svg className="h-3.5 w-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                </svg>
+              </div>
               <div>
-                <h3 className="text-blue-800 font-medium text-sm">Preview Mode</h3>
-                <p className="text-blue-600 text-xs mt-1">
+                <h3 className="text-sm font-semibold text-purple-900">Preview Mode</h3>
+                <p className="mt-1 text-xs text-purple-700">
                   This is a preview. Form submissions are not processed. The validation and user experience will work exactly like this when deployed.
                 </p>
               </div>
@@ -714,109 +786,128 @@ function EditModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto"
+        className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="sticky top-0 bg-white border-b border-[#e5e7eb] px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-[#111827]">Edit Form</h2>
-            <p className="text-sm text-[#6b7280] mt-1">
-              Update form settings and fields
-            </p>
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Edit Form</h2>
+              <p className="mt-0.5 text-xs text-gray-600">
+                Update form settings and fields
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="text-[#6b7280] hover:text-[#374151] transition-colors text-2xl leading-none"
+            className="shrink-0 rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
             title="Close"
           >
-            ×
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
         {/* Modal Body */}
         <div className="px-6 py-6">
           {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center">
-                <span className="text-red-500 text-xl mr-3">⚠️</span>
-                <p className="text-red-600 text-sm">{error}</p>
+            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100">
+                  <svg className="h-3.5 w-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <p className="text-sm text-red-700">{error}</p>
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Form Settings Sidebar */}
             <div className="lg:col-span-1">
-              <div className="bg-[#f9fafb] rounded-lg p-4">
-                <h3 className="text-md font-medium text-[#111827] mb-4">
-                  Form Settings
-                </h3>
+              <div className="space-y-5 rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50/50 to-white p-5">
+                <div>
+                  <h3 className="mb-4 text-sm font-bold text-gray-900">
+                    Form Settings
+                  </h3>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[#374151] mb-2">
-                      Form Title *
-                    </label>
-                    <input
-                      type="text"
-                      value={formTitle}
-                      onChange={(e) => setFormTitle(e.target.value)}
-                      className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
-                      placeholder="Contact Form"
-                    />
-                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="mb-2 block text-xs font-medium text-gray-700">
+                        Form Title *
+                      </label>
+                      <input
+                        type="text"
+                        value={formTitle}
+                        onChange={(e) => setFormTitle(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Contact Form"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-[#374151] mb-2">
-                      Email Address *
-                    </label>
-                    <input
-                      type="email"
-                      value={formEmail}
-                      onChange={(e) => setFormEmail(e.target.value)}
-                      className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
-                      placeholder="contact@restaurant.com"
-                    />
-                    <p className="text-xs text-[#6b7280] mt-1">
-                      Form submissions will be sent to this email
-                    </p>
+                    <div>
+                      <label className="mb-2 block text-xs font-medium text-gray-700">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        value={formEmail}
+                        onChange={(e) => setFormEmail(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="contact@restaurant.com"
+                      />
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        Form submissions will be sent to this email
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <hr className="my-4" />
-
-                <h4 className="text-sm font-medium text-[#111827] mb-3">Add Fields</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {FIELD_TYPES.map((fieldType) => (
-                    <button
-                      key={fieldType.type}
-                      onClick={() => addField(fieldType.type)}
-                      className="p-2 text-xs border border-[#d1d5db] rounded-md hover:bg-white transition-colors text-center"
-                    >
-                      <div className="text-base mb-1">{fieldType.icon}</div>
-                      <div className="text-xs text-[#6b7280]">{fieldType.label}</div>
-                    </button>
-                  ))}
+                <div className="border-t border-purple-100 pt-4">
+                  <h4 className="mb-3 text-xs font-bold text-gray-900">Add Fields</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {FIELD_TYPES.map((fieldType) => (
+                      <button
+                        key={fieldType.type}
+                        onClick={() => addField(fieldType.type)}
+                        className="rounded-lg border border-purple-200 bg-white p-2.5 text-center text-xs transition-all hover:border-purple-300 hover:bg-purple-50"
+                      >
+                        <div className="mb-1 text-base">{fieldType.icon}</div>
+                        <div className="text-xs font-medium text-gray-700">{fieldType.label}</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Form Builder */}
             <div className="lg:col-span-2">
-              <div className="bg-[#f9fafb] rounded-lg p-4">
-                <h3 className="text-md font-medium text-[#111827] mb-4">
+              <div className="space-y-5 rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50/50 to-white p-5">
+                <h3 className="text-sm font-bold text-gray-900">
                   Form Fields
                 </h3>
 
                 {fields.length === 0 ? (
-                  <div className="text-center py-12 border-2 border-dashed border-[#e5e7eb] rounded-lg bg-white">
-                    <div className="text-4xl mb-4">📝</div>
-                    <p className="text-[#6b7280]">
+                  <div className="rounded-lg border-2 border-dashed border-purple-300 bg-white py-12 text-center">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
+                      <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm text-gray-600">
                       Add fields from the sidebar to start building your form
                     </p>
                   </div>
@@ -825,15 +916,15 @@ function EditModal({
                     {fields.map((field, index) => (
                       <div
                         key={field.id}
-                        className={`border rounded-lg p-3 bg-white ${
+                        className={`cursor-pointer rounded-lg border bg-white p-3 transition-all ${
                           selectedField?.id === field.id
-                            ? 'border-[#3b82f6] ring-2 ring-blue-100'
-                            : 'border-[#e5e7eb]'
+                            ? 'border-purple-500 ring-2 ring-purple-100'
+                            : 'border-gray-200 hover:border-purple-300'
                         }`}
                         onClick={() => setSelectedField(field)}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="text-sm font-medium text-[#374151]">
+                        <div className="mb-2 flex items-center justify-between">
+                          <label className="text-sm font-medium text-gray-900">
                             {field.label}{' '}
                             {field.required && <span className="text-red-500">*</span>}
                           </label>
@@ -844,10 +935,12 @@ function EditModal({
                                 moveField(field.id, 'up');
                               }}
                               disabled={index === 0}
-                              className="p-1 text-[#6b7280] hover:text-[#374151] disabled:opacity-30"
+                              className="rounded p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30"
                               title="Move up"
                             >
-                              ⬆️
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                              </svg>
                             </button>
                             <button
                               onClick={(e) => {
@@ -855,26 +948,30 @@ function EditModal({
                                 moveField(field.id, 'down');
                               }}
                               disabled={index === fields.length - 1}
-                              className="p-1 text-[#6b7280] hover:text-[#374151] disabled:opacity-30"
+                              className="rounded p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30"
                               title="Move down"
                             >
-                              ⬇️
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                              </svg>
                             </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 removeField(field.id);
                               }}
-                              className="p-1 text-red-500 hover:text-red-700"
+                              className="rounded p-1 text-red-500 transition-colors hover:bg-red-100 hover:text-red-700"
                               title="Delete"
                             >
-                              🗑️
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                              </svg>
                             </button>
                           </div>
                         </div>
 
                         {/* Field Preview (simplified) */}
-                        <div className="text-xs text-[#6b7280]">
+                        <div className="text-xs text-gray-600">
                           Type: {field.type}
                           {field.placeholder && ` • Placeholder: ${field.placeholder}`}
                         </div>
@@ -885,14 +982,14 @@ function EditModal({
 
                 {/* Field Editor */}
                 {selectedField && (
-                  <div className="mt-4 p-4 bg-white rounded-lg border border-[#e5e7eb]">
-                    <h4 className="font-medium text-[#111827] mb-3 text-sm">
+                  <div className="mt-4 rounded-lg border border-purple-200 bg-white p-4">
+                    <h4 className="mb-3 text-sm font-bold text-gray-900">
                       Edit Field: {selectedField.label}
                     </h4>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-[#374151] mb-1">
+                        <label className="mb-1.5 block text-xs font-medium text-gray-700">
                           Field Label
                         </label>
                         <input
@@ -901,12 +998,12 @@ function EditModal({
                           onChange={(e) =>
                             updateField(selectedField.id, { label: e.target.value })
                           }
-                          className="w-full px-3 py-2 border border-[#d1d5db] rounded-md text-sm"
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-[#374151] mb-1">
+                        <label className="mb-1.5 block text-xs font-medium text-gray-700">
                           Placeholder
                         </label>
                         <input
@@ -917,7 +1014,7 @@ function EditModal({
                               placeholder: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 border border-[#d1d5db] rounded-md text-sm"
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                       </div>
 
@@ -931,9 +1028,9 @@ function EditModal({
                                 required: e.target.checked,
                               })
                             }
-                            className="mr-2"
+                            className="mr-2 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
                           />
-                          <span className="text-sm font-medium text-[#374151]">
+                          <span className="text-sm font-medium text-gray-700">
                             Required Field
                           </span>
                         </label>
@@ -944,7 +1041,7 @@ function EditModal({
                         selectedField.type === 'radio' ||
                         selectedField.type === 'checkbox') && (
                         <div className="col-span-2">
-                          <label className="block text-xs font-medium text-[#374151] mb-2">
+                          <label className="mb-2 block text-xs font-medium text-gray-700">
                             Options (one per line)
                           </label>
                           <textarea
@@ -956,7 +1053,7 @@ function EditModal({
                                   .filter((opt) => opt.trim()),
                               })
                             }
-                            className="w-full px-3 py-2 border border-[#d1d5db] rounded-md text-sm"
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
                             rows={4}
                             placeholder="Option 1&#10;Option 2&#10;Option 3"
                           />
@@ -971,10 +1068,10 @@ function EditModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="sticky bottom-0 bg-white border-t border-[#e5e7eb] px-6 py-4 flex items-center justify-end gap-3">
+        <div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-gray-200 bg-white px-6 py-4">
           <button
             onClick={onClose}
-            className="bg-[#6b7280] text-white px-6 py-2 rounded-lg hover:bg-[#4b5563] transition-colors"
+            className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
             disabled={saving}
           >
             Cancel
@@ -982,16 +1079,18 @@ function EditModal({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="bg-[#3b82f6] text-white px-6 py-2 rounded-lg hover:bg-[#2563eb] transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-5 py-2.5 text-sm font-medium text-white shadow-md transition-all hover:from-purple-700 hover:to-purple-800 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                 Saving...
               </>
             ) : (
               <>
-                <span>💾</span>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
                 Save Changes
               </>
             )}
@@ -1012,42 +1111,49 @@ function DeleteConfirmationModal({
 }) {
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
       onClick={onCancel}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-md w-full"
+        className="w-full max-w-md rounded-xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-[#e5e7eb]">
+        <div className="border-b border-gray-200 px-6 py-5">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">⚠️</span>
-            <h2 className="text-xl font-semibold text-[#111827]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100">
+              <svg className="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">
               Delete Form
             </h2>
           </div>
         </div>
 
         {/* Modal Body */}
-        <div className="px-6 py-6">
-          <p className="text-[#6b7280] mb-4">
+        <div className="px-6 py-5">
+          <p className="text-sm text-gray-600">
             Are you sure you want to delete this form? This will mark the form as deleted and it will no longer appear in your forms list.
           </p>
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 bg-[#f9fafb] border-t border-[#e5e7eb] flex items-center justify-end gap-3 rounded-b-lg">
+        <div className="flex items-center justify-end gap-3 rounded-b-xl border-t border-gray-200 bg-gray-50 px-6 py-4">
           <button
             onClick={onCancel}
-            className="bg-white text-[#374151] px-4 py-2 rounded-lg border border-[#d1d5db] hover:bg-[#f9fafb] transition-colors"
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className="bg-[#dc2626] text-white px-4 py-2 rounded-lg hover:bg-[#b91c1c] transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-red-600 to-red-700 px-4 py-2 text-sm font-medium text-white shadow-md transition-all hover:from-red-700 hover:to-red-800 hover:shadow-lg"
           >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+            </svg>
             Delete Form
           </button>
         </div>

@@ -256,14 +256,17 @@ export default function FooterSettingsForm() {
 
   if (loading) {
     return (
-      <div className={styles.container}>
-        <div className={styles.loading}>Loading...</div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="inline-flex items-center gap-3 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3.5">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
+          <p className="text-sm font-medium text-gray-700">Loading footer settings...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.container}>
+    <div className="min-h-screen bg-gray-50 p-8">
       {/* Toast Notification */}
       {showToast && (
         <Toast
@@ -273,340 +276,569 @@ export default function FooterSettingsForm() {
         />
       )}
 
-      <div className={styles.singleLayout}>
-        {/* Settings Form */}
-        <div className={styles.formSection}>
-          <div className={styles.formHeader}>
-            <div>
-              <h1 className={styles.formTitle}>Footer Settings</h1>
-              <p className={styles.formSubtitle}>Customize your website footer</p>
-              {/* {restaurantNameFromQuery && (
-                <p className={styles.formSubtitle}>
-                  Restaurant: {restaurantNameFromQuery}
-                </p>
-              )} */}
-            </div>
-            <div className={styles.headerActions}>
-              <button
-                type="button"
-                onClick={() => setShowPreview(!showPreview)}
-                className={styles.previewToggleButton}
-                title={showPreview ? 'Hide Preview' : 'Show Live Preview'}
+      <div className="mx-auto max-w-5xl">
+        {/* Page Header */}
+        <div className="mb-8 flex items-start justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+              <svg
+                className="h-7 w-7 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
               >
-                {showPreview ? '👁️‍🗨️' : '👁️'} {showPreview ? 'Hide' : 'Show'} Preview
-              </button>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0l-3.75-3.75M17.25 21L21 17.25"
+                />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Footer Settings</h1>
+              <p className="mt-1 text-sm text-gray-600">Customize your website footer</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowPreview(!showPreview)}
+            className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
+            title={showPreview ? 'Hide Preview' : 'Show Live Preview'}
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            {showPreview ? 'Hide' : 'Show'} Preview
+          </button>
+        </div>
+
+        {/* Error Messages */}
+        {fetchError && (
+          <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+            <svg
+              className="h-5 w-5 shrink-0 text-red-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+              />
+            </svg>
+            <div>
+              <h3 className="text-sm font-semibold text-red-900">Error loading settings</h3>
+              <p className="mt-1 text-sm text-red-700">{fetchError}</p>
+            </div>
+          </div>
+        )}
+
+        {updateError && (
+          <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+            <svg
+              className="h-5 w-5 shrink-0 text-red-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+              />
+            </svg>
+            <div>
+              <h3 className="text-sm font-semibold text-red-900">Error saving settings</h3>
+              <p className="mt-1 text-sm text-red-700">{updateError}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Settings Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Layout Section */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Layout Configuration</h3>
+                <p className="mt-0.5 text-sm text-gray-600">Choose footer style and arrangement</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-3 block">
+                <span className="text-sm font-semibold text-gray-900">Layout Type</span>
+                <span className="mt-0.5 block text-xs text-gray-600">Choose a footer style</span>
+              </label>
+
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                {/* Default Layout */}
+                <button
+                  type="button"
+                  className={`group relative cursor-pointer rounded-lg border-2 p-4 text-left transition-all ${
+                    layout === 'default'
+                      ? 'border-purple-500 bg-purple-50 shadow-md'
+                      : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
+                  }`}
+                  onClick={() => setLayout('default')}
+                >
+                  <div className="mb-3 rounded border border-gray-300 bg-gray-50 p-2">
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="h-2 w-4 rounded bg-gray-400"></div>
+                      <div className="h-2 w-4 rounded bg-gray-400"></div>
+                      <div className="h-2 w-4 rounded bg-gray-400"></div>
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold text-gray-900">Three Section</div>
+                  <div className="text-xs text-gray-600">Brand, Location, Contact</div>
+                  {layout === 'default' && (
+                    <div className="absolute right-2 top-2">
+                      <svg className="h-5 w-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+
+                {/* Centered Layout */}
+                <button
+                  type="button"
+                  className={`group relative cursor-pointer rounded-lg border-2 p-4 text-left transition-all ${
+                    layout === 'centered'
+                      ? 'border-purple-500 bg-purple-50 shadow-md'
+                      : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
+                  }`}
+                  onClick={() => setLayout('centered')}
+                >
+                  <div className="mb-3 rounded border border-gray-300 bg-gray-50 p-2">
+                    <div className="flex items-center justify-center gap-1">
+                      <div className="h-2 w-6 rounded bg-gray-400"></div>
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold text-gray-900">Centered</div>
+                  <div className="text-xs text-gray-600">All Centered</div>
+                  {layout === 'centered' && (
+                    <div className="absolute right-2 top-2">
+                      <svg className="h-5 w-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+
+                {/* Restaurant Layout */}
+                <button
+                  type="button"
+                  className={`group relative cursor-pointer rounded-lg border-2 p-4 text-left transition-all ${
+                    layout === 'restaurant'
+                      ? 'border-purple-500 bg-purple-50 shadow-md'
+                      : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
+                  }`}
+                  onClick={() => setLayout('restaurant')}
+                >
+                  <div className="mb-3 rounded border border-gray-300 bg-gray-50 p-2">
+                    <div className="flex items-center justify-between gap-0.5">
+                      <div className="h-2 w-3 rounded bg-gray-400"></div>
+                      <div className="h-2 w-3 rounded bg-gray-400"></div>
+                      <div className="h-2 w-3 rounded bg-gray-400"></div>
+                      <div className="h-2 w-3 rounded bg-gray-400"></div>
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold text-gray-900">Restaurant</div>
+                  <div className="text-xs text-gray-600">4 Columns + Nav</div>
+                  {layout === 'restaurant' && (
+                    <div className="absolute right-2 top-2">
+                      <svg className="h-5 w-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+
+                {/* 4 Columns Layout */}
+                <button
+                  type="button"
+                  className={`group relative cursor-pointer rounded-lg border-2 p-4 text-left transition-all ${
+                    layout === 'columns-4'
+                      ? 'border-purple-500 bg-purple-50 shadow-md'
+                      : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
+                  }`}
+                  onClick={() => setLayout('columns-4')}
+                >
+                  <div className="mb-3 rounded border border-gray-300 bg-gray-50 p-2">
+                    <div className="flex items-center justify-between gap-0.5">
+                      <div className="h-2 w-3 rounded bg-gray-400"></div>
+                      <div className="h-2 w-3 rounded bg-gray-400"></div>
+                      <div className="h-2 w-3 rounded bg-gray-400"></div>
+                      <div className="h-2 w-3 rounded bg-gray-400"></div>
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold text-gray-900">4 Columns</div>
+                  <div className="text-xs text-gray-600">Wide Layout</div>
+                  {layout === 'columns-4' && (
+                    <div className="absolute right-2 top-2">
+                      <svg className="h-5 w-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
-          {fetchError && (
-            <div className={styles.errorMessage}>
-              <span className={styles.errorIcon}>⚠</span>
-              <span>Error loading settings: {fetchError}</span>
-            </div>
-          )}
-
-          {updateError && (
-            <div className={styles.errorMessage}>
-              <span className={styles.errorIcon}>⚠</span>
-              <span>Error saving settings: {updateError}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className={styles.form}>
-            {/* Layout Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>⚙</span>
-                Layout Configuration
-              </h3>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Layout Type
-                  <span className={styles.labelHint}>Choose a footer style</span>
-                </label>
-
-                <div className={styles.layoutGrid}>
-                  {/* Default Layout */}
-                  <div
-                    className={`${styles.layoutCard} ${layout === 'default' ? styles.layoutCardActive : ''}`}
-                    onClick={() => setLayout('default')}
-                  >
-                    <div className={styles.layoutPreview}>
-                      <div className={styles.layoutPreviewFooter}>
-                        <div className={styles.layoutPreviewSection}></div>
-                        <div className={styles.layoutPreviewSection}></div>
-                        <div className={styles.layoutPreviewSection}></div>
-                      </div>
-                    </div>
-                    <div className={styles.layoutCardName}>Three Section</div>
-                    <div className={styles.layoutCardDesc}>Brand, Location, Contact</div>
-                  </div>
-
-                  {/* Centered Layout */}
-                  <div
-                    className={`${styles.layoutCard} ${layout === 'centered' ? styles.layoutCardActive : ''}`}
-                    onClick={() => setLayout('centered')}
-                  >
-                    <div className={styles.layoutPreview}>
-                      <div className={styles.layoutPreviewFooterCentered}>
-                        <div className={styles.layoutPreviewSectionCenter}></div>
-                      </div>
-                    </div>
-                    <div className={styles.layoutCardName}>Centered</div>
-                    <div className={styles.layoutCardDesc}>All Centered</div>
-                  </div>
-
-                  {/* Restaurant Layout */}
-                  <div
-                    className={`${styles.layoutCard} ${layout === 'restaurant' ? styles.layoutCardActive : ''}`}
-                    onClick={() => setLayout('restaurant')}
-                  >
-                    <div className={styles.layoutPreview}>
-                      <div className={styles.layoutPreviewFooterRestaurant}>
-                        <div className={styles.layoutPreviewSection}></div>
-                        <div className={styles.layoutPreviewSection}></div>
-                        <div className={styles.layoutPreviewSection}></div>
-                        <div className={styles.layoutPreviewSection}></div>
-                      </div>
-                    </div>
-                    <div className={styles.layoutCardName}>Restaurant</div>
-                    <div className={styles.layoutCardDesc}>4 Columns + Nav</div>
-                  </div>
-
-                  {/* 4 Columns Layout */}
-                  <div
-                    className={`${styles.layoutCard} ${layout === 'columns-4' ? styles.layoutCardActive : ''}`}
-                    onClick={() => setLayout('columns-4')}
-                  >
-                    <div className={styles.layoutPreview}>
-                      <div className={styles.layoutPreviewFooterRestaurant}>
-                        <div className={styles.layoutPreviewSection}></div>
-                        <div className={styles.layoutPreviewSection}></div>
-                        <div className={styles.layoutPreviewSection}></div>
-                        <div className={styles.layoutPreviewSection}></div>
-                      </div>
-                    </div>
-                    <div className={styles.layoutCardName}>4 Columns</div>
-                    <div className={styles.layoutCardDesc}>Wide Layout</div>
-                  </div>
-
-                </div>
-              </div>
-            </div>
-
-            {/* Branding Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>🏢</span>
-                Branding & Info
-              </h3>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  About Content
-                  <span className={styles.labelHint}>Description about your business</span>
-                </label>
-                <textarea
-                  value={aboutContent}
-                  onChange={(e) => setAboutContent(e.target.value)}
-                  className={styles.textArea}
-                  placeholder="Experience fine dining at its best. We offer premium quality food with exceptional service."
-                  rows={4}
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Show Social Media
-                  <span className={styles.labelHint}>Display social media links</span>
-                </label>
-                <label className={styles.toggleSwitch}>
-                  <input
-                    type="checkbox"
-                    checked={showSocialMedia}
-                    onChange={(e) => setShowSocialMedia(e.target.checked)}
-                    className={styles.toggleInput}
+          {/* Branding Section */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z"
                   />
-                  <span className={styles.toggleSlider}></span>
-                </label>
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Branding & Info</h3>
+                <p className="mt-0.5 text-sm text-gray-600">Business description and social media</p>
               </div>
             </div>
 
-            {/* Styling Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>🎨</span>
-                Colors & Styling
-              </h3>
+            <div className="mb-6">
+              <label className="mb-2 block">
+                <span className="text-sm font-semibold text-gray-900">About Content</span>
+                <span className="mt-0.5 block text-xs text-gray-600">Description about your business</span>
+              </label>
+              <textarea
+                value={aboutContent}
+                onChange={(e) => setAboutContent(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Experience fine dining at its best. We offer premium quality food with exceptional service."
+                rows={4}
+              />
+            </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Background Color
-                  <span className={styles.labelHint}>Footer background</span>
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div>
+                <div className="text-sm font-semibold text-gray-900">Show Social Media</div>
+                <div className="mt-0.5 text-xs text-gray-600">Display social media links</div>
+              </div>
+              <label className="relative inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  checked={showSocialMedia}
+                  onChange={(e) => setShowSocialMedia(e.target.checked)}
+                  className="peer sr-only"
+                />
+                <div className="peer h-6 w-11 rounded-full bg-gray-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500"></div>
+              </label>
+            </div>
+          </div>
+
+          {/* Styling Section */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Colors & Styling</h3>
+                <p className="mt-0.5 text-sm text-gray-600">Customize colors and appearance</p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Background Color</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Footer background</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <div className="flex gap-2">
                   <input
                     type="color"
                     value={bgColor}
                     onChange={(e) => setBgColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                   <input
                     type="text"
                     value={bgColor}
                     onChange={(e) => setBgColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#1f2937"
                   />
                   <button
                     type="button"
                     onClick={() => setBgColor('#1f2937')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 px-3 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                      />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Text Color
-                  <span className={styles.labelHint}>Main text color</span>
+              <div>
+                <label className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Text Color</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Main text color</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <div className="flex gap-2">
                   <input
                     type="color"
                     value={textColor}
                     onChange={(e) => setTextColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                   <input
                     type="text"
                     value={textColor}
                     onChange={(e) => setTextColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#f9fafb"
                   />
                   <button
                     type="button"
                     onClick={() => setTextColor('#f9fafb')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 px-3 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                      />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Link Color
-                  <span className={styles.labelHint}>Footer link color</span>
+              <div>
+                <label className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Link Color</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Footer link color</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <div className="flex gap-2">
                   <input
                     type="color"
                     value={linkColor}
                     onChange={(e) => setLinkColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                   <input
                     type="text"
                     value={linkColor}
                     onChange={(e) => setLinkColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#9ca3af"
                   />
                   <button
                     type="button"
                     onClick={() => setLinkColor('#9ca3af')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 px-3 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                      />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Copyright Background
-                  <span className={styles.labelHint}>Copyright section background</span>
+              <div>
+                <label className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Copyright Background</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Copyright section background</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <div className="flex gap-2">
                   <input
                     type="color"
                     value={copyrightBgColor}
                     onChange={(e) => setCopyrightBgColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                   <input
                     type="text"
                     value={copyrightBgColor}
                     onChange={(e) => setCopyrightBgColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#000000"
                   />
                   <button
                     type="button"
                     onClick={() => setCopyrightBgColor('#000000')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 px-3 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                      />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Copyright Text Color
-                  <span className={styles.labelHint}>Copyright section text</span>
+              <div>
+                <label className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Copyright Text Color</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Copyright section text</span>
                 </label>
-                <div className={styles.colorInputGroup}>
+                <div className="flex gap-2">
                   <input
                     type="color"
                     value={copyrightTextColor}
                     onChange={(e) => setCopyrightTextColor(e.target.value)}
-                    className={styles.colorInput}
+                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                   <input
                     type="text"
                     value={copyrightTextColor}
                     onChange={(e) => setCopyrightTextColor(e.target.value)}
-                    className={styles.colorHexInput}
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#ffffff"
                   />
                   <button
                     type="button"
                     onClick={() => setCopyrightTextColor('#ffffff')}
-                    className={styles.clearButton}
+                    className="rounded-lg border border-gray-300 px-3 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     title="Reset to default"
                   >
-                    ↺
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                      />
+                    </svg>
                   </button>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Content Text Font Styling */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>🔤</span>
-                Content Text Font Styling
-              </h3>
+          {/* Content Text Font Styling */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Content Text Font Styling</h3>
+                <p className="mt-0.5 text-sm text-gray-600">Customize body text appearance</p>
+              </div>
+            </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Font Family
-                  <span className={styles.labelHint}>Choose content text font</span>
+            <div className="space-y-6">
+              <div>
+                <label className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Font Family</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Choose content text font</span>
                 </label>
                 <select
                   value={fontFamily}
                   onChange={(e) => setFontFamily(e.target.value)}
-                  className={styles.select}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  style={{ fontFamily: fontFamily }}
                 >
                   {FONT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value} style={{ fontFamily: option.value }}>
@@ -616,16 +848,16 @@ export default function FooterSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.colorFieldsGrid}>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Font Size
-                    <span className={styles.labelHint}>Content text size</span>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block">
+                    <span className="text-sm font-semibold text-gray-900">Font Size</span>
+                    <span className="mt-0.5 block text-xs text-gray-600">Content text size</span>
                   </label>
                   <select
                     value={fontSize}
                     onChange={(e) => setFontSize(e.target.value)}
-                    className={styles.select}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     {FONT_SIZE_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -635,15 +867,15 @@ export default function FooterSettingsForm() {
                   </select>
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Font Weight
-                    <span className={styles.labelHint}>Content text weight</span>
+                <div>
+                  <label className="mb-2 block">
+                    <span className="text-sm font-semibold text-gray-900">Font Weight</span>
+                    <span className="mt-0.5 block text-xs text-gray-600">Content text weight</span>
                   </label>
                   <select
                     value={fontWeight}
                     onChange={(e) => setFontWeight(Number(e.target.value))}
-                    className={styles.select}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     {FONT_WEIGHT_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -654,15 +886,15 @@ export default function FooterSettingsForm() {
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Text Transform
-                  <span className={styles.labelHint}>Content text case</span>
+              <div>
+                <label className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Text Transform</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Content text case</span>
                 </label>
                 <select
                   value={textTransform}
                   onChange={(e) => setTextTransform(e.target.value as 'none' | 'uppercase' | 'lowercase' | 'capitalize')}
-                  className={styles.select}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {TEXT_TRANSFORM_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -672,23 +904,43 @@ export default function FooterSettingsForm() {
                 </select>
               </div>
             </div>
+          </div>
 
-            {/* Heading Text Font Styling */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>📝</span>
-                Heading Text Font Styling
-              </h3>
+          {/* Heading Text Font Styling */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Heading Text Font Styling</h3>
+                <p className="mt-0.5 text-sm text-gray-600">Customize section headings</p>
+              </div>
+            </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Font Family
-                  <span className={styles.labelHint}>Choose heading font</span>
+            <div className="space-y-6">
+              <div>
+                <label className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Font Family</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Choose heading font</span>
                 </label>
                 <select
                   value={headingFontFamily}
                   onChange={(e) => setHeadingFontFamily(e.target.value)}
-                  className={styles.select}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  style={{ fontFamily: headingFontFamily }}
                 >
                   {FONT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value} style={{ fontFamily: option.value }}>
@@ -698,16 +950,16 @@ export default function FooterSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.colorFieldsGrid}>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Font Size
-                    <span className={styles.labelHint}>Heading text size (larger)</span>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block">
+                    <span className="text-sm font-semibold text-gray-900">Font Size</span>
+                    <span className="mt-0.5 block text-xs text-gray-600">Heading text size</span>
                   </label>
                   <select
                     value={headingFontSize}
                     onChange={(e) => setHeadingFontSize(e.target.value)}
-                    className={styles.select}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     {FONT_SIZE_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -717,15 +969,15 @@ export default function FooterSettingsForm() {
                   </select>
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Font Weight
-                    <span className={styles.labelHint}>Heading text weight</span>
+                <div>
+                  <label className="mb-2 block">
+                    <span className="text-sm font-semibold text-gray-900">Font Weight</span>
+                    <span className="mt-0.5 block text-xs text-gray-600">Heading text weight</span>
                   </label>
                   <select
                     value={headingFontWeight}
                     onChange={(e) => setHeadingFontWeight(Number(e.target.value))}
-                    className={styles.select}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     {FONT_WEIGHT_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -736,15 +988,15 @@ export default function FooterSettingsForm() {
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Text Transform
-                  <span className={styles.labelHint}>Heading text case</span>
+              <div>
+                <label className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Text Transform</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Heading text case</span>
                 </label>
                 <select
                   value={headingTextTransform}
                   onChange={(e) => setHeadingTextTransform(e.target.value as 'none' | 'uppercase' | 'lowercase' | 'capitalize')}
-                  className={styles.select}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {TEXT_TRANSFORM_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -754,23 +1006,43 @@ export default function FooterSettingsForm() {
                 </select>
               </div>
             </div>
+          </div>
 
-            {/* Copyright Text Font Styling */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>©️</span>
-                Copyright Text Font Styling
-              </h3>
+          {/* Copyright Text Font Styling */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Copyright Text Font Styling</h3>
+                <p className="mt-0.5 text-sm text-gray-600">Customize copyright section</p>
+              </div>
+            </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Font Family
-                  <span className={styles.labelHint}>Choose copyright font</span>
+            <div className="space-y-6">
+              <div>
+                <label className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Font Family</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Choose copyright font</span>
                 </label>
                 <select
                   value={copyrightFontFamily}
                   onChange={(e) => setCopyrightFontFamily(e.target.value)}
-                  className={styles.select}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  style={{ fontFamily: copyrightFontFamily }}
                 >
                   {FONT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value} style={{ fontFamily: option.value }}>
@@ -780,16 +1052,16 @@ export default function FooterSettingsForm() {
                 </select>
               </div>
 
-              <div className={styles.colorFieldsGrid}>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Font Size
-                    <span className={styles.labelHint}>Copyright text size</span>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block">
+                    <span className="text-sm font-semibold text-gray-900">Font Size</span>
+                    <span className="mt-0.5 block text-xs text-gray-600">Copyright text size</span>
                   </label>
                   <select
                     value={copyrightFontSize}
                     onChange={(e) => setCopyrightFontSize(e.target.value)}
-                    className={styles.select}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     {FONT_SIZE_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -799,15 +1071,15 @@ export default function FooterSettingsForm() {
                   </select>
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Font Weight
-                    <span className={styles.labelHint}>Copyright text weight</span>
+                <div>
+                  <label className="mb-2 block">
+                    <span className="text-sm font-semibold text-gray-900">Font Weight</span>
+                    <span className="mt-0.5 block text-xs text-gray-600">Copyright text weight</span>
                   </label>
                   <select
                     value={copyrightFontWeight}
                     onChange={(e) => setCopyrightFontWeight(Number(e.target.value))}
-                    className={styles.select}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     {FONT_WEIGHT_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -818,80 +1090,104 @@ export default function FooterSettingsForm() {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Additional Options - hide for Three Section (default), Restaurant (4 Columns + Nav), and 4 Columns layouts */}
-            {layout !== 'default' && layout !== 'restaurant' && layout !== 'columns-4' && (
-              <div className={styles.section}>
-                <h3 className={styles.sectionTitle}>
-                  <span className={styles.sectionIcon}>⚡</span>
-                  Additional Options
-                </h3>
-
-                {/* Newsletter option */}
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Newsletter Signup
-                    <span className={styles.labelHint}>Show newsletter form</span>
-                  </label>
-                  <label className={styles.toggleSwitch}>
-                    <input
-                      type="checkbox"
-                      checked={showNewsletter}
-                      onChange={(e) => setShowNewsletter(e.target.checked)}
-                      className={styles.toggleInput}
+          {/* Additional Options - hide for Three Section (default), Restaurant (4 Columns + Nav), and 4 Columns layouts */}
+          {layout !== 'default' && layout !== 'restaurant' && layout !== 'columns-4' && (
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                  <svg
+                    className="h-5 w-5 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
                     />
-                    <span className={styles.toggleSlider}></span>
-                  </label>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Additional Options</h3>
+                  <p className="mt-0.5 text-sm text-gray-600">Extra features and settings</p>
                 </div>
               </div>
-            )}
 
-            {/* Save Button */}
-            <div className={styles.formActions}>
-              <button
-                type="submit"
-                disabled={updating}
-                className={styles.saveButton}
-              >
-                {updating ? (
-                  <>
-                    <span className={styles.spinner}></span>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <span>💾</span>
-                    Save Changes
-                  </>
-                )}
-              </button>
+              {/* Newsletter option */}
+              <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div>
+                  <div className="text-sm font-semibold text-gray-900">Newsletter Signup</div>
+                  <div className="mt-0.5 text-xs text-gray-600">Show newsletter form</div>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={showNewsletter}
+                    onChange={(e) => setShowNewsletter(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <div className="peer h-6 w-11 rounded-full bg-gray-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500"></div>
+                </label>
+              </div>
             </div>
-          </form>
-        </div>
+          )}
 
+          {/* Save Button */}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={updating}
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:from-purple-700 hover:to-purple-800 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {updating ? (
+                <>
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M17 16v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h2m3-4H9a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-1m-1 4l-3 3m0 0l-3-3m3 3V3"
+                    />
+                  </svg>
+                  Save Changes
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Preview Modal Popup */}
       {showPreview && (
-        <div className={styles.previewModal}>
-          <div className={styles.previewModalOverlay} onClick={() => setShowPreview(false)} />
-          <div className={styles.previewModalContent}>
-            <div className={styles.previewModalHeader}>
-              <h2 className={styles.previewModalTitle}>Footer Live Preview</h2>
-              <div className={styles.previewModalActions}>
-                <span className={styles.previewBadge}>Updates in real-time</span>
-                <button
-                  onClick={() => setShowPreview(false)}
-                  className={styles.previewModalClose}
-                  aria-label="Close preview"
-                >
-                  ✕
-                </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
+          <div className="relative z-10 w-full max-w-6xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
+              <div>
+                <h2 className="text-xl font-bold text-white">Footer Live Preview</h2>
+                <p className="mt-0.5 text-sm text-purple-100">Updates in real-time</p>
               </div>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="rounded-lg p-2 text-white transition-colors hover:bg-white/20"
+                aria-label="Close preview"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <div className={styles.previewModalBody}>
-              <div className={styles.previewDevice}>
-                <div className={styles.previewContainer}>
+            <div className="max-h-[80vh] overflow-y-auto bg-gray-50 p-8">
+              <div className="mx-auto max-w-5xl">
+                <div className="overflow-hidden rounded-xl border border-gray-300 bg-white shadow-lg">
                   <Footer
                     restaurantName={config?.restaurantName || 'Antler Foods'}
                     aboutContent={aboutContent}
@@ -926,10 +1222,29 @@ export default function FooterSettingsForm() {
                   />
                 </div>
               </div>
-              <p className={styles.previewNote}>
-                <span className={styles.previewIcon}>👁</span>
-                Preview shows how your footer will appear on the website
-              </p>
+              <div className="mt-6 flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 p-4">
+                <svg
+                  className="h-5 w-5 shrink-0 text-purple-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+                <p className="text-sm text-purple-900">
+                  Preview shows how your footer will appear on the website
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -21,7 +21,6 @@ import { useMenuConfig, useUpdateMenuConfig } from '@/hooks/use-menu-config';
 import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import type { MenuConfig, MenuButton, MenuCategory, MenuItem } from '@/types/menu.types';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
-import styles from './menu-settings-form.module.css';
 
 type MediaFieldType = 'header_image' | 'background_image';
 
@@ -66,9 +65,16 @@ export default function MenuSettingsForm({ pageId, templateId, isNewSection }: M
   // Validate that restaurant ID is provided
   if (!restaurantId) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <h2>Error</h2>
-        <p>Restaurant ID is required. Please provide it via URL parameter.</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="inline-flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-3.5">
+          <svg className="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <div>
+            <h3 className="text-sm font-semibold text-red-900">Error</h3>
+            <p className="text-sm text-red-700">Restaurant ID is required. Please provide it via URL parameter.</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -311,213 +317,61 @@ export default function MenuSettingsForm({ pageId, templateId, isNewSection }: M
 
     const { layout } = formConfig;
 
-    // Wireframe previews for each layout
-    const previews: Record<string, JSX.Element> = {
-      grid: (
-        <div className={styles.wireframe}>
-          <div className={styles.wireframeHeader}>
-            <div className={styles.wireframeTitle}>Menu Title</div>
-            <div className={styles.wireframeSubtitle}>Subtitle</div>
-          </div>
-          <div className={styles.wireframeGrid3}>
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className={styles.wireframeCard}>
-                <div className={styles.wireframeImage}></div>
-                <div className={styles.wireframeCardContent}>
-                  <div className={styles.wireframeText}></div>
-                  <div className={styles.wireframeTextSmall}></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ),
-      list: (
-        <div className={styles.wireframe}>
-          <div className={styles.wireframeHeader}>
-            <div className={styles.wireframeTitle}>Menu Title</div>
-          </div>
-          <div className={styles.wireframeList}>
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className={styles.wireframeListItem}>
-                <div className={styles.wireframeText}></div>
-                <div className={styles.wireframeTextSmall}></div>
-                <div className={styles.wireframePrice}></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ),
-      masonry: (
-        <div className={styles.wireframe}>
-          <div className={styles.wireframeHeader}>
-            <div className={styles.wireframeTitle}>Menu Title</div>
-          </div>
-          <div className={styles.wireframeMasonry}>
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className={styles.wireframeMasonryCard} style={{ height: `${100 + (i % 3) * 50}px` }}>
-                <div className={styles.wireframeImage} style={{ height: '60%' }}></div>
-                <div className={styles.wireframeCardContent}>
-                  <div className={styles.wireframeText}></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ),
-      carousel: (
-        <div className={styles.wireframe}>
-          <div className={styles.wireframeHeader}>
-            <div className={styles.wireframeTitle}>Menu Title</div>
-          </div>
-          <div className={styles.wireframeCarousel}>
-            <div className={styles.wireframeCarouselArrow}>‹</div>
-            <div className={styles.wireframeCard}>
-              <div className={styles.wireframeImage}></div>
-              <div className={styles.wireframeCardContent}>
-                <div className={styles.wireframeText}></div>
-                <div className={styles.wireframeTextSmall}></div>
-              </div>
-            </div>
-            <div className={styles.wireframeCarouselArrow}>›</div>
-          </div>
-          <div className={styles.wireframeCarouselDots}>
-            <div className={styles.wireframeDot}></div>
-            <div className={styles.wireframeDot}></div>
-            <div className={styles.wireframeDot}></div>
-          </div>
-        </div>
-      ),
-      tabs: (
-        <div className={styles.wireframe}>
-          <div className={styles.wireframeHeader}>
-            <div className={styles.wireframeTitle}>Menu Title</div>
-          </div>
-          <div className={styles.wireframeTabs}>
-            <div className={styles.wireframeTab}>Tab 1</div>
-            <div className={styles.wireframeTab}>Tab 2</div>
-            <div className={styles.wireframeTab}>Tab 3</div>
-          </div>
-          <div className={styles.wireframeGrid3}>
-            {[1, 2, 3].map(i => (
-              <div key={i} className={styles.wireframeCard}>
-                <div className={styles.wireframeImage}></div>
-                <div className={styles.wireframeCardContent}>
-                  <div className={styles.wireframeText}></div>
-                  <div className={styles.wireframeTextSmall}></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ),
-      accordion: (
-        <div className={styles.wireframe}>
-          <div className={styles.wireframeHeader}>
-            <div className={styles.wireframeTitle}>Menu Title</div>
-          </div>
-          <div className={styles.wireframeAccordion}>
-            {[1, 2, 3].map(i => (
-              <div key={i} className={styles.wireframeAccordionItem}>
-                <div className={styles.wireframeAccordionHeader}>
-                  <div className={styles.wireframeText}></div>
-                  <div className={styles.wireframeIcon}>▼</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ),
-      'two-column': (
-        <div className={styles.wireframe}>
-          <div className={styles.wireframeHeader}>
-            <div className={styles.wireframeTitle}>Menu Title</div>
-          </div>
-          <div className={styles.wireframeGrid2}>
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className={styles.wireframeCard}>
-                <div className={styles.wireframeImage}></div>
-                <div className={styles.wireframeCardContent}>
-                  <div className={styles.wireframeText}></div>
-                  <div className={styles.wireframeTextSmall}></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ),
-      'single-column': (
-        <div className={styles.wireframe}>
-          <div className={styles.wireframeHeader}>
-            <div className={styles.wireframeTitle}>Menu Title</div>
-          </div>
-          <div className={styles.wireframeSingleColumn}>
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className={styles.wireframeListItem}>
-                <div className={styles.wireframeText}></div>
-                <div className={styles.wireframeTextSmall}></div>
-                <div className={styles.wireframePrice}></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ),
-      'featured-grid': (
-        <div className={styles.wireframe}>
-          <div className={styles.wireframeHeader}>
-            <div className={styles.wireframeTitle}>Featured Items</div>
-          </div>
-          <div className={styles.wireframeGrid3}>
-            {[1, 2, 3].map(i => (
-              <div key={i} className={styles.wireframeCard}>
-                <div className={styles.wireframeImage}></div>
-                <div className={styles.wireframeCardContent}>
-                  <div className={styles.wireframeText}></div>
-                  <div className={styles.wireframeTextSmall}></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ),
-      minimal: (
-        <div className={styles.wireframe}>
-          <div className={styles.wireframeHeader}>
-            <div className={styles.wireframeTitle}>Menu Title</div>
-          </div>
-          <div className={styles.wireframeMinimal}>
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className={styles.wireframeMinimalItem}>
-                <div className={styles.wireframeText}></div>
-                <div className={styles.wireframePrice}></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ),
+    // Simple wireframe preview for each layout
+    const previewStyle = {
+      width: '100%',
+      height: '200px',
+      background: '#f8f9fa',
+      border: '1px solid #e9ecef',
+      borderRadius: '8px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '14px',
+      color: '#6c757d',
     };
 
-    return previews[layout || 'grid'] || previews.grid;
+    return (
+      <div style={previewStyle}>
+        <div className="text-center">
+          <div className="text-lg font-semibold mb-2">{(layout || 'grid').charAt(0).toUpperCase() + (layout || 'grid').slice(1)} Layout</div>
+          <div className="text-sm text-gray-500">Wireframe preview of {layout || 'grid'} layout</div>
+        </div>
+      </div>
+    );
   };
 
   if (loading && !isNewSection) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <p>Loading menu settings...</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="inline-flex items-center gap-3 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3.5">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
+          <p className="text-sm font-medium text-gray-700">Loading menu settings...</p>
+        </div>
       </div>
     );
   }
 
   if (!formConfig) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-        <p>Failed to load menu configuration</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="inline-flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-3.5">
+          <svg className="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <div>
+            <h3 className="text-sm font-semibold text-red-900">Error</h3>
+            <p className="text-sm text-red-700">Failed to load menu configuration</p>
+          </div>
+        </div>
       </div>
     );
   }
 
+  const error = fetchError || updateError;
+
   return (
-    <div className={styles.container}>
+    <>
       {/* Toast Notification */}
       {showToast && (
         <Toast
@@ -529,467 +383,322 @@ export default function MenuSettingsForm({ pageId, templateId, isNewSection }: M
 
       {/* Preview Modal */}
       {showPreview && (
-        <div className={styles.previewModal}>
-          <div className={styles.previewModalOverlay} onClick={() => setShowPreview(false)} />
-          <div className={styles.previewModalContent}>
-            <div className={styles.previewModalHeader}>
-              <h3 className={styles.previewModalTitle}>Layout Preview</h3>
-              <div className={styles.previewModalActions}>
-                <span className={styles.previewBadge}>Live Preview</span>
-                <button
-                  type="button"
-                  className={styles.previewModalClose}
-                  onClick={() => setShowPreview(false)}
-                  title="Close preview"
-                >
-                  ✕
-                </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
+          <div className="relative z-10 w-full max-w-6xl h-[80vh] flex flex-col rounded-2xl border border-gray-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 flex-shrink-0">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Layout Preview</h2>
+                <p className="mt-0.5 text-sm text-gray-600">Wireframe preview of selected layout</p>
               </div>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Close preview"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <div className={styles.previewModalBody}>
-              <div className={styles.previewDevice}>
-                <div className={styles.previewContainer}>
-                  {renderLayoutPreview()}
-                </div>
+            <div className="flex-1 overflow-y-auto p-8">
+              <div className="mx-auto max-w-4xl">
+                {renderLayoutPreview()}
               </div>
-              <p className={styles.previewNote}>
-                This is a wireframe preview of the selected layout. Configure content and styling to see the full result.
-              </p>
+              <div className="mt-6 flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 p-4">
+                <svg className="h-5 w-5 shrink-0 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <p className="text-sm text-purple-900">
+                  This is a wireframe preview of the selected layout. Configure content and styling to see the full result.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className={styles.formContainer}>
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <h2 className={styles.title}>Menu Settings</h2>
-          <div className={styles.subtitle}>
-            <span>Configure your menu section layout and content</span>
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+          <svg className="h-5 w-5 shrink-0 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <div>
+            <h3 className="text-sm font-semibold text-red-900">Error</h3>
+            <p className="mt-1 text-sm text-red-700">{error}</p>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Layout Selection */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Layout Configuration</h2>
+              <p className="text-sm text-gray-600">Choose a menu layout style</p>
+            </div>
+          </div>
+
+          <div className="mb-4 flex justify-end">
             <button
               type="button"
               onClick={() => setShowPreview(true)}
-              className={styles.previewButton}
+              className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
             >
-              👁️ Preview Layout
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Preview Layout
             </button>
           </div>
 
-          {/* Layout Selection */}
-          <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>Layout</h3>
-            <div className={styles.layoutGrid}>
-              {layoutOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`${styles.layoutCard} ${formConfig.layout === option.value ? styles.layoutCardActive : ''}`}
-                  onClick={() => handleLayoutChange(option.value)}
-                >
-                  <div className={styles.layoutCardTitle}>{option.name}</div>
-                  <div className={styles.layoutCardDescription}>{option.description}</div>
-                </button>
-              ))}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {layoutOptions.map((option) => (
+              <div
+                key={option.value}
+                onClick={() => handleLayoutChange(option.value)}
+                className={`group cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                  formConfig.layout === option.value
+                    ? 'border-purple-500 bg-purple-50 shadow-sm'
+                    : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="mb-2 overflow-hidden rounded border border-gray-200 bg-gray-50">
+                  <div className="h-16 w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-xs text-gray-500">
+                    {option.name}
+                  </div>
+                </div>
+                <div className={`text-sm font-medium ${
+                  formConfig.layout === option.value ? 'text-purple-700' : 'text-gray-900'
+                }`}>
+                  {option.name}
+                </div>
+                <div className="mt-0.5 text-xs text-gray-500">{option.description}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              </svg>
             </div>
-          </section>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Content Configuration</h2>
+              <p className="text-sm text-gray-600">Set title, subtitle and description</p>
+            </div>
+          </div>
 
-          {/* Content Section */}
-          <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>Content</h3>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Title</label>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                <span>Title</span>
+                <span className="text-xs font-normal text-gray-500">Main menu section title</span>
+              </label>
               <input
                 type="text"
-                className={styles.input}
                 value={formConfig.title || ''}
                 onChange={(e) => updateConfig({ title: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                 placeholder="Our Menu"
               />
             </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Subtitle</label>
+            <div>
+              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                <span>Subtitle</span>
+                <span className="text-xs font-normal text-gray-500">Optional subtitle</span>
+              </label>
               <input
                 type="text"
-                className={styles.input}
                 value={formConfig.subtitle || ''}
                 onChange={(e) => updateConfig({ subtitle: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                 placeholder="Discover our delicious offerings"
               />
             </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Description</label>
+            <div>
+              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                <span>Description</span>
+                <span className="text-xs font-normal text-gray-500">Supporting description text</span>
+              </label>
               <textarea
-                className={styles.textarea}
                 value={formConfig.description || ''}
                 onChange={(e) => updateConfig({ description: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                 placeholder="Explore our carefully curated selection of dishes"
                 rows={3}
               />
             </div>
-          </section>
+          </div>
+        </div>
 
-          <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>Typography & Buttons</h3>
-            <SectionTypographyControls
-              value={formConfig}
-              onChange={(updates) => updateConfig(updates)}
-            />
-          </section>
+        {/* CTA Button */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Call-to-Action Button</h2>
+              <p className="text-sm text-gray-600">Configure action button settings</p>
+            </div>
+          </div>
 
-          {/* CTA Button */}
-          <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>Call-to-Action Button</h3>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Button Label</label>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                <span>Button Label</span>
+                <span className="text-xs font-normal text-gray-500">Button text</span>
+              </label>
               <input
                 type="text"
-                className={styles.input}
                 value={formConfig.ctaButton?.label || ''}
                 onChange={(e) => updateCtaButton({ label: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900
+placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                 placeholder="View Full Menu"
               />
             </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Button Link</label>
+            <div>
+              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                <span>Button Link</span>
+                <span className="text-xs font-normal text-gray-500">Button URL or anchor</span>
+              </label>
               <input
                 type="text"
-                className={styles.input}
                 value={formConfig.ctaButton?.href || ''}
                 onChange={(e) => updateCtaButton({ href: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                 placeholder="#menu"
               />
             </div>
 
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Button Background Color</label>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                  <span>Background Color</span>
+                </label>
                 <input
                   type="color"
-                  className={styles.colorInput}
                   value={formConfig.ctaButton?.bgColor || '#3b82f6'}
                   onChange={(e) => updateCtaButton({ bgColor: e.target.value })}
+                  className="h-11 w-full rounded-lg border border-gray-300 cursor-pointer"
                 />
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Button Text Color</label>
+              <div>
+                <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                  <span>Text Color</span>
+                </label>
                 <input
                   type="color"
-                  className={styles.colorInput}
                   value={formConfig.ctaButton?.textColor || '#ffffff'}
                   onChange={(e) => updateCtaButton({ textColor: e.target.value })}
+                  className="h-11 w-full rounded-lg border border-gray-300 cursor-pointer"
                 />
               </div>
             </div>
-          </section>
+          </div>
+        </div>
 
-          {/* Media Settings */}
-          <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>Media</h3>
+        {/* Typography & Buttons */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Typography & Buttons</h2>
+              <p className="text-sm text-gray-600">Customize text styles and button appearance</p>
+            </div>
+          </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Header Image</label>
-              {formConfig.headerImage ? (
-                <div className={styles.mediaPreview}>
-                  <img src={formConfig.headerImage} alt="Header" className={styles.previewImage} />
-                  <div className={styles.mediaActions}>
-                    <button
-                      type="button"
-                      className={styles.buttonSecondary}
-                      onClick={() => openMediaGallery('header_image')}
-                    >
-                      Change Image
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.buttonDanger}
-                      onClick={() => updateConfig({ headerImage: undefined })}
-                    >
-                      Remove
-                    </button>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Custom Typography & Styles</label>
+                <p className="text-xs text-gray-500">Override global CSS with custom styling options</p>
+              </div>
+              <label className="relative inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  checked={formConfig.is_custom || false}
+                  onChange={(e) => updateConfig({ is_custom: e.target.checked })}
+                  className="peer sr-only"
+                />
+                <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
+              </label>
+            </div>
+
+            {!formConfig.is_custom ? (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="h-5 w-5 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                  </svg>
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-900">Using Global Styles</h4>
+                    <p className="mt-1 text-xs text-blue-700">
+                      This section is currently using the global CSS styles defined in your theme settings.
+                      Enable custom typography above to override these styles with section-specific options.
+                    </p>
                   </div>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  className={styles.uploadButton}
-                  onClick={() => openMediaGallery('header_image')}
-                >
-                  <span className={styles.uploadIcon}>📷</span>
-                  <span>Upload Header Image</span>
-                </button>
-              )}
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Background Image</label>
-              {formConfig.backgroundImage ? (
-                <div className={styles.mediaPreview}>
-                  <img src={formConfig.backgroundImage} alt="Background" className={styles.previewImage} />
-                  <div className={styles.mediaActions}>
-                    <button
-                      type="button"
-                      className={styles.buttonSecondary}
-                      onClick={() => openMediaGallery('background_image')}
-                    >
-                      Change Image
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.buttonDanger}
-                      onClick={() => updateConfig({ backgroundImage: undefined })}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className={styles.uploadButton}
-                  onClick={() => openMediaGallery('background_image')}
-                >
-                  <span className={styles.uploadIcon}>📷</span>
-                  <span>Upload Background Image</span>
-                </button>
-              )}
-            </div>
-          </section>
-
-          {/* Categories */}
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <h3 className={styles.sectionTitle}>Menu Categories</h3>
-              <button
-                type="button"
-                className={styles.buttonSecondary}
-                onClick={addCategory}
-              >
-                + Add Category
-              </button>
-            </div>
-
-            {formConfig.categories && formConfig.categories.length > 0 ? (
-              <div className={styles.categoriesList}>
-                {formConfig.categories.map((category, categoryIndex) => (
-                  <div key={categoryIndex} className={styles.categoryCard}>
-                    <div className={styles.categoryHeader}>
-                      <input
-                        type="text"
-                        className={styles.input}
-                        value={category.name}
-                        onChange={(e) => updateCategory(categoryIndex, { name: e.target.value })}
-                        placeholder="Category Name"
-                      />
-                      <button
-                        type="button"
-                        className={styles.buttonDanger}
-                        onClick={() => removeCategory(categoryIndex)}
-                      >
-                        Remove
-                      </button>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Description</label>
-                      <input
-                        type="text"
-                        className={styles.input}
-                        value={category.description || ''}
-                        onChange={(e) => updateCategory(categoryIndex, { description: e.target.value })}
-                        placeholder="Category description"
-                      />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Icon (emoji)</label>
-                      <input
-                        type="text"
-                        className={styles.input}
-                        value={category.icon || ''}
-                        onChange={(e) => updateCategory(categoryIndex, { icon: e.target.value })}
-                        placeholder="🍽️"
-                      />
-                    </div>
-
-                    {/* Items in Category */}
-                    <div className={styles.itemsSection}>
-                      <div className={styles.itemsHeader}>
-                        <span className={styles.itemsTitle}>Items</span>
-                        <button
-                          type="button"
-                          className={styles.buttonSmall}
-                          onClick={() => addItemToCategory(categoryIndex)}
-                        >
-                          + Add Item
-                        </button>
-                      </div>
-
-                      {category.items && category.items.length > 0 ? (
-                        <div className={styles.itemsList}>
-                          {category.items.map((item, itemIndex) => (
-                            <div key={itemIndex} className={styles.itemCard}>
-                              <div className={styles.itemRow}>
-                                <input
-                                  type="text"
-                                  className={styles.inputSmall}
-                                  value={item.name}
-                                  onChange={(e) => updateItem(categoryIndex, itemIndex, { name: e.target.value })}
-                                  placeholder="Item name"
-                                />
-                                <input
-                                  type="text"
-                                  className={styles.inputSmall}
-                                  value={item.price}
-                                  onChange={(e) => updateItem(categoryIndex, itemIndex, { price: e.target.value })}
-                                  placeholder="$0.00"
-                                  style={{ width: '100px' }}
-                                />
-                                <button
-                                  type="button"
-                                  className={styles.buttonDanger}
-                                  onClick={() => removeItem(categoryIndex, itemIndex)}
-                                >
-                                  ×
-                                </button>
-                              </div>
-                              <textarea
-                                className={styles.textareaSmall}
-                                value={item.description || ''}
-                                onChange={(e) => updateItem(categoryIndex, itemIndex, { description: e.target.value })}
-                                placeholder="Item description"
-                                rows={2}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className={styles.emptyText}>No items yet. Click "Add Item" to add one.</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
               </div>
             ) : (
-              <p className={styles.emptyText}>No categories yet. Click "Add Category" to create one.</p>
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <SectionTypographyControls
+                  value={formConfig}
+                  onChange={(updates) => updateConfig(updates)}
+                />
+              </div>
             )}
-          </section>
-
-          {/* Display Options */}
-          <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>Display Options</h3>
-
-            <div className={styles.checkboxGroup}>
-              <label className={styles.checkbox}>
-                <input
-                  type="checkbox"
-                  checked={formConfig.showPrices || false}
-                  onChange={(e) => updateConfig({ showPrices: e.target.checked })}
-                />
-                <span>Show Prices</span>
-              </label>
-
-              <label className={styles.checkbox}>
-                <input
-                  type="checkbox"
-                  checked={formConfig.showImages || false}
-                  onChange={(e) => updateConfig({ showImages: e.target.checked })}
-                />
-                <span>Show Images</span>
-              </label>
-
-              <label className={styles.checkbox}>
-                <input
-                  type="checkbox"
-                  checked={formConfig.showDescriptions || false}
-                  onChange={(e) => updateConfig({ showDescriptions: e.target.checked })}
-                />
-                <span>Show Descriptions</span>
-              </label>
-
-              <label className={styles.checkbox}>
-                <input
-                  type="checkbox"
-                  checked={formConfig.showDietaryInfo || false}
-                  onChange={(e) => updateConfig({ showDietaryInfo: e.target.checked })}
-                />
-                <span>Show Dietary Info</span>
-              </label>
-
-              <label className={styles.checkbox}>
-                <input
-                  type="checkbox"
-                  checked={formConfig.showCategoryIcons || false}
-                  onChange={(e) => updateConfig({ showCategoryIcons: e.target.checked })}
-                />
-                <span>Show Category Icons</span>
-              </label>
-            </div>
-          </section>
-
-          {/* Styling */}
-          <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>Styling</h3>
-
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Background Color</label>
-                <input
-                  type="color"
-                  className={styles.colorInput}
-                  value={formConfig.bgColor || '#ffffff'}
-                  onChange={(e) => updateConfig({ bgColor: e.target.value })}
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Text Color</label>
-                <input
-                  type="color"
-                  className={styles.colorInput}
-                  value={formConfig.textColor || '#000000'}
-                  onChange={(e) => updateConfig({ textColor: e.target.value })}
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Accent Color</label>
-                <input
-                  type="color"
-                  className={styles.colorInput}
-                  value={formConfig.accentColor || '#3b82f6'}
-                  onChange={(e) => updateConfig({ accentColor: e.target.value })}
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Card Background</label>
-                <input
-                  type="color"
-                  className={styles.colorInput}
-                  value={formConfig.cardBgColor || '#f9fafb'}
-                  onChange={(e) => updateConfig({ cardBgColor: e.target.value })}
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Submit Button */}
-          <div className={styles.submitSection}>
-            <button
-              type="submit"
-              className={styles.buttonPrimary}
-              disabled={updating}
-            >
-              {updating ? 'Saving...' : 'Save Settings'}
-            </button>
           </div>
-        </form>
-      </div>
+        </div>
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={updating}
+            className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {updating ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                </svg>
+                Save Menu Settings
+              </>
+            )}
+          </button>
+        </div>
+      </form>
 
       {/* Image Gallery Modal */}
       {showGalleryModal && (
@@ -1003,6 +712,6 @@ export default function MenuSettingsForm({ pageId, templateId, isNewSection }: M
           }}
         />
       )}
-    </div>
+    </>
   );
 }

@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import Toast from '@/components/ui/toast';
 import { ImageGalleryModal } from './image-gallery-modal';
@@ -22,12 +22,917 @@ import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import type { MenuConfig, MenuButton, MenuCategory, MenuItem } from '@/types/menu.types';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 
-type MediaFieldType = 'header_image' | 'background_image';
+type MenuMediaField =
+  | { type: 'header_image' }
+  | { type: 'background_image' }
+  | { type: 'item_image'; categoryIndex: number; itemIndex: number };
 
 interface MenuSettingsFormProps {
   pageId?: string;
   templateId?: string;
   isNewSection?: boolean;
+}
+
+type MenuLayoutValue = NonNullable<MenuConfig['layout']>;
+type PreviewSurface = 'card' | 'modal';
+
+const MENU_LAYOUT_OPTIONS: Array<{
+  value: MenuLayoutValue;
+  name: string;
+  description: string;
+}> = [
+  { value: 'grid', name: 'Grid', description: 'Grid layout with cards' },
+  { value: 'list', name: 'List', description: 'Simple list layout' },
+  { value: 'masonry', name: 'Masonry', description: 'Pinterest-style masonry' },
+  { value: 'carousel', name: 'Carousel', description: 'Carousel/slider layout' },
+  { value: 'tabs', name: 'Tabs', description: 'Tabbed categories' },
+  { value: 'accordion', name: 'Accordion', description: 'Collapsible categories' },
+  { value: 'two-column', name: 'Two Column', description: 'Two-column layout' },
+  { value: 'single-column', name: 'Single Column', description: 'Single column centered' },
+  { value: 'featured-grid', name: 'Featured Grid', description: 'Featured items in grid' },
+  { value: 'minimal', name: 'Minimal', description: 'Minimal text-only layout' },
+];
+
+const IMAGE_FOCUSED_MENU_LAYOUTS = new Set<MenuLayoutValue>([
+  'grid',
+  'masonry',
+  'carousel',
+  'two-column',
+  'single-column',
+]);
+
+const FEATURE_PRIORITY_LAYOUTS = new Set<MenuLayoutValue>([
+  'carousel',
+  'featured-grid',
+  'minimal',
+]);
+
+const LAYOUT_PRIMARY_CONTENT: Record<
+  MenuLayoutValue,
+  {
+    title: string;
+    summary: string;
+    primarySource: string;
+    supportingSource: string;
+    checklist: string[];
+  }
+> = {
+  grid: {
+    title: 'Image-first category cards',
+    summary: 'Best for showcasing menu items with strong photography and short descriptions.',
+    primarySource: 'Each menu item image powers the card visuals.',
+    supportingSource: 'Category names group the cards into clear menu sections.',
+    checklist: [
+      'Add images to the menu items you want to highlight.',
+      'Keep item descriptions short so the cards stay balanced.',
+      'Use 2-6 items per category for a clean grid.',
+    ],
+  },
+  list: {
+    title: 'Bold promotional list',
+    summary: 'Best for simple menu callouts and quick CTA-driven highlights.',
+    primarySource: 'Item name, short description, and button label drive the layout.',
+    supportingSource: 'Item images are optional here and not the main focus.',
+    checklist: [
+      'Write punchy item titles.',
+      'Keep descriptions concise and benefit-driven.',
+      'Set a CTA label if you want buttons inside the cards.',
+    ],
+  },
+  masonry: {
+    title: 'Editorial image tiles',
+    summary: 'Best for a more visual, premium presentation with varied card heights.',
+    primarySource: 'Menu item images create the stacked masonry composition.',
+    supportingSource: 'Category grouping still controls the section structure.',
+    checklist: [
+      'Use strong landscape or portrait food photos.',
+      'Keep copy short because text sits over media.',
+      'Featured dishes work especially well here.',
+    ],
+  },
+  carousel: {
+    title: 'Featured slider',
+    summary: 'Best for spotlighting bestselling or featured items in a horizontal showcase.',
+    primarySource: 'Featured items are shown first. If none are marked featured, regular items are used.',
+    supportingSource: 'Item images become the slide artwork with text overlay.',
+    checklist: [
+      'Mark key items as Featured below.',
+      'Upload item images for the strongest result.',
+      'Use short item descriptions for clean overlays.',
+    ],
+  },
+  tabs: {
+    title: 'Category tabs with intro panel',
+    summary: 'Best when you want guests to explore menu groups one category at a time.',
+    primarySource: 'Category names and descriptions power the tab selectors.',
+    supportingSource: 'Items from the active category appear in the content panel.',
+    checklist: [
+      'Add clear category titles.',
+      'Give each category a short description.',
+      'Upload item images to make the active tab panel richer.',
+    ],
+  },
+  accordion: {
+    title: 'Expandable category groups',
+    summary: 'Best for longer menus where guests need compact scanning before opening details.',
+    primarySource: 'Categories create the accordion rows.',
+    supportingSource: 'Items inside each category appear when that row is expanded.',
+    checklist: [
+      'Use categories to break up long menus.',
+      'Keep category descriptions informative but short.',
+      'Item images are optional but useful for expanded rows.',
+    ],
+  },
+  'two-column': {
+    title: 'Balanced two-column cards',
+    summary: 'Best for paired menu highlights and cleaner desktop symmetry.',
+    primarySource: 'Menu item images and descriptions create the two-column rhythm.',
+    supportingSource: 'Categories can still group multiple two-column blocks.',
+    checklist: [
+      'Use high-quality item images.',
+      'Keep pricing and descriptions consistent across cards.',
+      'Works best with even item counts.',
+    ],
+  },
+  'single-column': {
+    title: 'Centered showcase cards',
+    summary: 'Best for a focused presentation with fewer, more intentional highlights.',
+    primarySource: 'Item images and titles create the hero-style stacked cards.',
+    supportingSource: 'Section media supports the cards as a fallback if item images are missing.',
+    checklist: [
+      'Use 1-4 strong highlight items.',
+      'Add images to avoid plain fallback blocks.',
+      'Keep descriptions readable and concise.',
+    ],
+  },
+  'featured-grid': {
+    title: 'Feature summary cards',
+    summary: 'Best for concise item highlights with icons or small image thumbnails.',
+    primarySource: 'Featured items are used first in this layout.',
+    supportingSource: 'Category icons or item imagery help the cards feel complete.',
+    checklist: [
+      'Mark top items as Featured.',
+      'Use category icons or item images for visual anchors.',
+      'Keep copy short and benefit-focused.',
+    ],
+  },
+  minimal: {
+    title: 'Minimal icon-led highlights',
+    summary: 'Best for short, curated menu callouts with clean typography.',
+    primarySource: 'Featured items are shown as minimal highlight blocks.',
+    supportingSource: 'Category icons or image thumbnails support the visual hierarchy.',
+    checklist: [
+      'Use short item names.',
+      'Keep only a few highlight items.',
+      'Add category icons if you want stronger visual markers.',
+    ],
+  },
+};
+
+const svgToDataUri = (svg: string) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+
+const MENU_PREVIEW_INTERIOR = svgToDataUri(`
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900' fill='none'>
+  <rect width='1600' height='900' fill='#efe6da'/>
+  <rect x='0' y='150' width='1600' height='750' fill='#8f5a2f'/>
+  <rect x='50' y='70' width='640' height='520' rx='24' fill='#2f3c2d'/>
+  <rect x='82' y='102' width='576' height='456' rx='18' fill='#d9e6d2'/>
+  <path d='M132 436C238 358 324 324 424 336C510 346 574 402 640 512V560H132V436Z' fill='#ae843f'/>
+  <path d='M170 372C280 304 372 278 466 292C540 304 594 350 638 428V560H170V372Z' fill='#d98f2f'/>
+  <path d='M196 316C256 264 344 246 430 250C500 254 564 286 624 344V560H196V316Z' fill='#5f8c4f'/>
+  <circle cx='250' cy='212' r='48' fill='#f7c955'/>
+  <rect x='740' y='90' width='760' height='690' rx='18' fill='#6f4324'/>
+  <rect x='792' y='110' width='26' height='640' rx='10' fill='#a77746'/>
+  <rect x='868' y='110' width='26' height='640' rx='10' fill='#a77746'/>
+  <rect x='944' y='110' width='26' height='640' rx='10' fill='#a77746'/>
+  <rect x='1020' y='110' width='26' height='640' rx='10' fill='#a77746'/>
+  <rect x='1096' y='110' width='26' height='640' rx='10' fill='#a77746'/>
+  <rect x='1172' y='110' width='26' height='640' rx='10' fill='#a77746'/>
+  <rect x='1248' y='110' width='26' height='640' rx='10' fill='#a77746'/>
+  <rect x='1324' y='110' width='26' height='640' rx='10' fill='#a77746'/>
+  <circle cx='1140' cy='372' r='168' fill='#ffffff' fill-opacity='0.18'/>
+</svg>
+`);
+
+const MENU_PREVIEW_STOREFRONT = svgToDataUri(`
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900' fill='none'>
+  <defs>
+    <linearGradient id='sky' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0%' stop-color='#1d2745'/>
+      <stop offset='55%' stop-color='#3b5b8f'/>
+      <stop offset='100%' stop-color='#111827'/>
+    </linearGradient>
+    <linearGradient id='building' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0%' stop-color='#deb27a'/>
+      <stop offset='100%' stop-color='#ad6f34'/>
+    </linearGradient>
+  </defs>
+  <rect width='1600' height='900' fill='url(#sky)'/>
+  <rect y='618' width='1600' height='282' fill='#0b1220'/>
+  <rect x='170' y='110' width='1260' height='540' rx='28' fill='url(#building)'/>
+  <rect x='170' y='148' width='1260' height='92' fill='#f4ddbf' fill-opacity='0.72'/>
+  <rect x='246' y='250' width='1108' height='310' rx='22' fill='#ecd8c0'/>
+  <rect x='252' y='252' width='1096' height='86' rx='18' fill='#20355f'/>
+  <path d='M324 336H1276L1220 404H378L324 336Z' fill='#183166'/>
+  <rect x='392' y='404' width='174' height='138' rx='14' fill='#f8d39a'/>
+  <rect x='610' y='404' width='174' height='138' rx='14' fill='#f8d39a'/>
+  <rect x='828' y='404' width='174' height='138' rx='14' fill='#f8d39a'/>
+  <rect x='1046' y='404' width='174' height='138' rx='14' fill='#f8d39a'/>
+  <rect x='1110' y='352' width='112' height='236' rx='14' fill='#1b1b24'/>
+  <rect x='1132' y='380' width='68' height='178' rx='8' fill='#111827'/>
+  <rect x='430' y='438' width='94' height='72' rx='10' fill='#fff5dc'/>
+  <rect x='648' y='438' width='94' height='72' rx='10' fill='#fff5dc'/>
+  <rect x='866' y='438' width='94' height='72' rx='10' fill='#fff5dc'/>
+  <rect x='1084' y='438' width='94' height='72' rx='10' fill='#fff5dc'/>
+  <rect x='290' y='174' width='840' height='36' rx='18' fill='#0f172a' fill-opacity='0.44'/>
+  <rect x='344' y='182' width='414' height='18' rx='9' fill='#f8fafc' fill-opacity='0.72'/>
+</svg>
+`);
+
+const MENU_PREVIEW_INGREDIENTS = svgToDataUri(`
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 900' fill='none'>
+  <rect width='1200' height='900' fill='#f2ede4'/>
+  <rect x='64' y='82' width='514' height='514' rx='30' fill='#5f4530'/>
+  <rect x='104' y='122' width='434' height='434' rx='24' fill='#0f172a'/>
+  <circle cx='320' cy='344' r='128' fill='#fff8ee'/>
+  <circle cx='320' cy='344' r='96' fill='#ece7df'/>
+  <circle cx='154' cy='214' r='40' fill='#ef4444'/>
+  <circle cx='172' cy='486' r='44' fill='#eab308'/>
+  <circle cx='482' cy='180' r='34' fill='#ef4444'/>
+  <circle cx='492' cy='486' r='34' fill='#f59e0b'/>
+  <ellipse cx='430' cy='292' rx='56' ry='28' fill='#f8fafc'/>
+  <ellipse cx='438' cy='408' rx='62' ry='30' fill='#84cc16'/>
+  <rect x='630' y='136' width='466' height='274' rx='26' fill='#d8c1a7'/>
+  <rect x='664' y='170' width='398' height='206' rx='18' fill='#f7f2ea'/>
+  <rect x='648' y='490' width='420' height='250' rx='26' fill='#efe7da'/>
+  <rect x='690' y='528' width='98' height='164' rx='18' fill='#f1d6a9'/>
+  <rect x='812' y='528' width='98' height='164' rx='18' fill='#ddc2ab'/>
+  <rect x='934' y='528' width='98' height='164' rx='18' fill='#d8e0d2'/>
+</svg>
+`);
+
+const MENU_PREVIEW_DARK_PATTERN = svgToDataUri(`
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 900' fill='none'>
+  <rect width='1200' height='900' fill='#06070a'/>
+  <g stroke='#f8fafc' stroke-opacity='0.24' stroke-width='10'>
+    <circle cx='120' cy='120' r='74'/>
+    <circle cx='332' cy='132' r='54'/>
+    <circle cx='582' cy='238' r='94'/>
+    <circle cx='1026' cy='146' r='78'/>
+    <circle cx='200' cy='488' r='90'/>
+    <circle cx='578' cy='612' r='116'/>
+    <circle cx='946' cy='548' r='132'/>
+    <path d='M44 252C132 214 222 220 316 266C406 312 490 386 600 396'/>
+    <path d='M770 276C880 222 1000 228 1148 324'/>
+    <path d='M44 700C164 598 302 566 464 604C604 636 708 740 864 744'/>
+  </g>
+</svg>
+`);
+
+const MENU_PREVIEW_COPY = {
+  sectionTitle: 'Best menu selections in town',
+  sectionSubtitle: 'Fresh dishes and seasonal favorites',
+  sectionDescription: 'Explore our bestselling plates, signature dishes, and quick ordering options.',
+  itemOne: 'Menu 1',
+  itemTwo: 'Menu 2',
+  itemThree: 'Menu 3',
+  itemFour: 'Menu 4',
+  itemDescription: 'This is a description',
+  ctaLabel: 'Menu',
+};
+
+interface MenuPreviewMeta {
+  sectionTitle: string;
+  sectionSubtitle: string;
+  sectionDescription: string;
+  ctaLabel: string;
+}
+
+const getMenuPreviewMeta = (config?: MenuConfig): MenuPreviewMeta => ({
+  sectionTitle: config?.title?.trim() || MENU_PREVIEW_COPY.sectionTitle,
+  sectionSubtitle: config?.subtitle?.trim() || MENU_PREVIEW_COPY.sectionSubtitle,
+  sectionDescription: config?.description?.trim() || MENU_PREVIEW_COPY.sectionDescription,
+  ctaLabel: config?.ctaButton?.label?.trim() || MENU_PREVIEW_COPY.ctaLabel,
+});
+
+const getMenuItemKey = (item: MenuItem) => (item.id ? `id:${item.id}` : `name:${item.name}`);
+
+function hydrateFeaturedItems(config: MenuConfig): MenuConfig {
+  const featuredKeys = new Set((config.featuredItems || []).map(getMenuItemKey));
+  const categories = (config.categories || []).map((category) => ({
+    ...category,
+    items: (category.items || []).map((item) => ({
+      ...item,
+      featured: item.featured || featuredKeys.has(getMenuItemKey(item)),
+    })),
+  }));
+
+  const derivedFeaturedItems = categories.flatMap((category) =>
+    (category.items || [])
+      .filter((item) => item.featured)
+      .map((item) => ({
+        ...item,
+        category: category.name,
+      })),
+  );
+
+  return {
+    ...config,
+    categories,
+    featuredItems:
+      derivedFeaturedItems.length > 0
+        ? derivedFeaturedItems
+        : config.featuredItems || [],
+  };
+}
+
+const getMenuItemCount = (categories?: MenuCategory[]) =>
+  (categories || []).reduce((total, category) => total + (category.items || []).length, 0);
+
+const getMenuImageCount = (categories?: MenuCategory[]) =>
+  (categories || []).reduce(
+    (total, category) =>
+      total + (category.items || []).filter((item) => Boolean(item.image)).length,
+    0,
+  );
+
+function getGalleryModalCopy(field: MenuMediaField | null) {
+  if (!field) {
+    return {
+      title: 'Select Image',
+      description: 'Choose an image from your media library or upload new',
+    };
+  }
+
+  switch (field.type) {
+    case 'header_image':
+      return {
+        title: 'Select Header Image',
+        description: 'Choose a section-level image used as a visual fallback and intro accent.',
+      };
+    case 'background_image':
+      return {
+        title: 'Select Background Image',
+        description: 'Choose a background image for ambience and section fallback styling.',
+      };
+    case 'item_image':
+      return {
+        title: 'Select Item Image',
+        description: 'Choose the image that will appear on the selected menu item card.',
+      };
+    default:
+      return {
+        title: 'Select Image',
+        description: 'Choose an image from your media library or upload new',
+      };
+  }
+}
+
+function MenuPreviewButton({
+  mode,
+  label,
+  variant = 'outline',
+}: {
+  mode: PreviewSurface;
+  label: string;
+  variant?: 'solid' | 'outline';
+}) {
+  const isCard = mode === 'card';
+
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: isCard ? '26px' : '72px',
+        height: isCard ? '15px' : '32px',
+        padding: isCard ? '0 6px' : '0 14px',
+        borderRadius: isCard ? '4px' : '8px',
+        border: variant === 'outline' ? '1.5px solid #ef4444' : '1px solid transparent',
+        background: variant === 'solid' ? '#ef1d12' : '#ffffff',
+        color: variant === 'solid' ? '#ffffff' : '#111827',
+        fontSize: isCard ? '4.8px' : '11px',
+        fontWeight: 800,
+        letterSpacing: '0.02em',
+        boxShadow: variant === 'solid' ? '0 10px 24px rgba(239, 29, 18, 0.18)' : 'none',
+      }}
+    >
+      {label}
+    </div>
+  );
+}
+
+function MenuPreviewChrome({ mode }: { mode: PreviewSurface }) {
+  const isCard = mode === 'card';
+
+  return (
+    <>
+      <div
+        style={{
+          position: 'absolute',
+          top: isCard ? '10px' : '20px',
+          left: '50%',
+          width: isCard ? '26px' : '52px',
+          height: '3px',
+          borderRadius: '999px',
+          background: '#d6d9df',
+          transform: 'translateX(-50%)',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          top: isCard ? '8px' : '16px',
+          right: isCard ? '10px' : '18px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: isCard ? '22px' : '44px',
+          height: isCard ? '22px' : '44px',
+          borderRadius: isCard ? '7px' : '12px',
+          border: '1px solid #d3d7dd',
+          background: '#ffffff',
+          color: '#111827',
+          fontSize: isCard ? '12px' : '28px',
+          fontWeight: 300,
+          lineHeight: 1,
+          boxShadow: '0 8px 18px rgba(15, 23, 42, 0.06)',
+        }}
+      >
+        +
+      </div>
+    </>
+  );
+}
+
+function MenuPreviewIcon({
+  kind,
+  mode,
+}: {
+  kind: 'burger' | 'cutlery' | 'open';
+  mode: PreviewSurface;
+}) {
+  const size = mode === 'card' ? 18 : 40;
+  const stroke = mode === 'card' ? 1.8 : 2.2;
+
+  if (kind === 'burger') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+        <path d="M10 22C12.4 15 17.8 12 24 12C30.2 12 35.6 15 38 22H10Z" fill="#f59e0b" stroke="#a855f7" strokeWidth={stroke} />
+        <path d="M10 26H38V30C38 32.8 35.8 35 33 35H15C12.2 35 10 32.8 10 30V26Z" fill="#f8c27a" stroke="#a855f7" strokeWidth={stroke} />
+        <path d="M14 27H34" stroke="#ef4444" strokeWidth={stroke} strokeLinecap="round" />
+        <circle cx="17" cy="19" r="1.3" fill="#fff5d6" />
+        <circle cx="24" cy="17" r="1.3" fill="#fff5d6" />
+        <circle cx="31" cy="19" r="1.3" fill="#fff5d6" />
+      </svg>
+    );
+  }
+
+  if (kind === 'cutlery') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+        <rect x="10" y="8" width="28" height="32" rx="6" fill="#fde68a" stroke="#a855f7" strokeWidth={stroke} />
+        <path d="M18 13V24" stroke="#7c3aed" strokeWidth={stroke} strokeLinecap="round" />
+        <path d="M15 13V19" stroke="#7c3aed" strokeWidth={stroke} strokeLinecap="round" />
+        <path d="M21 13V19" stroke="#7c3aed" strokeWidth={stroke} strokeLinecap="round" />
+        <path d="M18 24V34" stroke="#7c3aed" strokeWidth={stroke} strokeLinecap="round" />
+        <path d="M30 13C32.8 15.5 32.8 20.5 30 23V34" stroke="#7c3aed" strokeWidth={stroke} strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+      <path d="M13 16L24 8L35 16V32C35 34.2 33.2 36 31 36H17C14.8 36 13 34.2 13 32V16Z" fill="#f3d4f8" stroke="#a855f7" strokeWidth={stroke} />
+      <path d="M12 16H36" stroke="#a855f7" strokeWidth={stroke} strokeLinecap="round" />
+      <path d="M17 24H31" stroke="#a855f7" strokeWidth={stroke} strokeLinecap="round" />
+      <path d="M19 29H29" stroke="#a855f7" strokeWidth={stroke} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PreviewImageCard({
+  mode,
+  image,
+  title,
+  description,
+  ctaLabel,
+  overlay = false,
+  style,
+}: {
+  mode: PreviewSurface;
+  image: string;
+  title: string;
+  description: string;
+  ctaLabel: string;
+  overlay?: boolean;
+  style?: CSSProperties;
+}) {
+  const isCard = mode === 'card';
+
+  if (overlay) {
+    return (
+      <div
+        style={{
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: isCard ? '10px' : '18px',
+          border: '1px solid #d7dee6',
+          backgroundImage: `url(${image})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          boxShadow: '0 14px 34px rgba(15, 23, 42, 0.1)',
+          ...style,
+        }}
+      >
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,23,42,0.12) 0%, rgba(15,23,42,0.72) 100%)' }} />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 'auto 0 0 0',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: isCard ? '4px' : '10px',
+            padding: isCard ? '10px 8px 12px' : '20px 18px 22px',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontSize: isCard ? '9px' : '24px', fontWeight: 800, color: '#ffffff' }}>{title}</div>
+          <div style={{ fontSize: isCard ? '5px' : '12px', fontWeight: 500, color: 'rgba(255,255,255,0.88)' }}>{description}</div>
+          <MenuPreviewButton mode={mode} label={ctaLabel} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        overflow: 'hidden',
+        borderRadius: isCard ? '10px' : '16px',
+        border: '1px solid #d7dee6',
+        background: '#ffffff',
+        boxShadow: '0 14px 34px rgba(15, 23, 42, 0.08)',
+        ...style,
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          height: isCard ? '46px' : '170px',
+          backgroundImage: `url(${image})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: isCard ? '4px' : '10px',
+          padding: isCard ? '8px 8px 10px' : '18px 18px 20px',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ fontSize: isCard ? '6px' : '18px', fontWeight: 800, color: '#111827', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          {title}
+        </div>
+        <div style={{ fontSize: isCard ? '4.8px' : '12px', color: '#6b7280' }}>{description}</div>
+        <MenuPreviewButton mode={mode} label={ctaLabel} />
+      </div>
+    </div>
+  );
+}
+
+function PreviewListRow({
+  mode,
+  title,
+  description,
+  ctaLabel,
+}: {
+  mode: PreviewSurface;
+  title: string;
+  description: string;
+  ctaLabel: string;
+}) {
+  const isCard = mode === 'card';
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: isCard ? '4px' : '10px',
+        minHeight: isCard ? '44px' : '110px',
+        padding: isCard ? '8px 6px' : '18px',
+        borderRadius: isCard ? '8px' : '14px',
+        background: '#ef1d12',
+        color: '#ffffff',
+        boxShadow: '0 18px 36px rgba(239, 29, 18, 0.18)',
+      }}
+    >
+      <div style={{ fontSize: isCard ? '7px' : '24px', fontWeight: 800, textTransform: 'uppercase' }}>{title}</div>
+      <div style={{ fontSize: isCard ? '4.8px' : '12px', color: 'rgba(255,255,255,0.88)' }}>{description}</div>
+      <MenuPreviewButton mode={mode} label={ctaLabel} variant="solid" />
+    </div>
+  );
+}
+
+function PreviewStackRow({
+  mode,
+  title,
+  description,
+  expanded = false,
+}: {
+  mode: PreviewSurface;
+  title: string;
+  description: string;
+  expanded?: boolean;
+}) {
+  const isCard = mode === 'card';
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: expanded ? 'flex-start' : 'center',
+        justifyContent: 'space-between',
+        gap: isCard ? '6px' : '14px',
+        padding: isCard ? '7px 8px' : expanded ? '18px 20px' : '16px 20px',
+        borderRadius: isCard ? '8px' : '14px',
+        border: '1px solid #d8dfe7',
+        background: '#ffffff',
+        boxShadow: '0 12px 26px rgba(15, 23, 42, 0.08)',
+      }}
+    >
+      <div style={{ display: 'grid', gap: isCard ? '2px' : '6px', minWidth: 0 }}>
+        <div style={{ fontSize: isCard ? '5.4px' : '18px', fontWeight: 700, color: '#1f2937' }}>{title}</div>
+        <div style={{ fontSize: isCard ? '4.2px' : '12px', color: '#6b7280', lineHeight: 1.45 }}>
+          {description}
+        </div>
+        {expanded ? (
+          <div style={{ display: 'grid', gap: isCard ? '2px' : '6px', marginTop: isCard ? '2px' : '8px' }}>
+            <div style={{ height: isCard ? '3px' : '8px', borderRadius: '999px', background: '#e5e7eb', width: '92%' }} />
+            <div style={{ height: isCard ? '3px' : '8px', borderRadius: '999px', background: '#edf2f7', width: '78%' }} />
+          </div>
+        ) : null}
+      </div>
+      <div style={{ fontSize: isCard ? '8px' : '18px', color: '#111827', lineHeight: 1 }}>{'->'}</div>
+    </div>
+  );
+}
+
+function PreviewFeatureCard({
+  mode,
+  icon,
+  title,
+  description,
+}: {
+  mode: PreviewSurface;
+  icon: 'burger' | 'cutlery' | 'open';
+  title: string;
+  description: string;
+}) {
+  const isCard = mode === 'card';
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: isCard ? '4px' : '10px',
+        padding: isCard ? '10px 6px' : '20px 16px',
+        borderRadius: isCard ? '8px' : '14px',
+        border: '1px solid #d8dfe7',
+        background: '#ffffff',
+      }}
+    >
+      <MenuPreviewIcon kind={icon} mode={mode} />
+      <div style={{ fontSize: isCard ? '5.2px' : '13px', fontWeight: 700, color: '#1f2937' }}>{title}</div>
+      <div style={{ fontSize: isCard ? '4.2px' : '11px', color: '#6b7280', textAlign: 'center' }}>{description}</div>
+    </div>
+  );
+}
+
+function renderMenuLayoutArtwork(
+  layout: MenuLayoutValue,
+  mode: PreviewSurface,
+  meta: MenuPreviewMeta = MENU_PREVIEW_COPY,
+) {
+  const isCard = mode === 'card';
+  const frameStyle: CSSProperties = {
+    position: 'relative',
+    height: isCard ? '130px' : '500px',
+    borderRadius: isCard ? '18px' : '28px',
+    overflow: 'hidden',
+    border: '1px solid #dbe3ec',
+    background: 'linear-gradient(180deg, #fdfefe 0%, #f7f9fc 100%)',
+    boxShadow: isCard ? '0 12px 26px rgba(15, 23, 42, 0.07)' : '0 30px 90px rgba(15, 23, 42, 0.18)',
+  };
+  const boardStyle: CSSProperties = {
+    position: 'absolute',
+    inset: isCard ? '44px 10px 10px' : '74px 24px 24px',
+    overflow: 'hidden',
+    borderRadius: isCard ? '12px' : '22px',
+    background: '#f3f6f8',
+    border: '1px solid #edf2f6',
+    padding: isCard ? '8px' : '24px',
+  };
+  const heading = (
+    <div style={{ marginBottom: isCard ? '8px' : '18px', textAlign: 'center' }}>
+      <div style={{ fontSize: isCard ? '7px' : '14px', fontWeight: 600, color: '#6b7280', marginBottom: isCard ? '3px' : '8px' }}>
+        {meta.sectionSubtitle}
+      </div>
+      <div style={{ fontSize: isCard ? '10px' : '28px', fontWeight: 700, color: '#1f2937', lineHeight: 1.18 }}>
+        {meta.sectionTitle}
+      </div>
+      {!isCard ? (
+        <div style={{ marginTop: '10px', fontSize: '12px', color: '#6b7280' }}>
+          {meta.sectionDescription}
+        </div>
+      ) : null}
+    </div>
+  );
+
+  switch (layout) {
+    case 'grid':
+      return (
+        <div style={frameStyle}>
+          <MenuPreviewChrome mode={mode} />
+          <div style={boardStyle}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: isCard ? '8px' : '18px', height: '100%' }}>
+              <PreviewImageCard mode={mode} image={MENU_PREVIEW_INTERIOR} title={MENU_PREVIEW_COPY.itemOne} description={MENU_PREVIEW_COPY.itemDescription} ctaLabel={meta.ctaLabel} />
+              <PreviewImageCard mode={mode} image={MENU_PREVIEW_STOREFRONT} title={MENU_PREVIEW_COPY.itemTwo} description={MENU_PREVIEW_COPY.itemDescription} ctaLabel={meta.ctaLabel} />
+              {!isCard ? <PreviewImageCard mode={mode} image={MENU_PREVIEW_INGREDIENTS} title={MENU_PREVIEW_COPY.itemThree} description={MENU_PREVIEW_COPY.itemDescription} ctaLabel={meta.ctaLabel} /> : null}
+              {!isCard ? <PreviewImageCard mode={mode} image={MENU_PREVIEW_STOREFRONT} title={MENU_PREVIEW_COPY.itemFour} description={MENU_PREVIEW_COPY.itemDescription} ctaLabel={meta.ctaLabel} /> : null}
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'list':
+      return (
+        <div style={frameStyle}>
+          <MenuPreviewChrome mode={mode} />
+          <div style={boardStyle}>
+            <div style={{ display: 'grid', gridTemplateColumns: isCard ? 'repeat(2, minmax(0, 1fr))' : '1fr', gap: isCard ? '8px' : '14px', height: '100%', alignContent: 'center' }}>
+              <PreviewListRow mode={mode} title={MENU_PREVIEW_COPY.itemOne} description={MENU_PREVIEW_COPY.itemDescription} ctaLabel={meta.ctaLabel} />
+              <PreviewListRow mode={mode} title={MENU_PREVIEW_COPY.itemTwo} description={MENU_PREVIEW_COPY.itemDescription} ctaLabel={meta.ctaLabel} />
+              {!isCard ? <PreviewListRow mode={mode} title={MENU_PREVIEW_COPY.itemThree} description={MENU_PREVIEW_COPY.itemDescription} ctaLabel={meta.ctaLabel} /> : null}
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'masonry':
+      return (
+        <div style={frameStyle}>
+          <MenuPreviewChrome mode={mode} />
+          <div style={boardStyle}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: isCard ? '8px' : '18px', height: '100%' }}>
+              <PreviewImageCard mode={mode} image={MENU_PREVIEW_INTERIOR} title={MENU_PREVIEW_COPY.itemOne} description={MENU_PREVIEW_COPY.itemDescription} ctaLabel={meta.ctaLabel} overlay style={{ minHeight: isCard ? '100%' : '250px', alignSelf: 'end' }} />
+              <PreviewImageCard mode={mode} image={MENU_PREVIEW_STOREFRONT} title={MENU_PREVIEW_COPY.itemTwo} description={MENU_PREVIEW_COPY.itemDescription} ctaLabel={meta.ctaLabel} overlay style={{ minHeight: isCard ? '100%' : '290px', alignSelf: 'start' }} />
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'carousel':
+      return (
+        <div style={frameStyle}>
+          <MenuPreviewChrome mode={mode} />
+          <div style={boardStyle}>
+            {!isCard ? heading : null}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: isCard ? '6px' : '12px', height: isCard ? '100%' : 'calc(100% - 64px)' }}>
+              {!isCard ? <div style={{ position: 'absolute', left: '8px', top: '50%', width: '34px', height: '34px', borderRadius: '999px', background: '#ffffff', border: '1px solid #dbe3ec', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'translateY(-50%)', boxShadow: '0 14px 30px rgba(15, 23, 42, 0.08)' }}>{'<'}</div> : null}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: isCard ? '6px' : '14px', width: '100%', paddingInline: isCard ? '0' : '34px' }}>
+                {[MENU_PREVIEW_COPY.itemOne, MENU_PREVIEW_COPY.itemTwo, MENU_PREVIEW_COPY.itemThree, MENU_PREVIEW_COPY.itemFour].map((item) => (
+                  <div key={item} style={{ overflow: 'hidden', borderRadius: isCard ? '8px' : '16px', border: '1px solid #d7dee6', background: '#111827', boxShadow: '0 16px 34px rgba(15, 23, 42, 0.12)' }}>
+                    <div style={{ height: isCard ? '52px' : '164px', backgroundImage: `url(${MENU_PREVIEW_DARK_PATTERN})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                    <div style={{ padding: isCard ? '5px 5px 7px' : '14px 14px 16px' }}>
+                      <div style={{ fontSize: isCard ? '5px' : '14px', fontWeight: 700, color: '#ffffff', marginBottom: isCard ? '2px' : '4px' }}>{item.toLowerCase()}</div>
+                      <div style={{ fontSize: isCard ? '4px' : '11px', color: 'rgba(255,255,255,0.72)' }}>{MENU_PREVIEW_COPY.itemDescription}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {!isCard ? <div style={{ position: 'absolute', right: '8px', top: '50%', width: '34px', height: '34px', borderRadius: '999px', background: '#ffffff', border: '1px solid #dbe3ec', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'translateY(-50%)', boxShadow: '0 14px 30px rgba(15, 23, 42, 0.08)' }}>{'>'}</div> : null}
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'tabs':
+      return (
+        <div style={frameStyle}>
+          <MenuPreviewChrome mode={mode} />
+          <div style={{ ...boardStyle, display: 'grid', gridTemplateColumns: isCard ? '1.05fr 1fr' : '1.1fr 0.95fr', gap: isCard ? '10px' : '34px', alignItems: 'center' }}>
+            <div style={{ display: 'grid', gap: isCard ? '4px' : '12px' }}>
+              <div style={{ fontSize: isCard ? '8px' : '34px', fontWeight: 700, color: '#27272a', lineHeight: 1.14, maxWidth: isCard ? '14ch' : '12ch' }}>Order directly from our website</div>
+              <div style={{ fontSize: isCard ? '4.6px' : '13px', color: '#52525b', lineHeight: 1.55, maxWidth: isCard ? '20ch' : '32ch' }}>Save on fees, keep service direct, and support local business with a faster ordering flow.</div>
+            </div>
+            <div style={{ display: 'grid', gap: isCard ? '6px' : '12px' }}>
+              <PreviewStackRow mode={mode} title="Popular plates" description="Switch between signature dishes and category highlights." />
+              <PreviewStackRow mode={mode} title="Family meals" description="Category tabs can guide guests into grouped menu collections." />
+              <PreviewStackRow mode={mode} title="Desserts" description="Each tab keeps content compact but easy to scan." />
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'accordion':
+      return (
+        <div style={frameStyle}>
+          <MenuPreviewChrome mode={mode} />
+          <div style={{ ...boardStyle, display: 'grid', alignContent: 'center', gap: isCard ? '6px' : '12px' }}>
+            <PreviewStackRow mode={mode} title="Lunch specials" description="Collapsed rows keep long menus easier to scan for mobile and desktop." expanded />
+            <PreviewStackRow mode={mode} title="Dinner selections" description="Guests can expand each menu group only when they need it." />
+            <PreviewStackRow mode={mode} title="Beverages" description="A compact way to organize longer category lists." />
+          </div>
+        </div>
+      );
+
+    case 'two-column':
+      return (
+        <div style={frameStyle}>
+          <MenuPreviewChrome mode={mode} />
+          <div style={boardStyle}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: isCard ? '8px' : '18px', height: '100%' }}>
+              <PreviewImageCard mode={mode} image={MENU_PREVIEW_INTERIOR} title={MENU_PREVIEW_COPY.itemOne} description={MENU_PREVIEW_COPY.itemDescription} ctaLabel={meta.ctaLabel} />
+              <PreviewImageCard mode={mode} image={MENU_PREVIEW_STOREFRONT} title={MENU_PREVIEW_COPY.itemTwo} description={MENU_PREVIEW_COPY.itemDescription} ctaLabel={meta.ctaLabel} />
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'single-column':
+      return (
+        <div style={frameStyle}>
+          <MenuPreviewChrome mode={mode} />
+          <div style={boardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isCard ? '8px' : '18px', height: '100%' }}>
+              <div style={{ width: isCard ? '36%' : '190px' }}>
+                <PreviewImageCard mode={mode} image={MENU_PREVIEW_INGREDIENTS} title={MENU_PREVIEW_COPY.itemOne} description={MENU_PREVIEW_COPY.itemDescription} ctaLabel={meta.ctaLabel} />
+              </div>
+              <div style={{ width: isCard ? '36%' : '190px', marginTop: isCard ? '4px' : '26px' }}>
+                <PreviewImageCard mode={mode} image={MENU_PREVIEW_INTERIOR} title={MENU_PREVIEW_COPY.itemTwo} description={MENU_PREVIEW_COPY.itemDescription} ctaLabel={meta.ctaLabel} />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'featured-grid':
+      return (
+        <div style={frameStyle}>
+          <MenuPreviewChrome mode={mode} />
+          <div style={boardStyle}>
+            {!isCard ? heading : null}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: isCard ? '8px' : '18px', alignItems: 'stretch', height: isCard ? '100%' : 'calc(100% - 68px)' }}>
+              <PreviewFeatureCard mode={mode} icon="burger" title="Menu item one" description="Lorem ipsum dolor sit amet" />
+              <PreviewFeatureCard mode={mode} icon="cutlery" title="Menu item two" description="Lorem ipsum dolor sit amet" />
+              <PreviewFeatureCard mode={mode} icon="open" title="Menu item three" description="Lorem ipsum dolor sit amet" />
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'minimal':
+    default:
+      return (
+        <div style={frameStyle}>
+          <MenuPreviewChrome mode={mode} />
+          <div style={boardStyle}>
+            {!isCard ? heading : null}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: isCard ? '8px' : '18px', alignItems: 'start', paddingTop: isCard ? '8px' : '12px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <MenuPreviewIcon kind="burger" mode={mode} />
+                <div style={{ marginTop: isCard ? '4px' : '10px', fontSize: isCard ? '5.2px' : '14px', fontWeight: 700, color: '#1f2937' }}>Menu item one</div>
+                <div style={{ marginTop: isCard ? '2px' : '6px', fontSize: isCard ? '4.2px' : '11px', color: '#6b7280' }}>Lorem ipsum dolor sit amet</div>
+              </div>
+              <div style={{ textAlign: 'center', borderLeft: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb' }}>
+                <MenuPreviewIcon kind="open" mode={mode} />
+                <div style={{ marginTop: isCard ? '4px' : '10px', fontSize: isCard ? '5.2px' : '14px', fontWeight: 700, color: '#1f2937' }}>Menu item two</div>
+                <div style={{ marginTop: isCard ? '2px' : '6px', fontSize: isCard ? '4.2px' : '11px', color: '#6b7280' }}>Lorem ipsum dolor sit amet</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <MenuPreviewIcon kind="cutlery" mode={mode} />
+                <div style={{ marginTop: isCard ? '4px' : '10px', fontSize: isCard ? '5.2px' : '14px', fontWeight: 700, color: '#1f2937' }}>Menu item three</div>
+                <div style={{ marginTop: isCard ? '2px' : '6px', fontSize: isCard ? '4.2px' : '11px', color: '#6b7280' }}>Lorem ipsum dolor sit amet</div>
+              </div>
+            </div>
+            {!isCard ? <div style={{ height: '1px', background: '#d8dfe7', marginTop: '28px' }} /> : null}
+          </div>
+        </div>
+      );
+  }
 }
 
 export default function MenuSettingsForm({ pageId, templateId, isNewSection }: MenuSettingsFormProps) {
@@ -57,7 +962,7 @@ export default function MenuSettingsForm({ pageId, templateId, isNewSection }: M
 
   // Gallery modal state
   const [showGalleryModal, setShowGalleryModal] = useState(false);
-  const [currentMediaField, setCurrentMediaField] = useState<MediaFieldType | null>(null);
+  const [currentMediaField, setCurrentMediaField] = useState<MenuMediaField | null>(null);
 
   // Get restaurant ID and other params from URL
   const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
@@ -79,52 +984,40 @@ export default function MenuSettingsForm({ pageId, templateId, isNewSection }: M
     );
   }
 
-  // Layout options
-  const layoutOptions = [
-    { value: 'grid', name: 'Grid', description: 'Grid layout with cards' },
-    { value: 'list', name: 'List', description: 'Simple list layout' },
-    { value: 'masonry', name: 'Masonry', description: 'Pinterest-style masonry' },
-    { value: 'carousel', name: 'Carousel', description: 'Carousel/slider layout' },
-    { value: 'tabs', name: 'Tabs', description: 'Tabbed categories' },
-    { value: 'accordion', name: 'Accordion', description: 'Collapsible categories' },
-    { value: 'two-column', name: 'Two Column', description: 'Two-column layout' },
-    { value: 'single-column', name: 'Single Column', description: 'Single column centered' },
-    { value: 'featured-grid', name: 'Featured Grid', description: 'Featured items in grid' },
-    { value: 'minimal', name: 'Minimal', description: 'Minimal text-only layout' },
-  ];
-
   // Initialize form config when config is loaded or for new sections
   useEffect(() => {
     if (isNewSection && !formConfig) {
       // For new sections, use default empty config
-      setFormConfig({
-        ...sectionStyleDefaults,
-        title: '',
-        subtitle: '',
-        description: '',
-        layout: 'grid',
-        bgColor: '#ffffff',
-        textColor: '#000000',
-        accentColor: '#3b82f6',
-        cardBgColor: '#f9fafb',
-        textAlign: 'center',
-        paddingTop: '4rem',
-        paddingBottom: '4rem',
-        columns: 3,
-        showPrices: true,
-        showImages: true,
-        showDescriptions: true,
-        showDietaryInfo: true,
-        showCategoryIcons: false,
-        categoryLayout: 'tabs',
-        contentMaxWidth: '1200px',
-        enableSearch: false,
-        enableFilters: false,
-        categories: [],
-        featuredItems: [],
-      });
+      setFormConfig(
+        hydrateFeaturedItems({
+          ...sectionStyleDefaults,
+          title: '',
+          subtitle: '',
+          description: '',
+          layout: 'grid',
+          bgColor: '#ffffff',
+          textColor: '#000000',
+          accentColor: '#3b82f6',
+          cardBgColor: '#f9fafb',
+          textAlign: 'center',
+          paddingTop: '4rem',
+          paddingBottom: '4rem',
+          columns: 3,
+          showPrices: true,
+          showImages: true,
+          showDescriptions: true,
+          showDietaryInfo: true,
+          showCategoryIcons: false,
+          categoryLayout: 'tabs',
+          contentMaxWidth: '1200px',
+          enableSearch: false,
+          enableFilters: false,
+          categories: [],
+          featuredItems: [],
+        }),
+      );
     } else if (config && !formConfig) {
-      setFormConfig({ ...sectionStyleDefaults, ...config });
+      setFormConfig(hydrateFeaturedItems({ ...sectionStyleDefaults, ...config }));
     }
   }, [config, formConfig, isNewSection, sectionStyleDefaults]);
 
@@ -187,19 +1080,17 @@ export default function MenuSettingsForm({ pageId, templateId, isNewSection }: M
 
   const updateConfig = (updates: Partial<MenuConfig>) => {
     if (!formConfig) return;
-    setFormConfig(prev => prev ? { ...prev, ...updates } : null);
+    setFormConfig((prev) =>
+      prev ? hydrateFeaturedItems({ ...prev, ...updates }) : null,
+    );
   };
 
-  const handleLayoutChange = (newLayout: string) => {
+  const handleLayoutChange = (newLayout: MenuLayoutValue) => {
     if (!formConfig) return;
 
-    // Clear media when layout changes
-    setFormConfig(prev => prev ? {
-      ...prev,
-      layout: newLayout as any,
-      headerImage: undefined,
-      backgroundImage: undefined,
-    } : null);
+    setFormConfig((prev) =>
+      prev ? hydrateFeaturedItems({ ...prev, layout: newLayout }) : null,
+    );
   };
 
   const updateCtaButton = (updates: Partial<MenuButton>) => {
@@ -315,29 +1206,10 @@ export default function MenuSettingsForm({ pageId, templateId, isNewSection }: M
   const renderLayoutPreview = () => {
     if (!formConfig) return null;
 
-    const { layout } = formConfig;
-
-    // Simple wireframe preview for each layout
-    const previewStyle = {
-      width: '100%',
-      height: '200px',
-      background: '#f8f9fa',
-      border: '1px solid #e9ecef',
-      borderRadius: '8px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '14px',
-      color: '#6c757d',
-    };
-
-    return (
-      <div style={previewStyle}>
-        <div className="text-center">
-          <div className="text-lg font-semibold mb-2">{(layout || 'grid').charAt(0).toUpperCase() + (layout || 'grid').slice(1)} Layout</div>
-          <div className="text-sm text-gray-500">Wireframe preview of {layout || 'grid'} layout</div>
-        </div>
-      </div>
+    return renderMenuLayoutArtwork(
+      (formConfig.layout || 'grid') as MenuLayoutValue,
+      'modal',
+      getMenuPreviewMeta(formConfig),
     );
   };
 
@@ -369,6 +1241,9 @@ export default function MenuSettingsForm({ pageId, templateId, isNewSection }: M
   }
 
   const error = fetchError || updateError;
+  const activeLayoutOption =
+    MENU_LAYOUT_OPTIONS.find((option) => option.value === (formConfig.layout || 'grid')) ||
+    MENU_LAYOUT_OPTIONS[0];
 
   return (
     <>
@@ -411,16 +1286,17 @@ export default function MenuSettingsForm({ pageId, templateId, isNewSection }: M
       {/* Preview Modal */}
       {showPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
-          <div className="relative z-10 w-full max-w-6xl h-[80vh] flex flex-col rounded-2xl border border-gray-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 flex-shrink-0">
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
+          <div className="relative z-10 flex h-[min(92vh,980px)] w-full max-w-7xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_35px_120px_rgba(15,23,42,0.35)]">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-5 sm:px-6">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Layout Preview</h2>
-                <p className="mt-0.5 text-sm text-gray-600">Wireframe preview of selected layout</p>
+                <h2 className="text-xl font-bold text-slate-900">Menu Layout Preview</h2>
+                <p className="mt-1 text-sm text-slate-600">{activeLayoutOption.name} mockup with polished sample content and spacing.</p>
               </div>
               <button
+                type="button"
                 onClick={() => setShowPreview(false)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
                 aria-label="Close preview"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -428,18 +1304,18 @@ export default function MenuSettingsForm({ pageId, templateId, isNewSection }: M
                 </svg>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-8">
-              <div className="mx-auto max-w-4xl">
+            <div className="flex-1 overflow-y-auto bg-slate-950 p-4 sm:p-6">
+              <div className="mx-auto max-w-[1240px]">
                 {renderLayoutPreview()}
               </div>
-              <div className="mt-6 flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 p-4">
+            </div>
+            <div className="border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
+              <div className="flex items-center gap-2 text-sm text-slate-600">
                 <svg className="h-5 w-5 shrink-0 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <p className="text-sm text-purple-900">
-                  This is a wireframe preview of the selected layout. Configure content and styling to see the full result.
-                </p>
+                Styled preview artwork shows how this menu layout will feel before you start tuning content and colors.
               </div>
             </div>
           </div>
@@ -474,29 +1350,38 @@ export default function MenuSettingsForm({ pageId, templateId, isNewSection }: M
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {layoutOptions.map((option) => (
-              <div
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {MENU_LAYOUT_OPTIONS.map((option) => (
+              <button
+                type="button"
                 key={option.value}
                 onClick={() => handleLayoutChange(option.value)}
-                className={`group cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                className={`group rounded-[22px] border p-4 text-left transition-all ${
                   formConfig.layout === option.value
-                    ? 'border-purple-500 bg-purple-50 shadow-sm'
+                    ? 'border-purple-500 bg-purple-50/70 shadow-[0_18px_45px_rgba(168,85,247,0.12)]'
                     : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'
                 }`}
+                aria-pressed={formConfig.layout === option.value}
               >
-                <div className="mb-2 overflow-hidden rounded border border-gray-200 bg-gray-50">
-                  <div className="h-16 w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-xs text-gray-500">
-                    {option.name}
+                <div className="mb-4">
+                  {renderMenuLayoutArtwork(option.value, 'card')}
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className={`text-[1.05rem] font-semibold leading-tight ${
+                      formConfig.layout === option.value ? 'text-purple-700' : 'text-gray-900'
+                    }`}>
+                      {option.name}
+                    </div>
+                    <div className="mt-1 text-sm leading-6 text-gray-500">{option.description}</div>
                   </div>
+                  {formConfig.layout === option.value ? (
+                    <span className="inline-flex shrink-0 rounded-full bg-purple-600 px-3 py-1 text-xs font-semibold text-white">
+                      Active
+                    </span>
+                  ) : null}
                 </div>
-                <div className={`text-sm font-medium ${
-                  formConfig.layout === option.value ? 'text-purple-700' : 'text-gray-900'
-                }`}>
-                  {option.name}
-                </div>
-                <div className="mt-0.5 text-xs text-gray-500">{option.description}</div>
-              </div>
+              </button>
             ))}
           </div>
         </div>

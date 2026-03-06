@@ -1,20 +1,21 @@
 /**
  * Hero Component
  *
- * Renders hero section based on configuration with multiple layout options
+ * Renders hero section based on configuration with multiple layout options.
  */
 
 'use client';
 
-import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { HeroConfig } from '@/types/hero.types';
 import styles from './hero.module.scss';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
+import { getHeroLayoutMediaCapabilities } from '@/lib/hero-layout-media';
 import { getSectionTypographyStyles } from '@/lib/section-style';
 
 interface HeroProps extends Partial<HeroConfig> {
-  // Allow component to accept all HeroConfig properties as optional
   restaurant_id?: string;
+  previewMode?: 'desktop' | 'mobile';
 }
 
 export default function Hero(props: HeroProps) {
@@ -40,6 +41,7 @@ export default function Hero(props: HeroProps) {
     showScrollIndicator = false,
     contentMaxWidth = '1200px',
     restaurant_id,
+    previewMode,
     is_custom,
     titleFontFamily,
     titleFontSize,
@@ -55,20 +57,19 @@ export default function Hero(props: HeroProps) {
     bodyColor,
   } = props;
 
-  // Debug logging in development
   if (process.env.NODE_ENV === 'development') {
     console.log('Hero component props:', {
       layout,
-      hasImage: !!image,
+      hasImage: Boolean(image),
       imageUrl: image?.url,
-      hasBackgroundImage: !!backgroundImage,
+      hasBackgroundImage: Boolean(backgroundImage),
       backgroundImageUrl: backgroundImage,
-      hasVideo: !!videoUrl,
-      videoUrl
+      hasVideo: Boolean(videoUrl),
+      videoUrl,
+      previewMode,
     });
   }
 
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const globalStyleEndpoint = restaurant_id
     ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurant_id)}`
     : '/api/global-style-config';
@@ -95,12 +96,17 @@ export default function Hero(props: HeroProps) {
     globalStyles,
   );
 
-  // Scroll indicator handler
   const scrollToContent = () => {
     window.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
   };
 
-  // Dynamic styles using CSS variables
+  const mediaCapabilities = getHeroLayoutMediaCapabilities(layout);
+  const activeImage = mediaCapabilities.showHeroImage ? image : undefined;
+  const activeVideoUrl = mediaCapabilities.showBackgroundVideo ? videoUrl : undefined;
+  const allowBackgroundFallback = layout === 'video-background' && !activeVideoUrl;
+  const activeBackgroundImage =
+    mediaCapabilities.showBackgroundImage || allowBackgroundFallback ? backgroundImage : undefined;
+
   const heroStyle = {
     '--hero-bg-color': bgColor,
     '--hero-text-color': textColor,
@@ -111,14 +117,14 @@ export default function Hero(props: HeroProps) {
     '--hero-min-height': minHeight,
     '--hero-content-max-width': contentMaxWidth,
     '--hero-text-align': textAlign,
-  } as React.CSSProperties;
+    '--hero-screen-height':
+      previewMode === 'mobile' ? '780px' : previewMode === 'desktop' ? '720px' : '100svh',
+  } as CSSProperties;
 
-  // Add background image if provided
-  if (backgroundImage && !videoUrl) {
-    heroStyle.backgroundImage = `url(${backgroundImage})`;
+  if (activeBackgroundImage && !activeVideoUrl) {
+    heroStyle.backgroundImage = `url(${activeBackgroundImage})`;
   }
 
-  // Render buttons
   const renderButtons = () => {
     if (!primaryButton && !secondaryButton) return null;
 
@@ -126,7 +132,7 @@ export default function Hero(props: HeroProps) {
       <div className={styles.buttonGroup}>
         {primaryButton && (
           <a
-            href={primaryButton.href}
+            href={primaryButton.href || '#'}
             className={`${styles.button} ${styles.buttonPrimary} ${
               primaryButton.variant === 'outline' ? styles.buttonOutline : ''
             } ${primaryButton.variant === 'secondary' ? styles.buttonSecondary : ''}`}
@@ -141,7 +147,7 @@ export default function Hero(props: HeroProps) {
         )}
         {secondaryButton && (
           <a
-            href={secondaryButton.href}
+            href={secondaryButton.href || '#'}
             className={`${styles.button} ${styles.buttonSecondary} ${
               secondaryButton.variant === 'outline' ? styles.buttonOutline : ''
             }`}
@@ -158,111 +164,96 @@ export default function Hero(props: HeroProps) {
     );
   };
 
-  // Render content (headline, subheadline, description, buttons)
   const renderContent = (additionalClass?: string) => (
     <div className={`${styles.content} ${additionalClass || ''}`}>
-      {subheadline && <p className={styles.subheadline} style={subtitleStyle}>{subheadline}</p>}
-      <h1 className={styles.headline} style={titleStyle}>{headline}</h1>
-      {description && <p className={styles.description} style={bodyStyle}>{description}</p>}
+      {subheadline ? (
+        <p className={styles.subheadline} style={subtitleStyle}>
+          {subheadline}
+        </p>
+      ) : null}
+      <h1 className={styles.headline} style={titleStyle}>
+        {headline}
+      </h1>
+      {description ? (
+        <p className={styles.description} style={bodyStyle}>
+          {description}
+        </p>
+      ) : null}
       {renderButtons()}
     </div>
   );
 
-  // Render image
   const renderImage = () => {
-    if (!image) return null;
+    if (!activeImage) return null;
 
     return (
       <div className={styles.imageContainer}>
         <img
-          src={image.url}
-          alt={image.alt}
+          src={activeImage.url}
+          alt={activeImage.alt}
           className={styles.heroImage}
-          onError={(e) => {
-            console.error('Hero image failed to load:', image.url);
-            console.error('Image error event:', e);
+          onError={(event) => {
+            console.error('Hero image failed to load:', activeImage.url);
+            console.error('Image error event:', event);
           }}
           onLoad={() => {
-            console.log('Hero image loaded successfully:', image.url);
+            console.log('Hero image loaded successfully:', activeImage.url);
           }}
         />
       </div>
     );
   };
 
-  // Render features
   const renderFeatures = () => {
     if (!features || features.length === 0) return null;
 
     return (
       <div className={styles.featuresGrid}>
         {features.map((feature, index) => (
-          <div key={index} className={styles.featureCard}>
-            {feature.icon && (
-              <div className={styles.featureIcon}>{feature.icon}</div>
-            )}
+          <div key={feature.id || index} className={styles.featureCard}>
+            {feature.icon ? <div className={styles.featureIcon}>{feature.icon}</div> : null}
             <h3 className={styles.featureTitle}>{feature.title}</h3>
-            {feature.description && (
+            {feature.description ? (
               <p className={styles.featureDescription}>{feature.description}</p>
-            )}
+            ) : null}
           </div>
         ))}
       </div>
     );
   };
 
-  // Render different layouts
   const renderLayout = () => {
     switch (layout) {
       case 'split':
         return (
           <div className={styles.splitLayout}>
-            <div className={styles.splitContent}>
-              {renderContent(styles.contentLeft)}
-            </div>
-            <div className={styles.splitImage}>
-              {renderImage()}
-            </div>
+            <div className={styles.splitContent}>{renderContent(styles.contentLeft)}</div>
+            <div className={styles.splitImage}>{renderImage()}</div>
           </div>
         );
 
       case 'split-reverse':
         return (
           <div className={styles.splitLayout}>
-            <div className={styles.splitImage}>
-              {renderImage()}
-            </div>
-            <div className={styles.splitContent}>
-              {renderContent(styles.contentLeft)}
-            </div>
+            <div className={styles.splitImage}>{renderImage()}</div>
+            <div className={styles.splitContent}>{renderContent(styles.contentLeft)}</div>
           </div>
         );
 
       case 'minimal':
-        return (
-          <div className={styles.minimalLayout}>
-            {renderContent(styles.contentCentered)}
-          </div>
-        );
+        return <div className={styles.minimalLayout}>{renderContent(styles.contentCentered)}</div>;
 
       case 'video-background':
         return (
           <div className={styles.videoBackgroundLayout}>
-            {videoUrl && (
+            {activeVideoUrl ? (
               <div className={styles.videoContainer}>
-                <video
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className={styles.backgroundVideo}
-                  onLoadedData={() => setIsVideoLoaded(true)}
-                >
-                  <source src={videoUrl} type="video/mp4" />
+                <video autoPlay loop muted playsInline className={styles.backgroundVideo}>
+                  <source src={activeVideoUrl} type="video/mp4" />
                 </video>
                 <div className={styles.videoOverlay} />
               </div>
-            )}
+            ) : null}
             {renderContent(styles.contentCentered)}
           </div>
         );
@@ -270,40 +261,28 @@ export default function Hero(props: HeroProps) {
       case 'side-by-side':
         return (
           <div className={styles.sideBySideLayout}>
-            <div className={styles.sideBySideContent}>
-              {renderContent(styles.contentLeft)}
-            </div>
-            <div className={styles.sideBySideImage}>
-              {renderImage()}
-            </div>
+            <div className={styles.sideBySideContent}>{renderContent(styles.contentLeft)}</div>
+            <div className={styles.sideBySideImage}>{renderImage()}</div>
           </div>
         );
 
       case 'offset':
         return (
           <div className={styles.offsetLayout}>
-            <div className={styles.offsetContent}>
-              {renderContent(styles.contentLeft)}
-            </div>
-            <div className={styles.offsetImage}>
-              {renderImage()}
-            </div>
+            <div className={styles.offsetContent}>{renderContent(styles.contentLeft)}</div>
+            <div className={styles.offsetImage}>{renderImage()}</div>
           </div>
         );
 
       case 'full-height':
-        return (
-          <div className={styles.fullHeightLayout}>
-            {renderContent(styles.contentCentered)}
-          </div>
-        );
+        return <div className={styles.fullHeightLayout}>{renderContent(styles.contentCentered)}</div>;
 
       case 'with-features':
         return (
           <div className={styles.withFeaturesLayout}>
             <div className={styles.mainContent}>
               {renderContent(styles.contentCentered)}
-              {image && renderImage()}
+              {activeImage ? renderImage() : null}
             </div>
             {renderFeatures()}
           </div>
@@ -313,7 +292,7 @@ export default function Hero(props: HeroProps) {
         return (
           <div className={styles.centeredLargeLayout}>
             {renderContent(styles.contentCentered)}
-            {image && renderImage()}
+            {activeImage ? renderImage() : null}
           </div>
         );
 
@@ -322,37 +301,30 @@ export default function Hero(props: HeroProps) {
         return (
           <div className={styles.defaultLayout}>
             {renderContent(styles.contentCentered)}
-            {image && renderImage()}
+            {activeImage ? renderImage() : null}
           </div>
         );
     }
   };
 
-  // Determine hero class based on layout
-  const heroClass = `${styles.hero} ${styles[`hero-${layout}`] || ''} ${
-    backgroundImage ? styles.hasBackground : ''
-  } ${videoUrl ? styles.hasVideo : ''}`;
+  const heroClass = [
+    styles.hero,
+    activeBackgroundImage ? styles.hasBackground : '',
+    activeVideoUrl ? styles.hasVideo : '',
+    previewMode === 'desktop' ? styles.previewDesktop : '',
+    previewMode === 'mobile' ? styles.previewMobile : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <section className={heroClass} style={heroStyle}>
-      <div className={styles.container}>
-        {renderLayout()}
-      </div>
+      {activeBackgroundImage && !activeVideoUrl ? <div className={styles.backgroundOverlay} aria-hidden="true" /> : null}
+      <div className={styles.container}>{renderLayout()}</div>
 
-      {/* Scroll Indicator */}
-      {showScrollIndicator && (
-        <button
-          onClick={scrollToContent}
-          className={styles.scrollIndicator}
-          aria-label="Scroll to content"
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
+      {showScrollIndicator ? (
+        <button onClick={scrollToContent} className={styles.scrollIndicator} aria-label="Scroll to content">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M12 5V19M12 19L19 12M12 19L5 12"
               stroke="currentColor"
@@ -362,7 +334,7 @@ export default function Hero(props: HeroProps) {
             />
           </svg>
         </button>
-      )}
+      ) : null}
     </section>
   );
 }

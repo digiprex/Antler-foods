@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Hero from '@/components/hero';
 import Toast from '@/components/ui/toast';
@@ -21,15 +21,680 @@ import { ImageGalleryModal } from './image-gallery-modal';
 import { useHeroConfig, useUpdateHeroConfig } from '@/hooks/use-hero-config';
 import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import type { HeroConfig, HeroButton, HeroFeature } from '@/types/hero.types';
+import { getHeroLayoutMediaCapabilities } from '@/lib/hero-layout-media';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 
 type MediaFieldType = 'hero_image' | 'background_video' | 'background_image';
+type PreviewViewport = 'desktop' | 'mobile';
 
 interface HeroSettingsFormProps {
   pageId?: string;
   templateId?: string;
   isNewSection?: boolean;
 }
+
+const LAYOUT_OPTIONS = [
+  { value: 'default', name: 'Default', description: 'Standard centered content' },
+  { value: 'centered-large', name: 'Centered Large', description: 'Large centered hero' },
+  { value: 'split', name: 'Split', description: 'Text left, image right' },
+  { value: 'split-reverse', name: 'Split Reverse', description: 'Image left, text right' },
+  { value: 'minimal', name: 'Minimal', description: 'Minimalist centered text' },
+  { value: 'video-background', name: 'Video Background', description: 'Full-screen video background' },
+  { value: 'side-by-side', name: 'Side by Side', description: 'Two equal columns' },
+  { value: 'offset', name: 'Offset', description: 'Offset text with image' },
+  { value: 'full-height', name: 'Full Height', description: 'Full viewport height' },
+  { value: 'with-features', name: 'With Features', description: 'Hero with feature cards' },
+] as const;
+
+const svgToDataUri = (svg: string) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+
+const HERO_PREVIEW_BACKGROUND = svgToDataUri(`
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900' fill='none'>
+  <defs>
+    <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0%' stop-color='#020617'/>
+      <stop offset='48%' stop-color='#1d4ed8'/>
+      <stop offset='100%' stop-color='#f97316'/>
+    </linearGradient>
+    <radialGradient id='glow' cx='0' cy='0' r='1' gradientTransform='translate(1200 180) rotate(128) scale(520 300)'>
+      <stop stop-color='#ffffff' stop-opacity='0.4'/>
+      <stop offset='1' stop-color='#ffffff' stop-opacity='0'/>
+    </radialGradient>
+  </defs>
+  <rect width='1600' height='900' rx='36' fill='url(#bg)'/>
+  <rect x='0' y='0' width='1600' height='900' fill='url(#glow)'/>
+  <g opacity='0.14' stroke='#ffffff'>
+    <path d='M84 760C232 620 356 552 520 538C734 522 826 658 1068 634C1238 618 1364 552 1512 420' stroke-width='28' stroke-linecap='round'/>
+    <path d='M120 254C270 196 414 182 536 216C660 250 762 336 894 360C1058 390 1226 326 1440 150' stroke-width='18' stroke-linecap='round'/>
+  </g>
+  <g opacity='0.9'>
+    <rect x='170' y='170' width='360' height='220' rx='26' fill='#f8fafc' fill-opacity='0.13'/>
+    <rect x='546' y='144' width='240' height='156' rx='22' fill='#f8fafc' fill-opacity='0.16'/>
+    <rect x='1150' y='604' width='212' height='112' rx='22' fill='#f8fafc' fill-opacity='0.16'/>
+  </g>
+</svg>
+`);
+
+const HERO_PREVIEW_IMAGE = svgToDataUri(`
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 900' fill='none'>
+  <defs>
+    <linearGradient id='panel' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0%' stop-color='#0f172a'/>
+      <stop offset='40%' stop-color='#4338ca'/>
+      <stop offset='100%' stop-color='#f59e0b'/>
+    </linearGradient>
+    <radialGradient id='spot' cx='0' cy='0' r='1' gradientTransform='translate(930 160) rotate(142) scale(360 220)'>
+      <stop stop-color='#ffffff' stop-opacity='0.35'/>
+      <stop offset='1' stop-color='#ffffff' stop-opacity='0'/>
+    </radialGradient>
+  </defs>
+  <rect width='1200' height='900' rx='44' fill='url(#panel)'/>
+  <rect width='1200' height='900' rx='44' fill='url(#spot)'/>
+  <g opacity='0.18'>
+    <rect x='70' y='550' width='1060' height='240' rx='34' fill='#ffffff'/>
+    <rect x='98' y='594' width='180' height='120' rx='22' fill='#0f172a'/>
+    <rect x='320' y='598' width='296' height='28' rx='14' fill='#0f172a'/>
+    <rect x='320' y='648' width='436' height='24' rx='12' fill='#0f172a'/>
+  </g>
+  <g opacity='0.82'>
+    <rect x='124' y='128' width='280' height='146' rx='30' fill='#ffffff' fill-opacity='0.12'/>
+    <rect x='440' y='178' width='198' height='16' rx='8' fill='#ffffff' fill-opacity='0.65'/>
+    <rect x='440' y='214' width='288' height='16' rx='8' fill='#ffffff' fill-opacity='0.45'/>
+    <rect x='760' y='132' width='250' height='250' rx='42' fill='#ffffff' fill-opacity='0.14'/>
+  </g>
+</svg>
+`);
+
+const HERO_CARD_SAMPLE_PHOTO = svgToDataUri(`
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900' fill='none'>
+  <defs>
+    <linearGradient id='sky' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0%' stop-color='#1a2540'/>
+      <stop offset='52%' stop-color='#344b7a'/>
+      <stop offset='100%' stop-color='#111827'/>
+    </linearGradient>
+    <linearGradient id='building' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0%' stop-color='#deb27a'/>
+      <stop offset='100%' stop-color='#ad6f34'/>
+    </linearGradient>
+    <linearGradient id='street' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0%' stop-color='#111827'/>
+      <stop offset='100%' stop-color='#020617'/>
+    </linearGradient>
+    <filter id='blur' x='-20%' y='-20%' width='140%' height='140%'>
+      <feGaussianBlur stdDeviation='22'/>
+    </filter>
+  </defs>
+  <rect width='1600' height='900' fill='url(#sky)'/>
+  <rect y='612' width='1600' height='288' fill='url(#street)'/>
+  <rect x='178' y='120' width='1244' height='520' rx='28' fill='url(#building)'/>
+  <rect x='178' y='152' width='1244' height='90' fill='#f4ddbf' fill-opacity='0.68'/>
+  <rect x='248' y='254' width='1104' height='306' rx='20' fill='#ecd7be'/>
+  <rect x='254' y='254' width='1092' height='84' rx='16' fill='#1f2f5d'/>
+  <path d='M322 330H1268L1216 394H376L322 330Z' fill='#203a73'/>
+  <rect x='388' y='394' width='174' height='136' rx='14' fill='#f8d39a'/>
+  <rect x='602' y='394' width='174' height='136' rx='14' fill='#f8d39a'/>
+  <rect x='816' y='394' width='174' height='136' rx='14' fill='#f8d39a'/>
+  <rect x='1030' y='394' width='174' height='136' rx='14' fill='#f8d39a'/>
+  <rect x='1096' y='348' width='112' height='240' rx='14' fill='#1b1b24'/>
+  <rect x='1118' y='378' width='68' height='180' rx='8' fill='#14161f'/>
+  <rect x='430' y='426' width='90' height='70' rx='8' fill='#fff4dc'/>
+  <rect x='644' y='426' width='90' height='70' rx='8' fill='#fff4dc'/>
+  <rect x='858' y='426' width='90' height='70' rx='8' fill='#fff4dc'/>
+  <rect x='1072' y='426' width='90' height='70' rx='8' fill='#fff4dc'/>
+  <g opacity='0.65' filter='url(#blur)'>
+    <circle cx='440' cy='446' r='54' fill='#fff2bf'/>
+    <circle cx='654' cy='446' r='54' fill='#fff2bf'/>
+    <circle cx='868' cy='446' r='54' fill='#fff2bf'/>
+    <circle cx='1082' cy='446' r='54' fill='#fff2bf'/>
+  </g>
+  <rect x='290' y='170' width='850' height='36' rx='18' fill='#0f172a' fill-opacity='0.45'/>
+  <rect x='350' y='178' width='400' height='18' rx='9' fill='#f8fafc' fill-opacity='0.72'/>
+  <rect x='260' y='678' width='1080' height='56' rx='18' fill='#070b14' fill-opacity='0.82'/>
+  <circle cx='338' cy='704' r='24' fill='#111827'/>
+  <circle cx='1238' cy='704' r='24' fill='#111827'/>
+</svg>
+`);
+
+const HERO_CARD_SAMPLE_DISH = svgToDataUri(`
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 900' fill='none'>
+  <defs>
+    <radialGradient id='plate' cx='0' cy='0' r='1' gradientTransform='translate(450 450) rotate(90) scale(310)'>
+      <stop offset='0%' stop-color='#fff7ed'/>
+      <stop offset='100%' stop-color='#e5e7eb'/>
+    </radialGradient>
+  </defs>
+  <rect width='900' height='900' rx='46' fill='#d6d3d1'/>
+  <circle cx='450' cy='450' r='310' fill='url(#plate)'/>
+  <circle cx='450' cy='450' r='248' fill='#f5e7cb'/>
+  <ellipse cx='390' cy='438' rx='126' ry='86' fill='#7c2d12'/>
+  <ellipse cx='520' cy='470' rx='118' ry='90' fill='#a16207'/>
+  <ellipse cx='432' cy='542' rx='104' ry='76' fill='#365314'/>
+  <ellipse cx='506' cy='366' rx='92' ry='66' fill='#dc2626'/>
+  <circle cx='330' cy='354' r='34' fill='#f59e0b'/>
+  <circle cx='590' cy='552' r='32' fill='#f59e0b'/>
+  <circle cx='458' cy='446' r='24' fill='#fafaf9'/>
+</svg>
+`);
+
+const PREVIEW_FEATURES: HeroFeature[] = [
+  { title: 'Fresh ingredients', description: 'Clear hierarchy and visual spacing for feature-heavy hero layouts.' },
+  { title: 'Fast booking flow', description: 'Buttons stay balanced and easy to tap on smaller screens.' },
+  { title: 'Stronger contrast', description: 'Preview backgrounds keep text readable before custom media is selected.' },
+];
+
+const HERO_PREVIEW_COPY = {
+  headline: 'Fresh flavors, warm hospitality',
+  subheadline: 'Authentic dishes prepared daily',
+  description:
+    'Explore signature dishes, reserve a table, and preview how each hero layout introduces your restaurant.',
+  tag: 'Authentic dining',
+  title: 'Fresh flavors, served daily',
+  body: 'Seasonal dishes, warm service, and easy online ordering.',
+  primaryCta: 'View menu',
+  secondaryCta: 'Book table',
+};
+
+const getHeroImageFieldMeta = (layout: HeroConfig['layout'] | undefined) => {
+  switch (layout) {
+    case 'split':
+      return {
+        label: 'Right-side Hero Image',
+        description: 'Upload the image shown on the right side of this split layout.',
+      };
+    case 'split-reverse':
+      return {
+        label: 'Left-side Hero Image',
+        description: 'Upload the image shown on the left side of this split layout.',
+      };
+    case 'side-by-side':
+      return {
+        label: 'Second-column Hero Image',
+        description: 'Upload the image shown in the second column of this layout.',
+      };
+    case 'offset':
+      return {
+        label: 'Offset Hero Image',
+        description: 'Upload the image shown in the offset media panel for this layout.',
+      };
+    case 'with-features':
+      return {
+        label: 'Feature Hero Image',
+        description: 'Upload the supporting image displayed with your content and feature cards.',
+      };
+    default:
+      return {
+        label: 'Hero Image',
+        description: 'Upload the main image used by this layout.',
+      };
+  }
+};
+
+const getMediaSectionIntro = (
+  layout: HeroConfig['layout'] | undefined,
+  mediaFields: ReturnType<typeof getHeroLayoutMediaCapabilities>,
+) => {
+  if (mediaFields.showHeroImage) {
+    return {
+      title: 'Layout-specific Hero Image',
+      description:
+        'This layout uses its own hero image. Upload that image below, while your shared background image stays saved for background-based layouts.',
+    };
+  }
+
+  if (layout === 'video-background') {
+    return {
+      title: 'Video Layout With Shared Fallback',
+      description:
+        'Upload a background video for the full effect. Until then, the shared background image is used as a fallback and stays saved across layout changes.',
+    };
+  }
+
+  return {
+    title: 'Shared Background Image',
+    description:
+      'Your background image is preserved while you switch layouts, so you can compare hero styles without re-uploading it.',
+  };
+};
+
+const getSharedBackgroundMeta = (
+  layout: HeroConfig['layout'] | undefined,
+  mediaFields: ReturnType<typeof getHeroLayoutMediaCapabilities>,
+) => {
+  if (layout === 'video-background') {
+    return {
+      label: 'Shared Background Image',
+      badge: 'Fallback across hero layouts',
+      description:
+        'Used as a fallback until you upload a background video. It also stays ready for your other hero layouts.',
+    };
+  }
+
+  if (mediaFields.showHeroImage) {
+    return {
+      label: 'Shared Background Image',
+      badge: 'Saved for background-based layouts',
+      description:
+        'This layout uses the hero image above. Keep a shared background image here for default, centered, minimal, and full-height layouts.',
+    };
+  }
+
+  return {
+    label: 'Shared Background Image',
+    badge: 'Used in this layout',
+    description: 'This layout uses the shared background image directly.',
+  };
+};
+
+const getPreviewHeroConfig = (config: HeroConfig): HeroConfig => {
+  const layout = config.layout || 'default';
+  const mediaFields = getHeroLayoutMediaCapabilities(layout);
+
+  return {
+    ...config,
+    headline: config.headline?.trim() || HERO_PREVIEW_COPY.headline,
+    subheadline: config.subheadline?.trim() || HERO_PREVIEW_COPY.subheadline,
+    description: config.description?.trim() || HERO_PREVIEW_COPY.description,
+    primaryButton:
+      config.primaryButton ||
+      ({
+        label: HERO_PREVIEW_COPY.primaryCta,
+        href: '#menu',
+        variant: 'primary',
+      } satisfies HeroButton),
+    secondaryButton:
+      config.secondaryButton ||
+      ({
+        label: HERO_PREVIEW_COPY.secondaryCta,
+        href: '#reservations',
+        variant: 'outline',
+      } satisfies HeroButton),
+    image: mediaFields.showHeroImage
+      ? config.image || {
+          url: HERO_PREVIEW_IMAGE,
+          alt: 'Preview hero image',
+        }
+      : undefined,
+    backgroundImage:
+      mediaFields.showBackgroundImage
+        ? config.backgroundImage || HERO_PREVIEW_BACKGROUND
+        : layout === 'video-background' && !config.videoUrl
+          ? HERO_PREVIEW_BACKGROUND
+          : undefined,
+    videoUrl: mediaFields.showBackgroundVideo ? config.videoUrl : undefined,
+    features:
+      layout === 'with-features' && (!config.features || config.features.length === 0)
+        ? PREVIEW_FEATURES
+        : config.features,
+    bgColor: config.bgColor || '#0f172a',
+    textColor:
+      config.textColor ||
+      (mediaFields.showBackgroundImage || layout === 'video-background' || layout === 'full-height'
+        ? '#ffffff'
+        : '#0f172a'),
+    overlayColor: config.overlayColor || '#020617',
+    overlayOpacity:
+      config.overlayOpacity ??
+      (mediaFields.showBackgroundImage || layout === 'video-background' ? 0.48 : 0.18),
+    minHeight:
+      config.minHeight ||
+      (layout === 'minimal' ? '420px' : layout === 'video-background' || layout === 'full-height' ? '680px' : '560px'),
+  };
+};
+
+const previewUsesPlaceholderContent = (config: HeroConfig) => {
+  const layout = config.layout || 'default';
+  const mediaFields = getHeroLayoutMediaCapabilities(layout);
+
+  return Boolean(
+    !config.headline?.trim() ||
+      !config.subheadline?.trim() ||
+      !config.description?.trim() ||
+      (!config.primaryButton && !config.secondaryButton) ||
+      (mediaFields.showHeroImage && !config.image) ||
+      ((mediaFields.showBackgroundImage || layout === 'video-background') &&
+        !config.backgroundImage &&
+        !config.videoUrl) ||
+      (layout === 'with-features' && (!config.features || config.features.length === 0)),
+  );
+};
+
+const renderHeroLayoutCardPreview = (layoutType: string) => {
+  const outerShell: CSSProperties = {
+    position: 'relative',
+    height: '108px',
+    borderRadius: '20px',
+    overflow: 'hidden',
+    padding: '12px',
+    border: '1px solid rgba(148, 163, 184, 0.16)',
+    background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.88)',
+  };
+
+  const innerFrame = (background: string, children: ReactNode, dark = false) => (
+    <div style={outerShell}>
+      <div
+        style={{
+          position: 'relative',
+          height: '100%',
+          borderRadius: '18px',
+          overflow: 'hidden',
+          background,
+          border: dark ? '1px solid rgba(255, 255, 255, 0.18)' : '1px solid rgba(148, 163, 184, 0.15)',
+          boxShadow: dark
+            ? 'inset 0 1px 0 rgba(255, 255, 255, 0.16)'
+            : 'inset 0 1px 0 rgba(255, 255, 255, 0.78)',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+
+  const photoPanel = (style?: CSSProperties) => (
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        backgroundImage: `url(${HERO_CARD_SAMPLE_PHOTO})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        boxShadow: '0 16px 28px rgba(15, 23, 42, 0.18)',
+        ...style,
+      }}
+    />
+  );
+
+  const dishPanel = (style?: CSSProperties) => (
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        borderRadius: '14px',
+        overflow: 'hidden',
+        backgroundImage: `url(${HERO_CARD_SAMPLE_DISH})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        boxShadow: '0 14px 24px rgba(15, 23, 42, 0.14)',
+        ...style,
+      }}
+    />
+  );
+
+  const previewTag = (dark = false) => (
+    <div
+      style={{
+        marginBottom: '4px',
+        fontSize: '5px',
+        fontWeight: 700,
+        letterSpacing: '0.16em',
+        textTransform: 'uppercase',
+        color: dark ? 'rgba(255,255,255,0.82)' : '#6b7280',
+      }}
+    >
+      {HERO_PREVIEW_COPY.tag}
+    </div>
+  );
+
+  const previewTitle = (text: string, dark = false, centered = false) => (
+    <div
+      style={{
+        maxWidth: centered ? '78%' : '100%',
+        fontSize: centered ? '9px' : '8px',
+        fontWeight: 800,
+        lineHeight: 1.2,
+        letterSpacing: '-0.02em',
+        textTransform: 'uppercase',
+        textAlign: centered ? 'center' : 'left',
+        color: dark ? '#ffffff' : '#111827',
+      }}
+    >
+      {text}
+    </div>
+  );
+
+  const previewBody = (dark = false, centered = false) => (
+    <div
+      style={{
+        maxWidth: centered ? '64%' : '86%',
+        fontSize: '5px',
+        fontWeight: 600,
+        lineHeight: 1.35,
+        textAlign: centered ? 'center' : 'left',
+        color: dark ? 'rgba(255,255,255,0.72)' : '#9ca3af',
+      }}
+    >
+      {HERO_PREVIEW_COPY.body}
+    </div>
+  );
+
+  const primaryButton = (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '34px',
+        height: '14px',
+        padding: '0 6px',
+        borderRadius: '3px',
+        background: '#ef4444',
+        color: '#ffffff',
+        fontSize: '4.6px',
+        fontWeight: 800,
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+      }}
+    >
+      {HERO_PREVIEW_COPY.primaryCta}
+    </div>
+  );
+
+  const secondaryButton = (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '26px',
+        height: '14px',
+        padding: '0 5px',
+        borderRadius: '3px',
+        border: '1px solid rgba(255,255,255,0.74)',
+        color: '#ffffff',
+        fontSize: '4.4px',
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+      }}
+    >
+      {HERO_PREVIEW_COPY.secondaryCta}
+    </div>
+  );
+
+  const overlayHero = (title: string, centered = true, darkOverlay = 'linear-gradient(180deg, rgba(15,23,42,0.10) 0%, rgba(15,23,42,0.58) 100%)', showSecondary = true) =>
+    innerFrame(`url(${HERO_CARD_SAMPLE_PHOTO}) center / cover no-repeat`, (
+      <>
+        <div style={{ position: 'absolute', inset: 0, background: darkOverlay }} />
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            display: 'flex',
+            height: '100%',
+            flexDirection: 'column',
+            alignItems: centered ? 'center' : 'flex-start',
+            justifyContent: 'center',
+            gap: '4px',
+            padding: centered ? '14px 16px' : '14px 12px',
+          }}
+        >
+          {previewTag(true)}
+          {previewTitle(title, true, centered)}
+          {previewBody(true, centered)}
+          <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
+            {primaryButton}
+            {showSecondary ? secondaryButton : null}
+          </div>
+        </div>
+      </>
+    ), true);
+
+  const splitCanvas = (leftMedia = false, imageWidth = '42%', offset = false) =>
+    innerFrame('linear-gradient(180deg, #eef2f7 0%, #e5eaf1 100%)', (
+      <div style={{ position: 'relative', display: 'flex', height: '100%', padding: '12px' }}>
+        {!leftMedia ? (
+          <>
+            <div
+              style={{
+                display: 'flex',
+                width: offset ? '52%' : `calc(100% - ${imageWidth} - 12px)`,
+                flexDirection: 'column',
+                justifyContent: 'center',
+                gap: '4px',
+                paddingLeft: '6px',
+              }}
+            >
+              {previewTag(false)}
+              {previewTitle(HERO_PREVIEW_COPY.title, false)}
+              {previewBody(false)}
+              <div style={{ marginTop: '2px' }}>{primaryButton}</div>
+            </div>
+            <div
+              style={{
+                position: offset ? 'absolute' : 'relative',
+                right: offset ? '12px' : undefined,
+                top: offset ? '15px' : undefined,
+                bottom: offset ? '12px' : undefined,
+                width: offset ? imageWidth : imageWidth,
+                marginLeft: offset ? undefined : '12px',
+              }}
+            >
+              {photoPanel({ borderTopLeftRadius: offset ? '8px' : '16px' })}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ width: imageWidth }}>{photoPanel()}</div>
+            <div
+              style={{
+                display: 'flex',
+                width: `calc(100% - ${imageWidth} - 12px)`,
+                flexDirection: 'column',
+                justifyContent: 'center',
+                gap: '4px',
+                marginLeft: '12px',
+                paddingRight: '4px',
+              }}
+            >
+              {previewTag(false)}
+              {previewTitle(HERO_PREVIEW_COPY.title, false)}
+              {previewBody(false)}
+              <div style={{ marginTop: '2px' }}>{primaryButton}</div>
+            </div>
+          </>
+        )}
+      </div>
+    ));
+
+  switch (layoutType) {
+    case 'split':
+      return splitCanvas(false, '40%');
+
+    case 'split-reverse':
+      return splitCanvas(true, '40%');
+
+    case 'video-background':
+      return overlayHero(HERO_PREVIEW_COPY.title, false, 'linear-gradient(90deg, rgba(15,23,42,0.74) 0%, rgba(15,23,42,0.38) 42%, rgba(15,23,42,0.18) 100%)');
+
+    case 'side-by-side':
+      return splitCanvas(false, '44%');
+
+    case 'offset':
+      return splitCanvas(false, '44%', true);
+
+    case 'with-features':
+      return innerFrame('linear-gradient(180deg, #eef2f7 0%, #e5eaf1 100%)', (
+        <div style={{ position: 'relative', display: 'flex', height: '100%', flexDirection: 'column', padding: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+            <div style={{ display: 'flex', width: '52%', flexDirection: 'column', justifyContent: 'center', gap: '4px', paddingLeft: '6px', paddingTop: '8px' }}>
+              {previewTag(false)}
+              {previewTitle(HERO_PREVIEW_COPY.title, false)}
+              {previewBody(false)}
+              <div style={{ marginTop: '2px' }}>{primaryButton}</div>
+            </div>
+            <div style={{ display: 'flex', width: '34%', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ height: '36px' }}>{photoPanel()}</div>
+              <div style={{ height: '38px' }}>{dishPanel()}</div>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px', marginTop: '8px' }}>
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                style={{
+                  height: '18px',
+                  borderRadius: '8px',
+                  background: '#f8fafc',
+                  border: '1px solid rgba(203, 213, 225, 0.72)',
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      ));
+
+    case 'minimal':
+      return overlayHero(HERO_PREVIEW_COPY.title, true, 'linear-gradient(180deg, rgba(15,23,42,0.18) 0%, rgba(15,23,42,0.38) 100%)', false);
+
+    case 'full-height':
+      return innerFrame(`url(${HERO_CARD_SAMPLE_PHOTO}) center / cover no-repeat`, (
+        <>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,23,42,0.14) 0%, rgba(15,23,42,0.5) 100%)' }} />
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 1,
+              display: 'flex',
+              height: '100%',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              padding: '14px 16px',
+            }}
+          >
+            {previewTag(true)}
+            {previewTitle(HERO_PREVIEW_COPY.title, true, true)}
+            {previewBody(true, true)}
+            <div style={{ marginTop: '2px' }}>{primaryButton}</div>
+          </div>
+          <div
+            style={{
+              position: 'absolute',
+              right: '14px',
+              bottom: '12px',
+              width: '7px',
+              height: '7px',
+              borderRadius: 999,
+              background: 'rgba(255,255,255,0.92)',
+            }}
+          />
+        </>
+      ), true);
+
+    case 'centered-large':
+      return overlayHero(HERO_PREVIEW_COPY.title, true, 'linear-gradient(180deg, rgba(15,23,42,0.12) 0%, rgba(15,23,42,0.44) 100%)');
+
+    case 'default':
+    default:
+      return overlayHero(HERO_PREVIEW_COPY.title, true, 'linear-gradient(180deg, rgba(15,23,42,0.2) 0%, rgba(15,23,42,0.5) 100%)');
+  }
+};
 
 export default function HeroSettingsForm({ pageId, templateId, isNewSection }: HeroSettingsFormProps) {
   const router = useRouter();
@@ -40,7 +705,6 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
     config,
     loading,
     error: fetchError,
-    refetch,
   } = useHeroConfig({
     fetchOnMount: !isNewSection,
     restaurantId,
@@ -59,6 +723,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
 
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
+  const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop');
 
   // Gallery modal state
   const [showGalleryModal, setShowGalleryModal] = useState(false);
@@ -76,20 +741,6 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
       </div>
     );
   }
-
-  // Layout options
-  const layoutOptions = [
-    { value: 'default', name: 'Default', description: 'Standard centered content' },
-    { value: 'centered-large', name: 'Centered Large', description: 'Large centered hero' },
-    { value: 'split', name: 'Split', description: 'Text left, image right' },
-    { value: 'split-reverse', name: 'Split Reverse', description: 'Image left, text right' },
-    { value: 'minimal', name: 'Minimal', description: 'Minimalist centered text' },
-    { value: 'video-background', name: 'Video Background', description: 'Full-screen video background' },
-    { value: 'side-by-side', name: 'Side by Side', description: 'Two equal columns' },
-    { value: 'offset', name: 'Offset', description: 'Offset text with image' },
-    { value: 'full-height', name: 'Full Height', description: 'Full viewport height' },
-    { value: 'with-features', name: 'With Features', description: 'Hero with feature cards' },
-  ];
 
   // Initialize form config when config is loaded or for new sections
   useEffect(() => {
@@ -179,14 +830,14 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
   const handleLayoutChange = (newLayout: string) => {
     if (!formConfig) return;
 
-    // Clear all media when layout changes
-    setFormConfig(prev => prev ? {
-      ...prev,
-      layout: newLayout as any,
-      image: undefined,
-      backgroundImage: undefined,
-      videoUrl: undefined,
-    } : null);
+    setFormConfig((prev) =>
+      prev
+        ? {
+            ...prev,
+            layout: newLayout as HeroConfig['layout'],
+          }
+        : null,
+    );
   };
 
   const updatePrimaryButton = (updates: Partial<HeroButton>) => {
@@ -208,7 +859,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
   const addFeature = () => {
     if (!formConfig) return;
     const newFeature: HeroFeature = {
-      icon: '⭐',
+      icon: '*',
       title: 'New Feature',
       description: 'Feature description'
     };
@@ -265,406 +916,6 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
     setCurrentMediaField(null);
   };
 
-  // Determine which media fields to show based on layout
-  const getMediaFieldsForLayout = (layout: string) => {
-    const fields = {
-      showHeroImage: false,
-      showBackgroundVideo: false,
-      showBackgroundImage: false,
-    };
-
-    switch (layout) {
-      case 'split':
-      case 'split-reverse':
-      case 'side-by-side':
-      case 'offset':
-      case 'with-features':
-        // These layouts use a hero image
-        fields.showHeroImage = true;
-        break;
-
-      case 'video-background':
-        // This layout uses background video
-        fields.showBackgroundVideo = true;
-        break;
-
-      case 'minimal':
-      case 'full-height':
-        // These layouts use background image
-        fields.showBackgroundImage = true;
-        break;
-
-      case 'default':
-      case 'centered-large':
-        // Default and centered-large layouts use only background image, no hero image
-        fields.showBackgroundImage = true;
-        break;
-
-      default:
-        // Other layouts can use both hero image and background image
-        fields.showHeroImage = true;
-        fields.showBackgroundImage = true;
-        break;
-    }
-
-    return fields;
-  };
-
-  // Render layout preview with placeholder content
-  const renderLayoutPreview = (layoutType: string) => {
-    const previewStyle = {
-      width: '100%',
-      height: '60px',
-      background: '#f8f9fa',
-      border: '1px solid #e9ecef',
-      borderRadius: '4px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '8px',
-      color: '#6c757d',
-      position: 'relative' as const,
-      overflow: 'hidden' as const,
-    };
-
-    const textBlock = {
-      width: '40%',
-      height: '20px',
-      background: '#dee2e6',
-      borderRadius: '2px',
-      margin: '2px',
-    };
-
-    const imageBlock = {
-      width: '30%',
-      height: '35px',
-      background: '#adb5bd',
-      borderRadius: '2px',
-      margin: '2px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '12px',
-    };
-
-    switch (layoutType) {
-      case 'split':
-        return (
-          <div style={previewStyle}>
-            <div style={textBlock}></div>
-            <div style={imageBlock}>📷</div>
-          </div>
-        );
-      
-      case 'split-reverse':
-        return (
-          <div style={previewStyle}>
-            <div style={imageBlock}>📷</div>
-            <div style={textBlock}></div>
-          </div>
-        );
-      
-      case 'video-background':
-        return (
-          <div style={{...previewStyle, background: '#343a40', color: '#fff'}}>
-            <div style={{position: 'absolute', top: '2px', right: '2px', fontSize: '10px'}}>🎥</div>
-            <div style={{...textBlock, background: 'rgba(255,255,255,0.2)'}}></div>
-          </div>
-        );
-      
-      case 'side-by-side':
-        return (
-          <div style={previewStyle}>
-            <div style={{...textBlock, width: '45%'}}></div>
-            <div style={{...imageBlock, width: '45%'}}>📷</div>
-          </div>
-        );
-      
-      case 'offset':
-        return (
-          <div style={previewStyle}>
-            <div style={{...textBlock, position: 'absolute', left: '5px', top: '10px', width: '35%'}}></div>
-            <div style={{...imageBlock, position: 'absolute', right: '5px', top: '15px', width: '40%'}}>📷</div>
-          </div>
-        );
-      
-      case 'with-features':
-        return (
-          <div style={previewStyle}>
-            <div style={{...textBlock, width: '60%', height: '15px'}}></div>
-            <div style={{display: 'flex', gap: '2px', marginTop: '2px'}}>
-              <div style={{width: '15px', height: '8px', background: '#ffc107', borderRadius: '1px'}}></div>
-              <div style={{width: '15px', height: '8px', background: '#ffc107', borderRadius: '1px'}}></div>
-              <div style={{width: '15px', height: '8px', background: '#ffc107', borderRadius: '1px'}}></div>
-            </div>
-          </div>
-        );
-      
-      case 'minimal':
-        return (
-          <div style={previewStyle}>
-            <div style={{...textBlock, width: '50%', height: '12px'}}></div>
-          </div>
-        );
-      
-      case 'full-height':
-        return (
-          <div style={{...previewStyle, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#fff'}}>
-            <div style={{...textBlock, background: 'rgba(255,255,255,0.3)', width: '50%'}}></div>
-            <div style={{position: 'absolute', bottom: '2px', right: '2px', fontSize: '8px'}}>⬇</div>
-          </div>
-        );
-      
-      case 'centered-large':
-        return (
-          <div style={previewStyle}>
-            <div style={{...textBlock, width: '70%', height: '25px'}}></div>
-          </div>
-        );
-      
-      case 'default':
-      default:
-        return (
-          <div style={previewStyle}>
-            <div style={{...textBlock, width: '60%', height: '18px'}}></div>
-          </div>
-        );
-    }
-  };
-
-  // Render full-size placeholder preview for modal
-  const renderFullLayoutPreview = (layoutType: string) => {
-    if (!formConfig) return null;
-
-    const placeholderStyles = {
-      container: {
-        width: '100%',
-        minHeight: '400px',
-        background: formConfig.bgColor || '#ffffff',
-        color: formConfig.textColor || '#000000',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '3rem 1.5rem',
-        position: 'relative' as const,
-        overflow: 'hidden' as const,
-      },
-      headline: {
-        fontSize: '2.5rem',
-        fontWeight: '700',
-        marginBottom: '1rem',
-        background: '#e2e8f0',
-        height: '3rem',
-        borderRadius: '8px',
-      },
-      subheadline: {
-        fontSize: '1.25rem',
-        marginBottom: '1rem',
-        background: '#e2e8f0',
-        height: '1.5rem',
-        borderRadius: '6px',
-      },
-      description: {
-        fontSize: '1rem',
-        marginBottom: '2rem',
-        background: '#e2e8f0',
-        height: '4rem',
-        borderRadius: '6px',
-      },
-      button: {
-        padding: '0.75rem 2rem',
-        background: '#cbd5e1',
-        borderRadius: '6px',
-        marginRight: '1rem',
-        display: 'inline-block',
-        width: '150px',
-        height: '3rem',
-      },
-      imageBox: {
-        background: 'linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)',
-        borderRadius: '12px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '3rem',
-        color: '#64748b',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-      },
-    };
-
-    const hasContent = formConfig.headline || formConfig.subheadline || formConfig.description;
-
-    // Show actual content if available, otherwise show placeholder
-    if (hasContent) {
-      return <Hero {...formConfig} />;
-    }
-
-    // Show placeholder layout preview
-    switch (layoutType) {
-      case 'split':
-        return (
-          <div style={{...placeholderStyles.container, flexDirection: 'row', gap: '3rem', flexWrap: 'wrap'}}>
-            <div style={{flex: 1, minWidth: '300px'}}>
-              <div style={{...placeholderStyles.headline, width: '80%'}} />
-              <div style={{...placeholderStyles.subheadline, width: '70%'}} />
-              <div style={{...placeholderStyles.description, width: '90%'}} />
-              <div style={{display: 'flex', gap: '1rem', flexWrap: 'wrap'}}>
-                <div style={placeholderStyles.button} />
-                <div style={placeholderStyles.button} />
-              </div>
-            </div>
-            <div style={{...placeholderStyles.imageBox, flex: 1, minWidth: '300px', minHeight: '300px'}}>
-              📷
-            </div>
-          </div>
-        );
-
-      case 'split-reverse':
-        return (
-          <div style={{...placeholderStyles.container, flexDirection: 'row-reverse', gap: '3rem', flexWrap: 'wrap'}}>
-            <div style={{flex: 1, minWidth: '300px'}}>
-              <div style={{...placeholderStyles.headline, width: '80%'}} />
-              <div style={{...placeholderStyles.subheadline, width: '70%'}} />
-              <div style={{...placeholderStyles.description, width: '90%'}} />
-              <div style={{display: 'flex', gap: '1rem', flexWrap: 'wrap'}}>
-                <div style={placeholderStyles.button} />
-                <div style={placeholderStyles.button} />
-              </div>
-            </div>
-            <div style={{...placeholderStyles.imageBox, flex: 1, minWidth: '300px', minHeight: '300px'}}>
-              📷
-            </div>
-          </div>
-        );
-
-      case 'video-background':
-        return (
-          <div style={{...placeholderStyles.container, background: 'linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.4))', color: '#fff', minHeight: '500px'}}>
-            <div style={{position: 'absolute', top: '20px', right: '20px', fontSize: '2rem', opacity: 0.5}}>🎥 Video Background</div>
-            <div style={{textAlign: 'center', maxWidth: '800px'}}>
-              <div style={{...placeholderStyles.headline, background: 'rgba(255,255,255,0.2)', margin: '0 auto 1rem'}} />
-              <div style={{...placeholderStyles.subheadline, background: 'rgba(255,255,255,0.2)', margin: '0 auto 1rem'}} />
-              <div style={{...placeholderStyles.description, background: 'rgba(255,255,255,0.2)', margin: '0 auto 2rem'}} />
-              <div style={{display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap'}}>
-                <div style={{...placeholderStyles.button, background: 'rgba(255,255,255,0.3)'}} />
-                <div style={{...placeholderStyles.button, background: 'rgba(255,255,255,0.3)'}} />
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'side-by-side':
-        return (
-          <div style={{...placeholderStyles.container, gap: '2rem', flexWrap: 'wrap'}}>
-            <div style={{flex: 1, minWidth: '300px'}}>
-              <div style={{...placeholderStyles.headline, width: '90%'}} />
-              <div style={{...placeholderStyles.description, width: '85%'}} />
-              <div style={placeholderStyles.button} />
-            </div>
-            <div style={{...placeholderStyles.imageBox, flex: 1, minWidth: '300px', minHeight: '300px'}}>
-              📷
-            </div>
-          </div>
-        );
-
-      case 'with-features':
-        return (
-          <div style={{...placeholderStyles.container, flexDirection: 'column'}}>
-            <div style={{textAlign: 'center', marginBottom: '3rem', maxWidth: '800px', width: '100%'}}>
-              <div style={{...placeholderStyles.headline, margin: '0 auto 1rem'}} />
-              <div style={{...placeholderStyles.description, margin: '0 auto 2rem'}} />
-              <div style={{display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap'}}>
-                <div style={placeholderStyles.button} />
-                <div style={placeholderStyles.button} />
-              </div>
-            </div>
-            <div style={{display: 'flex', gap: '2rem', width: '100%', maxWidth: '1000px', flexWrap: 'wrap'}}>
-              {[1, 2, 3].map(i => (
-                <div key={i} style={{flex: 1, minWidth: '200px', background: '#fef3c7', padding: '2rem', borderRadius: '12px', textAlign: 'center'}}>
-                  <div style={{fontSize: '2rem', marginBottom: '1rem'}}>✨</div>
-                  <div style={{background: '#fbbf24', height: '1.5rem', borderRadius: '4px', marginBottom: '0.5rem'}} />
-                  <div style={{background: '#fbbf24', height: '3rem', borderRadius: '4px', opacity: 0.6}} />
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 'minimal':
-        return (
-          <div style={{...placeholderStyles.container, minHeight: '300px'}}>
-            <div style={{textAlign: 'center', maxWidth: '600px', width: '100%'}}>
-              <div style={{...placeholderStyles.headline, width: '80%', margin: '0 auto 1rem'}} />
-              <div style={{...placeholderStyles.subheadline, width: '60%', margin: '0 auto 2rem'}} />
-              <div style={{display: 'flex', justifyContent: 'center'}}>
-                <div style={placeholderStyles.button} />
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'full-height':
-        return (
-          <div style={{...placeholderStyles.container, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#fff', minHeight: '600px'}}>
-            <div style={{textAlign: 'center', maxWidth: '800px', width: '100%'}}>
-              <div style={{...placeholderStyles.headline, background: 'rgba(255,255,255,0.2)', margin: '0 auto 1rem'}} />
-              <div style={{...placeholderStyles.subheadline, background: 'rgba(255,255,255,0.2)', margin: '0 auto 1rem'}} />
-              <div style={{...placeholderStyles.description, background: 'rgba(255,255,255,0.2)', margin: '0 auto 2rem'}} />
-              <div style={{display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap'}}>
-                <div style={{...placeholderStyles.button, background: 'rgba(255,255,255,0.3)'}} />
-              </div>
-            </div>
-            <div style={{position: 'absolute', bottom: '30px', fontSize: '2rem'}}>⬇ Scroll Down</div>
-          </div>
-        );
-
-      case 'offset':
-        return (
-          <div style={{...placeholderStyles.container, position: 'relative', minHeight: '450px'}}>
-            <div style={{position: 'absolute', left: '5%', top: '15%', zIndex: 2, maxWidth: '45%', minWidth: '280px'}}>
-              <div style={{...placeholderStyles.headline, width: '90%'}} />
-              <div style={{...placeholderStyles.subheadline, width: '80%'}} />
-              <div style={{...placeholderStyles.description, width: '85%'}} />
-              <div style={placeholderStyles.button} />
-            </div>
-            <div style={{...placeholderStyles.imageBox, position: 'absolute', right: '5%', top: '25%', width: '45%', minWidth: '280px', height: '280px'}}>
-              📷
-            </div>
-          </div>
-        );
-
-      case 'centered-large':
-        return (
-          <div style={{...placeholderStyles.container, minHeight: '500px'}}>
-            <div style={{textAlign: 'center', maxWidth: '900px', width: '100%'}}>
-              <div style={{...placeholderStyles.headline, height: '4rem', margin: '0 auto 1.5rem'}} />
-              <div style={{...placeholderStyles.subheadline, width: '70%', margin: '0 auto 1rem'}} />
-              <div style={{...placeholderStyles.description, width: '85%', margin: '0 auto 2rem'}} />
-              <div style={{display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap'}}>
-                <div style={placeholderStyles.button} />
-                <div style={placeholderStyles.button} />
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'default':
-      default:
-        return (
-          <div style={{...placeholderStyles.container}}>
-            <div style={{textAlign: 'center', maxWidth: '700px', width: '100%'}}>
-              <div style={{...placeholderStyles.headline, margin: '0 auto 1rem'}} />
-              <div style={{...placeholderStyles.subheadline, margin: '0 auto 1rem'}} />
-              <div style={{...placeholderStyles.description, margin: '0 auto 2rem'}} />
-              <div style={{display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap'}}>
-                <div style={placeholderStyles.button} />
-                <div style={placeholderStyles.button} />
-              </div>
-            </div>
-          </div>
-        );
-    }
-  };
 
   if (loading) {
     return (
@@ -689,6 +940,8 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
   }
 
   const error = fetchError || updateError;
+  const previewConfig = getPreviewHeroConfig(formConfig);
+  const previewHasPlaceholders = previewUsesPlaceholderContent(formConfig);
 
   return (
     <>
@@ -756,28 +1009,45 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {layoutOptions.map((option) => (
-              <div
-                key={option.value}
-                onClick={() => handleLayoutChange(option.value)}
-                className={`group cursor-pointer rounded-lg border-2 p-3 transition-all ${
-                  formConfig.layout === option.value
-                    ? 'border-purple-500 bg-purple-50 shadow-sm'
-                    : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="mb-2 overflow-hidden rounded border border-gray-200 bg-gray-50">
-                  {renderLayoutPreview(option.value)}
-                </div>
-                <div className={`text-sm font-medium ${
-                  formConfig.layout === option.value ? 'text-purple-700' : 'text-gray-900'
-                }`}>
-                  {option.name}
-                </div>
-                <div className="mt-0.5 text-xs text-gray-500">{option.description}</div>
-              </div>
-            ))}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {LAYOUT_OPTIONS.map((option) => {
+              const isSelected = formConfig.layout === option.value;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleLayoutChange(option.value)}
+                  aria-pressed={isSelected}
+                  className={`group min-h-[196px] rounded-2xl border p-3 text-left transition-all ${
+                    isSelected
+                      ? 'border-purple-500 bg-purple-50 shadow-[0_18px_38px_rgba(124,58,237,0.14)]'
+                      : 'border-gray-200 bg-white hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)]'
+                  }`}
+                >
+                  <div
+                    className={`mb-4 overflow-hidden rounded-[20px] ${
+                      isSelected ? 'ring-2 ring-purple-200' : ''
+                    }`}
+                  >
+                    {renderHeroLayoutCardPreview(option.value)}
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className={`text-base font-semibold ${isSelected ? 'text-purple-700' : 'text-gray-900'}`}>
+                        {option.name}
+                      </div>
+                      <div className="mt-1 text-sm leading-5 text-gray-500">{option.description}</div>
+                    </div>
+                    {isSelected ? (
+                      <span className="inline-flex h-6 shrink-0 items-center rounded-full bg-purple-600 px-2.5 text-xs font-semibold text-white">
+                        Active
+                      </span>
+                    ) : null}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -864,7 +1134,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                       value={feature.icon || ''}
                       onChange={(e) => updateFeature(index, { icon: e.target.value })}
                       className="w-16 rounded-lg border border-gray-300 bg-white px-3 py-2 text-center text-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                      placeholder="🍽️"
+                      placeholder="Icon"
                     />
                     <input
                       type="text"
@@ -1081,22 +1351,40 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Media Configuration</h2>
-              <p className="text-sm text-gray-600">Add images and videos based on layout</p>
+              <p className="text-sm text-gray-600">Use one shared background image, plus layout-specific hero media where needed</p>
             </div>
           </div>
 
           {(() => {
-            const mediaFields = getMediaFieldsForLayout(formConfig.layout || 'default');
+            const layout = formConfig.layout || 'default';
+            const mediaFields = getHeroLayoutMediaCapabilities(layout);
+            const heroImageMeta = getHeroImageFieldMeta(layout);
+            const mediaIntro = getMediaSectionIntro(layout, mediaFields);
+            const sharedBackgroundMeta = getSharedBackgroundMeta(layout, mediaFields);
 
             return (
               <div className="space-y-6">
-                {/* Hero Image */}
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <svg className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                    </svg>
+                    <div>
+                      <h3 className="text-sm font-semibold text-blue-900">{mediaIntro.title}</h3>
+                      <p className="mt-1 text-sm text-blue-700">
+                        {mediaIntro.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {mediaFields.showHeroImage && (
                   <div>
                     <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                      <span>Hero Image</span>
-                      <span className="text-xs font-normal text-gray-500">Main hero image for your section</span>
+                      <span>{heroImageMeta.label}</span>
+                      <span className="text-xs font-normal text-gray-500">Used in this layout</span>
                     </label>
+                    <p className="mb-3 text-xs text-gray-500">{heroImageMeta.description}</p>
                     {formConfig.image?.url ? (
                       <div className="overflow-hidden rounded-lg border border-gray-200">
                         <img
@@ -1113,7 +1401,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                             </svg>
-                            Change
+                            Change Hero Image
                           </button>
                           <button
                             type="button"
@@ -1139,7 +1427,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                           </svg>
-                          Choose Image from Gallery
+                          Choose Hero Image from Gallery
                         </button>
                       </div>
                     )}
@@ -1164,13 +1452,30 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                   </div>
                 )}
 
-                {/* Background Video */}
                 {mediaFields.showBackgroundVideo && (
                   <div>
+                    {!formConfig.videoUrl && (
+                      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                        <div className="flex items-start gap-3">
+                          <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0 3.75h.007v.008H12v-.008zm8.25-3.75a8.25 8.25 0 11-16.5 0 8.25 8.25 0 0116.5 0z" />
+                          </svg>
+                          <div>
+                            <h3 className="text-sm font-semibold text-amber-900">Add a background video for the full effect</h3>
+                            <p className="mt-1 text-sm text-amber-700">
+                              <span className="font-medium">Video Background</span> is designed for a moving video backdrop. Until you upload a video, the shared background image is used as a fallback.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
                       <span>Background Video</span>
-                      <span className="text-xs font-normal text-gray-500">Video background for your hero section</span>
+                      <span className="text-xs font-normal text-gray-500">Used in this layout</span>
                     </label>
+                    <p className="mb-3 text-xs text-gray-500">
+                      Upload the video shown behind your hero content in this layout.
+                    </p>
                     {formConfig.videoUrl ? (
                       <div className="overflow-hidden rounded-lg border border-gray-200">
                         <video
@@ -1189,7 +1494,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                               <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
                             </svg>
-                            Change Video
+                            Change Background Video
                           </button>
                           <button
                             type="button"
@@ -1216,68 +1521,66 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                             <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
                           </svg>
-                          Choose Video from Gallery
+                          Choose Background Video from Gallery
                         </button>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Background Image */}
-                {mediaFields.showBackgroundImage && (
-                  <div>
-                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                      <span>Background Image</span>
-                      <span className="text-xs font-normal text-gray-500">Background image for your hero section</span>
-                    </label>
-                    {formConfig.backgroundImage ? (
-                      <div className="overflow-hidden rounded-lg border border-gray-200">
-                        <img
-                          src={formConfig.backgroundImage}
-                          alt="Background"
-                          className="h-48 w-full object-cover"
-                        />
-                        <div className="flex gap-2 border-t border-gray-200 bg-gray-50 p-3">
-                          <button
-                            type="button"
-                            onClick={() => openGalleryModal('background_image')}
-                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                          >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                            </svg>
-                            Change
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => updateConfig({ backgroundImage: undefined })}
-                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-                          >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                            </svg>
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="mb-2 text-xs text-gray-500">Recommended: 1200x630px</p>
+                <div>
+                  <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                    <span>{sharedBackgroundMeta.label}</span>
+                    <span className="text-xs font-normal text-gray-500">{sharedBackgroundMeta.badge}</span>
+                  </label>
+                  <p className="mb-3 text-xs text-gray-500">{sharedBackgroundMeta.description}</p>
+                  {formConfig.backgroundImage ? (
+                    <div className="overflow-hidden rounded-lg border border-gray-200">
+                      <img
+                        src={formConfig.backgroundImage}
+                        alt="Background"
+                        className="h-48 w-full object-cover"
+                      />
+                      <div className="flex gap-2 border-t border-gray-200 bg-gray-50 p-3">
                         <button
                           type="button"
                           onClick={() => openGalleryModal('background_image')}
-                          disabled={!restaurantId}
-                          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                         >
-                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                           </svg>
-                          Choose Image from Gallery
+                          Change Shared Background Image
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateConfig({ backgroundImage: undefined })}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                          </svg>
+                          Remove
                         </button>
                       </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="mb-2 text-xs text-gray-500">Recommended: 1200x630px</p>
+                      <button
+                        type="button"
+                        onClick={() => openGalleryModal('background_image')}
+                        disabled={!restaurantId}
+                        className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                        </svg>
+                        Choose Shared Background Image
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })()}
@@ -1464,34 +1767,78 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
       {/* Preview Modal Popup */}
       {showPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
-          <div className="relative z-10 w-full max-w-6xl h-[80vh] flex flex-col rounded-2xl border border-gray-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 flex-shrink-0">
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
+          <div className="relative z-10 flex h-[min(92vh,980px)] w-full max-w-7xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_35px_120px_rgba(15,23,42,0.35)]">
+            <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Live Preview</h2>
-                <p className="mt-0.5 text-sm text-gray-600">Updates in real-time</p>
+                <h2 className="text-xl font-bold text-slate-900">Live Preview</h2>
+                <p className="mt-1 text-sm text-slate-600">Switch between desktop and mobile to verify every hero layout.</p>
               </div>
-              <button
-                onClick={() => setShowPreview(false)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                aria-label="Close preview"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="inline-flex rounded-full bg-slate-100 p-1">
+                  {(['desktop', 'mobile'] as PreviewViewport[]).map((viewport) => (
+                    <button
+                      key={viewport}
+                      type="button"
+                      onClick={() => setPreviewViewport(viewport)}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        previewViewport === viewport
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      {viewport === 'desktop' ? 'Desktop' : 'Mobile'}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(false)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Close preview"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto">
-              <div className="bg-white">
-                <Hero {...formConfig} restaurant_id={restaurantId} />
+            <div className="flex-1 overflow-y-auto bg-slate-950 p-4 sm:p-6">
+              <div
+                className={`mx-auto overflow-hidden border border-white/10 bg-slate-900 shadow-[0_24px_80px_rgba(15,23,42,0.35)] ${
+                  previewViewport === 'mobile'
+                    ? 'max-w-[430px] rounded-[32px]'
+                    : 'max-w-[1240px] rounded-[32px]'
+                }`}
+              >
+                <div className="flex items-center justify-between border-b border-white/10 bg-slate-950/90 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">
+                  <span>{previewViewport === 'mobile' ? 'Phone Preview' : 'Desktop Preview'}</span>
+                  <span>{previewViewport === 'mobile' ? '390 x 780' : '1280 x 720'}</span>
+                </div>
+                <div className="bg-white">
+                  <Hero
+                    {...previewConfig}
+                    restaurant_id={restaurantId}
+                    previewMode={previewViewport}
+                  />
+                </div>
               </div>
-              <div className="sticky bottom-0 border-t border-gray-200 bg-white/95 px-6 py-4 backdrop-blur-sm">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+            </div>
+            <div className="border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
+              <div className="flex flex-col gap-2 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
                   <svg className="h-5 w-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  Live preview updates as you make changes
+                  {formConfig.layout === 'video-background' && !formConfig.videoUrl
+                    ? 'Upload a background video to preview the final motion effect. Until then, the shared background image is shown as a fallback.'
+                    : previewHasPlaceholders
+                      ? 'Sample text or media is shown where this layout would otherwise preview blank.'
+                      : 'Live preview reflects your current hero content and styling changes.'}
+                </div>
+                <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                  {previewViewport === 'mobile' ? 'Mobile responsiveness check' : 'Desktop composition check'}
                 </div>
               </div>
             </div>
@@ -1513,10 +1860,13 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
             ? 'Select Hero Image'
             : currentMediaField === 'background_video'
             ? 'Select Background Video'
-            : 'Select Background Image'
+            : 'Select Shared Background Image'
         }
         description="Choose from your media library or upload new"
       />
     </>
   );
 }
+
+
+

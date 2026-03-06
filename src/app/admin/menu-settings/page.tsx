@@ -48,31 +48,46 @@ export default function MenuSettingsPage() {
   return (
     <DashboardLayout>
       {restaurantId && restaurantName ? (
-        <div className={styles.container}>
-          <div className={styles.singleLayout}>
-            <div className={styles.formSection}>
-              <button
-                onClick={handleBack}
-                className={`${styles.button} ${styles.secondaryButton} ${styles.backButton}`}
-              >
-                ← Back to Page Settings
-              </button>
-              <MenuSettingsForm
-                pageId={pageId || undefined}
-                templateId={templateId}
-                isNewSection={isNewSection}
-              />
-            </div>
+        <div className="min-h-screen bg-gray-50 p-8">
+          <div className="mx-auto max-w-5xl">
+            <button
+              onClick={handleBack}
+              className="mb-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Page Settings
+            </button>
+            <MenuSettingsForm
+              pageId={pageId || undefined}
+              templateId={templateId}
+              isNewSection={isNewSection}
+            />
           </div>
         </div>
       ) : (
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="text-6xl mb-4">🍽️</div>
-            <h2 className="text-xl font-semibold text-[#111827] mb-2">
+          <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-12 text-center shadow-sm">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+              <svg
+                className="h-10 w-10 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                />
+              </svg>
+            </div>
+            <h2 className="mb-2 text-xl font-bold text-gray-900">
               Select a Restaurant
             </h2>
-            <p className="text-[#6b7280] max-w-md">
+            <p className="mx-auto max-w-md text-sm text-gray-600">
               Please add or select a restaurant from the sidebar to configure menu settings.
             </p>
           </div>

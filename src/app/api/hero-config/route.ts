@@ -42,6 +42,7 @@ const GET_HERO_CONFIG = `
       restaurant_id
       template_id
       updated_at
+      order_index
     }
   }
 `;
@@ -67,6 +68,7 @@ const GET_HERO_CONFIG_BY_TEMPLATE = `
       template_id
       updated_at
       page_id
+      order_index
     }
   }
 `;
@@ -422,8 +424,30 @@ export async function POST(request: Request) {
 
     // Step 1 & 2: Mark current template as deleted (ONLY if not adding a new section)
     // When new_section is true, we want to ADD a new hero, not replace the existing one
+    let existingOrderIndex: number | null = null;
     if (!isNewSection) {
       if (templateId) {
+        // Fetch the existing template to get its order_index before deleting
+        const existingTemplate = await graphqlRequest(GET_HERO_CONFIG_BY_TEMPLATE, {
+          restaurant_id: restaurantId,
+          template_id: templateId,
+        });
+
+        if ((existingTemplate as any).templates && (existingTemplate as any).templates.length > 0) {
+          // Store the order_index before deletion - query might not have it, need to fetch separately
+          const orderData = await graphqlRequest(`
+            query GetTemplateOrderIndex($template_id: uuid!) {
+              templates_by_pk(template_id: $template_id) {
+                order_index
+              }
+            }
+          `, { template_id: templateId });
+
+          if ((orderData as any).templates_by_pk) {
+            existingOrderIndex = (orderData as any).templates_by_pk.order_index;
+          }
+        }
+
         await graphqlRequest(MARK_AS_DELETED, {
           template_id: templateId,
         });
@@ -444,6 +468,7 @@ export async function POST(request: Request) {
                   template_id
                   category
                   page_id
+                  order_index
                 }
               }
             `, {
@@ -457,6 +482,7 @@ export async function POST(request: Request) {
         // Mark current template as deleted (if exists)
         if ((currentData as any).templates && (currentData as any).templates.length > 0) {
           const currentTemplate = (currentData as any).templates[0];
+          existingOrderIndex = currentTemplate.order_index;
 
           await graphqlRequest(MARK_AS_DELETED, {
             template_id: currentTemplate.template_id,
@@ -479,7 +505,12 @@ export async function POST(request: Request) {
 
     // Step 3: Calculate order_index - always set a valid number
     let orderIndex: number = 0; // Default to 0
-    if (pageId) {
+
+    // If updating an existing section, preserve its original order_index
+    if (!isNewSection && existingOrderIndex !== null && existingOrderIndex !== undefined) {
+      orderIndex = existingOrderIndex;
+      console.log('[Hero Config POST] Preserving existing order_index:', orderIndex);
+    } else if (pageId) {
       try {
         const maxOrderData = await graphqlRequest(GET_MAX_ORDER_INDEX, {
           restaurant_id: restaurantId,
@@ -493,7 +524,7 @@ export async function POST(request: Request) {
           orderIndex = maxOrder !== null && maxOrder !== undefined ? maxOrder + 1 : 0;
           console.log('[Hero Config POST] New section order_index:', orderIndex, '(max was:', maxOrder, ')');
         } else {
-          // For updates to existing sections, keep the same order (use max order or 0)
+          // For updates to existing sections without preserved order, use max order or 0
           orderIndex = maxOrder !== null && maxOrder !== undefined ? maxOrder : 0;
           console.log('[Hero Config POST] Update section order_index:', orderIndex);
         }

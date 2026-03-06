@@ -319,8 +319,11 @@ export default function PageSettingsSelector() {
       case 'seo':
         return (
           <div style={previewStyle}>
-            <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
-              🔍 SEO Settings
+            <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <svg style={{ width: '20px', height: '20px' }} fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+              </svg>
+              SEO Settings
               <br />
               <small>Meta tags and social sharing configuration</small>
             </div>
@@ -330,7 +333,10 @@ export default function PageSettingsSelector() {
         return (
           <div style={previewStyle}>
             <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
-              🎨 Section Preview
+              <svg className="inline-block w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4 2a2 2 0 00-2 2v11a3 3 0 106 0V4a2 2 0 00-2-2H4zm1 14a1 1 0 100-2 1 1 0 000 2zm5-1.757l4.9-4.9a2 2 0 000-2.828L13.485 5.1a2 2 0 00-2.828 0L10 5.757v8.486zM16 18H9.071l6-6H16a2 2 0 012 2v2a2 2 0 01-2 2z" clipRule="evenodd" />
+              </svg>
+              Section Preview
               <br />
               <small>Configure section to see preview</small>
             </div>
@@ -791,140 +797,171 @@ export default function PageSettingsSelector() {
     }
   };
 
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="inline-flex items-center gap-3 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3.5">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
+            <p className="text-sm font-medium text-gray-700">Loading page settings...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Back Button */}
-          <div className="mb-8">
-            <button
-              onClick={() => {
-                const params = new URLSearchParams();
-                if (restaurantId) params.set('restaurant_id', restaurantId);
-                if (restaurantName) params.set('restaurant_name', restaurantName);
-                router.push(`/admin/pages?${params.toString()}`);
-              }}
-              className="group inline-flex items-center gap-3 text-gray-600 hover:text-indigo-600 transition-all duration-200 text-sm font-medium bg-white px-4 py-2 rounded-xl shadow-sm hover:shadow-md border border-gray-200 hover:border-indigo-200"
-            >
-              <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span>Back to Pages List</span>
-            </button>
-          </div>
-
-          {/* Header Section */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 lg:p-8 mb-8 animate-slide-in-down">
-            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
-              <div className="flex-1">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-3">
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-text mobile-text-center">
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="mx-auto max-w-5xl space-y-6">
+          {/* Page Header */}
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+                <svg
+                  className="h-7 w-7 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <div className="flex items-center gap-3 mb-1">
+                  <h1 className="text-3xl font-bold text-gray-900">
                     {pageNameParam ? `Edit ${pageNameParam}` : 'Edit Page Settings'}
                   </h1>
                   {isHomePage && (
-                    <span className="px-4 py-2 bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700 text-sm font-bold rounded-full border border-purple-200 animate-pulse-slow self-start sm:self-center">
-                      🏠 Home Page
+                    <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded-full border border-purple-200 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                      </svg>
+                      Home Page
                     </span>
                   )}
                 </div>
-                <p className="text-gray-600 text-base lg:text-lg leading-relaxed mobile-text-center">
-                  Manage sections configured for this page. Click on any section to configure it.
-                </p>
+                <p className="mt-1 text-sm text-gray-600">Manage and configure page sections</p>
               </div>
-              
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mobile-full">
-                <button
-                  onClick={togglePublish}
-                  disabled={updatingPublish}
-                  className={`px-6 py-3 rounded-xl transition-all duration-200 flex items-center gap-3 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${
-                    pagePublished
-                      ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700'
-                      : 'bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700'
-                  } disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none`}
-                >
-                  {updatingPublish ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                      Updating...
-                    </>
-                  ) : pagePublished ? (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                      </svg>
-                      Unpublish
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      Publish
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    const params = buildParams();
-                    router.push(`/admin/seo-settings?${params}`);
-                  }}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center gap-3 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  Manage SEO
-                </button>
-                <button
-                  onClick={() => setShowAddSectionModal(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 flex items-center gap-3 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add Section
-                </button>
-              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams();
+                  if (restaurantId) params.set('restaurant_id', restaurantId);
+                  if (restaurantName) params.set('restaurant_name', restaurantName);
+                  router.push(`/admin/pages?${params.toString()}`);
+                }}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
+                title="Back to Pages"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
+              </button>
+              <button
+                onClick={() => {
+                  const params = buildParams();
+                  router.push(`/admin/seo-settings?${params}`);
+                }}
+                className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
+                title="Manage SEO Settings"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                SEO
+              </button>
+              <button
+                onClick={togglePublish}
+                disabled={updatingPublish}
+                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm transition-all ${
+                  pagePublished
+                    ? 'border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
+                    : 'border border-purple-200 bg-white text-purple-700 hover:border-purple-300 hover:bg-purple-50'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                title={pagePublished ? 'Unpublish page' : 'Publish page'}
+              >
+                {updatingPublish ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+                    Updating...
+                  </>
+                ) : pagePublished ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                    </svg>
+                    Unpublish
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Publish
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setShowAddSectionModal(true)}
+                className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-purple-700"
+                title="Add Section"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Section
+              </button>
             </div>
           </div>
 
           {/* Page Information Settings */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-6">
-            <div className="flex items-center justify-between mb-6">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm mb-6">
+            <div className="mb-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">Page Information</h3>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Page Information</h3>
+                  <p className="mt-0.5 text-sm text-gray-600">Basic page details and URL</p>
+                </div>
               </div>
               {!editingPageInfo ? (
                 <button
                   onClick={() => setEditingPageInfo(true)}
-                  className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center gap-2 font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                  className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                   </svg>
                   Edit
                 </button>
               ) : (
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <button
                     onClick={() => {
                       setEditingPageInfo(false);
                       fetchPageAndSections();
                     }}
                     disabled={updatingPageInfo}
-                    className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all duration-200 disabled:opacity-50 font-medium"
+                    className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSavePageInfo}
                     disabled={updatingPageInfo}
-                    className="px-4 py-2 text-sm bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 font-semibold shadow-md hover:shadow-lg"
+                    className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-purple-700 disabled:opacity-50"
                   >
                     {updatingPageInfo ? (
                       <>
@@ -933,7 +970,7 @@ export default function PageSettingsSelector() {
                       </>
                     ) : (
                       <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                         Save
@@ -944,55 +981,57 @@ export default function PageSettingsSelector() {
               )}
             </div>
             {!editingPageInfo ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wide">Page Name</label>
-                  <div className="text-lg text-gray-900 font-medium bg-gray-50 px-4 py-3 rounded-xl border border-gray-200">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-900">Page Name</label>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900">
                     {pageName || 'Not set'}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700 uppercase tracking-wide">URL Slug</label>
-                  <div className="text-lg text-gray-900 font-mono bg-gray-50 px-4 py-3 rounded-xl border border-gray-200">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-900">URL Slug</label>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 font-mono text-sm text-gray-900">
                     /{pageSlug || 'not-set'}
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label htmlFor="page-name-input" className="block text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                    Page Name *
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="page-name-input" className="mb-2 block">
+                    <span className="text-sm font-semibold text-gray-900">Page Name</span>
+                    <span className="mt-0.5 block text-xs text-gray-600">Display name of the page</span>
                   </label>
                   <input
                     id="page-name-input"
                     type="text"
                     value={pageName}
                     onChange={(e) => setPageName(e.target.value)}
-                    className="w-full px-4 py-3 text-lg border border-gray-300 rounded-xl bg-gray-100 cursor-not-allowed focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full rounded-lg border border-gray-300 bg-gray-100 px-4 py-2.5 text-sm transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500 cursor-not-allowed"
                     placeholder="About Us"
                     required
                     disabled
                   />
                 </div>
-                <div className="space-y-2">
-                  <label htmlFor="page-slug-input" className="block text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                    URL Slug *
+                <div>
+                  <label htmlFor="page-slug-input" className="mb-2 block">
+                    <span className="text-sm font-semibold text-gray-900">URL Slug</span>
+                    <span className="mt-0.5 block text-xs text-gray-600">Appears in the page URL</span>
                   </label>
-                  <div className="flex items-center border border-gray-300 rounded-xl bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all duration-200">
-                    <span className="px-4 text-lg text-gray-500 border-r border-gray-300 font-mono">/</span>
+                  <div className="flex items-center rounded-lg border border-gray-300 bg-white transition-all focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500">
+                    <span className="border-r border-gray-300 px-3 font-mono text-sm text-gray-500">/</span>
                     <input
                       id="page-slug-input"
                       type="text"
                       value={pageSlug}
                       onChange={(e) => setPageSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                      className="flex-1 px-4 py-3 text-lg focus:outline-none font-mono"
+                      className="flex-1 px-4 py-2.5 font-mono text-sm focus:outline-none"
                       placeholder="about-us"
                       pattern="[a-z0-9-]+"
                       required
                     />
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="mt-1 text-xs text-gray-500">
                     Only lowercase letters, numbers, and hyphens
                   </p>
                 </div>
@@ -1001,111 +1040,91 @@ export default function PageSettingsSelector() {
           </div>
 
           {/* Page Visibility Settings */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm mb-6">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Page Visibility</h3>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Page Visibility</h3>
+                <p className="mt-0.5 text-sm text-gray-600">Control where this page appears</p>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-6">
-              <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
+            <div className="flex flex-wrap gap-4">
+              <label className={`flex flex-1 cursor-pointer items-center gap-3 rounded-lg border-2 p-4 transition-all ${
                 !pagePublished
                   ? 'cursor-not-allowed opacity-60 border-gray-200 bg-gray-50'
-                  : 'cursor-pointer border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50'
-              } group`}>
+                  : 'hover:bg-purple-50/50 has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50'
+              }`}>
                 <input
                   type="checkbox"
                   checked={showOnNavbar}
                   onChange={toggleNavbarVisibility}
                   disabled={updatingVisibility || !pagePublished}
-                  className="w-5 h-5 text-purple-600 bg-white border-gray-300 rounded-lg focus:ring-purple-500 focus:ring-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  className="h-4 w-4 border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
-                <span className="text-sm font-semibold text-gray-700 group-hover:text-purple-700 select-none transition-colors duration-200">
-                  Show in Navbar
-                </span>
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-gray-900">Show in Navbar</div>
+                  <div className="text-xs text-gray-600">Display link in navigation menu</div>
+                </div>
               </label>
-              <label className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
+              <label className={`flex flex-1 cursor-pointer items-center gap-3 rounded-lg border-2 p-4 transition-all ${
                 !pagePublished
                   ? 'cursor-not-allowed opacity-60 border-gray-200 bg-gray-50'
-                  : 'cursor-pointer border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50'
-              } group`}>
+                  : 'hover:bg-purple-50/50 has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50'
+              }`}>
                 <input
                   type="checkbox"
                   checked={showOnFooter}
                   onChange={toggleFooterVisibility}
                   disabled={updatingVisibility || !pagePublished}
-                  className="w-5 h-5 text-purple-600 bg-white border-gray-300 rounded-lg focus:ring-purple-500 focus:ring-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  className="h-4 w-4 border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
-                <span className="text-sm font-semibold text-gray-700 group-hover:text-purple-700 select-none transition-colors duration-200">
-                  Show in Footer
-                </span>
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-gray-900">Show in Footer</div>
+                  <div className="text-xs text-gray-600">Display link in footer menu</div>
+                </div>
               </label>
             </div>
-            {!pagePublished ? (
-              <div className="mt-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl text-amber-800 flex items-start gap-3">
-                <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            {!pagePublished && (
+              <div className="mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <svg className="h-5 w-5 shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                 </svg>
                 <div>
-                  <p className="font-semibold text-sm">Publication Required</p>
-                  <p className="text-sm mt-1">
-                    This page must be <strong>published</strong> before it can appear in the navbar or footer.
+                  <h4 className="text-sm font-semibold text-amber-900">Publication Required</h4>
+                  <p className="mt-1 text-sm text-amber-700">
+                    This page must be published before it can appear in the navbar or footer.
                   </p>
                 </div>
               </div>
-            ) : (
-              <p className="text-sm text-gray-600 mt-4 bg-gray-50 p-3 rounded-xl">
-                💡 Control where this page appears in your site navigation
-              </p>
             )}
           </div>
-        </div>
 
-        {loading ? (
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-12">
-            <div className="flex flex-col items-center justify-center space-y-6">
-              <div className="relative">
-                <div className="w-16 h-16 border-4 border-gray-200 rounded-full animate-spin"></div>
-                <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
-              </div>
-              <div className="text-center">
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Loading Page Sections</h3>
-                <p className="text-gray-600">Please wait while we fetch your page configuration...</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Existing Sections */}
-            {existingSectionsData.length > 0 ? (
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">Active Sections</h2>
-                      <p className="text-gray-600">
-                        {existingSectionsData.length} section{existingSectionsData.length !== 1 ? 's' : ''} configured for this page
-                      </p>
-                    </div>
+          {/* Existing Sections */}
+          {existingSectionsData.length > 0 ? (
+              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="mb-6 flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                    <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 6.878V6a2.25 2.25 0 012.25-2.25h7.5A2.25 2.25 0 0118 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 004.5 9v.878m13.5-3A2.25 2.25 0 0119.5 9v.878m0 0a2.246 2.246 0 00-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0121 12v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6c0-.98.626-1.813 1.5-2.122" />
+                    </svg>
                   </div>
-                  <div className="text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-xl font-medium">
-                    Drag to reorder • Click to edit
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Active Sections</h3>
+                    <p className="mt-0.5 text-sm text-gray-600">
+                      {existingSectionsData.length} section{existingSectionsData.length !== 1 ? 's' : ''} configured
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-6">
                   {existingSectionsData.map((section, idx) => (
                     <div
                       key={section.template_id}
-                      className="stagger-item bg-gray-50 border-2 border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-300 group overflow-hidden hover-lift animate-fade-in"
+                      className="stagger-item bg-gray-50 border-2 border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-purple-300 transition-all duration-300 group overflow-hidden hover-lift animate-fade-in"
                       style={{ animationDelay: `${idx * 0.1}s` }}
                     >
                       {/* Section Header */}
@@ -1114,8 +1133,11 @@ export default function PageSettingsSelector() {
                           <div className="flex-1">
                             <div className="flex flex-wrap items-center gap-3 mb-2">
                               <div className="font-bold text-base lg:text-lg text-gray-900">{section.name}</div>
-                              <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 rounded-full font-semibold flex-shrink-0 border border-green-200">
-                                ✓ Active
+                              <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 rounded-full font-semibold flex-shrink-0 border border-purple-200 flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                                Active
                               </span>
                               {(() => {
                                 // Count instances of this section type
@@ -1123,7 +1145,7 @@ export default function PageSettingsSelector() {
                                 if (instanceCount > 1) {
                                   const instanceNumber = existingSectionsData.filter(s => s.category === section.category).findIndex(s => s.template_id === section.template_id) + 1;
                                   return (
-                                    <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 rounded-full font-semibold flex-shrink-0 border border-purple-200">
+                                    <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 rounded-full font-semibold flex-shrink-0 border border-purple-200">
                                       Instance #{instanceNumber}
                                     </span>
                                   );
@@ -1147,7 +1169,7 @@ export default function PageSettingsSelector() {
                                   'Default';
 
                                 return (
-                                  <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 rounded-full font-semibold border border-blue-200">
+                                  <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 rounded-full font-semibold border border-purple-200">
                                     {selectedLayout}
                                   </span>
                                 );
@@ -1189,7 +1211,7 @@ export default function PageSettingsSelector() {
                             </div>
 
                             {/* Order Index Display */}
-                            <div className="text-xs text-gray-700 px-3 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg font-bold border border-indigo-200 text-center min-w-[50px]">
+                            <div className="text-xs text-gray-700 px-3 py-2 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg font-bold border border-purple-200 text-center min-w-[50px]">
                               #{idx + 1}
                             </div>
 
@@ -1202,7 +1224,7 @@ export default function PageSettingsSelector() {
                                   editParams.set('template_id', section.template_id);
                                   router.push(`${section.route}?${editParams.toString()}`);
                                 }}
-                                className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center gap-2 font-semibold shadow-md hover:shadow-lg hover-lift"
+                                className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 flex items-center gap-2 font-semibold shadow-md hover:shadow-lg hover-lift"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1230,7 +1252,10 @@ export default function PageSettingsSelector() {
                       <div className="p-6 bg-gray-50">
                         <div className="mb-4">
                           <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2 uppercase tracking-wide">
-                            <span className="text-lg">👁️</span>
+                            <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                              <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                            </svg>
                             Live Preview
                           </h4>
                           <p className="text-xs text-gray-600 mt-1">How it appears to your customers</p>
@@ -1244,22 +1269,22 @@ export default function PageSettingsSelector() {
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-12">
-                <div className="text-center">
-                  <div className="w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              <div className="flex items-center justify-center min-h-[400px]">
+                <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-12 text-center shadow-sm">
+                  <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+                    <svg className="h-10 w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 6.878V6a2.25 2.25 0 012.25-2.25h7.5A2.25 2.25 0 0118 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 004.5 9v.878m13.5-3A2.25 2.25 0 0119.5 9v.878m0 0a2.246 2.246 0 00-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0121 12v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6c0-.98.626-1.813 1.5-2.122" />
                     </svg>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">No Sections Added Yet</h3>
-                  <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                  <h3 className="mb-2 text-xl font-bold text-gray-900">No Sections Added Yet</h3>
+                  <p className="mx-auto max-w-md mb-6 text-sm text-gray-600">
                     Get started by adding your first section to this page. Choose from our variety of pre-built components.
                   </p>
                   <button
                     onClick={() => setShowAddSectionModal(true)}
-                    className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 flex items-center gap-3 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 mx-auto"
+                    className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-600 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-purple-700"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
                     Add Your First Section
@@ -1267,33 +1292,32 @@ export default function PageSettingsSelector() {
                 </div>
               </div>
             )}
+        </div>
+      </div>
 
-          </>
-        )}
-
-        {/* Add Section Modal */}
+      {/* Add Section Modal */}
         {showAddSectionModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
               {/* Modal Header */}
-              <div className="p-8 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+              <div className="p-6 border-b border-gray-200 bg-white">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                      <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                       </svg>
                     </div>
                     <div>
-                      <h2 className="text-3xl font-bold text-gray-900">Add New Section</h2>
-                      <p className="text-gray-600 mt-1">Choose from our collection of professional section types</p>
+                      <h2 className="text-xl font-bold text-gray-900">Add New Section</h2>
+                      <p className="text-sm text-gray-600 mt-0.5">Choose from available section types</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowAddSectionModal(false)}
-                    className="w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 flex items-center justify-center"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -1301,42 +1325,42 @@ export default function PageSettingsSelector() {
               </div>
 
               {/* Modal Body */}
-              <div className="p-8 overflow-y-auto flex-1 bg-gray-50">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {availableSectionsData.map((section, idx) => (
                     <div
                       key={idx}
-                      className="group bg-white border-2 border-gray-200 rounded-2xl p-6 hover:shadow-xl hover:border-green-400 cursor-pointer transition-all duration-300 transform hover:-translate-y-1"
+                      className="group cursor-pointer rounded-lg border-2 border-gray-200 bg-white p-6 text-left transition-all hover:border-purple-300 hover:bg-purple-50/50"
                       onClick={() => {
                         const params = buildParams();
                         router.push(`${section.route}?${params}&new_section=true`);
                         setShowAddSectionModal(false);
                       }}
                     >
-                      <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-start justify-between gap-3 mb-3">
                         <div className="flex-1">
-                          <div className="font-bold text-lg text-gray-900 mb-2 group-hover:text-green-700 transition-colors duration-200">
+                          <div className="text-sm font-semibold text-gray-900 mb-1">
                             {section.name}
                           </div>
-                          <div className="text-sm text-gray-600 leading-relaxed">
+                          <div className="text-xs text-gray-600 leading-relaxed">
                             {section.description}
                           </div>
                         </div>
-                        <div className="w-10 h-10 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl flex items-center justify-center group-hover:from-green-500 group-hover:to-emerald-600 transition-all duration-200">
-                          <svg className="w-5 h-5 text-green-600 group-hover:text-white transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-100 group-hover:bg-purple-600 transition-colors">
+                          <svg className="h-4 w-4 text-purple-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                           </svg>
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2 mt-4">
+                      <div className="flex flex-wrap gap-1.5">
                         {section.layouts.slice(0, 3).map((layout: string, layoutIdx: number) => (
-                          <span key={layoutIdx} className="text-xs px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full font-medium group-hover:bg-green-100 group-hover:text-green-700 transition-colors duration-200">
+                          <span key={layoutIdx} className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded font-medium">
                             {layout}
                           </span>
                         ))}
                         {section.layouts.length > 3 && (
-                          <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 rounded-full font-medium">
-                            +{section.layouts.length - 3} more
+                          <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded font-medium">
+                            +{section.layouts.length - 3}
                           </span>
                         )}
                       </div>
@@ -1349,7 +1373,7 @@ export default function PageSettingsSelector() {
               <div className="p-6 border-t border-gray-200 bg-white flex justify-end">
                 <button
                   onClick={() => setShowAddSectionModal(false)}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all duration-200 font-medium"
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
                 >
                   Close
                 </button>
@@ -1402,8 +1426,6 @@ export default function PageSettingsSelector() {
             </div>
           </div>
         )}
-
-      </div>
     </DashboardLayout>
   );
 }

@@ -22,7 +22,6 @@ import { useHeroConfig, useUpdateHeroConfig } from '@/hooks/use-hero-config';
 import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import type { HeroConfig, HeroButton, HeroFeature } from '@/types/hero.types';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
-import styles from './hero-settings-form.module.css';
 
 type MediaFieldType = 'hero_image' | 'background_video' | 'background_image';
 
@@ -669,16 +668,22 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
 
   if (loading) {
     return (
-      <div className={styles.container}>
-        <div className={styles.loading}>Loading hero settings...</div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="inline-flex items-center gap-3 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3.5">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
+          <p className="text-sm font-medium text-gray-700">Loading hero settings...</p>
+        </div>
       </div>
     );
   }
 
   if (!formConfig) {
     return (
-      <div className={styles.container}>
-        <div className={styles.loading}>Initializing...</div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="inline-flex items-center gap-3 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3.5">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
+          <p className="text-sm font-medium text-gray-700">Initializing...</p>
+        </div>
       </div>
     );
   }
@@ -686,7 +691,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
   const error = fetchError || updateError;
 
   return (
-    <div className={styles.container}>
+    <>
       {/* Toast Notification */}
       {showToast && (
         <Toast
@@ -696,139 +701,236 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
         />
       )}
 
-      <div className={styles.singleLayout}>
-        {/* Settings Form - Left Side */}
-        <div className={styles.formSection}>
-          <div className={styles.formHeader}>
-            <div>
-              <h1 className={styles.formTitle}>Hero Section Settings</h1>
-              <p className={styles.formSubtitle}>Customize your website hero section</p>
+      {/* Page Header */}
+      <div className="mb-8 flex items-start justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+            <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Hero Section Settings</h1>
+            <p className="mt-1 text-sm text-gray-600">Customize your website hero section</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowPreview(!showPreview)}
+          className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
+          title={showPreview ? 'Hide Preview' : 'Show Live Preview'}
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {showPreview ? 'Hide' : 'Show'} Preview
+        </button>
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+          <svg className="h-5 w-5 shrink-0 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <div>
+            <h3 className="text-sm font-semibold text-red-900">Error</h3>
+            <p className="mt-1 text-sm text-red-700">{error}</p>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Layout Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+              </svg>
             </div>
-            <div className={styles.headerActions}>
-              <button
-                type="button"
-                onClick={() => setShowPreview(!showPreview)}
-                className={styles.previewToggleButton}
-                title={showPreview ? 'Hide Preview' : 'Show Live Preview'}
-              >
-                {showPreview ? '👁️‍🗨️' : '👁️'} {showPreview ? 'Hide' : 'Show'} Preview
-              </button>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Layout Configuration</h2>
+              <p className="text-sm text-gray-600">Choose a hero layout style</p>
             </div>
           </div>
 
-          {error && (
-            <div className={styles.errorMessage}>
-              <span className={styles.errorIcon}>⚠</span>
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className={styles.form}>
-            {/* Layout Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>🎨</span>
-                Layout Configuration
-              </h3>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Layout Type
-                  <span className={styles.labelHint}>Choose a hero layout style</span>
-                </label>
-                <div className={styles.layoutGrid}>
-                  {layoutOptions.map((option) => (
-                    <div
-                      key={option.value}
-                      className={`${styles.layoutOption} ${formConfig.layout === option.value ? styles.selected : ''}`}
-                      onClick={() => handleLayoutChange(option.value)}
-                    >
-                      <div className={styles.layoutPreview}>
-                        {renderLayoutPreview(option.value)}
-                      </div>
-                      <div className={styles.layoutName}>{option.name}</div>
-                      <div className={styles.layoutDescription}>{option.description}</div>
-                    </div>
-                  ))}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {layoutOptions.map((option) => (
+              <div
+                key={option.value}
+                onClick={() => handleLayoutChange(option.value)}
+                className={`group cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                  formConfig.layout === option.value
+                    ? 'border-purple-500 bg-purple-50 shadow-sm'
+                    : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="mb-2 overflow-hidden rounded border border-gray-200 bg-gray-50">
+                  {renderLayoutPreview(option.value)}
                 </div>
+                <div className={`text-sm font-medium ${
+                  formConfig.layout === option.value ? 'text-purple-700' : 'text-gray-900'
+                }`}>
+                  {option.name}
+                </div>
+                <div className="mt-0.5 text-xs text-gray-500">{option.description}</div>
               </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              </svg>
             </div>
-
-            {/* Content Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>📝</span>
-                Content Configuration
-              </h3>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Headline
-                  <span className={styles.labelHint}>Main hero headline</span>
-                </label>
-                <input
-                  type="text"
-                  value={formConfig.headline}
-                  onChange={(e) => updateConfig({ headline: e.target.value })}
-                  className={styles.textInput}
-                  placeholder="Welcome to Our Restaurant"
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Subheadline
-                  <span className={styles.labelHint}>Optional subheadline</span>
-                </label>
-                <input
-                  type="text"
-                  value={formConfig.subheadline || ''}
-                  onChange={(e) => updateConfig({ subheadline: e.target.value })}
-                  className={styles.textInput}
-                  placeholder="Experience culinary excellence"
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Description
-                  <span className={styles.labelHint}>Supporting description text</span>
-                </label>
-                <textarea
-                  value={formConfig.description || ''}
-                  onChange={(e) => updateConfig({ description: e.target.value })}
-                  className={styles.textarea}
-                  placeholder="Discover exceptional dining with fresh ingredients and innovative flavors"
-                  rows={3}
-                />
-              </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Content Configuration</h2>
+              <p className="text-sm text-gray-600">Set headline, subheadline and description</p>
             </div>
+          </div>
 
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>Aa</span>
-                Typography & Buttons
-              </h3>
-              <SectionTypographyControls
-                value={formConfig}
-                onChange={(updates) => updateConfig(updates)}
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                <span>Headline</span>
+                <span className="text-xs font-normal text-gray-500">Main hero headline</span>
+              </label>
+              <input
+                type="text"
+                value={formConfig.headline}
+                onChange={(e) => updateConfig({ headline: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                placeholder="Welcome to Our Restaurant"
               />
             </div>
 
-            {/* Buttons Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>🔘</span>
-                Call-to-Action Buttons
-              </h3>
+            <div>
+              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                <span>Subheadline</span>
+                <span className="text-xs font-normal text-gray-500">Optional subheadline</span>
+              </label>
+              <input
+                type="text"
+                value={formConfig.subheadline || ''}
+                onChange={(e) => updateConfig({ subheadline: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                placeholder="Experience culinary excellence"
+              />
+            </div>
 
-              {/* Primary Button */}
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Primary Button
-                  <span className={styles.labelHint}>Main action button</span>
-                </label>
-                <label className={styles.toggleSwitch}>
+            <div>
+              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                <span>Description</span>
+                <span className="text-xs font-normal text-gray-500">Supporting description text</span>
+              </label>
+              <textarea
+                value={formConfig.description || ''}
+                onChange={(e) => updateConfig({ description: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                placeholder="Discover exceptional dining with fresh ingredients and innovative flavors"
+                rows={3}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Features Section */}
+        {formConfig.layout === 'with-features' && (
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Feature Cards</h2>
+                <p className="text-sm text-gray-600">Highlight key features of your service</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {formConfig.features?.map((feature, index) => (
+                <div key={index} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div className="mb-3 flex gap-2">
+                    <input
+                      type="text"
+                      value={feature.icon || ''}
+                      onChange={(e) => updateFeature(index, { icon: e.target.value })}
+                      className="w-16 rounded-lg border border-gray-300 bg-white px-3 py-2 text-center text-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                      placeholder="🍽️"
+                    />
+                    <input
+                      type="text"
+                      value={feature.title}
+                      onChange={(e) => updateFeature(index, { title: e.target.value })}
+                      className="flex-1 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                      placeholder="Feature Title"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeFeature(index)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                      </svg>
+                      Remove
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={feature.description || ''}
+                    onChange={(e) => updateFeature(index, { description: e.target.value })}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                    placeholder="Feature description"
+                  />
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={addFeature}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-purple-400 hover:bg-purple-50 hover:text-purple-700"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Add Feature
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Buttons Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Call-to-Action Buttons</h2>
+              <p className="text-sm text-gray-600">Configure primary and secondary action buttons</p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {/* Primary Button */}
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Primary Button</label>
+                  <p className="text-xs text-gray-500">Main action button</p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
                   <input
                     type="checkbox"
                     checked={!!formConfig.primaryButton}
@@ -839,51 +941,51 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                         updateConfig({ primaryButton: undefined });
                       }
                     }}
-                    className={styles.toggleInput}
+                    className="peer sr-only"
                   />
-                  <span className={styles.toggleSlider}></span>
+                  <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
                 </label>
               </div>
 
               {formConfig.primaryButton && (
-                <div className={styles.buttonConfigSection}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Button Text
-                      <span className={styles.labelHint}>Button label</span>
+                <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                      <span>Button Text</span>
+                      <span className="text-xs font-normal text-gray-500">Button label</span>
                     </label>
                     <input
                       type="text"
                       value={formConfig.primaryButton.label}
                       onChange={(e) => updatePrimaryButton({ label: e.target.value })}
-                      className={styles.textInput}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                       placeholder="View Menu"
                     />
                   </div>
 
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Button Link
-                      <span className={styles.labelHint}>Where it navigates</span>
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                      <span>Button Link</span>
+                      <span className="text-xs font-normal text-gray-500">Where it navigates</span>
                     </label>
                     <input
                       type="text"
                       value={formConfig.primaryButton.href}
                       onChange={(e) => updatePrimaryButton({ href: e.target.value })}
-                      className={styles.textInput}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                       placeholder="#menu"
                     />
                   </div>
 
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Button Style
-                      <span className={styles.labelHint}>Visual style</span>
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                      <span>Button Style</span>
+                      <span className="text-xs font-normal text-gray-500">Visual style</span>
                     </label>
                     <select
                       value={formConfig.primaryButton.variant || 'primary'}
                       onChange={(e) => updatePrimaryButton({ variant: e.target.value as any })}
-                      className={styles.select}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                     >
                       <option value="primary">Primary</option>
                       <option value="secondary">Secondary</option>
@@ -892,14 +994,16 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Secondary Button */}
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Secondary Button
-                  <span className={styles.labelHint}>Optional second button</span>
-                </label>
-                <label className={styles.toggleSwitch}>
+            {/* Secondary Button */}
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Secondary Button</label>
+                  <p className="text-xs text-gray-500">Optional second button</p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
                   <input
                     type="checkbox"
                     checked={!!formConfig.secondaryButton}
@@ -910,51 +1014,51 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                         updateConfig({ secondaryButton: undefined });
                       }
                     }}
-                    className={styles.toggleInput}
+                    className="peer sr-only"
                   />
-                  <span className={styles.toggleSlider}></span>
+                  <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
                 </label>
               </div>
 
               {formConfig.secondaryButton && (
-                <div className={styles.buttonConfigSection}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Button Text
-                      <span className={styles.labelHint}>Button label</span>
+                <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                      <span>Button Text</span>
+                      <span className="text-xs font-normal text-gray-500">Button label</span>
                     </label>
                     <input
                       type="text"
                       value={formConfig.secondaryButton.label}
                       onChange={(e) => updateSecondaryButton({ label: e.target.value })}
-                      className={styles.textInput}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                       placeholder="Book a Table"
                     />
                   </div>
 
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Button Link
-                      <span className={styles.labelHint}>Where it navigates</span>
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                      <span>Button Link</span>
+                      <span className="text-xs font-normal text-gray-500">Where it navigates</span>
                     </label>
                     <input
                       type="text"
                       value={formConfig.secondaryButton.href}
                       onChange={(e) => updateSecondaryButton({ href: e.target.value })}
-                      className={styles.textInput}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                       placeholder="#reservations"
                     />
                   </div>
 
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Button Style
-                      <span className={styles.labelHint}>Visual style</span>
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                      <span>Button Style</span>
+                      <span className="text-xs font-normal text-gray-500">Visual style</span>
                     </label>
                     <select
                       value={formConfig.secondaryButton.variant || 'outline'}
                       onChange={(e) => updateSecondaryButton({ variant: e.target.value as any })}
-                      className={styles.select}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                     >
                       <option value="primary">Primary</option>
                       <option value="secondary">Secondary</option>
@@ -964,428 +1068,432 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                 </div>
               )}
             </div>
+          </div>
+        </div>
 
-            {/* Media Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>🖼️</span>
-                Media Configuration
-              </h3>
-
-              {(() => {
-                const mediaFields = getMediaFieldsForLayout(formConfig.layout || 'default');
-
-                return (
-                  <>
-                    {/* Hero Image */}
-                    {mediaFields.showHeroImage && (
-                      <>
-                        <div className={styles.formGroup}>
-                          <label className={styles.label}>
-                            Hero Image
-                            <span className={styles.labelHint}>Main hero image for your section</span>
-                          </label>
-                          <div className={styles.mediaUploadContainer}>
-                            {formConfig.image?.url ? (
-                              <div className={styles.mediaPreview}>
-                                <img
-                                  src={formConfig.image.url}
-                                  alt={formConfig.image.alt || 'Hero image'}
-                                  className={styles.mediaPreviewImage}
-                                />
-                                <div className={styles.mediaActions}>
-                                  <button
-                                    type="button"
-                                    onClick={() => openGalleryModal('hero_image')}
-                                    className={styles.changeMediaButton}
-                                  >
-                                    <svg style={{width: '18px', height: '18px', marginRight: '6px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                    Change Image
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => updateConfig({ image: undefined })}
-                                    className={styles.removeMediaButton}
-                                  >
-                                    <svg style={{width: '18px', height: '18px', marginRight: '6px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                    Remove
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => openGalleryModal('hero_image')}
-                                className={styles.uploadButton}
-                                disabled={!restaurantId}
-                              >
-                                <svg style={{width: '64px', height: '64px', marginBottom: '12px', color: '#667eea'}} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <span style={{fontSize: '1.125rem', fontWeight: '700', marginBottom: '6px'}}>Choose Hero Image</span>
-                                <span style={{fontSize: '0.875rem', fontWeight: '400', opacity: '0.7'}}>Browse your media gallery or upload new</span>
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        {formConfig.image && (
-                          <div className={styles.formGroup}>
-                            <label className={styles.label}>
-                              Image Alt Text
-                              <span className={styles.labelHint}>Accessibility description</span>
-                            </label>
-                            <input
-                              type="text"
-                              value={formConfig.image.alt}
-                              onChange={(e) => updateConfig({
-                                image: formConfig.image ? { ...formConfig.image, alt: e.target.value } : undefined
-                              })}
-                              className={styles.textInput}
-                              placeholder="Hero image description"
-                            />
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {/* Background Video */}
-                    {mediaFields.showBackgroundVideo && (
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                          Background Video
-                          <span className={styles.labelHint}>Video background for your hero section</span>
-                        </label>
-                        <div className={styles.mediaUploadContainer}>
-                          {formConfig.videoUrl ? (
-                            <div className={styles.mediaPreview}>
-                              <video
-                                src={formConfig.videoUrl}
-                                className={styles.mediaPreviewImage}
-                                muted
-                                playsInline
-                              />
-                              <div className={styles.mediaActions}>
-                                <button
-                                  type="button"
-                                  onClick={() => openGalleryModal('background_video')}
-                                  className={styles.changeMediaButton}
-                                >
-                                  Change Video
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig({ videoUrl: undefined })}
-                                  className={styles.removeMediaButton}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => openGalleryModal('background_video')}
-                              className={styles.uploadButton}
-                              disabled={!restaurantId}
-                            >
-                              <span className={styles.uploadIcon}>🎥</span>
-                              Choose from Gallery
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Background Image */}
-                    {mediaFields.showBackgroundImage && (
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                          Background Image
-                          <span className={styles.labelHint}>Background image for your hero section</span>
-                        </label>
-                        <div className={styles.mediaUploadContainer}>
-                          {formConfig.backgroundImage ? (
-                            <div className={styles.mediaPreview}>
-                              <img
-                                src={formConfig.backgroundImage}
-                                alt="Background"
-                                className={styles.mediaPreviewImage}
-                              />
-                              <div className={styles.mediaActions}>
-                                <button
-                                  type="button"
-                                  onClick={() => openGalleryModal('background_image')}
-                                  className={styles.changeMediaButton}
-                                >
-                                  Change Image
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig({ backgroundImage: undefined })}
-                                  className={styles.removeMediaButton}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => openGalleryModal('background_image')}
-                              className={styles.uploadButton}
-                              disabled={!restaurantId}
-                            >
-                              <span className={styles.uploadIcon}>📁</span>
-                              Choose from Gallery
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
+        {/* Media Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+              </svg>
             </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Media Configuration</h2>
+              <p className="text-sm text-gray-600">Add images and videos based on layout</p>
+            </div>
+          </div>
 
-            {/* Styling Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>🎨</span>
-                Colors & Styling
-              </h3>
+          {(() => {
+            const mediaFields = getMediaFieldsForLayout(formConfig.layout || 'default');
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Background Color
-                  <span className={styles.labelHint}>Hero background color</span>
-                </label>
-                <div className={styles.colorInputGroup}>
-                  <input
-                    type="color"
-                    value={formConfig.bgColor || '#ffffff'}
-                    onChange={(e) => updateConfig({ bgColor: e.target.value })}
-                    className={styles.colorInput}
-                  />
-                  <input
-                    type="text"
-                    value={formConfig.bgColor || '#ffffff'}
-                    onChange={(e) => updateConfig({ bgColor: e.target.value })}
-                    className={styles.colorHexInput}
-                    placeholder="#ffffff"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => updateConfig({ bgColor: '#ffffff' })}
-                    className={styles.clearButton}
-                    title="Reset to default"
-                  >
-                    ↺
-                  </button>
-                </div>
+            return (
+              <div className="space-y-6">
+                {/* Hero Image */}
+                {mediaFields.showHeroImage && (
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                      <span>Hero Image</span>
+                      <span className="text-xs font-normal text-gray-500">Main hero image for your section</span>
+                    </label>
+                    {formConfig.image?.url ? (
+                      <div className="overflow-hidden rounded-lg border border-gray-200">
+                        <img
+                          src={formConfig.image.url}
+                          alt={formConfig.image.alt || 'Hero image'}
+                          className="h-48 w-full object-cover"
+                        />
+                        <div className="flex gap-2 border-t border-gray-200 bg-gray-50 p-3">
+                          <button
+                            type="button"
+                            onClick={() => openGalleryModal('hero_image')}
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                            </svg>
+                            Change
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateConfig({ image: undefined })}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="mb-2 text-xs text-gray-500">Recommended: 1200x630px</p>
+                        <button
+                          type="button"
+                          onClick={() => openGalleryModal('hero_image')}
+                          disabled={!restaurantId}
+                          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                          </svg>
+                          Choose Image from Gallery
+                        </button>
+                      </div>
+                    )}
+
+                    {formConfig.image && (
+                      <div className="mt-3">
+                        <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                          <span>Image Alt Text</span>
+                          <span className="text-xs font-normal text-gray-500">Accessibility description</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formConfig.image.alt}
+                          onChange={(e) => updateConfig({
+                            image: formConfig.image ? { ...formConfig.image, alt: e.target.value } : undefined
+                          })}
+                          className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                          placeholder="Hero image description"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Background Video */}
+                {mediaFields.showBackgroundVideo && (
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                      <span>Background Video</span>
+                      <span className="text-xs font-normal text-gray-500">Video background for your hero section</span>
+                    </label>
+                    {formConfig.videoUrl ? (
+                      <div className="overflow-hidden rounded-lg border border-gray-200">
+                        <video
+                          src={formConfig.videoUrl}
+                          className="h-48 w-full object-cover"
+                          muted
+                          playsInline
+                        />
+                        <div className="flex gap-2 border-t border-gray-200 bg-gray-50 p-3">
+                          <button
+                            type="button"
+                            onClick={() => openGalleryModal('background_video')}
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
+                            </svg>
+                            Change Video
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateConfig({ videoUrl: undefined })}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="mb-2 text-xs text-gray-500">Recommended: MP4 format, max 10MB</p>
+                        <button
+                          type="button"
+                          onClick={() => openGalleryModal('background_video')}
+                          disabled={!restaurantId}
+                          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
+                          </svg>
+                          Choose Video from Gallery
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Background Image */}
+                {mediaFields.showBackgroundImage && (
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                      <span>Background Image</span>
+                      <span className="text-xs font-normal text-gray-500">Background image for your hero section</span>
+                    </label>
+                    {formConfig.backgroundImage ? (
+                      <div className="overflow-hidden rounded-lg border border-gray-200">
+                        <img
+                          src={formConfig.backgroundImage}
+                          alt="Background"
+                          className="h-48 w-full object-cover"
+                        />
+                        <div className="flex gap-2 border-t border-gray-200 bg-gray-50 p-3">
+                          <button
+                            type="button"
+                            onClick={() => openGalleryModal('background_image')}
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                            </svg>
+                            Change
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateConfig({ backgroundImage: undefined })}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="mb-2 text-xs text-gray-500">Recommended: 1200x630px</p>
+                        <button
+                          type="button"
+                          onClick={() => openGalleryModal('background_image')}
+                          disabled={!restaurantId}
+                          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                          </svg>
+                          Choose Image from Gallery
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+            );
+          })()}
+        </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Text Color
-                  <span className={styles.labelHint}>Text and headline color</span>
-                </label>
-                <div className={styles.colorInputGroup}>
-                  <input
-                    type="color"
-                    value={formConfig.textColor || '#000000'}
-                    onChange={(e) => updateConfig({ textColor: e.target.value })}
-                    className={styles.colorInput}
-                  />
-                  <input
-                    type="text"
-                    value={formConfig.textColor || '#000000'}
-                    onChange={(e) => updateConfig({ textColor: e.target.value })}
-                    className={styles.colorHexInput}
-                    placeholder="#000000"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => updateConfig({ textColor: '#000000' })}
-                    className={styles.clearButton}
-                    title="Reset to default"
-                  >
-                    ↺
-                  </button>
-                </div>
-              </div>
+        {/* Styling Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Colors & Styling</h2>
+              <p className="text-sm text-gray-600">Customize colors, alignment and dimensions</p>
+            </div>
+          </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Text Alignment
-                  <span className={styles.labelHint}>Content alignment</span>
-                </label>
-                <select
-                  value={formConfig.textAlign || 'center'}
-                  onChange={(e) => updateConfig({ textAlign: e.target.value as any })}
-                  className={styles.select}
-                >
-                  <option value="left">Left</option>
-                  <option value="center">Center</option>
-                  <option value="right">Right</option>
-                </select>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Minimum Height
-                  <span className={styles.labelHint}>Hero section height</span>
-                </label>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                <span>Background Color</span>
+                <span className="text-xs font-normal text-gray-500">Hero background color</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={formConfig.bgColor || '#ffffff'}
+                  onChange={(e) => updateConfig({ bgColor: e.target.value })}
+                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white"
+                />
                 <input
                   type="text"
-                  value={formConfig.minHeight || '600px'}
-                  onChange={(e) => updateConfig({ minHeight: e.target.value })}
-                  className={styles.textInput}
-                  placeholder="600px"
+                  value={formConfig.bgColor || '#ffffff'}
+                  onChange={(e) => updateConfig({ bgColor: e.target.value })}
+                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                  placeholder="#ffffff"
                 />
+                <button
+                  type="button"
+                  onClick={() => updateConfig({ bgColor: '#ffffff' })}
+                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                  title="Reset to default"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
+                </button>
               </div>
+            </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Show Scroll Indicator
-                  <span className={styles.labelHint}>Animated scroll arrow</span>
-                </label>
-                <label className={styles.toggleSwitch}>
+            <div>
+              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                <span>Text Alignment</span>
+                <span className="text-xs font-normal text-gray-500">Content alignment</span>
+              </label>
+              <select
+                value={formConfig.textAlign || 'center'}
+                onChange={(e) => updateConfig({ textAlign: e.target.value as any })}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+              >
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                <span>Minimum Height</span>
+                <span className="text-xs font-normal text-gray-500">Hero section height</span>
+              </label>
+              <input
+                type="text"
+                value={formConfig.minHeight || '600px'}
+                onChange={(e) => updateConfig({ minHeight: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                placeholder="600px"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Show Scroll Indicator</label>
+                  <p className="text-xs text-gray-500">Animated scroll arrow</p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
                   <input
                     type="checkbox"
                     checked={formConfig.showScrollIndicator || false}
                     onChange={(e) => updateConfig({ showScrollIndicator: e.target.checked })}
-                    className={styles.toggleInput}
+                    className="peer sr-only"
                   />
-                  <span className={styles.toggleSlider}></span>
+                  <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
                 </label>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Features Section */}
-            {formConfig.layout === 'with-features' && (
-              <div className={styles.section}>
-                <h3 className={styles.sectionTitle}>
-                  <span className={styles.sectionIcon}>⭐</span>
-                  Feature Cards
-                </h3>
+        {/* Typography & Buttons Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Typography & Buttons</h2>
+              <p className="text-sm text-gray-600">Customize text styles and button appearance</p>
+            </div>
+          </div>
 
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Features
-                    <span className={styles.labelHint}>Highlight key features</span>
-                  </label>
-                  <div className={styles.featuresContainer}>
-                    {formConfig.features?.map((feature, index) => (
-                      <div key={index} className={styles.featureCard}>
-                        <div className={styles.featureInputs}>
-                          <div className={styles.featureInputRow}>
-                            <input
-                              type="text"
-                              value={feature.icon || ''}
-                              onChange={(e) => updateFeature(index, { icon: e.target.value })}
-                              className={styles.featureInput}
-                              placeholder="🍽️"
-                              style={{ width: '60px' }}
-                            />
-                            <input
-                              type="text"
-                              value={feature.title}
-                              onChange={(e) => updateFeature(index, { title: e.target.value })}
-                              className={styles.featureInput}
-                              placeholder="Feature Title"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeFeature(index)}
-                              className={styles.removeFeatureButton}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                          <input
-                            type="text"
-                            value={feature.description || ''}
-                            onChange={(e) => updateFeature(index, { description: e.target.value })}
-                            className={styles.featureInput}
-                            placeholder="Feature description"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                    
-                    <button
-                      type="button"
-                      onClick={addFeature}
-                      className={styles.addFeatureButton}
-                    >
-                      <span>+</span>
-                      Add Feature
-                    </button>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Custom Typography & Styles</label>
+                <p className="text-xs text-gray-500">Override global CSS with custom styling options</p>
+              </div>
+              <label className="relative inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  checked={formConfig.is_custom || false}
+                  onChange={(e) => updateConfig({ is_custom: e.target.checked })}
+                  className="peer sr-only"
+                />
+                <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
+              </label>
+            </div>
+
+            {!formConfig.is_custom ? (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="h-5 w-5 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                  </svg>
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-900">Using Global Styles</h4>
+                    <p className="mt-1 text-xs text-blue-700">
+                      This section is currently using the global CSS styles defined in your theme settings.
+                      Enable custom typography above to override these styles with section-specific options.
+                    </p>
                   </div>
                 </div>
               </div>
+            ) : (
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <SectionTypographyControls
+                  value={formConfig}
+                  onChange={(updates) => updateConfig(updates)}
+                />
+              </div>
             )}
-
-            {/* Save Button */}
-            <div className={styles.formActions}>
-              <button
-                type="submit"
-                disabled={updating}
-                className={styles.saveButton}
-              >
-                {updating ? (
-                  <>
-                    <span className={styles.spinner}></span>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <span>💾</span>
-                    Save Hero Settings
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
 
-      </div>
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={updating}
+            className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {updating ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                </svg>
+                Save Hero Settings
+              </>
+            )}
+          </button>
+        </div>
+      </form>
 
       {/* Preview Modal Popup */}
       {showPreview && (
-        <div className={styles.previewModal}>
-          <div className={styles.previewModalOverlay} onClick={() => setShowPreview(false)} />
-          <div className={styles.previewModalContent}>
-            <div className={styles.previewModalHeader}>
-              <h2 className={styles.previewModalTitle}>Live Preview</h2>
-              <div className={styles.previewModalActions}>
-                <span className={styles.previewBadge}>Updates in real-time</span>
-                <button
-                  onClick={() => setShowPreview(false)}
-                  className={styles.previewModalClose}
-                  aria-label="Close preview"
-                >
-                  ✕
-                </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
+          <div className="relative z-10 w-full max-w-6xl h-[80vh] flex flex-col rounded-2xl border border-gray-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 flex-shrink-0">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Live Preview</h2>
+                <p className="mt-0.5 text-sm text-gray-600">Updates in real-time</p>
               </div>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Close preview"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <div className={styles.previewModalBody}>
-              <div className={styles.previewDevice}>
-                <div className={styles.previewContainer}>
-                  {renderFullLayoutPreview(formConfig.layout || 'default')}
+            <div className="flex-1 overflow-y-auto">
+              <div className="bg-white">
+                <Hero {...formConfig} restaurant_id={restaurantId} />
+              </div>
+              <div className="sticky bottom-0 border-t border-gray-200 bg-white/95 px-6 py-4 backdrop-blur-sm">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <svg className="h-5 w-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Live preview updates as you make changes
                 </div>
               </div>
-              <p className={styles.previewNote}>
-                <span className={styles.previewIcon}>👁</span>
-                {formConfig.headline || formConfig.subheadline || formConfig.description
-                  ? 'Preview shows how your hero section will appear on the website'
-                  : 'Placeholder layout preview - Add content to see actual preview'}
-              </p>
             </div>
           </div>
         </div>
@@ -1409,6 +1517,6 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
         }
         description="Choose from your media library or upload new"
       />
-    </div>
+    </>
   );
 }

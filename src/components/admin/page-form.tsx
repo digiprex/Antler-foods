@@ -216,12 +216,12 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <div className="overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm">
-        <div className="border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white px-8 py-6">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
-              <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+    <div className="mx-auto max-w-3xl">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-200 bg-white px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 {isEditing ? (
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                 ) : (
@@ -230,7 +230,7 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
               </svg>
             </div>
             <div>
-              <h2 className="text-2xl font-bold tracking-tight text-gray-900">
+              <h2 className="text-xl font-bold text-gray-900">
                 {isEditing ? 'Edit Page' : 'Create New Page'}
               </h2>
               <p className="mt-0.5 text-sm text-gray-600">
@@ -240,123 +240,134 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8 p-8">
+        <form onSubmit={handleSubmit} className="space-y-6 p-6">
           {error && (
-            <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5">
-              <svg className="h-5 w-5 flex-shrink-0 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+              <svg className="h-5 w-5 shrink-0 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
               </svg>
               <div>
-                <h3 className="text-sm font-bold text-red-900">Error</h3>
-                <p className="mt-0.5 text-sm text-red-800">{error}</p>
+                <h4 className="text-sm font-semibold text-red-900">Error</h4>
+                <p className="mt-1 text-sm text-red-700">{error}</p>
               </div>
             </div>
           )}
 
           {/* Basic Information */}
-          <div className="space-y-5 rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50/50 to-white p-6">
-            <div className="flex items-center gap-2 border-b border-purple-100 pb-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-                <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                 </svg>
               </div>
-              <h3 className="text-base font-bold text-gray-900">Basic Information</h3>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Basic Information</h3>
+                <p className="mt-0.5 text-sm text-gray-600">Page name and URL configuration</p>
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <div className="space-y-2">
-                <label htmlFor="name" className="block text-sm font-semibold text-gray-700">
-                  Page Name <span className="text-red-500">*</span>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label htmlFor="name" className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Page Name</span>
+                  <span className="ml-1 text-xs text-red-600">*</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Display name for the page</span>
                 </label>
                 <input
                   type="text"
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3.5 text-base text-gray-900 placeholder:text-gray-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
                   placeholder="About Us"
                   required
                 />
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="url_slug" className="block text-sm font-semibold text-gray-700">
-                  URL Slug <span className="text-red-500">*</span>
+              <div>
+                <label htmlFor="url_slug" className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">URL Slug</span>
+                  <span className="ml-1 text-xs text-red-600">*</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Appears in the page URL</span>
                 </label>
-                <div className="flex min-h-11 items-center rounded-lg border border-gray-300 bg-white focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-200">
-                  <span className="ml-3 flex items-center gap-2 border-r border-gray-300 pr-3 text-sm font-mono text-gray-600">
-                    /
-                  </span>
+                <div className="flex items-center rounded-lg border border-gray-300 bg-white transition-all focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500">
+                  <span className="border-r border-gray-300 px-3 font-mono text-sm text-gray-500">/</span>
                   <input
                     type="text"
                     id="url_slug"
                     value={formData.url_slug}
                     onChange={(e) => handleInputChange('url_slug', e.target.value)}
-                    className="h-11 w-full bg-transparent px-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    className="flex-1 px-4 py-2.5 font-mono text-sm focus:outline-none"
                     placeholder="about-us"
                     pattern="[a-z0-9-]+"
                     required
                   />
                 </div>
                 <p className="mt-1 text-xs text-gray-500">
-                  Only lowercase letters, numbers, and hyphens allowed
+                  Only lowercase letters, numbers, and hyphens
                 </p>
               </div>
             </div>
           </div>
 
           {/* SEO Information */}
-          <div className="space-y-5 rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50/50 to-white p-6">
-            <div className="flex items-center gap-2 border-b border-purple-100 pb-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-                <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
               </div>
-              <h3 className="text-base font-bold text-gray-900">SEO Settings</h3>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">SEO Settings</h3>
+                <p className="mt-0.5 text-sm text-gray-600">Search engine optimization</p>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="meta_title" className="block text-sm font-semibold text-gray-700">
-                Meta Title
-              </label>
-              <input
-                type="text"
-                id="meta_title"
-                value={formData.meta_title}
-                onChange={(e) => handleInputChange('meta_title', e.target.value)}
-                className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3.5 text-base text-gray-900 placeholder:text-gray-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
-                placeholder="Page title for search engines"
-                maxLength={60}
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                {formData.meta_title.length}/60 characters (recommended)
-              </p>
-            </div>
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="meta_title" className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Meta Title</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Title for search results</span>
+                </label>
+                <input
+                  type="text"
+                  id="meta_title"
+                  value={formData.meta_title}
+                  onChange={(e) => handleInputChange('meta_title', e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                  placeholder="Page title for search engines"
+                  maxLength={60}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {formData.meta_title.length}/60 characters
+                </p>
+              </div>
 
-            <div className="space-y-2">
-              <label htmlFor="meta_description" className="block text-sm font-semibold text-gray-700">
-                Meta Description
-              </label>
-              <textarea
-                id="meta_description"
-                value={formData.meta_description}
-                onChange={(e) => handleInputChange('meta_description', e.target.value)}
-                rows={3}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-900 placeholder:text-gray-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
-                placeholder="Brief description for search engines"
-                maxLength={160}
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                {formData.meta_description.length}/160 characters (recommended)
-              </p>
-            </div>
+              <div>
+                <label htmlFor="meta_description" className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Meta Description</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Brief description for search results</span>
+                </label>
+                <textarea
+                  id="meta_description"
+                  value={formData.meta_description}
+                  onChange={(e) => handleInputChange('meta_description', e.target.value)}
+                  rows={3}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                  placeholder="Brief description for search engines"
+                  maxLength={160}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {formData.meta_description.length}/160 characters
+                </p>
+              </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Open Graph Image
-                <span className="ml-2 text-xs font-normal text-gray-500">(Recommended: 1200x630px)</span>
-              </label>
+              <div>
+                <label className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Open Graph Image</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Recommended: 1200x630px</span>
+                </label>
               <div className="space-y-3">
                 {formData.og_image && (
                   <div className="relative inline-block">
@@ -394,112 +405,102 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
                     )}
                   </>
                 )}
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label htmlFor="keywords" className="block text-sm font-semibold text-gray-700">
-                Keywords (comma-separated)
-              </label>
-              <textarea
-                id="keywords"
-                value={formData.keywords}
-                onChange={(e) => handleInputChange('keywords', e.target.value)}
-                rows={3}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-900 placeholder:text-gray-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
-                placeholder="restaurant, food, about"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Optional comma-separated tags (converted to JSON on save)
-              </p>
+              <div>
+                <label htmlFor="keywords" className="mb-2 block">
+                  <span className="text-sm font-semibold text-gray-900">Keywords</span>
+                  <span className="mt-0.5 block text-xs text-gray-600">Comma-separated tags for SEO</span>
+                </label>
+                <textarea
+                  id="keywords"
+                  value={formData.keywords}
+                  onChange={(e) => handleInputChange('keywords', e.target.value)}
+                  rows={3}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                  placeholder="restaurant, food, about"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Optional comma-separated tags
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Visibility Settings */}
-          <div className="space-y-5 rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50/50 to-white p-6">
-            <div className="flex items-center gap-2 border-b border-purple-100 pb-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-                <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
-              <h3 className="text-base font-bold text-gray-900">Visibility Settings</h3>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Visibility Settings</h3>
+                <p className="mt-0.5 text-sm text-gray-600">Control page visibility</p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <label htmlFor="published" className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 transition hover:border-purple-300 hover:bg-purple-50/50">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <label htmlFor="published" className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-gray-200 p-4 transition-all hover:bg-purple-50/50 has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50">
                 <input
                   type="checkbox"
                   id="published"
                   checked={formData.published}
                   onChange={(e) => handleInputChange('published', e.target.checked)}
-                  className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                  className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
                 />
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-sm font-semibold text-gray-900">Published</span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-gray-600">Make page visible to public</p>
+                  <div className="text-sm font-semibold text-gray-900">Published</div>
+                  <div className="text-xs text-gray-600">Make page visible</div>
                 </div>
               </label>
 
-              <label htmlFor="show_on_navbar" className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 transition hover:border-purple-300 hover:bg-purple-50/50">
+              <label htmlFor="show_on_navbar" className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-gray-200 p-4 transition-all hover:bg-purple-50/50 has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50">
                 <input
                   type="checkbox"
                   id="show_on_navbar"
                   checked={formData.show_on_navbar}
                   onChange={(e) => handleInputChange('show_on_navbar', e.target.checked)}
-                  className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                  className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
                 />
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                    </svg>
-                    <span className="text-sm font-semibold text-gray-900">Show in Navigation</span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-gray-600">Display in navbar menu</p>
+                  <div className="text-sm font-semibold text-gray-900">Show in Navbar</div>
+                  <div className="text-xs text-gray-600">Display in navigation</div>
                 </div>
               </label>
 
-              <label htmlFor="show_on_footer" className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 transition hover:border-purple-300 hover:bg-purple-50/50">
+              <label htmlFor="show_on_footer" className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-gray-200 p-4 transition-all hover:bg-purple-50/50 has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50">
                 <input
                   type="checkbox"
                   id="show_on_footer"
                   checked={formData.show_on_footer}
                   onChange={(e) => handleInputChange('show_on_footer', e.target.checked)}
-                  className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                  className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
                 />
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 5.25l-7.5 7.5-7.5-7.5m15 6l-7.5 7.5-7.5-7.5" />
-                    </svg>
-                    <span className="text-sm font-semibold text-gray-900">Show in Footer</span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-gray-600">Display in footer links</p>
+                  <div className="text-sm font-semibold text-gray-900">Show in Footer</div>
+                  <div className="text-xs text-gray-600">Display in footer</div>
                 </div>
               </label>
             </div>
           </div>
 
           {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-purple-100 pt-6">
+          <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-6">
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
                 <>

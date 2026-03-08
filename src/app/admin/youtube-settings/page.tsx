@@ -3,604 +3,70 @@
  *
  * Dashboard-integrated interface for configuring YouTube video settings.
  * Access: /admin/youtube-settings
+ *
+ * Features:
+ * - Dashboard layout with sidebar and navbar
+ * - Restaurant selection requirement
+ * - YouTube video management
+ * - Layout and playback options
+ * - Styling customization
+ * - Live preview
+ *
+ * TODO: Add authentication before deploying to production
  */
 
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
-import { useState, useEffect } from 'react';
-import type { YouTubeConfig } from '@/types/youtube.types';
-import { DEFAULT_YOUTUBE_CONFIG } from '@/types/youtube.types';
-import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
-import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
+import YouTubeSettingsForm from '@/components/admin/youtube-settings-form';
 import styles from '@/components/admin/gallery-settings-form.module.css';
 
 export default function YouTubeSettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pageId = searchParams.get('page_id');
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
-  const pageId = searchParams.get('page_id');
-  
-  // Check if this is a new section being created or editing existing
-  const isNewSection = searchParams.get('new_section') === 'true';
-  const templateId = searchParams.get('template_id') || null;
-  const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
-
-  const [config, setConfig] = useState<YouTubeConfig>({
-    ...DEFAULT_YOUTUBE_CONFIG,
-    ...sectionStyleDefaults,
-  });
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
-
-  useEffect(() => {
-    if (restaurantId && !isNewSection) {
-      fetchYouTubeConfig();
-    }
-  }, [restaurantId, pageId, templateId, isNewSection, sectionStyleDefaults]);
-
-  useEffect(() => {
-    if (!isNewSection) return;
-    setConfig((prev) => ({
-      ...DEFAULT_YOUTUBE_CONFIG,
-      ...sectionStyleDefaults,
-      ...prev,
-    }));
-  }, [isNewSection, sectionStyleDefaults]);
-
-  const fetchYouTubeConfig = async () => {
-    // Don't fetch existing config if this is a new section
-    if (isNewSection) return;
-    
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (restaurantId) params.append('restaurant_id', restaurantId);
-      if (pageId) params.append('page_id', pageId);
-      if (templateId) params.append('template_id', templateId);
-      
-      const url = `/api/youtube-config?${params.toString()}`;
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        setConfig({
-          ...DEFAULT_YOUTUBE_CONFIG,
-          ...sectionStyleDefaults,
-          ...data.data,
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching YouTube config:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleBack = () => {
     const params = new URLSearchParams();
-    if (restaurantId) params.append('restaurant_id', restaurantId);
-    if (restaurantName) params.append('restaurant_name', restaurantName);
-    if (pageId) params.append('page_id', pageId);
-
+    if (restaurantId) params.set('restaurant_id', restaurantId);
+    if (restaurantName) params.set('restaurant_name', restaurantName);
+    if (pageId) params.set('page_id', pageId);
     router.push(`/admin/page-settings?${params.toString()}`);
   };
 
-  const handleSave = async () => {
-    if (!restaurantId) return;
-
-    setSaving(true);
-    try {
-      const response = await fetch('/api/youtube-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...config,
-          restaurant_id: restaurantId,
-          page_id: pageId || null,
-          template_id: templateId || null,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setToast({
-          message: isNewSection ? 'YouTube section created successfully!' : 'YouTube settings saved successfully!',
-          type: 'success'
-        });
-        setTimeout(() => setToast(null), 3000);
-      } else {
-        setToast({ message: 'Error saving settings: ' + data.error, type: 'error' });
-        setTimeout(() => setToast(null), 3000);
-      }
-    } catch (error) {
-      console.error('Error saving YouTube config:', error);
-      setToast({ message: 'Error saving settings', type: 'error' });
-      setTimeout(() => setToast(null), 3000);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const extractVideoId = (url: string): string => {
-    if (!url) return '';
-
-    // If it's already just an ID
-    if (url.length === 11 && !url.includes('/') && !url.includes('=')) {
-      return url;
-    }
-
-    // Extract from various YouTube URL formats
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-      /youtube\.com\/shorts\/([^&\n?#]+)/,
-    ];
-
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match && match[1]) {
-        return match[1];
-      }
-    }
-
-    return url;
-  };
-
-  const getEmbedUrl = (videoUrl: string): string => {
-    const videoId = extractVideoId(videoUrl);
-    if (!videoId) return '';
-
-    const params = new URLSearchParams();
-    if (config.autoplay) params.append('autoplay', '1');
-    if (config.mute) params.append('mute', '1');
-    if (config.loop) params.append('loop', '1');
-    if (config.loop) params.append('playlist', videoId); // Required for loop
-    if (!config.controls) params.append('controls', '0');
-
-    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
-  };
-
-  if (!restaurantId) {
-    return (
-      <DashboardLayout>
-        <div className={styles.emptyState}>
-          <div className={styles.emptyStateIcon}>📺</div>
-          <h2 className={styles.emptyStateTitle}>No Restaurant Selected</h2>
-          <p className={styles.emptyStateDescription}>
-            Please select a restaurant from the dashboard to configure YouTube settings.
-          </p>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout>
-      <div className={styles.container}>
-        <div className={styles.singleLayout}>
-          <div className={styles.formSection}>
+      {restaurantId && restaurantName ? (
+        <div className="min-h-screen bg-gray-50 p-8">
+          <div className="mx-auto max-w-5xl">
             <button
               onClick={handleBack}
-              className={`${styles.button} ${styles.secondaryButton} ${styles.backButton}`}
+              className="mb-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
             >
-              ← Back to Page Settings
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Page Settings
             </button>
-            <div className={styles.formHeader}>
-              <div>
-                <h1 className={styles.formTitle}>
-                  {isNewSection ? 'Add New YouTube Section' : 'Edit YouTube Settings'}
-                </h1>
-                <p className={styles.formSubtitle}>
-                  {isNewSection
-                    ? 'Create a new YouTube video section for this page'
-                    : 'Configure YouTube video display for your restaurant website'
-                  }
-                </p>
-                {restaurantName && (
-                  <p className={styles.formSubtitle}>
-                    Restaurant: {restaurantName}
-                  </p>
-                )}
-              </div>
-              <button
-                onClick={() => setShowPreview(true)}
-                className={`${styles.button} ${styles.secondaryButton}`}
-                type="button"
-                style={{ whiteSpace: 'nowrap' }}
-                disabled={!config.videoUrl}
-              >
-                <span>👁️</span>
-                Preview Video
-              </button>
-            </div>
-
-            {loading ? (
-              <div className={styles.loading}>Loading...</div>
-            ) : (
-              <div className={styles.form}>
-                {/* Enable/Disable */}
-                <div className={styles.section}>
-                  <h3 className={styles.sectionTitle}>
-                    <span className={styles.sectionIcon}>⚙️</span>
-                    Display Settings
-                  </h3>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Enable YouTube Section
-                      <span className={styles.labelHint}>Show YouTube video on website</span>
-                    </label>
-                    <select
-                      value={config.enabled ? 'true' : 'false'}
-                      onChange={(e) => setConfig({ ...config, enabled: e.target.value === 'true' })}
-                      className={styles.select}
-                    >
-                      <option value="true">Enabled</option>
-                      <option value="false">Disabled</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Layout
-                      <span className={styles.labelHint}>Video layout style</span>
-                    </label>
-                    <select
-                      value={config.layout || 'default'}
-                      onChange={(e) => setConfig({ ...config, layout: e.target.value as any })}
-                      className={styles.select}
-                    >
-                      <option value="default">Default (Centered)</option>
-                      <option value="theater">Theater Mode (Wide)</option>
-                      <option value="split-left">Split (Video Left)</option>
-                      <option value="split-right">Split (Video Right)</option>
-                      <option value="background">Background Video</option>
-                      <option value="grid">Grid (Multiple Videos)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Video Content */}
-                <div className={styles.section}>
-                  <h3 className={styles.sectionTitle}>
-                    <span className={styles.sectionIcon}>🎬</span>
-                    Video Content
-                  </h3>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      YouTube URL or Video ID
-                      <span className={styles.labelHint}>Full YouTube URL or just the video ID</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={config.videoUrl || ''}
-                      onChange={(e) => setConfig({ ...config, videoUrl: e.target.value })}
-                      className={styles.textInput}
-                      placeholder="https://www.youtube.com/watch?v=... or dQw4w9WgXcQ"
-                    />
-                  </div>
-
-                  {config.showTitle !== false && (
-                    <>
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                          Title
-                          <span className={styles.labelHint}>Section heading</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={config.title || ''}
-                          onChange={(e) => setConfig({ ...config, title: e.target.value })}
-                          className={styles.textInput}
-                          placeholder="Watch Our Story"
-                        />
-                      </div>
-
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                          Description
-                          <span className={styles.labelHint}>Optional description below video</span>
-                        </label>
-                        <textarea
-                          value={config.description || ''}
-                          onChange={(e) => setConfig({ ...config, description: e.target.value })}
-                          rows={3}
-                          className={styles.textArea}
-                          placeholder="Discover what makes us special"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Show Title & Description
-                      <span className={styles.labelHint}>Display text content above video</span>
-                    </label>
-                    <select
-                      value={config.showTitle !== false ? 'true' : 'false'}
-                      onChange={(e) => setConfig({ ...config, showTitle: e.target.value === 'true' })}
-                      className={styles.select}
-                    >
-                      <option value="true">Yes</option>
-                      <option value="false">No</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Playback Options */}
-                <div className={styles.section}>
-                  <h3 className={styles.sectionTitle}>
-                    <span className={styles.sectionIcon}>▶️</span>
-                    Playback Options
-                  </h3>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Autoplay
-                      <span className={styles.labelHint}>Start playing automatically</span>
-                    </label>
-                    <select
-                      value={config.autoplay ? 'true' : 'false'}
-                      onChange={(e) => setConfig({ ...config, autoplay: e.target.value === 'true' })}
-                      className={styles.select}
-                    >
-                      <option value="true">Yes</option>
-                      <option value="false">No</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Mute
-                      <span className={styles.labelHint}>Start with sound muted</span>
-                    </label>
-                    <select
-                      value={config.mute ? 'true' : 'false'}
-                      onChange={(e) => setConfig({ ...config, mute: e.target.value === 'true' })}
-                      className={styles.select}
-                    >
-                      <option value="true">Yes</option>
-                      <option value="false">No</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Loop
-                      <span className={styles.labelHint}>Repeat video continuously</span>
-                    </label>
-                    <select
-                      value={config.loop ? 'true' : 'false'}
-                      onChange={(e) => setConfig({ ...config, loop: e.target.value === 'true' })}
-                      className={styles.select}
-                    >
-                      <option value="true">Yes</option>
-                      <option value="false">No</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Show Controls
-                      <span className={styles.labelHint}>Display video player controls</span>
-                    </label>
-                    <select
-                      value={config.controls !== false ? 'true' : 'false'}
-                      onChange={(e) => setConfig({ ...config, controls: e.target.value === 'true' })}
-                      className={styles.select}
-                    >
-                      <option value="true">Yes</option>
-                      <option value="false">No</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Aspect Ratio
-                      <span className={styles.labelHint}>Video dimensions</span>
-                    </label>
-                    <select
-                      value={config.aspectRatio || '16:9'}
-                      onChange={(e) => setConfig({ ...config, aspectRatio: e.target.value as any })}
-                      className={styles.select}
-                    >
-                      <option value="16:9">16:9 (Standard)</option>
-                      <option value="4:3">4:3 (Classic)</option>
-                      <option value="21:9">21:9 (Ultrawide)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Styling */}
-                <div className={styles.section}>
-                  <h3 className={styles.sectionTitle}>
-                    <span className={styles.sectionIcon}>🎨</span>
-                    Styling
-                  </h3>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Background Color
-                      <span className={styles.labelHint}>Section background</span>
-                    </label>
-                    <input
-                      type="color"
-                      value={config.bgColor || '#000000'}
-                      onChange={(e) => setConfig({ ...config, bgColor: e.target.value })}
-                      className={styles.textInput}
-                      style={{ height: '50px', cursor: 'pointer' }}
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Text Color
-                      <span className={styles.labelHint}>Title and description color</span>
-                    </label>
-                    <input
-                      type="color"
-                      value={config.textColor || '#ffffff'}
-                      onChange={(e) => setConfig({ ...config, textColor: e.target.value })}
-                      className={styles.textInput}
-                      style={{ height: '50px', cursor: 'pointer' }}
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Max Width
-                      <span className={styles.labelHint}>Maximum container width</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={config.maxWidth || '1200px'}
-                      onChange={(e) => setConfig({ ...config, maxWidth: e.target.value })}
-                      className={styles.textInput}
-                      placeholder="1200px"
-                    />
-                  </div>
-                </div>
-
-                <div className={styles.section}>
-                  <h3 className={styles.sectionTitle}>
-                    <span className={styles.sectionIcon}>Aa</span>
-                    Typography & Buttons
-                  </h3>
-                  <SectionTypographyControls
-                    value={config}
-                    onChange={(updates) => setConfig({ ...config, ...updates })}
-                  />
-                </div>
-
-                {/* Action Buttons */}
-                <div className={styles.formActions}>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className={styles.saveButton}
-                  >
-                    {saving ? (
-                      <>
-                        <span className={styles.spinner}></span>
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <span>💾</span>
-                        {isNewSection ? 'Create YouTube Section' : 'Save YouTube Settings'}
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
+            <YouTubeSettingsForm pageId={pageId || undefined} restaurantId={restaurantId || undefined} />
           </div>
         </div>
-      </div>
-
-      {/* Preview Modal */}
-      {showPreview && config.videoUrl && (
-        <>
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              zIndex: 9999,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '2rem',
-            }}
-            onClick={() => setShowPreview(false)}
-          >
-            <div
-              style={{
-                maxWidth: config.maxWidth || '1200px',
-                width: '100%',
-                position: 'relative',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => setShowPreview(false)}
-                style={{
-                  position: 'absolute',
-                  top: '-3rem',
-                  right: '0',
-                  background: 'white',
-                  border: 'none',
-                  fontSize: '1.5rem',
-                  cursor: 'pointer',
-                  color: '#000',
-                  width: '40px',
-                  height: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '50%',
-                }}
-              >
-                ×
-              </button>
-
-              {config.showTitle !== false && (config.title || config.description) && (
-                <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-                  {config.title && (
-                    <h2 style={{ fontSize: '2.5rem', fontWeight: '700', color: config.textColor || '#ffffff', marginBottom: '0.5rem' }}>
-                      {config.title}
-                    </h2>
-                  )}
-                  {config.description && (
-                    <p style={{ fontSize: '1.25rem', color: config.textColor || '#ffffff', opacity: 0.9 }}>
-                      {config.description}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <div
-                style={{
-                  position: 'relative',
-                  paddingBottom: config.aspectRatio === '4:3' ? '75%' : config.aspectRatio === '21:9' ? '42.85%' : '56.25%',
-                  height: 0,
-                  overflow: 'hidden',
-                  borderRadius: '12px',
-                }}
-              >
-                <iframe
-                  src={getEmbedUrl(config.videoUrl)}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                    borderRadius: '12px',
-                  }}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
+      ) : (
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-12 text-center shadow-sm">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+              <svg className="h-10 w-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
             </div>
+            <h2 className="mb-2 text-xl font-bold text-gray-900">Select a Restaurant</h2>
+            <p className="mx-auto max-w-md text-sm text-gray-600">
+              Please add or select a restaurant from the sidebar to configure YouTube settings.
+            </p>
           </div>
-        </>
-      )}
-
-      {/* Toast Notification */}
-      {toast && (
-        <div className={`${styles.toast} ${toast.type === 'success' ? styles.success : styles.error}`}>
-          <span style={{ fontSize: '1.25rem' }}>
-            {toast.type === 'success' ? '✓' : '✕'}
-          </span>
-          {toast.message}
         </div>
       )}
     </DashboardLayout>

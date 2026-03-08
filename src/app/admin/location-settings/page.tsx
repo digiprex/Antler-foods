@@ -21,7 +21,6 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import LocationSettingsForm from '@/components/admin/location-settings-form';
-import styles from '@/components/admin/gallery-settings-form.module.css';
 
 export default function LocationSettingsPage() {
   const router = useRouter();
@@ -43,33 +42,37 @@ export default function LocationSettingsPage() {
   return (
     <DashboardLayout>
       {restaurantId && restaurantName ? (
-        <div className={styles.container}>
-          <div className={styles.singleLayout}>
-            <div className={styles.formSection}>
-              <button
-                onClick={handleBack}
-                className={`${styles.button} ${styles.secondaryButton} ${styles.backButton}`}
-              >
-                ← Back to Page Settings
-              </button>
-              <LocationSettingsForm
-                restaurantId={restaurantId}
-                pageId={pageId || undefined}
-                templateId={templateId}
-                isNewSection={isNewSection}
-              />
-            </div>
+        <div className="min-h-screen bg-gray-50 p-8">
+          <div className="mx-auto max-w-5xl">
+            <button
+              onClick={handleBack}
+              className="mb-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Page Settings
+            </button>
+            <LocationSettingsForm
+              restaurantId={restaurantId}
+              pageId={pageId || undefined}
+              templateId={templateId}
+              isNewSection={isNewSection}
+            />
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="text-6xl mb-4">🏪</div>
-            <h2 className="text-xl font-semibold text-[#111827] mb-2">
-              Select a Restaurant
-            </h2>
-            <p className="text-[#6b7280] max-w-md">
-              Please add or select a restaurant from the sidebar.
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-12 text-center shadow-sm">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+              <svg className="h-10 w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+              </svg>
+            </div>
+            <h2 className="mb-2 text-xl font-bold text-gray-900">Select a Restaurant</h2>
+            <p className="mx-auto max-w-md text-sm text-gray-600">
+              Please add or select a restaurant from the sidebar to configure location settings.
             </p>
           </div>
         </div>

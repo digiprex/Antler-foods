@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const restaurantId = formData.get('restaurant_id') as string;
-    const type = formData.get('type') as string || 'image';
     const storageApiUrl = resolveStorageApiUrl();
     const hasuraAdminSecret = resolveHasuraAdminSecret();
 
@@ -36,7 +35,6 @@ export async function POST(request: NextRequest) {
       fileSize: file?.size,
       fileType: file?.type,
       restaurantId,
-      type
     });
 
     if (!file) {
@@ -176,7 +174,7 @@ export async function POST(request: NextRequest) {
       object: {
         file_id: fileId,
         restaurant_id: restaurantId,
-        type: type,
+        type: file.type,
         is_deleted: false,
       },
     });

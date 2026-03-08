@@ -16,7 +16,8 @@ import Toast from '@/components/ui/toast';
 import type { LocationConfig } from '@/types/location.types';
 import { DEFAULT_LOCATION_CONFIG } from '@/types/location.types';
 import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
-import styles from './location-settings-form.module.css';
+import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
+import type { SectionStyleConfig } from '@/types/section-style.types';
 
 // Dynamically import Google Location Picker to avoid SSR issues
 const GoogleLocationPicker = dynamic(() => import('./google-location-picker'), { ssr: false });
@@ -52,35 +53,6 @@ interface PlaceDetails {
   }>;
 }
 
-const FONT_FAMILY_OPTIONS = [
-  { value: 'Inter, system-ui, sans-serif', label: 'Inter (Default)' },
-  { value: 'Poppins, sans-serif', label: 'Poppins' },
-  { value: 'Montserrat, sans-serif', label: 'Montserrat' },
-  { value: 'Open Sans, sans-serif', label: 'Open Sans' },
-  { value: 'Roboto, sans-serif', label: 'Roboto' },
-  { value: 'Lato, sans-serif', label: 'Lato' },
-  { value: 'Playfair Display, serif', label: 'Playfair Display' },
-];
-
-const FONT_SIZE_OPTIONS = [
-  { value: '0.875rem', label: 'Small (14px)' },
-  { value: '1rem', label: 'Base (16px)' },
-  { value: '1.125rem', label: 'Medium (18px)' },
-  { value: '1.25rem', label: 'Large (20px)' },
-  { value: '1.5rem', label: 'XL (24px)' },
-  { value: '1.875rem', label: '2XL (30px)' },
-  { value: '2.25rem', label: '3XL (36px)' },
-];
-
-const FONT_WEIGHT_OPTIONS = [
-  { value: 300, label: 'Light (300)' },
-  { value: 400, label: 'Normal (400)' },
-  { value: 500, label: 'Medium (500)' },
-  { value: 600, label: 'Semi Bold (600)' },
-  { value: 700, label: 'Bold (700)' },
-  { value: 800, label: 'Extra Bold (800)' },
-];
-
 export default function LocationSettingsForm({ restaurantId, pageId, templateId, isNewSection = false }: LocationSettingsFormProps) {
   const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
   const [loading, setLoading] = useState(true);
@@ -88,6 +60,11 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
   const [config, setConfig] = useState<LocationConfig>({
     ...DEFAULT_LOCATION_CONFIG,
     ...sectionStyleDefaults,
+  });
+  const [sectionStyle, setSectionStyle] = useState<SectionStyleConfig>({
+    ...sectionStyleDefaults,
+    is_custom: sectionStyleDefaults.is_custom ?? false,
+    buttonStyleVariant: sectionStyleDefaults.buttonStyleVariant ?? 'primary',
   });
   const [placeDetails, setPlaceDetails] = useState<PlaceDetails | null>(null);
   const [googlePlaceId, setGooglePlaceId] = useState<string>('');
@@ -133,6 +110,25 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
             ...DEFAULT_LOCATION_CONFIG,
             ...sectionStyleDefaults,
             ...data.data,
+          });
+
+          // Set section style from loaded config
+          setSectionStyle({
+            ...sectionStyleDefaults,
+            is_custom: data.data.is_custom ?? false,
+            buttonStyleVariant: data.data.buttonStyleVariant ?? 'primary',
+            titleFontFamily: data.data.titleFontFamily,
+            titleFontSize: data.data.titleFontSize,
+            titleFontWeight: data.data.titleFontWeight,
+            titleColor: data.data.titleColor,
+            subtitleFontFamily: data.data.descriptionFontFamily,
+            subtitleFontSize: data.data.descriptionFontSize,
+            subtitleFontWeight: data.data.descriptionFontWeight,
+            subtitleColor: data.data.descriptionColor,
+            bodyFontFamily: data.data.bodyFontFamily,
+            bodyFontSize: data.data.bodyFontSize,
+            bodyFontWeight: data.data.bodyFontWeight,
+            bodyColor: data.data.bodyColor,
           });
 
           // Get google_place_id from restaurant data
@@ -254,6 +250,12 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...config,
+          ...sectionStyle,
+          // Map subtitle back to description for location config
+          descriptionFontFamily: sectionStyle.subtitleFontFamily,
+          descriptionFontSize: sectionStyle.subtitleFontSize,
+          descriptionFontWeight: sectionStyle.subtitleFontWeight,
+          descriptionColor: sectionStyle.subtitleColor,
           restaurant_id: restaurantId,
           page_id: pageId,
           template_id: templateId,
@@ -284,18 +286,14 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
     setConfig(prev => ({ ...prev, ...updates }));
   };
 
-  const handleTypographyChange = (field: keyof LocationConfig, value: string | number) => {
-    updateConfig({
-      [field]: value,
-      is_custom: true,
-    });
-  };
-
   if (loading) {
     return (
-      <div className={styles.loading}>
-        <div className={styles.spinner}></div>
-        <span style={{ marginLeft: '0.5rem' }}>Loading location settings...</span>
+      <div className="flex items-center justify-center p-8">
+        <svg className="h-8 w-8 animate-spin text-purple-600" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span className="ml-2 text-gray-700">Loading location settings...</span>
       </div>
     );
   }
@@ -373,108 +371,134 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
 
   return (
     <>
-      <form onSubmit={handleSubmit} className={styles.form}>
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Header */}
-        <div className={styles.formHeader}>
-          <div>
-            <h1 className={styles.formTitle}>Location Settings</h1>
-            <p className={styles.formSubtitle}>
-              Configure how your restaurant location is displayed
-            </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+              <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Location Settings</h1>
+              <p className="mt-1 text-sm text-gray-600">
+                Configure how your restaurant location is displayed
+              </p>
+            </div>
           </div>
-          <div className={styles.headerActions}>
-            <button
-              type="button"
-              onClick={() => setShowPreviewModal(true)}
-              className={styles.previewToggleButton}
-              disabled={!placeDetails}
-              title={placeDetails ? 'Preview Layout' : 'Preview disabled - location not loaded'}
-            >
-              👁️ Preview Layout
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowPreviewModal(true)}
+            disabled={!placeDetails}
+            title={placeDetails ? 'Preview Layout' : 'Preview disabled - location not loaded'}
+            className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Preview Layout
+          </button>
         </div>
 
         {/* Location Information */}
   
 
         {/* Display Settings */}
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <span className={styles.sectionIcon}>⚙️</span>
-            Display Settings
-          </h2>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Enable Location Display</span>
-              <span className={styles.labelHint}>Show location section on the page</span>
-            </label>
-            <input
-              type="checkbox"
-              checked={config.enabled || false}
-              onChange={(e) => updateConfig({ enabled: e.target.checked })}
-              style={{ width: '24px', height: '24px' }}
-            />
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Display Settings</h2>
+              <p className="text-sm text-gray-600">Configure visibility and content</p>
+            </div>
           </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Section Title</span>
-              <span className={styles.labelHint}>Main heading for the location section</span>
-            </label>
-            <input
-              type="text"
-              className={styles.textInput}
-              value={config.title || ''}
-              onChange={(e) => updateConfig({ title: e.target.value })}
-              placeholder="Our Location"
-            />
-          </div>
+          <div className="space-y-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Enable Location Display
+                </label>
+                <p className="mt-1 text-xs text-gray-500">Show location section on the page</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={config.enabled || false}
+                onChange={(e) => updateConfig({ enabled: e.target.checked })}
+                className="h-6 w-6 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+              />
+            </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Description</span>
-              <span className={styles.labelHint}>Brief description for the location section</span>
-            </label>
-            <textarea
-              className={styles.textArea}
-              value={config.description || ''}
-              onChange={(e) => updateConfig({ description: e.target.value })}
-              placeholder="Visit us at our location"
-              rows={3}
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Section Title
+              </label>
+              <p className="mt-1 text-xs text-gray-500">Main heading for the location section</p>
+              <input
+                type="text"
+                className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                value={config.title || ''}
+                onChange={(e) => updateConfig({ title: e.target.value })}
+                placeholder="Our Location"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Description
+              </label>
+              <p className="mt-1 text-xs text-gray-500">Brief description for the location section</p>
+              <textarea
+                className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                value={config.description || ''}
+                onChange={(e) => updateConfig({ description: e.target.value })}
+                placeholder="Visit us at our location"
+                rows={3}
+              />
+            </div>
           </div>
         </div>
 
         {/* Layout Selection */}
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <span className={styles.sectionIcon}>📐</span>
-            Layout Style
-          </h2>
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Layout Style</h2>
+              <p className="text-sm text-gray-600">Choose how location is displayed</p>
+            </div>
+          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {layoutOptions.map((option) => (
               <div
                 key={option.value}
                 onClick={() => updateConfig({ layout: option.value as LocationConfig['layout'] })}
-                style={{
-                  padding: '1rem',
-                  border: config.layout === option.value ? '3px solid #667eea' : '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  backgroundColor: config.layout === option.value ? '#f0f4ff' : '#fff',
-                }}
+                className={`cursor-pointer rounded-lg border-2 p-4 transition-all ${
+                  config.layout === option.value
+                    ? 'border-purple-500 bg-purple-50 shadow-md'
+                    : 'border-gray-200 bg-white hover:border-purple-300 hover:shadow-sm'
+                }`}
               >
-                <div style={{ fontSize: '2rem', marginBottom: '0.5rem', textAlign: 'center' }}>
+                <div className="mb-2 text-center text-3xl">
                   {option.icon}
                 </div>
-                <h3 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.25rem', textAlign: 'center' }}>
+                <h3 className="mb-1 text-center text-base font-semibold text-gray-900">
                   {option.name}
                 </h3>
-                <p style={{ fontSize: '0.8125rem', color: '#6b7280', textAlign: 'center', margin: 0 }}>
+                <p className="m-0 text-center text-sm text-gray-600">
                   {option.description}
                 </p>
               </div>
@@ -483,313 +507,129 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
         </div>
 
         {/* Styling Options */}
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <span className={styles.sectionIcon}>🎨</span>
-            Styling Options
-          </h2>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Background Color</span>
-            </label>
-            <input
-              type="color"
-              value={config.bgColor || '#ffffff'}
-              onChange={(e) => updateConfig({ bgColor: e.target.value })}
-              style={{ width: '100px', height: '44px', cursor: 'pointer' }}
-            />
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Styling Options</h2>
+              <p className="text-sm text-gray-600">Customize colors and dimensions</p>
+            </div>
           </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Text Color</span>
-            </label>
-            <input
-              type="color"
-              value={config.textColor || '#000000'}
-              onChange={(e) => updateConfig({ textColor: e.target.value })}
-              style={{ width: '100px', height: '44px', cursor: 'pointer' }}
-            />
-          </div>
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Background Color
+              </label>
+              <input
+                type="color"
+                value={config.bgColor || '#ffffff'}
+                onChange={(e) => updateConfig({ bgColor: e.target.value })}
+                className="mt-2 h-11 w-24 cursor-pointer rounded-lg border border-gray-300"
+              />
+            </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Maximum Width</span>
-              <span className={styles.labelHint}>Maximum width of the content area</span>
-            </label>
-            <input
-              type="text"
-              className={styles.textInput}
-              value={config.maxWidth || ''}
-              onChange={(e) => updateConfig({ maxWidth: e.target.value })}
-              placeholder="1200px"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Maximum Width
+              </label>
+              <p className="mt-1 text-xs text-gray-500">Maximum width of the content area</p>
+              <input
+                type="text"
+                className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                value={config.maxWidth || ''}
+                onChange={(e) => updateConfig({ maxWidth: e.target.value })}
+                placeholder="1200px"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Typography Settings */}
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <span className={styles.sectionIcon}>Aa</span>
-            Typography
-          </h2>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Use Section Custom Typography</span>
-              <span className={styles.labelHint}>
-                When disabled, this section uses live global typography settings
-              </span>
-            </label>
-            <select
-              className={styles.select}
-              value={config.is_custom ? 'true' : 'false'}
-              onChange={(e) => updateConfig({ is_custom: e.target.value === 'true' })}
-            >
-              <option value="false">No - Use Global Typography</option>
-              <option value="true">Yes - Use Custom Typography</option>
-            </select>
+        {/* Typography & Buttons */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Typography & Buttons</h2>
+              <p className="text-sm text-gray-600">Customize text styles and button appearance</p>
+            </div>
           </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Button Style Source</span>
-              <span className={styles.labelHint}>
-                Use global primary or secondary button style for section buttons
-              </span>
-            </label>
-            <select
-              className={styles.select}
-              value={config.buttonStyleVariant || 'primary'}
-              onChange={(e) =>
-                updateConfig({
-                  buttonStyleVariant:
-                    e.target.value === 'secondary' ? 'secondary' : 'primary',
-                })
-              }
-            >
-              <option value="primary">Global Primary Button</option>
-              <option value="secondary">Global Secondary Button</option>
-            </select>
-          </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Custom Typography & Styles</label>
+                <p className="text-xs text-gray-500">Override global CSS with custom styling options</p>
+              </div>
+              <label className="relative inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  checked={sectionStyle.is_custom || false}
+                  onChange={(e) => setSectionStyle((prev) => ({ ...prev, is_custom: e.target.checked }))}
+                  className="peer sr-only"
+                />
+                <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
+              </label>
+            </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Title Font Family</span>
-            </label>
-            <select
-              className={styles.select}
-              value={config.titleFontFamily || DEFAULT_LOCATION_CONFIG.titleFontFamily}
-              onChange={(e) => handleTypographyChange('titleFontFamily', e.target.value)}
-              disabled={!config.is_custom}
-            >
-              {FONT_FAMILY_OPTIONS.map((font) => (
-                <option key={`location-title-font-${font.value}`} value={font.value}>
-                  {font.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Title Font Size</span>
-            </label>
-            <select
-              className={styles.select}
-              value={config.titleFontSize || DEFAULT_LOCATION_CONFIG.titleFontSize}
-              onChange={(e) => handleTypographyChange('titleFontSize', e.target.value)}
-              disabled={!config.is_custom}
-            >
-              {FONT_SIZE_OPTIONS.map((fontSize) => (
-                <option key={`location-title-size-${fontSize.value}`} value={fontSize.value}>
-                  {fontSize.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Title Font Weight</span>
-            </label>
-            <select
-              className={styles.select}
-              value={config.titleFontWeight || DEFAULT_LOCATION_CONFIG.titleFontWeight}
-              onChange={(e) => handleTypographyChange('titleFontWeight', Number(e.target.value))}
-              disabled={!config.is_custom}
-            >
-              {FONT_WEIGHT_OPTIONS.map((weight) => (
-                <option key={`location-title-weight-${weight.value}`} value={weight.value}>
-                  {weight.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Title Color</span>
-            </label>
-            <input
-              type="color"
-              value={config.titleColor || DEFAULT_LOCATION_CONFIG.titleColor}
-              onChange={(e) => handleTypographyChange('titleColor', e.target.value)}
-              style={{ width: '100px', height: '44px', cursor: 'pointer' }}
-              disabled={!config.is_custom}
-            />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Description Font Family</span>
-            </label>
-            <select
-              className={styles.select}
-              value={config.descriptionFontFamily || DEFAULT_LOCATION_CONFIG.descriptionFontFamily}
-              onChange={(e) => handleTypographyChange('descriptionFontFamily', e.target.value)}
-              disabled={!config.is_custom}
-            >
-              {FONT_FAMILY_OPTIONS.map((font) => (
-                <option key={`location-desc-font-${font.value}`} value={font.value}>
-                  {font.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Description Font Size</span>
-            </label>
-            <select
-              className={styles.select}
-              value={config.descriptionFontSize || DEFAULT_LOCATION_CONFIG.descriptionFontSize}
-              onChange={(e) => handleTypographyChange('descriptionFontSize', e.target.value)}
-              disabled={!config.is_custom}
-            >
-              {FONT_SIZE_OPTIONS.map((fontSize) => (
-                <option key={`location-desc-size-${fontSize.value}`} value={fontSize.value}>
-                  {fontSize.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Description Font Weight</span>
-            </label>
-            <select
-              className={styles.select}
-              value={config.descriptionFontWeight || DEFAULT_LOCATION_CONFIG.descriptionFontWeight}
-              onChange={(e) => handleTypographyChange('descriptionFontWeight', Number(e.target.value))}
-              disabled={!config.is_custom}
-            >
-              {FONT_WEIGHT_OPTIONS.map((weight) => (
-                <option key={`location-desc-weight-${weight.value}`} value={weight.value}>
-                  {weight.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Description Color</span>
-            </label>
-            <input
-              type="color"
-              value={config.descriptionColor || DEFAULT_LOCATION_CONFIG.descriptionColor}
-              onChange={(e) => handleTypographyChange('descriptionColor', e.target.value)}
-              style={{ width: '100px', height: '44px', cursor: 'pointer' }}
-              disabled={!config.is_custom}
-            />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Body Font Family</span>
-            </label>
-            <select
-              className={styles.select}
-              value={config.bodyFontFamily || DEFAULT_LOCATION_CONFIG.bodyFontFamily}
-              onChange={(e) => handleTypographyChange('bodyFontFamily', e.target.value)}
-              disabled={!config.is_custom}
-            >
-              {FONT_FAMILY_OPTIONS.map((font) => (
-                <option key={`location-body-font-${font.value}`} value={font.value}>
-                  {font.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Body Font Size</span>
-            </label>
-            <select
-              className={styles.select}
-              value={config.bodyFontSize || DEFAULT_LOCATION_CONFIG.bodyFontSize}
-              onChange={(e) => handleTypographyChange('bodyFontSize', e.target.value)}
-              disabled={!config.is_custom}
-            >
-              {FONT_SIZE_OPTIONS.map((fontSize) => (
-                <option key={`location-body-size-${fontSize.value}`} value={fontSize.value}>
-                  {fontSize.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Body Font Weight</span>
-            </label>
-            <select
-              className={styles.select}
-              value={config.bodyFontWeight || DEFAULT_LOCATION_CONFIG.bodyFontWeight}
-              onChange={(e) => handleTypographyChange('bodyFontWeight', Number(e.target.value))}
-              disabled={!config.is_custom}
-            >
-              {FONT_WEIGHT_OPTIONS.map((weight) => (
-                <option key={`location-body-weight-${weight.value}`} value={weight.value}>
-                  {weight.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              <span>Body Color</span>
-            </label>
-            <input
-              type="color"
-              value={config.bodyColor || DEFAULT_LOCATION_CONFIG.bodyColor}
-              onChange={(e) => handleTypographyChange('bodyColor', e.target.value)}
-              style={{ width: '100px', height: '44px', cursor: 'pointer' }}
-              disabled={!config.is_custom}
-            />
+            {!sectionStyle.is_custom ? (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="h-5 w-5 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                  </svg>
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-900">Using Global Styles</h4>
+                    <p className="mt-1 text-xs text-blue-700">
+                      This section is currently using the global CSS styles defined in your theme settings.
+                      Enable custom typography above to override these styles with section-specific options.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <SectionTypographyControls
+                  value={sectionStyle}
+                  onChange={(updates) =>
+                    setSectionStyle((prev) => ({ ...prev, ...updates }))
+                  }
+                />
+              </div>
+            )}
           </div>
         </div>
 
         {/* Save Button */}
-        <div className={styles.formActions}>
+        <div className="flex justify-end gap-3 border-t border-gray-200 pt-6">
           <button
             type="submit"
-            className={styles.saveButton}
             disabled={saving}
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:from-purple-700 hover:to-purple-800 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? (
               <>
-                <div className={styles.spinner}></div>
+                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
                 Saving...
               </>
             ) : (
-              <>💾 Save Location Settings</>
+              <>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h2m3-4H5a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Save Location Settings
+              </>
             )}
           </button>
         </div>
@@ -797,26 +637,30 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
 
       {/* Preview Modal */}
       {showPreviewModal && placeDetails && (
-        <div className={styles.modal} onClick={() => setShowPreviewModal(false)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setShowPreviewModal(false)}
+        >
           <div
-            className={styles.modalContent}
-            style={{ maxWidth: '1400px', maxHeight: '90vh' }}
+            className="relative w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>
+            <div className="flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white p-6">
+              <h2 className="text-xl font-bold text-gray-900">
                 Layout Preview: {layoutOptions.find(opt => opt.value === config.layout)?.name}
               </h2>
               <button
                 type="button"
                 onClick={() => setShowPreviewModal(false)}
-                className={styles.modalCloseButton}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
               >
-                ×
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
-            <div className={styles.modalBody} style={{ padding: 0, overflow: 'auto' }}>
+            <div className="overflow-auto p-0" style={{ maxHeight: 'calc(90vh - 180px)' }}>
               <div style={{
                 backgroundColor: config.bgColor || '#ffffff',
                 color: config.textColor || '#000000',
@@ -833,11 +677,11 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
               </div>
             </div>
 
-            <div className={styles.modalFooter}>
+            <div className="flex justify-end gap-3 border-t border-gray-200 bg-gray-50 p-6">
               <button
                 type="button"
                 onClick={() => setShowPreviewModal(false)}
-                className={`${styles.button} ${styles.primaryButton}`}
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:from-purple-700 hover:to-purple-800 hover:shadow-xl"
               >
                 Close Preview
               </button>

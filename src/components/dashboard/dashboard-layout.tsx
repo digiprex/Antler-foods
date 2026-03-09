@@ -360,8 +360,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     (isAuthenticated && !isRoleResolved)
   ) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f3f5f6]">
-        <div className="flex items-center gap-3 rounded-xl border border-[#d7e2e6] bg-white px-5 py-3 text-sm text-[#5a6670]">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-6 py-4 text-sm text-gray-700 shadow-sm">
           <PurpleDotSpinner size="sm" />
           <span>Loading dashboard...</span>
         </div>
@@ -376,7 +376,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const userLabel = user?.displayName?.trim() || user?.email || 'Admin';
 
   return (
-    <div className="min-h-screen bg-[#f3f5f6]">
+    <div className="min-h-screen bg-gray-50">
       {/* Global spinner removed */}
       <Sidebar
         activeTab={activeTab}
@@ -387,13 +387,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         selectedRestaurant={selectedRestaurant}
         onRestaurantSelect={onRestaurantSelect}
       />
-      <div className={`min-h-screen transition-all duration-200 ease-in-out ${isSidebarOpen ? 'ml-[330px]' : 'ml-16'}`}>
+      <div className={`min-h-screen transition-all duration-200 ease-in-out ${isSidebarOpen ? 'ml-[260px]' : 'ml-20'}`}>
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar
             userLabel={userLabel}
             onLogout={onLogout}
             isLoggingOut={isLoggingOut}
             onToggleSidebar={toggleSidebar}
+            selectedRestaurant={selectedRestaurant}
           />
           <main className="flex-1 p-6 md:p-8">{children}</main>
         </div>

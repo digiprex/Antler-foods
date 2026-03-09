@@ -536,10 +536,10 @@ function SelectionRequiredCard({ target }: { target: string }) {
 function LoadingCard({ title }: { title: string }) {
   return (
     <section className="space-y-5">
-      <h1 className="text-5xl font-semibold tracking-tight text-[#101827]">
+      <h1 className="text-2xl font-semibold tracking-tight text-[#101827]">
         {title}
       </h1>
-      <div className="flex items-center gap-3 rounded-3xl border border-[#d7e2e6] bg-white p-8 text-lg text-[#5f6c78]">
+      <div className="flex items-center gap-3 rounded-3xl border border-[#d7e2e6] bg-white p-8 text-sm text-[#5f6c78]">
         <PurpleDotSpinner size="sm" />
         <span>Loading restaurant data...</span>
       </div>

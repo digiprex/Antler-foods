@@ -116,16 +116,16 @@ export function SearchBox({
   };
 
   return (
-    <div className="border-b border-[#d8e3e7] p-3">
+    <div className="border-b border-gray-200 p-4">
       <div ref={containerRef} className="relative">
-        <div className="flex items-center rounded-xl border border-[#cfd9de] bg-white px-4 py-3">
+        <div className="flex items-center rounded-lg border border-gray-300 bg-white px-4 py-3 shadow-sm transition-all focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-100">
           <input
             type="text"
             value={searchValue}
             onChange={(event) => onInputChange(event.target.value)}
             onFocus={() => setIsOpen(true)}
             placeholder="Search restaurant..."
-            className="w-full bg-transparent text-base text-[#5f6c78] outline-none placeholder:text-[#7a8792]"
+            className="w-full bg-transparent text-base text-gray-700 outline-none placeholder:text-gray-400"
           />
           {selectedRestaurant ? (
             <button
@@ -135,18 +135,18 @@ export function SearchBox({
                 onRestaurantSelect(null);
                 setIsOpen(false);
               }}
-              className="ml-2 text-[#b1bac2]"
+              className="ml-2 text-gray-400 transition-colors hover:text-gray-600"
               aria-label="Clear selected restaurant"
             >
               <ClearIcon />
             </button>
           ) : (
             <>
-              <div className="ml-4 h-7 w-px bg-[#d0d8dd]" />
+              <div className="ml-4 h-7 w-px bg-gray-300" />
               <button
                 type="button"
                 onClick={() => setIsOpen((previous) => !previous)}
-                className="ml-2 text-[#b1bac2]"
+                className="ml-2 text-gray-400 transition-colors hover:text-gray-600"
                 aria-label="Toggle restaurant suggestions"
               >
                 <ChevronDownIcon />
@@ -156,21 +156,21 @@ export function SearchBox({
         </div>
 
         {isOpen ? (
-          <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-[400px] overflow-y-auto overflow-x-hidden rounded-xl border border-[#d7e2e6] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
+          <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-[400px] overflow-y-auto overflow-x-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
             {isLoading ? (
-              <p className="px-4 py-3 text-sm text-[#647384]">
+              <p className="px-4 py-3 text-sm text-gray-500">
                 Loading restaurants...
               </p>
             ) : null}
 
             {!isLoading && loadError ? (
-              <p className="px-4 py-3 text-sm text-[#c2410c]">
+              <p className="px-4 py-3 text-sm text-red-600">
                 Unable to load restaurant suggestions.
               </p>
             ) : null}
 
             {!isLoading && !loadError && filteredRestaurants.length === 0 ? (
-              <p className="px-4 py-3 text-sm text-[#647384]">
+              <p className="px-4 py-3 text-sm text-gray-500">
                 No restaurants found.
               </p>
             ) : null}
@@ -184,7 +184,7 @@ export function SearchBox({
                       event.preventDefault();
                       onSelectRestaurant(restaurant);
                     }}
-                    className="block w-full border-b border-[#edf2f4] px-4 py-2.5 text-left text-sm text-[#1f2937] transition last:border-b-0 hover:bg-[#f5f8fa]"
+                    className="block w-full border-b border-gray-100 px-4 py-3 text-left text-sm font-medium text-gray-700 transition-colors last:border-b-0 hover:bg-purple-50 hover:text-purple-700"
                   >
                     {restaurant.name}
                   </button>

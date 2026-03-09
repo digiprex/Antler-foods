@@ -812,10 +812,8 @@ export default function PageSettingsSelector() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="mx-auto max-w-5xl space-y-6">
-          {/* Page Header */}
-          <div className="flex items-start justify-between">
+      {/* Page Header */}
+      <div className="mb-8 flex items-start justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
                 <svg
@@ -1292,8 +1290,6 @@ export default function PageSettingsSelector() {
                 </div>
               </div>
             )}
-        </div>
-      </div>
 
       {/* Add Section Modal */}
         {showAddSectionModal && (

@@ -41,20 +41,18 @@ export default function FAQSettingsPage() {
   return (
     <DashboardLayout>
       {restaurantId && restaurantName ? (
-        <div className="min-h-screen bg-gray-50 p-8">
-          <div className="mx-auto max-w-5xl">
-            <button
-              onClick={handleBack}
-              className="mb-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-              Back to Page Settings
-            </button>
-            <FAQSettingsForm pageId={pageId || undefined} restaurantId={restaurantId || undefined} />
-          </div>
-        </div>
+        <>
+          <button
+            onClick={handleBack}
+            className="mb-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Page Settings
+          </button>
+          <FAQSettingsForm pageId={pageId || undefined} restaurantId={restaurantId || undefined} />
+        </>
       ) : (
         <div className="flex min-h-[400px] items-center justify-center">
           <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-12 text-center shadow-sm">

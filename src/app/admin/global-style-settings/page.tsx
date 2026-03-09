@@ -18,11 +18,13 @@
 
 'use client';
 
+import { Suspense } from 'react';
+
 import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import GlobalStyleSettingsForm from '@/components/admin/global-style-settings-form';
 
-export default function GlobalStyleSettingsPage() {
+function GlobalStyleSettingsContent() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
@@ -45,5 +47,13 @@ export default function GlobalStyleSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function GlobalStyleSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <GlobalStyleSettingsContent />
+    </Suspense>
   );
 }

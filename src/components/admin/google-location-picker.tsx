@@ -18,15 +18,7 @@ interface GoogleLocationPickerProps {
   onLocationUpdate: (updates: Partial<LocationItem>) => void;
 }
 
-// Google Maps types
-declare global {
-  interface Window {
-    google: any;
-    initGoogleMaps: () => void;
-    googleMapsLoaded?: boolean;
-    googleMapsLoading?: boolean;
-  }
-}
+// Note: Using (window as any) for google object to avoid type conflicts with @types packages
 
 // Cache for Google Maps script loading
 let googleMapsLoadPromise: Promise<void> | null = null;
@@ -38,7 +30,7 @@ const loadGoogleMapsScript = (apiKey: string): Promise<void> => {
   }
 
   // Return immediately if already loaded
-  if (window.googleMapsLoaded && window.google && window.google.maps) {
+  if ((window as any).googleMapsLoaded && (window as any).google && (window as any).google.maps) {
     return Promise.resolve();
   }
 
@@ -47,8 +39,8 @@ const loadGoogleMapsScript = (apiKey: string): Promise<void> => {
   if (existingScript) {
     return new Promise((resolve, reject) => {
       const checkLoaded = setInterval(() => {
-        if (window.google && window.google.maps) {
-          window.googleMapsLoaded = true;
+        if ((window as any).google && (window as any).google.maps) {
+          (window as any).googleMapsLoaded = true;
           clearInterval(checkLoaded);
           resolve();
         }
@@ -69,7 +61,7 @@ const loadGoogleMapsScript = (apiKey: string): Promise<void> => {
     script.defer = true;
 
     script.onload = () => {
-      window.googleMapsLoaded = true;
+      (window as any).googleMapsLoaded = true;
       googleMapsLoadPromise = null;
       resolve();
     };
@@ -125,10 +117,10 @@ function GoogleLocationPicker({
   }, [apiKey]);
 
   const initializeMap = () => {
-    if (!window.google || !mapRef.current || mapInitialized.current) return;
+    if (!(window as any).google || !mapRef.current || mapInitialized.current) return;
 
     try {
-      const google = window.google;
+      const google = (window as any).google;
       mapInitialized.current = true;
 
       // Initialize map
@@ -249,9 +241,9 @@ function GoogleLocationPicker({
 
   // Reverse geocode coordinates to address
   const reverseGeocode = async (lat: number, lng: number) => {
-    if (!window.google) return;
+    if (!(window as any).google) return;
 
-    const geocoder = new window.google.maps.Geocoder();
+    const geocoder = new (window as any).google.maps.Geocoder();
 
     try {
       const response = await geocoder.geocode({
@@ -291,13 +283,13 @@ function GoogleLocationPicker({
 
   // Geocode address to coordinates
   const geocodeAddress = async () => {
-    if (!window.google) return;
+    if (!(window as any).google) return;
 
     const addressString = `${location.address}, ${location.city}, ${location.state} ${location.zipCode}, ${location.country}`;
 
     if (!addressString.trim()) return;
 
-    const geocoder = new window.google.maps.Geocoder();
+    const geocoder = new (window as any).google.maps.Geocoder();
 
     try {
       const response = await geocoder.geocode({

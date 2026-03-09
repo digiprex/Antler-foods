@@ -7,12 +7,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+interface InsertReviewResponse {
+  insert_reviews_one: {
+    review_id: string;
+    restaurant_id: string;
+    source: string;
+    rating: number;
+    author_name?: string;
+    review_text?: string;
+    avatar_url?: string;
+    published_at: string;
+    created_at: string;
+  };
+}
+
 async function graphqlRequest<T>(
   query: string,
   variables: Record<string, unknown> = {},
-) {
-  const data = await adminGraphqlRequest<T>(query, variables);
-  return { data };
+): Promise<{ data?: T; errors?: any[] }> {
+  try {
+    const data = await adminGraphqlRequest<T>(query, variables);
+    return { data };
+  } catch (error: any) {
+    return {
+      errors: error.errors || [{ message: error.message || 'GraphQL request failed' }]
+    };
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -65,7 +85,7 @@ export async function POST(request: NextRequest) {
       }
     `;
 
-    const result = await graphqlRequest(mutation, {
+    const result = await graphqlRequest<InsertReviewResponse>(mutation, {
       review: {
         restaurant_id,
         source: source || 'manual',
@@ -88,6 +108,15 @@ export async function POST(request: NextRequest) {
     }
 
     const review = result.data?.insert_reviews_one;
+
+    if (!review) {
+      console.error('[Add Review API] No review returned');
+      return NextResponse.json(
+        { success: false, error: 'Failed to add review' },
+        { status: 500 }
+      );
+    }
+
     console.log('[Add Review API] Review created:', review.review_id);
 
     return NextResponse.json({

@@ -7,12 +7,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+interface Review {
+  review_id: string;
+  restaurant_id: string;
+  source: string;
+  external_review_id?: string;
+  rating: number;
+  author_name: string;
+  review_text?: string;
+  author_url?: string;
+  review_url?: string;
+  published_at?: string;
+  is_hidden: boolean;
+  created_by_user_id?: string;
+  created_at: string;
+  updated_at: string;
+  is_deleted: boolean;
+  avatar_url?: string;
+  avatar_file_id?: string;
+}
+
+interface ReviewsResponse {
+  reviews: Review[];
+}
+
 async function graphqlRequest<T>(
   query: string,
   variables: Record<string, unknown> = {},
-) {
-  const data = await adminGraphqlRequest<T>(query, variables);
-  return { data };
+): Promise<{ data?: T; errors?: any[] }> {
+  try {
+    const data = await adminGraphqlRequest<T>(query, variables);
+    return { data };
+  } catch (error: any) {
+    return {
+      errors: error.errors || [{ message: error.message || 'GraphQL request failed' }]
+    };
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -72,7 +102,7 @@ export async function GET(request: NextRequest) {
       variables.limit = parseInt(limit, 10);
     }
 
-    const result = await graphqlRequest(query, variables);
+    const result = await graphqlRequest<ReviewsResponse>(query, variables);
 
     if (result.errors) {
       console.error('[Reviews API] GraphQL errors:', result.errors);

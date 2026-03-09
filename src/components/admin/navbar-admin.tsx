@@ -41,8 +41,8 @@ export default function NavbarAdmin() {
       setRestaurantName(config.restaurantName);
       setLogoUrl(config.logoUrl || '');
       setLeftNavItems(config.leftNavItems);
-      setCtaLabel(config.ctaButton.label);
-      setCtaHref(config.ctaButton.href);
+      setCtaLabel(config.ctaButton?.label || '');
+      setCtaHref(config.ctaButton?.href || '');
       setBgColor(config.bgColor || '#ffffff');
       setTextColor(config.textColor || '#000000');
       setButtonBgColor(config.buttonBgColor || '#000000');

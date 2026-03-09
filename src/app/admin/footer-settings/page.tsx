@@ -19,11 +19,12 @@
 
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import FooterSettingsForm from '@/components/admin/footer-settings-form';
 
-export default function FooterSettingsPage() {
+function FooterSettingsContent() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
@@ -46,5 +47,13 @@ export default function FooterSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function FooterSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <FooterSettingsContent />
+    </Suspense>
   );
 }

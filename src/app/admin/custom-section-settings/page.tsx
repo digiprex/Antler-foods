@@ -19,12 +19,13 @@
 
 'use client';
 
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import CustomSectionSettingsForm from '@/components/admin/custom-section-settings-form-simple';
 import styles from '@/components/admin/gallery-settings-form.module.css';
 
-export default function CustomSectionSettingsPage() {
+function CustomSectionSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
@@ -75,5 +76,13 @@ export default function CustomSectionSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function CustomSectionSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CustomSectionSettingsContent />
+    </Suspense>
   );
 }

@@ -1,25 +1,30 @@
 'use client';
 
+import { Suspense } from 'react';
+
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import '@/styles/page-settings-animations.css';
 
-// Import dynamic components for previews
-import DynamicHero from '@/components/dynamic-hero';
-import DynamicMenu from '@/components/dynamic-menu';
-import DynamicGallery from '@/components/dynamic-gallery';
-import DynamicReviews from '@/components/dynamic-reviews';
-import DynamicTimeline from '@/components/dynamic-timeline';
-import DynamicFAQ from '@/components/dynamic-faq';
-import DynamicLocation from '@/components/dynamic-location';
-import DynamicScrollingText from '@/components/dynamic-scrolling-text';
-import DynamicCustomCode from '@/components/dynamic-custom-code';
-import DynamicForm from '@/components/dynamic-form';
-import CustomSection from '@/components/custom-section';
-import DynamicYouTube from '@/components/dynamic-youtube';
+// Dynamically import preview components for better performance
+// These are only loaded when section previews are needed
+const DynamicHero = dynamic(() => import('@/components/dynamic-hero'), { ssr: false });
+const DynamicMenu = dynamic(() => import('@/components/dynamic-menu'), { ssr: false });
+const DynamicGallery = dynamic(() => import('@/components/dynamic-gallery'), { ssr: false });
+const DynamicReviews = dynamic(() => import('@/components/dynamic-reviews'), { ssr: false });
+const DynamicTimeline = dynamic(() => import('@/components/dynamic-timeline'), { ssr: false });
+const DynamicFAQ = dynamic(() => import('@/components/dynamic-faq'), { ssr: false });
+const DynamicLocation = dynamic(() => import('@/components/dynamic-location'), { ssr: false });
+const DynamicScrollingText = dynamic(() => import('@/components/dynamic-scrolling-text'), { ssr: false });
+const DynamicCustomCode = dynamic(() => import('@/components/dynamic-custom-code'), { ssr: false });
+const DynamicForm = dynamic(() => import('@/components/dynamic-form'), { ssr: false });
+const CustomSection = dynamic(() => import('@/components/custom-section'), { ssr: false });
+const DynamicYouTube = dynamic(() => import('@/components/dynamic-youtube'), { ssr: false });
 
-export default function PageSettingsSelector() {
+function PageSettingsSelector() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
@@ -45,6 +50,8 @@ export default function PageSettingsSelector() {
   const [pageSlug, setPageSlug] = useState<string>('');
   const [editingPageInfo, setEditingPageInfo] = useState(false);
   const [updatingPageInfo, setUpdatingPageInfo] = useState(false);
+  const [navigating, setNavigating] = useState(false);
+  const [navigationTarget, setNavigationTarget] = useState('');
 
   // Function to render section preview based on category
   const renderSectionPreview = (category: string, config?: any, templateId?: string) => {
@@ -1310,8 +1317,9 @@ export default function PageSettingsSelector() {
                     </div>
                   </div>
                   <button
-                    onClick={() => setShowAddSectionModal(false)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    onClick={() => !navigating && setShowAddSectionModal(false)}
+                    disabled={navigating}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -1326,11 +1334,18 @@ export default function PageSettingsSelector() {
                   {availableSectionsData.map((section, idx) => (
                     <div
                       key={idx}
-                      className="group cursor-pointer rounded-lg border-2 border-gray-200 bg-white p-6 text-left transition-all hover:border-purple-300 hover:bg-purple-50/50"
+                      className={`group rounded-lg border-2 border-gray-200 bg-white p-6 text-left transition-all ${
+                        navigating
+                          ? 'opacity-50 cursor-not-allowed'
+                          : 'cursor-pointer hover:border-purple-300 hover:bg-purple-50/50'
+                      }`}
                       onClick={() => {
+                        if (navigating) return;
                         const params = buildParams();
-                        router.push(`${section.route}?${params}&new_section=true`);
-                        setShowAddSectionModal(false);
+                        const targetUrl = `${section.route}?${params}&new_section=true`;
+                        setNavigationTarget(section.name);
+                        setNavigating(true);
+                        router.push(targetUrl);
                       }}
                     >
                       <div className="flex items-start justify-between gap-3 mb-3">
@@ -1363,16 +1378,57 @@ export default function PageSettingsSelector() {
                     </div>
                   ))}
                 </div>
+
+                {/* Hidden prefetch links for faster navigation */}
+                <div className="hidden">
+                  {availableSectionsData.map((section, idx) => {
+                    const params = buildParams();
+                    return (
+                      <Link
+                        key={idx}
+                        href={`${section.route}?${params}&new_section=true`}
+                        prefetch={true}
+                      >
+                        {section.name}
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Modal Footer */}
               <div className="p-6 border-t border-gray-200 bg-white flex justify-end">
                 <button
-                  onClick={() => setShowAddSectionModal(false)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
+                  onClick={() => !navigating && setShowAddSectionModal(false)}
+                  disabled={navigating}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Close
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation Loading Overlay */}
+        {navigating && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 min-w-[300px]">
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-semibold text-gray-900 mb-1">
+                  Opening {navigationTarget}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Please wait...
+                </p>
               </div>
             </div>
           </div>
@@ -1423,5 +1479,13 @@ export default function PageSettingsSelector() {
           </div>
         )}
     </DashboardLayout>
+  );
+}
+
+export default function PageSettingsSelectorPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PageSettingsSelector />
+    </Suspense>
   );
 }

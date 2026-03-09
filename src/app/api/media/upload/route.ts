@@ -14,12 +14,28 @@ import {
   resolveStorageApiUrl,
 } from '@/lib/server/nhost-config';
 
+interface InsertMediaResponse {
+  insert_medias_one: {
+    id: string;
+    file_id: string;
+    type: string;
+    restaurant_id: string;
+    created_at: string;
+  };
+}
+
 async function graphqlRequest<T>(
   query: string,
   variables: Record<string, unknown> = {},
-) {
-  const data = await adminGraphqlRequest<T>(query, variables);
-  return { data };
+): Promise<{ data?: T; errors?: any[] }> {
+  try {
+    const data = await adminGraphqlRequest<T>(query, variables);
+    return { data };
+  } catch (error: any) {
+    return {
+      errors: error.errors || [{ message: error.message || 'GraphQL request failed' }]
+    };
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -170,7 +186,7 @@ export async function POST(request: NextRequest) {
       }
     `;
 
-    const mediaResult = await graphqlRequest(insertMediaMutation, {
+    const mediaResult = await graphqlRequest<InsertMediaResponse>(insertMediaMutation, {
       object: {
         file_id: fileId,
         restaurant_id: restaurantId,
@@ -188,6 +204,15 @@ export async function POST(request: NextRequest) {
     }
 
     const media = mediaResult.data?.insert_medias_one;
+
+    if (!media) {
+      console.error('[Media Upload] No media record returned');
+      return NextResponse.json(
+        { success: false, error: 'Failed to create media record' },
+        { status: 500 }
+      );
+    }
+
     console.log('[Media Upload] Media record created:', media);
 
     // Return the complete media object with file details

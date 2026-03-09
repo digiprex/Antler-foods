@@ -9,12 +9,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { resolveStorageApiUrl } from '@/lib/server/nhost-config';
 
+interface MediaFile {
+  id: string;
+  file_id: string;
+  type: string;
+  restaurant_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface MediasResponse {
+  medias: MediaFile[];
+}
+
+interface FileInfo {
+  id: string;
+  name: string;
+  mimeType: string;
+  bucketId: string;
+  size: number;
+}
+
+interface FilesResponse {
+  files: FileInfo[];
+}
+
 async function graphqlRequest<T>(
   query: string,
   variables: Record<string, unknown> = {},
-) {
-  const data = await adminGraphqlRequest<T>(query, variables);
-  return { data };
+): Promise<{ data?: T; errors?: any[] }> {
+  try {
+    const data = await adminGraphqlRequest<T>(query, variables);
+    return { data };
+  } catch (error: any) {
+    return {
+      errors: error.errors || [{ message: error.message || 'GraphQL request failed' }]
+    };
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -79,7 +110,7 @@ export async function GET(request: NextRequest) {
       variables.type = type;
     }
 
-    const result = await graphqlRequest(query, variables);
+    const result = await graphqlRequest<MediasResponse>(query, variables);
 
     if (result.errors) {
       console.error('[Media API] GraphQL errors:', result.errors);
@@ -109,7 +140,7 @@ export async function GET(request: NextRequest) {
         }
       `;
 
-      const filesResult = await graphqlRequest(filesQuery, { fileIds });
+      const filesResult = await graphqlRequest<FilesResponse>(filesQuery, { fileIds });
 
       if (filesResult.errors) {
         console.error('[Media API] GraphQL errors fetching files:', filesResult.errors);

@@ -1185,12 +1185,15 @@ export default function MenuSettingsForm({ pageId, templateId, isNewSection }: M
   const handleMediaSelect = (imageUrl: string) => {
     if (!currentMediaField || !formConfig) return;
 
-    switch (currentMediaField) {
+    switch (currentMediaField.type) {
       case 'header_image':
         updateConfig({ headerImage: imageUrl });
         break;
       case 'background_image':
         updateConfig({ backgroundImage: imageUrl });
+        break;
+      case 'item_image':
+        // Handle item image if needed
         break;
     }
 
@@ -1198,7 +1201,7 @@ export default function MenuSettingsForm({ pageId, templateId, isNewSection }: M
     setCurrentMediaField(null);
   };
 
-  const openMediaGallery = (field: MediaFieldType) => {
+  const openMediaGallery = (field: MenuMediaField) => {
     setCurrentMediaField(field);
     setShowGalleryModal(true);
   };

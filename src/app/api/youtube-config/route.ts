@@ -10,6 +10,56 @@ import type { YouTubeConfig, YouTubeConfigResponse } from '@/types/youtube.types
 import { DEFAULT_YOUTUBE_CONFIG } from '@/types/youtube.types';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+interface YouTubeTemplate {
+  category: string;
+  config: any;
+  created_at: string;
+  is_deleted: boolean;
+  menu_items: any;
+  name: string;
+  restaurant_id: string;
+  template_id: string;
+  updated_at: string;
+  page_id?: string;
+}
+
+interface GetYouTubeConfigResponse {
+  templates: YouTubeTemplate[];
+}
+
+interface GetRestaurantByDomainResponse {
+  restaurants: Array<{
+    restaurant_id: string;
+  }>;
+}
+
+interface GetPageBySlugResponse {
+  pages: Array<{
+    page_id: string;
+  }>;
+}
+
+interface MarkAsDeletedResponse {
+  update_templates_by_pk: {
+    template_id: string;
+    is_deleted: boolean;
+  };
+}
+
+interface InsertTemplateResponse {
+  insert_templates_one: {
+    restaurant_id: string;
+    template_id: string;
+    name: string;
+    category: string;
+    config: any;
+    menu_items: any;
+    page_id?: string;
+    created_at: string;
+    updated_at: string;
+  };
+}
+
 /**
  * GraphQL query to fetch YouTube configuration
  */
@@ -142,7 +192,7 @@ const INSERT_TEMPLATE = `
 /**
  * Helper function to make GraphQL requests
  */
-async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>) {
+async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   return adminGraphqlRequest<T>(query, variables);
 }
 
@@ -178,7 +228,7 @@ export async function GET(request: Request) {
           }
         `;
 
-        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, { domain });
+        const domainData = await graphqlRequest<GetRestaurantByDomainResponse>(GET_RESTAURANT_BY_DOMAIN, { domain });
 
         if (domainData.restaurants && domainData.restaurants.length > 0) {
           restaurantId = domainData.restaurants[0].restaurant_id;
@@ -216,13 +266,13 @@ export async function GET(request: Request) {
           }
         `;
 
-        const pageData = await graphqlRequest(GET_PAGE_BY_SLUG, {
+        const pageData = await graphqlRequest<GetPageBySlugResponse>(GET_PAGE_BY_SLUG, {
           restaurant_id: restaurantId,
           url_slug: urlSlug
         });
 
-        if ((pageData as any).pages && (pageData as any).pages.length > 0) {
-          finalPageId = (pageData as any).pages[0].page_id;
+        if (pageData.pages && pageData.pages.length > 0) {
+          finalPageId = pageData.pages[0].page_id;
         }
       } catch (error) {
         console.error('[YouTube Config] Error fetching page_id by url_slug:', error);
@@ -230,22 +280,22 @@ export async function GET(request: Request) {
     }
 
     // Determine which query to use based on available parameters
-    let data;
+    let data: GetYouTubeConfigResponse;
     if (templateId) {
       // If template_id is provided, fetch that specific template
-      data = await graphqlRequest(GET_YOUTUBE_CONFIG_BY_TEMPLATE, {
+      data = await graphqlRequest<GetYouTubeConfigResponse>(GET_YOUTUBE_CONFIG_BY_TEMPLATE, {
         restaurant_id: restaurantId,
         template_id: templateId
       });
     } else if (finalPageId) {
       // If page_id is provided, fetch the most recent YouTube for that page
-      data = await graphqlRequest(GET_YOUTUBE_CONFIG_BY_PAGE, {
+      data = await graphqlRequest<GetYouTubeConfigResponse>(GET_YOUTUBE_CONFIG_BY_PAGE, {
         restaurant_id: restaurantId,
         page_id: finalPageId
       });
     } else {
       // Fallback to restaurant-level YouTube
-      data = await graphqlRequest(GET_YOUTUBE_CONFIG, { restaurant_id: restaurantId });
+      data = await graphqlRequest<GetYouTubeConfigResponse>(GET_YOUTUBE_CONFIG, { restaurant_id: restaurantId });
     }
 
     if (!data.templates || data.templates.length === 0) {
@@ -319,13 +369,13 @@ export async function POST(request: Request) {
           }
         `;
 
-        const pageData = await graphqlRequest(GET_PAGE_BY_SLUG, {
+        const pageData = await graphqlRequest<GetPageBySlugResponse>(GET_PAGE_BY_SLUG, {
           restaurant_id: restaurantId,
           url_slug: urlSlug
         });
 
-        if ((pageData as any).pages && (pageData as any).pages.length > 0) {
-          finalPageId = (pageData as any).pages[0].page_id;
+        if (pageData.pages && pageData.pages.length > 0) {
+          finalPageId = pageData.pages[0].page_id;
         }
       } catch (error) {
         console.error('[YouTube Config] Error fetching page_id by url_slug:', error);
@@ -334,7 +384,7 @@ export async function POST(request: Request) {
 
     // Step 2: If template_id is provided, mark that specific template as deleted (editing existing section)
     if (templateId) {
-      await graphqlRequest(MARK_AS_DELETED, {
+      await graphqlRequest<MarkAsDeletedResponse>(MARK_AS_DELETED, {
         template_id: templateId,
       });
     }
@@ -349,7 +399,7 @@ export async function POST(request: Request) {
     };
 
     // Insert new template
-    const insertedData = await graphqlRequest(INSERT_TEMPLATE, {
+    const insertedData = await graphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
       restaurant_id: restaurantId,
       name: name,
       category: 'YouTube',

@@ -10,6 +10,49 @@ import type { PopupConfig, PopupConfigResponse } from '@/types/popup.types';
 import { DEFAULT_POPUP_CONFIG } from '@/types/popup.types';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+interface PopupTemplate {
+  category: string;
+  config: any;
+  created_at: string;
+  is_deleted: boolean;
+  menu_items: any;
+  name: string;
+  restaurant_id: string;
+  template_id: string;
+  updated_at: string;
+  page_id?: string;
+}
+
+interface GetPopupConfigResponse {
+  templates: PopupTemplate[];
+}
+
+interface GetRestaurantByDomainResponse {
+  restaurants: Array<{
+    restaurant_id: string;
+  }>;
+}
+
+interface MarkAsDeletedResponse {
+  update_templates_by_pk: {
+    template_id: string;
+    is_deleted: boolean;
+  };
+}
+
+interface InsertTemplateResponse {
+  insert_templates_one: {
+    restaurant_id: string;
+    template_id: string;
+    name: string;
+    category: string;
+    config: any;
+    menu_items: any;
+    created_at: string;
+    updated_at: string;
+  };
+}
+
 /**
  * GraphQL query to fetch popup configuration
  */
@@ -83,7 +126,7 @@ const INSERT_TEMPLATE = `
 /**
  * Helper function to make GraphQL requests
  */
-async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>) {
+async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   return adminGraphqlRequest<T>(query, variables);
 }
 
@@ -116,7 +159,7 @@ export async function GET(request: Request) {
           }
         `;
 
-        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, { domain });
+        const domainData = await graphqlRequest<GetRestaurantByDomainResponse>(GET_RESTAURANT_BY_DOMAIN, { domain });
 
         if (domainData.restaurants && domainData.restaurants.length > 0) {
           restaurantId = domainData.restaurants[0].restaurant_id;
@@ -135,7 +178,7 @@ export async function GET(request: Request) {
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    const data = await graphqlRequest(GET_POPUP_CONFIG, { restaurant_id: restaurantId });
+    const data = await graphqlRequest<GetPopupConfigResponse>(GET_POPUP_CONFIG, { restaurant_id: restaurantId });
 
     if (!data.templates || data.templates.length === 0) {
       const response: PopupConfigResponse = {
@@ -184,11 +227,11 @@ export async function POST(request: Request) {
     }
 
     // Get current template to mark as deleted
-    const currentData = await graphqlRequest(GET_POPUP_CONFIG, { restaurant_id: restaurantId });
+    const currentData = await graphqlRequest<GetPopupConfigResponse>(GET_POPUP_CONFIG, { restaurant_id: restaurantId });
 
     // Mark current template as deleted (if exists)
     if (currentData.templates && currentData.templates.length > 0) {
-      await graphqlRequest(MARK_AS_DELETED, {
+      await graphqlRequest<MarkAsDeletedResponse>(MARK_AS_DELETED, {
         template_id: currentData.templates[0].template_id,
       });
     }
@@ -202,7 +245,7 @@ export async function POST(request: Request) {
     };
 
     // Insert new template
-    const insertedData = await graphqlRequest(INSERT_TEMPLATE, {
+    const insertedData = await graphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
       restaurant_id: restaurantId,
       name: name,
       category: 'Popup',

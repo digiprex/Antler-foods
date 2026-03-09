@@ -29,6 +29,21 @@ export function Sidebar({
   const hasRestaurantSelection = Boolean(selectedRestaurant);
   const roleSegment = dashboardBasePath.split('/')[2] || 'admin';
 
+  // Add style to hide scrollbar globally
+  if (typeof document !== 'undefined') {
+    const styleId = 'sidebar-scrollbar-hide';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+
   // Static grouped menu structure matching requested layout
   const HOME_MENU_ITEMS = [
     { href: '/home', label: 'Home', icon: <HomeIcon /> },
@@ -153,6 +168,14 @@ export function Sidebar({
           label: 'Popup Settings',
           icon: <PopupIcon />,
         },
+        {
+          href: buildRestaurantScopedHref(
+            `/admin/domain-settings`,
+            selectedRestaurant,
+          ),
+          label: 'Domain Settings',
+          icon: <DomainIcon />,
+        },
       ]
     : [];
 
@@ -197,29 +220,25 @@ export function Sidebar({
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen border-r border-gray-200 bg-white shadow-sm transition-all duration-200 ease-in-out overflow-y-auto ${
-        isOpen ? 'w-[280px]' : 'w-16'
+      className={`fixed left-0 top-0 h-screen border-r border-gray-200 bg-white shadow-sm transition-all duration-200 ease-in-out overflow-y-auto overflow-x-hidden scrollbar-hide ${
+        isOpen ? 'w-[260px]' : 'w-20'
       }`}
+      style={{
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+      }}
     >
-      <SearchBox
-        selectedRestaurant={selectedRestaurant}
-        onRestaurantSelect={onRestaurantSelect}
-      />
-      <div className="border-b border-gray-200 px-4 py-4">
-        <div className="flex items-center justify-between">
-          {isOpen ? (
+      {isOpen && (
+        <>
+          <SearchBox
+            selectedRestaurant={selectedRestaurant}
+            onRestaurantSelect={onRestaurantSelect}
+          />
+          <div className="border-b border-gray-200 px-4 py-4">
             <h2 className="text-lg font-bold text-gray-900">Menu</h2>
-          ) : (
-            <div className="h-5" />
-          )}
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
-          >
-            <EyeIcon />
-          </button>
-        </div>
-      </div>
+          </div>
+        </>
+      )}
 
       <div className="space-y-4 px-3 py-4">
         {/* Home Section */}
@@ -745,24 +764,6 @@ function FormsIcon() {
   );
 }
 
-function EyeIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-4 w-4"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
 function GlobalStyleIcon() {
   return (
     <svg
@@ -779,6 +780,23 @@ function GlobalStyleIcon() {
       <path d="M8 14s1.5 2 4 2 4-2 4-2" />
       <path d="M9 9h.01" />
       <path d="M15 9h.01" />
+    </svg>
+  );
+}
+
+function DomainIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
     </svg>
   );
 }

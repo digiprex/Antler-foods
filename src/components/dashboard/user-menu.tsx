@@ -27,26 +27,36 @@ export function UserMenu({ userLabel, onLogout, isLoggingOut }: UserMenuProps) {
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[20px] font-medium text-[#111827] transition hover:bg-[#f2f5f6]"
+        className="inline-flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 transition-all hover:border-purple-300 hover:bg-purple-50"
         onClick={() => setOpen((value) => !value)}
       >
-        <span className="max-w-[220px] truncate">{userLabel}</span>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-purple-600 text-sm font-semibold text-white">
+          {userLabel.charAt(0).toUpperCase()}
+        </div>
+        <span className="max-w-[180px] truncate text-sm font-medium text-gray-900">{userLabel}</span>
         <ChevronDownIcon />
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-30 min-w-[140px] rounded-xl border border-[#d7e2e6] bg-white p-2 shadow-[0_10px_30px_rgba(15,23,42,0.15)]">
-          <button
-            type="button"
-            onClick={async () => {
-              setOpen(false);
-              await onLogout();
-            }}
-            disabled={isLoggingOut}
-            className="w-full rounded-lg px-3 py-2 text-left text-base text-[#1f2937] transition hover:bg-[#f2f5f6] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isLoggingOut ? "Logging out..." : "Logout"}
-          </button>
+        <div className="absolute right-0 top-[calc(100%+8px)] z-30 min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
+          <div className="border-b border-gray-100 px-4 py-3">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Account</p>
+            <p className="mt-1 text-sm font-medium text-gray-900 truncate">{userLabel}</p>
+          </div>
+          <div className="p-2">
+            <button
+              type="button"
+              onClick={async () => {
+                setOpen(false);
+                await onLogout();
+              }}
+              disabled={isLoggingOut}
+              className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-all hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <LogoutIcon />
+              {isLoggingOut ? "Logging out..." : "Logout"}
+            </button>
+          </div>
         </div>
       ) : null}
     </div>
@@ -57,7 +67,7 @@ function ChevronDownIcon() {
   return (
     <svg
       aria-hidden="true"
-      className="h-5 w-5 text-[#374151]"
+      className="h-4 w-4 text-gray-500"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -66,6 +76,25 @@ function ChevronDownIcon() {
       strokeLinejoin="round"
     >
       <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
     </svg>
   );
 }

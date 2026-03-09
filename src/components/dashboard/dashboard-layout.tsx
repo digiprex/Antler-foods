@@ -22,7 +22,7 @@ import type { RestaurantSearchSelection } from './search-box';
 import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
 import { PurpleDotSpinner } from './purple-dot-spinner';
-import { DASHBOARD_ROUTE_LOADING_START_EVENT } from './route-loading-events';
+import { DASHBOARD_ROUTE_LOADING_START_EVENT, DASHBOARD_RESTAURANT_UPDATED_EVENT, type RestaurantUpdateData } from './route-loading-events';
 import {
   buildRestaurantSlug,
   parseRestaurantScopeFromPath,
@@ -161,6 +161,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       return {
         id: restaurantScope.restaurantId,
         name: resolvedName,
+        // Preserve domain fields if they exist for the same restaurant
+        customDomain: previous?.id === restaurantScope.restaurantId ? previous.customDomain : undefined,
+        stagingDomain: previous?.id === restaurantScope.restaurantId ? previous.stagingDomain : undefined,
       };
     });
   }, [pathname, searchParams]);
@@ -190,6 +193,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       return {
         id: queryRestaurantId,
         name: queryRestaurantName,
+        // Preserve domain fields if they exist for the same restaurant
+        customDomain: previous?.id === queryRestaurantId ? previous.customDomain : undefined,
+        stagingDomain: previous?.id === queryRestaurantId ? previous.stagingDomain : undefined,
       };
     });
   }, [pathname, searchParams]);
@@ -216,6 +222,33 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       window.removeEventListener(
         DASHBOARD_ROUTE_LOADING_START_EVENT,
         onRouteLoadStart,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const onRestaurantUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<RestaurantUpdateData>;
+      const updateData = customEvent.detail;
+
+      setSelectedRestaurant((previous) => {
+        if (!previous || previous.id !== updateData.restaurantId) {
+          return previous;
+        }
+
+        return {
+          ...previous,
+          stagingDomain: updateData.stagingDomain ?? previous.stagingDomain,
+          customDomain: updateData.customDomain ?? previous.customDomain,
+        };
+      });
+    };
+
+    window.addEventListener(DASHBOARD_RESTAURANT_UPDATED_EVENT, onRestaurantUpdated);
+    return () => {
+      window.removeEventListener(
+        DASHBOARD_RESTAURANT_UPDATED_EVENT,
+        onRestaurantUpdated,
       );
     };
   }, []);

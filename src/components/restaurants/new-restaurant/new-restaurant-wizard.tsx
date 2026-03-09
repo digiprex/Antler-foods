@@ -17,11 +17,11 @@ import {
 } from './schema';
 import { Stepper } from './stepper';
 import {
-  getPages,
+  // getPages, // COMMENTED OUT: Page creation removed from flow
   getRestaurants,
   getRestaurantDraftById,
   insertFranchise,
-  insertPage,
+  // insertPage, // COMMENTED OUT: Page creation removed from flow
   insertRestaurant,
   replaceRestaurantGoogleReviews,
   updateFranchiseOwner,
@@ -49,12 +49,13 @@ const FRANCHISE_QUERY_PARAM = 'franchise';
 const MODE_QUERY_PARAM = 'mode';
 const DEFAULT_STAGING_DOMAIN_SUFFIX = '.antlerfoods.com';
 
-const DEFAULT_SYSTEM_PAGES = [
-  { urlSlug: 'home', name: 'Home' },
-  { urlSlug: 'about', name: 'About' },
-  { urlSlug: 'contact', name: 'Contact' },
-  { urlSlug: 'menu', name: 'Menu' },
-] as const;
+// COMMENTED OUT: Page creation removed from flow
+// const DEFAULT_SYSTEM_PAGES = [
+//   { urlSlug: 'home', name: 'Home' },
+//   { urlSlug: 'about', name: 'About' },
+//   { urlSlug: 'contact', name: 'Contact' },
+//   { urlSlug: 'menu', name: 'Menu' },
+// ] as const;
 
 const DEFAULT_FORM_VALUES: NewRestaurantFormValues = {
   ownerProfileMode: 'create',
@@ -678,8 +679,9 @@ export function NewRestaurantWizard() {
       await updateFranchiseOwner(franchiseId, ownerUserId);
     }
 
-    setSaveProgressMessage('Creating default pages...');
-    await ensureDefaultSystemPagesForRestaurant(primaryRestaurantId);
+    // COMMENTED OUT: Page creation removed from flow
+    // setSaveProgressMessage('Creating default pages...');
+    // await ensureDefaultSystemPagesForRestaurant(primaryRestaurantId);
 
     if (values.googlePlaceId.trim()) {
       setSaveProgressMessage('Syncing Google timings...');
@@ -706,8 +708,6 @@ export function NewRestaurantWizard() {
     void refreshRecentlyCreatedRestaurants();
 
     emitDashboardRestaurantsRefresh();
-    const restaurantsListPath = buildRestaurantsListPath(pathname);
-    router.push(restaurantsListPath);
   };
 
   const onContinue = async () => {
@@ -760,6 +760,13 @@ export function NewRestaurantWizard() {
         setIsSavingStepTwo(true);
         setSaveProgressMessage('Starting restaurant setup...');
         await saveStepTwoAndContinue();
+
+        // Small delay to allow sidebar restaurants list to refresh before navigation
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Navigate to restaurants list after successful creation
+        const restaurantsListPath = buildRestaurantsListPath(pathname);
+        router.push(restaurantsListPath);
       } catch (caughtError) {
         const message =
           caughtError instanceof Error
@@ -1121,9 +1128,11 @@ function buildRestaurantPayload(
   const gmbLink = trimmedGooglePlaceId
     ? `https://www.google.com/maps/place/?q=place_id:${trimmedGooglePlaceId}`
     : '';
-  const defaultStagingDomain = options.includeDefaultStagingDomain
-    ? buildDefaultStagingDomain(trimmedRestaurantName)
-    : '';
+  // COMMENTED OUT: Domain creation removed from flow
+  // const defaultStagingDomain = options.includeDefaultStagingDomain
+  //   ? buildDefaultStagingDomain(trimmedRestaurantName)
+  //   : '';
+  const defaultStagingDomain = '';
 
   const payload: Record<string, unknown> = {
     name: trimmedRestaurantName,
@@ -1149,23 +1158,25 @@ function buildRestaurantPayload(
     gmb_link: gmbLink,
   };
 
-  if (defaultStagingDomain) {
-    payload.staging_domain = defaultStagingDomain;
-  }
+  // COMMENTED OUT: Domain creation removed from flow
+  // if (defaultStagingDomain) {
+  //   payload.staging_domain = defaultStagingDomain;
+  // }
 
   return payload;
 }
 
-function buildDefaultStagingDomain(restaurantName: string) {
-  const normalizedLabel = restaurantName
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '');
-
-  const base = normalizedLabel || 'restaurant';
-  return `${base}${DEFAULT_STAGING_DOMAIN_SUFFIX}`;
-}
+// COMMENTED OUT: Domain creation removed from flow
+// function buildDefaultStagingDomain(restaurantName: string) {
+//   const normalizedLabel = restaurantName
+//     .normalize('NFKD')
+//     .replace(/[\u0300-\u036f]/g, '')
+//     .toLowerCase()
+//     .replace(/[^a-z0-9]+/g, '');
+//
+//   const base = normalizedLabel || 'restaurant';
+//   return `${base}${DEFAULT_STAGING_DOMAIN_SUFFIX}`;
+// }
 
 function formatElapsedTime(totalSeconds: number) {
   const safeSeconds = Math.max(0, Math.floor(totalSeconds));
@@ -1367,38 +1378,49 @@ async function syncGoogleReviewsForRestaurant({
         Boolean(review.author_name),
     );
 
-  await replaceRestaurantGoogleReviews(restaurantId, reviews);
-}
-
-async function ensureDefaultSystemPagesForRestaurant(restaurantId: string) {
-  const existingPages = await getPages(restaurantId);
-  const existingSlugs = new Set(
-    existingPages
-      .map((page) => page.url_slug?.trim().toLowerCase())
-      .filter((slug): slug is string => Boolean(slug)),
-  );
-
-  for (const page of DEFAULT_SYSTEM_PAGES) {
-    if (existingSlugs.has(page.urlSlug)) {
-      continue;
+  // Prioritize reviews by rating: 5-star first, then 4-star, then 3-star, etc.
+  let filteredReviews = reviews;
+  for (let rating = 5; rating >= 1; rating--) {
+    const reviewsWithRating = reviews.filter((review) => review.rating === rating);
+    if (reviewsWithRating.length > 0) {
+      filteredReviews = reviewsWithRating;
+      break;
     }
-
-    await insertPage({
-      url_slug: page.urlSlug,
-      name: page.name,
-      is_deleted: false,
-      meta_title: null,
-      meta_description: null,
-      restaurant_id: restaurantId,
-      is_system_page: true,
-      show_on_navbar: true,
-      show_on_footer: true,
-      keywords: null,
-      og_image: null,
-      published: false,
-    });
   }
+
+  await replaceRestaurantGoogleReviews(restaurantId, filteredReviews);
 }
+
+// COMMENTED OUT: Page creation removed from flow
+// async function ensureDefaultSystemPagesForRestaurant(restaurantId: string) {
+//   const existingPages = await getPages(restaurantId);
+//   const existingSlugs = new Set(
+//     existingPages
+//       .map((page) => page.url_slug?.trim().toLowerCase())
+//       .filter((slug): slug is string => Boolean(slug)),
+//   );
+//
+//   for (const page of DEFAULT_SYSTEM_PAGES) {
+//     if (existingSlugs.has(page.urlSlug)) {
+//       continue;
+//     }
+//
+//     await insertPage({
+//       url_slug: page.urlSlug,
+//       name: page.name,
+//       is_deleted: false,
+//       meta_title: null,
+//       meta_description: null,
+//       restaurant_id: restaurantId,
+//       is_system_page: true,
+//       show_on_navbar: true,
+//       show_on_footer: true,
+//       keywords: null,
+//       og_image: null,
+//       published: false,
+//     });
+//   }
+// }
 
 async function syncGoogleOpeningHoursForRestaurant(restaurantId: string) {
   const response = await fetchWithSessionAuth(

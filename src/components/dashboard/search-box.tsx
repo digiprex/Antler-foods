@@ -5,6 +5,8 @@ import { DASHBOARD_RESTAURANTS_REFRESH_EVENT } from './route-loading-events';
 export interface RestaurantSearchSelection {
   id: string;
   name: string;
+  customDomain?: string;
+  stagingDomain?: string;
 }
 
 interface SearchBoxProps {
@@ -34,10 +36,20 @@ export function SearchBox({
         .map((row) => ({
           id: row.id,
           name: row.name.trim(),
+          customDomain: row.customDomain.trim(),
+          stagingDomain: row.stagingDomain.trim(),
         }))
         .filter((row) => Boolean(row.id) && Boolean(row.name));
 
       setRestaurants(normalized);
+
+      // If there's a currently selected restaurant, update it with fresh data
+      if (selectedRestaurant) {
+        const freshData = normalized.find((r) => r.id === selectedRestaurant.id);
+        if (freshData) {
+          onRestaurantSelect(freshData);
+        }
+      }
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
@@ -47,7 +59,7 @@ export function SearchBox({
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedRestaurant, onRestaurantSelect]);
 
   useEffect(() => {
     void loadRestaurants();

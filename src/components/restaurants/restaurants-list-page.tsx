@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   getRestaurants,
   type RestaurantListItem,
@@ -432,7 +433,18 @@ export function RestaurantsListPage() {
 function DomainCell({ restaurant }: { restaurant: RestaurantListItem }) {
   const preferredDomain = getPreferredDomain(restaurant);
   if (!preferredDomain) {
-    return <p className="text-gray-500">N/A</p>;
+    const selectThemeUrl = `/admin/select-theme?restaurant_id=${encodeURIComponent(restaurant.id)}&restaurant_name=${encodeURIComponent(restaurant.name)}`;
+    return (
+      <Link
+        href={selectThemeUrl}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-purple-50 px-3 py-1.5 text-sm font-medium text-purple-700 transition hover:bg-purple-100"
+      >
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        Create Website
+      </Link>
+    );
   }
 
   const href = toExternalUrl(preferredDomain);

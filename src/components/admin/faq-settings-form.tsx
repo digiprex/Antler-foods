@@ -11,13 +11,12 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { getPageById } from '@/lib/graphql/queries';
-import type { PageItem } from '@/types/pages.types';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useFAQConfig, useUpdateFAQConfig } from '@/hooks/use-faq-config';
 import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import type { SectionStyleConfig } from '@/types/section-style.types';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
+import DynamicFAQ from '@/components/dynamic-faq';
 import Toast from '@/components/ui/toast';
 import styles from './faq-settings-form.module.css';
 
@@ -32,11 +31,36 @@ interface FAQ {
   answer: string;
 }
 
+function pickSectionStyleConfig(
+  source?: Partial<SectionStyleConfig> | null,
+): SectionStyleConfig {
+  if (!source) {
+    return {};
+  }
+
+  return {
+    is_custom: source.is_custom,
+    buttonStyleVariant: source.buttonStyleVariant,
+    titleFontFamily: source.titleFontFamily,
+    titleFontSize: source.titleFontSize,
+    titleFontWeight: source.titleFontWeight,
+    titleColor: source.titleColor,
+    subtitleFontFamily: source.subtitleFontFamily,
+    subtitleFontSize: source.subtitleFontSize,
+    subtitleFontWeight: source.subtitleFontWeight,
+    subtitleColor: source.subtitleColor,
+    bodyFontFamily: source.bodyFontFamily,
+    bodyFontSize: source.bodyFontSize,
+    bodyFontWeight: source.bodyFontWeight,
+    bodyColor: source.bodyColor,
+  };
+}
+
 // Restaurant ID should be provided dynamically - no default static ID
 
 export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const restaurantNameFromQuery = searchParams.get('restaurant_name') || undefined;
   const domainParamRaw = searchParams.get('domain') || searchParams.get('staging_domain') || searchParams.get('url') || null;
   const urlSlugFromParams = searchParams.get('url_slug') || searchParams.get('slug') || searchParams.get('path') || null;
   const pageIdFromParams = searchParams.get('page_id') || searchParams.get('page') || null;
@@ -48,6 +72,8 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
   // Check if this is a new section being created or editing existing
   const isNewSection = searchParams.get('new_section') === 'true';
   const templateId = searchParams.get('template_id') || null;
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(templateId);
+  const [hydratedTemplateId, setHydratedTemplateId] = useState<string | null>(null);
   
   // Form state
   const [faqs, setFaqs] = useState<FAQ[]>([]);
@@ -78,18 +104,35 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
       if (currentPageId) {
         params.append('page_id', currentPageId);
       }
-      if (templateId) {
-        params.append('template_id', templateId);
+      if (activeTemplateId) {
+        params.append('template_id', activeTemplateId);
       }
       return `/api/faq-config?${params.toString()}`;
     },
-    [finalRestaurantId, pageId, resolvedPageId, isNewSection, templateId],
+    [activeTemplateId, finalRestaurantId, pageId, resolvedPageId, isNewSection],
+  );
+
+  const previewConfig = useMemo(
+    () => ({
+      ...pickSectionStyleConfig(sectionStyle),
+      layout,
+      bgColor,
+      textColor,
+      title,
+      subtitle,
+      faqs,
+    }),
+    [bgColor, faqs, layout, sectionStyle, subtitle, textColor, title],
   );
 
   const { config, loading: fetchLoading, error: fetchError } = useFAQConfig({
     apiEndpoint: configApiEndpoint,
   });
   const { updateFAQ: updateFAQConfig, updating, error: updateError } = useUpdateFAQConfig();
+
+  useEffect(() => {
+    setActiveTemplateId(templateId);
+  }, [templateId]);
   
   // Validate that restaurant ID is provided
   if (!finalRestaurantId) {
@@ -104,6 +147,22 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
   // Initialize form with fetched config (only for existing sections)
   useEffect(() => {
     if (config && !isNewSection) {
+      const fetchedTemplateId = config.template_id || null;
+
+      // Ignore stale fetch responses for a different FAQ template.
+      if (activeTemplateId && fetchedTemplateId && fetchedTemplateId !== activeTemplateId) {
+        return;
+      }
+
+      // Only hydrate the form once per template instance so local layout
+      // selection is not overwritten by later refetches for the same record.
+      if (hydratedTemplateId === fetchedTemplateId) {
+        return;
+      }
+
+      if (fetchedTemplateId) {
+        setActiveTemplateId(fetchedTemplateId);
+      }
       setLayout(config.layout || 'accordion');
       setBgColor(config.bgColor || '#ffffff');
       setTextColor(config.textColor || '#111827');
@@ -113,10 +172,11 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
       setSectionStyle((prev) => ({
         ...sectionStyleDefaults,
         ...prev,
-        ...config,
+        ...pickSectionStyleConfig(config),
       }));
+      setHydratedTemplateId(fetchedTemplateId);
     }
-  }, [config, isNewSection, sectionStyleDefaults]);
+  }, [activeTemplateId, config, hydratedTemplateId, isNewSection, sectionStyleDefaults]);
 
   useEffect(() => {
     setSectionStyle((prev) => ({
@@ -183,6 +243,10 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
 
   const removeFAQ = (id: string) => setFaqs((s) => s.filter((f) => f.id !== id));
 
+  const handleLayoutSelect = (nextLayout: 'list' | 'accordion' | 'grid') => {
+    setLayout(nextLayout);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -206,20 +270,22 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
         template_id?: string;
       } = {
         restaurant_id: finalRestaurantId,
+        ...pickSectionStyleConfig(sectionStyle),
         layout,
         bgColor,
         textColor,
         title,
         subtitle,
         faqs,
-        ...sectionStyle,
       };
 
       if (pageId) payload.page_id = pageId;
       else if (resolvedPageId) payload.page_id = resolvedPageId;
       
-      // Include template_id when editing existing section
-      if (templateId) payload.template_id = templateId;
+      // Include template_id when editing the current FAQ instance
+      if (!isNewSection && activeTemplateId) {
+        payload.template_id = activeTemplateId;
+      }
 
       // Debug: log payload so developer can verify page_id presence
       try {
@@ -229,7 +295,37 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
         // Ignore console errors
       }
 
-      await updateFAQConfig(payload);
+      const savedConfig = await updateFAQConfig(payload);
+
+      // Keep the current UI aligned with the just-saved template instead of
+      // briefly snapping back to previously fetched values.
+      setLayout(savedConfig.layout || layout);
+      setBgColor(savedConfig.bgColor || bgColor);
+      setTextColor(savedConfig.textColor || textColor);
+      setTitle(savedConfig.title || title);
+      setSubtitle(savedConfig.subtitle || subtitle);
+      setFaqs(savedConfig.faqs || faqs);
+      setSectionStyle((prev) => ({
+        ...sectionStyleDefaults,
+        ...prev,
+        ...pickSectionStyleConfig(savedConfig),
+      }));
+
+      if (savedConfig.template_id) {
+        setActiveTemplateId(savedConfig.template_id);
+        setHydratedTemplateId(savedConfig.template_id);
+
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.set('template_id', savedConfig.template_id);
+        nextParams.delete('new_section');
+
+        const nextPageId = savedConfig.page_id || payload.page_id;
+        if (nextPageId) {
+          nextParams.set('page_id', nextPageId);
+        }
+
+        router.replace(`/admin/faq-settings?${nextParams.toString()}`, { scroll: false });
+      }
       
       setToastMessage(isNewSection ? 'FAQ section created successfully!' : 'FAQ settings saved successfully!');
       setToastType('success');
@@ -240,338 +336,6 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
       setToastType('error');
       setShowToast(true);
     }
-  };
-
-  const renderPreviewContent = () => {
-    const previewStyle = {
-      backgroundColor: bgColor,
-      color: textColor,
-      padding: '2rem',
-      borderRadius: '12px',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    };
-
-    const headerSection = (
-      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
-        <h2 style={{
-          fontSize: '2rem',
-          fontWeight: '700',
-          marginBottom: '0.75rem',
-          color: textColor,
-          lineHeight: '1.2'
-        }}>
-          {title || 'Frequently Asked Questions'}
-        </h2>
-        <p style={{
-          fontSize: '1.125rem',
-          color: textColor,
-          opacity: 0.8,
-          maxWidth: '600px',
-          margin: '0 auto'
-        }}>
-          {subtitle || 'Find answers to common questions'}
-        </p>
-      </div>
-    );
-
-    // Show placeholder UI when no FAQs are added
-    if (faqs.length === 0) {
-      if (layout === 'grid') {
-        return (
-          <div style={previewStyle}>
-            {headerSection}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} style={{
-                  padding: '1.5rem',
-                  border: `1px solid ${textColor}20`,
-                  borderRadius: '8px',
-                  background: 'rgba(255,255,255,0.05)',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                }}>
-                  <div style={{
-                    fontWeight: '600',
-                    marginBottom: '0.75rem',
-                    fontSize: '1.1rem',
-                    color: textColor,
-                    opacity: 0.5
-                  }}>
-                    Sample Question Text
-                  </div>
-                  <div style={{
-                    fontSize: '0.95rem',
-                    lineHeight: '1.5',
-                    color: textColor,
-                    opacity: 0.4
-                  }}>
-                    Sample answer text that would appear here when you add your FAQ content.
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      }
-
-      if (layout === 'list') {
-        return (
-          <div style={previewStyle}>
-            {headerSection}
-            <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-              {[1, 2, 3].map((i, index) => (
-                <div key={i} style={{
-                  paddingBottom: '2rem',
-                  marginBottom: '2rem',
-                  borderBottom: index < 2 ? `1px solid ${textColor}20` : 'none'
-                }}>
-                  <div style={{
-                    fontWeight: '600',
-                    marginBottom: '0.75rem',
-                    fontSize: '1.2rem',
-                    color: textColor,
-                    opacity: 0.5,
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '0.75rem'
-                  }}>
-                    <span style={{
-                      background: `${textColor}50`,
-                      color: bgColor,
-                      borderRadius: '50%',
-                      width: '24px',
-                      height: '24px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.875rem',
-                      fontWeight: '700',
-                      flexShrink: 0,
-                      marginTop: '2px'
-                    }}>
-                      Q
-                    </span>
-                    Sample Question Text
-                  </div>
-                  <div style={{
-                    fontSize: '1rem',
-                    lineHeight: '1.6',
-                    color: textColor,
-                    opacity: 0.4,
-                    marginLeft: '2.25rem'
-                  }}>
-                    Sample answer text that would appear here when you add your FAQ content.
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      }
-
-      // accordion layout placeholder
-      return (
-        <div style={previewStyle}>
-          {headerSection}
-          <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {[1, 2, 3].map((i, index) => (
-              <div key={i} style={{
-                border: `1px solid ${textColor}20`,
-                borderRadius: '8px',
-                background: 'rgba(255,255,255,0.03)',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  padding: '1.25rem',
-                  fontWeight: '600',
-                  fontSize: '1.1rem',
-                  color: textColor,
-                  opacity: 0.5,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  background: index === 0 ? 'rgba(255,255,255,0.05)' : 'transparent'
-                }}>
-                  <span>Sample Question Text</span>
-                  <svg
-                    style={{
-                      width: '20px',
-                      height: '20px',
-                      transform: index === 0 ? 'rotate(180deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.2s',
-                      opacity: 0.5
-                    }}
-                    fill="none"
-                    stroke={textColor}
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-                {index === 0 && (
-                  <div style={{
-                    padding: '0 1.25rem 1.25rem',
-                    fontSize: '1rem',
-                    lineHeight: '1.6',
-                    color: textColor,
-                    opacity: 0.4,
-                    borderTop: `1px solid ${textColor}10`
-                  }}>
-                    Sample answer text that would appear here when you add your FAQ content.
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    if (layout === 'grid') {
-      return (
-        <div style={previewStyle}>
-          {headerSection}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-            {faqs.map((f) => (
-              <div key={f.id} style={{
-                padding: '1.5rem',
-                border: `1px solid ${textColor}20`,
-                borderRadius: '8px',
-                background: 'rgba(255,255,255,0.05)',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-              }}>
-                <div style={{
-                  fontWeight: '600',
-                  marginBottom: '0.75rem',
-                  fontSize: '1.1rem',
-                  color: textColor
-                }}>
-                  {f.question || 'Question'}
-                </div>
-                <div style={{
-                  fontSize: '0.95rem',
-                  lineHeight: '1.5',
-                  color: textColor,
-                  opacity: 0.9
-                }}>
-                  {f.answer || 'Answer content...'}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    if (layout === 'list') {
-      return (
-        <div style={previewStyle}>
-          {headerSection}
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            {faqs.map((f, index) => (
-              <div key={f.id} style={{
-                paddingBottom: '2rem',
-                marginBottom: '2rem',
-                borderBottom: index < faqs.length - 1 ? `1px solid ${textColor}20` : 'none'
-              }}>
-                <div style={{
-                  fontWeight: '600',
-                  marginBottom: '0.75rem',
-                  fontSize: '1.2rem',
-                  color: textColor,
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '0.75rem'
-                }}>
-                  <span style={{
-                    background: textColor,
-                    color: bgColor,
-                    borderRadius: '50%',
-                    width: '24px',
-                    height: '24px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.875rem',
-                    fontWeight: '700',
-                    flexShrink: 0,
-                    marginTop: '2px'
-                  }}>
-                    Q
-                  </span>
-                  {f.question || 'Question'}
-                </div>
-                <div style={{
-                  fontSize: '1rem',
-                  lineHeight: '1.6',
-                  color: textColor,
-                  opacity: 0.9,
-                  marginLeft: '2.25rem'
-                }}>
-                  {f.answer || 'Answer content...'}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    // accordion layout
-    return (
-      <div style={previewStyle}>
-        {headerSection}
-        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {faqs.map((f, index) => (
-            <div key={f.id} style={{
-              border: `1px solid ${textColor}20`,
-              borderRadius: '8px',
-              background: 'rgba(255,255,255,0.03)',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                padding: '1.25rem',
-                fontWeight: '600',
-                fontSize: '1.1rem',
-                color: textColor,
-                cursor: 'pointer',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                background: index === 0 ? 'rgba(255,255,255,0.05)' : 'transparent'
-              }}>
-                <span>{f.question || 'Question'}</span>
-                <svg
-                  style={{
-                    width: '20px',
-                    height: '20px',
-                    transform: index === 0 ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s'
-                  }}
-                  fill="none"
-                  stroke={textColor}
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-              {index === 0 && (
-                <div style={{
-                  padding: '0 1.25rem 1.25rem',
-                  fontSize: '1rem',
-                  lineHeight: '1.6',
-                  color: textColor,
-                  opacity: 0.9,
-                  borderTop: `1px solid ${textColor}10`
-                }}>
-                  {f.answer || 'Answer content...'}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
   };
 
   if (fetchLoading) {
@@ -594,8 +358,8 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
       )}
 
       {/* Page Header */}
-      <div className="mb-8 flex items-start justify-between">
-        <div className="flex items-center gap-4">
+      <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex items-start gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
             <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -609,7 +373,7 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
         <button
           type="button"
           onClick={() => setShowPreview(!showPreview)}
-          className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50 sm:w-auto"
           title={showPreview ? 'Hide Preview' : 'Show Live Preview'}
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -660,89 +424,73 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {[
               { value: 'list', name: 'List', description: 'Simple list layout' },
               { value: 'accordion', name: 'Accordion', description: 'Collapsible sections' },
               { value: 'grid', name: 'Grid', description: 'Grid card layout' }
             ].map((option) => (
-              <div
+              <button
+                type="button"
                 key={option.value}
-                onClick={() => setLayout(option.value as any)}
-                className={`group cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                onClick={() => handleLayoutSelect(option.value as 'list' | 'accordion' | 'grid')}
+                aria-pressed={layout === option.value}
+                className={`group w-full cursor-pointer rounded-xl border-2 p-3 text-left transition-all ${
                   layout === option.value
                     ? 'border-purple-500 bg-purple-50 shadow-sm'
                     : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'
                 }`}
               >
-                <div className="mb-2 overflow-hidden rounded border border-gray-200 bg-gray-50 p-2">
-                  <div className="h-16 w-full">
+                <div className="mb-3 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <div className="h-20 w-full">
                     {option.value === 'list' && (
-                      <div className="space-y-1">
-                        <div className="flex items-start gap-2">
-                          <div className="w-1 h-3 bg-gray-400 rounded-full mt-0.5"></div>
-                          <div className="flex-1 space-y-0.5">
-                            <div className="h-2 bg-gray-400 rounded w-3/4"></div>
-                            <div className="h-1.5 bg-gray-300 rounded w-full"></div>
+                      <div className="space-y-2">
+                        {[1, 2, 3].map((index) => (
+                          <div key={index} className="rounded-xl border border-gray-200 bg-white/80 p-2.5">
+                            <div className="flex items-start gap-2.5">
+                              <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-[10px] font-semibold text-gray-600">
+                                {index}
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <div className={`h-2.5 rounded-full bg-gray-400 ${index === 2 ? 'w-2/3' : index === 3 ? 'w-4/5' : 'w-3/4'}`}></div>
+                                <div className={`h-1.5 rounded-full bg-gray-300 ${index === 2 ? 'w-full' : 'w-5/6'}`}></div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <div className="w-1 h-3 bg-gray-400 rounded-full mt-0.5"></div>
-                          <div className="flex-1 space-y-0.5">
-                            <div className="h-2 bg-gray-400 rounded w-2/3"></div>
-                            <div className="h-1.5 bg-gray-300 rounded w-5/6"></div>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <div className="w-1 h-3 bg-gray-400 rounded-full mt-0.5"></div>
-                          <div className="flex-1 space-y-0.5">
-                            <div className="h-2 bg-gray-400 rounded w-4/5"></div>
-                            <div className="h-1.5 bg-gray-300 rounded w-3/4"></div>
-                          </div>
-                        </div>
+                        ))}
                       </div>
                     )}
                     {option.value === 'accordion' && (
-                      <div className="space-y-1">
-                        <div className="border border-gray-300 rounded p-1">
-                          <div className="flex items-center justify-between">
-                            <div className="h-2 bg-gray-400 rounded w-2/3"></div>
-                            <div className="w-2 h-2 border border-gray-400 rounded-sm"></div>
+                      <div className="space-y-2">
+                        {[1, 2, 3].map((index) => (
+                          <div key={index} className="rounded-xl border border-gray-300 bg-white/80 px-2.5 py-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className={`h-2.5 rounded-full bg-gray-400 ${index === 2 ? 'w-3/4' : index === 3 ? 'w-1/2' : 'w-2/3'}`}></div>
+                              <div className={`rounded-full border border-gray-400 p-0.5 transition-transform ${index === 1 ? 'rotate-180' : ''}`}>
+                                <svg className="h-2.5 w-2.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+                                </svg>
+                              </div>
+                            </div>
+                            {index === 1 && (
+                              <div className="mt-2 h-1.5 w-11/12 rounded-full bg-gray-300"></div>
+                            )}
                           </div>
-                          <div className="mt-1 h-1.5 bg-gray-300 rounded w-full"></div>
-                        </div>
-                        <div className="border border-gray-300 rounded p-1">
-                          <div className="flex items-center justify-between">
-                            <div className="h-2 bg-gray-400 rounded w-3/4"></div>
-                            <div className="w-2 h-2 border border-gray-400 rounded-sm"></div>
-                          </div>
-                        </div>
-                        <div className="border border-gray-300 rounded p-1">
-                          <div className="flex items-center justify-between">
-                            <div className="h-2 bg-gray-400 rounded w-1/2"></div>
-                            <div className="w-2 h-2 border border-gray-400 rounded-sm"></div>
-                          </div>
-                        </div>
+                        ))}
                       </div>
                     )}
                     {option.value === 'grid' && (
-                      <div className="grid grid-cols-2 gap-1 h-full">
-                        <div className="border border-gray-300 rounded p-1">
-                          <div className="h-2 bg-gray-400 rounded w-full mb-0.5"></div>
-                          <div className="h-1.5 bg-gray-300 rounded w-3/4"></div>
-                        </div>
-                        <div className="border border-gray-300 rounded p-1">
-                          <div className="h-2 bg-gray-400 rounded w-full mb-0.5"></div>
-                          <div className="h-1.5 bg-gray-300 rounded w-2/3"></div>
-                        </div>
-                        <div className="border border-gray-300 rounded p-1">
-                          <div className="h-2 bg-gray-400 rounded w-full mb-0.5"></div>
-                          <div className="h-1.5 bg-gray-300 rounded w-4/5"></div>
-                        </div>
-                        <div className="border border-gray-300 rounded p-1">
-                          <div className="h-2 bg-gray-400 rounded w-full mb-0.5"></div>
-                          <div className="h-1.5 bg-gray-300 rounded w-1/2"></div>
-                        </div>
+                      <div className="grid h-full grid-cols-2 gap-2">
+                        {[1, 2, 3, 4].map((index) => (
+                          <div key={index} className="rounded-xl border border-gray-300 bg-white/80 p-2">
+                            <div className="mb-2 flex items-center justify-between">
+                              <div className="h-5 w-5 rounded-full bg-gray-200"></div>
+                              <div className="h-1.5 w-10 rounded-full bg-gray-200"></div>
+                            </div>
+                            <div className={`mb-1.5 h-2.5 rounded-full bg-gray-400 ${index === 2 ? 'w-3/4' : 'w-full'}`}></div>
+                            <div className={`h-1.5 rounded-full bg-gray-300 ${index === 4 ? 'w-1/2' : index === 3 ? 'w-4/5' : 'w-2/3'}`}></div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -753,7 +501,7 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
                   {option.name}
                 </div>
                 <div className="mt-0.5 text-xs text-gray-500">{option.description}</div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -1039,8 +787,8 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
       {showPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
-          <div className="relative z-10 w-full max-w-6xl h-[80vh] flex flex-col rounded-2xl border border-gray-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 flex-shrink-0">
+          <div className="relative z-10 flex h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+            <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-gray-200 px-4 py-4 sm:px-6">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">FAQ Live Preview</h2>
                 <p className="mt-0.5 text-sm text-gray-600">Updates in real-time</p>
@@ -1055,17 +803,24 @@ export default function FAQSettingsForm({ pageId, restaurantId }: FAQFormProps) 
                 </svg>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-8">
-              <div className="mx-auto max-w-4xl">
-                {renderPreviewContent()}
+            <div className="flex-1 overflow-y-auto bg-gray-50 p-3 sm:p-6">
+              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                <DynamicFAQ
+                  restaurantId={finalRestaurantId}
+                  pageId={pageId || resolvedPageId || undefined}
+                  configData={previewConfig}
+                  showLoading={false}
+                  showPlaceholderWhenEmpty
+                  previewMode
+                />
               </div>
-              <div className="mt-6 flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 p-4">
+              <div className="mt-4 flex items-start gap-2 rounded-lg border border-purple-200 bg-purple-50 p-4">
                 <svg className="h-5 w-5 shrink-0 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <p className="text-sm text-purple-900">
-                  Preview shows how your FAQ section will appear on the website
+                  This preview uses the same FAQ renderer as the live page, so the selected layout and FAQ content match the storefront output.
                 </p>
               </div>
             </div>

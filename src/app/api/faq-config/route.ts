@@ -341,6 +341,8 @@ export async function GET(request: Request) {
 
     // Transform template structure to FAQ config
     const config = {
+      template_id: template.template_id,
+      page_id: template.page_id ?? finalPageId ?? null,
       layout: template.name, // name field contains layout type
       bgColor: template.config?.bgColor || '#ffffff',
       textColor: template.config?.textColor || '#111827',
@@ -450,6 +452,8 @@ export async function POST(request: Request) {
 
     // Transform back to FAQ config
     const responseConfig = {
+      template_id: template.template_id,
+      page_id: template.page_id ?? finalPageId ?? null,
       layout: template.name,
       bgColor: template.config?.bgColor,
       textColor: template.config?.textColor,

@@ -1009,7 +1009,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {LAYOUT_OPTIONS.map((option) => {
               const isSelected = formConfig.layout === option.value;
 
@@ -1019,32 +1019,21 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                   type="button"
                   onClick={() => handleLayoutChange(option.value)}
                   aria-pressed={isSelected}
-                  className={`group min-h-[196px] rounded-2xl border p-3 text-left transition-all ${
+                  className={`group w-full cursor-pointer rounded-xl border-2 p-3 text-left transition-all ${
                     isSelected
-                      ? 'border-purple-500 bg-purple-50 shadow-[0_18px_38px_rgba(124,58,237,0.14)]'
-                      : 'border-gray-200 bg-white hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)]'
+                      ? 'border-purple-500 bg-purple-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'
                   }`}
                 >
-                  <div
-                    className={`mb-4 overflow-hidden rounded-[20px] ${
-                      isSelected ? 'ring-2 ring-purple-200' : ''
-                    }`}
-                  >
+                  <div className="mb-3">
                     {renderHeroLayoutCardPreview(option.value)}
                   </div>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className={`text-base font-semibold ${isSelected ? 'text-purple-700' : 'text-gray-900'}`}>
-                        {option.name}
-                      </div>
-                      <div className="mt-1 text-sm leading-5 text-gray-500">{option.description}</div>
-                    </div>
-                    {isSelected ? (
-                      <span className="inline-flex h-6 shrink-0 items-center rounded-full bg-purple-600 px-2.5 text-xs font-semibold text-white">
-                        Active
-                      </span>
-                    ) : null}
+                  <div className={`text-sm font-medium ${
+                    isSelected ? 'text-purple-700' : 'text-gray-900'
+                  }`}>
+                    {option.name}
                   </div>
+                  <div className="mt-0.5 text-xs text-gray-500">{option.description}</div>
                 </button>
               );
             })}

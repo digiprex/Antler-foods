@@ -2441,35 +2441,31 @@ export default function MenuSettingsForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {MENU_LAYOUT_OPTIONS.map((option) => (
               <button
                 type="button"
                 key={option.value}
                 onClick={() => handleLayoutChange(option.value)}
-                className={`group rounded-[22px] border p-4 text-left transition-all ${
+                className={`group w-full cursor-pointer rounded-xl border-2 p-3 text-left transition-all ${
                   formConfig.layout === option.value
-                    ? 'border-purple-500 bg-purple-50/70 shadow-[0_18px_45px_rgba(168,85,247,0.12)]'
+                    ? 'border-purple-500 bg-purple-50 shadow-sm'
                     : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'
                 }`}
                 aria-pressed={formConfig.layout === option.value}
               >
-                <div className="mb-4">
+                <div className="mb-3">
                   {renderMenuLayoutArtwork(option.value, 'card')}
                 </div>
-                <div>
-                  <div
-                    className={`text-[1.05rem] font-semibold leading-tight ${
-                      formConfig.layout === option.value
-                        ? 'text-purple-700'
-                        : 'text-gray-900'
-                    }`}
-                  >
-                    {option.name}
-                  </div>
-                  <div className="mt-1 text-sm leading-6 text-gray-500">
-                    {option.description}
-                  </div>
+                <div className={`text-sm font-medium ${
+                  formConfig.layout === option.value
+                    ? 'text-purple-700'
+                    : 'text-gray-900'
+                }`}>
+                  {option.name}
+                </div>
+                <div className="mt-0.5 text-xs text-gray-500">
+                  {option.description}
                 </div>
               </button>
             ))}

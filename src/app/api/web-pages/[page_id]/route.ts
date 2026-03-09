@@ -8,6 +8,53 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { triggerVercelDeploy } from '@/lib/server/vercel-deploy';
+
+interface WebPageRecord {
+  page_id: string;
+  name: string | null;
+  url_slug: string | null;
+  meta_title: string | null;
+  meta_description: string | null;
+  og_image: string | null;
+  published: boolean | null;
+  show_on_navbar: boolean | null;
+  show_on_footer: boolean | null;
+  restaurant_id: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+interface GetPageResponse {
+  web_pages_by_pk: WebPageRecord | null;
+}
+
+interface UpdatePageResponse {
+  update_web_pages_by_pk: WebPageRecord | null;
+}
+
+interface UpdatePageBody {
+  name?: string | null;
+  url_slug?: string | null;
+  meta_title?: string | null;
+  meta_description?: string | null;
+  og_image?: string | null;
+  published?: boolean;
+  show_on_navbar?: boolean;
+  show_on_footer?: boolean;
+}
+
+interface UpdatePageVariables {
+  page_id: string;
+  name: string | null;
+  url_slug: string | null;
+  meta_title: string | null;
+  meta_description: string | null;
+  og_image: string | null;
+  published: boolean | null;
+  show_on_navbar: boolean | null;
+  show_on_footer: boolean | null;
+}
 
 /**
  * GraphQL query to get page by ID
@@ -74,6 +121,14 @@ const UPDATE_PAGE = `
   }
 `;
 
+const DEPLOY_TRIGGER_FIELDS = [
+  'published',
+  'url_slug',
+  'meta_title',
+  'meta_description',
+  'og_image',
+] as const;
+
 // GET - Fetch page details
 export async function GET(
   _request: NextRequest,
@@ -90,18 +145,18 @@ export async function GET(
     }
 
     // Fetch page
-    const result = await adminGraphqlRequest(GET_PAGE, {
+    const result = await adminGraphqlRequest<GetPageResponse>(GET_PAGE, {
       page_id: pageId,
     });
 
-    if (!(result as any).web_pages_by_pk) {
+    if (!result.web_pages_by_pk) {
       return NextResponse.json(
         { success: false, error: 'Page not found' },
         { status: 404 }
       );
     }
 
-    const page = (result as any).web_pages_by_pk;
+    const page = result.web_pages_by_pk;
 
     return NextResponse.json({
       success: true,
@@ -124,7 +179,7 @@ export async function PATCH(
   { params }: { params: { page_id: string } }
 ) {
   try {
-    const body = await request.json();
+    const body = (await request.json()) as UpdatePageBody;
     const { name, url_slug, meta_title, meta_description, og_image, published, show_on_navbar, show_on_footer } = body;
     const pageId = params.page_id;
 
@@ -136,8 +191,10 @@ export async function PATCH(
     }
 
     // Fetch current page to preserve existing values
-    const currentPage = await adminGraphqlRequest(GET_PAGE, { page_id: pageId });
-    const existingPage = (currentPage as any).web_pages_by_pk;
+    const currentPage = await adminGraphqlRequest<GetPageResponse>(GET_PAGE, {
+      page_id: pageId,
+    });
+    const existingPage = currentPage.web_pages_by_pk;
 
     if (!existingPage) {
       return NextResponse.json(
@@ -147,7 +204,7 @@ export async function PATCH(
     }
 
     // Build variables object, using existing values for fields not being updated
-    const variables: any = {
+    const variables: UpdatePageVariables = {
       page_id: pageId,
       name: name !== undefined && name !== null ? name : existingPage.name,
       url_slug: url_slug !== undefined && url_slug !== null ? url_slug : existingPage.url_slug,
@@ -159,18 +216,56 @@ export async function PATCH(
       show_on_footer: typeof show_on_footer === 'boolean' ? show_on_footer : existingPage.show_on_footer,
     };
 
-    // Update page
-    const result = await adminGraphqlRequest(UPDATE_PAGE, variables);
+    const changedDeployFields = DEPLOY_TRIGGER_FIELDS.filter((field) => {
+      const previousValue = toComparableValue(existingPage[field]);
+      const nextValue = toComparableValue(variables[field]);
+      return previousValue !== nextValue;
+    });
 
-    if (!(result as any).update_web_pages_by_pk) {
+    // Update page
+    const result = await adminGraphqlRequest<UpdatePageResponse>(
+      UPDATE_PAGE,
+      variables,
+    );
+
+    if (!result.update_web_pages_by_pk) {
       throw new Error('Failed to update page');
     }
 
-    const page = (result as any).update_web_pages_by_pk;
+    const page = result.update_web_pages_by_pk;
+    let deployResult: Awaited<ReturnType<typeof triggerVercelDeploy>> | null = null;
+
+    if (changedDeployFields.length > 0) {
+      deployResult = await triggerVercelDeploy({
+        restaurantId: normalizeText(existingPage.restaurant_id),
+        reason: `web-page-update:${pageId}`,
+        source: 'web-pages-patch',
+        metadata: {
+          page_id: pageId,
+          changed_fields: changedDeployFields,
+          published: variables.published,
+        },
+      });
+
+      if (!deployResult.triggered && !deployResult.skipped) {
+        console.error('Vercel deploy trigger failed:', deployResult.message);
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      data: page
+      data: page,
+      deploy: deployResult
+        ? {
+            attempted: deployResult.attempted,
+            triggered: deployResult.triggered,
+            skipped: deployResult.skipped,
+            reason: deployResult.reason,
+            status_code: deployResult.statusCode ?? null,
+            retry_after_ms: deployResult.retryAfterMs ?? null,
+            message: deployResult.message,
+          }
+        : null,
     });
 
   } catch (error) {
@@ -181,4 +276,18 @@ export async function PATCH(
       { status: 500 }
     );
   }
+}
+
+function toComparableValue(value: unknown) {
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+  if (value === undefined) {
+    return null;
+  }
+  return value;
+}
+
+function normalizeText(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : '';
 }

@@ -26,6 +26,7 @@ const GET_PAGE_TEMPLATES = `
       category
       name
       config
+      menu_items
       order_index
       created_at
       updated_at

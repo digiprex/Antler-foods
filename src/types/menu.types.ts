@@ -11,6 +11,7 @@ export interface MenuItem {
   description?: string;
   price: string;
   image?: string;
+  imageLink?: string;
   backgroundImage?: string; // Background image for the item card
   category?: string;
   featured?: boolean;
@@ -49,6 +50,7 @@ export interface MenuConfig extends SectionStyleConfig {
   // Menu Data
   categories?: MenuCategory[];
   featuredItems?: MenuItem[];
+  layoutItems?: MenuItem[];
   ctaButton?: MenuButton;
   headerImage?: string;
   backgroundImage?: string;
@@ -155,4 +157,5 @@ export const DEFAULT_MENU_CONFIG: MenuConfig = {
   bodyColor: '#6b7280',
   categories: [],
   featuredItems: [],
+  layoutItems: [],
 };

@@ -42,6 +42,14 @@ export function SearchBox({
         .filter((row) => Boolean(row.id) && Boolean(row.name));
 
       setRestaurants(normalized);
+
+      // If there's a currently selected restaurant, update it with fresh data
+      if (selectedRestaurant) {
+        const freshData = normalized.find((r) => r.id === selectedRestaurant.id);
+        if (freshData) {
+          onRestaurantSelect(freshData);
+        }
+      }
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
@@ -51,7 +59,7 @@ export function SearchBox({
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedRestaurant, onRestaurantSelect]);
 
   useEffect(() => {
     void loadRestaurants();

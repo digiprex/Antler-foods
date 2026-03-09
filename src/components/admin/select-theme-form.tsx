@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 interface Template {
   id: string;
@@ -58,32 +58,55 @@ const PLACEHOLDER_TEMPLATES: Template[] = [
 ];
 
 export default function SelectThemeForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSelectTemplate = (templateId: string) => {
     setSelectedTemplate(templateId);
   };
 
   const handleContinue = async () => {
-    if (!selectedTemplate || !restaurantId) {
+    if (!selectedTemplate || !restaurantId || !restaurantName) {
       return;
     }
 
     setIsCreating(true);
+    setErrorMessage(null);
 
-    // TODO: Create website with selected template via API
-    // For now, just navigate to domain settings
-    const params = new URLSearchParams();
-    if (restaurantId) params.set('restaurant_id', restaurantId);
-    if (restaurantName) params.set('restaurant_name', restaurantName);
-    params.set('template_id', selectedTemplate);
+    try {
+      // Initialize website: create staging domain and system pages
+      const response = await fetch(`/api/restaurants/${encodeURIComponent(restaurantId)}/initialize-website`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          restaurantName,
+          templateId: selectedTemplate,
+        }),
+      });
 
-    router.push(`/admin/domain-settings?${params.toString()}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to initialize website');
+      }
+
+      // Navigate to pages list and refresh to load new domain data
+      const params = new URLSearchParams();
+      params.set('restaurant_id', restaurantId);
+      params.set('restaurant_name', restaurantName);
+
+      window.location.href = `/admin/pages?${params.toString()}`;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to initialize website';
+      setErrorMessage(message);
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -153,10 +176,19 @@ export default function SelectThemeForm() {
           ))}
         </div>
 
+        {errorMessage && (
+          <div className="mx-6 mb-0 mt-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+            <svg className="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <p className="text-sm font-medium text-red-900">{errorMessage}</p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-4">
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => window.history.back()}
             disabled={isCreating}
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -178,7 +210,7 @@ export default function SelectThemeForm() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Creating...
+                Initializing Website...
               </>
             ) : (
               <>

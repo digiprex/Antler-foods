@@ -1,0 +1,665 @@
+.gallerySection {
+  position: relative;
+  overflow: hidden;
+}
+
+.galleryShell {
+  position: relative;
+  z-index: 1;
+}
+
+.galleryHeader {
+  position: relative;
+  z-index: 1;
+  margin: 0 auto clamp(2.5rem, 5vw, 4rem);
+  max-width: 54rem;
+  text-align: center;
+  display: grid;
+  gap: 1rem;
+}
+
+.gallerySubtitle {
+  margin: 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.78rem;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.galleryTitle {
+  margin: 0;
+  font-size: clamp(2.4rem, 5vw, 4.15rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.galleryDescription {
+  margin: 0 auto;
+  max-width: 44rem;
+  line-height: 1.75;
+  opacity: 0.84;
+  font-size: clamp(0.98rem, 1vw, 1.08rem);
+}
+
+.gridLayout {
+  display: grid;
+  gap: var(--gallery-gap);
+  grid-template-columns: repeat(var(--gallery-columns), minmax(0, 1fr));
+}
+
+.masonryLayout {
+  column-count: var(--gallery-columns);
+  column-gap: var(--gallery-gap);
+}
+
+.masonryItem {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin-bottom: var(--gallery-gap);
+}
+
+.mosaicLayout,
+.editorialLayout {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--gallery-gap);
+  grid-auto-flow: dense;
+  padding: clamp(1rem, 2vw, 1.4rem);
+  border-radius: 2rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), transparent 38%),
+    linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.88) 46%, rgba(244, 241, 255, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 28px 80px rgba(15, 23, 42, 0.08);
+}
+
+.mosaicLayout {
+  grid-auto-rows: minmax(4rem, 5.6vw);
+}
+
+.editorialLayout {
+  grid-auto-rows: minmax(4rem, 5.8vw);
+}
+
+.carouselShell,
+.spotlightShell,
+.filmstripShell {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: clamp(0.85rem, 2vw, 1.35rem);
+  align-items: center;
+}
+
+.carouselViewport,
+.spotlightViewport,
+.filmstripViewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), transparent 35%),
+    linear-gradient(145deg, rgba(248, 250, 252, 0.94), rgba(255, 255, 255, 0.9) 45%, rgba(243, 244, 246, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 28px 90px rgba(15, 23, 42, 0.08);
+}
+
+.carouselViewport {
+  padding: clamp(1rem, 2vw, 1.35rem);
+}
+
+.spotlightViewport,
+.filmstripViewport {
+  padding: clamp(1.15rem, 2.2vw, 1.8rem);
+}
+
+.spotlightViewport::before,
+.filmstripViewport::before {
+  content: '';
+  position: absolute;
+  inset: 1.25rem;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  pointer-events: none;
+}
+
+.carouselTrack {
+  display: flex;
+  gap: var(--gallery-gap);
+  transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.carouselCard {
+  flex: 0 0 var(--gallery-carousel-width);
+  min-width: 0;
+}
+
+.spotlightStage {
+  position: relative;
+  min-height: clamp(22rem, 46vw, 31rem);
+  max-width: 76rem;
+  margin: 0 auto;
+}
+
+.spotlightGlow {
+  position: absolute;
+  inset: 4% 14%;
+  background:
+    radial-gradient(circle at center, rgba(147, 51, 234, 0.18), transparent 42%),
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.14), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.12), transparent 30%);
+  filter: blur(42px);
+  pointer-events: none;
+}
+
+.spotlightMesh {
+  position: absolute;
+  inset: 6% 10%;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 1.4rem 1.4rem;
+  mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 1), transparent 82%);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.spotlightCard {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
+  transition:
+    transform 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.65s ease,
+    filter 0.65s ease;
+}
+
+.spotlightCardActive {
+  z-index: 8;
+}
+
+.spotlightSurface,
+.spotlightSurfaceActive,
+.filmstripSurface,
+.mosaicSurface,
+.editorialSurface,
+.editorialLeadSurface {
+  height: 100%;
+}
+
+.spotlightSurface {
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  box-shadow: 0 22px 54px rgba(15, 23, 42, 0.12);
+}
+
+.spotlightSurfaceActive {
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 32px 110px rgba(15, 23, 42, 0.22),
+    0 0 0 1px rgba(255, 255, 255, 0.34);
+}
+
+.filmstripGlow {
+  position: absolute;
+  inset: 12% 16%;
+  background:
+    radial-gradient(circle at center, rgba(236, 72, 153, 0.12), transparent 40%),
+    radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.13), transparent 34%);
+  filter: blur(46px);
+  pointer-events: none;
+}
+
+.filmstripTrack {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(0.9rem, 1.8vw, 1.25rem);
+  min-height: clamp(20rem, 40vw, 28rem);
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 0.75rem 0.35rem 1.1rem;
+  scrollbar-width: none;
+}
+
+.filmstripTrack::-webkit-scrollbar {
+  display: none;
+}
+
+.filmstripCard {
+  flex: 0 0 clamp(11rem, 17vw, 14rem);
+  transition:
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    flex-basis 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.45s ease,
+    filter 0.45s ease;
+}
+
+.filmstripCardActive {
+  flex-basis: clamp(16rem, 23vw, 20rem);
+}
+
+.filmstripSurface {
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  box-shadow: 0 26px 66px rgba(15, 23, 42, 0.16);
+}
+
+.cardButton {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.tiledCardButton {
+  height: 100%;
+  min-height: inherit;
+}
+
+.cardButton:focus-visible {
+  outline: none;
+}
+
+.cardSurface {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.65rem;
+  background: linear-gradient(180deg, #edf2f7, #d9e2ec);
+  isolation: isolate;
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.12);
+  transition:
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.5s ease,
+    filter 0.35s ease;
+}
+
+.cardSurface::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 22%),
+    linear-gradient(135deg, transparent 48%, rgba(255, 255, 255, 0.08) 65%, transparent 82%);
+  pointer-events: none;
+}
+
+.cardSurfaceSoft {
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.1);
+}
+
+.cardButton:hover .cardSurface,
+.cardButton:focus-visible .cardSurface {
+  transform: translateY(-10px) scale(1.012);
+  box-shadow: 0 34px 82px rgba(15, 23, 42, 0.18);
+}
+
+.cardButton:focus-visible .cardSurface {
+  box-shadow:
+    0 0 0 3px rgba(147, 51, 234, 0.22),
+    0 30px 70px rgba(15, 23, 42, 0.18);
+}
+
+.cardMedia {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), filter 0.35s ease;
+  filter: saturate(1.04) contrast(1.02);
+}
+
+.cardButton:hover .cardMedia,
+.cardButton:focus-visible .cardMedia {
+  transform: scale(1.07);
+}
+
+.cardCaption,
+.cardCaptionGlass {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  color: #fff;
+  display: grid;
+  gap: 0.35rem;
+  z-index: 2;
+}
+
+.cardCaption::before,
+.cardCaptionGlass::before {
+  content: '';
+  position: absolute;
+  inset: -0.85rem;
+  z-index: -1;
+  border-radius: 1rem;
+}
+
+.cardCaption::before {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0), rgba(15, 23, 42, 0.9));
+}
+
+.cardCaptionGlass::before {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.68));
+  backdrop-filter: blur(12px);
+}
+
+.cardCaptionTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 18px rgba(15, 23, 42, 0.45);
+}
+
+.cardCaptionDescription {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  opacity: 0.92;
+  text-shadow: 0 2px 18px rgba(15, 23, 42, 0.45);
+}
+
+.cardReveal {
+  animation: galleryCardIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.navButton {
+  width: 3.35rem;
+  height: 3.35rem;
+  border: 1px solid rgba(203, 213, 225, 0.86);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 20px 42px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(14px);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    opacity 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.navButton:hover:not(:disabled),
+.navButton:focus-visible:not(:disabled) {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 26px 52px rgba(15, 23, 42, 0.16);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.navButton:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.navButton:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(147, 51, 234, 0.22),
+    0 18px 42px rgba(15, 23, 42, 0.14);
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.55rem;
+  margin-top: 1.4rem;
+  flex-wrap: wrap;
+}
+
+.dotButton {
+  width: 0.65rem;
+  height: 0.65rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.28);
+  cursor: pointer;
+  transition:
+    width 0.28s ease,
+    background-color 0.28s ease,
+    transform 0.28s ease;
+}
+
+.dotButtonActive {
+  width: 1.85rem;
+  background: var(--gallery-accent);
+}
+
+.dotButton:hover,
+.dotButton:focus-visible {
+  transform: translateY(-1px);
+}
+
+.mosaicSurface {
+  min-height: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.editorialSurface {
+  min-height: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.editorialLeadSurface {
+  box-shadow: 0 32px 84px rgba(15, 23, 42, 0.16);
+}
+
+.lightboxOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 3vw, 2rem);
+  background: rgba(2, 6, 23, 0.92);
+  backdrop-filter: blur(14px);
+}
+
+.lightboxBackdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+}
+
+.lightboxInner {
+  position: relative;
+  z-index: 1;
+  max-width: min(88rem, 100%);
+  width: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.lightboxFrame {
+  position: relative;
+  max-width: min(76rem, 100%);
+  width: 100%;
+  border-radius: 1.75rem;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 38px 120px rgba(0, 0, 0, 0.4);
+}
+
+.lightboxImage {
+  display: block;
+  width: 100%;
+  max-height: 82vh;
+  object-fit: contain;
+  background: rgba(15, 23, 42, 0.2);
+}
+
+.lightboxMeta {
+  padding: 1.25rem 1.4rem 1.45rem;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.1), rgba(15, 23, 42, 0.54));
+}
+
+.lightboxTitle {
+  margin: 0 0 0.4rem;
+  font-size: 1.12rem;
+  font-weight: 700;
+}
+
+.lightboxDescription {
+  margin: 0;
+  opacity: 0.85;
+  line-height: 1.6;
+}
+
+.lightboxClose {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  width: 2.9rem;
+  height: 2.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.64);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.25s ease, background-color 0.25s ease;
+}
+
+.lightboxClose:hover,
+.lightboxClose:focus-visible {
+  transform: translateY(-1px);
+  background: rgba(15, 23, 42, 0.84);
+  outline: none;
+}
+
+@keyframes galleryCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 1024px) {
+  .gridLayout {
+    grid-template-columns: repeat(var(--gallery-tablet-columns), minmax(0, 1fr));
+  }
+
+  .masonryLayout {
+    column-count: var(--gallery-tablet-columns);
+  }
+
+  .spotlightStage {
+    min-height: clamp(19rem, 52vw, 28rem);
+  }
+
+  .filmstripTrack {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .carouselShell,
+  .spotlightShell,
+  .filmstripShell {
+    grid-template-columns: 1fr;
+  }
+
+  .navButton {
+    width: 2.95rem;
+    height: 2.95rem;
+    justify-self: center;
+  }
+
+  .carouselCard {
+    flex-basis: 100%;
+  }
+
+  .spotlightStage {
+    min-height: 18rem;
+  }
+
+  .spotlightViewport,
+  .filmstripViewport,
+  .mosaicLayout,
+  .editorialLayout {
+    border-radius: 1.6rem;
+  }
+
+  .spotlightCard,
+  .filmstripCard,
+  .filmstripCardActive {
+    scroll-snap-align: center;
+  }
+
+  .filmstripTrack {
+    min-height: 17rem;
+    scroll-snap-type: x mandatory;
+  }
+
+  .cardCaption,
+  .cardCaptionGlass {
+    left: 0.85rem;
+    right: 0.85rem;
+    bottom: 0.85rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .gallerySubtitle {
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+  }
+
+  .gridLayout {
+    grid-template-columns: repeat(var(--gallery-mobile-columns), minmax(0, 1fr));
+  }
+
+  .masonryLayout {
+    column-count: var(--gallery-mobile-columns);
+  }
+
+  .mosaicLayout,
+  .editorialLayout {
+    gap: 0.8rem;
+    grid-auto-rows: minmax(4.25rem, 6vw);
+  }
+
+  .spotlightStage {
+    min-height: 17rem;
+  }
+
+  .cardSurface {
+    border-radius: 1.2rem;
+  }
+}

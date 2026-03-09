@@ -10,14 +10,19 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Toast from '@/components/ui/toast';
-import Gallery from '@/components/gallery';
 import type { GalleryConfig } from '@/types/gallery.types';
 import { DEFAULT_GALLERY_CONFIG } from '@/types/gallery.types';
 import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
+import { GalleryPreviewModal } from '@/components/admin/gallery-preview-modal';
+import {
+  GALLERY_LAYOUT_OPTIONS,
+  normalizeGalleryLayout,
+} from '@/components/gallery-layouts/gallery-layout-options';
+import { GalleryLayoutPreview } from '@/components/gallery-layouts/gallery-layout-preview';
 
 interface GallerySettingsFormProps {
   pageId?: string;
@@ -53,7 +58,6 @@ export default function GallerySettingsForm({
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
-
   // Validate that restaurant ID is provided
   if (!restaurantId) {
     return (
@@ -278,6 +282,8 @@ export default function GallerySettingsForm({
     );
   }
 
+  const selectedLayout = normalizeGalleryLayout(formConfig.layout);
+
   return (
     <>
       {/* Toast Notification */}
@@ -334,64 +340,29 @@ export default function GallerySettingsForm({
           <div className="space-y-4">
             <div>
               <label className="mb-4 text-sm font-medium text-gray-700">Layout Type</label>
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  { value: 'grid', name: 'Grid', description: 'Uniform layout' },
-                  { value: 'masonry', name: 'Masonry', description: 'Pinterest style' },
-                  { value: 'carousel', name: 'Carousel', description: 'Sliding gallery' }
-                ].map((option) => (
-                  <div
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {GALLERY_LAYOUT_OPTIONS.map((option) => (
+                  <button
                     key={option.value}
+                    type="button"
                     onClick={() => updateConfig({ layout: option.value as any })}
-                    className={`group cursor-pointer rounded-lg border-2 p-3 transition-all ${
-                      formConfig.layout === option.value
-                        ? 'border-purple-500 bg-purple-50 shadow-sm'
-                        : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'
+                    className={`group rounded-2xl border-2 p-3 text-left transition-all ${
+                      selectedLayout === option.value
+                        ? 'border-purple-500 bg-purple-50 shadow-[0_18px_40px_rgba(126,34,206,0.10)]'
+                        : 'border-gray-200 bg-white hover:-translate-y-0.5 hover:border-purple-300 hover:bg-gray-50 hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)]'
                     }`}
+                    aria-pressed={selectedLayout === option.value}
                   >
-                    <div className="mb-2 overflow-hidden rounded border border-gray-200 bg-gray-50 p-2">
-                      <div className="h-16 w-full">
-                        {option.value === 'grid' && (
-                          <div className="grid grid-cols-3 gap-1 h-full">
-                            {[1, 2, 3, 4, 5, 6].map(i => (
-                              <div key={i} className="bg-gray-400 rounded"></div>
-                            ))}
-                          </div>
-                        )}
-                        {option.value === 'masonry' && (
-                          <div className="grid grid-cols-3 gap-1 h-full">
-                            <div className="bg-gray-400 rounded h-full"></div>
-                            <div className="space-y-1">
-                              <div className="bg-gray-400 rounded h-6"></div>
-                              <div className="bg-gray-400 rounded h-8"></div>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="bg-gray-400 rounded h-8"></div>
-                              <div className="bg-gray-400 rounded h-6"></div>
-                            </div>
-                          </div>
-                        )}
-                        {option.value === 'carousel' && (
-                          <div className="flex gap-1 h-full">
-                            <div className="bg-gray-400 rounded flex-1"></div>
-                            <div className="bg-gray-300 rounded w-4"></div>
-                            <div className="bg-gray-300 rounded w-4"></div>
-                            <div className="flex flex-col justify-center items-center w-6">
-                              <div className="w-2 h-2 bg-gray-400 rounded-full mb-1"></div>
-                              <div className="w-2 h-2 bg-gray-300 rounded-full mb-1"></div>
-                              <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                    <div className="mb-3 h-24 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-2.5">
+                      <GalleryLayoutPreview layout={option.value} size="card" />
                     </div>
-                    <div className={`text-sm font-medium ${
-                      formConfig.layout === option.value ? 'text-purple-700' : 'text-gray-900'
+                    <div className={`text-sm font-semibold ${
+                      selectedLayout === option.value ? 'text-purple-700' : 'text-gray-900'
                     }`}>
                       {option.name}
                     </div>
-                    <div className="mt-0.5 text-xs text-gray-500">{option.description}</div>
-                  </div>
+                    <div className="mt-1 text-xs text-gray-500">{option.description}</div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -734,203 +705,138 @@ export default function GallerySettingsForm({
       </form>
 
       {/* Preview Modal */}
-      {showPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
-          <div className="relative z-10 flex h-[min(92vh,980px)] w-full max-w-7xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_35px_120px_rgba(15,23,42,0.35)]">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">Gallery Preview</h2>
-                <p className="mt-1 text-sm text-slate-600">Preview your gallery layout and styling</p>
+      {false && `
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
+          <div
+            className="absolute inset-0 bg-slate-950/78 backdrop-blur-xl"
+            onClick={() => setShowPreview(false)}
+          />
+          <div className="relative z-10 flex h-[min(94vh,1020px)] w-full max-w-[min(96vw,1540px)] flex-col overflow-hidden rounded-[32px] border border-white/35 bg-white/88 shadow-[0_45px_140px_rgba(15,23,42,0.42)] backdrop-blur-2xl">
+            <div className="relative overflow-hidden border-b border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_48%,rgba(245,243,255,0.92))] px-6 py-5 sm:px-8 sm:py-6">
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-64 bg-[radial-gradient(circle_at_left,rgba(168,85,247,0.16),transparent_70%)]" />
+              <div className="pointer-events-none absolute right-0 top-0 h-28 w-40 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.14),transparent_72%)]" />
+              <div className="relative flex items-center justify-between gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/75 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 shadow-sm">
+                    Live Canvas
+                  </div>
+                  <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-[2rem]">
+                    Gallery Preview
+                  </h2>
+                  <p className="mt-1.5 text-sm text-slate-600 sm:text-base">
+                    Preview your gallery layout in a polished presentation frame.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(false)}
+                  className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200/90 bg-white/80 text-slate-400 shadow-sm transition-all hover:-translate-y-0.5 hover:bg-white hover:text-slate-700"
+                  aria-label="Close preview"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowPreview(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                aria-label="Close preview"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
             </div>
-            <div className="flex-1 overflow-auto bg-gray-50 p-8">
-              {formConfig.images.length > 0 ? (
-                <Gallery {...formConfig} />
-              ) : (
-                <div className="mx-auto max-w-4xl">
-                  <div style={{
-                    backgroundColor: formConfig.bgColor || '#ffffff',
-                    color: formConfig.textColor || '#000000',
-                    padding: '3rem 2rem',
-                    borderRadius: '12px',
-                    textAlign: 'center'
-                  }}>
-                    {/* Header Section */}
-                    <div style={{ marginBottom: '3rem' }}>
+            <div
+              ref={previewBodyRef}
+              className="flex-1 overflow-auto bg-[radial-gradient(circle_at_top_left,#ffffff,#f8fafc_48%,#eef2ff_100%)] p-4 sm:p-8"
+            >
+              <div className="mx-auto max-w-[1400px] rounded-[30px] border border-white/70 bg-white/72 p-4 shadow-[0_30px_80px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-8">
+                {formConfig.images.length > 0 ? (
+                  <div className="overflow-hidden rounded-[26px] border border-slate-200/80 bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                    <Gallery {...formConfig} />
+                  </div>
+                ) : (
+                  <div
+                    className="rounded-[26px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(248,250,252,0.88)_46%,rgba(245,243,255,0.92))] px-5 py-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:px-8 sm:py-10"
+                    style={{
+                      color: formConfig.textColor || '#000000',
+                    }}
+                  >
+                    <div className="mx-auto mb-10 max-w-3xl">
                       {formConfig.title && (
-                        <h2 style={{
-                          fontSize: '2rem',
-                          fontWeight: '700',
-                          marginBottom: '0.75rem',
-                          color: formConfig.titleColor || formConfig.textColor || '#000000'
-                        }}>
+                        <h2
+                          style={{
+                            fontSize: 'clamp(2rem, 4vw, 3.3rem)',
+                            fontWeight: '700',
+                            marginBottom: '0.75rem',
+                            color:
+                              formConfig.titleColor ||
+                              formConfig.textColor ||
+                              '#000000',
+                            letterSpacing: '-0.04em',
+                          }}
+                        >
                           {formConfig.title}
                         </h2>
                       )}
                       {formConfig.subtitle && (
-                        <p style={{
-                          fontSize: '1.125rem',
-                          marginBottom: '1rem',
-                          color: formConfig.textColor || '#000000',
-                          opacity: 0.8
-                        }}>
+                        <p
+                          style={{
+                            fontSize: '1rem',
+                            marginBottom: '0.85rem',
+                            color: formConfig.textColor || '#000000',
+                            opacity: 0.82,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.16em',
+                            fontWeight: 600,
+                          }}
+                        >
                           {formConfig.subtitle}
                         </p>
                       )}
                       {formConfig.description && (
-                        <p style={{
-                          fontSize: '1rem',
-                          color: formConfig.textColor || '#000000',
-                          opacity: 0.7,
-                          maxWidth: '600px',
-                          margin: '0 auto'
-                        }}>
+                        <p
+                          style={{
+                            fontSize: '1rem',
+                            color: formConfig.textColor || '#000000',
+                            opacity: 0.7,
+                            maxWidth: '42rem',
+                            margin: '0 auto',
+                            lineHeight: 1.7,
+                          }}
+                        >
                           {formConfig.description}
                         </p>
                       )}
                     </div>
 
-                    {/* Placeholder Gallery Layout */}
-                    {formConfig.layout === 'grid' && (
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: `repeat(${formConfig.columns || 3}, 1fr)`,
-                        gap: '1.5rem',
-                        maxWidth: '800px',
-                        margin: '0 auto'
-                      }}>
-                        {Array.from({ length: 9 }).map((_, i) => (
-                          <div key={i} style={{
-                            aspectRatio: '1',
-                            background: 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)',
-                            borderRadius: '12px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '2rem',
-                            color: '#64748b',
-                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                            opacity: 0.7
-                          }}>
+                    {/* Preview Layout */}
+                    <GalleryLayoutPreview
+                      layout={formConfig.layout}
+                      columns={formConfig.columns}
+                      size="panel"
+                    />
+                    legacy-preview-placeholder-start
+
                             📷
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {formConfig.layout === 'masonry' && (
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: `repeat(${Math.min(formConfig.columns || 3, 4)}, 1fr)`,
-                        gap: '1.5rem',
-                        maxWidth: '800px',
-                        margin: '0 auto'
-                      }}>
-                        {[
-                          { height: '200px' }, { height: '150px' }, { height: '180px' }, { height: '160px' },
-                          { height: '140px' }, { height: '190px' }, { height: '170px' }, { height: '130px' }
-                        ].slice(0, (formConfig?.columns || 3) * 2).map((item, i) => (
-                          <div key={i} style={{
-                            background: 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)',
-                            borderRadius: '12px',
-                            height: item.height,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '2rem',
-                            color: '#64748b',
-                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                            opacity: 0.7
-                          }}>
+
                             📷
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {formConfig.layout === 'carousel' && (
-                      <div style={{
-                        maxWidth: '600px',
-                        margin: '0 auto',
-                        position: 'relative'
-                      }}>
-                        <div style={{
-                          background: 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)',
-                          borderRadius: '12px',
-                          height: '300px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '3rem',
-                          color: '#64748b',
-                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                          marginBottom: '1.5rem',
-                          opacity: 0.7
-                        }}>
+
                           📷
                         </div>
                         
-                        {/* Thumbnail indicators */}
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          gap: '0.75rem',
-                          marginBottom: '1rem'
-                        }}>
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <div key={i} style={{
-                              width: '60px',
-                              height: '60px',
-                              background: 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)',
-                              borderRadius: '8px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '1rem',
-                              color: '#64748b',
-                              opacity: i === 0 ? 0.9 : 0.4,
-                              border: i === 0 ? `2px solid ${formConfig.textColor || '#000000'}40` : '2px solid transparent'
-                            }}>
                               📷
                             </div>
                           ))}
                         </div>
                         
-                        {/* Navigation dots */}
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          gap: '0.5rem'
-                        }}>
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <div key={i} style={{
-                              width: '10px',
-                              height: '10px',
-                              borderRadius: '50%',
-                              background: `${formConfig.textColor || '#000000'}${i === 0 ? '60' : '20'}`,
-                            }} />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+
+                    legacy-preview-placeholder-end
                 </div>
               )}
             </div>
           </div>
         </div>
-      )}
+      `}
+
+      <GalleryPreviewModal
+        open={showPreview}
+        config={formConfig}
+        onClose={() => setShowPreview(false)}
+      />
 
       {/* Media Modal */}
       {showMediaModal && (
@@ -1063,4 +969,5 @@ export default function GallerySettingsForm({
     </>
   );
 }
+
 

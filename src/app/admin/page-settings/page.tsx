@@ -8,6 +8,10 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import '@/styles/page-settings-animations.css';
+import {
+  GALLERY_LAYOUT_OPTIONS,
+  normalizeGalleryLayout,
+} from '@/components/gallery-layouts/gallery-layout-options';
 
 // Dynamically import preview components for better performance
 // These are only loaded when section previews are needed
@@ -143,14 +147,50 @@ function PageSettingsSelector() {
           finalLayout: galleryTemplate?.name || config?.layout || 'grid'
         });
 
+        const finalGalleryLayout = normalizeGalleryLayout(
+          (galleryTemplate?.name || config?.layout || 'grid') as any,
+        );
         const galleryConfigWithLayout = config ? {
           ...config,
-          layout: galleryTemplate?.name || config.layout || 'grid'
+          layout: finalGalleryLayout
         } : undefined;
 
+        const galleryPreviewHeights: Record<string, string> = {
+          masonry: '560px',
+          mosaic: '540px',
+          editorial: '520px',
+          spotlight: '520px',
+          filmstrip: '500px',
+        };
+
+        const galleryPreviewScales: Record<string, number> = {
+          grid: 0.65,
+          masonry: 0.58,
+          carousel: 0.64,
+          spotlight: 0.6,
+          mosaic: 0.58,
+          editorial: 0.6,
+          filmstrip: 0.61,
+        };
+
+        const galleryPreviewStyle = {
+          ...previewStyle,
+          maxHeight: galleryPreviewHeights[finalGalleryLayout] || previewStyle.maxHeight,
+          overflowY: galleryPreviewHeights[finalGalleryLayout] ? 'auto' : 'hidden',
+          overflowX: 'hidden',
+        } as React.CSSProperties;
+
+        const galleryZoomScale = galleryPreviewScales[finalGalleryLayout] || 0.65;
+        const galleryZoomContainerStyle = {
+          transform: `scale(${galleryZoomScale})`,
+          transformOrigin: 'top left',
+          width: `${(100 / galleryZoomScale).toFixed(2)}%`,
+          height: 'auto',
+        } as React.CSSProperties;
+
         return (
-          <div style={previewStyle}>
-            <div style={zoomContainerStyle}>
+          <div style={galleryPreviewStyle}>
+            <div style={galleryZoomContainerStyle}>
               <DynamicGallery
                 restaurantId={restaurantId}
                 pageId={pageId}
@@ -392,7 +432,7 @@ function PageSettingsSelector() {
       category: 'Gallery',
       description: 'Configure image gallery layout and content for this page',
       route: '/admin/gallery-settings',
-      layouts: ['Grid', 'Masonry', 'Carousel', 'Stacked']
+      layouts: GALLERY_LAYOUT_OPTIONS.map((option) => option.name)
     },
     {
       name: 'Review Settings',

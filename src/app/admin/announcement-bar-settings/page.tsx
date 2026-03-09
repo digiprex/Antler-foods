@@ -20,11 +20,12 @@
 
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import AnnouncementBarSettingsForm from '@/components/admin/announcement-bar-settings-form';
 
-export default function AnnouncementBarSettingsPage() {
+function AnnouncementBarSettingsContent() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
@@ -47,5 +48,13 @@ export default function AnnouncementBarSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function AnnouncementBarSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AnnouncementBarSettingsContent />
+    </Suspense>
   );
 }

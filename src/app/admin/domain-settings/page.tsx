@@ -18,11 +18,12 @@
 
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import DomainSettingsForm from '@/components/admin/domain-settings-form';
 
-export default function DomainSettingsPage() {
+function DomainSettingsContent() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
@@ -49,5 +50,13 @@ export default function DomainSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function DomainSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DomainSettingsContent />
+    </Suspense>
   );
 }

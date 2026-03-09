@@ -25,7 +25,7 @@ export function SearchBox({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  const loadRestaurants = useCallback(async () => {
+  const loadRestaurants = useCallback(async (updateSelected = false) => {
     try {
       setIsLoading(true);
       setLoadError(null);
@@ -43,8 +43,8 @@ export function SearchBox({
 
       setRestaurants(normalized);
 
-      // If there's a currently selected restaurant, update it with fresh data
-      if (selectedRestaurant) {
+      // Only update selected restaurant if explicitly requested
+      if (updateSelected && selectedRestaurant) {
         const freshData = normalized.find((r) => r.id === selectedRestaurant.id);
         if (freshData) {
           onRestaurantSelect(freshData);
@@ -67,7 +67,7 @@ export function SearchBox({
 
   useEffect(() => {
     const onRestaurantsRefresh = () => {
-      void loadRestaurants();
+      void loadRestaurants(true); // Update selected restaurant on refresh
     };
 
     window.addEventListener(
@@ -84,7 +84,7 @@ export function SearchBox({
 
   useEffect(() => {
     setSearchValue(selectedRestaurant?.name ?? '');
-  }, [selectedRestaurant?.id, selectedRestaurant?.name]);
+  }, [selectedRestaurant]);
 
   useEffect(() => {
     const onDocumentClick = (event: MouseEvent) => {
@@ -116,7 +116,8 @@ export function SearchBox({
     setSearchValue(nextValue);
     setIsOpen(true);
 
-    if (!nextValue.trim()) {
+    // Clear selection if user is typing something different than the selected restaurant
+    if (selectedRestaurant && nextValue.trim() !== selectedRestaurant.name.trim()) {
       onRestaurantSelect(null);
     }
   };
@@ -142,7 +143,8 @@ export function SearchBox({
           {selectedRestaurant ? (
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 setSearchValue('');
                 onRestaurantSelect(null);
                 setIsOpen(false);

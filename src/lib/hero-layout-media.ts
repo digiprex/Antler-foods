@@ -21,6 +21,7 @@ export function getHeroLayoutMediaCapabilities(
     case 'side-by-side':
     case 'offset':
     case 'with-features':
+    case 'image-collage':
       return {
         showHeroImage: true,
         showBackgroundVideo: false,
@@ -35,6 +36,12 @@ export function getHeroLayoutMediaCapabilities(
       };
 
     case 'minimal':
+      return {
+        showHeroImage: true,
+        showBackgroundVideo: false,
+        showBackgroundImage: false,
+      };
+
     case 'full-height':
     case 'default':
     case 'centered-large':

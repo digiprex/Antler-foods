@@ -241,7 +241,34 @@ export default function Hero(props: HeroProps) {
         );
 
       case 'minimal':
-        return <div className={styles.minimalLayout}>{renderContent(styles.contentCentered)}</div>;
+        return (
+          <div className={styles.minimalLayout}>
+            <div className={styles.minimalContent}>{renderContent(styles.contentLeft)}</div>
+            <div className={styles.minimalImages}>
+              {activeImage ? (
+                <>
+                  <img
+                    src={activeImage.url}
+                    alt={activeImage.alt}
+                    className={styles.minimalImageLarge}
+                  />
+                  <div className={styles.minimalImageStack}>
+                    <img
+                      src={activeImage.url}
+                      alt={activeImage.alt}
+                      className={styles.minimalImageSmall}
+                    />
+                    <img
+                      src={activeImage.url}
+                      alt={activeImage.alt}
+                      className={styles.minimalImageSmall}
+                    />
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
+        );
 
       case 'video-background':
         return (
@@ -254,23 +281,40 @@ export default function Hero(props: HeroProps) {
                 <div className={styles.videoOverlay} />
               </div>
             ) : null}
-            {renderContent(styles.contentCentered)}
+            {renderContent(styles.contentLeft)}
           </div>
         );
 
       case 'side-by-side':
         return (
           <div className={styles.sideBySideLayout}>
-            <div className={styles.sideBySideContent}>{renderContent(styles.contentLeft)}</div>
-            <div className={styles.sideBySideImage}>{renderImage()}</div>
+            {activeImage ? (
+              <>
+                <img
+                  src={activeImage.url}
+                  alt={activeImage.alt}
+                  className={styles.sideBySideImage}
+                />
+                <img
+                  src={activeImage.url}
+                  alt={activeImage.alt}
+                  className={styles.sideBySideImage}
+                />
+                <img
+                  src={activeImage.url}
+                  alt={activeImage.alt}
+                  className={styles.sideBySideImage}
+                />
+              </>
+            ) : null}
           </div>
         );
 
       case 'offset':
         return (
           <div className={styles.offsetLayout}>
-            <div className={styles.offsetContent}>{renderContent(styles.contentLeft)}</div>
             <div className={styles.offsetImage}>{renderImage()}</div>
+            <div className={styles.offsetContent}>{renderContent(styles.contentCentered)}</div>
           </div>
         );
 
@@ -281,7 +325,7 @@ export default function Hero(props: HeroProps) {
         return (
           <div className={styles.withFeaturesLayout}>
             <div className={styles.mainContent}>
-              {renderContent(styles.contentCentered)}
+              {renderContent(styles.contentLeft)}
               {activeImage ? renderImage() : null}
             </div>
             {renderFeatures()}
@@ -292,7 +336,29 @@ export default function Hero(props: HeroProps) {
         return (
           <div className={styles.centeredLargeLayout}>
             {renderContent(styles.contentCentered)}
-            {activeImage ? renderImage() : null}
+          </div>
+        );
+
+      case 'image-collage':
+        return (
+          <div className={styles.imageCollageLayout}>
+            <div className={styles.imageCollageContent}>{renderContent(styles.contentLeft)}</div>
+            <div className={styles.imageCollageImages}>
+              {activeImage ? (
+                <>
+                  <img
+                    src={activeImage.url}
+                    alt={activeImage.alt}
+                    className={styles.collageImagePrimary}
+                  />
+                  <img
+                    src={activeImage.url}
+                    alt={activeImage.alt}
+                    className={styles.collageImageSecondary}
+                  />
+                </>
+              ) : null}
+            </div>
           </div>
         );
 
@@ -301,7 +367,6 @@ export default function Hero(props: HeroProps) {
         return (
           <div className={styles.defaultLayout}>
             {renderContent(styles.contentCentered)}
-            {activeImage ? renderImage() : null}
           </div>
         );
     }

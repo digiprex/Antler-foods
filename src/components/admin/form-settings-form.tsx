@@ -17,8 +17,6 @@ import Toast from '@/components/ui/toast';
 import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import type { SectionStyleConfig } from '@/types/section-style.types';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
-import styles from './hero-settings-form.module.css';
-import galleryStyles from './gallery-settings-form.module.css';
 
 interface Form {
   form_id: string;
@@ -339,14 +337,18 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
 
   if (loadingForms) {
     return (
-      <div className={styles.container}>
-        <div className={styles.loading}>Loading...</div>
+      <div className="flex items-center justify-center p-8">
+        <svg className="h-8 w-8 animate-spin text-purple-600" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span className="ml-2 text-gray-700">Loading forms...</span>
       </div>
     );
   }
 
   return (
-    <div className={styles.container}>
+    <div>
       {/* Toast Notification */}
       {showToast && (
         <Toast
@@ -356,164 +358,191 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
         />
       )}
 
-      <div className={styles.singleLayout}>
-        {/* Settings Form */}
-        <div className={styles.formSection}>
-          <div className={styles.formHeader}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Header */}
+        <div className="mb-8 flex items-start justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+              <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+              </svg>
+            </div>
             <div>
-              <h1 className={styles.formTitle}>
-                {isNewSection ? 'Add New Form Section' : 'Edit Form Display Settings'}
+              <h1 className="text-3xl font-bold text-gray-900">
+                {isNewSection ? 'Add New Form Section' : 'Form Display Settings'}
               </h1>
-              <p className={styles.formSubtitle}>
+              <p className="mt-1 text-sm text-gray-600">
                 {isNewSection
                   ? 'Create a new form display section for this page'
                   : 'Configure how your form will be displayed on your website'
                 }
               </p>
             </div>
-            <div className={styles.headerActions}>
-              <button
-                type="button"
-                onClick={() => setShowPreview(!showPreview)}
-                className={styles.previewToggleButton}
-                title={showPreview ? 'Hide Preview' : 'Show Live Preview'}
-              >
-                {showPreview ? '👁️‍🗨️' : '👁️'} {showPreview ? 'Hide' : 'Show'} Preview
-              </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowPreview(!showPreview)}
+            disabled={!selectedForm}
+            title={!selectedForm ? 'Select a form to preview' : showPreview ? 'Hide Preview' : 'Show Live Preview'}
+            className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium shadow-sm transition-all ${
+              !selectedForm
+                ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
+                : 'border-purple-200 bg-white text-purple-700 hover:border-purple-300 hover:bg-purple-50'
+            }`}
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {showPreview ? 'Hide' : 'Show'} Preview
+          </button>
+        </div>
+        {/* Enable/Disable Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Form Status</h2>
+              <p className="text-sm text-gray-600">Enable or disable form display</p>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className={styles.form}>
-            {/* Enable/Disable Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>⚡</span>
-                Form Status
-              </h3>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Enable Form Display
-                  <span className={styles.labelHint}>Turn form display on or off</span>
-                </label>
-                <label className={styles.toggleSwitch}>
-                  <input
-                    type="checkbox"
-                    checked={config.isEnabled}
-                    onChange={(e) => updateConfig({ isEnabled: e.target.checked })}
-                    className={styles.toggleInput}
-                  />
-                  <span className={styles.toggleSlider}></span>
-                </label>
-              </div>
+          <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Enable Form Display</label>
+              <p className="text-xs text-gray-500">Turn form display on or off</p>
             </div>
+            <label className="relative inline-flex cursor-pointer items-center">
+              <input
+                type="checkbox"
+                checked={config.isEnabled}
+                onChange={(e) => updateConfig({ isEnabled: e.target.checked })}
+                className="peer sr-only"
+              />
+              <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
+            </label>
+          </div>
+        </div>
 
-            {/* Form Selection */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>📋</span>
-                Form Selection
-              </h3>
+        {/* Form Selection */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Form Selection</h2>
+              <p className="text-sm text-gray-600">Choose which form to display</p>
+            </div>
+          </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Choose Form
-                  <span className={styles.labelHint}>Select which form to display</span>
-                </label>
-                {forms.length === 0 ? (
-                  <div className={styles.emptyState}>
-                    <p>No forms available.</p>
-                    <a
-                      href={`/admin/forms/builder?restaurant_id=${restaurantId}`}
-                      className={styles.link}
-                    >
-                      Create your first form →
-                    </a>
-                  </div>
-                ) : (
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                    gap: '0.75rem',
-                    maxWidth: '100%'
-                  }}>
-                    {forms.map((form) => (
-                      <div
-                        key={form.form_id}
-                        style={{
-                          background: config.form_id === form.form_id ? '#eff6ff' : 'white',
-                          border: config.form_id === form.form_id ? '2px solid #3b82f6' : '2px solid #e5e7eb',
-                          borderRadius: '8px',
-                          padding: '0.75rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          textAlign: 'center',
-                          boxShadow: config.form_id === form.form_id ? '0 4px 12px rgba(59, 130, 246, 0.2)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
-                        }}
-                        onClick={() => updateConfig({ form_id: form.form_id })}
-                        onMouseEnter={(e) => {
-                          if (config.form_id !== form.form_id) {
-                            e.currentTarget.style.borderColor = '#3b82f6';
-                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)';
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (config.form_id !== form.form_id) {
-                            e.currentTarget.style.borderColor = '#e5e7eb';
-                            e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
-                            e.currentTarget.style.transform = 'translateY(0)';
-                          }
-                        }}
-                      >
-                        <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📋</div>
-                        <h3 style={{
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          color: '#111827',
-                          margin: '0 0 0.25rem 0',
-                          lineHeight: '1.2'
-                        }}>
-                          {form.title}
-                        </h3>
-                        <p style={{
-                          fontSize: '0.75rem',
-                          color: '#6b7280',
-                          margin: '0'
-                        }}>
-                          {form.fields?.length || 0} fields
-                        </p>
+          <div className="space-y-3">
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">Choose Form</span>
+              <span className="mt-0.5 block text-xs text-gray-500">Select which form to display</span>
+            </label>
+            {forms.length === 0 ? (
+              <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                </svg>
+                <p className="mt-2 text-sm text-gray-600">No forms available.</p>
+                <a
+                  href={`/admin/forms/builder?restaurant_id=${restaurantId}`}
+                  className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-700"
+                >
+                  Create your first form →
+                </a>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {forms.map((form) => (
+                  <button
+                    key={form.form_id}
+                    type="button"
+                    onClick={() => updateConfig({ form_id: form.form_id })}
+                    className={`group relative rounded-lg border-2 p-4 text-center transition-all ${
+                      config.form_id === form.form_id
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
+                    }`}
+                  >
+                    {config.form_id === form.form_id && (
+                      <div className="absolute right-3 top-3">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-500">
+                          <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    )}
+                    <div className="text-3xl mb-2">📋</div>
+                    <h3 className={`text-sm font-semibold ${
+                      config.form_id === form.form_id ? 'text-purple-900' : 'text-gray-900'
+                    }`}>
+                      {form.title}
+                    </h3>
+                    <p className={`mt-1 text-xs ${
+                      config.form_id === form.form_id ? 'text-purple-700' : 'text-gray-600'
+                    }`}>
+                      {form.fields?.length || 0} fields
+                    </p>
+                  </button>
+                ))}
               </div>
-            </div>
+            )}
+          </div>
+        </div>
 
-            {/* Layout Selection */}
-            {config.form_id && (
-              <>
-                <div className={styles.section}>
-                  <h3 className={styles.sectionTitle}>
-                    <span className={styles.sectionIcon}>🎨</span>
-                    Layout Configuration
-                  </h3>
+        {/* Layout Selection */}
+        {config.form_id && (
+          <>
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Layout Configuration</h2>
+                  <p className="text-sm text-gray-600">Choose a form layout style</p>
+                </div>
+              </div>
 
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Layout Type
-                      <span className={styles.labelHint}>Choose a form layout style</span>
-                    </label>
-                    <div className={styles.layoutGrid}>
-                      {layoutOptions.map((layout) => (
-                        <div
-                          key={layout.value}
-                          className={`${styles.layoutOption} ${
-                            config.layout === layout.value ? styles.selected : ''
-                          }`}
-                          onClick={() => updateConfig({ layout: layout.value })}
-                        >
-                          <div className={styles.layoutPreview}>
+              <div className="space-y-3">
+                <label className="block">
+                  <span className="text-sm font-medium text-gray-700">Layout Type</span>
+                  <span className="mt-0.5 block text-xs text-gray-500">Choose a form layout style</span>
+                </label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {layoutOptions.map((layout) => (
+                    <button
+                      key={layout.value}
+                      type="button"
+                      onClick={() => updateConfig({ layout: layout.value })}
+                      className={`group relative rounded-lg border-2 p-3 text-left transition-all ${
+                        config.layout === layout.value
+                          ? 'border-purple-500 bg-purple-50'
+                          : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
+                      }`}
+                    >
+                      {config.layout === layout.value && (
+                        <div className="absolute right-2 top-2">
+                          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-purple-500">
+                            <svg className="h-2.5 w-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                      <div className="mb-2 overflow-hidden rounded border border-gray-200 bg-gray-50" style={{ height: '60px' }}>
                             {/* Visual preview based on layout type */}
                             {layout.value === 'centered' && (
                               <div style={{ padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'center' }}>
@@ -569,302 +598,300 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                                 </div>
                               </div>
                             )}
-                          </div>
-                          <div className={styles.layoutName}>{layout.name}</div>
-                          <div className={styles.layoutDescription}>{layout.description}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                      </div>
+                      <div className={`text-xs font-semibold ${
+                        config.layout === layout.value ? 'text-purple-900' : 'text-gray-900'
+                      }`}>
+                        {layout.name}
+                      </div>
+                      <div className={`mt-0.5 text-xs ${
+                        config.layout === layout.value ? 'text-purple-700' : 'text-gray-600'
+                      }`}>
+                        {layout.description}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Content Settings */}
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Content Configuration</h2>
+                  <p className="text-sm text-gray-600">Form title, subtitle, and description</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="block">
+                    <span className="text-sm font-medium text-gray-700">Title</span>
+                    <span className="mt-0.5 block text-xs text-gray-500">Main form title</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={config.title}
+                    onChange={(e) => updateConfig({ title: e.target.value })}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Get in Touch"
+                  />
                 </div>
 
-                {/* Content Settings */}
-                <div className={styles.section}>
-                  <h3 className={styles.sectionTitle}>
-                    <span className={styles.sectionIcon}>📝</span>
-                    Content Configuration
-                  </h3>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Title
-                      <span className={styles.labelHint}>Main form title</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={config.title}
-                      onChange={(e) => updateConfig({ title: e.target.value })}
-                      className={styles.textInput}
-                      placeholder="Get in Touch"
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Subtitle
-                      <span className={styles.labelHint}>Optional subtitle</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={config.subtitle}
-                      onChange={(e) => updateConfig({ subtitle: e.target.value })}
-                      className={styles.textInput}
-                      placeholder="We'd love to hear from you"
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Description
-                      <span className={styles.labelHint}>Supporting description text</span>
-                    </label>
-                    <textarea
-                      value={config.description}
-                      onChange={(e) => updateConfig({ description: e.target.value })}
-                      className={styles.textarea}
-                      placeholder="Fill out the form below and we'll get back to you as soon as possible."
-                      rows={3}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <label className="block">
+                    <span className="text-sm font-medium text-gray-700">Subtitle</span>
+                    <span className="mt-0.5 block text-xs text-gray-500">Optional subtitle</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={config.subtitle}
+                    onChange={(e) => updateConfig({ subtitle: e.target.value })}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="We'd love to hear from you"
+                  />
                 </div>
 
-                {/* Image Settings */}
-                {['split-right', 'split-left', 'image-top', 'background-image'].includes(
-                  config.layout
-                ) && (
-                  <div className={styles.section}>
-                    <h3 className={styles.sectionTitle}>
-                      <span className={styles.sectionIcon}>🖼️</span>
-                      Image Configuration
-                      <span style={{
-                        marginLeft: '0.5rem',
-                        fontSize: '0.75rem',
-                        fontWeight: '500',
-                        padding: '0.25rem 0.5rem',
-                        backgroundColor: '#fef3c7',
-                        color: '#92400e',
-                        borderRadius: '4px'
-                      }}>
+                <div className="space-y-2">
+                  <label className="block">
+                    <span className="text-sm font-medium text-gray-700">Description</span>
+                    <span className="mt-0.5 block text-xs text-gray-500">Supporting description text</span>
+                  </label>
+                  <textarea
+                    value={config.description}
+                    onChange={(e) => updateConfig({ description: e.target.value })}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Fill out the form below and we'll get back to you as soon as possible."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Image Settings */}
+            {['split-right', 'split-left', 'image-top', 'background-image'].includes(
+              config.layout
+            ) && (
+              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="mb-6 flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                    <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-semibold text-gray-900">Image Configuration</h2>
+                      <span className="rounded bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
                         Required
                       </span>
-                    </h3>
-
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>
-                        Form Image *
-                        <span className={styles.labelHint}>Choose an image to display with your form (required for this layout)</span>
-                      </label>
-                      
-                      {/* Image Preview */}
-                      {config.imageUrl ? (
-                        <div style={{
-                          marginBottom: '1rem',
-                          border: '2px solid #e5e7eb',
-                          borderRadius: '8px',
-                          overflow: 'hidden',
-                          position: 'relative',
-                          maxWidth: '300px'
-                        }}>
-                          <img
-                            src={config.imageUrl}
-                            alt="Selected form image"
-                            style={{
-                              width: '100%',
-                              height: '150px',
-                              objectFit: 'cover',
-                              display: 'block'
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => updateConfig({ imageUrl: '' })}
-                            style={{
-                              position: 'absolute',
-                              top: '8px',
-                              right: '8px',
-                              backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '50%',
-                              width: '24px',
-                              height: '24px',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                            title="Remove image"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
-                        <div style={{
-                          marginBottom: '1rem',
-                          border: '2px dashed #d1d5db',
-                          borderRadius: '8px',
-                          padding: '2rem',
-                          textAlign: 'center',
-                          backgroundColor: '#f9fafb',
-                          maxWidth: '300px'
-                        }}>
-                          <div style={{ fontSize: '3rem', marginBottom: '0.5rem', opacity: 0.5 }}>
-                            📷
-                          </div>
-                          <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
-                            No image selected
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Image Selection Button */}
-                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <button
-                          type="button"
-                          onClick={() => setShowImageGallery(true)}
-                          className={config.imageUrl ? styles.secondaryButton : styles.button}
-                          style={{
-                            fontSize: '0.875rem',
-                            padding: '0.5rem 1rem',
-                            backgroundColor: config.imageUrl ? undefined : '#3b82f6',
-                            color: config.imageUrl ? undefined : 'white',
-                            border: config.imageUrl ? undefined : 'none'
-                          }}
-                        >
-                          📁 {config.imageUrl ? 'Change Image' : 'Choose from Gallery'}
-                        </button>
-                        {!config.imageUrl && (
-                          <span style={{
-                            fontSize: '0.75rem',
-                            color: '#dc2626',
-                            fontWeight: '500'
-                          }}>
-                            ⚠️ Image required for this layout
-                          </span>
-                        )}
-                      </div>
-
                     </div>
-                  </div>
-                )}
-
-                {/* Styling */}
-                <div className={styles.section}>
-                  <h3 className={styles.sectionTitle}>
-                    <span className={styles.sectionIcon}>🎨</span>
-                    Colors & Styling
-                  </h3>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Background Color
-                      <span className={styles.labelHint}>Form background color</span>
-                    </label>
-                    <div className={styles.colorInputGroup}>
-                      <input
-                        type="color"
-                        value={config.backgroundColor}
-                        onChange={(e) => updateConfig({ backgroundColor: e.target.value })}
-                        className={styles.colorInput}
-                      />
-                      <input
-                        type="text"
-                        value={config.backgroundColor}
-                        onChange={(e) => updateConfig({ backgroundColor: e.target.value })}
-                        className={styles.colorHexInput}
-                        placeholder="#ffffff"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => updateConfig({ backgroundColor: '#ffffff' })}
-                        className={styles.clearButton}
-                        title="Reset to default"
-                      >
-                        ↺
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Text Color
-                      <span className={styles.labelHint}>Text and title color</span>
-                    </label>
-                    <div className={styles.colorInputGroup}>
-                      <input
-                        type="color"
-                        value={config.textColor}
-                        onChange={(e) => updateConfig({ textColor: e.target.value })}
-                        className={styles.colorInput}
-                      />
-                      <input
-                        type="text"
-                        value={config.textColor}
-                        onChange={(e) => updateConfig({ textColor: e.target.value })}
-                        className={styles.colorHexInput}
-                        placeholder="#111827"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => updateConfig({ textColor: '#111827' })}
-                        className={styles.clearButton}
-                        title="Reset to default"
-                      >
-                        ↺
-                      </button>
-                    </div>
+                    <p className="text-sm text-gray-600">Image display for this layout</p>
                   </div>
                 </div>
-              </>
+
+                <div className="space-y-4">
+                  <label className="block">
+                    <span className="text-sm font-medium text-gray-700">Form Image *</span>
+                    <span className="mt-0.5 block text-xs text-gray-500">Choose an image to display with your form (required for this layout)</span>
+                  </label>
+
+                  {/* Image Preview */}
+                  {config.imageUrl ? (
+                    <div className="relative max-w-sm overflow-hidden rounded-lg border-2 border-gray-200">
+                      <img
+                        src={config.imageUrl}
+                        alt="Selected form image"
+                        className="block h-40 w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateConfig({ imageUrl: '' })}
+                        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-xs text-white transition-colors hover:bg-black"
+                        title="Remove image"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="max-w-sm rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+                      <div className="mb-2 text-5xl opacity-50">📷</div>
+                      <p className="text-sm text-gray-600">No image selected</p>
+                    </div>
+                  )}
+
+                  {/* Image Selection Button */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowImageGallery(true)}
+                      className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition-all ${
+                        config.imageUrl
+                          ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                          : 'bg-purple-600 text-white hover:bg-purple-700'
+                      }`}
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                      </svg>
+                      {config.imageUrl ? 'Change Image' : 'Choose from Gallery'}
+                    </button>
+                    {!config.imageUrl && (
+                      <span className="text-xs font-medium text-red-600">
+                        ⚠️ Image required for this layout
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
 
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>Aa</span>
-                Typography & Buttons
-              </h3>
-              <SectionTypographyControls
-                value={config}
-                onChange={(updates) => updateConfig(updates)}
-              />
+            {/* Styling */}
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Colors & Styling</h2>
+                  <p className="text-sm text-gray-600">Customize form colors</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Background Color</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={config.backgroundColor}
+                      onChange={(e) => updateConfig({ backgroundColor: e.target.value })}
+                      className="h-10 w-20 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
+                    />
+                    <input
+                      type="text"
+                      value={config.backgroundColor}
+                      onChange={(e) => updateConfig({ backgroundColor: e.target.value })}
+                      className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="#ffffff"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Typography & Buttons */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Typography & Buttons</h2>
+              <p className="text-sm text-gray-600">Customize text styles and button appearance</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Custom Typography & Styles</label>
+                <p className="text-xs text-gray-500">Override global CSS with custom styling options</p>
+              </div>
+              <label className="relative inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  checked={config.is_custom || false}
+                  onChange={(e) => updateConfig({ is_custom: e.target.checked })}
+                  className="peer sr-only"
+                />
+                <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
+              </label>
             </div>
 
-            {/* Save Button */}
-            <div className={styles.formActions}>
-              <button
-                type="submit"
-                className={styles.saveButton}
-              >
-                <span>💾</span>
-                {isNewSection ? 'Create Form Section' : 'Save Form Settings'}
-              </button>
-            </div>
-          </form>
+            {!config.is_custom ? (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="h-5 w-5 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                  </svg>
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-900">Using Global Styles</h4>
+                    <p className="mt-1 text-xs text-blue-700">
+                      This section is currently using the global CSS styles defined in your theme settings.
+                      Enable custom typography above to override these styles with section-specific options.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <SectionTypographyControls
+                  value={config}
+                  onChange={(updates) => updateConfig(updates)}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:from-purple-700 hover:to-purple-800"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+            </svg>
+            {isNewSection ? 'Create Form Section' : 'Save Form Settings'}
+          </button>
+        </div>
+      </form>
 
       {/* Preview Modal Popup */}
       {showPreview && selectedForm && (
-        <div className={styles.previewModal}>
-          <div className={styles.previewModalOverlay} onClick={() => setShowPreview(false)} />
-          <div className={styles.previewModalContent}>
-            <div className={styles.previewModalHeader}>
-              <h2 className={styles.previewModalTitle}>Form Preview</h2>
-              <div className={styles.previewModalActions}>
-                <span className={styles.previewBadge}>Live Preview</span>
-                <button
-                  onClick={() => setShowPreview(false)}
-                  className={styles.previewModalClose}
-                  aria-label="Close preview"
-                >
-                  ✕
-                </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
+          <div className="relative z-10 w-full max-w-6xl rounded-2xl border border-gray-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Form Live Preview</h2>
+                  <p className="text-xs text-gray-500">Live Preview</p>
+                </div>
               </div>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Close preview"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <div className={styles.previewModalBody}>
-              <div className={styles.previewDevice}>
-                <div className={styles.previewContainer}>
+            <div className="max-h-[80vh] overflow-y-auto p-6">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-inner">
+                <div className="overflow-hidden rounded-lg border-2 border-gray-300 bg-white shadow-sm">
                   <div
                     style={{
                       backgroundColor: config.backgroundColor,
@@ -1324,7 +1351,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                       </div>
                     ) : (
                       // Default centered layout
-                      <div className={styles.previewContent}>
+                      <div>
                         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                           <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem', fontWeight: 'bold' }}>
                             {config.title}
@@ -1447,10 +1474,15 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                   </div>
                 </div>
               </div>
-              <p className={styles.previewNote}>
-                <span className={styles.previewIcon}>👁</span>
-                Preview shows how your form section will appear on the website
-              </p>
+              <div className="flex items-start gap-3 rounded-lg border border-purple-100 bg-purple-50 p-4 mt-4">
+                <svg className="h-5 w-5 shrink-0 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <p className="text-sm text-purple-900">
+                  Preview shows how your form section will appear on the website
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -1458,54 +1490,61 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
 
       {/* Image Gallery Modal */}
       {showImageGallery && (
-        <div className={galleryStyles.modal} onClick={() => setShowImageGallery(false)}>
-          <div className={galleryStyles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowImageGallery(false)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative z-10 w-full max-w-5xl rounded-2xl border border-gray-200 bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
             {/* Modal Header */}
-            <div className={galleryStyles.modalHeader}>
-              <h2 className={galleryStyles.modalTitle}>
-                Select Image from Media Library
-              </h2>
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                  </svg>
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Select Image from Media Library
+                </h2>
+              </div>
               <button
                 onClick={() => setShowImageGallery(false)}
-                className={galleryStyles.modalCloseButton}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
               >
-                ×
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className={galleryStyles.modalBody}>
+            <div className="max-h-[60vh] overflow-y-auto p-6">
               {/* Upload Progress */}
               {uploadingImage && (
-                <div style={{ marginBottom: '1rem', padding: '1rem', background: '#f3f4f6', borderRadius: '8px' }}>
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem' }}>Uploading...</h4>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid #d1d5db',
-                      borderTop: '2px solid #3b82f6',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }} />
-                    <span style={{ fontSize: '0.875rem' }}>Uploading image...</span>
+                <div className="mb-4 rounded-lg bg-gray-100 p-4">
+                  <h4 className="mb-2 text-sm font-semibold text-gray-900">Uploading...</h4>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 animate-spin text-purple-600" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-sm text-gray-700">Uploading image...</span>
                   </div>
                 </div>
               )}
 
               {availableImages.length === 0 ? (
-                <div className={galleryStyles.emptyState}>
-                  <div className={galleryStyles.emptyStateIcon}>📁</div>
-                  <h3 className={galleryStyles.emptyStateTitle}>No images found in media library</h3>
-                  <p className={galleryStyles.emptyStateDescription}>
+                <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-12 text-center">
+                  <div className="mx-auto mb-4 text-6xl">📁</div>
+                  <h3 className="mb-2 text-lg font-semibold text-gray-900">No images found in media library</h3>
+                  <p className="text-sm text-gray-600">
                     Upload images to your media library first, then they will appear here for selection.
                   </p>
                 </div>
               ) : (
-                <div className={galleryStyles.mediaGrid}>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                   {availableImages.map((media) => (
-                    <div
+                    <button
                       key={media.id}
+                      type="button"
                       onClick={() => {
                         updateConfig({ imageUrl: media.file?.url || media.url });
                         setShowImageGallery(false);
@@ -1513,13 +1552,17 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                         setToastType('success');
                         setShowToast(true);
                       }}
-                      className={`${galleryStyles.mediaItem} ${config.imageUrl === (media.file?.url || media.url) ? galleryStyles.selected : ''}`}
+                      className={`group relative aspect-square overflow-hidden rounded-lg border-2 transition-all ${
+                        config.imageUrl === (media.file?.url || media.url)
+                          ? 'border-purple-500 ring-2 ring-purple-500'
+                          : 'border-gray-200 hover:border-purple-300'
+                      }`}
                     >
                       {(media.file?.url || media.url) ? (
                         <img
                           src={media.file?.url || media.url}
                           alt={media.file?.name || media.name || 'Image'}
-                          className={galleryStyles.mediaImage}
+                          className="h-full w-full object-cover"
                           onError={(e) => {
                             console.error('Image failed to load:', media.file?.url || media.url);
                             const target = e.target as HTMLImageElement;
@@ -1550,67 +1593,68 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                           }}
                         />
                       ) : (
-                        <div className={galleryStyles.mediaPlaceholder}>
-                          <div>📁</div>
+                        <div className="flex h-full w-full flex-col items-center justify-center bg-gray-100 text-xs text-gray-500">
+                          <div className="text-2xl">📁</div>
                           <div>No URL</div>
                         </div>
                       )}
                       {config.imageUrl === (media.file?.url || media.url) && (
-                        <div className={galleryStyles.mediaCheckmark}>
-                          ✓
+                        <div className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-purple-500 text-white shadow-lg">
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
                         </div>
                       )}
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
             </div>
 
             {/* Modal Footer */}
-            <div className={galleryStyles.modalFooter} style={{ justifyContent: 'space-between' }}>
+            <div className="flex items-center justify-between border-t border-gray-200 px-6 py-4">
               {/* Left side - Upload button */}
               <div>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
-                  style={{ display: 'none' }}
+                  className="hidden"
                   id="form-image-upload"
                   disabled={uploadingImage}
                 />
                 <label
                   htmlFor="form-image-upload"
-                  className={`${galleryStyles.button} ${galleryStyles.secondaryButton}`}
-                  style={{
-                    cursor: uploadingImage ? 'not-allowed' : 'pointer',
-                    opacity: uploadingImage ? 0.6 : 1,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                  }}
+                  className={`inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 ${
+                    uploadingImage ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                  }`}
                 >
                   {uploadingImage ? (
                     <>
-                      <span className={galleryStyles.spinner}></span>
+                      <svg className="h-4 w-4 animate-spin text-purple-600" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
                       Uploading...
                     </>
                   ) : (
                     <>
-                      📤 Upload Images
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                      </svg>
+                      Upload Images
                     </>
                   )}
                 </label>
               </div>
 
               {/* Right side - Action buttons */}
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <button
-                  onClick={() => setShowImageGallery(false)}
-                  className={`${galleryStyles.button} ${galleryStyles.secondaryButton}`}
-                >
-                  Cancel
-                </button>
-              </div>
+              <button
+                onClick={() => setShowImageGallery(false)}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

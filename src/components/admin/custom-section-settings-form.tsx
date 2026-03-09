@@ -16,6 +16,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Toast from '@/components/ui/toast';
 import { ImageGalleryModal } from './image-gallery-modal';
+import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import styles from './gallery-settings-form.module.css';
 
 // Type definitions
@@ -53,6 +54,21 @@ interface CustomSectionConfig {
   minHeight?: string;
   contentMaxWidth?: string;
   restaurant_id?: string;
+  // Typography properties
+  is_custom?: boolean;
+  buttonStyleVariant?: 'primary' | 'secondary';
+  titleFontFamily?: string;
+  titleFontSize?: string;
+  titleFontWeight?: number;
+  titleColor?: string;
+  subtitleFontFamily?: string;
+  subtitleFontSize?: string;
+  subtitleFontWeight?: number;
+  subtitleColor?: string;
+  bodyFontFamily?: string;
+  bodyFontSize?: string;
+  bodyFontWeight?: number;
+  bodyColor?: string;
 }
 
 type MediaFieldType = 'section_image' | 'background_video' | 'background_image';
@@ -80,6 +96,9 @@ export default function CustomSectionSettingsForm({ pageId, templateId, isNewSec
   // Gallery modal state
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [currentMediaField, setCurrentMediaField] = useState<MediaFieldType | null>(null);
+  const [mediaFiles, setMediaFiles] = useState<any[]>([]);
+  const [loadingMedia, setLoadingMedia] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // Get restaurant ID and other params from URL
   const searchParams = useSearchParams();
@@ -277,6 +296,98 @@ export default function CustomSectionSettingsForm({ pageId, templateId, isNewSec
 
     setShowGalleryModal(false);
     setCurrentMediaField(null);
+  };
+
+  const fetchMediaFiles = async () => {
+    if (!restaurantId) return;
+
+    setLoadingMedia(true);
+    try {
+      const url = `/api/media?restaurant_id=${restaurantId}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.success) {
+        setMediaFiles(data.data || []);
+      } else {
+        console.error('Error fetching media files:', data.error);
+        setMediaFiles([]);
+      }
+    } catch (error) {
+      console.error('Error fetching media files:', error);
+      setMediaFiles([]);
+    } finally {
+      setLoadingMedia(false);
+    }
+  };
+
+  const openGallery = (fieldType: MediaFieldType) => {
+    setCurrentMediaField(fieldType);
+    setShowGalleryModal(true);
+    fetchMediaFiles();
+  };
+
+  const closeGallery = () => {
+    setShowGalleryModal(false);
+    setCurrentMediaField(null);
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!restaurantId) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('restaurant_id', restaurantId);
+
+      const response = await fetch('/api/media/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.data?.file?.url) {
+        // Handle the uploaded file based on current media field
+        handleSelectImage(data.data.file.url);
+        
+        // Refresh media files list
+        fetchMediaFiles();
+        
+        // Show success toast
+        setToastMessage('File uploaded successfully!');
+        setToastType('success');
+        setShowToast(true);
+      } else {
+        setToastMessage('Failed to upload file: ' + (data.error || 'Unknown error'));
+        setToastType('error');
+        setShowToast(true);
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      setToastMessage('Error uploading file');
+      setToastType('error');
+      setShowToast(true);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    const file = files[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
   };
 
   // Determine which media fields to show based on layout
@@ -509,14 +620,17 @@ export default function CustomSectionSettingsForm({ pageId, templateId, isNewSec
 
   if (!formConfig) {
     return (
-      <div className={styles.container}>
-        <div className={styles.loading}>Initializing...</div>
+      <div className="flex min-h-[200px] items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-purple-200 border-t-purple-600"></div>
+          <p className="text-sm text-gray-600">Initializing...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.container}>
+    <div>
       {/* Toast Notification */}
       {showToast && (
         <Toast
@@ -526,440 +640,432 @@ export default function CustomSectionSettingsForm({ pageId, templateId, isNewSec
         />
       )}
 
-      <div className={styles.singleLayout}>
-        {/* Settings Form */}
-        <div className={styles.formSection}>
-          <div className={styles.formHeader}>
-            <div>
-              <h1 className={styles.formTitle}>Custom Section Settings</h1>
-              <p className={styles.formSubtitle}>Create custom content sections with multiple layout options</p>
+      {/* Header */}
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Custom Section Settings</h1>
+          <p className="mt-2 text-sm text-gray-600">Create custom content sections with multiple layout options</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowPreview(!showPreview)}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
+        >
+          {showPreview ? (
+            <>
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+              </svg>
+              Hide Preview
+            </>
+          ) : (
+            <>
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Show Preview
+            </>
+          )}
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Layout Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+              </svg>
             </div>
-            <div className={styles.headerActions}>
-              <button
-                type="button"
-                onClick={() => setShowPreview(!showPreview)}
-                className={styles.previewToggleButton}
-                title={showPreview ? 'Hide Preview' : 'Show Live Preview'}
-              >
-                {showPreview ? '👁️‍🗨️' : '👁️'} {showPreview ? 'Hide' : 'Show'} Preview
-              </button>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Layout Configuration</h2>
+              <p className="text-sm text-gray-600">Choose a section layout style</p>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className={styles.form}>
-            {/* Layout Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>🎨</span>
-                Layout Configuration
-              </h3>
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-700">Layout Type</label>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+              {layoutOptions.map((option) => (
+                <div
+                  key={option.value}
+                  onClick={() => handleLayoutChange(option.value)}
+                  className={`cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                    formConfig.layout === option.value
+                      ? 'border-purple-500 bg-purple-50 shadow-md'
+                      : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                  }`}
+                >
+                  <div className="mb-2">
+                    {renderLayoutPreview(option.value)}
+                  </div>
+                  <div className="text-xs font-medium text-gray-900">{option.name}</div>
+                  <div className="text-xs text-gray-500">{option.description}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Layout Type
-                  <span className={styles.labelHint}>Choose a section layout style</span>
-                </label>
-                <div className={styles.layoutGrid}>
-                  {layoutOptions.map((option) => (
-                    <div
-                      key={option.value}
-                      className={`${styles.layoutOption} ${formConfig.layout === option.value ? styles.selected : ''}`}
-                      onClick={() => handleLayoutChange(option.value)}
-                    >
-                      <div className={styles.layoutPreview}>
-                        {renderLayoutPreview(option.value)}
-                      </div>
-                      <div className={styles.layoutName}>{option.name}</div>
-                      <div className={styles.layoutDescription}>{option.description}</div>
-                    </div>
-                  ))}
+        {/* Content Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Content Configuration</h2>
+              <p className="text-sm text-gray-600">Set headline, subheadline and description</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Headline
+                <span className="ml-1 text-xs text-gray-500">Main section headline</span>
+              </label>
+              <input
+                type="text"
+                value={formConfig.headline}
+                onChange={(e) => updateConfig({ headline: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                placeholder="BESTELLEN SIE DIREKT AUF UNSERER WEBSITE"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Subheadline
+                <span className="ml-1 text-xs text-gray-500">Optional subheadline</span>
+              </label>
+              <input
+                type="text"
+                value={formConfig.subheadline || ''}
+                onChange={(e) => updateConfig({ subheadline: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                placeholder="Experience our premium service"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Description
+                <span className="ml-1 text-xs text-gray-500">Supporting description text</span>
+              </label>
+              <textarea
+                value={formConfig.description || ''}
+                onChange={(e) => updateConfig({ description: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                placeholder="Detailed description of your service or offering"
+                rows={3}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Buttons Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Call-to-Action Buttons</h2>
+              <p className="text-sm text-gray-600">Configure action buttons for your section</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {/* Primary Button Toggle */}
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Primary Button</label>
+                <p className="text-xs text-gray-500">Main action button</p>
+              </div>
+              <label className="relative inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  checked={!!formConfig.primaryButton}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      updateConfig({ primaryButton: { label: 'ONLINE BESTELLEN', href: '#order', variant: 'primary' } });
+                    } else {
+                      updateConfig({ primaryButton: undefined });
+                    }
+                  }}
+                  className="peer sr-only"
+                />
+                <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
+              </label>
+            </div>
+
+            {formConfig.primaryButton && (
+              <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Button Text
+                    <span className="ml-1 text-xs text-gray-500">Button label</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formConfig.primaryButton.label}
+                    onChange={(e) => updatePrimaryButton({ label: e.target.value })}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                    placeholder="ONLINE BESTELLEN"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Button Link
+                    <span className="ml-1 text-xs text-gray-500">Where it navigates</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formConfig.primaryButton.href}
+                    onChange={(e) => updatePrimaryButton({ href: e.target.value })}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                    placeholder="#order"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Button Style
+                    <span className="ml-1 text-xs text-gray-500">Visual style</span>
+                  </label>
+                  <select
+                    value={formConfig.primaryButton.variant || 'primary'}
+                    onChange={(e) => updatePrimaryButton({ variant: e.target.value as any })}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                  >
+                    <option value="primary">Primary</option>
+                    <option value="secondary">Secondary</option>
+                    <option value="outline">Outline</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Media Configuration Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Media Configuration</h2>
+              <p className="text-sm text-gray-600">Use one shared background image, plus layout-specific hero media where needed</p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {/* Shared Background Image Info Box */}
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <div className="flex items-start gap-3">
+                <svg className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                </svg>
+                <div>
+                  <h3 className="text-sm font-semibold text-blue-900">Shared Background Image</h3>
+                  <p className="mt-1 text-sm text-blue-700">
+                    Your background image is preserved while you switch layouts, so you can compare hero styles without re-uploading it.
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Content Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>📝</span>
-                Content Configuration
-              </h3>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Headline
-                  <span className={styles.labelHint}>Main section headline</span>
-                </label>
-                <input
-                  type="text"
-                  value={formConfig.headline}
-                  onChange={(e) => updateConfig({ headline: e.target.value })}
-                  className={styles.textInput}
-                  placeholder="BESTELLEN SIE DIREKT AUF UNSERER WEBSITE"
-                />
+            {/* Shared Background Image Section */}
+            <div>
+              <div className="mb-4 flex items-baseline justify-between">
+                <h3 className="text-sm font-medium text-gray-700">Shared Background Image</h3>
+                <span className="text-xs text-gray-500">Used in this layout</span>
               </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Subheadline
-                  <span className={styles.labelHint}>Optional subheadline</span>
-                </label>
-                <input
-                  type="text"
-                  value={formConfig.subheadline || ''}
-                  onChange={(e) => updateConfig({ subheadline: e.target.value })}
-                  className={styles.textInput}
-                  placeholder="Experience our premium service"
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Description
-                  <span className={styles.labelHint}>Supporting description text</span>
-                </label>
-                <textarea
-                  value={formConfig.description || ''}
-                  onChange={(e) => updateConfig({ description: e.target.value })}
-                  className={styles.textarea}
-                  placeholder="Detailed description of your service or offering"
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            {/* Buttons Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>🔘</span>
-                Call-to-Action Buttons
-              </h3>
-
-              {/* Primary Button */}
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Primary Button
-                  <span className={styles.labelHint}>Main action button</span>
-                </label>
-                <label className={styles.toggleSwitch}>
-                  <input
-                    type="checkbox"
-                    checked={!!formConfig.primaryButton}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        updateConfig({ primaryButton: { label: 'ONLINE BESTELLEN', href: '#order', variant: 'primary' } });
-                      } else {
-                        updateConfig({ primaryButton: undefined });
-                      }
-                    }}
-                    className={styles.toggleInput}
+              <p className="mb-3 text-xs text-gray-500">This layout uses the shared background image directly.</p>
+              <p className="mb-4 text-xs text-gray-500">Recommended: 1200x630px</p>
+              
+              {formConfig.backgroundImage && (
+                <div className="mb-4 overflow-hidden rounded-lg border border-gray-200">
+                  <img
+                    src={formConfig.backgroundImage}
+                    alt="Shared background"
+                    className="h-48 w-full object-cover"
                   />
-                  <span className={styles.toggleSlider}></span>
-                </label>
-              </div>
-
-              {formConfig.primaryButton && (
-                <div className={styles.buttonConfigSection}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Button Text
-                      <span className={styles.labelHint}>Button label</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formConfig.primaryButton.label}
-                      onChange={(e) => updatePrimaryButton({ label: e.target.value })}
-                      className={styles.textInput}
-                      placeholder="ONLINE BESTELLEN"
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Button Link
-                      <span className={styles.labelHint}>Where it navigates</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formConfig.primaryButton.href}
-                      onChange={(e) => updatePrimaryButton({ href: e.target.value })}
-                      className={styles.textInput}
-                      placeholder="#order"
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Button Style
-                      <span className={styles.labelHint}>Visual style</span>
-                    </label>
-                    <select
-                      value={formConfig.primaryButton.variant || 'primary'}
-                      onChange={(e) => updatePrimaryButton({ variant: e.target.value as any })}
-                      className={styles.select}
+                  <div className="flex gap-2 border-t border-gray-200 bg-gray-50 p-3">
+                    <button
+                      type="button"
+                      onClick={() => openGalleryModal('background_image')}
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                     >
-                      <option value="primary">Primary</option>
-                      <option value="secondary">Secondary</option>
-                      <option value="outline">Outline</option>
-                    </select>
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                      </svg>
+                      Change Image
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateConfig({ backgroundImage: undefined })}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                      </svg>
+                      Remove
+                    </button>
                   </div>
                 </div>
               )}
+
+              <button
+                type="button"
+                onClick={() => openGalleryModal('background_image')}
+                disabled={!restaurantId}
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                </svg>
+                Choose Shared Background Image
+              </button>
             </div>
+          </div>
+        </div>
 
-            {/* Media Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>🖼️</span>
-                Media Configuration
-              </h3>
-
-              {(() => {
-                const mediaFields = getMediaFieldsForLayout(formConfig.layout || 'layout-1');
-
-                return (
-                  <>
-                    {/* Section Image */}
-                    {mediaFields.showSectionImage && (
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                          Section Image
-                          <span className={styles.labelHint}>Main image for your section</span>
-                        </label>
-                        <div className={styles.mediaUploadContainer}>
-                          {formConfig.image?.url ? (
-                            <div className={styles.mediaPreview}>
-                              <img
-                                src={formConfig.image.url}
-                                alt={formConfig.image.alt || 'Section image'}
-                                className={styles.mediaPreviewImage}
-                              />
-                              <div className={styles.mediaActions}>
-                                <button
-                                  type="button"
-                                  onClick={() => openGalleryModal('section_image')}
-                                  className={styles.changeMediaButton}
-                                >
-                                  Change Image
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig({ image: undefined })}
-                                  className={styles.removeMediaButton}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => openGalleryModal('section_image')}
-                              className={styles.uploadButton}
-                              disabled={!restaurantId}
-                            >
-                              <span className={styles.uploadIcon}>📷</span>
-                              Choose Section Image
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Background Video */}
-                    {mediaFields.showBackgroundVideo && (
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                          Background Video
-                          <span className={styles.labelHint}>Video background for your section</span>
-                        </label>
-                        <div className={styles.mediaUploadContainer}>
-                          {formConfig.videoUrl ? (
-                            <div className={styles.mediaPreview}>
-                              <video
-                                src={formConfig.videoUrl}
-                                className={styles.mediaPreviewImage}
-                                muted
-                                playsInline
-                              />
-                              <div className={styles.mediaActions}>
-                                <button
-                                  type="button"
-                                  onClick={() => openGalleryModal('background_video')}
-                                  className={styles.changeMediaButton}
-                                >
-                                  Change Video
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig({ videoUrl: undefined })}
-                                  className={styles.removeMediaButton}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => openGalleryModal('background_video')}
-                              className={styles.uploadButton}
-                              disabled={!restaurantId}
-                            >
-                              <span className={styles.uploadIcon}>🎥</span>
-                              Choose Background Video
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Background Image */}
-                    {mediaFields.showBackgroundImage && (
-                      <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                          Background Image
-                          <span className={styles.labelHint}>Background image for your section</span>
-                        </label>
-                        <div className={styles.mediaUploadContainer}>
-                          {formConfig.backgroundImage ? (
-                            <div className={styles.mediaPreview}>
-                              <img
-                                src={formConfig.backgroundImage}
-                                alt="Background"
-                                className={styles.mediaPreviewImage}
-                              />
-                              <div className={styles.mediaActions}>
-                                <button
-                                  type="button"
-                                  onClick={() => openGalleryModal('background_image')}
-                                  className={styles.changeMediaButton}
-                                >
-                                  Change Image
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => updateConfig({ backgroundImage: undefined })}
-                                  className={styles.removeMediaButton}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => openGalleryModal('background_image')}
-                              className={styles.uploadButton}
-                              disabled={!restaurantId}
-                            >
-                              <span className={styles.uploadIcon}>📁</span>
-                              Choose Background Image
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
+        {/* Styling Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+              </svg>
             </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Colors & Styling</h2>
+              <p className="text-sm text-gray-600">Customize colors and appearance</p>
+            </div>
+          </div>
 
-            {/* Styling Section */}
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>🎨</span>
-                Colors & Styling
-              </h3>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Background Color
-                  <span className={styles.labelHint}>Section background color</span>
-                </label>
-                <div className={styles.colorInputGroup}>
-                  <input
-                    type="color"
-                    value={formConfig.bgColor || '#ffffff'}
-                    onChange={(e) => updateConfig({ bgColor: e.target.value })}
-                    className={styles.colorInput}
-                  />
-                  <input
-                    type="text"
-                    value={formConfig.bgColor || '#ffffff'}
-                    onChange={(e) => updateConfig({ bgColor: e.target.value })}
-                    className={styles.colorHexInput}
-                    placeholder="#ffffff"
-                  />
-                </div>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Text Color
-                  <span className={styles.labelHint}>Text and headline color</span>
-                </label>
-                <div className={styles.colorInputGroup}>
-                  <input
-                    type="color"
-                    value={formConfig.textColor || '#000000'}
-                    onChange={(e) => updateConfig({ textColor: e.target.value })}
-                    className={styles.colorInput}
-                  />
-                  <input
-                    type="text"
-                    value={formConfig.textColor || '#000000'}
-                    onChange={(e) => updateConfig({ textColor: e.target.value })}
-                    className={styles.colorHexInput}
-                    placeholder="#000000"
-                  />
-                </div>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Text Alignment
-                  <span className={styles.labelHint}>Content alignment</span>
-                </label>
-                <select
-                  value={formConfig.textAlign || 'center'}
-                  onChange={(e) => updateConfig({ textAlign: e.target.value as any })}
-                  className={styles.select}
-                >
-                  <option value="left">Left</option>
-                  <option value="center">Center</option>
-                  <option value="right">Right</option>
-                </select>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  Minimum Height
-                  <span className={styles.labelHint}>Section height</span>
-                </label>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Background Color
+                <span className="ml-1 text-xs text-gray-500">Section background color</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={formConfig.bgColor || '#ffffff'}
+                  onChange={(e) => updateConfig({ bgColor: e.target.value })}
+                  className="h-10 w-20 cursor-pointer rounded-lg border border-gray-300"
+                />
                 <input
                   type="text"
-                  value={formConfig.minHeight || '400px'}
-                  onChange={(e) => updateConfig({ minHeight: e.target.value })}
-                  className={styles.textInput}
-                  placeholder="400px"
+                  value={formConfig.bgColor || '#ffffff'}
+                  onChange={(e) => updateConfig({ bgColor: e.target.value })}
+                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-mono text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                  placeholder="#ffffff"
                 />
               </div>
             </div>
 
-            {/* Save Button */}
-            <div className={styles.formActions}>
-              <button
-                type="submit"
-                disabled={false}
-                className={styles.saveButton}
-              >
-                <span>💾</span>
-                Save Custom Section Settings
-              </button>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Text Color
+                <span className="ml-1 text-xs text-gray-500">Text and headline color</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={formConfig.textColor || '#000000'}
+                  onChange={(e) => updateConfig({ textColor: e.target.value })}
+                  className="h-10 w-20 cursor-pointer rounded-lg border border-gray-300"
+                />
+                <input
+                  type="text"
+                  value={formConfig.textColor || '#000000'}
+                  onChange={(e) => updateConfig({ textColor: e.target.value })}
+                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-mono text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                  placeholder="#000000"
+                />
+              </div>
             </div>
-          </form>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Text Alignment
+                <span className="ml-1 text-xs text-gray-500">Content alignment</span>
+              </label>
+              <select
+                value={formConfig.textAlign || 'center'}
+                onChange={(e) => updateConfig({ textAlign: e.target.value as any })}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+              >
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Minimum Height
+                <span className="ml-1 text-xs text-gray-500">Section height</span>
+              </label>
+              <input
+                type="text"
+                value={formConfig.minHeight || '400px'}
+                onChange={(e) => updateConfig({ minHeight: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                placeholder="400px"
+              />
+            </div>
+          </div>
         </div>
-      </div>
+
+        {/* Typography & Buttons */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Typography & Buttons</h2>
+              <p className="text-sm text-gray-600">Customize text styles and button appearance</p>
+            </div>
+          </div>
+
+          <SectionTypographyControls
+            value={formConfig as any}
+            onChange={(updates: any) => updateConfig(updates)}
+          />
+        </div>
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={false}
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:from-purple-700 hover:to-purple-800"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+            </svg>
+            Save Custom Section Settings
+          </button>
+        </div>
+      </form>
 
       {/* Preview Modal Popup */}
       {showPreview && (
@@ -982,29 +1088,98 @@ export default function CustomSectionSettingsForm({ pageId, templateId, isNewSec
             <div className={styles.previewModalBody}>
               <div className={styles.previewDevice}>
                 <div className={styles.previewContainer}>
-                  {/* TODO: Add CustomSection component preview */}
-                  <div style={{
-                    padding: '2rem',
-                    background: formConfig.bgColor,
-                    color: formConfig.textColor,
-                    textAlign: formConfig.textAlign as any,
-                    minHeight: formConfig.minHeight
-                  }}>
-                    <h2>{formConfig.headline || 'Custom Section Headline'}</h2>
-                    {formConfig.subheadline && <h3>{formConfig.subheadline}</h3>}
-                    {formConfig.description && <p>{formConfig.description}</p>}
-                    {formConfig.primaryButton && (
-                      <button style={{
-                        padding: '0.75rem 1.5rem',
-                        background: '#dc3545',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '4px',
-                        marginTop: '1rem'
-                      }}>
-                        {formConfig.primaryButton.label}
-                      </button>
+                  <div
+                    style={{
+                      padding: '2rem',
+                      background: formConfig.bgColor || '#ffffff',
+                      color: formConfig.textColor || '#000000',
+                      textAlign: (formConfig.textAlign as any) || 'center',
+                      minHeight: formConfig.minHeight || '400px',
+                      position: 'relative',
+                      backgroundImage: formConfig.backgroundImage ? `url(${formConfig.backgroundImage})` : undefined,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  >
+                    {formConfig.videoUrl && (
+                      <video
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          zIndex: 0,
+                        }}
+                        src={formConfig.videoUrl}
+                      />
                     )}
+                    <div style={{ position: 'relative', zIndex: 1 }}>
+                      {formConfig.image?.url && (
+                        <img
+                          src={formConfig.image.url}
+                          alt={formConfig.image.alt || 'Section image'}
+                          style={{
+                            maxWidth: '300px',
+                            height: 'auto',
+                            marginBottom: '1rem',
+                            borderRadius: '8px',
+                          }}
+                        />
+                      )}
+                      <h2
+                        style={{
+                          fontSize: '2rem',
+                          fontWeight: 'bold',
+                          marginBottom: '0.5rem',
+                          opacity: formConfig.headline ? 1 : 0.4,
+                        }}
+                      >
+                        {formConfig.headline || 'Section Headline (placeholder)'}
+                      </h2>
+                      <h3
+                        style={{
+                          fontSize: '1.25rem',
+                          marginBottom: '0.5rem',
+                          opacity: formConfig.subheadline ? 1 : 0.4,
+                          display: formConfig.subheadline || 'inline' ? 'block' : 'none',
+                        }}
+                      >
+                        {formConfig.subheadline || 'Subheadline (placeholder)'}
+                      </h3>
+                      <p
+                        style={{
+                          fontSize: '1rem',
+                          marginBottom: '1rem',
+                          opacity: formConfig.description ? 1 : 0.4,
+                          display: formConfig.description || 'inline' ? 'block' : 'none',
+                        }}
+                      >
+                        {formConfig.description || 'Description text will appear here (placeholder)'}
+                      </p>
+                      {(formConfig.primaryButton || true) && (
+                        <button
+                          style={{
+                            padding: '0.75rem 1.5rem',
+                            background: formConfig.primaryButton?.bgColor || '#7c3aed',
+                            color: formConfig.primaryButton?.textColor || '#fff',
+                            border: formConfig.primaryButton?.variant === 'outline' ? '2px solid currentColor' : 'none',
+                            borderRadius: '8px',
+                            marginTop: '1rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            opacity: formConfig.primaryButton ? 1 : 0.4,
+                          }}
+                        >
+                          {formConfig.primaryButton?.label || 'Button Text (placeholder)'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

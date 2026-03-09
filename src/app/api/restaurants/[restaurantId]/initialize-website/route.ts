@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { addVercelDomain } from '@/lib/server/vercel-domains';
 
-const DEFAULT_STAGING_DOMAIN_SUFFIX = '.antlerfoods.com';
+const DEFAULT_STAGING_DOMAIN_SUFFIX = '.vercel.app';
 
 const DEFAULT_SYSTEM_PAGES = [
   { urlSlug: 'home', name: 'Home' },
@@ -149,8 +150,22 @@ export async function POST(
       );
     }
 
-    // Generate staging domain
+    // Generate staging domain (Vercel subdomain)
     const defaultStagingDomain = buildDefaultStagingDomain(restaurantName);
+
+    // Add domain to Vercel project via API
+    const vercelResult = await addVercelDomain(defaultStagingDomain);
+
+    if (!vercelResult.success) {
+      console.error('Failed to add domain to Vercel:', vercelResult.error);
+      return NextResponse.json(
+        {
+          error: `Failed to create staging domain: ${vercelResult.error}`,
+          details: 'Make sure VERCEL_API_TOKEN and VERCEL_PROJECT_ID are configured correctly.'
+        },
+        { status: 500 }
+      );
+    }
 
     // Update restaurant with staging domain
     await updateRestaurantData(restaurantId, defaultStagingDomain);
@@ -162,6 +177,8 @@ export async function POST(
       success: true,
       stagingDomain: defaultStagingDomain,
       pagesCreated: DEFAULT_SYSTEM_PAGES.length,
+      vercelDomainAdded: true,
+      vercelNeedsVerification: vercelResult.needsVerification || false,
     });
   } catch (error) {
     console.error('Error initializing website:', error);

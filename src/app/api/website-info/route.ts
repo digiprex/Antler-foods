@@ -32,9 +32,38 @@ interface WebsitesResponse {
   websites: WebsiteData[];
 }
 
-const GET_WEBSITE_INFO = `
+const GET_WEBSITE_INFO_BY_CUSTOM_DOMAIN = `
   query GetWebsiteInfo($custom_domain: String!) {
     websites_by_pk(custom_domain: $custom_domain) {
+      created_at
+      custom_domain
+      favicon_url
+      global_styles
+      google_analytics_id
+      id
+      is_deleted
+      is_published
+      logo
+      restaurant_id
+      staging_domain
+      updated_at
+      vercel_project_id
+    }
+  }
+`;
+
+const GET_WEBSITE_INFO_BY_DOMAIN = `
+  query GetWebsiteInfoByDomain($domain: String!) {
+    websites(
+      where: {
+        _or: [
+          { custom_domain: { _eq: $domain } },
+          { staging_domain: { _eq: $domain } }
+        ],
+        is_deleted: { _eq: false }
+      },
+      limit: 1
+    ) {
       created_at
       custom_domain
       favicon_url
@@ -104,25 +133,25 @@ export async function GET(request: Request) {
 
       website = data.websites[0];
     } else {
-      // Otherwise, query by domain (original behavior)
+      // Otherwise, query by domain (custom or staging)
       // Get the host from the request headers
       const host = request.headers.get('host') || 'localhost:3000';
 
-      // Remove port if present for custom domain lookup
-      const customDomain = host.split(':')[0];
+      // Remove port if present for domain lookup
+      const domain = host.split(':')[0];
 
-      const data = await graphqlRequest<WebsiteByPkResponse>(GET_WEBSITE_INFO, {
-        custom_domain: customDomain,
+      const data = await graphqlRequest<WebsitesResponse>(GET_WEBSITE_INFO_BY_DOMAIN, {
+        domain: domain,
       });
 
-      if (!data.websites_by_pk) {
+      if (!data.websites || data.websites.length === 0) {
         return NextResponse.json({
           success: false,
           error: 'Website not found for this domain',
         }, { status: 404 });
       }
 
-      website = data.websites_by_pk;
+      website = data.websites[0];
     }
 
     return NextResponse.json({

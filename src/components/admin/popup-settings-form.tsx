@@ -490,10 +490,8 @@ export default function PopupSettingsForm() {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="mx-auto max-w-5xl">
-            {/* Page Header */}
-            <div className="mb-8 flex items-start justify-between">
+      {/* Page Header */}
+      <div className="mb-8 flex items-start justify-between">
               <div className="flex items-center gap-4">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
                   <svg
@@ -1227,8 +1225,6 @@ export default function PopupSettingsForm() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
 
       <ImageGalleryModal
         isOpen={showMediaModal}

@@ -6,6 +6,14 @@ type JsonRecord = Record<string, unknown>;
 const EMAIL_REGEX =
   /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
+const AUTH_REDIRECT_BASE_URL_ENV_KEYS = [
+  "AUTH_REDIRECT_BASE_URL",
+  "NEXT_PUBLIC_APP_URL",
+  "APP_URL",
+  "NEXT_PUBLIC_SITE_URL",
+  "SITE_URL",
+] as const;
+
 const INSERT_ADMIN_USER_MUTATION = `
   mutation InsertAdminUser(
     $email: citext!
@@ -108,15 +116,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const verificationRedirectUrl = new URL("/login", request.nextUrl.origin).toString();
+    const verificationRedirectUrl = buildAppRedirectUrl(request, "/login");
 
-    await sendVerificationEmail({
+    const verificationEmailResult = await sendVerificationEmail({
       authUrl,
       email,
       redirectTo: verificationRedirectUrl,
     });
 
-    return NextResponse.json({ userId });
+    return NextResponse.json({
+      userId,
+      warning: verificationEmailResult.warning,
+    });
   } catch (caughtError) {
     const message =
       caughtError instanceof Error
@@ -272,6 +283,40 @@ function normalizeBackendUrl(value: string | undefined) {
   return normalized.replace(/\/+$/, "");
 }
 
+function normalizeAbsoluteUrl(value: string | undefined) {
+  const normalized = normalizeString(value);
+  if (!normalized) {
+    return null;
+  }
+
+  try {
+    return new URL(normalized).toString().replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+}
+
+function resolvePublicAppBaseUrl(request: NextRequest) {
+  for (const key of AUTH_REDIRECT_BASE_URL_ENV_KEYS) {
+    const configuredUrl = normalizeAbsoluteUrl(process.env[key]);
+    if (configuredUrl) {
+      return configuredUrl;
+    }
+  }
+
+  return request.nextUrl.origin;
+}
+
+function buildAppRedirectUrl(request: NextRequest, path: string) {
+  const baseUrl = new URL(resolvePublicAppBaseUrl(request));
+  const normalizedPath = path.replace(/^\/+/, "");
+  const basePath = baseUrl.pathname.endsWith("/")
+    ? baseUrl.pathname
+    : `${baseUrl.pathname}/`;
+
+  return new URL(normalizedPath, `${baseUrl.origin}${basePath}`).toString();
+}
+
 async function safeParseJson(response: Response) {
   try {
     return await response.json();
@@ -289,6 +334,52 @@ async function sendVerificationEmail({
   email: string;
   redirectTo: string;
 }) {
+  const firstAttempt = await requestVerificationEmail({
+    authUrl,
+    email,
+    redirectTo,
+  });
+
+  if (firstAttempt.ok) {
+    return { warning: null };
+  }
+
+  const firstReason = firstAttempt.reason;
+  const isRedirectRejected = firstReason?.toLowerCase().includes("redirectto");
+
+  if (isRedirectRejected) {
+    const fallbackAttempt = await requestVerificationEmail({
+      authUrl,
+      email,
+    });
+
+    if (fallbackAttempt.ok) {
+      return {
+        warning:
+          "Verification email was sent using the default auth redirect because the custom signup redirect is not allowed in the current Nhost configuration.",
+      };
+    }
+  }
+
+  const redirectGuidance = isRedirectRejected
+    ? ` Rejected redirect URL: ${redirectTo}. Add this exact URL to the Nhost allowed redirect URLs list, or set AUTH_REDIRECT_BASE_URL/NEXT_PUBLIC_APP_URL to an allowed origin.`
+    : "";
+  throw new Error(
+    firstReason
+      ? `Account was created, but verification email could not be sent: ${firstReason}${redirectGuidance}`
+      : "Account was created, but verification email could not be sent.",
+  );
+}
+
+async function requestVerificationEmail({
+  authUrl,
+  email,
+  redirectTo,
+}: {
+  authUrl: string;
+  email: string;
+  redirectTo?: string;
+}) {
   const response = await fetch(`${authUrl}/user/email/send-verification-email`, {
     method: "POST",
     headers: {
@@ -296,22 +387,27 @@ async function sendVerificationEmail({
     },
     body: JSON.stringify({
       email,
-      options: {
-        redirectTo,
-      },
+      ...(redirectTo
+        ? {
+            options: {
+              redirectTo,
+            },
+          }
+        : {}),
     }),
     cache: "no-store",
   });
 
-  if (!response.ok) {
-    const payload = (await safeParseJson(response)) as
-      | { message?: string; error?: string }
-      | null;
-    const reason = payload?.message || payload?.error;
-    throw new Error(
-      reason
-        ? `Account was created, but verification email could not be sent: ${reason}`
-        : "Account was created, but verification email could not be sent.",
-    );
+  if (response.ok) {
+    return { ok: true as const, reason: null };
   }
+
+  const payload = (await safeParseJson(response)) as
+    | { message?: string; error?: string }
+    | null;
+
+  return {
+    ok: false as const,
+    reason: payload?.message || payload?.error || null,
+  };
 }

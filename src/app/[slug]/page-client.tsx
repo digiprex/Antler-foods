@@ -289,10 +289,18 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           showLoading={true}
         />;
       case 'menu':
+        const menuConfigData = template.config ? {
+          ...template.config,
+          layout: template.name,
+          restaurant_id: restaurantId,
+          categories: template.menu_items?.categories || template.config?.categories || [],
+          featuredItems: template.menu_items?.featuredItems || template.config?.featuredItems || [],
+        } : undefined;
+
         return <DynamicMenu
           key={uniqueKey}
           restaurantId={restaurantId}
-          configData={template.config ? { ...template.config, layout: template.name, restaurant_id: restaurantId } : undefined}
+          configData={menuConfigData}
           showLoading={true}
         />;
       case 'customcode':

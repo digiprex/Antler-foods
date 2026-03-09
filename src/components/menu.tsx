@@ -68,13 +68,28 @@ function buildPreparedCategories(
   categories: MenuCategory[] | undefined,
   featuredItems: MenuItem[] | undefined,
   title: string,
+  options?: {
+    preserveEmptyCategories?: boolean;
+  },
 ) {
-  const hydratedCategories = withFeaturedFlags(categories, featuredItems).filter(
+  const hydratedCategories = withFeaturedFlags(categories, featuredItems);
+
+  if (options?.preserveEmptyCategories) {
+    return hydratedCategories.filter(
+      (category) =>
+        Boolean(category.name?.trim()) ||
+        Boolean(category.description?.trim()) ||
+        Boolean(category.icon?.trim()) ||
+        (category.items || []).length > 0,
+    );
+  }
+
+  const populatedCategories = hydratedCategories.filter(
     (category) => (category.items || []).length > 0,
   );
 
-  if (hydratedCategories.length > 0) {
-    return hydratedCategories;
+  if (populatedCategories.length > 0) {
+    return populatedCategories;
   }
 
   if ((featuredItems || []).length > 0) {
@@ -130,6 +145,33 @@ function buildFeaturedItems(
   return flaggedItems.length > 0 ? flaggedItems : allItems;
 }
 
+function hasRenderableItemContent(item: MenuItem) {
+  return Boolean(
+    item.name?.trim() ||
+      item.description?.trim() ||
+      item.image ||
+      item.ctaLabel?.trim() ||
+      item.ctaLink?.trim(),
+  );
+}
+
+function buildDirectLayoutItems(
+  layoutItems: MenuItem[] | undefined,
+  title: string,
+) {
+  return (layoutItems || [])
+    .filter(hasRenderableItemContent)
+    .map(
+      (item, index): PreparedMenuItem => ({
+        ...item,
+        name: item.name?.trim() || `Menu ${index + 1}`,
+        categoryName: item.category || title || 'Menu Highlights',
+        categoryDescription: undefined,
+        categoryIcon: undefined,
+      }),
+    );
+}
+
 function getFallbackSymbol(item: PreparedMenuItem, index: number) {
   if (item.categoryIcon?.trim()) {
     return item.categoryIcon.trim().slice(0, 2);
@@ -165,6 +207,7 @@ export default function Menu({
   description,
   categories = [],
   featuredItems = [],
+  layoutItems = [],
   ctaButton,
   headerImage,
   backgroundImage,
@@ -232,14 +275,20 @@ export default function Menu({
     getSelectedGlobalButtonStyle(sectionStyleConfig, globalStyles),
   );
 
-  const preparedCategories = buildPreparedCategories(categories, featuredItems, title || 'Our Menu');
+  const categoryDrivenLayout = layout === 'tabs' || layout === 'accordion';
+  const preparedCategories = buildPreparedCategories(
+    categories,
+    featuredItems,
+    title || 'Our Menu',
+    { preserveEmptyCategories: categoryDrivenLayout },
+  );
   const preparedItems = prepareItems(preparedCategories);
   const spotlightItems = buildFeaturedItems(featuredItems, preparedItems);
+  const preparedLayoutItems = buildDirectLayoutItems(layoutItems, title || 'Our Menu');
   const highlightedItems = spotlightItems.slice(0, 8);
-  const visualItems = preparedItems.filter(
-    (item) => Boolean(resolveItemMedia(item, headerImage, backgroundImage)),
-  );
-  const heroItems = (visualItems.length > 0 ? visualItems : preparedItems).slice(0, 6);
+  const directItems = preparedLayoutItems.length > 0 ? preparedLayoutItems : preparedItems;
+  const spotlightDirectItems =
+    preparedLayoutItems.length > 0 ? preparedLayoutItems : highlightedItems;
 
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
   const [expandedCategoryIndex, setExpandedCategoryIndex] = useState(0);
@@ -369,6 +418,14 @@ export default function Menu({
     options?: { overlay?: boolean; compact?: boolean; centered?: boolean },
   ) => {
     const media = showImages ? resolveItemMedia(item, headerImage, backgroundImage) : undefined;
+    const mediaHref = item.imageLink?.trim();
+    const mediaContent = media ? (
+      <img src={media} alt={item.name} />
+    ) : (
+      <div className={styles.cardPlaceholder}>
+        <span>{getFallbackSymbol(item, index)}</span>
+      </div>
+    );
 
     return (
       <article
@@ -382,14 +439,17 @@ export default function Menu({
         style={{ backgroundColor: cardBgColor }}
       >
         <div className={styles.cardMedia}>
-          {media ? (
-            <img src={media} alt={item.name} />
+          {mediaHref ? (
+            <a href={mediaHref} className={styles.cardMediaLink} aria-label={`Open ${item.name}`}>
+              {mediaContent}
+              {options?.overlay ? <div className={styles.cardScrim} /> : null}
+            </a>
           ) : (
-            <div className={styles.cardPlaceholder}>
-              <span>{getFallbackSymbol(item, index)}</span>
-            </div>
+            <>
+              {mediaContent}
+              {options?.overlay ? <div className={styles.cardScrim} /> : null}
+            </>
           )}
-          {options?.overlay ? <div className={styles.cardScrim} /> : null}
         </div>
         <div
           className={joinClasses(
@@ -489,6 +549,15 @@ export default function Menu({
   const renderLayoutContent = () => {
     switch (layout) {
       case 'list':
+        if (preparedLayoutItems.length > 0) {
+          return (
+            <div className={styles.layoutBody}>
+              <div className={styles.promoGrid}>
+                {directItems.map(renderPromoCard)}
+              </div>
+            </div>
+          );
+        }
         return (
           <div className={styles.layoutBody}>
             {preparedCategories.map((category) =>
@@ -510,6 +579,15 @@ export default function Menu({
         );
 
       case 'masonry':
+        if (preparedLayoutItems.length > 0) {
+          return (
+            <div className={styles.layoutBody}>
+              <div className={styles.twoColumnGrid}>
+                {directItems.map((item, index) => renderImageCard(item, index))}
+              </div>
+            </div>
+          );
+        }
         return (
           <div className={styles.layoutBody}>
             {preparedCategories.map((category) =>
@@ -555,7 +633,7 @@ export default function Menu({
                   {'<'}
                 </button>
                 <div ref={carouselTrackRef} className={styles.carouselTrack}>
-                  {highlightedItems.map((item, index) => {
+                  {spotlightDirectItems.map((item, index) => {
                     const media =
                       showImages && resolveItemMedia(item, headerImage, backgroundImage);
 
@@ -764,9 +842,29 @@ export default function Menu({
         );
 
       case 'two-column':
+        if (preparedLayoutItems.length > 0) {
+          return (
+            <div className={styles.layoutBody}>
+              <div className={styles.twoColumnGrid}>
+                {directItems.map((item, index) => renderImageCard(item, index))}
+              </div>
+            </div>
+          );
+        }
         return <div className={styles.layoutBody}>{renderGridLayouts(styles.twoColumnGrid)}</div>;
 
       case 'single-column':
+        if (preparedLayoutItems.length > 0) {
+          return (
+            <div className={styles.layoutBody}>
+              <div className={styles.singleColumnGrid}>
+                {directItems.map((item, index) =>
+                  renderImageCard(item, index, { centered: true }),
+                )}
+              </div>
+            </div>
+          );
+        }
         return (
           <div className={styles.layoutBody}>
             {preparedCategories.map((category) =>
@@ -797,7 +895,7 @@ export default function Menu({
               </h3>
             </div>
             <div className={styles.featureGrid}>
-              {highlightedItems.slice(0, 3).map((item, index) => (
+              {spotlightDirectItems.slice(0, 3).map((item, index) => (
                 <article
                   key={`${item.categoryName}-${item.name}-${index}`}
                   className={styles.featureCard}
@@ -822,7 +920,7 @@ export default function Menu({
         return (
           <div className={styles.layoutBody}>
             <div className={styles.minimalGrid}>
-              {highlightedItems.slice(0, 3).map((item, index) => (
+              {spotlightDirectItems.slice(0, 3).map((item, index) => (
                 <article
                   key={`${item.categoryName}-${item.name}-${index}`}
                   className={styles.minimalCard}
@@ -845,6 +943,15 @@ export default function Menu({
 
       case 'grid':
       default:
+        if (preparedLayoutItems.length > 0) {
+          return (
+            <div className={styles.layoutBody}>
+              <div className={styles.twoColumnGrid}>
+                {directItems.map((item, index) => renderImageCard(item, index, { overlay: true }))}
+              </div>
+            </div>
+          );
+        }
         return <div className={styles.layoutBody}>{renderGridLayouts(styles.gridLayout)}</div>;
     }
   };
@@ -892,7 +999,7 @@ export default function Menu({
           ) : null}
         </div>
 
-        {preparedCategories.length > 0 ? (
+        {(categoryDrivenLayout ? preparedCategories.length > 0 : directItems.length > 0) ? (
           renderLayoutContent()
         ) : (
           <div className={styles.emptyState}>
@@ -900,7 +1007,7 @@ export default function Menu({
           </div>
         )}
 
-        {ctaButton?.label ? (
+        {ctaButton?.label && categoryDrivenLayout ? (
           <div className={styles.menuCta}>
             <a href={ctaButton.href} className={styles.ctaButton} style={globalButtonInlineStyle}>
               {ctaButton.label}

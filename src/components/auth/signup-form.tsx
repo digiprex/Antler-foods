@@ -78,7 +78,7 @@ export function SignupForm() {
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | { error?: string }
+        | { error?: string; warning?: string }
         | null;
 
       if (!response.ok) {
@@ -87,7 +87,7 @@ export function SignupForm() {
       }
 
       setSuccessMessage(
-        'Account created. Please verify your email, then log in.',
+        'Account created. A verification email has been sent to your inbox. Please verify your email, then log in.',
       );
     } finally {
       setIsSubmitting(false);

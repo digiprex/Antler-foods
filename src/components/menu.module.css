@@ -178,10 +178,19 @@
   background: linear-gradient(135deg, rgba(15, 23, 42, 0.08), rgba(59, 130, 246, 0.12));
 }
 
+.cardMediaLink {
+  position: relative;
+  display: block;
+  min-height: inherit;
+  color: inherit;
+  text-decoration: none;
+}
+
 .cardMedia img,
 .featureThumb img,
 .accordionThumb img,
-.carouselCardMedia img {
+.carouselCardMedia img,
+.cardMediaLink img {
   width: 100%;
   height: 100%;
   object-fit: cover;

@@ -326,13 +326,17 @@ export async function GET(request: Request) {
     }
 
     const template = (data as any).templates[0];
+    const menuItems = template.menu_items || {};
 
-    // The config field contains the complete menu configuration
+    // The config field contains the complete menu configuration.
+    // Categories and featured items are stored separately in menu_items.
     const config: MenuConfig = {
       ...DEFAULT_MENU_CONFIG,
       ...template.config,
       layout: template.name, // name field contains layout type
       restaurant_id: restaurantId,
+      categories: menuItems.categories || template.config?.categories || [],
+      featuredItems: menuItems.featuredItems || template.config?.featuredItems || [],
     };
 
     const response: MenuConfigResponse = {

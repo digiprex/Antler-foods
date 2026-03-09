@@ -148,20 +148,19 @@ export default function SEOSettingsPage() {
       <Toaster />
       <DashboardLayout>
         {restaurantId && restaurantName && pageId ? (
-          <div className="min-h-screen bg-gray-50 p-8">
-            <div className="mx-auto max-w-5xl">
-              {/* Back Button */}
-              <button
-                onClick={handleBack}
-                className="mb-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                </svg>
-                Back to Page Settings
-              </button>
+          <>
+            {/* Back Button */}
+            <button
+              onClick={handleBack}
+              className="mb-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Page Settings
+            </button>
 
-              {/* Page Header */}
+            {/* Page Header */}
               <div className="mb-8 flex items-center gap-4">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
                   <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -422,8 +421,7 @@ export default function SEOSettingsPage() {
                 </button>
               </div>
             </div>
-          </div>
-          </div>
+          </>
         ) : (
           <div className="flex min-h-[400px] items-center justify-center">
             <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-12 text-center shadow-sm">

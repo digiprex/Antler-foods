@@ -29,9 +29,7 @@ export default function PagesSettingsPage() {
   return (
     <DashboardLayout>
       {restaurantId && restaurantName ? (
-        <div className="p-6">
-          <PagesListPage />
-        </div>
+        <PagesListPage />
       ) : (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">

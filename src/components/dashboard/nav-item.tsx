@@ -42,7 +42,7 @@ export function NavItem({ href, label, icon, active = false, collapsed = false }
     <Link
       href={href}
       onClick={onNavigate}
-      className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
         active
           ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
           : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
@@ -50,14 +50,6 @@ export function NavItem({ href, label, icon, active = false, collapsed = false }
     >
       <span className={`shrink-0 ${active ? 'text-white' : 'text-gray-600'}`}>{icon}</span>
       <span className="leading-tight whitespace-nowrap overflow-hidden">{label}</span>
-      <span className={`pointer-events-none absolute left-0 top-0 z-50 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg ${
-        active
-          ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
-          : 'bg-gray-100 text-gray-900'
-      }`}>
-        <span className={`shrink-0 ${active ? 'text-white' : 'text-gray-600'}`}>{icon}</span>
-        {label}
-      </span>
     </Link>
   );
 }

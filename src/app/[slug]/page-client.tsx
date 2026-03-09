@@ -448,11 +448,38 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
         {sortedTemplates.length > 0 ? (
           sortedTemplates.map((template: any) => renderSection(template))
         ) : (
-          <div style={{ padding: '40px', textAlign: 'center', backgroundColor: 'white', margin: '20px', borderRadius: '8px' }}>
-            <h3>No sections found for this page</h3>
-            <p>This page doesn't have any sections configured yet.</p>
-            <p>Page ID: {pageData?.data?.page?.page_id}</p>
-            <p>Restaurant ID: {restaurantId}</p>
+          <div style={{
+            padding: '60px 40px',
+            textAlign: 'center',
+            backgroundColor: 'white',
+            margin: '20px',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}>📝</div>
+            <h3 style={{
+              fontSize: '24px',
+              fontWeight: '600',
+              color: '#111827',
+              marginBottom: '12px'
+            }}>
+              Page Content Coming Soon
+            </h3>
+            <p style={{
+              fontSize: '16px',
+              color: '#6b7280',
+              marginBottom: '24px',
+              lineHeight: '1.6'
+            }}>
+              This page is ready but doesn't have any content sections yet.
+            </p>
+            <p style={{
+              fontSize: '14px',
+              color: '#9ca3af',
+              fontStyle: 'italic'
+            }}>
+              Please edit your site from the dashboard to add content sections.
+            </p>
           </div>
         )}
       </div>

@@ -210,23 +210,47 @@ export async function GET(request: Request) {
       hasLogo: !!logoUrl,
     });
 
-    if (!(data as any).templates || (data as any).templates.length === 0) {
-      // Return 404 if no navbar template exists - don't show navbar
-      const response = {
-        success: false,
-        data: null,
-        error: 'No navbar configuration found'
-      };
-      return NextResponse.json(response, { status: 404 });
-    }
-
-    const template = (data as any).templates[0]; // Get most recent non-deleted template
-
     // Transform web_pages to nav items
     const navItems = ((data as any).web_pages || []).map((page: any) => ({
       label: page.name,
       href: `/${page.url_slug}`,
     }));
+
+    if (!(data as any).templates || (data as any).templates.length === 0) {
+      // Return default navbar configuration for new restaurants
+      const defaultConfig: NavbarConfig = {
+        restaurantName: restaurantName,
+        logoUrl: logoUrl,
+        logoSize: 40,
+        layout: 'bordered-centered',
+        leftNavItems: navItems,
+        rightNavItems: [],
+        ctaButton: {
+          label: 'Order Online',
+          href: '/menu',
+        },
+        position: 'absolute',
+        bgColor: '#ffffff',
+        textColor: '#000000',
+        buttonBgColor: '#000000',
+        buttonTextColor: '#ffffff',
+        fontFamily: 'Inter, system-ui, sans-serif',
+        fontSize: '1rem',
+        fontWeight: 400,
+        textTransform: 'uppercase',
+      };
+
+      console.log('[Navbar Config] ✅ Returning default config for new restaurant');
+
+      const response: NavbarConfigResponse = {
+        success: true,
+        data: defaultConfig,
+      };
+
+      return NextResponse.json(response);
+    }
+
+    const template = (data as any).templates[0]; // Get most recent non-deleted template
 
     // Transform template structure to NavbarConfig
     const config: NavbarConfig = {

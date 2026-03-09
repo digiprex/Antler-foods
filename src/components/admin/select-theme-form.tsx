@@ -96,12 +96,8 @@ export default function SelectThemeForm() {
         throw new Error(data.error || 'Failed to initialize website');
       }
 
-      // Navigate to pages list and refresh to load new domain data
-      const params = new URLSearchParams();
-      params.set('restaurant_id', restaurantId);
-      params.set('restaurant_name', restaurantName);
-
-      window.location.href = `/admin/pages?${params.toString()}`;
+      // Navigate to restaurant list page without selecting the restaurant
+      window.location.href = `/dashboard/admin/restaurants`;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to initialize website';
       setErrorMessage(message);

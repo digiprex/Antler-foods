@@ -41,12 +41,14 @@ export default function DomainSettingsForm() {
 
   // Form state
   const [customDomain, setCustomDomain] = useState('');
+  const [stagingDomain, setStagingDomain] = useState('');
   const [isVerified, setIsVerified] = useState(false);
   const [sslEnabled, setSslEnabled] = useState(true);
   const [wwwRedirect, setWwwRedirect] = useState(true);
   const [httpsRedirect, setHttpsRedirect] = useState(true);
   const [verificationToken, setVerificationToken] = useState('');
   const [status, setStatus] = useState<'pending' | 'active' | 'error'>('pending');
+  const [dnsVerified, setDnsVerified] = useState(false);
 
   // UI state
   const [loading, setLoading] = useState(true);
@@ -56,7 +58,7 @@ export default function DomainSettingsForm() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
-  // DNS Records
+  // DNS Records for Vercel
   const dnsRecords: DNSRecord[] = [
     {
       type: 'A',
@@ -67,15 +69,15 @@ export default function DomainSettingsForm() {
     {
       type: 'CNAME',
       name: 'www',
-      value: customDomain || 'your-domain.com',
+      value: 'cname.vercel-dns.com',
       ttl: '3600'
     },
-    {
+    ...(verificationToken ? [{
       type: 'TXT',
-      name: '_verification',
-      value: verificationToken || 'verification-token-here',
+      name: '_vercel',
+      value: verificationToken,
       ttl: '3600'
-    }
+    }] : [])
   ];
 
   // Load existing domain configuration
@@ -85,6 +87,20 @@ export default function DomainSettingsForm() {
 
       try {
         setLoading(true);
+        
+        // Load staging domain info
+        const stagingResponse = await fetch(`/api/admin/restaurant-staging?restaurant_id=${restaurantId}`);
+        const stagingData = await stagingResponse.json();
+        
+        if (stagingData.success && stagingData.data) {
+          setStagingDomain(stagingData.data.staging_domain || '');
+          // If there's a custom domain from staging API, use it as initial value
+          if (stagingData.data.custom_domain) {
+            setCustomDomain(stagingData.data.custom_domain);
+          }
+        }
+
+        // Load domain configuration
         const response = await fetch(`/api/domain-config?restaurant_id=${restaurantId}`);
         const data = await response.json();
 
@@ -108,21 +124,12 @@ export default function DomainSettingsForm() {
     loadConfig();
   }, [restaurantId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!restaurantId) {
-      setToastMessage('Restaurant ID is required');
-      setToastType('error');
-      setShowToast(true);
-      return;
-    }
+  const saveDomainToDatabase = async (domainToSave: string = customDomain) => {
+    if (!restaurantId || !domainToSave) return false;
 
     try {
-      setSaving(true);
-
       const config: DomainConfig = {
-        customDomain,
+        customDomain: domainToSave,
         isVerified,
         sslEnabled,
         wwwRedirect,
@@ -141,13 +148,34 @@ export default function DomainSettingsForm() {
       });
 
       const data = await response.json();
+      return data.success;
+    } catch (error) {
+      console.error('Error saving domain to database:', error);
+      return false;
+    }
+  };
 
-      if (data.success) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!restaurantId) {
+      setToastMessage('Restaurant ID is required');
+      setToastType('error');
+      setShowToast(true);
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const success = await saveDomainToDatabase();
+
+      if (success) {
         setToastMessage('Domain settings saved successfully!');
         setToastType('success');
         setShowToast(true);
       } else {
-        setToastMessage(data.error || 'Failed to save domain settings');
+        setToastMessage('Failed to save domain settings');
         setToastType('error');
         setShowToast(true);
       }
@@ -172,6 +200,17 @@ export default function DomainSettingsForm() {
     try {
       setVerifying(true);
 
+      // First, save the domain to the database
+      const saved = await saveDomainToDatabase(customDomain);
+      if (!saved) {
+        setToastMessage('Failed to save domain to database');
+        setToastType('error');
+        setShowToast(true);
+        setVerifying(false);
+        return;
+      }
+
+      // Then verify the domain with Vercel
       const response = await fetch('/api/domain-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -184,10 +223,19 @@ export default function DomainSettingsForm() {
       const data = await response.json();
 
       if (data.success) {
-        setIsVerified(true);
-        setStatus('active');
-        setToastMessage('Domain verified successfully!');
-        setToastType('success');
+        // Only mark as verified if DNS is actually working
+        const isDnsVerified = data.verified === true;
+        setIsVerified(isDnsVerified);
+        setDnsVerified(isDnsVerified);
+        setStatus(isDnsVerified ? 'active' : 'pending');
+        
+        if (isDnsVerified) {
+          setToastMessage('Domain verified successfully! Your site is now live.');
+          setToastType('success');
+        } else {
+          setToastMessage('Please configure DNS records and try again.');
+          setToastType('error');
+        }
         setShowToast(true);
       } else {
         setToastMessage(data.error || 'Domain verification failed');
@@ -241,7 +289,101 @@ export default function DomainSettingsForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Staging Domain & Publication Status */}
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm mb-6">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Site Information</h2>
+              <p className="text-sm text-gray-600">Current staging domain and publication status</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${
+              customDomain && dnsVerified
+                ? 'bg-green-100 text-green-700'
+                : customDomain
+                ? 'bg-yellow-100 text-yellow-700'
+                : 'bg-gray-100 text-gray-700'
+            }`}>
+              {customDomain && dnsVerified ? (
+                <>
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Published
+                </>
+              ) : customDomain ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  DNS Pending
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  Not Published
+                </>
+              )}
+            </span>
+            {customDomain && dnsVerified && (
+              <a
+                href={`https://${customDomain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-green-600 bg-white px-3 py-1.5 text-sm font-medium text-green-600 transition-colors hover:bg-green-50"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                </svg>
+                Visit Live Site
+              </a>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {/* Staging Domain */}
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Staging Domain</p>
+                <p className="mt-1 text-lg font-mono text-gray-900">
+                  {stagingDomain || 'Not available'}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  This is your staging URL for testing and preview
+                </p>
+              </div>
+              {stagingDomain && (
+                <a
+                  href={`https://${stagingDomain}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border border-blue-600 bg-white px-3 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                  </svg>
+                  Visit Site
+                </a>
+              )}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div className="space-y-6">
         {/* Domain Status Card */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-center gap-3">
@@ -361,7 +503,7 @@ export default function DomainSettingsForm() {
               </p>
             </div>
 
-            {customDomain && !isVerified && (
+            {customDomain && !dnsVerified && (
               <button
                 type="button"
                 onClick={handleVerifyDomain}
@@ -372,16 +514,16 @@ export default function DomainSettingsForm() {
                   <>
                     <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Verifying...
+                    Adding & Verifying...
                   </>
                 ) : (
                   <>
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
-                    Verify Domain
+                    Add Domain & Verify
                   </>
                 )}
               </button>
@@ -392,16 +534,41 @@ export default function DomainSettingsForm() {
         {/* DNS Records */}
         {customDomain && (
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+            <div className="mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">DNS Records</h2>
+                  <p className="text-sm text-gray-600">Add these records to your domain's DNS settings</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">DNS Records</h2>
-                <p className="text-sm text-gray-600">Add these records to your domain's DNS settings</p>
-              </div>
+              <button
+                type="button"
+                onClick={handleVerifyDomain}
+                disabled={verifying}
+                className="inline-flex items-center gap-2 rounded-lg border border-blue-600 bg-white px-4 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {verifying ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Checking...
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                    Refresh & Check DNS
+                  </>
+                )}
+              </button>
             </div>
 
             <div className="overflow-hidden rounded-lg border border-gray-200">
@@ -412,6 +579,7 @@ export default function DomainSettingsForm() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Value</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">TTL</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Action</th>
                   </tr>
                 </thead>
@@ -422,6 +590,29 @@ export default function DomainSettingsForm() {
                       <td className="px-4 py-3 text-sm text-gray-700">{record.name}</td>
                       <td className="px-4 py-3 text-sm text-gray-700 font-mono">{record.value}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{record.ttl}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
+                          dnsVerified
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {dnsVerified ? (
+                            <>
+                              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              Configured
+                            </>
+                          ) : (
+                            <>
+                              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                              Pending
+                            </>
+                          )}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-sm">
                         <button
                           type="button"
@@ -521,39 +712,7 @@ export default function DomainSettingsForm() {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {saving ? (
-              <>
-                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Saving...
-              </>
-            ) : (
-              <>
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                Save Changes
-              </>
-            )}
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }

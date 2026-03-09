@@ -28,7 +28,15 @@ export interface GalleryConfig extends SectionStyleConfig {
   images: GalleryImage[];
 
   // Layout options
-  layout?: 'grid' | 'masonry' | 'carousel' | 'slider';
+  layout?:
+    | 'spotlight'
+    | 'mosaic'
+    | 'editorial'
+    | 'filmstrip'
+    | 'grid'
+    | 'masonry'
+    | 'carousel'
+    | 'slider';
   columns?: 2 | 3 | 4 | 5 | 6;
   gap?: string;
   aspectRatio?: 'square' | '16:9' | '4:3' | 'auto';

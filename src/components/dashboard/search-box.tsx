@@ -5,6 +5,8 @@ import { DASHBOARD_RESTAURANTS_REFRESH_EVENT } from './route-loading-events';
 export interface RestaurantSearchSelection {
   id: string;
   name: string;
+  customDomain?: string;
+  stagingDomain?: string;
 }
 
 interface SearchBoxProps {
@@ -34,6 +36,8 @@ export function SearchBox({
         .map((row) => ({
           id: row.id,
           name: row.name.trim(),
+          customDomain: row.customDomain.trim(),
+          stagingDomain: row.stagingDomain.trim(),
         }))
         .filter((row) => Boolean(row.id) && Boolean(row.name));
 

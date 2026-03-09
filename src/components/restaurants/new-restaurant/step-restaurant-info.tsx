@@ -705,7 +705,7 @@ export function StepRestaurantInfo({
                 {hasGoogleMapsApiKey && !googlePlacesError ? (
                   <div
                     className={cx(
-                      'flex min-h-12 items-center rounded-xl border bg-white px-3 py-2',
+                      'flex min-h-12 items-center rounded-xl border bg-transparent px-3 py-2',
                       restaurantNameError
                         ? 'border-[#e57373] shadow-[0_0_0_2px_rgba(229,115,115,0.08)]'
                         : 'border-[#d4e0e6]',
@@ -719,7 +719,7 @@ export function StepRestaurantInfo({
                 ) : (
                   <div
                     className={cx(
-                      'flex min-h-12 items-center rounded-xl border bg-white',
+                      'flex min-h-12 items-center rounded-xl border bg-transparent',
                       restaurantNameError
                         ? 'border-[#e57373] shadow-[0_0_0_2px_rgba(229,115,115,0.08)]'
                         : 'border-[#d4e0e6]',

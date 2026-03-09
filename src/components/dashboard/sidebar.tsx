@@ -51,6 +51,9 @@ export function Sidebar({
     { href: '/restaurants', label: 'Restaurants', icon: <ShopIcon /> },
   ];
 
+  const hasRestaurantDomain = selectedRestaurant &&
+    (Boolean(selectedRestaurant.customDomain?.trim()) || Boolean(selectedRestaurant.stagingDomain?.trim()));
+
   const RESTAURANT_MENU_ITEMS = selectedRestaurant
     ? (() => {
         const informationBrandPath = buildRestaurantInformationPath(
@@ -64,7 +67,7 @@ export function Sidebar({
           selectedRestaurant,
         );
 
-        return [
+        const items = [
           {
             href: buildRestaurantScopedHref(
               `${dashboardBasePath}/sales`,
@@ -72,6 +75,7 @@ export function Sidebar({
             ),
             label: 'Sales',
             icon: <SalesIcon />,
+            requiresDomain: true,
           },
           {
             href: buildRestaurantScopedHref(
@@ -80,6 +84,7 @@ export function Sidebar({
             ),
             label: 'Manage Menu',
             icon: <MenuIcon />,
+            requiresDomain: true,
           },
           {
             href: informationBrandPath,
@@ -110,10 +115,12 @@ export function Sidebar({
           //   icon: <AssetsIcon />,
           //},
         ];
+
+        return items.filter((item) => !item.requiresDomain || hasRestaurantDomain);
       })()
     : [];
 
-  const WEBSITE_MENU_ITEMS = selectedRestaurant
+  const WEBSITE_MENU_ITEMS = hasRestaurantDomain
     ? [
         {
           href: buildRestaurantScopedHref(
@@ -179,7 +186,7 @@ export function Sidebar({
       ]
     : [];
 
-  const MARKETING_MENU_ITEMS = selectedRestaurant
+  const MARKETING_MENU_ITEMS = hasRestaurantDomain
     ? [
         {
           href: buildRestaurantScopedHref(
@@ -192,7 +199,7 @@ export function Sidebar({
       ]
     : [];
 
-  const RESERVATION_MENU_ITEMS = selectedRestaurant
+  const RESERVATION_MENU_ITEMS = hasRestaurantDomain
     ? [
         {
           href: buildRestaurantScopedHref(
@@ -205,7 +212,7 @@ export function Sidebar({
       ]
     : [];
 
-  const CATERING_MENU_ITEMS = selectedRestaurant
+  const CATERING_MENU_ITEMS = hasRestaurantDomain
     ? [
         {
           href: buildRestaurantScopedHref(
@@ -286,7 +293,7 @@ export function Sidebar({
         ) : null}
 
         {/* Website Section */}
-        {hasRestaurantSelection ? (
+        {hasRestaurantDomain ? (
           <div>
             {isOpen && (
               <p
@@ -313,7 +320,7 @@ export function Sidebar({
         ) : null}
 
         {/* Marketing / Reservation / Catering */}
-        {hasRestaurantSelection ? (
+        {hasRestaurantDomain ? (
           <div>
             {isOpen && (
               <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -335,7 +342,7 @@ export function Sidebar({
           </div>
         ) : null}
 
-        {hasRestaurantSelection ? (
+        {hasRestaurantDomain ? (
           <div>
             {isOpen && (
               <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -357,7 +364,7 @@ export function Sidebar({
           </div>
         ) : null}
 
-        {hasRestaurantSelection ? (
+        {hasRestaurantDomain ? (
           <div>
             {isOpen && (
               <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">

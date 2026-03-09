@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const restaurantId = formData.get('restaurant_id') as string;
-    const type = formData.get('type') as string || 'image';
     const storageApiUrl = resolveStorageApiUrl();
     const hasuraAdminSecret = resolveHasuraAdminSecret();
 
@@ -36,7 +35,6 @@ export async function POST(request: NextRequest) {
       fileSize: file?.size,
       fileType: file?.type,
       restaurantId,
-      type
     });
 
     if (!file) {
@@ -53,10 +51,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
+    // Validate file type - allow images and videos
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+
+    if (!isImage && !isVideo) {
       return NextResponse.json(
-        { success: false, error: 'Only image files are allowed' },
+        { success: false, error: 'Only image and video files are allowed' },
         { status: 400 }
       );
     }
@@ -173,7 +174,7 @@ export async function POST(request: NextRequest) {
       object: {
         file_id: fileId,
         restaurant_id: restaurantId,
-        type: type,
+        type: file.type,
         is_deleted: false,
       },
     });

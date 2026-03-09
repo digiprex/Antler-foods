@@ -19,7 +19,6 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import FormSettingsForm from '@/components/admin/form-settings-form';
-import styles from '@/components/admin/gallery-settings-form.module.css';
 
 export default function FormSettingsPage() {
   const router = useRouter();
@@ -38,29 +37,32 @@ export default function FormSettingsPage() {
 
   return (
     <DashboardLayout>
-      {restaurantId && restaurantName ? (
-        <div className={styles.container}>
-          <div className={styles.singleLayout}>
-            <div className={styles.formSection}>
-              <button
-                onClick={handleBack}
-                className={`${styles.button} ${styles.secondaryButton} ${styles.backButton}`}
-              >
-                ← Back to Page Settings
-              </button>
-              <FormSettingsForm pageId={pageId || undefined} restaurantId={restaurantId} />
-            </div>
+      {restaurantId && restaurantName && pageId ? (
+        <div className="min-h-screen bg-gray-50 p-8">
+          <div className="mx-auto max-w-5xl">
+            <button
+              onClick={handleBack}
+              className="mb-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Page Settings
+            </button>
+            <FormSettingsForm pageId={pageId || undefined} restaurantId={restaurantId} />
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="text-6xl mb-4">📋</div>
-            <h2 className="text-xl font-semibold text-[#111827] mb-2">
-              Select a Restaurant
-            </h2>
-            <p className="text-[#6b7280] max-w-md">
-              Please add or select a restaurant from the sidebar.
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-12 text-center shadow-sm">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+              <svg className="h-10 w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+              </svg>
+            </div>
+            <h2 className="mb-2 text-xl font-bold text-gray-900">Select a Page</h2>
+            <p className="mx-auto max-w-md text-sm text-gray-600">
+              Please select a page from the pages list to configure form settings.
             </p>
           </div>
         </div>

@@ -44,7 +44,7 @@ interface UpdatePageBody {
   show_on_footer?: boolean;
 }
 
-interface UpdatePageVariables {
+interface UpdatePageVariables extends Record<string, unknown> {
   page_id: string;
   name: string | null;
   url_slug: string | null;

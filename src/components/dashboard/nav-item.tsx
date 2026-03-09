@@ -24,12 +24,14 @@ export function NavItem({ href, label, icon, active = false, collapsed = false }
         href={href}
         onClick={onNavigate}
         title={label}
-        className={`relative group inline-flex items-center justify-center rounded-xl px-2 py-2.5 text-sm transition ${
-          active ? 'bg-[#ede9fe] text-[#667eea]' : 'text-[#111827] hover:bg-[#f3f6f4]'
+        className={`relative group inline-flex items-center justify-center rounded-lg px-2 py-2.5 text-sm transition-all ${
+          active
+            ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
+            : 'text-gray-700 hover:bg-gray-100'
         }`}
       >
-        <span className={active ? 'text-[#667eea]' : 'text-[#1f2937]'}>{icon}</span>
-        <span className="pointer-events-none absolute left-full top-1/2 z-50 -translate-y-1/2 ml-3 rounded-md bg-[#111827] px-3 py-1 text-sm font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className={active ? 'text-white' : 'text-gray-600'}>{icon}</span>
+        <span className="pointer-events-none absolute left-full top-1/2 z-50 -translate-y-1/2 ml-3 rounded-lg bg-gray-900 px-3 py-2 text-xs font-medium text-white opacity-0 shadow-lg group-hover:opacity-100 transition-opacity whitespace-nowrap">
           {label}
         </span>
       </Link>
@@ -40,14 +42,14 @@ export function NavItem({ href, label, icon, active = false, collapsed = false }
     <Link
       href={href}
       onClick={onNavigate}
-      className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm transition ${
+      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
         active
-          ? 'bg-[#ede9fe] text-[#667eea]'
-          : 'text-[#111827] hover:bg-[#f3f6f4]'
+          ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
+          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
       }`}
     >
-      <span className={active ? 'text-[#667eea]' : 'text-[#1f2937]'}>{icon}</span>
-      <span className="leading-tight font-medium">{label}</span>
+      <span className={active ? 'text-white' : 'text-gray-600'}>{icon}</span>
+      <span className="leading-tight">{label}</span>
     </Link>
   );
 }

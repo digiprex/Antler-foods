@@ -813,7 +813,7 @@ export default function PageSettingsSelector() {
   return (
     <DashboardLayout>
       {/* Page Header */}
-      <div className="flex items-start justify-between">
+      <div className="mb-8 flex items-start justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
                 <svg

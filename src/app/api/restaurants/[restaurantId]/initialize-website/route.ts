@@ -40,7 +40,7 @@ function buildDefaultStagingDomain(restaurantName: string) {
     .replace(/[^a-z0-9]+/g, '');
 
   const base = normalizedLabel || 'restaurant';
-  return `${base}${DEFAULT_STAGING_DOMAIN_SUFFIX}`;
+  return `${base}-staging${DEFAULT_STAGING_DOMAIN_SUFFIX}`;
 }
 
 async function getExistingPages(restaurantId: string): Promise<string[]> {

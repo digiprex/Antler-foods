@@ -106,21 +106,13 @@ export function Sidebar({
             label: 'Reviews',
             icon: <UsersIcon />,
           },
-          //{
-          //   href: buildRestaurantScopedHref(
-          //     `${dashboardBasePath}/assets`,
-          //     selectedRestaurant,
-          //   ),
-          //   label: 'Assets',
-          //   icon: <AssetsIcon />,
-          //},
         ];
 
-        return items.filter((item) => !item.requiresDomain || hasRestaurantDomain);
+        return items; // Show all items regardless of domain requirements
       })()
     : [];
 
-  const WEBSITE_MENU_ITEMS = hasRestaurantDomain
+  const WEBSITE_MENU_ITEMS = selectedRestaurant
     ? [
         {
           href: buildRestaurantScopedHref(
@@ -186,7 +178,7 @@ export function Sidebar({
       ]
     : [];
 
-  const MARKETING_MENU_ITEMS = hasRestaurantDomain
+  const MARKETING_MENU_ITEMS = selectedRestaurant
     ? [
         {
           href: buildRestaurantScopedHref(
@@ -199,7 +191,7 @@ export function Sidebar({
       ]
     : [];
 
-  const RESERVATION_MENU_ITEMS = hasRestaurantDomain
+  const RESERVATION_MENU_ITEMS = selectedRestaurant
     ? [
         {
           href: buildRestaurantScopedHref(
@@ -212,7 +204,7 @@ export function Sidebar({
       ]
     : [];
 
-  const CATERING_MENU_ITEMS = hasRestaurantDomain
+  const CATERING_MENU_ITEMS = selectedRestaurant
     ? [
         {
           href: buildRestaurantScopedHref(
@@ -293,7 +285,7 @@ export function Sidebar({
         ) : null}
 
         {/* Website Section */}
-        {hasRestaurantDomain ? (
+        {hasRestaurantSelection && WEBSITE_MENU_ITEMS.length > 0 ? (
           <div>
             {isOpen && (
               <p
@@ -320,7 +312,7 @@ export function Sidebar({
         ) : null}
 
         {/* Marketing / Reservation / Catering */}
-        {hasRestaurantDomain ? (
+        {hasRestaurantSelection && MARKETING_MENU_ITEMS.length > 0 ? (
           <div>
             {isOpen && (
               <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -342,7 +334,7 @@ export function Sidebar({
           </div>
         ) : null}
 
-        {hasRestaurantDomain ? (
+        {hasRestaurantSelection && RESERVATION_MENU_ITEMS.length > 0 ? (
           <div>
             {isOpen && (
               <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -364,7 +356,7 @@ export function Sidebar({
           </div>
         ) : null}
 
-        {hasRestaurantDomain ? (
+        {hasRestaurantSelection && CATERING_MENU_ITEMS.length > 0 ? (
           <div>
             {isOpen && (
               <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -663,15 +655,15 @@ function MediaIcon() {
   );
 }
 
-// function AssetsIcon() {
-//   return (
-//     <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-//       <rect x="3" y="3" width="18" height="18" rx="2" />
-//       <path d="M7 3v18" />
-//       <path d="M17 3v18" />
-//     </svg>
-//   );
-// }
+function AssetsIcon() {
+  return (
+    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M7 3v18" />
+      <path d="M17 3v18" />
+    </svg>
+  );
+}
 
 function MarketingIcon() {
   return (

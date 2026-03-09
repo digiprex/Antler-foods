@@ -256,18 +256,6 @@ export async function GET(request: Request) {
       socialLinks.push({ platform: 'yelp' as const, url: restaurantData.yelp_link, order: order++ });
     }
 
-    if (!(data as any).templates || (data as any).templates.length === 0) {
-      // Return 404 if no footer template exists - don't show footer
-      const response = {
-        success: false,
-        data: null,
-        error: 'No footer configuration found'
-      };
-      return NextResponse.json(response, { status: 404 });
-    }
-
-    const template = (data as any).templates[0];
-
     // Transform web_pages to footer links
     const pageLinks = ((data as any).web_pages || []).map((page: any) => ({
       label: page.name,
@@ -284,39 +272,78 @@ export async function GET(request: Request) {
     // The pages are already filtered for show_on_footer=true and published=true
     const allColumns = pagesColumn;
 
-    // Transform template structure to FooterConfig
-    // Use name, email, phone, address and social links from restaurant table, fallback to template config
-    const config: FooterConfig = {
-      restaurantName: restaurantName || template.config?.restaurantName || 'Restaurant',
-      aboutContent: template.config?.aboutContent || '',
-      email: restaurantEmail || template.config?.email || '',
-      phone: restaurantPhone || template.config?.phone || '',
-      address: restaurantAddress || template.config?.address || '',
-      columns: allColumns, // Use pages with show_on_footer=true + any additional columns
-      socialLinks: socialLinks.length > 0 ? socialLinks : (template.config?.socialLinks || []),
-      copyrightText: template.config?.copyrightText || `© ${new Date().getFullYear()} Antler Foods. All rights reserved.`,
-      showPoweredBy: template.config?.showPoweredBy !== false,
-      layout: template.name,
-      bgColor: template.config?.bgColor || '#1f2937',
-      textColor: template.config?.textColor || '#f9fafb',
-      linkColor: template.config?.linkColor || '#9ca3af',
-      copyrightBgColor: template.config?.copyrightBgColor || '#000000',
-      copyrightTextColor: template.config?.copyrightTextColor || '#ffffff',
-      showNewsletter: template.config?.showNewsletter || false,
-      showSocialMedia: template.config?.showSocialMedia !== false,
-      showLocations: template.config?.showLocations !== false,
-      fontFamily: template.config?.fontFamily || 'Inter, system-ui, sans-serif',
-      fontSize: template.config?.fontSize || '0.9375rem',
-      fontWeight: template.config?.fontWeight || 400,
-      textTransform: template.config?.textTransform || 'none',
-      headingFontFamily: template.config?.headingFontFamily || 'Inter, system-ui, sans-serif',
-      headingFontSize: template.config?.headingFontSize || '1.125rem',
-      headingFontWeight: template.config?.headingFontWeight || 600,
-      headingTextTransform: template.config?.headingTextTransform || 'uppercase',
-      copyrightFontFamily: template.config?.copyrightFontFamily || 'Inter, system-ui, sans-serif',
-      copyrightFontSize: template.config?.copyrightFontSize || '0.875rem',
-      copyrightFontWeight: template.config?.copyrightFontWeight || 400,
-    };
+    let config: FooterConfig;
+
+    if (!(data as any).templates || (data as any).templates.length === 0) {
+      // Return default configuration if no footer template exists - allows users to create their first footer
+      config = {
+        restaurantName: restaurantName || 'Restaurant',
+        aboutContent: '',
+        email: restaurantEmail || '',
+        phone: restaurantPhone || '',
+        address: restaurantAddress || '',
+        columns: allColumns, // Use pages with show_on_footer=true
+        socialLinks: socialLinks.length > 0 ? socialLinks : [],
+        copyrightText: `© ${new Date().getFullYear()} ${restaurantName || 'Restaurant'}. All rights reserved.`,
+        showPoweredBy: true,
+        layout: 'columns-4', // Default layout
+        bgColor: '#1f2937',
+        textColor: '#f9fafb',
+        linkColor: '#9ca3af',
+        copyrightBgColor: '#000000',
+        copyrightTextColor: '#ffffff',
+        showNewsletter: false,
+        showSocialMedia: true,
+        showLocations: true,
+        fontFamily: 'Inter, system-ui, sans-serif',
+        fontSize: '0.9375rem',
+        fontWeight: 400,
+        textTransform: 'none',
+        headingFontFamily: 'Inter, system-ui, sans-serif',
+        headingFontSize: '1.125rem',
+        headingFontWeight: 600,
+        headingTextTransform: 'uppercase',
+        copyrightFontFamily: 'Inter, system-ui, sans-serif',
+        copyrightFontSize: '0.875rem',
+        copyrightFontWeight: 400,
+      };
+    } else {
+      const template = (data as any).templates[0];
+
+      // Transform template structure to FooterConfig
+      // Use name, email, phone, address and social links from restaurant table, fallback to template config
+      config = {
+        restaurantName: restaurantName || template.config?.restaurantName || 'Restaurant',
+        aboutContent: template.config?.aboutContent || '',
+        email: restaurantEmail || template.config?.email || '',
+        phone: restaurantPhone || template.config?.phone || '',
+        address: restaurantAddress || template.config?.address || '',
+        columns: allColumns, // Use pages with show_on_footer=true + any additional columns
+        socialLinks: socialLinks.length > 0 ? socialLinks : (template.config?.socialLinks || []),
+        copyrightText: template.config?.copyrightText || `© ${new Date().getFullYear()} ${restaurantName || 'Restaurant'}. All rights reserved.`,
+        showPoweredBy: template.config?.showPoweredBy !== false,
+        layout: template.name,
+        bgColor: template.config?.bgColor || '#1f2937',
+        textColor: template.config?.textColor || '#f9fafb',
+        linkColor: template.config?.linkColor || '#9ca3af',
+        copyrightBgColor: template.config?.copyrightBgColor || '#000000',
+        copyrightTextColor: template.config?.copyrightTextColor || '#ffffff',
+        showNewsletter: template.config?.showNewsletter || false,
+        showSocialMedia: template.config?.showSocialMedia !== false,
+        showLocations: template.config?.showLocations !== false,
+        fontFamily: template.config?.fontFamily || 'Inter, system-ui, sans-serif',
+        fontSize: template.config?.fontSize || '0.9375rem',
+        fontWeight: template.config?.fontWeight || 400,
+        textTransform: template.config?.textTransform || 'none',
+        headingFontFamily: template.config?.headingFontFamily || 'Inter, system-ui, sans-serif',
+        headingFontSize: template.config?.headingFontSize || '1.125rem',
+        headingFontWeight: template.config?.headingFontWeight || 600,
+        headingTextTransform: template.config?.headingTextTransform || 'uppercase',
+        copyrightFontFamily: template.config?.copyrightFontFamily || 'Inter, system-ui, sans-serif',
+        copyrightFontSize: template.config?.copyrightFontSize || '0.875rem',
+        copyrightFontWeight: template.config?.copyrightFontWeight || 400,
+      };
+    }
 
     const response: FooterConfigResponse = {
       success: true,

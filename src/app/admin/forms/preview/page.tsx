@@ -10,6 +10,8 @@
 
 'use client';
 
+import { Suspense } from 'react';
+
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { Form, FormField } from '@/types/forms.types';
@@ -38,7 +40,7 @@ function PreviewLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function FormPreviewPage() {
+function FormPreviewContent() {
   const searchParams = useSearchParams();
   const formId = searchParams.get('form_id');
   const restaurantId = searchParams.get('restaurant_id');
@@ -373,5 +375,13 @@ export default function FormPreviewPage() {
         )}
       </div>
     </PreviewLayout>
+  );
+}
+
+export default function FormPreviewPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <FormPreviewContent />
+    </Suspense>
   );
 }

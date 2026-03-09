@@ -17,11 +17,13 @@
 
 'use client';
 
+import { Suspense } from 'react';
+
 import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import PagesListPage from '@/components/admin/pages-list';
 
-export default function PagesSettingsPage() {
+function PagesSettingsContent() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
@@ -44,5 +46,13 @@ export default function PagesSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function PagesSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PagesSettingsContent />
+    </Suspense>
   );
 }

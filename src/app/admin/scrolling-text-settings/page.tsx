@@ -16,6 +16,8 @@
 
 'use client';
 
+import { Suspense } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import dynamic from 'next/dynamic';
@@ -36,7 +38,7 @@ const ScrollingTextSettingsForm = dynamic(
   }
 );
 
-export default function ScrollingTextSettingsPage() {
+function ScrollingTextSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
@@ -82,5 +84,13 @@ export default function ScrollingTextSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function ScrollingTextSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ScrollingTextSettingsContent />
+    </Suspense>
   );
 }

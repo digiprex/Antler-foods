@@ -16,11 +16,13 @@
 
 'use client';
 
+import { Suspense } from 'react';
+
 import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { PageForm } from '@/components/admin/page-form';
 
-export default function PageFormPage() {
+function PageFormContent() {
   const searchParams = useSearchParams();
   const pageId = searchParams.get('page_id');
   const restaurantId = searchParams.get('restaurant_id');
@@ -55,5 +57,13 @@ export default function PageFormPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function PageFormPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PageFormContent />
+    </Suspense>
   );
 }

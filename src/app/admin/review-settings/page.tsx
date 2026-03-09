@@ -18,6 +18,8 @@
 
 'use client';
 
+import { Suspense } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import dynamic from 'next/dynamic';
@@ -38,7 +40,7 @@ const ReviewSettingsForm = dynamic(
   }
 );
 
-export default function ReviewSettingsPage() {
+function ReviewSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
@@ -90,5 +92,13 @@ export default function ReviewSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function ReviewSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ReviewSettingsContent />
+    </Suspense>
   );
 }

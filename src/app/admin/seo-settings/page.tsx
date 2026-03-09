@@ -13,13 +13,15 @@
 
 'use client';
 
+import { Suspense } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import toast, { Toaster } from 'react-hot-toast';
 import { ImageGalleryModal } from '@/components/admin/image-gallery-modal';
 
-export default function SEOSettingsPage() {
+function SEOSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
@@ -448,5 +450,13 @@ export default function SEOSettingsPage() {
         />
       </DashboardLayout>
     </>
+  );
+}
+
+export default function SEOSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SEOSettingsContent />
+    </Suspense>
   );
 }

@@ -21,6 +21,8 @@
 
 'use client';
 
+import { Suspense } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import dynamic from 'next/dynamic';
@@ -42,7 +44,7 @@ const MenuSettingsForm = dynamic(
 );
 import styles from '@/components/admin/gallery-settings-form.module.css';
 
-export default function MenuSettingsPage() {
+function MenuSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
@@ -108,5 +110,13 @@ export default function MenuSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function MenuSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MenuSettingsContent />
+    </Suspense>
   );
 }

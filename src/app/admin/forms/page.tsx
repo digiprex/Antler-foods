@@ -12,13 +12,15 @@
 
 'use client';
 
+import { Suspense } from 'react';
+
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import type { Form } from '@/types/forms.types';
 import Toast from '@/components/ui/toast';
 
-export default function FormsPage() {
+function FormsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const restaurantId = searchParams.get('restaurant_id');
@@ -388,6 +390,14 @@ export default function FormsPage() {
         />
       )}
     </DashboardLayout>
+  );
+}
+
+export default function FormsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <FormsContent />
+    </Suspense>
   );
 }
 

@@ -18,11 +18,13 @@
 
 'use client';
 
+import { Suspense } from 'react';
+
 import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import NavbarSettingsForm from '@/components/admin/navbar-settings-form';
 
-export default function NavbarSettingsPage() {
+function NavbarSettingsContent() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
@@ -59,5 +61,13 @@ export default function NavbarSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function NavbarSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <NavbarSettingsContent />
+    </Suspense>
   );
 }

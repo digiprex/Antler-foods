@@ -20,6 +20,8 @@
 
 'use client';
 
+import { Suspense } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import dynamic from 'next/dynamic';
@@ -40,7 +42,7 @@ const HeroSettingsForm = dynamic(
   }
 );
 
-export default function HeroSettingsPage() {
+function HeroSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
@@ -92,5 +94,13 @@ export default function HeroSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function HeroSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HeroSettingsContent />
+    </Suspense>
   );
 }

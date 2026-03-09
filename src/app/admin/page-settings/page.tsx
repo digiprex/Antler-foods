@@ -1,5 +1,7 @@
 'use client';
 
+import { Suspense } from 'react';
+
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -22,7 +24,7 @@ const DynamicForm = dynamic(() => import('@/components/dynamic-form'), { ssr: fa
 const CustomSection = dynamic(() => import('@/components/custom-section'), { ssr: false });
 const DynamicYouTube = dynamic(() => import('@/components/dynamic-youtube'), { ssr: false });
 
-export default function PageSettingsSelector() {
+function PageSettingsSelector() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
@@ -1477,5 +1479,13 @@ export default function PageSettingsSelector() {
           </div>
         )}
     </DashboardLayout>
+  );
+}
+
+export default function PageSettingsSelectorPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PageSettingsSelector />
+    </Suspense>
   );
 }

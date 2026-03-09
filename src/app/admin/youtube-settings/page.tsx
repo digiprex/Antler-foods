@@ -17,6 +17,8 @@
 
 'use client';
 
+import { Suspense } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import dynamic from 'next/dynamic';
@@ -38,7 +40,7 @@ const YouTubeSettingsForm = dynamic(
   }
 );
 
-export default function YouTubeSettingsPage() {
+function YouTubeSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pageId = searchParams.get('page_id');
@@ -84,5 +86,13 @@ export default function YouTubeSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function YouTubeSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <YouTubeSettingsContent />
+    </Suspense>
   );
 }

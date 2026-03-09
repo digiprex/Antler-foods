@@ -16,6 +16,8 @@
 
 'use client';
 
+import { Suspense } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import dynamic from 'next/dynamic';
@@ -36,7 +38,7 @@ const TimelineSettingsForm = dynamic(
   }
 );
 
-export default function TimelineSettingsPage() {
+function TimelineSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
@@ -82,5 +84,13 @@ export default function TimelineSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function TimelineSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TimelineSettingsContent />
+    </Suspense>
   );
 }

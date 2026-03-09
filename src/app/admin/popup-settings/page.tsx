@@ -7,6 +7,8 @@
 
 'use client';
 
+import { Suspense } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { useState, useEffect } from 'react';
@@ -14,7 +16,7 @@ import type { PopupConfig } from '@/types/popup.types';
 import { DEFAULT_POPUP_CONFIG } from '@/types/popup.types';
 import styles from '@/components/admin/gallery-settings-form.module.css';
 
-export default function PopupSettingsPage() {
+function PopupSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
@@ -1057,5 +1059,13 @@ export default function PopupSettingsPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function PopupSettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PopupSettingsContent />
+    </Suspense>
   );
 }

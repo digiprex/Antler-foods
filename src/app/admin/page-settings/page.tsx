@@ -235,10 +235,10 @@ function PageSettingsSelector() {
           faqsCount: config?.faqs?.length || 0
         });
 
-        const faqConfigWithLayout = config ? {
-          ...config,
+        const faqConfigWithLayout = faqTemplate ? {
+          ...(config || {}),
           layout: faqTemplate?.name || config?.layout || 'accordion',
-          faqs: config.faqs || []
+          faqs: config?.faqs || faqTemplate?.menu_items || []
         } : undefined;
 
         return (
@@ -249,6 +249,8 @@ function PageSettingsSelector() {
                 pageId={pageId}
                 configData={faqConfigWithLayout}
                 showLoading={false}
+                showPlaceholderWhenEmpty
+                previewMode
               />
             </div>
           </div>

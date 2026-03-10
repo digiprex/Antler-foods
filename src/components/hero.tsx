@@ -159,13 +159,13 @@ export default function Hero(props: HeroProps) {
       letterSpacing?: string;
     },
   ) => {
-    const vars = {} as CSSProperties;
+    const vars: CSSProperties & Record<string, any> = {};
     const assignVar = (name: string, value: string | number | undefined) => {
       if (value === undefined || value === '') {
         return;
       }
 
-      vars[name as keyof CSSProperties] = value as CSSProperties[keyof CSSProperties];
+      vars[name] = value;
     };
 
     assignVar(`--hero-${prefix}-font-family`, desktop.fontFamily);
@@ -419,7 +419,7 @@ export default function Hero(props: HeroProps) {
         }
       : null;
 
-  const heroStyle = {
+  const heroStyle: CSSProperties & Record<string, any> = {
     '--hero-bg-color': bgColor,
     '--hero-mobile-bg-color': mobileBgColor,
     '--hero-text-color': textColor,
@@ -435,21 +435,18 @@ export default function Hero(props: HeroProps) {
     '--hero-image-object-fit': imageObjectFit,
     '--hero-screen-height':
       previewMode === 'mobile' ? '780px' : previewMode === 'desktop' ? '720px' : '100svh',
-  } as CSSProperties;
+  };
 
   if (imageBorderRadius?.trim()) {
-    heroStyle['--hero-image-border-radius' as keyof CSSProperties] =
-      imageBorderRadius as CSSProperties[keyof CSSProperties];
+    heroStyle['--hero-image-border-radius'] = imageBorderRadius;
   }
 
   if (resolvedPaddingInline?.trim()) {
-    heroStyle['--hero-padding-inline' as keyof CSSProperties] =
-      resolvedPaddingInline as CSSProperties[keyof CSSProperties];
+    heroStyle['--hero-padding-inline'] = resolvedPaddingInline;
   }
 
   if (mobilePaddingInline?.trim()) {
-    heroStyle['--hero-mobile-padding-inline' as keyof CSSProperties] =
-      mobilePaddingInline as CSSProperties[keyof CSSProperties];
+    heroStyle['--hero-mobile-padding-inline'] = mobilePaddingInline;
   }
 
   if (activeBackgroundImage && !showVideoBackground) {

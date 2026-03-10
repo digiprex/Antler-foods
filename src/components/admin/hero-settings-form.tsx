@@ -301,21 +301,25 @@ const getPreviewHeroConfig = (config: HeroConfig): HeroConfig => {
   const layout = config.layout || 'default';
   const mediaFields = getHeroLayoutMediaCapabilities(layout);
 
+  // Only show fallback content if user hasn't provided any content at all
+  const hasUserContent = config.headline?.trim() || config.subheadline?.trim() || config.description?.trim();
+  const hasUserButtons = config.primaryButton || config.secondaryButton;
+
   return {
     ...config,
-    headline: config.headline?.trim() || HERO_PREVIEW_COPY.headline,
-    subheadline: config.subheadline?.trim() || HERO_PREVIEW_COPY.subheadline,
-    description: config.description?.trim() || HERO_PREVIEW_COPY.description,
+    headline: config.headline?.trim() || (hasUserContent ? '' : HERO_PREVIEW_COPY.headline),
+    subheadline: config.subheadline?.trim() || (hasUserContent ? '' : HERO_PREVIEW_COPY.subheadline),
+    description: config.description?.trim() || (hasUserContent ? '' : HERO_PREVIEW_COPY.description),
     primaryButton:
       config.primaryButton ||
-      ({
+      (hasUserContent || hasUserButtons ? undefined : {
         label: HERO_PREVIEW_COPY.primaryCta,
         href: '#menu',
         variant: 'primary',
       } satisfies HeroButton),
     secondaryButton:
       config.secondaryButton ||
-      ({
+      (hasUserContent || hasUserButtons ? undefined : {
         label: HERO_PREVIEW_COPY.secondaryCta,
         href: '#reservations',
         variant: 'outline',
@@ -357,11 +361,12 @@ const previewUsesPlaceholderContent = (config: HeroConfig) => {
   const layout = config.layout || 'default';
   const mediaFields = getHeroLayoutMediaCapabilities(layout);
 
+  // Check if user has provided any content at all
+  const hasUserContent = config.headline?.trim() || config.subheadline?.trim() || config.description?.trim();
+  const hasUserButtons = config.primaryButton || config.secondaryButton;
+
   return Boolean(
-    !config.headline?.trim() ||
-      !config.subheadline?.trim() ||
-      !config.description?.trim() ||
-      (!config.primaryButton && !config.secondaryButton) ||
+    (!hasUserContent && !hasUserButtons) ||
       (mediaFields.showHeroImage && !config.image) ||
       ((mediaFields.showBackgroundImage || layout === 'video-background') &&
         !config.backgroundImage &&

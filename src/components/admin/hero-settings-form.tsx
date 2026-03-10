@@ -38,12 +38,13 @@ const LAYOUT_OPTIONS = [
   { value: 'centered-large', name: 'Centered Large', description: 'Large centered hero' },
   { value: 'split', name: 'Split', description: 'Text left, image right' },
   { value: 'split-reverse', name: 'Split Reverse', description: 'Image left, text right' },
-  { value: 'minimal', name: 'Minimal', description: 'Minimalist centered text' },
+  { value: 'minimal', name: 'Minimal', description: 'Text with 3-image grid' },
   { value: 'video-background', name: 'Video Background', description: 'Full-screen video background' },
-  { value: 'side-by-side', name: 'Side by Side', description: 'Two equal columns' },
-  { value: 'offset', name: 'Offset', description: 'Offset text with image' },
+  { value: 'side-by-side', name: 'Side by Side', description: 'Three images in a row' },
+  { value: 'offset', name: 'Offset', description: 'Image top, text below centered' },
   { value: 'full-height', name: 'Full Height', description: 'Full viewport height' },
   { value: 'with-features', name: 'With Features', description: 'Hero with feature cards' },
+  { value: 'image-collage', name: 'Image Collage', description: 'Text with stacked images' },
 ] as const;
 
 const svgToDataUri = (svg: string) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
@@ -209,18 +210,28 @@ const getHeroImageFieldMeta = (layout: HeroConfig['layout'] | undefined) => {
       };
     case 'side-by-side':
       return {
-        label: 'Second-column Hero Image',
-        description: 'Upload the image shown in the second column of this layout.',
+        label: 'Gallery Images',
+        description: 'Upload image that will be displayed in 3 equal columns as a gallery row.',
       };
     case 'offset':
       return {
-        label: 'Offset Hero Image',
-        description: 'Upload the image shown in the offset media panel for this layout.',
+        label: 'Top Hero Image',
+        description: 'Upload the image shown at the top of this centered vertical layout.',
       };
     case 'with-features':
       return {
         label: 'Feature Hero Image',
         description: 'Upload the supporting image displayed with your content and feature cards.',
+      };
+    case 'minimal':
+      return {
+        label: 'Grid Images',
+        description: 'Upload image that will be displayed in 3 different positions in the grid layout.',
+      };
+    case 'image-collage':
+      return {
+        label: 'Collage Images',
+        description: 'Upload image that will be shown in 2 overlapping positions for a collage effect.',
       };
     default:
       return {
@@ -290,21 +301,25 @@ const getPreviewHeroConfig = (config: HeroConfig): HeroConfig => {
   const layout = config.layout || 'default';
   const mediaFields = getHeroLayoutMediaCapabilities(layout);
 
+  // Only show fallback content if user hasn't provided any content at all
+  const hasUserContent = config.headline?.trim() || config.subheadline?.trim() || config.description?.trim();
+  const hasUserButtons = config.primaryButton || config.secondaryButton;
+
   return {
     ...config,
-    headline: config.headline?.trim() || HERO_PREVIEW_COPY.headline,
-    subheadline: config.subheadline?.trim() || HERO_PREVIEW_COPY.subheadline,
-    description: config.description?.trim() || HERO_PREVIEW_COPY.description,
+    headline: config.headline?.trim() || (hasUserContent ? '' : HERO_PREVIEW_COPY.headline),
+    subheadline: config.subheadline?.trim() || (hasUserContent ? '' : HERO_PREVIEW_COPY.subheadline),
+    description: config.description?.trim() || (hasUserContent ? '' : HERO_PREVIEW_COPY.description),
     primaryButton:
       config.primaryButton ||
-      ({
+      (hasUserContent || hasUserButtons ? undefined : {
         label: HERO_PREVIEW_COPY.primaryCta,
         href: '#menu',
         variant: 'primary',
       } satisfies HeroButton),
     secondaryButton:
       config.secondaryButton ||
-      ({
+      (hasUserContent || hasUserButtons ? undefined : {
         label: HERO_PREVIEW_COPY.secondaryCta,
         href: '#reservations',
         variant: 'outline',
@@ -346,11 +361,12 @@ const previewUsesPlaceholderContent = (config: HeroConfig) => {
   const layout = config.layout || 'default';
   const mediaFields = getHeroLayoutMediaCapabilities(layout);
 
+  // Check if user has provided any content at all
+  const hasUserContent = config.headline?.trim() || config.subheadline?.trim() || config.description?.trim();
+  const hasUserButtons = config.primaryButton || config.secondaryButton;
+
   return Boolean(
-    !config.headline?.trim() ||
-      !config.subheadline?.trim() ||
-      !config.description?.trim() ||
-      (!config.primaryButton && !config.secondaryButton) ||
+    (!hasUserContent && !hasUserButtons) ||
       (mediaFields.showHeroImage && !config.image) ||
       ((mediaFields.showBackgroundImage || layout === 'video-background') &&
         !config.backgroundImage &&
@@ -609,36 +625,125 @@ const renderHeroLayoutCardPreview = (layoutType: string) => {
       return splitCanvas(true, '40%');
 
     case 'video-background':
-      return overlayHero(HERO_PREVIEW_COPY.title, false, 'linear-gradient(90deg, rgba(15,23,42,0.74) 0%, rgba(15,23,42,0.38) 42%, rgba(15,23,42,0.18) 100%)');
+      return innerFrame(`url(${HERO_CARD_SAMPLE_PHOTO}) center / cover no-repeat`, (
+        <>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(15,23,42,0.82) 0%, rgba(15,23,42,0.28) 100%)' }} />
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 1,
+              display: 'flex',
+              height: '100%',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              justifyContent: 'center',
+              gap: '4px',
+              padding: '14px 12px',
+            }}
+          >
+            {previewTag(true)}
+            {previewTitle(HERO_PREVIEW_COPY.title, true, false)}
+            {previewBody(true, false)}
+            <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
+              {primaryButton}
+              {secondaryButton}
+            </div>
+          </div>
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              bottom: '8px',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              gap: '4px',
+            }}
+          >
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                style={{
+                  width: i === 0 ? '8px' : '5px',
+                  height: '5px',
+                  borderRadius: '1px',
+                  background: i === 0 ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)',
+                }}
+              />
+            ))}
+          </div>
+        </>
+      ), true);
 
     case 'side-by-side':
-      return splitCanvas(false, '44%');
+      return innerFrame('linear-gradient(135deg, #e0e7ff 0%, #dbeafe 100%)', (
+        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', height: '100%', padding: '12px', gap: '8px' }}>
+          <div
+            style={{
+              borderRadius: '12px',
+              overflow: 'hidden',
+              backgroundImage: `url(${HERO_CARD_SAMPLE_PHOTO})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              boxShadow: '0 10px 20px rgba(15, 23, 42, 0.14)',
+            }}
+          />
+          <div
+            style={{
+              borderRadius: '12px',
+              overflow: 'hidden',
+              backgroundImage: `url(${HERO_CARD_SAMPLE_DISH})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              boxShadow: '0 10px 20px rgba(15, 23, 42, 0.14)',
+            }}
+          />
+          <div
+            style={{
+              borderRadius: '12px',
+              overflow: 'hidden',
+              backgroundImage: `url(${HERO_CARD_SAMPLE_PHOTO})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              boxShadow: '0 10px 20px rgba(15, 23, 42, 0.14)',
+            }}
+          />
+        </div>
+      ));
 
     case 'offset':
-      return splitCanvas(false, '44%', true);
+      return innerFrame('linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%)', (
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', padding: '10px', gap: '6px', alignItems: 'center' }}>
+          <div style={{ width: '100%', flex: '1', minHeight: '60px' }}>
+            {photoPanel({ borderRadius: '12px', boxShadow: '0 12px 24px rgba(15, 23, 42, 0.16)' })}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '2px', textAlign: 'center' }}>
+            {previewTitle(HERO_PREVIEW_COPY.title, false, true)}
+            <div style={{ marginTop: '1px' }}>{primaryButton}</div>
+          </div>
+        </div>
+      ));
 
     case 'with-features':
       return innerFrame('linear-gradient(180deg, #eef2f7 0%, #e5eaf1 100%)', (
-        <div style={{ position: 'relative', display: 'flex', height: '100%', flexDirection: 'column', padding: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
-            <div style={{ display: 'flex', width: '52%', flexDirection: 'column', justifyContent: 'center', gap: '4px', paddingLeft: '6px', paddingTop: '8px' }}>
+        <div style={{ position: 'relative', display: 'flex', height: '100%', flexDirection: 'column', padding: '10px', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+            <div style={{ display: 'flex', width: '50%', flexDirection: 'column', justifyContent: 'center', gap: '3px', paddingLeft: '4px' }}>
               {previewTag(false)}
               {previewTitle(HERO_PREVIEW_COPY.title, false)}
               {previewBody(false)}
-              <div style={{ marginTop: '2px' }}>{primaryButton}</div>
+              <div style={{ marginTop: '1px' }}>{primaryButton}</div>
             </div>
-            <div style={{ display: 'flex', width: '34%', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ height: '36px' }}>{photoPanel()}</div>
-              <div style={{ height: '38px' }}>{dishPanel()}</div>
+            <div style={{ width: '50%', height: '100%' }}>
+              {photoPanel({ borderRadius: '12px' })}
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px', marginTop: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '5px' }}>
             {Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={index}
                 style={{
-                  height: '18px',
-                  borderRadius: '8px',
+                  height: '14px',
+                  borderRadius: '6px',
                   background: '#f8fafc',
                   border: '1px solid rgba(203, 213, 225, 0.72)',
                 }}
@@ -649,7 +754,52 @@ const renderHeroLayoutCardPreview = (layoutType: string) => {
       ));
 
     case 'minimal':
-      return overlayHero(HERO_PREVIEW_COPY.title, true, 'linear-gradient(180deg, rgba(15,23,42,0.18) 0%, rgba(15,23,42,0.38) 100%)', false);
+      return innerFrame('linear-gradient(180deg, #fefce8 0%, #fef3c7 100%)', (
+        <div style={{ position: 'relative', display: 'flex', height: '100%', padding: '12px', gap: '10px' }}>
+          <div style={{ display: 'flex', width: '46%', flexDirection: 'column', justifyContent: 'center', gap: '4px', paddingLeft: '4px' }}>
+            {previewTag(false)}
+            {previewTitle(HERO_PREVIEW_COPY.title, false)}
+            {previewBody(false)}
+            <div style={{ marginTop: '2px' }}>{primaryButton}</div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '6px', width: '54%' }}>
+            <div
+              style={{
+                borderRadius: '12px',
+                overflow: 'hidden',
+                backgroundImage: `url(${HERO_CARD_SAMPLE_PHOTO})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                boxShadow: '0 10px 20px rgba(15, 23, 42, 0.14)',
+              }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div
+                style={{
+                  flex: 1,
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                  backgroundImage: `url(${HERO_CARD_SAMPLE_DISH})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  boxShadow: '0 8px 16px rgba(15, 23, 42, 0.12)',
+                }}
+              />
+              <div
+                style={{
+                  flex: 1,
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                  backgroundImage: `url(${HERO_CARD_SAMPLE_PHOTO})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  boxShadow: '0 8px 16px rgba(15, 23, 42, 0.12)',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      ));
 
     case 'full-height':
       return innerFrame(`url(${HERO_CARD_SAMPLE_PHOTO}) center / cover no-repeat`, (
@@ -688,7 +838,76 @@ const renderHeroLayoutCardPreview = (layoutType: string) => {
       ), true);
 
     case 'centered-large':
-      return overlayHero(HERO_PREVIEW_COPY.title, true, 'linear-gradient(180deg, rgba(15,23,42,0.12) 0%, rgba(15,23,42,0.44) 100%)');
+      return innerFrame(`url(${HERO_CARD_SAMPLE_PHOTO}) center / cover no-repeat`, (
+        <>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,23,42,0.08) 0%, rgba(15,23,42,0.48) 100%)' }} />
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 1,
+              display: 'flex',
+              height: '100%',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '5px',
+              padding: '16px',
+            }}
+          >
+            {previewTitle('DISCOVER AUTHENTIC FLAVORS', true, true)}
+            {previewBody(true, true)}
+            <div style={{ display: 'flex', gap: '6px', marginTop: '3px' }}>
+              {primaryButton}
+              {secondaryButton}
+            </div>
+          </div>
+        </>
+      ), true);
+
+    case 'image-collage':
+      return innerFrame('linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%)', (
+        <div style={{ position: 'relative', display: 'flex', height: '100%', padding: '12px', gap: '10px' }}>
+          <div style={{ display: 'flex', width: '48%', flexDirection: 'column', justifyContent: 'center', gap: '4px', paddingLeft: '4px' }}>
+            {previewTag(false)}
+            {previewTitle('FAMILIENBETRIEBES PIZZA RESTAURANT', false)}
+            <div style={{ marginTop: '2px' }}>{primaryButton}</div>
+          </div>
+          <div style={{ position: 'relative', display: 'flex', width: '52%' }}>
+            <div
+              style={{
+                position: 'absolute',
+                top: '0',
+                right: '0',
+                width: '58%',
+                height: '52%',
+                borderRadius: '10px',
+                overflow: 'hidden',
+                backgroundImage: `url(${HERO_CARD_SAMPLE_PHOTO})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                boxShadow: '0 12px 20px rgba(15, 23, 42, 0.12)',
+                zIndex: 2,
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '0',
+                left: '8%',
+                width: '70%',
+                height: '56%',
+                borderRadius: '10px',
+                overflow: 'hidden',
+                backgroundImage: `url(${HERO_CARD_SAMPLE_DISH})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                boxShadow: '0 14px 22px rgba(15, 23, 42, 0.14)',
+                zIndex: 1,
+              }}
+            />
+          </div>
+        </div>
+      ));
 
     case 'default':
     default:
@@ -1009,7 +1228,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {LAYOUT_OPTIONS.map((option) => {
               const isSelected = formConfig.layout === option.value;
 
@@ -1019,32 +1238,21 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                   type="button"
                   onClick={() => handleLayoutChange(option.value)}
                   aria-pressed={isSelected}
-                  className={`group min-h-[196px] rounded-2xl border p-3 text-left transition-all ${
+                  className={`group w-full cursor-pointer rounded-xl border-2 p-3 text-left transition-all ${
                     isSelected
-                      ? 'border-purple-500 bg-purple-50 shadow-[0_18px_38px_rgba(124,58,237,0.14)]'
-                      : 'border-gray-200 bg-white hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)]'
+                      ? 'border-purple-500 bg-purple-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'
                   }`}
                 >
-                  <div
-                    className={`mb-4 overflow-hidden rounded-[20px] ${
-                      isSelected ? 'ring-2 ring-purple-200' : ''
-                    }`}
-                  >
+                  <div className="mb-3">
                     {renderHeroLayoutCardPreview(option.value)}
                   </div>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className={`text-base font-semibold ${isSelected ? 'text-purple-700' : 'text-gray-900'}`}>
-                        {option.name}
-                      </div>
-                      <div className="mt-1 text-sm leading-5 text-gray-500">{option.description}</div>
-                    </div>
-                    {isSelected ? (
-                      <span className="inline-flex h-6 shrink-0 items-center rounded-full bg-purple-600 px-2.5 text-xs font-semibold text-white">
-                        Active
-                      </span>
-                    ) : null}
+                  <div className={`text-sm font-medium ${
+                    isSelected ? 'text-purple-700' : 'text-gray-900'
+                  }`}>
+                    {option.name}
                   </div>
+                  <div className="mt-0.5 text-xs text-gray-500">{option.description}</div>
                 </button>
               );
             })}

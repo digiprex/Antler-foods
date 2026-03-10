@@ -340,28 +340,28 @@ export default function GallerySettingsForm({
           <div className="space-y-4">
             <div>
               <label className="mb-4 text-sm font-medium text-gray-700">Layout Type</label>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                 {GALLERY_LAYOUT_OPTIONS.map((option) => (
                   <button
                     key={option.value}
                     type="button"
                     onClick={() => updateConfig({ layout: option.value as any })}
-                    className={`group rounded-2xl border-2 p-3 text-left transition-all ${
+                    className={`group w-full cursor-pointer rounded-xl border-2 p-3 text-left transition-all ${
                       selectedLayout === option.value
-                        ? 'border-purple-500 bg-purple-50 shadow-[0_18px_40px_rgba(126,34,206,0.10)]'
-                        : 'border-gray-200 bg-white hover:-translate-y-0.5 hover:border-purple-300 hover:bg-gray-50 hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)]'
+                        ? 'border-purple-500 bg-purple-50 shadow-sm'
+                        : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'
                     }`}
                     aria-pressed={selectedLayout === option.value}
                   >
                     <div className="mb-3 h-24 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-2.5">
                       <GalleryLayoutPreview layout={option.value} size="card" />
                     </div>
-                    <div className={`text-sm font-semibold ${
+                    <div className={`text-sm font-medium ${
                       selectedLayout === option.value ? 'text-purple-700' : 'text-gray-900'
                     }`}>
                       {option.name}
                     </div>
-                    <div className="mt-1 text-xs text-gray-500">{option.description}</div>
+                    <div className="mt-0.5 text-xs text-gray-500">{option.description}</div>
                   </button>
                 ))}
               </div>

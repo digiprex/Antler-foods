@@ -10,32 +10,46 @@
   }
 
   .splitLayout,
-  .sideBySideLayout,
   .mainContent,
-  .offsetLayout {
+  .imageCollageLayout,
+  .minimalLayout {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
 
-  .offsetContent {
-    max-width: none;
-    padding-right: 0;
+  .sideBySideLayout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
-  .offsetImage {
-    position: relative;
-    top: auto;
-    right: auto;
-    transform: none;
-    width: 100%;
-    height: auto;
+  .sideBySideImage {
+    height: clamp(240px, 60vw, 320px);
+  }
+
+  .offsetLayout {
+    gap: 1.5rem;
+  }
+
+  .offsetImage .heroImage {
+    min-height: clamp(280px, 68vw, 420px);
   }
 
   .splitImage .heroImage,
-  .sideBySideImage .heroImage,
   .offsetImage .heroImage,
   .mainContent .heroImage {
     min-height: clamp(280px, 68vw, 420px);
+  }
+
+  .imageCollageImages {
+    position: relative;
+    width: 100%;
+    height: 280px;
+  }
+
+  .minimalImages {
+    position: relative;
+    width: 100%;
+    height: 280px;
   }
 
   .buttonGroup {
@@ -302,7 +316,7 @@
   height: 100%;
   min-height: clamp(320px, 42vw, 540px);
   object-fit: cover;
-  border-radius: clamp(1rem, 2vw, 1.75rem);
+  border: none;
   box-shadow: 0 32px 70px rgba(15, 23, 42, 0.22);
 }
 
@@ -396,21 +410,52 @@
 }
 
 .minimalLayout {
-  .content {
-    max-width: 700px;
-  }
-
-  .headline {
-    font-size: clamp(2.65rem, 4.4vw, 4.1rem);
-  }
-
-  .description {
-    display: none;
-  }
+  display: grid;
+  align-items: center;
+  width: 100%;
+  min-height: inherit;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: clamp(2rem, 5vw, 4rem);
 }
 
-.splitLayout,
-.sideBySideLayout {
+.minimalContent {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.minimalImages {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: clamp(0.75rem, 1.5vw, 1rem);
+  width: 100%;
+  height: clamp(360px, 40vw, 480px);
+}
+
+.minimalImageLarge {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: none;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
+}
+
+.minimalImageStack {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 1.5vw, 1rem);
+  height: 100%;
+}
+
+.minimalImageSmall {
+  width: 100%;
+  height: calc(50% - clamp(0.375rem, 0.75vw, 0.5rem));
+  object-fit: cover;
+  border: none;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+}
+
+.splitLayout {
   display: grid;
   align-items: center;
   width: 100%;
@@ -420,82 +465,68 @@
 }
 
 .sideBySideLayout {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(1.75rem, 4vw, 3.5rem);
-}
-
-.splitContent,
-.sideBySideContent {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-
-.splitImage,
-.sideBySideImage {
-  display: flex;
-  align-items: stretch;
-  min-width: 0;
-}
-
-.splitImage .heroImage,
-.sideBySideImage .heroImage {
-  min-height: clamp(340px, 40vw, 560px);
-}
-
-.offsetLayout {
-  position: relative;
   display: grid;
   align-items: center;
   width: 100%;
   min-height: inherit;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  gap: clamp(2rem, 4vw, 4rem);
-  padding-block: clamp(1rem, 2vw, 2rem);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 2vw, 1.5rem);
 }
 
-.offsetContent {
-  z-index: 2;
+.splitContent {
   display: flex;
   align-items: center;
   min-width: 0;
-  width: min(100%, 36rem);
-  max-width: min(100%, 36rem);
-  padding-right: clamp(2rem, 6vw, 7rem);
 }
 
-.offsetContent .content {
-  max-width: min(100%, 34rem);
+.splitImage {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
 }
 
-.offsetContent .subheadline {
-  max-width: 30ch;
-  letter-spacing: 0.18em;
+.sideBySideImage {
+  width: 100%;
+  height: clamp(380px, 42vw, 520px);
+  object-fit: cover;
+  border: none;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
 }
 
-.offsetContent .headline {
-  max-width: 11ch;
-  font-size: clamp(2.7rem, 4.3vw, 4.8rem);
+.splitImage .heroImage {
+  min-height: clamp(340px, 40vw, 560px);
 }
 
-.offsetContent .description {
-  max-width: 32ch;
+.offsetLayout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: inherit;
+  gap: clamp(2rem, 4vw, 3rem);
+}
+
+.offsetContent {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: 900px;
 }
 
 .offsetImage {
-  position: absolute;
-  top: 50%;
-  right: clamp(0rem, 1vw, 0.75rem);
   display: flex;
-  align-items: stretch;
-  width: min(48%, 620px);
-  height: clamp(320px, 35vw, 500px);
-  transform: translateY(-50%);
+  justify-content: center;
+  width: 100%;
+  max-width: 1100px;
 }
 
 .offsetImage .heroImage {
-  min-height: 100%;
-  border-radius: clamp(1.2rem, 2.2vw, 2rem);
+  width: 100%;
+  height: auto;
+  min-height: clamp(320px, 38vw, 500px);
+  object-fit: cover;
+  border: none;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
 }
 
 .videoBackgroundLayout,
@@ -577,21 +608,52 @@
 }
 
 @media (max-width: 1200px) {
-  .offsetContent {
-    width: min(100%, 32rem);
-    max-width: min(100%, 32rem);
-    padding-right: clamp(1.25rem, 3vw, 3rem);
-  }
+}
 
-  .offsetContent .headline {
-    max-width: 10.5ch;
-    font-size: clamp(2.5rem, 4vw, 4.15rem);
-  }
+.imageCollageLayout {
+  display: grid;
+  align-items: center;
+  width: 100%;
+  min-height: inherit;
+  grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr);
+  gap: clamp(2rem, 5vw, 4rem);
+}
 
-  .offsetImage {
-    width: min(46%, 540px);
-    height: clamp(300px, 32vw, 450px);
-  }
+.imageCollageContent {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.imageCollageImages {
+  position: relative;
+  width: 100%;
+  height: clamp(380px, 42vw, 520px);
+  min-height: clamp(380px, 42vw, 520px);
+}
+
+.collageImagePrimary {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 58%;
+  height: 52%;
+  object-fit: cover;
+  border: none;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  z-index: 2;
+}
+
+.collageImageSecondary {
+  position: absolute;
+  bottom: 0;
+  left: 8%;
+  width: 70%;
+  height: 56%;
+  object-fit: cover;
+  border: none;
+  box-shadow: 0 28px 68px rgba(15, 23, 42, 0.32);
+  z-index: 1;
 }
 
 @media (max-width: 968px) {

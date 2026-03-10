@@ -50,17 +50,18 @@ export interface HeroConfig extends SectionStyleConfig {
   features?: HeroFeature[];
   
   // Layout options
-  layout?: 
+  layout?:
     | 'default'              // Centered content with optional background
     | 'split'                // Text left, image right
     | 'split-reverse'        // Image left, text right
     | 'centered-large'       // Large centered hero
-    | 'minimal'              // Minimal centered text
+    | 'minimal'              // Text with 3-image grid
     | 'video-background'     // Full-screen video background
-    | 'side-by-side'         // Two equal columns
-    | 'offset'               // Offset text with image
+    | 'side-by-side'         // Three images in a row
+    | 'offset'               // Image top, text below centered
     | 'full-height'          // Full viewport height
-    | 'with-features';       // Hero with feature cards below
+    | 'with-features'        // Hero with feature cards below
+    | 'image-collage';       // Text with stacked/overlapping images
   
   // Styling
   bgColor?: string;

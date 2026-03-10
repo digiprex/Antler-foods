@@ -871,7 +871,7 @@ export default function CustomSectionSettingsForm({ pageId, templateId, isNewSec
 
           <div className="space-y-6">
             {/* Shared Background Image Info Box */}
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            {/* <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
               <div className="flex items-start gap-3">
                 <svg className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
@@ -883,7 +883,7 @@ export default function CustomSectionSettingsForm({ pageId, templateId, isNewSec
                   </p>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Shared Background Image Section */}
             <div>

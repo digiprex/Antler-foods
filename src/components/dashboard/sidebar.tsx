@@ -188,6 +188,11 @@ export function Sidebar({
           label: 'Marketing',
           icon: <MarketingIcon />,
         },
+        {
+          href: buildRestaurantScopedHref(`/admin/form-submissions`, selectedRestaurant),
+          label: 'Form Submissions',
+          icon: <FormSubmissionsIcon />,
+        },
       ]
     : [];
 
@@ -759,6 +764,26 @@ function FormsIcon() {
       <path d="M7 7h10" />
       <path d="M7 11h10" />
       <path d="M7 15h6" />
+    </svg>
+  );
+}
+
+function FormSubmissionsIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+      <path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z" />
+      <path d="M9 12h6" />
+      <path d="M9 16h6" />
     </svg>
   );
 }

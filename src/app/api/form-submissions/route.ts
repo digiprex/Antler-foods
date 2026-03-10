@@ -83,6 +83,68 @@ const UPDATE_MAIL_SENT_STATUS = `
   }
 `;
 
+/**
+ * GraphQL query to get all form submissions for a restaurant
+ */
+const GET_FORM_SUBMISSIONS = `
+  query GetFormSubmissions($restaurant_id: uuid!) {
+    form_submissions(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        is_deleted: {_eq: false}
+      }
+      order_by: {created_at: desc}
+    ) {
+      form_submission_id
+      created_at
+      updated_at
+      is_deleted
+      type
+      fields
+      restaurant_id
+      email
+      poc_email
+      mail_sent
+    }
+  }
+`;
+
+// GET - Fetch form submissions for a restaurant
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const restaurantId = searchParams.get('restaurant_id');
+
+    if (!restaurantId) {
+      return NextResponse.json(
+        { success: false, error: 'restaurant_id is required' },
+        { status: 400 }
+      );
+    }
+
+    console.log('[Form Submissions API] Fetching submissions for restaurant:', restaurantId);
+
+    const result = await adminGraphqlRequest(GET_FORM_SUBMISSIONS, {
+      restaurant_id: restaurantId,
+    });
+
+    const submissions = (result as any).form_submissions || [];
+    console.log('[Form Submissions API] Found', submissions.length, 'submissions');
+
+    return NextResponse.json({
+      success: true,
+      data: submissions,
+    });
+
+  } catch (error) {
+    console.error('Form Submissions API GET error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 // POST - Create a new form submission
 export async function POST(request: NextRequest) {
   try {

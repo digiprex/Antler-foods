@@ -6,12 +6,62 @@ type TypographyPrefix = 'title' | 'subtitle' | 'body';
 
 const FONT_FAMILY_OPTIONS = [
   { value: 'Inter, system-ui, sans-serif', label: 'Inter (Default)' },
-  { value: 'Poppins, sans-serif', label: 'Poppins' },
-  { value: 'Montserrat, sans-serif', label: 'Montserrat' },
-  { value: 'Open Sans, sans-serif', label: 'Open Sans' },
+
+  // Sans-serif fonts
   { value: 'Roboto, sans-serif', label: 'Roboto' },
+  { value: 'Open Sans, sans-serif', label: 'Open Sans' },
   { value: 'Lato, sans-serif', label: 'Lato' },
+  { value: 'Montserrat, sans-serif', label: 'Montserrat' },
+  { value: 'Poppins, sans-serif', label: 'Poppins' },
+  { value: 'Source Sans Pro, sans-serif', label: 'Source Sans Pro' },
+  { value: 'Nunito, sans-serif', label: 'Nunito' },
+  { value: 'Raleway, sans-serif', label: 'Raleway' },
+  { value: 'Ubuntu, sans-serif', label: 'Ubuntu' },
+  { value: 'Noto Sans, sans-serif', label: 'Noto Sans' },
+  { value: 'Fira Sans, sans-serif', label: 'Fira Sans' },
+  { value: 'Work Sans, sans-serif', label: 'Work Sans' },
+  { value: 'Barlow, sans-serif', label: 'Barlow' },
+  { value: 'Manrope, sans-serif', label: 'Manrope' },
+  { value: 'DM Sans, sans-serif', label: 'DM Sans' },
+  { value: 'Plus Jakarta Sans, sans-serif', label: 'Plus Jakarta Sans' },
+
+  // Serif fonts
   { value: 'Playfair Display, serif', label: 'Playfair Display' },
+  { value: 'Merriweather, serif', label: 'Merriweather' },
+  { value: 'Lora, serif', label: 'Lora' },
+  { value: 'Source Serif Pro, serif', label: 'Source Serif Pro' },
+  { value: 'Crimson Text, serif', label: 'Crimson Text' },
+  { value: 'Libre Baskerville, serif', label: 'Libre Baskerville' },
+  { value: 'Cormorant Garamond, serif', label: 'Cormorant Garamond' },
+  { value: 'EB Garamond, serif', label: 'EB Garamond' },
+  { value: 'Vollkorn, serif', label: 'Vollkorn' },
+  { value: 'Bitter, serif', label: 'Bitter' },
+
+  // Display fonts
+  { value: 'Oswald, sans-serif', label: 'Oswald' },
+  { value: 'Bebas Neue, cursive', label: 'Bebas Neue' },
+  { value: 'Anton, sans-serif', label: 'Anton' },
+  { value: 'Righteous, cursive', label: 'Righteous' },
+  { value: 'Fredoka One, cursive', label: 'Fredoka One' },
+  { value: 'Comfortaa, cursive', label: 'Comfortaa' },
+  { value: 'Quicksand, sans-serif', label: 'Quicksand' },
+  { value: 'Pacifico, cursive', label: 'Pacifico' },
+  { value: 'Dancing Script, cursive', label: 'Dancing Script' },
+  { value: 'Lobster, cursive', label: 'Lobster' },
+
+  // Monospace fonts
+  { value: 'JetBrains Mono, monospace', label: 'JetBrains Mono' },
+  { value: 'Fira Code, monospace', label: 'Fira Code' },
+  { value: 'Source Code Pro, monospace', label: 'Source Code Pro' },
+  { value: 'Space Mono, monospace', label: 'Space Mono' },
+
+  // System fonts
+  { value: 'Arial, sans-serif', label: 'Arial' },
+  { value: 'Helvetica, sans-serif', label: 'Helvetica' },
+  { value: 'Georgia, serif', label: 'Georgia' },
+  { value: 'Times New Roman, serif', label: 'Times New Roman' },
+  { value: 'Verdana, sans-serif', label: 'Verdana' },
+  { value: 'Trebuchet MS, sans-serif', label: 'Trebuchet MS' },
 ];
 
 const FONT_SIZE_OPTIONS = [
@@ -198,7 +248,7 @@ function TypoGroup({
             style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 8 }}
           >
             {FONT_FAMILY_OPTIONS.map((font) => (
-              <option key={`${prefix}-font-${font.value}`} value={font.value}>
+              <option key={`${prefix}-font-${font.value}`} value={font.value} style={{ fontFamily: font.value }}>
                 {font.label}
               </option>
             ))}

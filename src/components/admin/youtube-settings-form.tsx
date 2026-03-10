@@ -209,27 +209,50 @@ export default function YouTubeSettingsForm({
     try {
       const url = `/api/media?restaurant_id=${finalRestaurantId}`;
       const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
 
-      if (data.success) {
-        // Filter for video files only
-        const videoFiles = (data.data || []).filter((media: any) => {
-          const fileName = media.file?.name || "";
-          const isVideo = fileName.match(/\.(mp4|webm|mov|avi|mkv|flv|wmv)$/i);
-          const isYouTube =
-            media.file?.url &&
-            (media.file.url.includes("youtube.com") ||
-              media.file.url.includes("youtu.be"));
-          return isVideo || isYouTube;
+      if (data.success && Array.isArray(data.data)) {
+        // Filter for video files only with better error handling
+        const videoFiles = data.data.filter((media: any) => {
+          try {
+            // Handle different possible data structures
+            const fileName = media.file?.name || media.name || media.filename || "";
+            const fileUrl = media.file?.url || media.url || "";
+            
+            const isVideo = fileName.match(/\.(mp4|webm|mov|avi|mkv|flv|wmv)$/i);
+            const isYouTube = fileUrl &&
+              (fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be"));
+            
+            return isVideo || isYouTube;
+          } catch (err) {
+            console.warn("Error processing media item:", media, err);
+            return false;
+          }
         });
+        
         setMediaFiles(videoFiles);
       } else {
-        console.error("Error fetching media files:", data.error);
+        console.error("Error fetching media files:", data.error || "Invalid response format");
         setMediaFiles([]);
+        
+        // Show user-friendly error message
+        setToastMessage("Unable to load media files. Please try again.");
+        setToastType("error");
+        setShowToast(true);
       }
     } catch (error) {
       console.error("Error fetching media files:", error);
       setMediaFiles([]);
+      
+      // Show user-friendly error message
+      setToastMessage("Failed to connect to media library. Please check your connection and try again.");
+      setToastType("error");
+      setShowToast(true);
     } finally {
       setLoadingMedia(false);
     }
@@ -1215,75 +1238,96 @@ export default function YouTubeSettingsForm({
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {mediaFiles.map((media) => {
-                      const isYouTube =
-                        media.file?.url &&
-                        (media.file.url.includes("youtube.com") ||
-                          media.file.url.includes("youtu.be"));
-                      const videoId = isYouTube
-                        ? extractVideoId(media.file.url)
-                        : null;
-                      const thumbnail = videoId
-                        ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
-                        : null;
+                    {mediaFiles.map((media, index) => {
+                      try {
+                        // Handle different possible data structures
+                        const fileUrl = media.file?.url || media.url || "";
+                        const fileName = media.file?.name || media.name || media.filename || `Video ${index + 1}`;
+                        const mediaId = media.id || media.file?.id || `media-${index}`;
+                        
+                        const isYouTube = fileUrl &&
+                          (fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be"));
+                        const videoId = isYouTube ? extractVideoId(fileUrl) : null;
+                        const thumbnail = videoId
+                          ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+                          : null;
 
-                      return (
-                        <div
-                          key={media.id}
-                          onClick={() => selectVideo(media.file?.url || "")}
-                          className="group relative cursor-pointer rounded-xl border-2 border-gray-200 transition-all duration-200 hover:border-purple-300 hover:shadow-md hover:scale-102"
-                        >
-                          <div className="aspect-video overflow-hidden rounded-lg">
-                            {thumbnail ? (
-                              <img
-                                src={thumbnail}
-                                alt={media.file?.name || "Video"}
-                                className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-400">
+                        return (
+                          <div
+                            key={mediaId}
+                            onClick={() => selectVideo(fileUrl)}
+                            className="group relative cursor-pointer rounded-xl border-2 border-gray-200 transition-all duration-200 hover:border-purple-300 hover:shadow-md hover:scale-102"
+                          >
+                            <div className="aspect-video overflow-hidden rounded-lg">
+                              {thumbnail ? (
+                                <img
+                                  src={thumbnail}
+                                  alt={fileName}
+                                  className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                                  onError={(e) => {
+                                    // Fallback if thumbnail fails to load
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                      parent.innerHTML = `
+                                        <div class="flex h-full w-full items-center justify-center bg-gray-100 text-gray-400">
+                                          <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                                          </svg>
+                                        </div>
+                                      `;
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-400">
+                                  <svg
+                                    className="h-8 w-8"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={2}
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z"
+                                    />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Play icon overlay */}
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-lg">
                                 <svg
-                                  className="h-8 w-8"
-                                  fill="none"
-                                  stroke="currentColor"
+                                  className="h-6 w-6 text-purple-600 ml-0.5"
+                                  fill="currentColor"
                                   viewBox="0 0 24 24"
-                                  strokeWidth={2}
                                 >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z"
-                                  />
+                                  <path d="M8 5v14l11-7z" />
                                 </svg>
                               </div>
-                            )}
-                          </div>
+                            </div>
 
-                          {/* Play icon overlay */}
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                              <svg
-                                className="h-6 w-6 text-purple-600 ml-0.5"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
+                            {/* Video name overlay */}
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 rounded-b-lg">
+                              <p className="text-xs font-medium text-white truncate">
+                                {fileName}
+                              </p>
+                              <p className="text-xs text-white/80">
+                                {isYouTube ? "YouTube Video" : "Video File"}
+                              </p>
                             </div>
                           </div>
-
-                          {/* Video name overlay */}
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 rounded-b-lg">
-                            <p className="text-xs font-medium text-white truncate">
-                              {media.file?.name || "Untitled Video"}
-                            </p>
-                            <p className="text-xs text-white/80">
-                              {isYouTube ? "YouTube Video" : "Video File"}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      } catch (err) {
+                        console.warn("Error rendering media item:", media, err);
+                        return null;
+                      }
+                    }).filter(Boolean)}
                   </div>
                 )}
               </div>

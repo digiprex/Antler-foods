@@ -21,7 +21,7 @@ import { loadGoogleFonts, preloadGoogleFonts } from '@/utils/google-fonts';
 // Font options - Popular Google Fonts
 const FONT_OPTIONS = [
   { value: 'Inter, system-ui, sans-serif', label: 'Inter (Default)' },
-  
+
   // Sans-serif fonts
   { value: 'Roboto, sans-serif', label: 'Roboto' },
   { value: 'Open Sans, sans-serif', label: 'Open Sans' },
@@ -39,7 +39,7 @@ const FONT_OPTIONS = [
   { value: 'Manrope, sans-serif', label: 'Manrope' },
   { value: 'DM Sans, sans-serif', label: 'DM Sans' },
   { value: 'Plus Jakarta Sans, sans-serif', label: 'Plus Jakarta Sans' },
-  
+
   // Serif fonts
   { value: 'Playfair Display, serif', label: 'Playfair Display' },
   { value: 'Merriweather, serif', label: 'Merriweather' },
@@ -51,7 +51,7 @@ const FONT_OPTIONS = [
   { value: 'EB Garamond, serif', label: 'EB Garamond' },
   { value: 'Vollkorn, serif', label: 'Vollkorn' },
   { value: 'Bitter, serif', label: 'Bitter' },
-  
+
   // Display fonts
   { value: 'Oswald, sans-serif', label: 'Oswald' },
   { value: 'Bebas Neue, cursive', label: 'Bebas Neue' },
@@ -63,13 +63,13 @@ const FONT_OPTIONS = [
   { value: 'Pacifico, cursive', label: 'Pacifico' },
   { value: 'Dancing Script, cursive', label: 'Dancing Script' },
   { value: 'Lobster, cursive', label: 'Lobster' },
-  
+
   // Monospace fonts
   { value: 'JetBrains Mono, monospace', label: 'JetBrains Mono' },
   { value: 'Fira Code, monospace', label: 'Fira Code' },
   { value: 'Source Code Pro, monospace', label: 'Source Code Pro' },
   { value: 'Space Mono, monospace', label: 'Space Mono' },
-  
+
   // System fonts
   { value: 'Arial, sans-serif', label: 'Arial' },
   { value: 'Helvetica, sans-serif', label: 'Helvetica' },
@@ -459,1066 +459,1066 @@ export default function GlobalStyleSettingsForm() {
 
       {/* Page Header */}
       <div className="mb-8 flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
-                <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Global Style Settings</h1>
-                <p className="mt-1 text-sm text-gray-600">Configure typography for your website</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowPreview(!showPreview)}
-              className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+            <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Global Style Settings</h1>
+            <p className="mt-1 text-sm text-gray-600">Configure typography for your website</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowPreview(!showPreview)}
+          className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {showPreview ? 'Hide' : 'Show'} Preview
+        </button>
+      </div>
+
+      {fetchError && (
+        <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>Error loading settings: {fetchError}</span>
+        </div>
+      )}
+
+      {updateError && (
+        <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>Error saving settings: {updateError}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Title Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
               </svg>
-              {showPreview ? 'Hide' : 'Show'} Preview
-            </button>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Title Styling (H1, Main Headings)</h3>
+              <p className="mt-0.5 text-sm text-gray-600">Customize main heading typography</p>
+            </div>
           </div>
 
-          {fetchError && (
-            <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-              <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <span>Error loading settings: {fetchError}</span>
-            </div>
-          )}
-
-          {updateError && (
-            <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-              <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <span>Error saving settings: {updateError}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Title Section */}
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">Title Styling (H1, Main Headings)</h3>
-                  <p className="mt-0.5 text-sm text-gray-600">Customize main heading typography</p>
-                </div>
-              </div>
-
-              <div className="grid gap-6 md:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-900">
-                    Font Family
-                  </label>
-                  <p className="mt-1 text-xs text-gray-600">Choose title font</p>
-                  <select
-                    value={titleFontFamily}
-                    onChange={(e) => setTitleFontFamily(e.target.value)}
-                    className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    style={{ fontFamily: titleFontFamily }}
-                  >
-                    {FONT_OPTIONS.map((font) => (
-                      <option key={font.value} value={font.value}>
-                        {font.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900">
-                    Font Size
-                  </label>
-                  <p className="mt-1 text-xs text-gray-600">Title size</p>
-                  <select
-                    value={titleFontSize}
-                    onChange={(e) => setTitleFontSize(e.target.value)}
-                    className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    {FONT_SIZE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900">
-                    Font Weight
-                  </label>
-                  <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
-                  <select
-                    value={titleFontWeight}
-                    onChange={(e) => setTitleFontWeight(parseInt(e.target.value))}
-                    className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    {FONT_WEIGHT_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900">
-                    Color
-                  </label>
-                  <p className="mt-1 text-xs text-gray-600">Text color</p>
-                  <div className="mt-2 flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={titleColor}
-                      onChange={(e) => setTitleColor(e.target.value)}
-                      className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
-                    />
-                    <input
-                      type="text"
-                      value={titleColor}
-                      onChange={(e) => setTitleColor(e.target.value)}
-                      className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="#111827"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setTitleColor('#111827')}
-                      className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                      title="Reset to default"
-                    >
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900">
-                    Line Height
-                  </label>
-                  <p className="mt-1 text-xs text-gray-600">Line spacing</p>
-                  <input
-                    type="text"
-                    value={titleLineHeight}
-                    onChange={(e) => setTitleLineHeight(e.target.value)}
-                    className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="1.2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900">
-                    Letter Spacing
-                  </label>
-                  <p className="mt-1 text-xs text-gray-600">Character spacing</p>
-                  <input
-                    type="text"
-                    value={titleLetterSpacing}
-                    onChange={(e) => setTitleLetterSpacing(e.target.value)}
-                    className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="-0.025em"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-900">
-                    Text Transform
-                  </label>
-                  <p className="mt-1 text-xs text-gray-600">Case transformation</p>
-                  <select
-                    value={titleTextTransform}
-                    onChange={(e) => setTitleTextTransform(e.target.value as any)}
-                    className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    {TEXT_TRANSFORM_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Subheading Section */}
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">Subheading Styling (H2, H3, Section Headings)</h3>
-                  <p className="mt-0.5 text-sm text-gray-600">Customize section subheading typography</p>
-                </div>
-              </div>
-
-              <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Font Family
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Choose subheading font</p>
-                <select
-                  value={subheadingFontFamily}
-                  onChange={(e) => setSubheadingFontFamily(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  style={{ fontFamily: subheadingFontFamily }}
-                >
-                  {FONT_OPTIONS.map((font) => (
-                    <option key={font.value} value={font.value}>
-                      {font.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Font Size
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Subheading size</p>
-                <select
-                  value={subheadingFontSize}
-                  onChange={(e) => setSubheadingFontSize(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {FONT_SIZE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Font Weight
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
-                <select
-                  value={subheadingFontWeight}
-                  onChange={(e) => setSubheadingFontWeight(parseInt(e.target.value))}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {FONT_WEIGHT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Color
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Text color</p>
-                <div className="mt-2 flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={subheadingColor}
-                    onChange={(e) => setSubheadingColor(e.target.value)}
-                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
-                  />
-                  <input
-                    type="text"
-                    value={subheadingColor}
-                    onChange={(e) => setSubheadingColor(e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="#374151"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setSubheadingColor('#374151')}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                    title="Reset to default"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Line Height
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Line spacing</p>
-                <input
-                  type="text"
-                  value={subheadingLineHeight}
-                  onChange={(e) => setSubheadingLineHeight(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="1.3"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Letter Spacing
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Character spacing</p>
-                <input
-                  type="text"
-                  value={subheadingLetterSpacing}
-                  onChange={(e) => setSubheadingLetterSpacing(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="-0.015em"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Text Transform
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Case transformation</p>
-                <select
-                  value={subheadingTextTransform}
-                  onChange={(e) => setSubheadingTextTransform(e.target.value as any)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {TEXT_TRANSFORM_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              </div>
-            </div>
-
-            {/* Paragraph Section */}
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">Paragraph Styling (Body Text, Descriptions)</h3>
-                  <p className="mt-0.5 text-sm text-gray-600">Customize body text typography</p>
-                </div>
-              </div>
-
-              <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Font Family
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Choose body text font</p>
-                <select
-                  value={paragraphFontFamily}
-                  onChange={(e) => setParagraphFontFamily(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  style={{ fontFamily: paragraphFontFamily }}
-                >
-                  {FONT_OPTIONS.map((font) => (
-                    <option key={font.value} value={font.value}>
-                      {font.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Font Size
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Body text size</p>
-                <select
-                  value={paragraphFontSize}
-                  onChange={(e) => setParagraphFontSize(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {FONT_SIZE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Font Weight
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
-                <select
-                  value={paragraphFontWeight}
-                  onChange={(e) => setParagraphFontWeight(parseInt(e.target.value))}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {FONT_WEIGHT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Color
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Text color</p>
-                <div className="mt-2 flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={paragraphColor}
-                    onChange={(e) => setParagraphColor(e.target.value)}
-                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
-                  />
-                  <input
-                    type="text"
-                    value={paragraphColor}
-                    onChange={(e) => setParagraphColor(e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="#6b7280"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setParagraphColor('#6b7280')}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                    title="Reset to default"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Line Height
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Line spacing</p>
-                <input
-                  type="text"
-                  value={paragraphLineHeight}
-                  onChange={(e) => setParagraphLineHeight(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="1.6"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Letter Spacing
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Character spacing</p>
-                <input
-                  type="text"
-                  value={paragraphLetterSpacing}
-                  onChange={(e) => setParagraphLetterSpacing(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="0"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Text Transform
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Case transformation</p>
-                <select
-                  value={paragraphTextTransform}
-                  onChange={(e) => setParagraphTextTransform(e.target.value as any)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {TEXT_TRANSFORM_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              </div>
-            </div>
-
-            {/* Primary Button Section */}
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">Primary Button Styling</h3>
-                  <p className="mt-0.5 text-sm text-gray-600">Customize primary button appearance</p>
-                </div>
-              </div>
-
-              <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Font Family
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Choose button font</p>
-                <select
-                  value={primaryButtonFontFamily}
-                  onChange={(e) => setPrimaryButtonFontFamily(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  style={{ fontFamily: primaryButtonFontFamily }}
-                >
-                  {FONT_OPTIONS.map((font) => (
-                    <option key={font.value} value={font.value}>
-                      {font.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Background Color
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Button background</p>
-                <div className="mt-2 flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={primaryButtonBgColor}
-                    onChange={(e) => setPrimaryButtonBgColor(e.target.value)}
-                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
-                  />
-                  <input
-                    type="text"
-                    value={primaryButtonBgColor}
-                    onChange={(e) => setPrimaryButtonBgColor(e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="#2563eb"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setPrimaryButtonBgColor('#2563eb')}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                    title="Reset to default"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Text Color
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Button text color</p>
-                <div className="mt-2 flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={primaryButtonColor}
-                    onChange={(e) => setPrimaryButtonColor(e.target.value)}
-                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
-                  />
-                  <input
-                    type="text"
-                    value={primaryButtonColor}
-                    onChange={(e) => setPrimaryButtonColor(e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="#ffffff"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setPrimaryButtonColor('#ffffff')}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                    title="Reset to default"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Font Size
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Button text size</p>
-                <select
-                  value={primaryButtonFontSize}
-                  onChange={(e) => setPrimaryButtonFontSize(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {FONT_SIZE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Font Weight
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
-                <select
-                  value={primaryButtonFontWeight}
-                  onChange={(e) => setPrimaryButtonFontWeight(parseInt(e.target.value))}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {FONT_WEIGHT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Border Radius
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Corner rounding</p>
-                <select
-                  value={primaryButtonBorderRadius}
-                  onChange={(e) => setPrimaryButtonBorderRadius(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {BORDER_RADIUS_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Button Size
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Determines padding</p>
-                <select
-                  value={primaryButtonSize}
-                  onChange={(e) => setPrimaryButtonSize(e.target.value as 'small' | 'medium' | 'large')}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {BUTTON_SIZE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label} ({option.padding})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Border
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Button border style</p>
-                <select
-                  value={primaryButtonBorder}
-                  onChange={(e) => setPrimaryButtonBorder(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {BORDER_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Hover Background Color
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Background on hover</p>
-                <div className="mt-2 flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={primaryButtonHoverBgColor}
-                    onChange={(e) => setPrimaryButtonHoverBgColor(e.target.value)}
-                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
-                  />
-                  <input
-                    type="text"
-                    value={primaryButtonHoverBgColor}
-                    onChange={(e) => setPrimaryButtonHoverBgColor(e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="#1d4ed8"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setPrimaryButtonHoverBgColor('#1d4ed8')}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                    title="Reset to default"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Hover Text Color
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Text color on hover</p>
-                <div className="mt-2 flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={primaryButtonHoverColor}
-                    onChange={(e) => setPrimaryButtonHoverColor(e.target.value)}
-                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
-                  />
-                  <input
-                    type="text"
-                    value={primaryButtonHoverColor}
-                    onChange={(e) => setPrimaryButtonHoverColor(e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="#ffffff"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setPrimaryButtonHoverColor('#ffffff')}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                    title="Reset to default"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Text Transform
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Case transformation</p>
-                <select
-                  value={primaryButtonTextTransform}
-                  onChange={(e) => setPrimaryButtonTextTransform(e.target.value as any)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {TEXT_TRANSFORM_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              </div>
-            </div>
-
-            {/* Secondary Button Section */}
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">Secondary Button Styling</h3>
-                  <p className="mt-0.5 text-sm text-gray-600">Customize secondary button appearance</p>
-                </div>
-              </div>
-
-              <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Font Family
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Choose button font</p>
-                <select
-                  value={secondaryButtonFontFamily}
-                  onChange={(e) => setSecondaryButtonFontFamily(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  style={{ fontFamily: secondaryButtonFontFamily }}
-                >
-                  {FONT_OPTIONS.map((font) => (
-                    <option key={font.value} value={font.value}>
-                      {font.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Background Color
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Button background</p>
-                <div className="mt-2 flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={secondaryButtonBgColor}
-                    onChange={(e) => setSecondaryButtonBgColor(e.target.value)}
-                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
-                  />
-                  <input
-                    type="text"
-                    value={secondaryButtonBgColor}
-                    onChange={(e) => setSecondaryButtonBgColor(e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="#ffffff"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setSecondaryButtonBgColor('#ffffff')}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                    title="Reset to default"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Text Color
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Button text color</p>
-                <div className="mt-2 flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={secondaryButtonColor}
-                    onChange={(e) => setSecondaryButtonColor(e.target.value)}
-                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
-                  />
-                  <input
-                    type="text"
-                    value={secondaryButtonColor}
-                    onChange={(e) => setSecondaryButtonColor(e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="#374151"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setSecondaryButtonColor('#374151')}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                    title="Reset to default"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Font Size
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Button text size</p>
-                <select
-                  value={secondaryButtonFontSize}
-                  onChange={(e) => setSecondaryButtonFontSize(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {FONT_SIZE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Font Weight
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
-                <select
-                  value={secondaryButtonFontWeight}
-                  onChange={(e) => setSecondaryButtonFontWeight(parseInt(e.target.value))}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {FONT_WEIGHT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Border Radius
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Corner rounding</p>
-                <select
-                  value={secondaryButtonBorderRadius}
-                  onChange={(e) => setSecondaryButtonBorderRadius(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {BORDER_RADIUS_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Button Size
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Determines padding</p>
-                <select
-                  value={secondaryButtonSize}
-                  onChange={(e) => setSecondaryButtonSize(e.target.value as 'small' | 'medium' | 'large')}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {BUTTON_SIZE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label} ({option.padding})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Border
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Button border style</p>
-                <select
-                  value={secondaryButtonBorder}
-                  onChange={(e) => setSecondaryButtonBorder(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {BORDER_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Hover Background Color
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Background on hover</p>
-                <div className="mt-2 flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={secondaryButtonHoverBgColor}
-                    onChange={(e) => setSecondaryButtonHoverBgColor(e.target.value)}
-                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
-                  />
-                  <input
-                    type="text"
-                    value={secondaryButtonHoverBgColor}
-                    onChange={(e) => setSecondaryButtonHoverBgColor(e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="#f9fafb"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setSecondaryButtonHoverBgColor('#f9fafb')}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                    title="Reset to default"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Hover Text Color
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Text color on hover</p>
-                <div className="mt-2 flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={secondaryButtonHoverColor}
-                    onChange={(e) => setSecondaryButtonHoverColor(e.target.value)}
-                    className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
-                  />
-                  <input
-                    type="text"
-                    value={secondaryButtonHoverColor}
-                    onChange={(e) => setSecondaryButtonHoverColor(e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="#111827"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setSecondaryButtonHoverColor('#111827')}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                    title="Reset to default"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900">
-                  Text Transform
-                </label>
-                <p className="mt-1 text-xs text-gray-600">Case transformation</p>
-                <select
-                  value={secondaryButtonTextTransform}
-                  onChange={(e) => setSecondaryButtonTextTransform(e.target.value as any)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {TEXT_TRANSFORM_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            </div>
-
-            {/* Save Button */}
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={updating}
-                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:from-purple-700 hover:to-purple-800 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Family
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Choose title font</p>
+              <select
+                value={titleFontFamily}
+                onChange={(e) => setTitleFontFamily(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                style={{ fontFamily: titleFontFamily }}
               >
-                {updating ? (
-                  <>
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h2m3-4H9a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-1m-1 4l-3 3m0 0l-3-3m3 3V3" />
-                    </svg>
-                    Save Changes
-                  </>
-                )}
-              </button>
+                {FONT_OPTIONS.map((font) => (
+                  <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+                    {font.label}
+                  </option>
+                ))}
+              </select>
             </div>
-          </form>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Size
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Title size</p>
+              <select
+                value={titleFontSize}
+                onChange={(e) => setTitleFontSize(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {FONT_SIZE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Weight
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
+              <select
+                value={titleFontWeight}
+                onChange={(e) => setTitleFontWeight(parseInt(e.target.value))}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {FONT_WEIGHT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Text color</p>
+              <div className="mt-2 flex items-center gap-3">
+                <input
+                  type="color"
+                  value={titleColor}
+                  onChange={(e) => setTitleColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
+                />
+                <input
+                  type="text"
+                  value={titleColor}
+                  onChange={(e) => setTitleColor(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#111827"
+                />
+                <button
+                  type="button"
+                  onClick={() => setTitleColor('#111827')}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                  title="Reset to default"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Line Height
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Line spacing</p>
+              <input
+                type="text"
+                value={titleLineHeight}
+                onChange={(e) => setTitleLineHeight(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="1.2"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Letter Spacing
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Character spacing</p>
+              <input
+                type="text"
+                value={titleLetterSpacing}
+                onChange={(e) => setTitleLetterSpacing(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="-0.025em"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-900">
+                Text Transform
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Case transformation</p>
+              <select
+                value={titleTextTransform}
+                onChange={(e) => setTitleTextTransform(e.target.value as any)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {TEXT_TRANSFORM_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Subheading Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Subheading Styling (H2, H3, Section Headings)</h3>
+              <p className="mt-0.5 text-sm text-gray-600">Customize section subheading typography</p>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Family
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Choose subheading font</p>
+              <select
+                value={subheadingFontFamily}
+                onChange={(e) => setSubheadingFontFamily(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                style={{ fontFamily: subheadingFontFamily }}
+              >
+                {FONT_OPTIONS.map((font) => (
+                  <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+                    {font.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Size
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Subheading size</p>
+              <select
+                value={subheadingFontSize}
+                onChange={(e) => setSubheadingFontSize(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {FONT_SIZE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Weight
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
+              <select
+                value={subheadingFontWeight}
+                onChange={(e) => setSubheadingFontWeight(parseInt(e.target.value))}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {FONT_WEIGHT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Text color</p>
+              <div className="mt-2 flex items-center gap-3">
+                <input
+                  type="color"
+                  value={subheadingColor}
+                  onChange={(e) => setSubheadingColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
+                />
+                <input
+                  type="text"
+                  value={subheadingColor}
+                  onChange={(e) => setSubheadingColor(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#374151"
+                />
+                <button
+                  type="button"
+                  onClick={() => setSubheadingColor('#374151')}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                  title="Reset to default"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Line Height
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Line spacing</p>
+              <input
+                type="text"
+                value={subheadingLineHeight}
+                onChange={(e) => setSubheadingLineHeight(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="1.3"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Letter Spacing
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Character spacing</p>
+              <input
+                type="text"
+                value={subheadingLetterSpacing}
+                onChange={(e) => setSubheadingLetterSpacing(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="-0.015em"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Text Transform
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Case transformation</p>
+              <select
+                value={subheadingTextTransform}
+                onChange={(e) => setSubheadingTextTransform(e.target.value as any)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {TEXT_TRANSFORM_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Paragraph Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Paragraph Styling (Body Text, Descriptions)</h3>
+              <p className="mt-0.5 text-sm text-gray-600">Customize body text typography</p>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Family
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Choose body text font</p>
+              <select
+                value={paragraphFontFamily}
+                onChange={(e) => setParagraphFontFamily(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                style={{ fontFamily: paragraphFontFamily }}
+              >
+                {FONT_OPTIONS.map((font) => (
+                  <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+                    {font.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Size
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Body text size</p>
+              <select
+                value={paragraphFontSize}
+                onChange={(e) => setParagraphFontSize(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {FONT_SIZE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Weight
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
+              <select
+                value={paragraphFontWeight}
+                onChange={(e) => setParagraphFontWeight(parseInt(e.target.value))}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {FONT_WEIGHT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Text color</p>
+              <div className="mt-2 flex items-center gap-3">
+                <input
+                  type="color"
+                  value={paragraphColor}
+                  onChange={(e) => setParagraphColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
+                />
+                <input
+                  type="text"
+                  value={paragraphColor}
+                  onChange={(e) => setParagraphColor(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#6b7280"
+                />
+                <button
+                  type="button"
+                  onClick={() => setParagraphColor('#6b7280')}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                  title="Reset to default"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Line Height
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Line spacing</p>
+              <input
+                type="text"
+                value={paragraphLineHeight}
+                onChange={(e) => setParagraphLineHeight(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="1.6"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Letter Spacing
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Character spacing</p>
+              <input
+                type="text"
+                value={paragraphLetterSpacing}
+                onChange={(e) => setParagraphLetterSpacing(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="0"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Text Transform
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Case transformation</p>
+              <select
+                value={paragraphTextTransform}
+                onChange={(e) => setParagraphTextTransform(e.target.value as any)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {TEXT_TRANSFORM_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Primary Button Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Primary Button Styling</h3>
+              <p className="mt-0.5 text-sm text-gray-600">Customize primary button appearance</p>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Family
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Choose button font</p>
+              <select
+                value={primaryButtonFontFamily}
+                onChange={(e) => setPrimaryButtonFontFamily(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                style={{ fontFamily: primaryButtonFontFamily }}
+              >
+                {FONT_OPTIONS.map((font) => (
+                  <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+                    {font.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Background Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Button background</p>
+              <div className="mt-2 flex items-center gap-3">
+                <input
+                  type="color"
+                  value={primaryButtonBgColor}
+                  onChange={(e) => setPrimaryButtonBgColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
+                />
+                <input
+                  type="text"
+                  value={primaryButtonBgColor}
+                  onChange={(e) => setPrimaryButtonBgColor(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#2563eb"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPrimaryButtonBgColor('#2563eb')}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                  title="Reset to default"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Text Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Button text color</p>
+              <div className="mt-2 flex items-center gap-3">
+                <input
+                  type="color"
+                  value={primaryButtonColor}
+                  onChange={(e) => setPrimaryButtonColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
+                />
+                <input
+                  type="text"
+                  value={primaryButtonColor}
+                  onChange={(e) => setPrimaryButtonColor(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#ffffff"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPrimaryButtonColor('#ffffff')}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                  title="Reset to default"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Size
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Button text size</p>
+              <select
+                value={primaryButtonFontSize}
+                onChange={(e) => setPrimaryButtonFontSize(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {FONT_SIZE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Weight
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
+              <select
+                value={primaryButtonFontWeight}
+                onChange={(e) => setPrimaryButtonFontWeight(parseInt(e.target.value))}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {FONT_WEIGHT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Border Radius
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Corner rounding</p>
+              <select
+                value={primaryButtonBorderRadius}
+                onChange={(e) => setPrimaryButtonBorderRadius(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {BORDER_RADIUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Button Size
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Determines padding</p>
+              <select
+                value={primaryButtonSize}
+                onChange={(e) => setPrimaryButtonSize(e.target.value as 'small' | 'medium' | 'large')}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {BUTTON_SIZE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label} ({option.padding})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Border
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Button border style</p>
+              <select
+                value={primaryButtonBorder}
+                onChange={(e) => setPrimaryButtonBorder(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {BORDER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Hover Background Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Background on hover</p>
+              <div className="mt-2 flex items-center gap-3">
+                <input
+                  type="color"
+                  value={primaryButtonHoverBgColor}
+                  onChange={(e) => setPrimaryButtonHoverBgColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
+                />
+                <input
+                  type="text"
+                  value={primaryButtonHoverBgColor}
+                  onChange={(e) => setPrimaryButtonHoverBgColor(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#1d4ed8"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPrimaryButtonHoverBgColor('#1d4ed8')}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                  title="Reset to default"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Hover Text Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Text color on hover</p>
+              <div className="mt-2 flex items-center gap-3">
+                <input
+                  type="color"
+                  value={primaryButtonHoverColor}
+                  onChange={(e) => setPrimaryButtonHoverColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
+                />
+                <input
+                  type="text"
+                  value={primaryButtonHoverColor}
+                  onChange={(e) => setPrimaryButtonHoverColor(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#ffffff"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPrimaryButtonHoverColor('#ffffff')}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                  title="Reset to default"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Text Transform
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Case transformation</p>
+              <select
+                value={primaryButtonTextTransform}
+                onChange={(e) => setPrimaryButtonTextTransform(e.target.value as any)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {TEXT_TRANSFORM_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Secondary Button Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Secondary Button Styling</h3>
+              <p className="mt-0.5 text-sm text-gray-600">Customize secondary button appearance</p>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Family
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Choose button font</p>
+              <select
+                value={secondaryButtonFontFamily}
+                onChange={(e) => setSecondaryButtonFontFamily(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                style={{ fontFamily: secondaryButtonFontFamily }}
+              >
+                {FONT_OPTIONS.map((font) => (
+                  <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+                    {font.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Background Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Button background</p>
+              <div className="mt-2 flex items-center gap-3">
+                <input
+                  type="color"
+                  value={secondaryButtonBgColor}
+                  onChange={(e) => setSecondaryButtonBgColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
+                />
+                <input
+                  type="text"
+                  value={secondaryButtonBgColor}
+                  onChange={(e) => setSecondaryButtonBgColor(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#ffffff"
+                />
+                <button
+                  type="button"
+                  onClick={() => setSecondaryButtonBgColor('#ffffff')}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                  title="Reset to default"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Text Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Button text color</p>
+              <div className="mt-2 flex items-center gap-3">
+                <input
+                  type="color"
+                  value={secondaryButtonColor}
+                  onChange={(e) => setSecondaryButtonColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
+                />
+                <input
+                  type="text"
+                  value={secondaryButtonColor}
+                  onChange={(e) => setSecondaryButtonColor(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#374151"
+                />
+                <button
+                  type="button"
+                  onClick={() => setSecondaryButtonColor('#374151')}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                  title="Reset to default"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Size
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Button text size</p>
+              <select
+                value={secondaryButtonFontSize}
+                onChange={(e) => setSecondaryButtonFontSize(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {FONT_SIZE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Font Weight
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Boldness of text</p>
+              <select
+                value={secondaryButtonFontWeight}
+                onChange={(e) => setSecondaryButtonFontWeight(parseInt(e.target.value))}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {FONT_WEIGHT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Border Radius
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Corner rounding</p>
+              <select
+                value={secondaryButtonBorderRadius}
+                onChange={(e) => setSecondaryButtonBorderRadius(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {BORDER_RADIUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Button Size
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Determines padding</p>
+              <select
+                value={secondaryButtonSize}
+                onChange={(e) => setSecondaryButtonSize(e.target.value as 'small' | 'medium' | 'large')}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {BUTTON_SIZE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label} ({option.padding})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Border
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Button border style</p>
+              <select
+                value={secondaryButtonBorder}
+                onChange={(e) => setSecondaryButtonBorder(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {BORDER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Hover Background Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Background on hover</p>
+              <div className="mt-2 flex items-center gap-3">
+                <input
+                  type="color"
+                  value={secondaryButtonHoverBgColor}
+                  onChange={(e) => setSecondaryButtonHoverBgColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
+                />
+                <input
+                  type="text"
+                  value={secondaryButtonHoverBgColor}
+                  onChange={(e) => setSecondaryButtonHoverBgColor(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#f9fafb"
+                />
+                <button
+                  type="button"
+                  onClick={() => setSecondaryButtonHoverBgColor('#f9fafb')}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                  title="Reset to default"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Hover Text Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Text color on hover</p>
+              <div className="mt-2 flex items-center gap-3">
+                <input
+                  type="color"
+                  value={secondaryButtonHoverColor}
+                  onChange={(e) => setSecondaryButtonHoverColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
+                />
+                <input
+                  type="text"
+                  value={secondaryButtonHoverColor}
+                  onChange={(e) => setSecondaryButtonHoverColor(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#111827"
+                />
+                <button
+                  type="button"
+                  onClick={() => setSecondaryButtonHoverColor('#111827')}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                  title="Reset to default"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Text Transform
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Case transformation</p>
+              <select
+                value={secondaryButtonTextTransform}
+                onChange={(e) => setSecondaryButtonTextTransform(e.target.value as any)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {TEXT_TRANSFORM_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={updating}
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:from-purple-700 hover:to-purple-800 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {updating ? (
+              <>
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h2m3-4H9a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-1m-1 4l-3 3m0 0l-3-3m3 3V3" />
+                </svg>
+                Save Changes
+              </>
+            )}
+          </button>
+        </div>
+      </form>
 
       {/* Preview Modal Popup */}
       {showPreview && (

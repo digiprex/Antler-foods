@@ -32,13 +32,19 @@ interface DynamicHeroProps {
    * Whether to show loading state
    */
   showLoading?: boolean;
+
+  /**
+   * Forces a specific preview viewport when rendering inside admin previews
+   */
+  previewMode?: 'desktop' | 'mobile';
 }
 
 export default function DynamicHero({
   restaurantId, // Restaurant ID should be provided dynamically
   fallbackConfig,
   configData,
-  showLoading = true
+  showLoading = true,
+  previewMode,
 }: DynamicHeroProps) {
   console.log('[DynamicHero] Component rendered with configData:', configData);
 
@@ -83,7 +89,7 @@ export default function DynamicHero({
   if (error && !config) {
     // Use fallback configuration if provided
     if (fallbackConfig) {
-      return <Hero {...fallbackConfig} />;
+      return <Hero {...fallbackConfig} previewMode={previewMode} />;
     }
     
     // Default fallback hero
@@ -107,13 +113,14 @@ export default function DynamicHero({
         textColor="#000000"
         textAlign="center"
         minHeight="600px"
+        previewMode={previewMode}
       />
     );
   }
 
   // Render hero with fetched configuration
   if (config) {
-    return <Hero {...config} />;
+    return <Hero {...config} previewMode={previewMode} />;
   }
 
   // Fallback if no config available

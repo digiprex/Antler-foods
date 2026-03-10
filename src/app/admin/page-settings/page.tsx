@@ -75,6 +75,52 @@ function PageSettingsSelector() {
       height: 'auto',
     } as React.CSSProperties;
 
+    const createScaledPreviewStyle = (scale: number) => ({
+      transform: `scale(${scale})`,
+      transformOrigin: 'top left',
+      width: `${(100 / scale).toFixed(2)}%`,
+      height: 'auto',
+    } as React.CSSProperties);
+
+    const previewViewportHeight = 720;
+    const resolvePreviewHeightPx = (value: unknown, fallbackPx: number) => {
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+      }
+
+      if (typeof value !== 'string') {
+        return fallbackPx;
+      }
+
+      const normalizedValue = value.trim().toLowerCase();
+      const match = normalizedValue.match(/^(-?\d*\.?\d+)(px|rem|vh|svh|dvh|lvh)?$/);
+
+      if (!match) {
+        return fallbackPx;
+      }
+
+      const amount = Number(match[1]);
+      const unit = match[2] || 'px';
+
+      if (!Number.isFinite(amount)) {
+        return fallbackPx;
+      }
+
+      if (unit === 'px') {
+        return amount;
+      }
+
+      if (unit === 'rem') {
+        return amount * 16;
+      }
+
+      if (unit === 'vh' || unit === 'svh' || unit === 'dvh' || unit === 'lvh') {
+        return (amount / 100) * previewViewportHeight;
+      }
+
+      return fallbackPx;
+    };
+
     switch (category.toLowerCase()) {
       case 'hero':
         // Get the template to extract layout from template.name
@@ -94,13 +140,38 @@ function PageSettingsSelector() {
           layout: heroTemplate?.name || config.layout
         } : undefined;
 
+        const heroLayout = (heroTemplate?.name || config?.layout || 'default').toLowerCase();
+        const usesFullViewportHero =
+          heroLayout === 'video-background' || heroLayout === 'full-height';
+        const heroMinHeightPx = resolvePreviewHeightPx(
+          heroConfigWithLayout?.minHeight || config?.minHeight || '600px',
+          600,
+        );
+        const heroRawHeight = usesFullViewportHero
+          ? Math.max(heroMinHeightPx, previewViewportHeight)
+          : heroMinHeightPx;
+        const targetHeroPreviewHeight = usesFullViewportHero ? 360 : 340;
+        const heroPreviewScale = Math.min(0.6, targetHeroPreviewHeight / heroRawHeight);
+        const heroPreviewHeight = Math.max(
+          220,
+          Math.round(heroRawHeight * heroPreviewScale),
+        );
+        const heroPreviewStyle = {
+          ...previewStyle,
+          height: `${heroPreviewHeight}px`,
+          maxHeight: `${heroPreviewHeight}px`,
+          overflow: 'hidden',
+        } as React.CSSProperties;
+        const heroZoomContainerStyle = createScaledPreviewStyle(heroPreviewScale);
+
         return (
-          <div style={previewStyle}>
-            <div style={zoomContainerStyle}>
+          <div style={heroPreviewStyle}>
+            <div style={heroZoomContainerStyle}>
               <DynamicHero
                 restaurantId={restaurantId}
                 configData={heroConfigWithLayout}
                 showLoading={false}
+                previewMode="desktop"
               />
             </div>
           </div>

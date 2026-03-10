@@ -35,6 +35,25 @@ export interface HeroImage {
   position?: 'left' | 'right' | 'center' | 'background';
 }
 
+export interface MinimalHeroImages {
+  primary?: HeroImage;
+  secondaryTop?: HeroImage;
+  secondaryBottom?: HeroImage;
+}
+
+export interface SideBySideHeroImages {
+  left?: HeroImage;
+  center?: HeroImage;
+  right?: HeroImage;
+}
+
+export type HeroImageObjectFit =
+  | 'cover'
+  | 'contain'
+  | 'fill'
+  | 'none'
+  | 'scale-down';
+
 export interface HeroConfig extends SectionStyleConfig {
   id?: string;
   restaurant_id?: string; // Restaurant ID for database operations
@@ -54,6 +73,10 @@ export interface HeroConfig extends SectionStyleConfig {
   image?: HeroImage;
   videoUrl?: string;
   backgroundImage?: string;
+  imageBorderRadius?: string;
+  imageObjectFit?: HeroImageObjectFit;
+  minimalImages?: MinimalHeroImages;
+  sideBySideImages?: SideBySideHeroImages;
   
   // Features/Benefits
   features?: HeroFeature[];
@@ -86,6 +109,8 @@ export interface HeroConfig extends SectionStyleConfig {
   // Spacing
   paddingTop?: string;
   paddingBottom?: string;
+  paddingInline?: string;
+  mobilePaddingInline?: string;
   minHeight?: string;
   mobileMinHeight?: string;
   
@@ -106,6 +131,21 @@ export interface HeroConfig extends SectionStyleConfig {
   defaultContentPanelMobileMinHeight?: string;
   defaultContentPanelMobileMarginTop?: string;
   defaultContentPanelMobileMarginBottom?: string;
+  videoContentPanelEnabled?: boolean;
+  videoContentPanelBackgroundColor?: string;
+  videoContentPanelMobileBackgroundColor?: string;
+  videoContentPanelBorderRadius?: string;
+  videoContentPanelMobileBorderRadius?: string;
+  videoContentPanelMaxWidth?: string;
+  videoContentPanelMinHeight?: string;
+  videoContentPanelMarginTop?: string;
+  videoContentPanelMarginBottom?: string;
+  videoContentPanelMobileMaxWidth?: string;
+  videoContentPanelMobileMinHeight?: string;
+  videoContentPanelMobileMarginTop?: string;
+  videoContentPanelMobileMarginBottom?: string;
+  videoContentPanelPosition?: 'left' | 'center' | 'right';
+  videoContentPanelMobilePosition?: 'left' | 'center' | 'right';
   
   // Metadata
   createdAt?: string;
@@ -148,6 +188,8 @@ export const DEFAULT_HERO_CONFIG: HeroConfig = {
   mobileTextAlign: 'center',
   paddingTop: '6rem',
   paddingBottom: '6rem',
+  paddingInline: '',
+  mobilePaddingInline: '',
   minHeight: '600px',
   showScrollIndicator: false,
   contentMaxWidth: '1200px',
@@ -158,6 +200,21 @@ export const DEFAULT_HERO_CONFIG: HeroConfig = {
   defaultContentPanelBorderRadius: '2rem',
   defaultContentPanelMobileBorderRadius: '',
   defaultContentPanelMaxWidth: '960px',
+  videoContentPanelEnabled: false,
+  videoContentPanelBackgroundColor: 'rgba(15, 23, 42, 0.48)',
+  videoContentPanelMobileBackgroundColor: '',
+  videoContentPanelBorderRadius: '2rem',
+  videoContentPanelMobileBorderRadius: '',
+  videoContentPanelMaxWidth: '640px',
+  videoContentPanelMinHeight: '',
+  videoContentPanelMarginTop: '',
+  videoContentPanelMarginBottom: '',
+  videoContentPanelMobileMaxWidth: '',
+  videoContentPanelMobileMinHeight: '',
+  videoContentPanelMobileMarginTop: '',
+  videoContentPanelMobileMarginBottom: '',
+  videoContentPanelPosition: 'left',
+  videoContentPanelMobilePosition: undefined,
   is_custom: false,
   buttonStyleVariant: 'primary',
   titleFontFamily: 'Inter, system-ui, sans-serif',
@@ -175,4 +232,6 @@ export const DEFAULT_HERO_CONFIG: HeroConfig = {
   bodyMobileFontSize: '',
   bodyFontWeight: 400,
   bodyColor: '#6b7280',
+  imageBorderRadius: '',
+  imageObjectFit: 'cover',
 };

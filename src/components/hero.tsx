@@ -7,7 +7,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import type { HeroConfig } from '@/types/hero.types';
+import { DEFAULT_HERO_CONFIG, type HeroConfig } from '@/types/hero.types';
 import styles from './hero.module.scss';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
 import { getHeroLayoutMediaCapabilities } from '@/lib/hero-layout-media';
@@ -29,6 +29,10 @@ export default function Hero(props: HeroProps) {
     image,
     videoUrl,
     backgroundImage,
+    imageBorderRadius,
+    imageObjectFit = 'cover',
+    minimalImages,
+    sideBySideImages,
     features = [],
     layout = 'centered-large',
     bgColor = '#ffffff',
@@ -40,6 +44,8 @@ export default function Hero(props: HeroProps) {
     mobileTextAlign,
     paddingTop = '6rem',
     paddingBottom = '6rem',
+    paddingInline,
+    mobilePaddingInline,
     minHeight = '600px',
     mobileMinHeight,
     showScrollIndicator = false,
@@ -59,6 +65,21 @@ export default function Hero(props: HeroProps) {
     defaultContentPanelMobileMinHeight,
     defaultContentPanelMobileMarginTop,
     defaultContentPanelMobileMarginBottom,
+    videoContentPanelEnabled = false,
+    videoContentPanelBackgroundColor = 'rgba(15, 23, 42, 0.48)',
+    videoContentPanelMobileBackgroundColor,
+    videoContentPanelBorderRadius = '2rem',
+    videoContentPanelMobileBorderRadius,
+    videoContentPanelMaxWidth = '640px',
+    videoContentPanelMinHeight,
+    videoContentPanelMarginTop,
+    videoContentPanelMarginBottom,
+    videoContentPanelMobileMaxWidth,
+    videoContentPanelMobileMinHeight,
+    videoContentPanelMobileMarginTop,
+    videoContentPanelMobileMarginBottom,
+    videoContentPanelPosition = 'left',
+    videoContentPanelMobilePosition,
     is_custom,
     titleFontFamily,
     titleFontSize,
@@ -92,6 +113,7 @@ export default function Hero(props: HeroProps) {
   const [isClientMobileViewport, setIsClientMobileViewport] = useState(
     previewMode === 'mobile',
   );
+  const [videoLoadFailed, setVideoLoadFailed] = useState(false);
 
   if (process.env.NODE_ENV === 'development') {
     console.log('Hero component props:', {
@@ -339,12 +361,63 @@ export default function Hero(props: HeroProps) {
     return styles.contentCentered;
   };
 
+  const effectiveVideoContentPanelPosition =
+    (isClientMobileViewport && videoContentPanelMobilePosition) ||
+    videoContentPanelPosition ||
+    (effectiveTextAlign === 'right'
+      ? 'right'
+      : effectiveTextAlign === 'center'
+        ? 'center'
+        : 'left');
+
+  const getVideoContentPositionClass = () => {
+    if (effectiveVideoContentPanelPosition === 'right') {
+      return styles.videoContentColumnRight;
+    }
+
+    if (effectiveVideoContentPanelPosition === 'center') {
+      return styles.videoContentColumnCentered;
+    }
+
+    return styles.videoContentColumnLeft;
+  };
+
   const mediaCapabilities = getHeroLayoutMediaCapabilities(layout);
   const activeImage = mediaCapabilities.showHeroImage ? image : undefined;
   const activeVideoUrl = mediaCapabilities.showBackgroundVideo ? videoUrl : undefined;
-  const allowBackgroundFallback = layout === 'video-background' && !activeVideoUrl;
+  const showVideoBackground = Boolean(activeVideoUrl) && !videoLoadFailed;
+  const allowBackgroundFallback =
+    layout === 'video-background' && (!activeVideoUrl || videoLoadFailed);
   const activeBackgroundImage =
     mediaCapabilities.showBackgroundImage || allowBackgroundFallback ? backgroundImage : undefined;
+  const resolvedPaddingTop =
+    layout === 'minimal' && paddingTop === DEFAULT_HERO_CONFIG.paddingTop ? '5rem' : paddingTop;
+  const resolvedPaddingBottom =
+    layout === 'minimal' && paddingBottom === DEFAULT_HERO_CONFIG.paddingBottom
+      ? '5rem'
+      : paddingBottom;
+  const resolvedPaddingInline =
+    layout === 'minimal' && !paddingInline?.trim() ? '8rem' : paddingInline;
+  const resolvedContentMaxWidth =
+    !contentMaxWidth?.trim() || contentMaxWidth === DEFAULT_HERO_CONFIG.contentMaxWidth
+      ? '100%'
+      : contentMaxWidth;
+  const minimalLayoutImages =
+    layout === 'minimal'
+      ? {
+          primary: minimalImages?.primary || activeImage,
+          secondaryTop: minimalImages?.secondaryTop || activeImage,
+          secondaryBottom: minimalImages?.secondaryBottom || activeImage,
+        }
+      : null;
+  const sideBySideLayoutImages =
+    layout === 'side-by-side'
+      ? {
+          left: sideBySideImages?.left || activeImage,
+          center: sideBySideImages?.center || activeImage,
+          right: sideBySideImages?.right || activeImage,
+        }
+      : null;
 
   const heroStyle = {
     '--hero-bg-color': bgColor,
@@ -352,20 +425,40 @@ export default function Hero(props: HeroProps) {
     '--hero-text-color': textColor,
     '--hero-overlay-color': overlayColor,
     '--hero-overlay-opacity': overlayOpacity,
-    '--hero-padding-top': paddingTop,
-    '--hero-padding-bottom': paddingBottom,
+    '--hero-padding-top': resolvedPaddingTop,
+    '--hero-padding-bottom': resolvedPaddingBottom,
     '--hero-min-height': minHeight,
     '--hero-mobile-min-height': mobileMinHeight,
-    '--hero-content-max-width': contentMaxWidth,
+    '--hero-content-max-width': resolvedContentMaxWidth,
     '--hero-text-align': textAlign,
     '--hero-mobile-text-align': mobileTextAlign,
+    '--hero-image-object-fit': imageObjectFit,
     '--hero-screen-height':
       previewMode === 'mobile' ? '780px' : previewMode === 'desktop' ? '720px' : '100svh',
   } as CSSProperties;
 
-  if (activeBackgroundImage && !activeVideoUrl) {
+  if (imageBorderRadius?.trim()) {
+    heroStyle['--hero-image-border-radius' as keyof CSSProperties] =
+      imageBorderRadius as CSSProperties[keyof CSSProperties];
+  }
+
+  if (resolvedPaddingInline?.trim()) {
+    heroStyle['--hero-padding-inline' as keyof CSSProperties] =
+      resolvedPaddingInline as CSSProperties[keyof CSSProperties];
+  }
+
+  if (mobilePaddingInline?.trim()) {
+    heroStyle['--hero-mobile-padding-inline' as keyof CSSProperties] =
+      mobilePaddingInline as CSSProperties[keyof CSSProperties];
+  }
+
+  if (activeBackgroundImage && !showVideoBackground) {
     heroStyle.backgroundImage = `url(${activeBackgroundImage})`;
   }
+
+  useEffect(() => {
+    setVideoLoadFailed(false);
+  }, [activeVideoUrl]);
 
   const renderButtons = () => {
     const visiblePrimaryButton = isRenderableButton(primaryButton) ? primaryButton : undefined;
@@ -528,6 +621,44 @@ export default function Hero(props: HeroProps) {
     </div>
   );
 
+  const renderVideoLayout = () => (
+    <div className={styles.videoBackgroundLayout}>
+      <div
+        className={`${styles.videoContentColumn} ${getVideoContentPositionClass()}`}
+        style={{
+          ['--hero-video-panel-max-width' as string]: videoContentPanelMaxWidth,
+          ['--hero-video-panel-mobile-max-width' as string]: videoContentPanelMobileMaxWidth,
+          ['--hero-video-panel-margin-top' as string]: videoContentPanelMarginTop,
+          ['--hero-video-panel-margin-bottom' as string]: videoContentPanelMarginBottom,
+          ['--hero-video-panel-mobile-margin-top' as string]: videoContentPanelMobileMarginTop,
+          ['--hero-video-panel-mobile-margin-bottom' as string]:
+            videoContentPanelMobileMarginBottom,
+        }}
+      >
+        <div
+          className={`${styles.videoContentPanel} ${styles.motionDecor} ${
+            videoContentPanelEnabled ? styles.videoPanelEnabled : styles.videoPanelDisabled
+          }`}
+          style={{
+            ...getMotionStyle(40),
+            ['--hero-video-panel-bg' as string]: videoContentPanelBackgroundColor,
+            ['--hero-video-panel-mobile-bg' as string]:
+              videoContentPanelMobileBackgroundColor,
+            ['--hero-video-panel-border-radius' as string]:
+              videoContentPanelBorderRadius,
+            ['--hero-video-panel-mobile-border-radius' as string]:
+              videoContentPanelMobileBorderRadius,
+            ['--hero-video-panel-min-height' as string]: videoContentPanelMinHeight,
+            ['--hero-video-panel-mobile-min-height' as string]:
+              videoContentPanelMobileMinHeight,
+          }}
+        >
+          {renderContent(getAlignedContentClass())}
+        </div>
+      </div>
+    </div>
+  );
+
   const renderLayout = () => {
     switch (layout) {
       case 'split':
@@ -551,24 +682,32 @@ export default function Hero(props: HeroProps) {
           <div className={styles.minimalLayout}>
             <div className={styles.minimalContent}>{renderContent(styles.contentLeft)}</div>
             <div className={styles.minimalImages}>
-              {activeImage ? (
+              {minimalLayoutImages?.primary ||
+              minimalLayoutImages?.secondaryTop ||
+              minimalLayoutImages?.secondaryBottom ? (
                 <>
-                  <img
-                    src={activeImage.url}
-                    alt={activeImage.alt}
-                    className={styles.minimalImageLarge}
-                  />
+                  {minimalLayoutImages?.primary ? (
+                    <img
+                      src={minimalLayoutImages.primary.url}
+                      alt={minimalLayoutImages.primary.alt}
+                      className={styles.minimalImageLarge}
+                    />
+                  ) : null}
                   <div className={styles.minimalImageStack}>
-                    <img
-                      src={activeImage.url}
-                      alt={activeImage.alt}
-                      className={styles.minimalImageSmall}
-                    />
-                    <img
-                      src={activeImage.url}
-                      alt={activeImage.alt}
-                      className={styles.minimalImageSmall}
-                    />
+                    {minimalLayoutImages?.secondaryTop ? (
+                      <img
+                        src={minimalLayoutImages.secondaryTop.url}
+                        alt={minimalLayoutImages.secondaryTop.alt}
+                        className={styles.minimalImageSmall}
+                      />
+                    ) : null}
+                    {minimalLayoutImages?.secondaryBottom ? (
+                      <img
+                        src={minimalLayoutImages.secondaryBottom.url}
+                        alt={minimalLayoutImages.secondaryBottom.alt}
+                        className={styles.minimalImageSmall}
+                      />
+                    ) : null}
                   </div>
                 </>
               ) : null}
@@ -577,40 +716,36 @@ export default function Hero(props: HeroProps) {
         );
 
       case 'video-background':
-        return (
-          <div className={styles.videoBackgroundLayout}>
-            {activeVideoUrl ? (
-              <div className={styles.videoContainer}>
-                <video autoPlay loop muted playsInline className={styles.backgroundVideo}>
-                  <source src={activeVideoUrl} type="video/mp4" />
-                </video>
-                <div className={styles.videoOverlay} />
-              </div>
-            ) : null}
-            {renderContent(styles.contentLeft)}
-          </div>
-        );
+        return renderVideoLayout();
 
       case 'side-by-side':
         return (
           <div className={styles.sideBySideLayout}>
-            {activeImage ? (
+            {sideBySideLayoutImages?.left ||
+            sideBySideLayoutImages?.center ||
+            sideBySideLayoutImages?.right ? (
               <>
-                <img
-                  src={activeImage.url}
-                  alt={activeImage.alt}
-                  className={styles.sideBySideImage}
-                />
-                <img
-                  src={activeImage.url}
-                  alt={activeImage.alt}
-                  className={styles.sideBySideImage}
-                />
-                <img
-                  src={activeImage.url}
-                  alt={activeImage.alt}
-                  className={styles.sideBySideImage}
-                />
+                {sideBySideLayoutImages?.left ? (
+                  <img
+                    src={sideBySideLayoutImages.left.url}
+                    alt={sideBySideLayoutImages.left.alt}
+                    className={styles.sideBySideImage}
+                  />
+                ) : null}
+                {sideBySideLayoutImages?.center ? (
+                  <img
+                    src={sideBySideLayoutImages.center.url}
+                    alt={sideBySideLayoutImages.center.alt}
+                    className={styles.sideBySideImage}
+                  />
+                ) : null}
+                {sideBySideLayoutImages?.right ? (
+                  <img
+                    src={sideBySideLayoutImages.right.url}
+                    alt={sideBySideLayoutImages.right.alt}
+                    className={styles.sideBySideImage}
+                  />
+                ) : null}
               </>
             ) : null}
           </div>
@@ -685,8 +820,9 @@ export default function Hero(props: HeroProps) {
 
   const heroClass = [
     styles.hero,
+    layout === 'minimal' ? styles.layoutMinimal : '',
     activeBackgroundImage ? styles.hasBackground : '',
-    activeVideoUrl ? styles.hasVideo : '',
+    showVideoBackground ? styles.hasVideo : '',
     previewMode === 'desktop' ? styles.previewDesktop : '',
     previewMode === 'mobile' ? styles.previewMobile : '',
     motionEnabled ? styles.motionEnabled : '',
@@ -698,7 +834,25 @@ export default function Hero(props: HeroProps) {
 
   return (
     <section ref={heroRef} className={heroClass} style={heroStyle}>
-      {activeBackgroundImage && !activeVideoUrl ? <div className={styles.backgroundOverlay} aria-hidden="true" /> : null}
+      {showVideoBackground ? (
+        <div className={styles.videoContainer} aria-hidden="true">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            className={styles.backgroundVideo}
+            onError={() => setVideoLoadFailed(true)}
+          >
+            <source src={activeVideoUrl} type="video/mp4" />
+          </video>
+          <div className={styles.videoOverlay} />
+        </div>
+      ) : null}
+      {activeBackgroundImage && !showVideoBackground ? (
+        <div className={styles.backgroundOverlay} aria-hidden="true" />
+      ) : null}
       <div className={styles.container}>{renderLayout()}</div>
 
       {showScrollIndicator ? (

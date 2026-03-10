@@ -53,12 +53,14 @@ export default function DashboardHomePage() {
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <h2 className="mb-4 text-xl font-bold text-gray-900">Quick Actions</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <QuickActionCard
-            href={`/dashboard/${roleSegment}/new-restaurant`}
-            icon={<PlusIcon />}
-            title="Add Restaurant"
-            description="Set up a new restaurant location"
-          />
+          {roleSegment === 'admin' && (
+            <QuickActionCard
+              href={`/dashboard/${roleSegment}/new-restaurant`}
+              icon={<PlusIcon />}
+              title="Add Restaurant"
+              description="Set up a new restaurant location"
+            />
+          )}
           <QuickActionCard
             href={`/dashboard/${roleSegment}/restaurants`}
             icon={<ViewIcon />}
@@ -75,26 +77,28 @@ export default function DashboardHomePage() {
       </div>
 
       {/* Getting Started */}
-      <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-6 shadow-sm">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-purple-100">
-            <span className="text-2xl">🚀</span>
-          </div>
-          <div className="flex-1">
-            <h2 className="text-xl font-bold text-gray-900">Getting Started</h2>
-            <p className="mt-2 text-gray-600">
-              Start by adding your first restaurant to unlock all dashboard features.
-            </p>
-            <Link
-              href={`/dashboard/${roleSegment}/new-restaurant`}
-              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              <PlusIcon />
-              Add Your First Restaurant
-            </Link>
+      {roleSegment === 'admin' && (
+        <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-purple-100">
+              <span className="text-2xl">🚀</span>
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-gray-900">Getting Started</h2>
+              <p className="mt-2 text-gray-600">
+                Start by adding your first restaurant to unlock all dashboard features.
+              </p>
+              <Link
+                href={`/dashboard/${roleSegment}/new-restaurant`}
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                <PlusIcon />
+                Add Your First Restaurant
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

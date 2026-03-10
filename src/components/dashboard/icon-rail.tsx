@@ -46,11 +46,20 @@ export function IconRail({
 }: IconRailProps) {
   const hasWebsiteTab = Boolean(selectedRestaurant);
   const showIcons = !isSidebarOpen; // show icons on the rail only when the main sidebar is collapsed
+  const roleSegment = dashboardBasePath.split('/')[2] || 'admin';
+  
+  // Filter tabs based on role - only show "home" (new-restaurant) tab for admin users
+  const filteredTabs = RAIL_TABS.filter(tab => {
+    if (tab.key === 'home' && roleSegment !== 'admin') {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <aside className="flex min-h-screen w-16 flex-col items-center border-r border-[#d7e2e6] bg-[#f6f7f7] py-4">
       <div className="flex w-full flex-col gap-2">
-        {RAIL_TABS.map((tab) => {
+        {filteredTabs.map((tab) => {
           const isActive = tab.key === activeTab;
           const href = `${dashboardBasePath}${tab.href}`;
 

@@ -47,7 +47,7 @@ export function Sidebar({
   // Static grouped menu structure matching requested layout
   const HOME_MENU_ITEMS = [
     { href: '/home', label: 'Home', icon: <HomeIcon /> },
-    { href: '/new-restaurant', label: 'New Restaurant', icon: <StoreIcon /> },
+    ...(roleSegment === 'admin' ? [{ href: '/new-restaurant', label: 'New Restaurant', icon: <StoreIcon /> }] : []),
     { href: '/restaurants', label: 'Restaurants', icon: <ShopIcon /> },
   ];
 

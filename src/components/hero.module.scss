@@ -641,9 +641,7 @@
 
 .defaultGlowPrimary,
 .defaultGlowSecondary {
-  position: absolute;
-  border-radius: 999px;
-  mix-blend-mode: screen;
+  display: none;
 }
 
 .defaultGlowPrimary {
@@ -668,11 +666,10 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 2.25rem;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
-    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px);
-  background-size: auto, 34px 34px, 34px 34px;
-  opacity: 0.88;
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 34px 34px, 34px 34px;
+  opacity: 0.42;
 }
 
 .defaultContentColumn {
@@ -768,10 +765,9 @@
   .defaultGrid {
     border-color: rgba(148, 163, 184, 0.16);
     background:
-      linear-gradient(180deg, rgba(15, 23, 42, 0.02), rgba(15, 23, 42, 0.01)),
       linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
       linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px);
-    background-size: auto, 34px 34px, 34px 34px;
+    background-size: 34px 34px, 34px 34px;
   }
 }
 

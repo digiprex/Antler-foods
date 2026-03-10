@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
+import Toast from '@/components/ui/toast';
 import '@/styles/page-settings-animations.css';
 import {
   GALLERY_LAYOUT_OPTIONS,
@@ -56,6 +57,15 @@ function PageSettingsSelector() {
   const [updatingPageInfo, setUpdatingPageInfo] = useState(false);
   const [navigating, setNavigating] = useState(false);
   const [navigationTarget, setNavigationTarget] = useState('');
+  const [publishStatus, setPublishStatus] = useState<{
+    hasUnpublishedSections: boolean;
+    hasCustomDomain: boolean;
+    showPublishButton: boolean;
+  } | null>(null);
+  const [publishingChanges, setPublishingChanges] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
 
   // Function to render section preview based on category
   const renderSectionPreview = (category: string, config?: any, templateId?: string) => {
@@ -414,6 +424,7 @@ function PageSettingsSelector() {
                 pageId={pageId}
                 templateId={templateId}
                 showLoading={false}
+                isPreview={true}
               />
             </div>
           </div>
@@ -564,6 +575,55 @@ function PageSettingsSelector() {
 
   ];
 
+  // Function to fetch publish status
+  const fetchPublishStatus = useCallback(async () => {
+    if (!restaurantId) return;
+
+    try {
+      const response = await fetch(`/api/publish-status?restaurant_id=${restaurantId}`);
+      const data = await response.json();
+      if (data.success) {
+        setPublishStatus(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching publish status:', error);
+    }
+  }, [restaurantId]);
+
+  // Function to publish all changes
+  const publishAllChanges = async () => {
+    if (!restaurantId) return;
+
+    setPublishingChanges(true);
+    try {
+      const response = await fetch('/api/publish-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurant_id: restaurantId }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setToastMessage(data.data.message);
+        setToastType('success');
+        setShowToast(true);
+        // Refresh publish status
+        await fetchPublishStatus();
+      } else {
+        setToastMessage('Failed to publish changes: ' + data.error);
+        setToastType('error');
+        setShowToast(true);
+      }
+    } catch (error) {
+      console.error('Error publishing changes:', error);
+      setToastMessage('Error publishing changes');
+      setToastType('error');
+      setShowToast(true);
+    } finally {
+      setPublishingChanges(false);
+    }
+  };
+
   // Function to fetch page and sections data
   const fetchPageAndSections = useCallback(async () => {
     if (!restaurantId || !pageId) {
@@ -677,7 +737,8 @@ function PageSettingsSelector() {
 
   useEffect(() => {
     fetchPageAndSections();
-  }, [fetchPageAndSections]);
+    fetchPublishStatus();
+  }, [fetchPageAndSections, fetchPublishStatus]);
 
   // Sort existing sections by order_index
   const existingSectionsData = allTemplates
@@ -812,12 +873,19 @@ function PageSettingsSelector() {
       const data = await response.json();
       if (data.success) {
         setPagePublished(!pagePublished);
+        setToastMessage(`Page ${!pagePublished ? 'published' : 'unpublished'} successfully`);
+        setToastType('success');
+        setShowToast(true);
       } else {
-        alert('Failed to update publish status: ' + data.error);
+        setToastMessage('Failed to update publish status: ' + data.error);
+        setToastType('error');
+        setShowToast(true);
       }
     } catch (error) {
       console.error('Error updating publish status:', error);
-      alert('Error updating publish status');
+      setToastMessage('Error updating publish status');
+      setToastType('error');
+      setShowToast(true);
     } finally {
       setUpdatingPublish(false);
     }
@@ -906,13 +974,19 @@ function PageSettingsSelector() {
       const data = await response.json();
       if (data.success) {
         setEditingPageInfo(false);
-        alert('Page information updated successfully!');
+        setToastMessage('Page information updated successfully!');
+        setToastType('success');
+        setShowToast(true);
       } else {
-        alert('Failed to update page information: ' + data.error);
+        setToastMessage('Failed to update page information: ' + data.error);
+        setToastType('error');
+        setShowToast(true);
       }
     } catch (error) {
       console.error('Error updating page information:', error);
-      alert('Error updating page information');
+      setToastMessage('Error updating page information');
+      setToastType('error');
+      setShowToast(true);
     } finally {
       setUpdatingPageInfo(false);
     }
@@ -1027,6 +1101,28 @@ function PageSettingsSelector() {
               </>
             )}
           </button>
+          {publishStatus?.showPublishButton && (
+            <button
+              onClick={publishAllChanges}
+              disabled={publishingChanges}
+              className="inline-flex items-center gap-2 rounded-lg border border-green-200 bg-green-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Publish all unpublished changes"
+            >
+              {publishingChanges ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  Publishing...
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Publish Live
+                </>
+              )}
+            </button>
+          )}
           <button
             onClick={() => setShowAddSectionModal(true)}
             className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-purple-700"
@@ -1587,6 +1683,15 @@ function PageSettingsSelector() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Toast Notification */}
+      {showToast && (
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setShowToast(false)}
+        />
       )}
     </DashboardLayout>
   );

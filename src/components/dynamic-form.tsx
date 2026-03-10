@@ -51,6 +51,7 @@ interface DynamicFormProps {
   templateId?: string;
   showLoading?: boolean;
   configData?: Partial<FormConfig>;
+  isPreview?: boolean; // New prop to determine if this is a preview or live form
 }
 
 export default function DynamicForm({
@@ -58,11 +59,16 @@ export default function DynamicForm({
   pageId,
   templateId,
   showLoading = true,
-  configData
+  configData,
+  isPreview = false
 }: DynamicFormProps) {
   const [config, setConfig] = useState<FormConfig | null>(configData || null);
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(!configData);
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const globalStyleEndpoint = restaurantId
     ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`
     : '/api/global-style-config';
@@ -188,6 +194,137 @@ export default function DynamicForm({
     getSelectedGlobalButtonStyle(displayConfig, globalStyles),
   );
 
+  // Form submission handlers
+  const handleInputChange = (fieldId: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [fieldId]: value
+    }));
+  };
+
+  const validateForm = () => {
+    // Use current form (real or sample)
+    const currentForm = form || displayForm;
+    if (!currentForm || !currentForm.fields) return { isValid: false, errors: {} };
+    
+    const errors: Record<string, string> = {};
+    
+    currentForm.fields.forEach(field => {
+      if (field.required && (!formData[field.field_id] || formData[field.field_id].toString().trim() === '')) {
+        errors[field.field_id] = `${field.label} is required`;
+      }
+      
+      // Email validation
+      if (field.type === 'email' && formData[field.field_id]) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData[field.field_id])) {
+          errors[field.field_id] = 'Please enter a valid email address';
+        }
+      }
+    });
+    
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    };
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    console.log('[Form Submit] Starting submission process');
+    console.log('[Form Submit] isPreview:', isPreview);
+    console.log('[Form Submit] form:', form);
+    console.log('[Form Submit] restaurantId:', restaurantId);
+    console.log('[Form Submit] formData:', formData);
+    
+    if (isPreview) {
+      console.log('[Form Submit] Blocked: Preview mode');
+      return;
+    }
+    
+    if (!restaurantId) {
+      console.log('[Form Submit] Blocked: No restaurant ID');
+      setSubmitError('Restaurant ID is required for form submission');
+      return;
+    }
+    
+    // Allow submission even with sample form for testing
+    const currentForm = form || displayForm;
+    console.log('[Form Submit] Using form:', currentForm);
+    
+    const validation = validateForm();
+    console.log('[Form Submit] Validation result:', validation);
+    
+    if (!validation.isValid) {
+      setSubmitError('Please fill in all required fields correctly');
+      return;
+    }
+    
+    setSubmitting(true);
+    setSubmitError(null);
+    
+    try {
+      // Find email field value for submission
+      const emailField = currentForm.fields.find(f => f.type === 'email');
+      const submitterEmail = emailField ? formData[emailField.field_id] : '';
+      
+      console.log('[Form Submit] Email field:', emailField);
+      console.log('[Form Submit] Submitter email:', submitterEmail);
+      
+      if (!submitterEmail) {
+        throw new Error('Email is required for form submission');
+      }
+      
+      // Transform formData to use label names as keys instead of field IDs
+      const labelBasedData: Record<string, any> = {};
+      currentForm.fields.forEach(field => {
+        if (formData[field.field_id] !== undefined && formData[field.field_id] !== '') {
+          labelBasedData[field.label] = formData[field.field_id];
+        }
+      });
+      
+      console.log('[Form Submit] Original formData:', formData);
+      console.log('[Form Submit] Label-based data:', labelBasedData);
+      
+      const submissionData = {
+        form_id: currentForm.form_id,
+        form_title: config?.title || currentForm.name,
+        restaurant_id: restaurantId,
+        email: submitterEmail,
+        data: labelBasedData
+      };
+      
+      console.log('[Form Submit] Submission data:', submissionData);
+      
+      const response = await fetch('/api/form-submissions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submissionData),
+      });
+      
+      console.log('[Form Submit] Response status:', response.status);
+      
+      const result = await response.json();
+      console.log('[Form Submit] Response data:', result);
+      
+      if (result.success) {
+        setSubmitSuccess(true);
+        setFormData({}); // Reset form
+        console.log('[Form Submit] Success! Submission ID:', result.data?.submission_id);
+      } else {
+        throw new Error(result.error || 'Failed to submit form');
+      }
+    } catch (error) {
+      console.error('[Form Submit] Error:', error);
+      setSubmitError(error instanceof Error ? error.message : 'Failed to submit form');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const renderFormFields = () => {
     if (!displayForm || !displayForm.fields) {
       return (
@@ -197,11 +334,16 @@ export default function DynamicForm({
       );
     }
 
-    const sortedFields = displayForm.fields.sort((a, b) => a.order - b.order).slice(0, 3); // Show only first 3 fields for preview
+    // For preview mode, show only first 3 fields
+    const fieldsToShow = isPreview
+      ? displayForm.fields.sort((a, b) => a.order - b.order).slice(0, 3)
+      : displayForm.fields.sort((a, b) => a.order - b.order);
+
+    const validation = !isPreview ? validateForm() : { isValid: true, errors: {} };
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {sortedFields.map((field) => (
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {fieldsToShow.map((field) => (
           <div key={field.field_id}>
             <label style={{
               display: 'block',
@@ -213,55 +355,101 @@ export default function DynamicForm({
             {field.type === 'textarea' ? (
               <textarea
                 placeholder={field.placeholder || ''}
+                value={isPreview ? '' : (formData[field.field_id] || '')}
+                onChange={(e) => !isPreview && handleInputChange(field.field_id, e.target.value)}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
-                  border: '1px solid #d1d5db',
+                  border: `1px solid ${validation.errors[field.field_id] ? '#ef4444' : '#d1d5db'}`,
                   borderRadius: '6px',
                   fontSize: '14px',
                   minHeight: '80px',
-                  resize: 'vertical'
+                  resize: 'vertical',
+                  backgroundColor: isPreview ? '#f9fafb' : '#ffffff'
                 }}
-                disabled
+                disabled={isPreview}
               />
             ) : field.type === 'select' ? (
               <select
+                value={isPreview ? '' : (formData[field.field_id] || '')}
+                onChange={(e) => !isPreview && handleInputChange(field.field_id, e.target.value)}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
-                  border: '1px solid #d1d5db',
+                  border: `1px solid ${validation.errors[field.field_id] ? '#ef4444' : '#d1d5db'}`,
                   borderRadius: '6px',
-                  fontSize: '14px'
+                  fontSize: '14px',
+                  backgroundColor: isPreview ? '#f9fafb' : '#ffffff'
                 }}
-                disabled
+                disabled={isPreview}
               >
-                <option>{field.placeholder || 'Select an option'}</option>
+                <option value="">{field.placeholder || 'Select an option'}</option>
                 {field.options?.map((option, idx) => (
                   <option key={idx} value={option}>{option}</option>
                 ))}
               </select>
+            ) : field.type === 'checkbox' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={isPreview ? false : (formData[field.field_id] || false)}
+                  onChange={(e) => !isPreview && handleInputChange(field.field_id, e.target.checked)}
+                  disabled={isPreview}
+                  style={{ margin: 0 }}
+                />
+                <span style={{ fontSize: '14px' }}>{field.placeholder || field.label}</span>
+              </div>
+            ) : field.type === 'radio' && field.options ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {field.options.map((option, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="radio"
+                      name={field.field_id}
+                      value={option}
+                      checked={isPreview ? false : (formData[field.field_id] === option)}
+                      onChange={(e) => !isPreview && handleInputChange(field.field_id, e.target.value)}
+                      disabled={isPreview}
+                      style={{ margin: 0 }}
+                    />
+                    <span style={{ fontSize: '14px' }}>{option}</span>
+                  </div>
+                ))}
+              </div>
             ) : (
               <input
                 type={field.type}
                 placeholder={field.placeholder || ''}
+                value={isPreview ? '' : (formData[field.field_id] || '')}
+                onChange={(e) => !isPreview && handleInputChange(field.field_id, e.target.value)}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
-                  border: '1px solid #d1d5db',
+                  border: `1px solid ${validation.errors[field.field_id] ? '#ef4444' : '#d1d5db'}`,
                   borderRadius: '6px',
-                  fontSize: '14px'
+                  fontSize: '14px',
+                  backgroundColor: isPreview ? '#f9fafb' : '#ffffff'
                 }}
-                disabled
+                disabled={isPreview}
               />
+            )}
+            {!isPreview && validation.errors[field.field_id] && (
+              <div style={{
+                fontSize: '12px',
+                color: '#ef4444',
+                marginTop: '4px'
+              }}>
+                {validation.errors[field.field_id]}
+              </div>
             )}
           </div>
         ))}
         
-        {displayForm.fields.length > 3 && (
-          <div style={{ 
-            padding: '8px', 
-            textAlign: 'center', 
-            fontSize: '12px', 
+        {isPreview && displayForm.fields.length > 3 && (
+          <div style={{
+            padding: '8px',
+            textAlign: 'center',
+            fontSize: '12px',
             color: '#6b7280',
             fontStyle: 'italic'
           }}>
@@ -269,7 +457,38 @@ export default function DynamicForm({
           </div>
         )}
 
+        {/* Success message */}
+        {!isPreview && submitSuccess && (
+          <div style={{
+            padding: '12px',
+            backgroundColor: '#dcfce7',
+            border: '1px solid #16a34a',
+            borderRadius: '6px',
+            color: '#15803d',
+            fontSize: '14px',
+            textAlign: 'center'
+          }}>
+            ✅ Thank you! Your form has been submitted successfully.
+          </div>
+        )}
+
+        {/* Error message */}
+        {!isPreview && submitError && (
+          <div style={{
+            padding: '12px',
+            backgroundColor: '#fef2f2',
+            border: '1px solid #ef4444',
+            borderRadius: '6px',
+            color: '#dc2626',
+            fontSize: '14px',
+            textAlign: 'center'
+          }}>
+            ❌ {submitError}
+          </div>
+        )}
+
         <button
+          type={isPreview ? 'button' : 'submit'}
           style={{
             backgroundColor: buttonStyle.backgroundColor || buttonColor,
             color: buttonStyle.color || '#ffffff',
@@ -280,14 +499,14 @@ export default function DynamicForm({
             fontWeight: buttonStyle.fontWeight || '500',
             fontFamily: buttonStyle.fontFamily,
             textTransform: buttonStyle.textTransform,
-            cursor: 'not-allowed',
-            opacity: 0.7,
+            cursor: isPreview || submitting ? 'not-allowed' : 'pointer',
+            opacity: isPreview || submitting ? 0.7 : 1,
           }}
-          disabled
+          disabled={isPreview || submitting || submitSuccess}
         >
-          {buttonText}
+          {submitting ? 'Submitting...' : submitSuccess ? 'Submitted ✓' : buttonText}
         </button>
-      </div>
+      </form>
     );
   };
 
@@ -301,13 +520,15 @@ export default function DynamicForm({
   // Add preview indicator if using sample data or if disabled
   const isUsingSampleData = !config || !form;
   // Check for both 'enabled' and 'isEnabled' for backwards compatibility
-  const isDisabled = config && !(config.isEnabled ?? (config as any).enabled ?? true);
+  // Only disable if explicitly set to false AND not in preview mode
+  const isDisabled = !isPreview && config && !(config.isEnabled ?? (config as any).enabled ?? true);
 
   // Render based on layout
   if (layout === 'split' && imageUrl) {
     return (
       <div style={containerStyle}>
-        {(isUsingSampleData || isDisabled) && (
+        {/* Only show preview indicators in preview mode or when actually disabled */}
+        {(isPreview && (isUsingSampleData || isDisabled)) && (
           <div style={{
             textAlign: 'center',
             marginBottom: '20px',
@@ -318,6 +539,21 @@ export default function DynamicForm({
             color: isDisabled ? '#ef4444' : '#3b82f6'
           }}>
             {isDisabled ? '📝 Form Display (Disabled - Enable in settings to show to customers)' : '📝 Sample Form Preview (Configure form settings to see actual form)'}
+          </div>
+        )}
+        
+        {/* Show functional form indicator when not in preview */}
+        {!isPreview && isUsingSampleData && (
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '20px',
+            padding: '8px',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#16a34a'
+          }}>
+            ✅ Live Form (Ready to accept submissions)
           </div>
         )}
         <div style={{ display: 'flex', gap: '40px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -346,7 +582,8 @@ export default function DynamicForm({
   // Default centered layout
   return (
     <div style={containerStyle}>
-      {(isUsingSampleData || isDisabled) && (
+      {/* Only show preview indicators in preview mode or when actually disabled */}
+      {(isPreview && (isUsingSampleData || isDisabled)) && (
         <div style={{
           textAlign: 'center',
           marginBottom: '20px',
@@ -357,6 +594,21 @@ export default function DynamicForm({
           color: isDisabled ? '#ef4444' : '#3b82f6'
         }}>
           {isDisabled ? '📝 Form Display (Disabled - Enable in settings to show to customers)' : '📝 Sample Form Preview (Configure form settings to see actual form)'}
+        </div>
+      )}
+      
+      {/* Show functional form indicator when not in preview */}
+      {!isPreview && isUsingSampleData && (
+        <div style={{
+          textAlign: 'center',
+          marginBottom: '20px',
+          padding: '8px',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          borderRadius: '4px',
+          fontSize: '12px',
+          color: '#16a34a'
+        }}>
+          ✅ Live Form (Ready to accept submissions)
         </div>
       )}
       <div style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>

@@ -205,7 +205,7 @@ export function buildSectionStyleConfig(
       source.titleMobileFontWeight !== undefined
         ? toNumberValue(source.titleMobileFontWeight, defaults.titleFontWeight)
         : defaults.titleMobileFontWeight,
-    titleFontStyle: toOptionalStringValue(source.titleFontStyle, defaults.titleFontStyle),
+    titleFontStyle: toOptionalStringValue(source.titleFontStyle, defaults.titleFontStyle) as SectionStyleConfig['titleFontStyle'],
     titleMobileFontStyle: toOptionalStringValue(
       source.titleMobileFontStyle,
       defaults.titleMobileFontStyle,
@@ -260,7 +260,7 @@ export function buildSectionStyleConfig(
     subtitleFontStyle: toOptionalStringValue(
       source.subtitleFontStyle,
       defaults.subtitleFontStyle,
-    ),
+    ) as SectionStyleConfig['subtitleFontStyle'],
     subtitleMobileFontStyle: toOptionalStringValue(
       source.subtitleMobileFontStyle,
       defaults.subtitleMobileFontStyle,
@@ -309,7 +309,7 @@ export function buildSectionStyleConfig(
       source.bodyMobileFontWeight !== undefined
         ? toNumberValue(source.bodyMobileFontWeight, defaults.bodyFontWeight)
         : defaults.bodyMobileFontWeight,
-    bodyFontStyle: toOptionalStringValue(source.bodyFontStyle, defaults.bodyFontStyle),
+    bodyFontStyle: toOptionalStringValue(source.bodyFontStyle, defaults.bodyFontStyle) as SectionStyleConfig['bodyFontStyle'],
     bodyMobileFontStyle: toOptionalStringValue(
       source.bodyMobileFontStyle,
       defaults.bodyMobileFontStyle,

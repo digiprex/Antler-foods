@@ -398,11 +398,11 @@ export default function Reviews({
             {subtitle && (
               <p
                 style={{
+                  ...subtitleStyle,
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   marginBottom: '0.5rem',
                   opacity: 0.7,
-                  ...subtitleStyle,
                 }}
               >
                 {subtitle}

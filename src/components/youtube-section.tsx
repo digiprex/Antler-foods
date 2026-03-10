@@ -242,7 +242,7 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
                   )}
                   {config.description && (
                     <p
-                      style={{ lineHeight: '1.75', opacity: 0.9, ...bodyStyle }}
+                      style={{ ...bodyStyle, lineHeight: '1.75', opacity: 0.9 }}
                     >
                       {config.description}
                     </p>
@@ -267,7 +267,7 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
                   </h2>
                 )}
                 {config.description && (
-                  <p style={{ lineHeight: '1.75', opacity: 0.9, ...bodyStyle }}>
+                  <p style={{ ...bodyStyle, lineHeight: '1.75', opacity: 0.9 }}>
                     {config.description}
                   </p>
                 )}

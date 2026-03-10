@@ -653,7 +653,12 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
             <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Reviews Preview</h2>
-                <p className="mt-1 text-sm text-slate-600">Preview how your reviews will appear on the website</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Preview how your reviews will appear on the website
+                  {reviews.length === 0 && (
+                    <span className="ml-1 text-purple-600">(showing sample reviews)</span>
+                  )}
+                </p>
               </div>
               <button
                 type="button"
@@ -673,7 +678,95 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
                   <span>Live Review Section</span>
                 </div>
                 <div className="bg-white">
-                  <Reviews {...config} reviews={reviews} />
+                  <Reviews
+                    {...config}
+                    reviews={reviews.length > 0 ? reviews : [
+                      {
+                        review_id: 'sample-1',
+                        restaurant_id: restaurantId,
+                        author_name: 'Sarah Johnson',
+                        rating: 5,
+                        review_text: 'Absolutely amazing experience! The food was incredible and the service was top-notch. Would highly recommend to anyone looking for a great dining experience.',
+                        published_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+                        source: 'Google',
+                        avatar_url: 'https://ui-avatars.com/api/?name=Sarah+Johnson&background=a855f7&color=fff',
+                        is_hidden: false,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                        is_deleted: false,
+                      },
+                      {
+                        review_id: 'sample-2',
+                        restaurant_id: restaurantId,
+                        author_name: 'Michael Chen',
+                        rating: 5,
+                        review_text: 'Best restaurant in town! The atmosphere is wonderful and every dish we tried was perfection. Can\'t wait to come back!',
+                        published_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+                        source: 'Google',
+                        avatar_url: 'https://ui-avatars.com/api/?name=Michael+Chen&background=8b5cf6&color=fff',
+                        is_hidden: false,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                        is_deleted: false,
+                      },
+                      {
+                        review_id: 'sample-3',
+                        restaurant_id: restaurantId,
+                        author_name: 'Emily Rodriguez',
+                        rating: 4,
+                        review_text: 'Great food and lovely ambiance. The menu has something for everyone. Service was friendly and attentive.',
+                        published_at: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+                        source: 'Google',
+                        avatar_url: 'https://ui-avatars.com/api/?name=Emily+Rodriguez&background=7c3aed&color=fff',
+                        is_hidden: false,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                        is_deleted: false,
+                      },
+                      {
+                        review_id: 'sample-4',
+                        restaurant_id: restaurantId,
+                        author_name: 'David Thompson',
+                        rating: 5,
+                        review_text: 'Outstanding in every way! From the moment we walked in, we were treated like family. The chef really knows how to create memorable dishes.',
+                        published_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+                        source: 'Google',
+                        avatar_url: 'https://ui-avatars.com/api/?name=David+Thompson&background=6d28d9&color=fff',
+                        is_hidden: false,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                        is_deleted: false,
+                      },
+                      {
+                        review_id: 'sample-5',
+                        restaurant_id: restaurantId,
+                        author_name: 'Jessica Martinez',
+                        rating: 5,
+                        review_text: 'Exceptional dining experience! Fresh ingredients, creative menu, and impeccable presentation. A must-visit for food lovers.',
+                        published_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+                        source: 'Google',
+                        avatar_url: 'https://ui-avatars.com/api/?name=Jessica+Martinez&background=5b21b6&color=fff',
+                        is_hidden: false,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                        is_deleted: false,
+                      },
+                      {
+                        review_id: 'sample-6',
+                        restaurant_id: restaurantId,
+                        author_name: 'Robert Wilson',
+                        rating: 4,
+                        review_text: 'Very impressed with the quality and taste. Portions are generous and prices are reasonable. Will definitely be returning soon!',
+                        published_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+                        source: 'Google',
+                        avatar_url: 'https://ui-avatars.com/api/?name=Robert+Wilson&background=4c1d95&color=fff',
+                        is_hidden: false,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                        is_deleted: false,
+                      },
+                    ]}
+                  />
                 </div>
               </div>
             </div>

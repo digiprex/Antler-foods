@@ -70,6 +70,7 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
   const [googlePlaceId, setGooglePlaceId] = useState<string>('');
   const [loadingPlace, setLoadingPlace] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewViewport, setPreviewViewport] = useState<'desktop' | 'mobile'>('desktop');
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -89,6 +90,190 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
   ];
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+  // Render layout preview artwork with address, map, and hours
+  const renderLocationLayoutPreview = (layoutValue: string) => {
+    const frameStyle = {
+      position: 'relative' as const,
+      height: '130px',
+      borderRadius: '18px',
+      overflow: 'hidden',
+      border: '1px solid #dbe3ec',
+      background: 'linear-gradient(180deg, #fdfefe 0%, #f7f9fc 100%)',
+      boxShadow: '0 12px 26px rgba(15, 23, 42, 0.07)',
+    };
+
+    const boardStyle = {
+      position: 'absolute' as const,
+      inset: '44px 10px 10px',
+      overflow: 'hidden',
+      borderRadius: '12px',
+      background: '#f3f6f8',
+      border: '1px solid #edf2f6',
+      padding: '8px',
+    };
+
+    const chrome = (
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '18px', borderBottom: '1px solid #e5e9f0', background: '#ffffff', display: 'flex', alignItems: 'center', padding: '0 8px', gap: '4px' }}>
+        <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#ef4444' }} />
+        <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#f59e0b' }} />
+        <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#10b981' }} />
+      </div>
+    );
+
+    // Address bar (darker gray) - represents address text
+    const addressBox = (width = '100%', height = '10px') => (
+      <div style={{ background: '#9ca3af', borderRadius: '4px', width, height }} />
+    );
+
+    // Map area (green gradient with pin)
+    const mapBox = (height = '100%') => (
+      <div style={{ background: 'linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%)', borderRadius: '6px', height, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>
+        📍
+      </div>
+    );
+
+    // Hours/info box (lighter gray) - represents opening hours
+    const hoursBox = (width = '100%', height = '8px') => (
+      <div style={{ background: '#d1d5db', borderRadius: '4px', width, height }} />
+    );
+
+    switch (layoutValue) {
+      case 'default':
+        return (
+          <div style={frameStyle}>
+            {chrome}
+            <div style={boardStyle}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', height: '100%' }}>
+                {addressBox('90%', '12px')}
+                {mapBox('45px')}
+                {hoursBox('70%', '8px')}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'grid':
+        return (
+          <div style={frameStyle}>
+            {chrome}
+            <div style={boardStyle}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', height: '100%' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '4px' }}>
+                  {addressBox('100%', '8px')}
+                  {hoursBox('80%', '6px')}
+                  {hoursBox('70%', '6px')}
+                </div>
+                {mapBox()}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'list':
+        return (
+          <div style={frameStyle}>
+            {chrome}
+            <div style={boardStyle}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', height: '100%' }}>
+                {addressBox('100%', '10px')}
+                <div style={{ flex: 1, minHeight: 0 }}>{mapBox()}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  {hoursBox('80%', '6px')}
+                  {hoursBox('70%', '6px')}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'cards':
+        return (
+          <div style={frameStyle}>
+            {chrome}
+            <div style={boardStyle}>
+              <div style={{ display: 'flex', gap: '6px', height: '100%' }}>
+                <div style={{ flex: 1, background: '#ffffff', borderRadius: '6px', border: '1px solid #e5e7eb', padding: '4px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  {addressBox('90%', '6px')}
+                  {hoursBox('70%', '5px')}
+                </div>
+                <div style={{ flex: 1 }}>{mapBox()}</div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'map':
+        return (
+          <div style={frameStyle}>
+            {chrome}
+            <div style={boardStyle}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', height: '100%' }}>
+                <div style={{ flex: 1, minHeight: 0 }}>{mapBox()}</div>
+                <div style={{ background: '#ffffff', borderRadius: '6px', padding: '3px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  {addressBox('80%', '6px')}
+                  {hoursBox('60%', '5px')}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'compact':
+        return (
+          <div style={frameStyle}>
+            {chrome}
+            <div style={boardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '6px' }}>
+                <div style={{ width: '35px', height: '35px' }}>{mapBox()}</div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  {addressBox('100%', '7px')}
+                  {hoursBox('80%', '5px')}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'sidebar':
+        return (
+          <div style={frameStyle}>
+            {chrome}
+            <div style={boardStyle}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.8fr', gap: '6px', height: '100%' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '2px' }}>
+                  {addressBox('100%', '8px')}
+                  {hoursBox('90%', '6px')}
+                  {hoursBox('80%', '6px')}
+                  {hoursBox('70%', '6px')}
+                </div>
+                {mapBox()}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'fullscreen':
+        return (
+          <div style={frameStyle}>
+            {chrome}
+            <div style={boardStyle}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', height: '100%' }}>
+                <div style={{ flex: 1, minHeight: 0 }}>{mapBox()}</div>
+                <div style={{ background: '#ffffff', borderRadius: '6px', padding: '4px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '3px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    {addressBox('90%', '5px')}
+                    {hoursBox('70%', '4px')}
+                  </div>
+                  {hoursBox('100%', '10px')}
+                  {hoursBox('100%', '10px')}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+    }
+  };
 
   // Load configuration and restaurant place_id from API
   useEffect(() => {
@@ -404,7 +589,52 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
         </div>
 
         {/* Location Information */}
-  
+
+
+        {/* Layout Selection */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Layout Style</h2>
+              <p className="text-sm text-gray-600">Choose how location is displayed</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {layoutOptions.map((option) => (
+              <button
+                type="button"
+                key={option.value}
+                onClick={() => updateConfig({ layout: option.value as LocationConfig['layout'] })}
+                className={`group w-full cursor-pointer rounded-xl border-2 p-3 text-left transition-all ${
+                  config.layout === option.value
+                    ? 'border-purple-500 bg-purple-50 shadow-sm'
+                    : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'
+                }`}
+                aria-pressed={config.layout === option.value}
+              >
+                <div className="mb-3">
+                  {renderLocationLayoutPreview(option.value)}
+                </div>
+                <div className={`text-sm font-medium ${
+                  config.layout === option.value
+                    ? 'text-purple-700'
+                    : 'text-gray-900'
+                }`}>
+                  {option.name}
+                </div>
+                <div className="mt-0.5 text-xs text-gray-500">
+                  {option.description}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Display Settings */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -453,6 +683,20 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
 
             <div>
               <label className="block text-sm font-medium text-gray-700">
+                Subtitle
+              </label>
+              <p className="mt-1 text-xs text-gray-500">Optional subheading below the title</p>
+              <input
+                type="text"
+                className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                value={config.subtitle || ''}
+                onChange={(e) => updateConfig({ subtitle: e.target.value })}
+                placeholder="Find us here"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
                 Description
               </label>
               <p className="mt-1 text-xs text-gray-500">Brief description for the location section</p>
@@ -464,45 +708,49 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
                 rows={3}
               />
             </div>
-          </div>
-        </div>
 
-        {/* Layout Selection */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Layout Style</h2>
-              <p className="text-sm text-gray-600">Choose how location is displayed</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {layoutOptions.map((option) => (
-              <div
-                key={option.value}
-                onClick={() => updateConfig({ layout: option.value as LocationConfig['layout'] })}
-                className={`cursor-pointer rounded-lg border-2 p-4 transition-all ${
-                  config.layout === option.value
-                    ? 'border-purple-500 bg-purple-50 shadow-md'
-                    : 'border-gray-200 bg-white hover:border-purple-300 hover:shadow-sm'
-                }`}
-              >
-                <div className="mb-2 text-center text-3xl">
-                  {option.icon}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-gray-900">Display Components</h3>
+              <p className="mb-4 text-xs text-gray-500">Choose which information to show</p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Show Address</label>
+                    <p className="text-xs text-gray-500">Display the location address</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.showAddress !== false}
+                    onChange={(e) => updateConfig({ showAddress: e.target.checked })}
+                    className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                  />
                 </div>
-                <h3 className="mb-1 text-center text-base font-semibold text-gray-900">
-                  {option.name}
-                </h3>
-                <p className="m-0 text-center text-sm text-gray-600">
-                  {option.description}
-                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Show Opening Hours</label>
+                    <p className="text-xs text-gray-500">Display opening hours</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.showHours !== false}
+                    onChange={(e) => updateConfig({ showHours: e.target.checked })}
+                    className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Show Map</label>
+                    <p className="text-xs text-gray-500">Display interactive map</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.showMap !== false}
+                    onChange={(e) => updateConfig({ showMap: e.target.checked })}
+                    className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                  />
+                </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
 
@@ -646,34 +894,93 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white p-6">
-              <h2 className="text-xl font-bold text-gray-900">
-                Layout Preview: {layoutOptions.find(opt => opt.value === config.layout)?.name}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setShowPreviewModal(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Layout Preview: {layoutOptions.find(opt => opt.value === config.layout)?.name}
+                </h2>
+                <p className="mt-1 text-sm text-gray-600">Preview how your location will appear</p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Desktop/Mobile Toggle */}
+                <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewViewport('desktop')}
+                    className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                      previewViewport === 'desktop'
+                        ? 'bg-purple-100 text-purple-700'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Desktop
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewViewport('mobile')}
+                    className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                      previewViewport === 'mobile'
+                        ? 'bg-purple-100 text-purple-700'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Mobile
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPreviewModal(false)}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div className="overflow-auto p-0" style={{ maxHeight: 'calc(90vh - 180px)' }}>
               <div style={{
-                backgroundColor: config.bgColor || '#ffffff',
-                color: config.textColor || '#000000',
+                backgroundColor: '#f3f4f6',
                 minHeight: '500px',
-                padding: '3rem 2rem',
+                padding: '2rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}>
-                <LocationLayoutPreview
-                  layout={config.layout || 'default'}
-                  placeDetails={placeDetails}
-                  title={config.title || 'Our Location'}
-                  description={config.description || 'Visit us at our location'}
-                  textColor={config.textColor || '#000000'}
-                />
+                <div style={{
+                  width: previewViewport === 'desktop' ? '100%' : '375px',
+                  maxWidth: previewViewport === 'desktop' ? '1400px' : '375px',
+                  backgroundColor: config.bgColor || '#ffffff',
+                  color: config.textColor || '#000000',
+                  borderRadius: previewViewport === 'mobile' ? '24px' : '0',
+                  boxShadow: previewViewport === 'mobile' ? '0 20px 60px rgba(0, 0, 0, 0.3)' : 'none',
+                  border: previewViewport === 'mobile' ? '8px solid #1f2937' : 'none',
+                  overflow: 'hidden',
+                  transition: 'all 300ms ease',
+                }}>
+                  <LocationFullPreview
+                    layout={config.layout || 'default'}
+                    placeDetails={placeDetails}
+                    title={config.title || 'Our Location'}
+                    subtitle={config.subtitle || ''}
+                    description={config.description || 'Visit us at our location'}
+                    textColor={config.textColor || '#000000'}
+                    bgColor={config.bgColor || '#ffffff'}
+                    maxWidth={config.maxWidth}
+                    viewport={previewViewport}
+                    showAddress={config.showAddress !== false}
+                    showHours={config.showHours !== false}
+                    showMap={config.showMap !== false}
+                  />
+                </div>
               </div>
             </div>
 
@@ -699,6 +1006,633 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
         />
       )}
     </>
+  );
+}
+
+// Full Location Preview Component with Real Data
+function LocationFullPreview({
+  layout,
+  placeDetails,
+  title,
+  subtitle,
+  description,
+  textColor,
+  bgColor,
+  maxWidth,
+  viewport,
+  showAddress,
+  showHours,
+  showMap,
+}: {
+  layout: string;
+  placeDetails: PlaceDetails;
+  title: string;
+  subtitle: string;
+  description: string;
+  textColor: string;
+  bgColor: string;
+  maxWidth?: string;
+  viewport: 'desktop' | 'mobile';
+  showAddress: boolean;
+  showHours: boolean;
+  showMap: boolean;
+}) {
+  const lat = typeof placeDetails.geometry.location.lat === 'function'
+    ? placeDetails.geometry.location.lat()
+    : placeDetails.geometry.location.lat;
+  const lng = typeof placeDetails.geometry.location.lng === 'function'
+    ? placeDetails.geometry.location.lng()
+    : placeDetails.geometry.location.lng;
+
+  const isMobile = viewport === 'mobile';
+  const contentMaxWidth = maxWidth || '1400px';
+
+  // Common styles
+  const containerStyle: React.CSSProperties = {
+    backgroundColor: bgColor,
+    color: textColor,
+    padding: isMobile ? '2rem 1.5rem' : '4rem 2rem',
+    minHeight: isMobile ? 'auto' : '600px',
+  };
+
+  const titleStyle: React.CSSProperties = {
+    fontSize: isMobile ? '1.75rem' : '2.5rem',
+    fontWeight: '700',
+    marginBottom: subtitle ? '0.5rem' : '0.75rem',
+    color: textColor,
+  };
+
+  const subtitleStyle: React.CSSProperties = {
+    fontSize: isMobile ? '1rem' : '1.25rem',
+    fontWeight: '500',
+    marginBottom: '0.5rem',
+    opacity: 0.9,
+    color: textColor,
+  };
+
+  const descStyle: React.CSSProperties = {
+    fontSize: isMobile ? '0.95rem' : '1.125rem',
+    marginBottom: isMobile ? '2rem' : '3rem',
+    opacity: 0.8,
+  };
+
+  const cardStyle: React.CSSProperties = {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backdropFilter: 'blur(10px)',
+    border: '1px solid rgba(0, 0, 0, 0.1)',
+    borderRadius: '12px',
+    padding: isMobile ? '1.5rem' : '2rem',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+  };
+
+  // Default Layout
+  if (layout === 'default') {
+    return (
+      <div style={containerStyle}>
+        <div style={{ maxWidth: contentMaxWidth, margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={titleStyle}>{title}</h2>
+          {subtitle && <p style={subtitleStyle}>{subtitle}</p>}
+          <p style={descStyle}>{description}</p>
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: '600', marginBottom: '1rem', color: '#1a1a1a' }}>
+              {placeDetails.name}
+            </h3>
+            <div style={{ textAlign: 'left', color: '#333' }}>
+              {showAddress && (
+                <p style={{ marginBottom: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'start' }}>
+                  <span style={{ fontSize: '1.25rem' }}>📍</span>
+                  <span>{placeDetails.formatted_address}</span>
+                </p>
+              )}
+              {placeDetails.formatted_phone_number && (
+                <p style={{ marginBottom: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <span style={{ fontSize: '1.25rem' }}>📞</span>
+                  <span>{placeDetails.formatted_phone_number}</span>
+                </p>
+              )}
+              {showHours && placeDetails.opening_hours?.weekday_text && (
+                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(0, 0, 0, 0.1)' }}>
+                  <p style={{ fontWeight: '600', marginBottom: '0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1.25rem' }}>🕒</span>
+                    <span>Opening Hours:</span>
+                  </p>
+                  <div style={{ fontSize: '0.875rem', lineHeight: '1.6', paddingLeft: '1.75rem' }}>
+                    {placeDetails.opening_hours.weekday_text.map((text, i) => (
+                      <div key={i}>{text}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {showMap && (
+                <div style={{
+                  marginTop: '1.5rem',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  minHeight: isMobile ? '250px' : '350px',
+                  backgroundColor: '#e8e8e8'
+                }}>
+                  <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Grid Layout
+  if (layout === 'grid') {
+    return (
+      <div style={containerStyle}>
+        <div style={{ maxWidth: contentMaxWidth, margin: '0 auto' }}>
+          <h2 style={{ ...titleStyle, textAlign: 'center' }}>{title}</h2>
+          {subtitle && <p style={{ ...subtitleStyle, textAlign: 'center' }}>{subtitle}</p>}
+          <p style={{ ...descStyle, textAlign: 'center' }}>{description}</p>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : (showMap ? '1fr 1fr' : '1fr'),
+            gap: isMobile ? '1.5rem' : '2rem'
+          }}>
+            <div style={cardStyle}>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1.5rem', color: '#1a1a1a' }}>
+                {placeDetails.name}
+              </h3>
+              <div style={{ display: 'grid', gap: '1rem', fontSize: '0.9375rem', color: '#333' }}>
+                {showAddress && (
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'start' }}>
+                    <span style={{ fontSize: '1.25rem' }}>📍</span>
+                    <span>{placeDetails.formatted_address}</span>
+                  </div>
+                )}
+                {placeDetails.formatted_phone_number && (
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1.25rem' }}>📞</span>
+                    <span>{placeDetails.formatted_phone_number}</span>
+                  </div>
+                )}
+                {showHours && placeDetails.opening_hours?.weekday_text && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <div style={{ fontWeight: '600', marginBottom: '0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.25rem' }}>🕒</span>
+                      <span>Hours:</span>
+                    </div>
+                    <div style={{ fontSize: '0.875rem', lineHeight: '1.6', paddingLeft: '1.75rem' }}>
+                      {placeDetails.opening_hours.weekday_text.slice(0, isMobile ? 3 : 7).map((text, i) => (
+                        <div key={i}>{text}</div>
+                      ))}
+                      {isMobile && placeDetails.opening_hours.weekday_text.length > 3 && (
+                        <div style={{ fontStyle: 'italic', marginTop: '0.25rem', opacity: 0.7 }}>
+                          + {placeDetails.opening_hours.weekday_text.length - 3} more days
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            {showMap && (
+              <div style={{
+                ...cardStyle,
+                padding: '0.5rem',
+                minHeight: isMobile ? '300px' : '400px',
+                overflow: 'hidden'
+              }}>
+                <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // List Layout
+  if (layout === 'list') {
+    return (
+      <div style={containerStyle}>
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <h2 style={titleStyle}>{title}</h2>
+          {subtitle && <p style={subtitleStyle}>{subtitle}</p>}
+          <p style={descStyle}>{description}</p>
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: '1.75rem', fontWeight: '600', marginBottom: '1.5rem', color: '#1a1a1a' }}>
+              {placeDetails.name}
+            </h3>
+            <div style={{ display: 'grid', gap: '1.5rem' }}>
+              <div>
+                <div style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Address
+                </div>
+                <div style={{ fontSize: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'start', color: '#333' }}>
+                  <span style={{ fontSize: '1.25rem' }}>📍</span>
+                  <span>{placeDetails.formatted_address}</span>
+                </div>
+              </div>
+              {placeDetails.formatted_phone_number && (
+                <div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Phone
+                  </div>
+                  <div style={{ fontSize: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center', color: '#333' }}>
+                    <span style={{ fontSize: '1.25rem' }}>📞</span>
+                    <span>{placeDetails.formatted_phone_number}</span>
+                  </div>
+                </div>
+              )}
+              {placeDetails.opening_hours?.weekday_text && (
+                <div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Opening Hours
+                  </div>
+                  <div style={{ fontSize: '0.9375rem', lineHeight: '1.8', color: '#333' }}>
+                    {placeDetails.opening_hours.weekday_text.map((text, i) => (
+                      <div key={i} style={{ display: 'flex', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1rem' }}>🕒</span>
+                        <span>{text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <div style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Location Map
+                </div>
+                <div style={{
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  minHeight: isMobile ? '250px' : '350px',
+                  backgroundColor: '#e8e8e8'
+                }}>
+                  <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Cards Layout
+  if (layout === 'cards') {
+    return (
+      <div style={containerStyle}>
+        <div style={{ maxWidth: contentMaxWidth, margin: '0 auto' }}>
+          <h2 style={{ ...titleStyle, textAlign: 'center' }}>{title}</h2>
+          {subtitle && <p style={{ ...subtitleStyle, textAlign: 'center' }}>{subtitle}</p>}
+          <p style={{ ...descStyle, textAlign: 'center' }}>{description}</p>
+          <div style={{ ...cardStyle, padding: isMobile ? '2rem 1.5rem' : '3rem' }}>
+            <h3 style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'center', color: '#1a1a1a' }}>
+              {placeDetails.name}
+            </h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '1.5rem'
+            }}>
+              <div style={{
+                backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                border: '1px solid rgba(0, 0, 0, 0.1)',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                textAlign: 'center',
+              }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📍</div>
+                <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#1a1a1a' }}>Address</div>
+                <div style={{ fontSize: '0.9375rem', color: '#666' }}>{placeDetails.formatted_address}</div>
+              </div>
+              {placeDetails.formatted_phone_number && (
+                <div style={{
+                  backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                  border: '1px solid rgba(0, 0, 0, 0.1)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📞</div>
+                  <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#1a1a1a' }}>Phone</div>
+                  <div style={{ fontSize: '0.9375rem', color: '#666' }}>{placeDetails.formatted_phone_number}</div>
+                </div>
+              )}
+              {placeDetails.opening_hours?.weekday_text && (
+                <div style={{
+                  backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                  border: '1px solid rgba(0, 0, 0, 0.1)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🕒</div>
+                  <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#1a1a1a' }}>Hours</div>
+                  <div style={{ fontSize: '0.875rem', color: '#666', textAlign: 'left' }}>
+                    {placeDetails.opening_hours.weekday_text.slice(0, 3).map((text, i) => (
+                      <div key={i}>{text}</div>
+                    ))}
+                    {placeDetails.opening_hours.weekday_text.length > 3 && (
+                      <div style={{ fontStyle: 'italic', marginTop: '0.5rem' }}>
+                        + {placeDetails.opening_hours.weekday_text.length - 3} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Map Layout
+  if (layout === 'map') {
+    return (
+      <div style={containerStyle}>
+        <div style={{ maxWidth: contentMaxWidth, margin: '0 auto' }}>
+          <h2 style={{ ...titleStyle, textAlign: 'center' }}>{title}</h2>
+          {subtitle && <p style={{ ...subtitleStyle, textAlign: 'center' }}>{subtitle}</p>}
+          <p style={{ ...descStyle, textAlign: 'center' }}>{description}</p>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr',
+            gap: isMobile ? '1.5rem' : '2rem'
+          }}>
+            <div style={cardStyle}>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1.5rem', color: '#1a1a1a' }}>
+                {placeDetails.name}
+              </h3>
+              <div style={{ display: 'grid', gap: '1rem', fontSize: '0.9375rem', color: '#333' }}>
+                <div>
+                  <strong style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.25rem' }}>
+                    <span style={{ fontSize: '1.25rem' }}>📍</span>
+                    Address:
+                  </strong>
+                  <div style={{ paddingLeft: '1.75rem' }}>{placeDetails.formatted_address}</div>
+                </div>
+                {placeDetails.formatted_phone_number && (
+                  <div>
+                    <strong style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.25rem' }}>
+                      <span style={{ fontSize: '1.25rem' }}>📞</span>
+                      Phone:
+                    </strong>
+                    <div style={{ paddingLeft: '1.75rem' }}>{placeDetails.formatted_phone_number}</div>
+                  </div>
+                )}
+                {placeDetails.opening_hours?.weekday_text && (
+                  <div>
+                    <strong style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '1.25rem' }}>🕒</span>
+                      Hours:
+                    </strong>
+                    <div style={{ fontSize: '0.875rem', lineHeight: '1.6', paddingLeft: '1.75rem' }}>
+                      {placeDetails.opening_hours.weekday_text.slice(0, isMobile ? 3 : 7).map((text, i) => (
+                        <div key={i}>{text}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div style={{
+              ...cardStyle,
+              padding: '0.5rem',
+              minHeight: isMobile ? '300px' : '500px',
+              overflow: 'hidden'
+            }}>
+              <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Compact Layout
+  if (layout === 'compact') {
+    return (
+      <div style={containerStyle}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <h2 style={{ ...titleStyle, textAlign: 'center' }}>{title}</h2>
+          {subtitle && <p style={{ ...subtitleStyle, textAlign: 'center' }}>{subtitle}</p>}
+          <p style={{ ...descStyle, textAlign: 'center' }}>{description}</p>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 1.2fr',
+            gap: isMobile ? '1.5rem' : '1.5rem',
+            alignItems: 'stretch'
+          }}>
+            <div style={cardStyle}>
+              <h3 style={{ fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: '700', marginBottom: '0.5rem', color: '#1a1a1a' }}>
+                {placeDetails.name}
+              </h3>
+              <div style={{ display: 'grid', gap: '1rem', fontSize: '0.875rem', color: '#333', marginTop: '1.5rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.25rem', color: '#999', textTransform: 'uppercase' }}>
+                    Information
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'start' }}>
+                    <span style={{ fontSize: '1rem' }}>📍</span>
+                    <span>{placeDetails.formatted_address}</span>
+                  </div>
+                </div>
+                {placeDetails.formatted_phone_number && (
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1rem' }}>📞</span>
+                    <span>{placeDetails.formatted_phone_number}</span>
+                  </div>
+                )}
+                {placeDetails.opening_hours?.weekday_text && (
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.5rem', color: '#999', textTransform: 'uppercase' }}>
+                      Hours
+                    </div>
+                    <div style={{ fontSize: '0.8125rem', lineHeight: '1.6' }}>
+                      {placeDetails.opening_hours.weekday_text.slice(0, 3).map((text, i) => (
+                        <div key={i}>{text}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div style={{
+              borderRadius: '8px',
+              overflow: 'hidden',
+              minHeight: isMobile ? '300px' : '400px',
+              backgroundColor: '#e8e8e8'
+            }}>
+              <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Sidebar Layout
+  if (layout === 'sidebar') {
+    return (
+      <div style={containerStyle}>
+        <div style={{ maxWidth: contentMaxWidth, margin: '0 auto' }}>
+          <h2 style={{ ...titleStyle, textAlign: 'center' }}>{title}</h2>
+          {subtitle && <p style={{ ...subtitleStyle, textAlign: 'center' }}>{subtitle}</p>}
+          <p style={{ ...descStyle, textAlign: 'center' }}>{description}</p>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '350px 1fr',
+            gap: 0,
+            border: '1px solid rgba(0, 0, 0, 0.1)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            backgroundColor: '#fff'
+          }}>
+            <div style={{
+              backgroundColor: '#f8f9fa',
+              padding: isMobile ? '1.5rem' : '2rem',
+              borderRight: isMobile ? 'none' : '1px solid rgba(0, 0, 0, 0.1)',
+              overflowY: 'auto',
+              maxHeight: isMobile ? 'auto' : '600px'
+            }}>
+              <div style={{
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                padding: '1.5rem',
+                border: '2px solid #dc3545',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+              }}>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '0.75rem', color: '#1a1a1a' }}>
+                  {placeDetails.name}
+                </h3>
+                <div style={{ fontSize: '0.875rem', color: '#666', lineHeight: '1.6' }}>
+                  <div style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                    <strong>📍</strong>
+                    <span>{placeDetails.formatted_address}</span>
+                  </div>
+                  {placeDetails.formatted_phone_number && (
+                    <div style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                      <strong>📞</strong>
+                      <span>{placeDetails.formatted_phone_number}</span>
+                    </div>
+                  )}
+                  {placeDetails.opening_hours?.weekday_text && (
+                    <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e5e7eb' }}>
+                      <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#1a1a1a' }}>Hours:</div>
+                      {placeDetails.opening_hours.weekday_text.slice(0, 2).map((text, i) => (
+                        <div key={i} style={{ fontSize: '0.8125rem' }}>{text}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div style={{
+              backgroundColor: '#e8e8e8',
+              minHeight: isMobile ? '300px' : '600px',
+              position: 'relative'
+            }}>
+              <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Fullscreen Layout
+  if (layout === 'fullscreen') {
+    return (
+      <div style={{
+        backgroundColor: '#1a2332',
+        backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255, 107, 107, 0.1), transparent 50%), radial-gradient(circle at 80% 70%, rgba(107, 148, 255, 0.1), transparent 50%)',
+        padding: isMobile ? '2rem 1.5rem' : '4rem 2rem',
+        minHeight: isMobile ? 'auto' : '700px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative'
+      }}>
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: 0.2
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: isMobile ? '4rem' : '6rem', marginBottom: '1rem' }}>🗺️</div>
+            <p style={{ fontSize: isMobile ? '1rem' : '1.5rem', color: '#fff' }}>Full-Screen Map Experience</p>
+          </div>
+        </div>
+
+        <div style={{
+          position: 'relative',
+          zIndex: 1,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '16px',
+          padding: isMobile ? '2rem 1.5rem' : '2.5rem',
+          maxWidth: '500px',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <h2 style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: '700', marginBottom: subtitle ? '0.25rem' : '0.5rem', color: '#1a1a1a' }}>
+            {title}
+          </h2>
+          {subtitle && (
+            <p style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: '500', marginBottom: '0.5rem', color: '#333' }}>
+              {subtitle}
+            </p>
+          )}
+          <p style={{ fontSize: '0.9375rem', marginBottom: '2rem', color: '#666' }}>
+            {description}
+          </p>
+          <h3 style={{ fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: '700', marginBottom: '1.5rem', color: '#1a1a1a' }}>
+            {placeDetails.name}
+          </h3>
+          <div style={{ display: 'grid', gap: '1rem', fontSize: '0.9375rem', color: '#333' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'start' }}>
+              <span style={{ fontSize: '1.25rem' }}>📍</span>
+              <span>{placeDetails.formatted_address}</span>
+            </div>
+            {placeDetails.formatted_phone_number && (
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <span style={{ fontSize: '1.25rem' }}>📞</span>
+                <span>{placeDetails.formatted_phone_number}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback for any other layouts
+  return (
+    <div style={containerStyle}>
+      <div style={{ maxWidth: contentMaxWidth, margin: '0 auto', textAlign: 'center' }}>
+        <h2 style={titleStyle}>{title}</h2>
+        <p style={descStyle}>{description}</p>
+        <div style={cardStyle}>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem', color: '#1a1a1a' }}>
+            {placeDetails.name}
+          </h3>
+          <div style={{ textAlign: 'left', color: '#333' }}>
+            <p style={{ marginBottom: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'start' }}>
+              <span style={{ fontSize: '1.25rem' }}>📍</span>
+              <span>{placeDetails.formatted_address}</span>
+            </p>
+            {placeDetails.formatted_phone_number && (
+              <p style={{ marginBottom: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <span style={{ fontSize: '1.25rem' }}>📞</span>
+                <span>{placeDetails.formatted_phone_number}</span>
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -809,555 +1743,3 @@ function SimpleMapPreview({ lat, lng, name }: { lat: number; lng: number; name: 
   );
 }
 
-// Layout Preview Component
-function LocationLayoutPreview({
-  layout,
-  placeDetails,
-  title,
-  description,
-  textColor,
-}: {
-  layout: string;
-  placeDetails: PlaceDetails;
-  title: string;
-  description: string;
-  textColor: string;
-}) {
-  const lat = typeof placeDetails.geometry.location.lat === 'function'
-    ? placeDetails.geometry.location.lat()
-    : placeDetails.geometry.location.lat;
-  const lng = typeof placeDetails.geometry.location.lng === 'function'
-    ? placeDetails.geometry.location.lng()
-    : placeDetails.geometry.location.lng;
-
-  // Default Layout
-  if (layout === 'default') {
-    return (
-      <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-        <h2 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '1rem', color: textColor }}>
-          {title}
-        </h2>
-        <p style={{ fontSize: '1.125rem', marginBottom: '2rem', opacity: 0.8 }}>
-          {description}
-        </p>
-        <div style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '12px',
-          padding: '2rem',
-          textAlign: 'left',
-        }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem' }}>
-            {placeDetails.name}
-          </h3>
-          <p style={{ marginBottom: '0.5rem', opacity: 0.9 }}>
-            📍 {placeDetails.formatted_address}
-          </p>
-          {placeDetails.formatted_phone_number && (
-            <p style={{ marginBottom: '0.5rem', opacity: 0.9 }}>
-              📞 {placeDetails.formatted_phone_number}
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Grid Layout
-  if (layout === 'grid') {
-    return (
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <h2 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center', color: textColor }}>
-          {title}
-        </h2>
-        <p style={{ fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8 }}>
-          {description}
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
-          <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '12px',
-            padding: '2rem',
-          }}>
-            <h3 style={{ fontSize: '1.75rem', fontWeight: '600', marginBottom: '1.5rem' }}>
-              {placeDetails.name}
-            </h3>
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'start' }}>
-                <span style={{ fontSize: '1.25rem' }}>📍</span>
-                <span>{placeDetails.formatted_address}</span>
-              </div>
-              {placeDetails.formatted_phone_number && (
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.25rem' }}>📞</span>
-                  <span>{placeDetails.formatted_phone_number}</span>
-                </div>
-              )}
-              {placeDetails.website && (
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.25rem' }}>🌐</span>
-                  <a href={placeDetails.website} style={{ color: 'inherit', textDecoration: 'underline' }}>Visit Website</a>
-                </div>
-              )}
-              {placeDetails.opening_hours?.weekday_text && (
-                <div style={{ marginTop: '1rem' }}>
-                  <div style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem' }}>
-                    🕒 Hours:
-                  </div>
-                  <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>
-                    {placeDetails.opening_hours.weekday_text.slice(0, 3).map((text, i) => (
-                      <div key={i}>{text}</div>
-                    ))}
-                    {placeDetails.opening_hours.weekday_text.length > 3 && (
-                      <div style={{ fontStyle: 'italic', marginTop: '0.25rem' }}>
-                        + {placeDetails.opening_hours.weekday_text.length - 3} more days
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '12px',
-            padding: '1rem',
-            height: '400px',
-            overflow: 'hidden',
-          }}>
-            <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // List Layout
-  if (layout === 'list') {
-    return (
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        <h2 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', color: textColor }}>
-          {title}
-        </h2>
-        <p style={{ fontSize: '1.125rem', marginBottom: '3rem', opacity: 0.8 }}>
-          {description}
-        </p>
-        <div style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '12px',
-          padding: '2rem',
-        }}>
-          <h3 style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '1.5rem' }}>
-            {placeDetails.name}
-          </h3>
-          <div style={{ display: 'grid', gap: '1.5rem' }}>
-            <div>
-              <div style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem', opacity: 0.7 }}>
-                Address
-              </div>
-              <div style={{ fontSize: '1.125rem' }}>
-                📍 {placeDetails.formatted_address}
-              </div>
-            </div>
-            {placeDetails.formatted_phone_number && (
-              <div>
-                <div style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem', opacity: 0.7 }}>
-                  Phone
-                </div>
-                <div style={{ fontSize: '1.125rem' }}>
-                  📞 {placeDetails.formatted_phone_number}
-                </div>
-              </div>
-            )}
-            {placeDetails.opening_hours?.weekday_text && (
-              <div>
-                <div style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem', opacity: 0.7 }}>
-                  Hours
-                </div>
-                <div style={{ fontSize: '0.9375rem', lineHeight: '1.6', opacity: 0.9 }}>
-                  {placeDetails.opening_hours.weekday_text.map((text, i) => (
-                    <div key={i}>🕒 {text}</div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Cards Layout
-  if (layout === 'cards') {
-    return (
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <h2 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center', color: textColor }}>
-          {title}
-        </h2>
-        <p style={{ fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8 }}>
-          {description}
-        </p>
-        <div style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '16px',
-          padding: '3rem',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-        }}>
-          <h3 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'center' }}>
-            {placeDetails.name}
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-            <div style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              textAlign: 'center',
-            }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📍</div>
-              <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Address</div>
-              <div style={{ fontSize: '0.9375rem', opacity: 0.8 }}>{placeDetails.formatted_address}</div>
-            </div>
-            {placeDetails.formatted_phone_number && (
-              <div style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '12px',
-                padding: '1.5rem',
-                textAlign: 'center',
-              }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📞</div>
-                <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Phone</div>
-                <div style={{ fontSize: '0.9375rem', opacity: 0.8 }}>{placeDetails.formatted_phone_number}</div>
-              </div>
-            )}
-            {placeDetails.website && (
-              <div style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '12px',
-                padding: '1.5rem',
-                textAlign: 'center',
-              }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🌐</div>
-                <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Website</div>
-                <div style={{ fontSize: '0.9375rem', opacity: 0.8 }}>
-                  <a href={placeDetails.website} style={{ color: 'inherit', textDecoration: 'underline' }}>Visit Site</a>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Map Layout
-  if (layout === 'map') {
-    return (
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        <h2 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center', color: textColor }}>
-          {title}
-        </h2>
-        <p style={{ fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8 }}>
-          {description}
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
-          <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '12px',
-            padding: '2rem',
-          }}>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1.5rem' }}>
-              {placeDetails.name}
-            </h3>
-            <div style={{ display: 'grid', gap: '1rem', fontSize: '0.9375rem' }}>
-              <div>
-                <strong>📍 Address:</strong>
-                <div style={{ marginTop: '0.25rem', opacity: 0.9 }}>{placeDetails.formatted_address}</div>
-              </div>
-              {placeDetails.formatted_phone_number && (
-                <div>
-                  <strong>📞 Phone:</strong>
-                  <div style={{ marginTop: '0.25rem', opacity: 0.9 }}>{placeDetails.formatted_phone_number}</div>
-                </div>
-              )}
-              {placeDetails.opening_hours?.weekday_text && (
-                <div>
-                  <strong>🕒 Hours:</strong>
-                  <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', opacity: 0.8 }}>
-                    {placeDetails.opening_hours.weekday_text.slice(0, 2).map((text, i) => (
-                      <div key={i}>{text}</div>
-                    ))}
-                    <div style={{ fontStyle: 'italic', marginTop: '0.5rem' }}>
-                      View full hours on map
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '12px',
-            padding: '1rem',
-            height: '500px',
-            overflow: 'hidden',
-          }}>
-            <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Compact Layout - Minimal card with left info and right map
-  if (layout === 'compact') {
-    return (
-      <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-        <h2 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'center', color: textColor }}>
-          {title}
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '1.5rem', alignItems: 'stretch' }}>
-          {/* Info Card */}
-          <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            borderRadius: '8px',
-            padding: '2rem',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-          }}>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '0.25rem', color: '#1a1a1a' }}>
-              {placeDetails.name}
-            </h3>
-            <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '1.5rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              {description}
-            </p>
-            <div style={{ display: 'grid', gap: '1rem', fontSize: '0.875rem', color: '#333' }}>
-              <div>
-                <div style={{ fontWeight: '600', marginBottom: '0.25rem', fontSize: '0.75rem', color: '#999' }}>INFORMATION</div>
-                <div>📍 {placeDetails.formatted_address}</div>
-              </div>
-              {placeDetails.formatted_phone_number && (
-                <div>📞 {placeDetails.formatted_phone_number}</div>
-              )}
-              {placeDetails.opening_hours?.weekday_text && (
-                <div>
-                  <div style={{ fontWeight: '600', marginBottom: '0.5rem', fontSize: '0.75rem', color: '#999' }}>HOURS</div>
-                  {placeDetails.opening_hours.weekday_text.slice(0, 3).map((text, i) => (
-                    <div key={i} style={{ fontSize: '0.8125rem', lineHeight: '1.6' }}>{text}</div>
-                  ))}
-                </div>
-              )}
-              <button style={{
-                marginTop: '1rem',
-                padding: '0.75rem 1.5rem',
-                backgroundColor: '#8b0000',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '6px',
-                fontWeight: '600',
-                cursor: 'pointer',
-              }}>
-                GET DIRECTIONS
-              </button>
-            </div>
-          </div>
-
-          {/* Map */}
-          <div style={{
-            backgroundColor: '#e8e8e8',
-            borderRadius: '8px',
-            overflow: 'hidden',
-            position: 'relative',
-            minHeight: '400px',
-          }}>
-            <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Sidebar Layout - Vertical list of locations with map emphasis
-  if (layout === 'sidebar') {
-    return (
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        <h2 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem', textAlign: 'center', color: textColor }}>
-          {title}
-        </h2>
-        <p style={{ fontSize: '1rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.7 }}>
-          {description}
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '0', border: '1px solid rgba(0, 0, 0, 0.1)', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#fff' }}>
-          {/* Sidebar with location list */}
-          <div style={{
-            backgroundColor: '#f8f9fa',
-            padding: '2rem',
-            borderRight: '1px solid rgba(0, 0, 0, 0.1)',
-            overflowY: 'auto',
-            maxHeight: '600px',
-          }}>
-            <div style={{
-              backgroundColor: '#fff',
-              borderRadius: '8px',
-              padding: '1.5rem',
-              marginBottom: '1rem',
-              border: '2px solid #dc3545',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-            }}>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '0.75rem', color: '#1a1a1a' }}>
-                {placeDetails.name}
-              </h3>
-              <div style={{ fontSize: '0.875rem', color: '#666', lineHeight: '1.6' }}>
-                <div style={{ marginBottom: '0.5rem' }}>
-                  <strong>📍</strong> {placeDetails.formatted_address}
-                </div>
-                {placeDetails.formatted_phone_number && (
-                  <div style={{ marginBottom: '0.5rem' }}>
-                    <strong>📞</strong> {placeDetails.formatted_phone_number}
-                  </div>
-                )}
-                {placeDetails.opening_hours?.weekday_text && (
-                  <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e5e7eb' }}>
-                    <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#1a1a1a' }}>Hours:</div>
-                    {placeDetails.opening_hours.weekday_text.slice(0, 2).map((text, i) => (
-                      <div key={i} style={{ fontSize: '0.8125rem' }}>{text}</div>
-                    ))}
-                  </div>
-                )}
-                <button style={{
-                  marginTop: '1rem',
-                  width: '100%',
-                  padding: '0.625rem',
-                  backgroundColor: '#8b0000',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                }}>
-                  SELECT LOCATION
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Map area */}
-          <div style={{
-            backgroundColor: '#e8e8e8',
-            minHeight: '600px',
-            position: 'relative',
-          }}>
-            <SimpleMapPreview lat={lat} lng={lng} name={placeDetails.name} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Fullscreen Layout - Dark immersive map with minimal UI
-  if (layout === 'fullscreen') {
-    return (
-      <div style={{ margin: '-3rem -2rem', minHeight: '700px', position: 'relative' }}>
-        {/* Full-bleed map background */}
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundColor: '#1a2332',
-          backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255, 107, 107, 0.1), transparent 50%), radial-gradient(circle at 80% 70%, rgba(107, 148, 255, 0.1), transparent 50%)',
-        }}>
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: 0.3,
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '6rem', marginBottom: '1rem' }}>🗺️</div>
-              <p style={{ fontSize: '1.5rem', color: '#fff' }}>Full-Screen Map Experience</p>
-              <p style={{ fontSize: '1rem', marginTop: '0.5rem', color: 'rgba(255, 255, 255, 0.7)' }}>
-                Location: {lat.toFixed(4)}, {lng.toFixed(4)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Floating location card */}
-        <div style={{
-          position: 'relative',
-          padding: '3rem 2rem',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '700px',
-        }}>
-          <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: '16px',
-            padding: '2.5rem',
-            maxWidth: '500px',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-          }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '0.5rem', color: '#1a1a1a' }}>
-              {title}
-            </h2>
-            <p style={{ fontSize: '0.9375rem', marginBottom: '2rem', color: '#666' }}>
-              {description}
-            </p>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1.5rem', color: '#1a1a1a' }}>
-              {placeDetails.name}
-            </h3>
-            <div style={{ display: 'grid', gap: '1rem', fontSize: '0.9375rem', color: '#333' }}>
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'start' }}>
-                <span style={{ fontSize: '1.25rem' }}>📍</span>
-                <span>{placeDetails.formatted_address}</span>
-              </div>
-              {placeDetails.formatted_phone_number && (
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.25rem' }}>📞</span>
-                  <span>{placeDetails.formatted_phone_number}</span>
-                </div>
-              )}
-            </div>
-            <button style={{
-              marginTop: '2rem',
-              width: '100%',
-              padding: '1rem',
-              backgroundColor: '#8b0000',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(139, 0, 0, 0.3)',
-            }}>
-              GET DIRECTIONS
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
-}

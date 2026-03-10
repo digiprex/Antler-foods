@@ -16,9 +16,12 @@ export interface LocationConfig {
   showDescription?: boolean;
   showMap?: boolean;
   showDirections?: boolean;
+  showAddress?: boolean;
+  showHours?: boolean;
 
   // Content
   title?: string;
+  subtitle?: string;
   description?: string;
   locations?: LocationItem[];
 
@@ -77,6 +80,7 @@ export interface LocationConfigResponse {
 
 export const DEFAULT_LOCATION_CONFIG: LocationConfig = {
   title: 'Our Locations',
+  subtitle: '',
   description: 'Visit us at any of our convenient locations',
   enabled: false,
   layout: 'default',
@@ -84,6 +88,8 @@ export const DEFAULT_LOCATION_CONFIG: LocationConfig = {
   showDescription: true,
   showMap: true,
   showDirections: true,
+  showAddress: true,
+  showHours: true,
   bgColor: '#ffffff',
   textColor: '#000000',
   maxWidth: '1200px',

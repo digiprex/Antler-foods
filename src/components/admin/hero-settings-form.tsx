@@ -1185,42 +1185,6 @@ const renderHeroLayoutCardPreview = (layoutType: string) => {
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,23,42,0.18) 0%, rgba(15,23,42,0.5) 100%)' }} />
           <div
             style={{
-              position: 'absolute',
-              inset: '16px 20px',
-              borderRadius: '16px',
-              border: '1px solid rgba(255,255,255,0.14)',
-              background:
-                'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015)), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px)',
-              backgroundSize: 'auto, 14px 14px, 14px 14px',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              top: '14px',
-              left: '26px',
-              width: '72px',
-              height: '72px',
-              borderRadius: 999,
-              background: 'radial-gradient(circle, rgba(56,189,248,0.18) 0%, rgba(56,189,248,0) 74%)',
-              mixBlendMode: 'screen',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              right: '18px',
-              bottom: '10px',
-              width: '82px',
-              height: '82px',
-              borderRadius: 999,
-              background: 'radial-gradient(circle, rgba(249,115,22,0.18) 0%, rgba(249,115,22,0) 74%)',
-              mixBlendMode: 'screen',
-            }}
-          />
-          <div
-            style={{
               position: 'relative',
               zIndex: 1,
               display: 'flex',

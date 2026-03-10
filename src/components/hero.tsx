@@ -579,11 +579,6 @@ export default function Hero(props: HeroProps) {
 
   const renderDefaultLayout = () => (
     <div className={styles.defaultLayout}>
-      <div className={styles.defaultAmbient} aria-hidden="true">
-        <div className={styles.defaultGlowPrimary} />
-        <div className={styles.defaultGlowSecondary} />
-        <div className={styles.defaultGrid} />
-      </div>
       <div
         className={styles.defaultContentColumn}
         style={{

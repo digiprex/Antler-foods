@@ -85,7 +85,7 @@ export function GalleryPreviewModal({
             <div className="flex items-start gap-3 self-start lg:self-auto">
               <div className="hidden gap-2 sm:flex">
                 <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700">
-                  {layoutOption.label}
+                  {layoutOption.name}
                 </span>
                 <span className="inline-flex items-center rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-600">
                   {config.images.length} {config.images.length === 1 ? 'Image' : 'Images'}
@@ -195,7 +195,7 @@ export function GalleryPreviewModal({
                     Layout Direction
                   </p>
                   <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-                    {layoutOption.label}
+                    {layoutOption.name}
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
                     {layoutOption.description}

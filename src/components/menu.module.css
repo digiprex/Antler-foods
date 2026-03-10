@@ -743,10 +743,6 @@
     grid-template-columns: 1fr;
   }
 
-  .twoColumnGrid {
-    grid-template-columns: 1fr;
-  }
-
   .carouselNav {
     display: none;
   }
@@ -785,6 +781,10 @@
 @media (max-width: 560px) {
   .menuSection {
     padding: 3.25rem 1rem;
+  }
+
+  .twoColumnGrid {
+    grid-template-columns: 1fr;
   }
 
   .cardMedia,

@@ -18,6 +18,7 @@ import {
 
 interface MenuProps extends Partial<MenuConfig> {
   className?: string;
+  previewMode?: 'desktop' | 'mobile';
 }
 
 interface PreparedMenuItem extends MenuItem {
@@ -225,6 +226,7 @@ export default function Menu({
   showCategoryIcons = false,
   textAlign = 'center',
   className,
+  previewMode,
   is_custom,
   buttonStyleVariant,
   titleFontFamily,
@@ -602,7 +604,7 @@ export default function Menu({
                   }),
                 ),
                 styles.masonryGrid,
-                (item, index) => renderImageCard(item, index, { overlay: true }),
+                (item, index) => renderImageCard(item, index),
               ),
             )}
           </div>
@@ -952,7 +954,7 @@ export default function Menu({
             </div>
           );
         }
-        return <div className={styles.layoutBody}>{renderGridLayouts(styles.gridLayout)}</div>;
+        return <div className={styles.layoutBody}>{renderGridLayouts(styles.twoColumnGrid, { overlay: true })}</div>;
     }
   };
 

@@ -17,6 +17,7 @@ import type { YouTubeConfig } from "@/types/youtube.types";
 import { DEFAULT_YOUTUBE_CONFIG } from "@/types/youtube.types";
 import { useSectionStyleDefaults } from "@/hooks/use-section-style-defaults";
 import { SectionTypographyControls } from "@/components/admin/section-typography-controls";
+import YouTubeSection from "@/components/youtube-section";
 import Toast from "@/components/ui/toast";
 import styles from "./youtube-settings-form.module.css";
 
@@ -306,148 +307,6 @@ export default function YouTubeSettingsForm({
     }
   };
 
-  const renderPreviewContent = () => {
-    const previewStyle = {
-      backgroundColor: config.bgColor || "#000000",
-      color: config.textColor || "#ffffff",
-      padding: "2rem",
-      borderRadius: "12px",
-      fontFamily: "system-ui, -apple-system, sans-serif",
-    };
-
-    if (!config.videoUrl) {
-      return (
-        <div style={previewStyle}>
-          {config.showTitle !== false && (
-            <div style={{ marginBottom: "2rem", textAlign: "center" }}>
-              <h2
-                style={{
-                  fontSize: "2.5rem",
-                  fontWeight: "700",
-                  color: config.textColor || "#ffffff",
-                  marginBottom: "0.5rem",
-                }}
-              >
-                {config.title || "Your Video Title"}
-              </h2>
-              <p
-                style={{
-                  fontSize: "1.25rem",
-                  color: config.textColor || "#ffffff",
-                  opacity: 0.9,
-                }}
-              >
-                {config.description || "Add a captivating description for your video section"}
-              </p>
-            </div>
-          )}
-
-          <div style={{
-            position: "relative",
-            paddingBottom: "56.25%",
-            backgroundColor: "rgba(0,0,0,0.3)",
-            borderRadius: "12px",
-            overflow: "hidden",
-          }}>
-            <div style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              textAlign: "center",
-              width: "100%",
-            }}>
-              <div style={{
-                fontSize: "4rem",
-                marginBottom: "1rem",
-                opacity: 0.4,
-              }}>
-                📹
-              </div>
-              <p style={{
-                fontSize: "1.25rem",
-                opacity: 0.6,
-                fontWeight: "500",
-              }}>
-                Video Preview
-              </p>
-              <p style={{
-                fontSize: "0.875rem",
-                opacity: 0.4,
-                marginTop: "0.5rem",
-              }}>
-                Add a video URL or upload a video to see it here
-              </p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div style={previewStyle}>
-        {config.showTitle !== false && (config.title || config.description) && (
-          <div style={{ marginBottom: "2rem", textAlign: "center" }}>
-            {config.title && (
-              <h2
-                style={{
-                  fontSize: "2.5rem",
-                  fontWeight: "700",
-                  color: config.textColor || "#ffffff",
-                  marginBottom: "0.5rem",
-                }}
-              >
-                {config.title}
-              </h2>
-            )}
-            {config.description && (
-              <p
-                style={{
-                  fontSize: "1.25rem",
-                  color: config.textColor || "#ffffff",
-                  opacity: 0.9,
-                }}
-              >
-                {config.description}
-              </p>
-            )}
-          </div>
-        )}
-
-        <div
-          style={{
-            position: "relative",
-            paddingBottom:
-              config.aspectRatio === "4:3"
-                ? "75%"
-                : config.aspectRatio === "21:9"
-                  ? "42.85%"
-                  : "56.25%",
-            height: 0,
-            overflow: "hidden",
-            borderRadius: "12px",
-            maxWidth: config.maxWidth || "1200px",
-            margin: "0 auto",
-          }}
-        >
-          <iframe
-            src={getEmbedUrl(config.videoUrl)}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              border: "none",
-              borderRadius: "12px",
-            }}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-      </div>
-    );
-  };
 
   // Validate that restaurant ID is provided
   if (!finalRestaurantId) {
@@ -1230,8 +1089,24 @@ export default function YouTubeSettingsForm({
                 </svg>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-8">
-              <div className="mx-auto max-w-4xl">{renderPreviewContent()}</div>
+            <div className="flex-1 overflow-y-auto bg-slate-950 p-4 sm:p-6">
+              <div className="mx-auto max-w-[1240px]">
+                <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
+                  <YouTubeSection
+                    key={`preview-${config.layout || 'default'}-${config.videoUrl || 'sample'}`}
+                    restaurantId={finalRestaurantId}
+                    configData={{
+                      ...config,
+                      enabled: true,
+                      showTitle: true,
+                      // Use sample video if no videoUrl is set, so users can preview layouts
+                      videoUrl: config.videoUrl || 'dQw4w9WgXcQ',
+                      title: config.title || 'Your Video Title',
+                      description: config.description || 'Add a compelling description for your video to engage your audience.',
+                    }}
+                  />
+                </div>
+              </div>
               <div className="mt-6 flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 p-4">
                 <svg
                   className="h-5 w-5 shrink-0 text-purple-600"
@@ -1254,6 +1129,9 @@ export default function YouTubeSettingsForm({
                 <p className="text-sm text-purple-900">
                   Preview shows how your YouTube section will appear on the
                   website
+                  {!config.videoUrl && (
+                    <span className="ml-1 text-purple-600">(showing sample video)</span>
+                  )}
                 </p>
               </div>
             </div>

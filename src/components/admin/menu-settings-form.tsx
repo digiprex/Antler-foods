@@ -45,41 +45,42 @@ interface MenuSettingsFormProps {
 
 type MenuLayoutValue = NonNullable<MenuConfig['layout']>;
 type PreviewSurface = 'card' | 'modal';
+type PreviewViewport = 'desktop' | 'mobile';
 
 const MENU_LAYOUT_OPTIONS: Array<{
   value: MenuLayoutValue;
   name: string;
   description: string;
 }> = [
-  { value: 'grid', name: 'Grid', description: 'Grid layout with cards' },
-  { value: 'list', name: 'List', description: 'Simple list layout' },
-  { value: 'masonry', name: 'Masonry', description: 'Pinterest-style masonry' },
+  { value: 'grid', name: 'Grid', description: 'Two cards with text overlay on images' },
+  { value: 'list', name: 'List', description: 'Bold promo cards with buttons' },
+  { value: 'masonry', name: 'Masonry', description: 'Image top, details below - staggered' },
   {
     value: 'carousel',
     name: 'Carousel',
-    description: 'Carousel/slider layout',
+    description: 'Scrollable image cards with overlay',
   },
-  { value: 'tabs', name: 'Tabs', description: 'Tabbed categories' },
+  { value: 'tabs', name: 'Tabs', description: 'Category selector with side tabs' },
   {
     value: 'accordion',
     name: 'Accordion',
-    description: 'Collapsible categories',
+    description: 'Expandable menu sections',
   },
-  { value: 'two-column', name: 'Two Column', description: 'Two-column layout' },
+  { value: 'two-column', name: 'Two Column', description: 'Two side-by-side image cards' },
   {
     value: 'single-column',
     name: 'Single Column',
-    description: 'Single column centered',
+    description: 'Centered stacked cards',
   },
   {
     value: 'featured-grid',
     name: 'Featured Grid',
-    description: 'Featured items in grid',
+    description: 'Three icon-based highlights',
   },
   {
     value: 'minimal',
     name: 'Minimal',
-    description: 'Minimal text-only layout',
+    description: 'Clean text-only design',
   },
 ];
 
@@ -115,7 +116,7 @@ const DIRECT_LAYOUT_EDITOR_CONFIG: Record<
   grid: {
     title: 'Layout Cards',
     description:
-      'Add the two image cards used by this layout. Each card can have its own image click URL and button URL.',
+      'Add two cards with overlay text on top of images. Each card can have image links and buttons.',
     slotCount: 2,
     usesImages: true,
     usesImageLinks: true,
@@ -124,7 +125,7 @@ const DIRECT_LAYOUT_EDITOR_CONFIG: Record<
   list: {
     title: 'Promo Cards',
     description:
-      'Add the promo content used in the red list cards. Images are not required for this layout.',
+      'Add bold promotional cards with centered text and buttons. Images are optional.',
     slotCount: 2,
     usesImages: false,
     usesButtons: true,
@@ -132,7 +133,7 @@ const DIRECT_LAYOUT_EDITOR_CONFIG: Record<
   masonry: {
     title: 'Masonry Cards',
     description:
-      'Add the image-led cards for this editorial layout. Each image can open its own URL.',
+      'Add cards with image on top and details below. Staggered heights create visual interest.',
     slotCount: 2,
     usesImages: true,
     usesImageLinks: true,
@@ -141,7 +142,7 @@ const DIRECT_LAYOUT_EDITOR_CONFIG: Record<
   carousel: {
     title: 'Carousel Slides',
     description:
-      'Add the slides that should appear inside the carousel. These items are shown in order.',
+      'Add scrollable slides with images and overlay text. Perfect for showcasing multiple offerings.',
     slotCount: 4,
     usesImages: true,
     usesImageLinks: true,
@@ -150,7 +151,7 @@ const DIRECT_LAYOUT_EDITOR_CONFIG: Record<
   'two-column': {
     title: 'Two Column Cards',
     description:
-      'Add the two highlighted cards used in this balanced two-column layout.',
+      'Add two cards with image on top and details below, displayed side-by-side.',
     slotCount: 2,
     usesImages: true,
     usesImageLinks: true,
@@ -158,7 +159,7 @@ const DIRECT_LAYOUT_EDITOR_CONFIG: Record<
   },
   'single-column': {
     title: 'Centered Showcase Cards',
-    description: 'Add the featured cards shown in the centered stacked layout.',
+    description: 'Add cards with image on top and details below, stacked vertically in center.',
     slotCount: 2,
     usesImages: true,
     usesImageLinks: true,
@@ -166,7 +167,7 @@ const DIRECT_LAYOUT_EDITOR_CONFIG: Record<
   },
   'featured-grid': {
     title: 'Feature Highlights',
-    description: 'Add the small highlight cards shown in the featured grid.',
+    description: 'Add three icon-based feature cards displayed in a grid. Images optional.',
     slotCount: 3,
     usesImages: true,
     imageOptional: true,
@@ -175,7 +176,7 @@ const DIRECT_LAYOUT_EDITOR_CONFIG: Record<
   },
   minimal: {
     title: 'Minimal Highlights',
-    description: 'Add the compact highlight cards for the minimal layout.',
+    description: 'Add three text-focused highlights with optional icons. Clean and simple.',
     slotCount: 3,
     usesImages: true,
     imageOptional: true,
@@ -603,17 +604,17 @@ function MenuPreviewButton({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        minWidth: isCard ? '26px' : '72px',
-        height: isCard ? '15px' : '32px',
-        padding: isCard ? '0 6px' : '0 14px',
-        borderRadius: isCard ? '4px' : '8px',
+        minWidth: isCard ? '22px' : '72px',
+        height: isCard ? '12px' : '32px',
+        padding: isCard ? '0 5px' : '0 14px',
+        borderRadius: isCard ? '3px' : '8px',
         border:
           variant === 'outline'
-            ? '1.5px solid #ef4444'
+            ? isCard ? '0.8px solid #ef4444' : '1.5px solid #ef4444'
             : '1px solid transparent',
         background: variant === 'solid' ? '#ef1d12' : '#ffffff',
         color: variant === 'solid' ? '#ffffff' : '#111827',
-        fontSize: isCard ? '4.8px' : '11px',
+        fontSize: isCard ? '4.5px' : '11px',
         fontWeight: 800,
         letterSpacing: '0.02em',
         boxShadow:
@@ -810,9 +811,10 @@ function PreviewImageCard({
           overflow: 'hidden',
           borderRadius: isCard ? '10px' : '18px',
           border: '1px solid #d7dee6',
-          backgroundImage: `url(${image})`,
+          backgroundImage: `url("${image}")`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
           boxShadow: '0 14px 34px rgba(15, 23, 42, 0.1)',
           ...style,
         }}
@@ -829,19 +831,28 @@ function PreviewImageCard({
           style={{
             position: 'absolute',
             inset: 'auto 0 0 0',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: isCard ? '4px' : '10px',
+            display: 'grid',
+            gap: isCard ? '3px' : '8px',
             padding: isCard ? '10px 8px 12px' : '20px 18px 22px',
-            textAlign: 'center',
           }}
         >
+          <div
+            style={{
+              fontSize: isCard ? '4.5px' : '11px',
+              fontWeight: 700,
+              color: 'rgba(255,255,255,0.85)',
+              letterSpacing: isCard ? '0.5px' : '1.5px',
+              textTransform: 'uppercase',
+            }}
+          >
+            OUR MENU
+          </div>
           <div
             style={{
               fontSize: isCard ? '9px' : '24px',
               fontWeight: 800,
               color: '#ffffff',
+              lineHeight: 1.15,
             }}
           >
             {title}
@@ -851,6 +862,7 @@ function PreviewImageCard({
               fontSize: isCard ? '5px' : '12px',
               fontWeight: 500,
               color: 'rgba(255,255,255,0.88)',
+              lineHeight: 1.7,
             }}
           >
             {description}
@@ -876,9 +888,10 @@ function PreviewImageCard({
         style={{
           width: '100%',
           height: isCard ? '46px' : '170px',
-          backgroundImage: `url(${image})`,
+          backgroundImage: `url("${image}")`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
         }}
       />
       <div
@@ -1222,13 +1235,13 @@ function renderMenuLayoutArtwork(
               gap: isCard ? '8px' : '18px',
             }}
           >
-            {!isCard ? heading : null}
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                 gap: isCard ? '8px' : '18px',
                 alignItems: 'stretch',
+                height: isCard ? '100%' : 'auto',
               }}
             >
               <PreviewImageCard
@@ -1238,7 +1251,7 @@ function renderMenuLayoutArtwork(
                 description={previewTwoItems[0].description}
                 ctaLabel={meta.ctaLabel}
                 overlay
-                style={{ minHeight: isCard ? '100%' : '290px' }}
+                style={{ height: isCard ? '100%' : '290px' }}
               />
               <PreviewImageCard
                 mode={mode}
@@ -1247,7 +1260,7 @@ function renderMenuLayoutArtwork(
                 description={previewTwoItems[1].description}
                 ctaLabel={meta.ctaLabel}
                 overlay
-                style={{ minHeight: isCard ? '100%' : '290px' }}
+                style={{ height: isCard ? '100%' : '290px' }}
               />
             </div>
           </div>
@@ -1313,7 +1326,6 @@ function renderMenuLayoutArtwork(
                 title={previewTwoItems[0].title}
                 description={previewTwoItems[0].description}
                 ctaLabel={meta.ctaLabel}
-                overlay
                 style={{
                   minHeight: isCard ? '100%' : '250px',
                   alignSelf: 'end',
@@ -1325,7 +1337,6 @@ function renderMenuLayoutArtwork(
                 title={previewTwoItems[1].title}
                 description={previewTwoItems[1].description}
                 ctaLabel={meta.ctaLabel}
-                overlay
                 style={{
                   minHeight: isCard ? '100%' : '290px',
                   alignSelf: 'start',
@@ -1778,6 +1789,7 @@ export default function MenuSettingsForm({
 
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
+  const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop');
 
   // Gallery modal state
   const [showGalleryModal, setShowGalleryModal] = useState(false);
@@ -2101,14 +2113,79 @@ export default function MenuSettingsForm({
   const renderLayoutPreview = () => {
     if (!formConfig) return null;
 
+    const usesDirectLayoutItems = isDirectMenuLayout(currentLayout);
+    const directLayoutConfig = usesDirectLayoutItems
+      ? DIRECT_LAYOUT_EDITOR_CONFIG[currentLayout]
+      : null;
+
+    // Get placeholder layout items for direct layouts
+    const previewLayoutItems = usesDirectLayoutItems
+      ? getPreviewLayoutItems(formConfig, directLayoutConfig?.slotCount || 2)
+      : [];
+
+    // Create preview config with placeholder data for empty fields
+    const previewConfig = {
+      ...formConfig,
+      title: formConfig.title || 'Our Menu',
+      subtitle: formConfig.subtitle || 'This is a description',
+      description: formConfig.description || 'Lorem ipsum dolor sit amet',
+      // For direct layouts, use layoutItems with placeholders
+      layoutItems: usesDirectLayoutItems
+        ? previewLayoutItems.map((item, index) => ({
+            id: `layout-item-${index}`,
+            name: formConfig.layoutItems?.[index]?.name || item.title,
+            description: formConfig.layoutItems?.[index]?.description || item.description,
+            price: formConfig.layoutItems?.[index]?.price || '',
+            image: formConfig.layoutItems?.[index]?.image || item.image,
+            ctaLabel: formConfig.layoutItems?.[index]?.ctaLabel || 'Menu',
+            ctaLink: formConfig.layoutItems?.[index]?.ctaLink || '#menu',
+            imageLink: formConfig.layoutItems?.[index]?.imageLink,
+          }))
+        : [],
+      // For category-driven layouts, only use categories
+      categories: !usesDirectLayoutItems && formConfig.categories && formConfig.categories.length > 0
+        ? formConfig.categories
+        : !usesDirectLayoutItems
+        ? [
+            {
+              id: 'placeholder-1',
+              name: 'Menu Item One',
+              description: 'This is a description and this is a description',
+              items: [
+                {
+                  id: 'item-1',
+                  name: 'Menu Item One',
+                  description: 'Lorem ipsum dolor sit amet',
+                  price: '$12.99',
+                  image: 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Menu+Item'
+                }
+              ]
+            },
+            {
+              id: 'placeholder-2',
+              name: 'Menu Item Two',
+              description: 'This is a description',
+              items: [
+                {
+                  id: 'item-2',
+                  name: 'Menu Item Two',
+                  description: 'Lorem ipsum dolor sit amet',
+                  price: '$15.99',
+                  image: 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Menu+Item'
+                }
+              ]
+            }
+          ]
+        : []
+    };
+
     return (
-      <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
-        <Menu
-          {...formConfig}
-          restaurant_id={restaurantId}
-          layout={currentLayout}
-        />
-      </div>
+      <Menu
+        {...previewConfig}
+        restaurant_id={restaurantId}
+        layout={currentLayout}
+        previewMode={previewViewport}
+      />
     );
   };
 
@@ -2325,64 +2402,95 @@ export default function MenuSettingsForm({
             onClick={() => setShowPreview(false)}
           />
           <div className="relative z-10 flex h-[min(92vh,980px)] w-full max-w-7xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_35px_120px_rgba(15,23,42,0.35)]">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-5 sm:px-6">
+            <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">
-                  Menu Layout Preview
-                </h2>
+                <h2 className="text-xl font-bold text-slate-900">Live Preview</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Real-time preview of the {activeLayoutOption.name} layout
-                  using your current menu content.
+                  Switch between desktop and mobile to verify every menu layout.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowPreview(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                aria-label="Close preview"
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
+              <div className="flex items-center gap-3">
+                <div className="inline-flex rounded-full bg-slate-100 p-1">
+                  {(['desktop', 'mobile'] as PreviewViewport[]).map((viewport) => (
+                    <button
+                      key={viewport}
+                      type="button"
+                      onClick={() => setPreviewViewport(viewport)}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        previewViewport === viewport
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      {viewport === 'desktop' ? 'Desktop' : 'Mobile'}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(false)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Close preview"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto bg-slate-950 p-4 sm:p-6">
-              <div className="mx-auto max-w-[1240px]">
-                {renderLayoutPreview()}
+              <div
+                className={`mx-auto overflow-hidden border border-white/10 bg-slate-900 shadow-[0_24px_80px_rgba(15,23,42,0.35)] ${
+                  previewViewport === 'mobile'
+                    ? 'max-w-[430px] rounded-[32px]'
+                    : 'max-w-[1240px] rounded-[32px]'
+                }`}
+              >
+                <div className="flex items-center justify-between border-b border-white/10 bg-slate-950/90 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">
+                  <span>{previewViewport === 'mobile' ? 'Phone Preview' : 'Desktop Preview'}</span>
+                  <span>{previewViewport === 'mobile' ? '390 x 780' : '1280 x 720'}</span>
+                </div>
+                <div className="bg-white">
+                  {renderLayoutPreview()}
+                </div>
               </div>
             </div>
             <div className="border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <svg
-                  className="h-5 w-5 shrink-0 text-purple-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-                This preview uses your current unsaved menu settings, so it
-                should match the live menu output.
+              <div className="flex flex-col gap-2 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="h-5 w-5 text-purple-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                  Live preview reflects your current menu content and styling changes.
+                </div>
+                <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                  {previewViewport === 'mobile' ? 'Mobile responsiveness check' : 'Desktop composition check'}
+                </div>
               </div>
             </div>
           </div>
@@ -2455,7 +2563,7 @@ export default function MenuSettingsForm({
                 aria-pressed={formConfig.layout === option.value}
               >
                 <div className="mb-3">
-                  {renderMenuLayoutArtwork(option.value, 'card')}
+                  {renderMenuLayoutArtwork(option.value, 'card', MENU_PREVIEW_COPY, formConfig)}
                 </div>
                 <div className={`text-sm font-medium ${
                   formConfig.layout === option.value
@@ -2973,7 +3081,7 @@ export default function MenuSettingsForm({
               </div>
             </div>
 
-            <div className="mt-6 space-y-5">
+            <div className="mt-6 flex flex-col gap-5">
               {visibleLayoutItems.map((item, itemIndex) => (
                 <div
                   key={`layout-item-${itemIndex}`}

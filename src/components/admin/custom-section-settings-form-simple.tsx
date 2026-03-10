@@ -18,9 +18,9 @@ interface CustomSectionSettingsFormProps {
 }
 
 type LayoutType = 'layout-1' | 'layout-2' | 'layout-3' | 'layout-4' | 'layout-5' | 'layout-6' | 'layout-7' | 'layout-8' | 'layout-9' |
-                  'layout-10' | 'layout-11' | 'layout-12' | 'layout-13' | 'layout-14' | 'layout-15' | 'layout-16' | 'layout-17' | 'layout-18' |
-                  'layout-19' | 'layout-20' | 'layout-21' | 'layout-22' | 'layout-23' | 'layout-24' | 'layout-25' | 'layout-26' | 'layout-27' |
-                  'layout-28' | 'layout-29' | 'layout-30' | 'layout-31' | 'layout-32';
+  'layout-10' | 'layout-11' | 'layout-12' | 'layout-13' | 'layout-14' | 'layout-15' | 'layout-16' | 'layout-17' | 'layout-18' |
+  'layout-19' | 'layout-20' | 'layout-21' | 'layout-22' | 'layout-23' | 'layout-24' | 'layout-25' | 'layout-26' | 'layout-27' |
+  'layout-28' | 'layout-29' | 'layout-30' | 'layout-31' | 'layout-32';
 
 export default function CustomSectionSettingsForm({ pageId, isNewSection }: CustomSectionSettingsFormProps) {
   const router = useRouter();
@@ -345,38 +345,38 @@ export default function CustomSectionSettingsForm({ pageId, isNewSection }: Cust
   };
 
   const layoutOptions: Array<{ value: LayoutType; name: string; description: string }> = [
-    { value: 'layout-1', name: 'Layout 1', description: 'Full-width image with overlay text' },
-    { value: 'layout-2', name: 'Layout 2', description: 'Split image left, content right' },
-    { value: 'layout-3', name: 'Layout 3', description: 'Video background with centered content' },
-    { value: 'layout-4', name: 'Layout 4', description: 'Curved green background with image' },
-    { value: 'layout-5', name: 'Layout 5', description: 'Circular image with green background' },
-    { value: 'layout-6', name: 'Layout 6', description: 'Image right, content left' },
-    { value: 'layout-7', name: 'Layout 7', description: 'Image left, content right with spacing' },
-    { value: 'layout-8', name: 'Layout 8', description: 'Centered content with side images' },
-    { value: 'layout-9', name: 'Layout 9', description: 'Large image with bottom content' },
-    { value: 'layout-10', name: 'Layout 10', description: 'Centered content with top image' },
-    { value: 'layout-11', name: 'Layout 11', description: 'Two column split with images' },
-    { value: 'layout-12', name: 'Layout 12', description: 'Boxed content with side image' },
-    { value: 'layout-13', name: 'Layout 13', description: 'Image grid with center content' },
-    { value: 'layout-14', name: 'Layout 14', description: 'Stacked cards layout' },
-    { value: 'layout-15', name: 'Layout 15', description: 'Asymmetric split layout' },
-    { value: 'layout-16', name: 'Layout 16', description: 'Featured image with sidebar' },
-    { value: 'layout-17', name: 'Layout 17', description: 'Magazine style layout' },
-    { value: 'layout-18', name: 'Layout 18', description: 'Overlapping content blocks' },
-    { value: 'layout-19', name: 'Layout 19', description: 'Modern card style' },
-    { value: 'layout-20', name: 'Layout 20', description: 'Split with background accent' },
-    { value: 'layout-21', name: 'Layout 21', description: 'Hero style with bottom content' },
-    { value: 'layout-22', name: 'Layout 22', description: 'Zigzag pattern layout' },
-    { value: 'layout-23', name: 'Layout 23', description: 'Centered with side panels' },
-    { value: 'layout-24', name: 'Layout 24', description: 'Full screen video layout' },
-    { value: 'layout-25', name: 'Layout 25', description: 'Grid showcase layout' },
-    { value: 'layout-26', name: 'Layout 26', description: 'Minimal centered layout' },
-    { value: 'layout-27', name: 'Layout 27', description: 'Split diagonal layout' },
-    { value: 'layout-28', name: 'Layout 28', description: 'Triple section layout' },
-    { value: 'layout-29', name: 'Layout 29', description: 'Layered content layout' },
-    { value: 'layout-30', name: 'Layout 30', description: 'Full width banner style' },
-    { value: 'layout-31', name: 'Layout 31', description: 'Image carousel layout' },
-    { value: 'layout-32', name: 'Layout 32', description: 'Interactive hover layout' },
+    { value: 'layout-1', name: 'Hero Overlay', description: 'Full-width image with overlay text' },
+    { value: 'layout-2', name: 'Split Left Image', description: 'Image on left, content on right' },
+    { value: 'layout-6', name: 'Split Right Image', description: 'Content on left, image on right' },
+    { value: 'layout-3', name: 'Video Background', description: 'Video background with centered content' },
+    { value: 'layout-4', name: 'Curved Background', description: 'Curved green background with image' },
+    { value: 'layout-5', name: 'Circular Image', description: 'Circular image with green background' },
+    { value: 'layout-7', name: 'Spaced Split', description: 'Image left, content right with spacing' },
+    { value: 'layout-8', name: 'Center with Sides', description: 'Centered content with side images' },
+    { value: 'layout-9', name: 'Image Top', description: 'Large image with bottom content' },
+    { value: 'layout-10', name: 'Content Below', description: 'Centered content with top image' },
+    { value: 'layout-11', name: 'Two Column', description: 'Two column split with images' },
+    { value: 'layout-12', name: 'Boxed Content', description: 'Boxed content with side image' },
+    { value: 'layout-13', name: 'Grid Center', description: 'Image grid with center content' },
+    { value: 'layout-14', name: 'Stacked Cards', description: 'Vertical stacked cards layout' },
+    { value: 'layout-15', name: 'Asymmetric Split', description: 'Uneven split layout' },
+    { value: 'layout-16', name: 'Featured + Sidebar', description: 'Featured image with sidebar' },
+    { value: 'layout-17', name: 'Magazine Style', description: 'Editorial magazine layout' },
+    { value: 'layout-18', name: 'Overlapping Blocks', description: 'Overlapping content blocks' },
+    { value: 'layout-19', name: 'Modern Card', description: 'Contemporary card style' },
+    { value: 'layout-20', name: 'Accent Background', description: 'Split with background accent' },
+    { value: 'layout-21', name: 'Hero Bottom', description: 'Hero style with bottom content' },
+    { value: 'layout-22', name: 'Zigzag Pattern', description: 'Alternating zigzag layout' },
+    { value: 'layout-23', name: 'Center Panels', description: 'Centered with side panels' },
+    { value: 'layout-24', name: 'Full Screen Video', description: 'Full screen video layout' },
+    { value: 'layout-25', name: 'Grid Showcase', description: 'Multi-item grid showcase' },
+    { value: 'layout-26', name: 'Minimal Center', description: 'Clean minimal centered layout' },
+    { value: 'layout-27', name: 'Diagonal Split', description: 'Diagonal split layout' },
+    { value: 'layout-28', name: 'Triple Section', description: 'Three section layout' },
+    { value: 'layout-29', name: 'Layered Content', description: 'Layered content layout' },
+    { value: 'layout-30', name: 'Full Width Banner', description: 'Full width banner style' },
+    { value: 'layout-31', name: 'Image Carousel', description: 'Sliding image carousel' },
+    { value: 'layout-32', name: 'Interactive Hover', description: 'Interactive hover layout' },
   ];
 
   // Render layout preview thumbnails
@@ -419,8 +419,8 @@ export default function CustomSectionSettingsForm({ pageId, isNewSection }: Cust
     switch (layoutType) {
       case 'layout-1':
         return (
-          <div style={{...previewStyle, background: '#343a40', color: '#fff'}}>
-            <div style={{...textBlock, background: 'rgba(255,255,255,0.2)', width: '60%'}}></div>
+          <div style={{ ...previewStyle, background: '#343a40', color: '#fff' }}>
+            <div style={{ ...textBlock, background: 'rgba(255,255,255,0.2)', width: '60%' }}></div>
           </div>
         );
 
@@ -434,15 +434,15 @@ export default function CustomSectionSettingsForm({ pageId, isNewSection }: Cust
 
       case 'layout-3':
         return (
-          <div style={{...previewStyle, background: '#343a40', color: '#fff'}}>
-            <div style={{position: 'absolute', top: '2px', right: '2px', fontSize: '10px'}}>🎥</div>
-            <div style={{...textBlock, background: 'rgba(255,255,255,0.2)'}}></div>
+          <div style={{ ...previewStyle, background: '#343a40', color: '#fff' }}>
+            <div style={{ position: 'absolute', top: '2px', right: '2px', fontSize: '10px' }}>🎥</div>
+            <div style={{ ...textBlock, background: 'rgba(255,255,255,0.2)' }}></div>
           </div>
         );
 
       case 'layout-4':
         return (
-          <div style={{...previewStyle, background: 'linear-gradient(135deg, #a8e6cf 0%, #56ab2f 100%)'}}>
+          <div style={{ ...previewStyle, background: 'linear-gradient(135deg, #a8e6cf 0%, #56ab2f 100%)' }}>
             <div style={textBlock}></div>
             <div style={imageBlock}>📷</div>
           </div>
@@ -450,8 +450,8 @@ export default function CustomSectionSettingsForm({ pageId, isNewSection }: Cust
 
       case 'layout-5':
         return (
-          <div style={{...previewStyle, background: 'linear-gradient(135deg, #a8e6cf 0%, #56ab2f 100%)'}}>
-            <div style={{...imageBlock, borderRadius: '50%', width: '35px', height: '35px'}}>📷</div>
+          <div style={{ ...previewStyle, background: 'linear-gradient(135deg, #a8e6cf 0%, #56ab2f 100%)' }}>
+            <div style={{ ...imageBlock, borderRadius: '50%', width: '35px', height: '35px' }}>📷</div>
             <div style={textBlock}></div>
           </div>
         );
@@ -468,136 +468,136 @@ export default function CustomSectionSettingsForm({ pageId, isNewSection }: Cust
         return (
           <div style={previewStyle}>
             <div style={imageBlock}>📷</div>
-            <div style={{...textBlock, width: '45%'}}></div>
+            <div style={{ ...textBlock, width: '45%' }}></div>
           </div>
         );
 
       case 'layout-8':
         return (
           <div style={previewStyle}>
-            <div style={{...imageBlock, width: '20%', height: '30px'}}>📷</div>
-            <div style={{...textBlock, width: '35%'}}></div>
-            <div style={{...imageBlock, width: '20%', height: '30px'}}>📷</div>
+            <div style={{ ...imageBlock, width: '20%', height: '30px' }}>📷</div>
+            <div style={{ ...textBlock, width: '35%' }}></div>
+            <div style={{ ...imageBlock, width: '20%', height: '30px' }}>📷</div>
           </div>
         );
 
       case 'layout-9':
         return (
-          <div style={{...previewStyle, flexDirection: 'column', gap: '2px'}}>
-            <div style={{...imageBlock, width: '80%', height: '25px'}}>📷</div>
-            <div style={{...textBlock, width: '70%', height: '15px'}}></div>
+          <div style={{ ...previewStyle, flexDirection: 'column', gap: '2px' }}>
+            <div style={{ ...imageBlock, width: '80%', height: '25px' }}>📷</div>
+            <div style={{ ...textBlock, width: '70%', height: '15px' }}></div>
           </div>
         );
 
       case 'layout-10':
         return (
-          <div style={{...previewStyle, flexDirection: 'column', gap: '2px'}}>
-            <div style={{...imageBlock, width: '90%', height: '20px'}}>📷</div>
-            <div style={{...textBlock, width: '60%', height: '18px'}}></div>
+          <div style={{ ...previewStyle, flexDirection: 'column', gap: '2px' }}>
+            <div style={{ ...imageBlock, width: '90%', height: '20px' }}>📷</div>
+            <div style={{ ...textBlock, width: '60%', height: '18px' }}></div>
           </div>
         );
 
       case 'layout-11':
         return (
           <div style={previewStyle}>
-            <div style={{...imageBlock, width: '45%'}}>📷</div>
-            <div style={{...imageBlock, width: '45%'}}>📷</div>
+            <div style={{ ...imageBlock, width: '45%' }}>📷</div>
+            <div style={{ ...imageBlock, width: '45%' }}>📷</div>
           </div>
         );
 
       case 'layout-12':
         return (
           <div style={previewStyle}>
-            <div style={{...textBlock, width: '55%', height: '40px', border: '1px solid #adb5bd'}}></div>
-            <div style={{...imageBlock, width: '35%'}}>📷</div>
+            <div style={{ ...textBlock, width: '55%', height: '40px', border: '1px solid #adb5bd' }}></div>
+            <div style={{ ...imageBlock, width: '35%' }}>📷</div>
           </div>
         );
 
       case 'layout-13':
         return (
-          <div style={{...previewStyle, flexWrap: 'wrap', gap: '1px'}}>
-            <div style={{...imageBlock, width: '30%', height: '20px', margin: '1px'}}>📷</div>
-            <div style={{...textBlock, width: '35%', margin: '1px'}}></div>
-            <div style={{...imageBlock, width: '30%', height: '20px', margin: '1px'}}>📷</div>
+          <div style={{ ...previewStyle, flexWrap: 'wrap', gap: '1px' }}>
+            <div style={{ ...imageBlock, width: '30%', height: '20px', margin: '1px' }}>📷</div>
+            <div style={{ ...textBlock, width: '35%', margin: '1px' }}></div>
+            <div style={{ ...imageBlock, width: '30%', height: '20px', margin: '1px' }}>📷</div>
           </div>
         );
 
       case 'layout-14':
         return (
-          <div style={{...previewStyle, flexDirection: 'column', gap: '1px'}}>
-            <div style={{...textBlock, width: '90%', height: '12px'}}></div>
-            <div style={{...textBlock, width: '90%', height: '12px'}}></div>
-            <div style={{...textBlock, width: '90%', height: '12px'}}></div>
+          <div style={{ ...previewStyle, flexDirection: 'column', gap: '1px' }}>
+            <div style={{ ...textBlock, width: '90%', height: '12px' }}></div>
+            <div style={{ ...textBlock, width: '90%', height: '12px' }}></div>
+            <div style={{ ...textBlock, width: '90%', height: '12px' }}></div>
           </div>
         );
 
       case 'layout-15':
         return (
           <div style={previewStyle}>
-            <div style={{...textBlock, width: '35%', height: '40px'}}></div>
-            <div style={{...imageBlock, width: '55%', height: '50px'}}>📷</div>
+            <div style={{ ...textBlock, width: '35%', height: '40px' }}></div>
+            <div style={{ ...imageBlock, width: '55%', height: '50px' }}>📷</div>
           </div>
         );
 
       case 'layout-16':
         return (
           <div style={previewStyle}>
-            <div style={{...imageBlock, width: '65%', height: '50px'}}>📷</div>
-            <div style={{...textBlock, width: '30%', height: '40px'}}></div>
+            <div style={{ ...imageBlock, width: '65%', height: '50px' }}>📷</div>
+            <div style={{ ...textBlock, width: '30%', height: '40px' }}></div>
           </div>
         );
 
       case 'layout-17':
         return (
-          <div style={{...previewStyle, flexDirection: 'column'}}>
-            <div style={{display: 'flex', width: '100%', gap: '2px'}}>
-              <div style={{...imageBlock, width: '50%', height: '25px'}}>📷</div>
-              <div style={{...textBlock, width: '45%', height: '25px'}}></div>
+          <div style={{ ...previewStyle, flexDirection: 'column' }}>
+            <div style={{ display: 'flex', width: '100%', gap: '2px' }}>
+              <div style={{ ...imageBlock, width: '50%', height: '25px' }}>📷</div>
+              <div style={{ ...textBlock, width: '45%', height: '25px' }}></div>
             </div>
           </div>
         );
 
       case 'layout-18':
         return (
-          <div style={{...previewStyle, position: 'relative'}}>
-            <div style={{...imageBlock, position: 'absolute', left: '5px', top: '5px', width: '45%', height: '35px'}}>📷</div>
-            <div style={{...textBlock, position: 'absolute', right: '5px', bottom: '5px', width: '45%', height: '30px'}}></div>
+          <div style={{ ...previewStyle, position: 'relative' }}>
+            <div style={{ ...imageBlock, position: 'absolute', left: '5px', top: '5px', width: '45%', height: '35px' }}>📷</div>
+            <div style={{ ...textBlock, position: 'absolute', right: '5px', bottom: '5px', width: '45%', height: '30px' }}></div>
           </div>
         );
 
       case 'layout-19':
         return (
           <div style={previewStyle}>
-            <div style={{...textBlock, width: '80%', height: '45px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}></div>
+            <div style={{ ...textBlock, width: '80%', height: '45px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}></div>
           </div>
         );
 
       case 'layout-20':
         return (
-          <div style={{...previewStyle, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, transparent 50%)'}}>
-            <div style={{...textBlock, width: '40%'}}></div>
-            <div style={{...imageBlock, width: '35%'}}>📷</div>
+          <div style={{ ...previewStyle, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, transparent 50%)' }}>
+            <div style={{ ...textBlock, width: '40%' }}></div>
+            <div style={{ ...imageBlock, width: '35%' }}>📷</div>
           </div>
         );
 
       case 'layout-21':
         return (
-          <div style={{...previewStyle, flexDirection: 'column', background: '#343a40'}}>
-            <div style={{...imageBlock, width: '100%', height: '30px', background: 'rgba(173,181,189,0.5)'}}>📷</div>
-            <div style={{...textBlock, width: '70%', height: '15px', background: 'rgba(255,255,255,0.2)'}}></div>
+          <div style={{ ...previewStyle, flexDirection: 'column', background: '#343a40' }}>
+            <div style={{ ...imageBlock, width: '100%', height: '30px', background: 'rgba(173,181,189,0.5)' }}>📷</div>
+            <div style={{ ...textBlock, width: '70%', height: '15px', background: 'rgba(255,255,255,0.2)' }}></div>
           </div>
         );
 
       case 'layout-22':
         return (
-          <div style={{...previewStyle, flexDirection: 'column', gap: '1px'}}>
-            <div style={{display: 'flex', gap: '2px', width: '100%'}}>
-              <div style={{...imageBlock, width: '40%', height: '15px'}}>📷</div>
-              <div style={{...textBlock, width: '55%', height: '15px'}}></div>
+          <div style={{ ...previewStyle, flexDirection: 'column', gap: '1px' }}>
+            <div style={{ display: 'flex', gap: '2px', width: '100%' }}>
+              <div style={{ ...imageBlock, width: '40%', height: '15px' }}>📷</div>
+              <div style={{ ...textBlock, width: '55%', height: '15px' }}></div>
             </div>
-            <div style={{display: 'flex', gap: '2px', width: '100%', flexDirection: 'row-reverse'}}>
-              <div style={{...imageBlock, width: '40%', height: '15px'}}>📷</div>
-              <div style={{...textBlock, width: '55%', height: '15px'}}></div>
+            <div style={{ display: 'flex', gap: '2px', width: '100%', flexDirection: 'row-reverse' }}>
+              <div style={{ ...imageBlock, width: '40%', height: '15px' }}>📷</div>
+              <div style={{ ...textBlock, width: '55%', height: '15px' }}></div>
             </div>
           </div>
         );
@@ -605,89 +605,89 @@ export default function CustomSectionSettingsForm({ pageId, isNewSection }: Cust
       case 'layout-23':
         return (
           <div style={previewStyle}>
-            <div style={{...textBlock, width: '20%', height: '40px'}}></div>
-            <div style={{...textBlock, width: '50%', height: '45px', background: '#667eea'}}></div>
-            <div style={{...textBlock, width: '20%', height: '40px'}}></div>
+            <div style={{ ...textBlock, width: '20%', height: '40px' }}></div>
+            <div style={{ ...textBlock, width: '50%', height: '45px', background: '#667eea' }}></div>
+            <div style={{ ...textBlock, width: '20%', height: '40px' }}></div>
           </div>
         );
 
       case 'layout-24':
         return (
-          <div style={{...previewStyle, background: '#000'}}>
-            <div style={{position: 'absolute', top: '2px', left: '2px', fontSize: '16px'}}>▶️</div>
-            <div style={{...textBlock, background: 'rgba(255,255,255,0.3)', width: '50%'}}></div>
+          <div style={{ ...previewStyle, background: '#000' }}>
+            <div style={{ position: 'absolute', top: '2px', left: '2px', fontSize: '16px' }}>▶️</div>
+            <div style={{ ...textBlock, background: 'rgba(255,255,255,0.3)', width: '50%' }}></div>
           </div>
         );
 
       case 'layout-25':
         return (
-          <div style={{...previewStyle, flexWrap: 'wrap', gap: '2px'}}>
-            <div style={{...imageBlock, width: '30%', height: '18px'}}>📷</div>
-            <div style={{...imageBlock, width: '30%', height: '18px'}}>📷</div>
-            <div style={{...imageBlock, width: '30%', height: '18px'}}>📷</div>
-            <div style={{...imageBlock, width: '30%', height: '18px'}}>📷</div>
+          <div style={{ ...previewStyle, flexWrap: 'wrap', gap: '2px' }}>
+            <div style={{ ...imageBlock, width: '30%', height: '18px' }}>📷</div>
+            <div style={{ ...imageBlock, width: '30%', height: '18px' }}>📷</div>
+            <div style={{ ...imageBlock, width: '30%', height: '18px' }}>📷</div>
+            <div style={{ ...imageBlock, width: '30%', height: '18px' }}>📷</div>
           </div>
         );
 
       case 'layout-26':
         return (
-          <div style={{...previewStyle, background: 'linear-gradient(to bottom, #fff 0%, #f8f9fa 100%)'}}>
-            <div style={{...textBlock, width: '40%', height: '15px'}}></div>
+          <div style={{ ...previewStyle, background: 'linear-gradient(to bottom, #fff 0%, #f8f9fa 100%)' }}>
+            <div style={{ ...textBlock, width: '40%', height: '15px' }}></div>
           </div>
         );
 
       case 'layout-27':
         return (
-          <div style={{...previewStyle, background: 'linear-gradient(45deg, #667eea 0%, #667eea 45%, transparent 45%, transparent 55%, #f8f9fa 55%)'}}>
-            <div style={{...textBlock, width: '35%'}}></div>
-            <div style={{...imageBlock, width: '30%'}}>📷</div>
+          <div style={{ ...previewStyle, background: 'linear-gradient(45deg, #667eea 0%, #667eea 45%, transparent 45%, transparent 55%, #f8f9fa 55%)' }}>
+            <div style={{ ...textBlock, width: '35%' }}></div>
+            <div style={{ ...imageBlock, width: '30%' }}>📷</div>
           </div>
         );
 
       case 'layout-28':
         return (
           <div style={previewStyle}>
-            <div style={{...textBlock, width: '30%', height: '40px'}}></div>
-            <div style={{...textBlock, width: '30%', height: '40px'}}></div>
-            <div style={{...textBlock, width: '30%', height: '40px'}}></div>
+            <div style={{ ...textBlock, width: '30%', height: '40px' }}></div>
+            <div style={{ ...textBlock, width: '30%', height: '40px' }}></div>
+            <div style={{ ...textBlock, width: '30%', height: '40px' }}></div>
           </div>
         );
 
       case 'layout-29':
         return (
-          <div style={{...previewStyle, position: 'relative'}}>
-            <div style={{...imageBlock, position: 'absolute', left: '5px', top: '8px', width: '50%', height: '30px', opacity: 0.7}}>📷</div>
-            <div style={{...textBlock, position: 'absolute', right: '5px', top: '15px', width: '50%', height: '25px'}}></div>
+          <div style={{ ...previewStyle, position: 'relative' }}>
+            <div style={{ ...imageBlock, position: 'absolute', left: '5px', top: '8px', width: '50%', height: '30px', opacity: 0.7 }}>📷</div>
+            <div style={{ ...textBlock, position: 'absolute', right: '5px', top: '15px', width: '50%', height: '25px' }}></div>
           </div>
         );
 
       case 'layout-30':
         return (
-          <div style={{...previewStyle, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
-            <div style={{...textBlock, background: 'rgba(255,255,255,0.3)', width: '80%', height: '18px'}}></div>
+          <div style={{ ...previewStyle, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+            <div style={{ ...textBlock, background: 'rgba(255,255,255,0.3)', width: '80%', height: '18px' }}></div>
           </div>
         );
 
       case 'layout-31':
         return (
-          <div style={{...previewStyle, position: 'relative'}}>
-            <div style={{...imageBlock, width: '70%', height: '45px'}}>🎠</div>
-            <div style={{position: 'absolute', right: '5px', fontSize: '10px'}}>‹ ›</div>
+          <div style={{ ...previewStyle, position: 'relative' }}>
+            <div style={{ ...imageBlock, width: '70%', height: '45px' }}>🎠</div>
+            <div style={{ position: 'absolute', right: '5px', fontSize: '10px' }}>‹ ›</div>
           </div>
         );
 
       case 'layout-32':
         return (
-          <div style={{...previewStyle, position: 'relative'}}>
-            <div style={{...imageBlock, width: '45%', height: '40px', border: '2px dashed #adb5bd'}}>🖱️</div>
-            <div style={{...textBlock, width: '40%', height: '35px'}}></div>
+          <div style={{ ...previewStyle, position: 'relative' }}>
+            <div style={{ ...imageBlock, width: '45%', height: '40px', border: '2px dashed #adb5bd' }}>🖱️</div>
+            <div style={{ ...textBlock, width: '40%', height: '35px' }}></div>
           </div>
         );
 
       default:
         return (
           <div style={previewStyle}>
-            <div style={{...textBlock, width: '60%', height: '18px'}}></div>
+            <div style={{ ...textBlock, width: '60%', height: '18px' }}></div>
           </div>
         );
     }
@@ -1143,32 +1143,21 @@ export default function CustomSectionSettingsForm({ pageId, isNewSection }: Cust
 
             {/* Modal Body */}
             <div className={styles.modalBody}>
-              {formData.headline ||
-               formData.subheadline ||
-               formData.description ||
-               formData.image?.url ||
-               formData.backgroundImage ||
-               formData.videoUrl ||
-               formData.primaryButton?.label ||
-               formData.secondaryButton?.label ? (
-                <CustomSection {...formData} />
-              ) : (
-                <div style={{
-                  padding: '4rem 2rem',
-                  textAlign: 'center',
-                  background: '#f9fafb',
-                  borderRadius: '8px',
-                  color: '#6b7280'
-                }}>
-                  <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: '#374151' }}>
-                    No Content Yet
-                  </h3>
-                  <p style={{ fontSize: '0.875rem' }}>
-                    Add content, images, or buttons to see the preview
-                  </p>
-                </div>
-              )}
+              <CustomSection
+                {...formData}
+                headline={formData.headline || 'Your Headline Here'}
+                subheadline={formData.subheadline || 'Your subheadline text'}
+                description={formData.description || 'Add your description text here to see how it looks in this layout.'}
+                image={formData.image || {
+                  url: 'https://via.placeholder.com/800x600/e5e7eb/9ca3af?text=Image+Placeholder',
+                  alt: 'Placeholder image'
+                }}
+                backgroundImage={formData.backgroundImage || (
+                  getMediaRequirements(formData.layout || 'layout-1').needsBackgroundImage
+                    ? 'https://via.placeholder.com/1920x1080/e5e7eb/9ca3af?text=Background+Image'
+                    : undefined
+                )}
+              />
             </div>
 
             {/* Modal Footer */}

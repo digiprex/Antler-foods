@@ -21,7 +21,9 @@ import { ImageGalleryModal } from './image-gallery-modal';
 import { useHeroConfig, useUpdateHeroConfig } from '@/hooks/use-hero-config';
 import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import type { HeroConfig, HeroButton, HeroFeature } from '@/types/hero.types';
+import { DEFAULT_HERO_CONFIG } from '@/types/hero.types';
 import { getHeroLayoutMediaCapabilities } from '@/lib/hero-layout-media';
+import { getRenderableHeroButtons, mergeHeroConfig } from '@/lib/hero-config';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 
 type MediaFieldType = 'hero_image' | 'background_video' | 'background_image';
@@ -34,7 +36,7 @@ interface HeroSettingsFormProps {
 }
 
 const LAYOUT_OPTIONS = [
-  { value: 'default', name: 'Default', description: 'Standard centered content' },
+  { value: 'default', name: 'Default', description: 'Centered content card over background' },
   { value: 'centered-large', name: 'Centered Large', description: 'Large centered hero' },
   { value: 'split', name: 'Split', description: 'Text left, image right' },
   { value: 'split-reverse', name: 'Split Reverse', description: 'Image left, text right' },
@@ -46,6 +48,21 @@ const LAYOUT_OPTIONS = [
   { value: 'with-features', name: 'With Features', description: 'Hero with feature cards' },
   { value: 'image-collage', name: 'Image Collage', description: 'Text with stacked images' },
 ] as const;
+
+const HERO_ANIMATION_OPTIONS = [
+  { value: 'none', name: 'No Animation', description: 'Keep hero content static.' },
+  { value: 'fade', name: 'Fade', description: 'Soft fade in and out on scroll.' },
+  { value: 'fade-up', name: 'Fade Up', description: 'Fade with a slight upward reveal.' },
+  { value: 'zoom', name: 'Zoom', description: 'Subtle scale-in reveal on scroll.' },
+  { value: 'cinematic', name: 'Cinematic', description: 'Blur-to-sharp reveal with staggered motion.' },
+] as const;
+
+const DEFAULT_PRIMARY_BUTTON = DEFAULT_HERO_CONFIG.primaryButton
+  ? { ...DEFAULT_HERO_CONFIG.primaryButton }
+  : { label: 'View Menu', href: '#menu', variant: 'primary' as const };
+const DEFAULT_SECONDARY_BUTTON = DEFAULT_HERO_CONFIG.secondaryButton
+  ? { ...DEFAULT_HERO_CONFIG.secondaryButton }
+  : { label: 'Book a Table', href: '#reservations', variant: 'outline' as const };
 
 const svgToDataUri = (svg: string) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 
@@ -298,80 +315,107 @@ const getSharedBackgroundMeta = (
 };
 
 const getPreviewHeroConfig = (config: HeroConfig): HeroConfig => {
-  const layout = config.layout || 'default';
+  const resolvedConfig = mergeHeroConfig(config);
+  const layout = resolvedConfig.layout || 'default';
   const mediaFields = getHeroLayoutMediaCapabilities(layout);
+  const { primaryButton, secondaryButton } = getRenderableHeroButtons(resolvedConfig);
 
   // Only show fallback content if user hasn't provided any content at all
-  const hasUserContent = config.headline?.trim() || config.subheadline?.trim() || config.description?.trim();
-  const hasUserButtons = config.primaryButton || config.secondaryButton;
+  const hasUserContent =
+    resolvedConfig.headline?.trim() ||
+    resolvedConfig.subheadline?.trim() ||
+    resolvedConfig.description?.trim();
+  const hasUserButtons = Boolean(
+    (resolvedConfig.primaryButtonEnabled !== false && config.primaryButton) ||
+      (resolvedConfig.secondaryButtonEnabled !== false && config.secondaryButton),
+  );
 
   return {
-    ...config,
-    headline: config.headline?.trim() || (hasUserContent ? '' : HERO_PREVIEW_COPY.headline),
-    subheadline: config.subheadline?.trim() || (hasUserContent ? '' : HERO_PREVIEW_COPY.subheadline),
-    description: config.description?.trim() || (hasUserContent ? '' : HERO_PREVIEW_COPY.description),
+    ...resolvedConfig,
+    headline:
+      resolvedConfig.headline?.trim() || (hasUserContent ? '' : HERO_PREVIEW_COPY.headline),
+    subheadline:
+      resolvedConfig.subheadline?.trim() ||
+      (hasUserContent ? '' : HERO_PREVIEW_COPY.subheadline),
+    description:
+      resolvedConfig.description?.trim() ||
+      (hasUserContent ? '' : HERO_PREVIEW_COPY.description),
     primaryButton:
-      config.primaryButton ||
-      (hasUserContent || hasUserButtons ? undefined : {
-        label: HERO_PREVIEW_COPY.primaryCta,
-        href: '#menu',
-        variant: 'primary',
-      } satisfies HeroButton),
+      primaryButton ||
+      (hasUserContent || hasUserButtons || resolvedConfig.primaryButtonEnabled === false
+        ? undefined
+        : ({
+            ...DEFAULT_PRIMARY_BUTTON,
+            label: HERO_PREVIEW_COPY.primaryCta,
+            href: '#menu',
+            variant: 'primary',
+          } satisfies HeroButton)),
     secondaryButton:
-      config.secondaryButton ||
-      (hasUserContent || hasUserButtons ? undefined : {
-        label: HERO_PREVIEW_COPY.secondaryCta,
-        href: '#reservations',
-        variant: 'outline',
-      } satisfies HeroButton),
+      secondaryButton ||
+      (hasUserContent || hasUserButtons || resolvedConfig.secondaryButtonEnabled === false
+        ? undefined
+        : ({
+            ...DEFAULT_SECONDARY_BUTTON,
+            label: HERO_PREVIEW_COPY.secondaryCta,
+            href: '#reservations',
+            variant: 'outline',
+          } satisfies HeroButton)),
     image: mediaFields.showHeroImage
-      ? config.image || {
+      ? resolvedConfig.image || {
           url: HERO_PREVIEW_IMAGE,
           alt: 'Preview hero image',
         }
       : undefined,
     backgroundImage:
       mediaFields.showBackgroundImage
-        ? config.backgroundImage || HERO_PREVIEW_BACKGROUND
-        : layout === 'video-background' && !config.videoUrl
+        ? resolvedConfig.backgroundImage || HERO_PREVIEW_BACKGROUND
+        : layout === 'video-background' && !resolvedConfig.videoUrl
           ? HERO_PREVIEW_BACKGROUND
           : undefined,
-    videoUrl: mediaFields.showBackgroundVideo ? config.videoUrl : undefined,
+    videoUrl: mediaFields.showBackgroundVideo ? resolvedConfig.videoUrl : undefined,
     features:
-      layout === 'with-features' && (!config.features || config.features.length === 0)
+      layout === 'with-features' && (!resolvedConfig.features || resolvedConfig.features.length === 0)
         ? PREVIEW_FEATURES
-        : config.features,
-    bgColor: config.bgColor || '#0f172a',
+        : resolvedConfig.features,
+    bgColor: resolvedConfig.bgColor || '#0f172a',
     textColor:
-      config.textColor ||
+      resolvedConfig.textColor ||
       (mediaFields.showBackgroundImage || layout === 'video-background' || layout === 'full-height'
         ? '#ffffff'
         : '#0f172a'),
-    overlayColor: config.overlayColor || '#020617',
+    overlayColor: resolvedConfig.overlayColor || '#020617',
     overlayOpacity:
-      config.overlayOpacity ??
+      resolvedConfig.overlayOpacity ??
       (mediaFields.showBackgroundImage || layout === 'video-background' ? 0.48 : 0.18),
     minHeight:
-      config.minHeight ||
+      resolvedConfig.minHeight ||
       (layout === 'minimal' ? '420px' : layout === 'video-background' || layout === 'full-height' ? '680px' : '560px'),
   };
 };
 
 const previewUsesPlaceholderContent = (config: HeroConfig) => {
-  const layout = config.layout || 'default';
+  const resolvedConfig = mergeHeroConfig(config);
+  const layout = resolvedConfig.layout || 'default';
   const mediaFields = getHeroLayoutMediaCapabilities(layout);
 
   // Check if user has provided any content at all
-  const hasUserContent = config.headline?.trim() || config.subheadline?.trim() || config.description?.trim();
-  const hasUserButtons = config.primaryButton || config.secondaryButton;
+  const hasUserContent =
+    resolvedConfig.headline?.trim() ||
+    resolvedConfig.subheadline?.trim() ||
+    resolvedConfig.description?.trim();
+  const hasUserButtons = Boolean(
+    (resolvedConfig.primaryButtonEnabled !== false && config.primaryButton) ||
+      (resolvedConfig.secondaryButtonEnabled !== false && config.secondaryButton),
+  );
 
   return Boolean(
     (!hasUserContent && !hasUserButtons) ||
-      (mediaFields.showHeroImage && !config.image) ||
+      (mediaFields.showHeroImage && !resolvedConfig.image) ||
       ((mediaFields.showBackgroundImage || layout === 'video-background') &&
-        !config.backgroundImage &&
-        !config.videoUrl) ||
-      (layout === 'with-features' && (!config.features || config.features.length === 0)),
+        !resolvedConfig.backgroundImage &&
+        !resolvedConfig.videoUrl) ||
+      (layout === 'with-features' &&
+        (!resolvedConfig.features || resolvedConfig.features.length === 0)),
   );
 };
 
@@ -911,15 +955,121 @@ const renderHeroLayoutCardPreview = (layoutType: string) => {
 
     case 'default':
     default:
-      return overlayHero(HERO_PREVIEW_COPY.title, true, 'linear-gradient(180deg, rgba(15,23,42,0.2) 0%, rgba(15,23,42,0.5) 100%)');
+      return innerFrame(`url(${HERO_CARD_SAMPLE_PHOTO}) center / cover no-repeat`, (
+        <>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,23,42,0.18) 0%, rgba(15,23,42,0.5) 100%)' }} />
+          <div
+            style={{
+              position: 'absolute',
+              inset: '16px 20px',
+              borderRadius: '16px',
+              border: '1px solid rgba(255,255,255,0.14)',
+              background:
+                'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015)), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px)',
+              backgroundSize: 'auto, 14px 14px, 14px 14px',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              top: '14px',
+              left: '26px',
+              width: '72px',
+              height: '72px',
+              borderRadius: 999,
+              background: 'radial-gradient(circle, rgba(56,189,248,0.18) 0%, rgba(56,189,248,0) 74%)',
+              mixBlendMode: 'screen',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              right: '18px',
+              bottom: '10px',
+              width: '82px',
+              height: '82px',
+              borderRadius: 999,
+              background: 'radial-gradient(circle, rgba(249,115,22,0.18) 0%, rgba(249,115,22,0) 74%)',
+              mixBlendMode: 'screen',
+            }}
+          />
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 1,
+              display: 'flex',
+              height: '100%',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+            }}
+          >
+            <div
+              style={{
+                width: '44%',
+                minWidth: '170px',
+                maxWidth: '220px',
+                minHeight: '74px',
+                borderRadius: '22px',
+                background: 'rgba(255,255,255,0.96)',
+                border: '1px solid rgba(255,255,255,0.28)',
+                boxShadow: '0 16px 30px rgba(15,23,42,0.22)',
+                padding: '12px 16px 11px',
+                textAlign: 'center',
+              }}
+            >
+              <div
+                style={{
+                  color: '#111827',
+                  fontSize: '5.2px',
+                  fontWeight: 700,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  lineHeight: 1.2,
+                }}
+              >
+                EXPERIENCE CUILIANARY EXPERIENCE
+              </div>
+              <div
+                style={{
+                  marginTop: '8px',
+                  color: '#111827',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  lineHeight: 1.02,
+                  letterSpacing: '-0.04em',
+                }}
+              >
+                Welcome to
+                <br />
+                Our restaurant
+              </div>
+              <div
+                style={{
+                  margin: '8px auto 0',
+                  maxWidth: '86%',
+                  color: '#4b5563',
+                  fontSize: '4.8px',
+                  fontWeight: 500,
+                  lineHeight: 1.35,
+                }}
+              >
+                Discover Exceoioptnal Experience Culinary Exp
+              </div>
+            </div>
+          </div>
+        </>
+      ), true);
   }
 };
 
 export default function HeroSettingsForm({ pageId, templateId, isNewSection }: HeroSettingsFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const restaurantId = searchParams.get('restaurant_id') || '';
-  const restaurantName = searchParams.get('restaurant_name') || '';
+  const restaurantId = searchParams?.get('restaurant_id') || '';
+  const restaurantName = searchParams?.get('restaurant_name') || '';
   const {
     config,
     loading,
@@ -943,6 +1093,8 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop');
+  const [responsiveEditorViewport, setResponsiveEditorViewport] =
+    useState<PreviewViewport>('desktop');
 
   // Gallery modal state
   const [showGalleryModal, setShowGalleryModal] = useState(false);
@@ -966,32 +1118,29 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
     if (isNewSection && !formConfig) {
       // For new sections, use default empty config
       setFormConfig({
+        ...DEFAULT_HERO_CONFIG,
         ...sectionStyleDefaults,
         headline: '',
         subheadline: '',
         description: '',
-        layout: 'centered-large',
-        bgColor: '#ffffff',
-        textColor: '#000000',
-        textAlign: 'center',
-        paddingTop: '6rem',
-        paddingBottom: '6rem',
-        minHeight: '600px',
-        showScrollIndicator: false,
-        contentMaxWidth: '1200px',
+        primaryButton: { ...DEFAULT_PRIMARY_BUTTON },
+        secondaryButton: { ...DEFAULT_SECONDARY_BUTTON },
+        primaryButtonEnabled: true,
+        secondaryButtonEnabled: true,
+        contentAnimation: DEFAULT_HERO_CONFIG.contentAnimation,
       });
     } else if (config && !formConfig) {
-      setFormConfig({ ...sectionStyleDefaults, ...config });
+      setFormConfig(mergeHeroConfig({ ...sectionStyleDefaults, ...config }));
     }
   }, [config, formConfig, isNewSection, sectionStyleDefaults]);
 
   useEffect(() => {
     setFormConfig((prev) =>
       prev
-        ? {
+        ? mergeHeroConfig({
             ...sectionStyleDefaults,
             ...prev,
-          }
+          })
         : prev,
     );
   }, [sectionStyleDefaults]);
@@ -1063,7 +1212,10 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
     if (!formConfig) return;
     setFormConfig(prev => prev ? ({
       ...prev,
-      primaryButton: prev.primaryButton ? { ...prev.primaryButton, ...updates } : { label: '', href: '', ...updates }
+      primaryButtonEnabled: true,
+      primaryButton: prev.primaryButton
+        ? { ...prev.primaryButton, ...updates }
+        : { ...DEFAULT_PRIMARY_BUTTON, ...updates }
     }) : null);
   };
 
@@ -1071,7 +1223,10 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
     if (!formConfig) return;
     setFormConfig(prev => prev ? ({
       ...prev,
-      secondaryButton: prev.secondaryButton ? { ...prev.secondaryButton, ...updates } : { label: '', href: '', ...updates }
+      secondaryButtonEnabled: true,
+      secondaryButton: prev.secondaryButton
+        ? { ...prev.secondaryButton, ...updates }
+        : { ...DEFAULT_SECONDARY_BUTTON, ...updates }
     }) : null);
   };
 
@@ -1161,6 +1316,34 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
   const error = fetchError || updateError;
   const previewConfig = getPreviewHeroConfig(formConfig);
   const previewHasPlaceholders = previewUsesPlaceholderContent(formConfig);
+  const isPrimaryButtonEnabled = formConfig.primaryButtonEnabled !== false;
+  const isSecondaryButtonEnabled = formConfig.secondaryButtonEnabled !== false;
+  const editablePrimaryButton = formConfig.primaryButton || DEFAULT_PRIMARY_BUTTON;
+  const editableSecondaryButton = formConfig.secondaryButton || DEFAULT_SECONDARY_BUTTON;
+  const isDefaultLayout = (formConfig.layout || 'default') === 'default';
+  const isMobileEditorViewport = responsiveEditorViewport === 'mobile';
+  const handleResponsiveEditorViewportChange = (viewport: PreviewViewport) => {
+    setResponsiveEditorViewport(viewport);
+    setPreviewViewport(viewport);
+  };
+  const renderResponsiveEditorTabs = (scope: string) => (
+    <div className="inline-flex rounded-full bg-slate-100 p-1">
+      {(['desktop', 'mobile'] as PreviewViewport[]).map((viewport) => (
+        <button
+          key={`${scope}-viewport-${viewport}`}
+          type="button"
+          onClick={() => handleResponsiveEditorViewportChange(viewport)}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+            responsiveEditorViewport === viewport
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          {viewport === 'desktop' ? 'Desktop' : 'Mobile'}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <>
@@ -1174,7 +1357,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
       )}
 
       {/* Page Header */}
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-8 flex items-start">
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
             <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -1186,18 +1369,6 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
             <p className="mt-1 text-sm text-gray-600">Customize your website hero section</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowPreview(!showPreview)}
-          className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
-          title={showPreview ? 'Hide Preview' : 'Show Live Preview'}
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          {showPreview ? 'Hide' : 'Show'} Preview
-        </button>
       </div>
 
       {/* Error Message */}
@@ -1213,7 +1384,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6 pb-40">
         {/* Layout Section */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-center gap-3">
@@ -1411,12 +1582,15 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                 <label className="relative inline-flex cursor-pointer items-center">
                   <input
                     type="checkbox"
-                    checked={!!formConfig.primaryButton}
+                    checked={isPrimaryButtonEnabled}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        updateConfig({ primaryButton: { label: 'View Menu', href: '#menu', variant: 'primary' } });
+                        updateConfig({
+                          primaryButtonEnabled: true,
+                          primaryButton: formConfig.primaryButton || { ...DEFAULT_PRIMARY_BUTTON },
+                        });
                       } else {
-                        updateConfig({ primaryButton: undefined });
+                        updateConfig({ primaryButtonEnabled: false });
                       }
                     }}
                     className="peer sr-only"
@@ -1425,7 +1599,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                 </label>
               </div>
 
-              {formConfig.primaryButton && (
+              {isPrimaryButtonEnabled && (
                 <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <div>
                     <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
@@ -1434,7 +1608,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                     </label>
                     <input
                       type="text"
-                      value={formConfig.primaryButton.label}
+                      value={editablePrimaryButton.label}
                       onChange={(e) => updatePrimaryButton({ label: e.target.value })}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                       placeholder="View Menu"
@@ -1448,7 +1622,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                     </label>
                     <input
                       type="text"
-                      value={formConfig.primaryButton.href}
+                      value={editablePrimaryButton.href}
                       onChange={(e) => updatePrimaryButton({ href: e.target.value })}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                       placeholder="#menu"
@@ -1461,7 +1635,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                       <span className="text-xs font-normal text-gray-500">Visual style</span>
                     </label>
                     <select
-                      value={formConfig.primaryButton.variant || 'primary'}
+                      value={editablePrimaryButton.variant || 'primary'}
                       onChange={(e) => updatePrimaryButton({ variant: e.target.value as any })}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                     >
@@ -1484,12 +1658,15 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                 <label className="relative inline-flex cursor-pointer items-center">
                   <input
                     type="checkbox"
-                    checked={!!formConfig.secondaryButton}
+                    checked={isSecondaryButtonEnabled}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        updateConfig({ secondaryButton: { label: 'Book a Table', href: '#reservations', variant: 'outline' } });
+                        updateConfig({
+                          secondaryButtonEnabled: true,
+                          secondaryButton: formConfig.secondaryButton || { ...DEFAULT_SECONDARY_BUTTON },
+                        });
                       } else {
-                        updateConfig({ secondaryButton: undefined });
+                        updateConfig({ secondaryButtonEnabled: false });
                       }
                     }}
                     className="peer sr-only"
@@ -1498,7 +1675,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                 </label>
               </div>
 
-              {formConfig.secondaryButton && (
+              {isSecondaryButtonEnabled && (
                 <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <div>
                     <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
@@ -1507,7 +1684,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                     </label>
                     <input
                       type="text"
-                      value={formConfig.secondaryButton.label}
+                      value={editableSecondaryButton.label}
                       onChange={(e) => updateSecondaryButton({ label: e.target.value })}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                       placeholder="Book a Table"
@@ -1521,7 +1698,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                     </label>
                     <input
                       type="text"
-                      value={formConfig.secondaryButton.href}
+                      value={editableSecondaryButton.href}
                       onChange={(e) => updateSecondaryButton({ href: e.target.value })}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                       placeholder="#reservations"
@@ -1534,7 +1711,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                       <span className="text-xs font-normal text-gray-500">Visual style</span>
                     </label>
                     <select
-                      value={formConfig.secondaryButton.variant || 'outline'}
+                      value={editableSecondaryButton.variant || 'outline'}
                       onChange={(e) => updateSecondaryButton({ variant: e.target.value as any })}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                     >
@@ -1796,96 +1973,564 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
 
         {/* Styling Section */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
-              </svg>
+          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Colors & Styling</h2>
+                <p className="text-sm text-gray-600">Customize colors, alignment and dimensions</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Colors & Styling</h2>
-              <p className="text-sm text-gray-600">Customize colors, alignment and dimensions</p>
-            </div>
+            {renderResponsiveEditorTabs('styling')}
           </div>
 
-          <div className="space-y-4">
+          <div
+            className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+              isMobileEditorViewport
+                ? 'border-purple-200 bg-purple-50 text-purple-800'
+                : 'border-slate-200 bg-slate-50 text-slate-700'
+            }`}
+          >
+            {isMobileEditorViewport
+              ? 'You are editing mobile-only overrides. Clear a mobile value to fall back to the desktop setting.'
+              : 'You are editing the desktop base styles. These values remain the default until mobile overrides are added.'}
+          </div>
+
+          <div className="space-y-5">
             <div>
               <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
                 <span>Background Color</span>
-                <span className="text-xs font-normal text-gray-500">Hero background color</span>
+                <span className="text-xs font-normal text-gray-500">
+                  {isMobileEditorViewport ? 'Mobile hero background color' : 'Hero background color'}
+                </span>
               </label>
               <div className="flex gap-2">
                 <input
                   type="color"
-                  value={formConfig.bgColor || '#ffffff'}
-                  onChange={(e) => updateConfig({ bgColor: e.target.value })}
+                  value={
+                    isMobileEditorViewport
+                      ? formConfig.mobileBgColor || formConfig.bgColor || '#ffffff'
+                      : formConfig.bgColor || '#ffffff'
+                  }
+                  onChange={(e) =>
+                    updateConfig(
+                      isMobileEditorViewport
+                        ? { mobileBgColor: e.target.value }
+                        : { bgColor: e.target.value },
+                    )
+                  }
                   className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white"
                 />
                 <input
                   type="text"
-                  value={formConfig.bgColor || '#ffffff'}
-                  onChange={(e) => updateConfig({ bgColor: e.target.value })}
+                  value={
+                    isMobileEditorViewport
+                      ? formConfig.mobileBgColor || formConfig.bgColor || '#ffffff'
+                      : formConfig.bgColor || '#ffffff'
+                  }
+                  onChange={(e) =>
+                    updateConfig(
+                      isMobileEditorViewport
+                        ? { mobileBgColor: e.target.value }
+                        : { bgColor: e.target.value },
+                    )
+                  }
                   className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                   placeholder="#ffffff"
                 />
                 <button
                   type="button"
-                  onClick={() => updateConfig({ bgColor: '#ffffff' })}
+                  onClick={() =>
+                    updateConfig(
+                      isMobileEditorViewport ? { mobileBgColor: undefined } : { bgColor: '#ffffff' },
+                    )
+                  }
                   className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
+                  title={isMobileEditorViewport ? 'Use desktop background color' : 'Reset to default'}
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                   </svg>
                 </button>
               </div>
+              <p className="mt-2 text-xs text-gray-500">
+                {isMobileEditorViewport
+                  ? 'Leave mobile background color unset by resetting it to reuse the desktop color.'
+                  : 'Used as the fallback surface when no background image is selected.'}
+              </p>
             </div>
 
             <div>
               <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
                 <span>Text Alignment</span>
-                <span className="text-xs font-normal text-gray-500">Content alignment</span>
+                <span className="text-xs font-normal text-gray-500">
+                  {isMobileEditorViewport ? 'Mobile content alignment' : 'Desktop content alignment'}
+                </span>
               </label>
-              <select
-                value={formConfig.textAlign || 'center'}
-                onChange={(e) => updateConfig({ textAlign: e.target.value as any })}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-              >
-                <option value="left">Left</option>
-                <option value="center">Center</option>
-                <option value="right">Right</option>
-              </select>
+              <div className="flex gap-2">
+                <select
+                  value={
+                    isMobileEditorViewport
+                      ? formConfig.mobileTextAlign || formConfig.textAlign || 'center'
+                      : formConfig.textAlign || 'center'
+                  }
+                  onChange={(e) =>
+                    updateConfig(
+                      isMobileEditorViewport
+                        ? { mobileTextAlign: e.target.value as HeroConfig['mobileTextAlign'] }
+                        : { textAlign: e.target.value as HeroConfig['textAlign'] },
+                    )
+                  }
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                >
+                  <option value="left">Left</option>
+                  <option value="center">Center</option>
+                  <option value="right">Right</option>
+                </select>
+                {isMobileEditorViewport ? (
+                  <button
+                    type="button"
+                    onClick={() => updateConfig({ mobileTextAlign: undefined })}
+                    className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                    title="Use desktop text alignment"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                  </button>
+                ) : null}
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                {isMobileEditorViewport
+                  ? 'Reset the mobile alignment to reuse the desktop alignment.'
+                  : 'Controls how the hero content aligns on regular screens.'}
+              </p>
             </div>
 
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Minimum Height</span>
-                <span className="text-xs font-normal text-gray-500">Hero section height</span>
-              </label>
-              <input
-                type="text"
-                value={formConfig.minHeight || '600px'}
-                onChange={(e) => updateConfig({ minHeight: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                placeholder="600px"
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Show Scroll Indicator</label>
-                  <p className="text-xs text-gray-500">Animated scroll arrow</p>
+            {isDefaultLayout ? (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Default Content Background</label>
+                    <p className="text-xs text-gray-500">
+                      Enable or remove the inner background box for the default layout.
+                    </p>
+                  </div>
+                  <label className="relative inline-flex cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      checked={formConfig.defaultContentPanelEnabled || false}
+                      onChange={(e) =>
+                        updateConfig({ defaultContentPanelEnabled: e.target.checked })
+                      }
+                      className="peer sr-only"
+                    />
+                    <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
+                  </label>
                 </div>
-                <label className="relative inline-flex cursor-pointer items-center">
-                  <input
-                    type="checkbox"
-                    checked={formConfig.showScrollIndicator || false}
-                    onChange={(e) => updateConfig({ showScrollIndicator: e.target.checked })}
-                    className="peer sr-only"
-                  />
-                  <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
+                <p className="mt-3 text-xs text-gray-500">
+                  {isMobileEditorViewport
+                    ? 'Use this tab for mobile-only panel overrides. Leave a mobile field blank to inherit the desktop value.'
+                    : 'Use this tab to define the main desktop content card for the default hero layout.'}
+                </p>
+
+                {formConfig.defaultContentPanelEnabled ? (
+                  <div className={`mt-4 rounded-lg border p-4 ${isMobileEditorViewport ? 'border-purple-200 bg-purple-50/60' : 'border-gray-200 bg-white'}`}>
+                    <div className="mb-4">
+                      <h3 className={`text-sm font-semibold ${isMobileEditorViewport ? 'text-purple-900' : 'text-gray-900'}`}>
+                        {isMobileEditorViewport ? 'Mobile Layout Controls' : 'Desktop Layout Controls'}
+                      </h3>
+                      <p className={`mt-1 text-xs ${isMobileEditorViewport ? 'text-purple-700' : 'text-gray-500'}`}>
+                        {isMobileEditorViewport
+                          ? 'Edit the mobile size, spacing, color, and radius for the content card.'
+                          : 'Edit the desktop size, spacing, color, and radius for the content card.'}
+                      </p>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      <div>
+                        <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                          <span>Content Background Color</span>
+                          <span className="text-xs font-normal text-gray-500">
+                            {isMobileEditorViewport ? 'Mobile panel background' : 'Default layout content box'}
+                          </span>
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="color"
+                            value={
+                              isMobileEditorViewport
+                                ? formConfig.defaultContentPanelMobileBackgroundColor ||
+                                  formConfig.defaultContentPanelBackgroundColor ||
+                                  '#ffffff'
+                                : formConfig.defaultContentPanelBackgroundColor || '#ffffff'
+                            }
+                            onChange={(e) =>
+                              updateConfig(
+                                isMobileEditorViewport
+                                  ? {
+                                      defaultContentPanelMobileBackgroundColor:
+                                        e.target.value,
+                                    }
+                                  : {
+                                      defaultContentPanelBackgroundColor:
+                                        e.target.value,
+                                    },
+                              )
+                            }
+                            className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white"
+                          />
+                          <input
+                            type="text"
+                            value={
+                              isMobileEditorViewport
+                                ? formConfig.defaultContentPanelMobileBackgroundColor ||
+                                  formConfig.defaultContentPanelBackgroundColor ||
+                                  '#ffffff'
+                                : formConfig.defaultContentPanelBackgroundColor || '#ffffff'
+                            }
+                            onChange={(e) =>
+                              updateConfig(
+                                isMobileEditorViewport
+                                  ? {
+                                      defaultContentPanelMobileBackgroundColor:
+                                        e.target.value,
+                                    }
+                                  : {
+                                      defaultContentPanelBackgroundColor:
+                                        e.target.value,
+                                    },
+                              )
+                            }
+                            className="flex-1 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                            placeholder="#ffffff"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateConfig(
+                                isMobileEditorViewport
+                                  ? {
+                                      defaultContentPanelMobileBackgroundColor:
+                                        undefined,
+                                    }
+                                  : {
+                                      defaultContentPanelBackgroundColor:
+                                        '#ffffff',
+                                    },
+                              )
+                            }
+                            className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                            title={
+                              isMobileEditorViewport
+                                ? 'Use desktop content background color'
+                                : 'Reset content background color'
+                            }
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                          <span>Border Radius</span>
+                          <span className="text-xs font-normal text-gray-500">
+                            {isMobileEditorViewport ? 'Mobile corner roundness' : 'Desktop corner roundness'}
+                          </span>
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={
+                              isMobileEditorViewport
+                                ? formConfig.defaultContentPanelMobileBorderRadius || ''
+                                : formConfig.defaultContentPanelBorderRadius || '2rem'
+                            }
+                            onChange={(e) =>
+                              updateConfig(
+                                isMobileEditorViewport
+                                  ? {
+                                      defaultContentPanelMobileBorderRadius:
+                                        e.target.value || undefined,
+                                    }
+                                  : {
+                                      defaultContentPanelBorderRadius:
+                                        e.target.value || '2rem',
+                                    },
+                              )
+                            }
+                            className="flex-1 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                            placeholder={
+                              isMobileEditorViewport
+                                ? formConfig.defaultContentPanelBorderRadius || '2rem'
+                                : '2rem'
+                            }
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateConfig(
+                                isMobileEditorViewport
+                                  ? {
+                                      defaultContentPanelMobileBorderRadius:
+                                        undefined,
+                                    }
+                                  : {
+                                      defaultContentPanelBorderRadius: '2rem',
+                                    },
+                              )
+                            }
+                            className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                            title={isMobileEditorViewport ? 'Use desktop border radius' : 'Reset border radius'}
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                          <span>Section Width</span>
+                          <span className="text-xs font-normal text-gray-500">Centered content area width</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={
+                            isMobileEditorViewport
+                              ? formConfig.defaultContentPanelMobileMaxWidth || ''
+                              : formConfig.defaultContentPanelMaxWidth || '960px'
+                          }
+                          onChange={(e) =>
+                            updateConfig(
+                              isMobileEditorViewport
+                                ? {
+                                    defaultContentPanelMobileMaxWidth:
+                                      e.target.value || undefined,
+                                  }
+                                : {
+                                    defaultContentPanelMaxWidth:
+                                      e.target.value || '960px',
+                                  },
+                            )
+                          }
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                          placeholder={isMobileEditorViewport ? formConfig.defaultContentPanelMaxWidth || '92%' : '960px'}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                          <span>Panel Height</span>
+                          <span className="text-xs font-normal text-gray-500">Minimum inner box height</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={
+                            isMobileEditorViewport
+                              ? formConfig.defaultContentPanelMobileMinHeight || ''
+                              : formConfig.defaultContentPanelMinHeight || ''
+                          }
+                          onChange={(e) =>
+                            updateConfig(
+                              isMobileEditorViewport
+                                ? {
+                                    defaultContentPanelMobileMinHeight:
+                                      e.target.value || undefined,
+                                  }
+                                : {
+                                    defaultContentPanelMinHeight:
+                                      e.target.value || undefined,
+                                  },
+                            )
+                          }
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                          placeholder={isMobileEditorViewport ? '360px' : '420px'}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                          <span>Top Spacing</span>
+                          <span className="text-xs font-normal text-gray-500">Move panel down from the top</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={
+                            isMobileEditorViewport
+                              ? formConfig.defaultContentPanelMobileMarginTop || ''
+                              : formConfig.defaultContentPanelMarginTop || ''
+                          }
+                          onChange={(e) =>
+                            updateConfig(
+                              isMobileEditorViewport
+                                ? {
+                                    defaultContentPanelMobileMarginTop:
+                                      e.target.value || undefined,
+                                  }
+                                : {
+                                    defaultContentPanelMarginTop:
+                                      e.target.value || undefined,
+                                  },
+                            )
+                          }
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                          placeholder={isMobileEditorViewport ? '24px' : '40px'}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                          <span>Bottom Spacing</span>
+                          <span className="text-xs font-normal text-gray-500">Reserve space below the panel</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={
+                            isMobileEditorViewport
+                              ? formConfig.defaultContentPanelMobileMarginBottom || ''
+                              : formConfig.defaultContentPanelMarginBottom || ''
+                          }
+                          onChange={(e) =>
+                            updateConfig(
+                              isMobileEditorViewport
+                                ? {
+                                    defaultContentPanelMobileMarginBottom:
+                                      e.target.value || undefined,
+                                  }
+                                : {
+                                    defaultContentPanelMarginBottom:
+                                      e.target.value || undefined,
+                                  },
+                            )
+                          }
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                          placeholder={isMobileEditorViewport ? '24px' : '40px'}
+                        />
+                      </div>
+                    </div>
+
+                    <p className="mt-3 text-xs text-gray-500">
+                      {isMobileEditorViewport
+                        ? 'Leave mobile size, spacing, and radius fields blank to inherit the desktop content-card settings.'
+                        : 'Desktop values define the main content card. Use the mobile tab only when the card needs smaller-screen overrides.'}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-4 text-xs text-gray-500">
+                    With this disabled, text sits directly on the hero background.
+                  </p>
+                )}
+              </div>
+            ) : null}
+
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-gray-900">Hero Height</h3>
+                <p className="mt-1 text-xs text-gray-500">
+                  {isMobileEditorViewport
+                    ? 'Use a mobile-only hero height when the section needs a different balance on phones.'
+                    : 'Desktop height is the base hero height. Mobile keeps using it until you add a mobile override.'}
+                </p>
+              </div>
+              <div>
+                <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                  <span>
+                    {isMobileEditorViewport ? 'Mobile Minimum Height' : 'Desktop Minimum Height'}
+                  </span>
+                  <span className="text-xs font-normal text-gray-500">
+                    {isMobileEditorViewport ? 'Optional mobile override' : 'Hero section height'}
+                  </span>
                 </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={
+                      isMobileEditorViewport
+                        ? formConfig.mobileMinHeight || ''
+                        : formConfig.minHeight || '600px'
+                    }
+                    onChange={(e) =>
+                      updateConfig(
+                        isMobileEditorViewport
+                          ? { mobileMinHeight: e.target.value || undefined }
+                          : { minHeight: e.target.value || '600px' },
+                      )
+                    }
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                    placeholder={isMobileEditorViewport ? formConfig.minHeight || '520px' : '600px'}
+                  />
+                  {isMobileEditorViewport ? (
+                    <button
+                      type="button"
+                      onClick={() => updateConfig({ mobileMinHeight: undefined })}
+                      className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                      title="Use desktop minimum height"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                      </svg>
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-white p-4">
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-gray-900">Shared Desktop + Mobile Settings</h3>
+                <p className="mt-1 text-xs text-gray-500">
+                  These controls apply to both desktop and mobile.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                    <span>Scroll Animation</span>
+                    <span className="text-xs font-normal text-gray-500">Reveal effect when hero enters the viewport</span>
+                  </label>
+                  <select
+                    value={formConfig.contentAnimation || 'none'}
+                    onChange={(e) => updateConfig({ contentAnimation: e.target.value as HeroConfig['contentAnimation'] })}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                  >
+                    {HERO_ANIMATION_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-2 text-xs text-gray-500">
+                    {HERO_ANIMATION_OPTIONS.find((option) => option.value === (formConfig.contentAnimation || 'none'))?.description}
+                  </p>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Show Scroll Indicator</label>
+                      <p className="text-xs text-gray-500">Animated scroll arrow</p>
+                    </div>
+                    <label className="relative inline-flex cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        checked={formConfig.showScrollIndicator || false}
+                        onChange={(e) => updateConfig({ showScrollIndicator: e.target.checked })}
+                        className="peer sr-only"
+                      />
+                      <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1893,16 +2538,19 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
 
         {/* Typography & Buttons Section */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-              </svg>
+          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Typography & Buttons</h2>
+                <p className="text-sm text-gray-600">Customize text styles and button appearance</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Typography & Buttons</h2>
-              <p className="text-sm text-gray-600">Customize text styles and button appearance</p>
-            </div>
+            {renderResponsiveEditorTabs('typography')}
           </div>
 
           <div className="space-y-4">
@@ -1939,9 +2587,16 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
               </div>
             ) : (
               <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <div className="mb-4 rounded-lg border border-purple-100 bg-purple-50 px-4 py-3 text-xs text-purple-800">
+                  {isMobileEditorViewport
+                    ? 'Mobile tab unlocks the full mobile typography set. Use "Use Desktop Settings" inside any group to clear mobile overrides.'
+                    : 'Desktop tab defines the main typography system. Mobile keeps using these values until you override them in the mobile tab.'}
+                </div>
                 <SectionTypographyControls
                   value={formConfig}
                   onChange={(updates) => updateConfig(updates)}
+                  showAdvancedControls
+                  viewport={responsiveEditorViewport}
                 />
               </div>
             )}
@@ -1971,6 +2626,31 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
           </button>
         </div>
       </form>
+
+      {!showPreview ? (
+        <button
+          type="button"
+          onClick={() => {
+            setPreviewViewport(responsiveEditorViewport);
+            setShowPreview(true);
+          }}
+          className="fixed bottom-24 right-6 z-40 inline-flex items-center gap-3 rounded-full border border-purple-200 bg-white/95 px-5 py-3 text-sm font-semibold text-purple-700 shadow-[0_18px_45px_rgba(15,23,42,0.18)] backdrop-blur transition-all hover:-translate-y-0.5 hover:border-purple-300 hover:bg-white"
+          aria-label="Open live preview"
+        >
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-sm">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </span>
+          <span className="flex flex-col items-start leading-tight">
+            <span>Live Preview</span>
+            <span className="text-xs font-medium text-purple-500">
+              {responsiveEditorViewport === 'mobile' ? 'Open mobile preview' : 'Open desktop preview'}
+            </span>
+          </span>
+        </button>
+      ) : null}
 
       {/* Preview Modal Popup */}
       {showPreview && (

@@ -9,6 +9,7 @@ interface ImageGalleryModalProps {
   restaurantId?: string;
   title?: string;
   description?: string;
+  mediaKind?: 'image' | 'video';
 }
 
 export function ImageGalleryModal({
@@ -18,10 +19,18 @@ export function ImageGalleryModal({
   restaurantId,
   title = 'Select Image',
   description = 'Choose an image from your media library or upload new',
+  mediaKind = 'image',
 }: ImageGalleryModalProps) {
   const [mediaFiles, setMediaFiles] = useState<any[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  const filteredMediaFiles = mediaFiles.filter((media) => {
+    const mimeType = media.file?.mimeType || media.type || '';
+    return mediaKind === 'video'
+      ? mimeType.startsWith('video/')
+      : mimeType.startsWith('image/');
+  });
 
   useEffect(() => {
     if (isOpen && restaurantId) {
@@ -113,7 +122,7 @@ export function ImageGalleryModal({
               <label className="cursor-pointer">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept={mediaKind === 'video' ? 'video/*' : 'image/*'}
                   onChange={handleImageUpload}
                   className="hidden"
                   disabled={uploadingImage || !restaurantId}
@@ -133,7 +142,7 @@ export function ImageGalleryModal({
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                       </svg>
-                      Upload
+                      {mediaKind === 'video' ? 'Upload Video' : 'Upload Image'}
                     </>
                   )}
                 </div>
@@ -155,31 +164,63 @@ export function ImageGalleryModal({
           {loadingMedia ? (
             <div className="text-center py-16">
               <div className="animate-spin rounded-full h-12 w-12 border-2 border-purple-600 border-t-transparent mx-auto mb-4"></div>
-              <p className="text-sm font-medium text-gray-700">Loading images...</p>
+              <p className="text-sm font-medium text-gray-700">
+                Loading {mediaKind === 'video' ? 'videos' : 'images'}...
+              </p>
             </div>
-          ) : mediaFiles.length === 0 ? (
+          ) : filteredMediaFiles.length === 0 ? (
             <div className="text-center py-16">
               <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
                 <svg className="h-10 w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                 </svg>
               </div>
-              <h3 className="mb-2 text-xl font-bold text-gray-900">No images found</h3>
-              <p className="mx-auto max-w-md text-sm text-gray-600">Upload images to your media library first.</p>
+              <h3 className="mb-2 text-xl font-bold text-gray-900">
+                No {mediaKind === 'video' ? 'videos' : 'images'} found
+              </h3>
+              <p className="mx-auto max-w-md text-sm text-gray-600">
+                Upload {mediaKind === 'video' ? 'MP4/WebM/MOV files' : 'images'} to your media library first.
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-              {mediaFiles.map((media) => (
+              {filteredMediaFiles.map((media) => (
                 <div
                   key={media.id}
                   onClick={() => handleSelectImage(media.file?.url || '')}
                   className="relative cursor-pointer group aspect-video rounded-lg overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all duration-200 hover:shadow-lg"
                 >
-                  <img
-                    src={media.file?.url}
-                    alt={media.file?.name || 'Image'}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
+                  {mediaKind === 'video' ? (
+                    <>
+                      <video
+                        src={media.file?.url}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        muted
+                        playsInline
+                        preload="metadata"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
+                      <div className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
+                        Video
+                      </div>
+                      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2">
+                        <div className="truncate text-[11px] font-medium text-white">
+                          {media.file?.name || 'Video'}
+                        </div>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg">
+                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M7 5.25a.75.75 0 011.136-.643l6 3.75a.75.75 0 010 1.286l-6 3.75A.75.75 0 017 12.75v-7.5z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <img
+                      src={media.file?.url}
+                      alt={media.file?.name || 'Image'}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  )}
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200" />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shadow-lg">
@@ -197,7 +238,9 @@ export function ImageGalleryModal({
         {/* Footer */}
         <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between">
           <p className="text-sm text-gray-600">
-            {mediaFiles.length > 0 ? `${mediaFiles.length} image${mediaFiles.length !== 1 ? 's' : ''} available` : 'No images'}
+            {filteredMediaFiles.length > 0
+              ? `${filteredMediaFiles.length} ${mediaKind}${filteredMediaFiles.length !== 1 ? 's' : ''} available`
+              : `No ${mediaKind}s`}
           </p>
           <button
             onClick={onClose}

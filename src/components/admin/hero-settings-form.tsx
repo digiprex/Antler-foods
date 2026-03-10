@@ -20,13 +20,24 @@ import Toast from '@/components/ui/toast';
 import { ImageGalleryModal } from './image-gallery-modal';
 import { useHeroConfig, useUpdateHeroConfig } from '@/hooks/use-hero-config';
 import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
-import type { HeroConfig, HeroButton, HeroFeature } from '@/types/hero.types';
+import type { HeroConfig, HeroButton, HeroFeature, HeroImage } from '@/types/hero.types';
 import { DEFAULT_HERO_CONFIG } from '@/types/hero.types';
 import { getHeroLayoutMediaCapabilities } from '@/lib/hero-layout-media';
 import { getRenderableHeroButtons, mergeHeroConfig } from '@/lib/hero-config';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 
-type MediaFieldType = 'hero_image' | 'background_video' | 'background_image';
+type MinimalImageSlotKey = keyof NonNullable<HeroConfig['minimalImages']>;
+type SideBySideImageSlotKey = keyof NonNullable<HeroConfig['sideBySideImages']>;
+type MediaFieldType =
+  | 'hero_image'
+  | 'background_video'
+  | 'background_image'
+  | 'minimal_image_primary'
+  | 'minimal_image_secondary_top'
+  | 'minimal_image_secondary_bottom'
+  | 'side_by_side_image_left'
+  | 'side_by_side_image_center'
+  | 'side_by_side_image_right';
 type PreviewViewport = 'desktop' | 'mobile';
 
 interface HeroSettingsFormProps {
@@ -56,6 +67,18 @@ const HERO_ANIMATION_OPTIONS = [
   { value: 'zoom', name: 'Zoom', description: 'Subtle scale-in reveal on scroll.' },
   { value: 'cinematic', name: 'Cinematic', description: 'Blur-to-sharp reveal with staggered motion.' },
 ] as const;
+
+const HERO_IMAGE_OBJECT_FIT_OPTIONS: Array<{
+  value: NonNullable<HeroConfig['imageObjectFit']>;
+  name: string;
+  description: string;
+}> = [
+  { value: 'cover', name: 'Cover', description: 'Fill the frame and crop when needed.' },
+  { value: 'contain', name: 'Contain', description: 'Show the full image without cropping.' },
+  { value: 'fill', name: 'Fill', description: 'Stretch the image to match the frame.' },
+  { value: 'none', name: 'None', description: 'Keep the original image size.' },
+  { value: 'scale-down', name: 'Scale Down', description: 'Shrink only when the image is too large.' },
+];
 
 const DEFAULT_PRIMARY_BUTTON = DEFAULT_HERO_CONFIG.primaryButton
   ? { ...DEFAULT_HERO_CONFIG.primaryButton }
@@ -213,6 +236,94 @@ const HERO_PREVIEW_COPY = {
   secondaryCta: 'Book table',
 };
 
+const MINIMAL_IMAGE_SLOTS: Array<{
+  key: MinimalImageSlotKey;
+  field: Extract<MediaFieldType, `minimal_image_${string}`>;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: 'primary',
+    field: 'minimal_image_primary',
+    label: 'Large Left Image',
+    description: 'Main image shown in the large tile on the left.',
+  },
+  {
+    key: 'secondaryTop',
+    field: 'minimal_image_secondary_top',
+    label: 'Top Right Image',
+    description: 'Top stacked image on the right side.',
+  },
+  {
+    key: 'secondaryBottom',
+    field: 'minimal_image_secondary_bottom',
+    label: 'Bottom Right Image',
+    description: 'Bottom stacked image on the right side.',
+  },
+];
+
+const MINIMAL_IMAGE_FIELD_TO_SLOT: Record<
+  Extract<MediaFieldType, `minimal_image_${string}`>,
+  MinimalImageSlotKey
+> = {
+  minimal_image_primary: 'primary',
+  minimal_image_secondary_top: 'secondaryTop',
+  minimal_image_secondary_bottom: 'secondaryBottom',
+};
+
+const SIDE_BY_SIDE_IMAGE_SLOTS: Array<{
+  key: SideBySideImageSlotKey;
+  field: Extract<MediaFieldType, `side_by_side_image_${string}`>;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: 'left',
+    field: 'side_by_side_image_left',
+    label: 'Left Image',
+    description: 'First image shown in the left column.',
+  },
+  {
+    key: 'center',
+    field: 'side_by_side_image_center',
+    label: 'Center Image',
+    description: 'Middle image shown in the center column.',
+  },
+  {
+    key: 'right',
+    field: 'side_by_side_image_right',
+    label: 'Right Image',
+    description: 'Third image shown in the right column.',
+  },
+];
+
+const SIDE_BY_SIDE_IMAGE_FIELD_TO_SLOT: Record<
+  Extract<MediaFieldType, `side_by_side_image_${string}`>,
+  SideBySideImageSlotKey
+> = {
+  side_by_side_image_left: 'left',
+  side_by_side_image_center: 'center',
+  side_by_side_image_right: 'right',
+};
+
+const hasMinimalImagesConfigured = (
+  minimalImages: HeroConfig['minimalImages'] | undefined,
+) =>
+  Boolean(
+    minimalImages?.primary ||
+      minimalImages?.secondaryTop ||
+      minimalImages?.secondaryBottom,
+  );
+
+const hasSideBySideImagesConfigured = (
+  sideBySideImages: HeroConfig['sideBySideImages'] | undefined,
+) =>
+  Boolean(
+    sideBySideImages?.left ||
+      sideBySideImages?.center ||
+      sideBySideImages?.right,
+  );
+
 const getHeroImageFieldMeta = (layout: HeroConfig['layout'] | undefined) => {
   switch (layout) {
     case 'split':
@@ -228,7 +339,7 @@ const getHeroImageFieldMeta = (layout: HeroConfig['layout'] | undefined) => {
     case 'side-by-side':
       return {
         label: 'Gallery Images',
-        description: 'Upload image that will be displayed in 3 equal columns as a gallery row.',
+        description: 'Set the left, center, and right gallery images independently for this layout.',
       };
     case 'offset':
       return {
@@ -243,7 +354,7 @@ const getHeroImageFieldMeta = (layout: HeroConfig['layout'] | undefined) => {
     case 'minimal':
       return {
         label: 'Grid Images',
-        description: 'Upload image that will be displayed in 3 different positions in the grid layout.',
+        description: 'Set the large image and the two stacked images independently for this layout.',
       };
     case 'image-collage':
       return {
@@ -319,6 +430,70 @@ const getPreviewHeroConfig = (config: HeroConfig): HeroConfig => {
   const layout = resolvedConfig.layout || 'default';
   const mediaFields = getHeroLayoutMediaCapabilities(layout);
   const { primaryButton, secondaryButton } = getRenderableHeroButtons(resolvedConfig);
+  const hasMinimalImages = hasMinimalImagesConfigured(resolvedConfig.minimalImages);
+  const hasSideBySideImages = hasSideBySideImagesConfigured(resolvedConfig.sideBySideImages);
+  const previewHeroImage =
+    mediaFields.showHeroImage &&
+    (resolvedConfig.image ||
+      ((layout === 'minimal' && hasMinimalImages) ||
+      (layout === 'side-by-side' && hasSideBySideImages)
+        ? undefined
+        : {
+            url: HERO_PREVIEW_IMAGE,
+            alt: 'Preview hero image',
+          }));
+  const previewMinimalImages =
+    layout === 'minimal'
+      ? {
+          primary:
+            resolvedConfig.minimalImages?.primary ||
+            previewHeroImage ||
+            ({
+              url: HERO_PREVIEW_IMAGE,
+              alt: 'Preview hero image',
+            } satisfies HeroImage),
+          secondaryTop:
+            resolvedConfig.minimalImages?.secondaryTop ||
+            previewHeroImage ||
+            ({
+              url: HERO_PREVIEW_IMAGE,
+              alt: 'Preview hero image',
+            } satisfies HeroImage),
+          secondaryBottom:
+            resolvedConfig.minimalImages?.secondaryBottom ||
+            previewHeroImage ||
+            ({
+              url: HERO_PREVIEW_IMAGE,
+              alt: 'Preview hero image',
+            } satisfies HeroImage),
+        }
+      : resolvedConfig.minimalImages;
+  const previewSideBySideImages =
+    layout === 'side-by-side'
+      ? {
+          left:
+            resolvedConfig.sideBySideImages?.left ||
+            previewHeroImage ||
+            ({
+              url: HERO_PREVIEW_IMAGE,
+              alt: 'Preview hero image',
+            } satisfies HeroImage),
+          center:
+            resolvedConfig.sideBySideImages?.center ||
+            previewHeroImage ||
+            ({
+              url: HERO_PREVIEW_IMAGE,
+              alt: 'Preview hero image',
+            } satisfies HeroImage),
+          right:
+            resolvedConfig.sideBySideImages?.right ||
+            previewHeroImage ||
+            ({
+              url: HERO_PREVIEW_IMAGE,
+              alt: 'Preview hero image',
+            } satisfies HeroImage),
+        }
+      : resolvedConfig.sideBySideImages;
 
   // Only show fallback content if user hasn't provided any content at all
   const hasUserContent =
@@ -360,12 +535,9 @@ const getPreviewHeroConfig = (config: HeroConfig): HeroConfig => {
             href: '#reservations',
             variant: 'outline',
           } satisfies HeroButton)),
-    image: mediaFields.showHeroImage
-      ? resolvedConfig.image || {
-          url: HERO_PREVIEW_IMAGE,
-          alt: 'Preview hero image',
-        }
-      : undefined,
+    image: previewHeroImage || undefined,
+    minimalImages: previewMinimalImages,
+    sideBySideImages: previewSideBySideImages,
     backgroundImage:
       mediaFields.showBackgroundImage
         ? resolvedConfig.backgroundImage || HERO_PREVIEW_BACKGROUND
@@ -397,6 +569,8 @@ const previewUsesPlaceholderContent = (config: HeroConfig) => {
   const resolvedConfig = mergeHeroConfig(config);
   const layout = resolvedConfig.layout || 'default';
   const mediaFields = getHeroLayoutMediaCapabilities(layout);
+  const hasMinimalImages = hasMinimalImagesConfigured(resolvedConfig.minimalImages);
+  const hasSideBySideImages = hasSideBySideImagesConfigured(resolvedConfig.sideBySideImages);
 
   // Check if user has provided any content at all
   const hasUserContent =
@@ -410,7 +584,12 @@ const previewUsesPlaceholderContent = (config: HeroConfig) => {
 
   return Boolean(
     (!hasUserContent && !hasUserButtons) ||
-      (mediaFields.showHeroImage && !resolvedConfig.image) ||
+      (mediaFields.showHeroImage &&
+        !(
+          resolvedConfig.image ||
+          (layout === 'minimal' && hasMinimalImages) ||
+          (layout === 'side-by-side' && hasSideBySideImages)
+        )) ||
       ((mediaFields.showBackgroundImage || layout === 'video-background') &&
         !resolvedConfig.backgroundImage &&
         !resolvedConfig.videoUrl) ||
@@ -671,7 +850,48 @@ const renderHeroLayoutCardPreview = (layoutType: string) => {
     case 'video-background':
       return innerFrame(`url(${HERO_CARD_SAMPLE_PHOTO}) center / cover no-repeat`, (
         <>
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(15,23,42,0.82) 0%, rgba(15,23,42,0.28) 100%)' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(15,23,42,0.86) 0%, rgba(15,23,42,0.54) 42%, rgba(15,23,42,0.18) 100%)' }} />
+          <div
+            style={{
+              position: 'absolute',
+              inset: '10px',
+              borderRadius: '14px',
+              border: '1px solid rgba(255,255,255,0.16)',
+              background:
+                'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '4px 7px',
+              borderRadius: 999,
+              background: 'rgba(2,6,23,0.58)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              color: 'rgba(255,255,255,0.88)',
+              fontSize: '4.8px',
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+            }}
+          >
+            <span
+              style={{
+                width: '5px',
+                height: '5px',
+                borderRadius: 999,
+                background: '#ef4444',
+                boxShadow: '0 0 10px rgba(239,68,68,0.55)',
+              }}
+            />
+            Live Video
+          </div>
           <div
             style={{
               position: 'relative',
@@ -696,24 +916,29 @@ const renderHeroLayoutCardPreview = (layoutType: string) => {
           <div
             style={{
               position: 'absolute',
-              left: '50%',
-              bottom: '8px',
-              transform: 'translateX(-50%)',
-              display: 'flex',
-              gap: '4px',
+              right: '14px',
+              bottom: '12px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '28px',
+              height: '28px',
+              borderRadius: 999,
+              background: 'rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.24)',
+              backdropFilter: 'blur(8px)',
             }}
           >
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                style={{
-                  width: i === 0 ? '8px' : '5px',
-                  height: '5px',
-                  borderRadius: '1px',
-                  background: i === 0 ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)',
-                }}
-              />
-            ))}
+            <div
+              style={{
+                marginLeft: '2px',
+                width: 0,
+                height: 0,
+                borderTop: '5px solid transparent',
+                borderBottom: '5px solid transparent',
+                borderLeft: '8px solid rgba(255,255,255,0.92)',
+              }}
+            />
           </div>
         </>
       ), true);
@@ -1261,6 +1486,62 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
     }) : null);
   };
 
+  const updateMinimalImage = (
+    slot: MinimalImageSlotKey,
+    imageValue: HeroImage | undefined,
+  ) => {
+    if (!formConfig) return;
+
+    setFormConfig((prev) => {
+      if (!prev) return prev;
+
+      const nextMinimalImages = { ...(prev.minimalImages || {}) };
+
+      if (imageValue) {
+        nextMinimalImages[slot] = imageValue;
+      } else {
+        delete nextMinimalImages[slot];
+      }
+
+      return {
+        ...prev,
+        minimalImages:
+          Object.keys(nextMinimalImages).length > 0 ? nextMinimalImages : undefined,
+      };
+    });
+  };
+
+  const getEffectiveMinimalImage = (slot: MinimalImageSlotKey) =>
+    formConfig?.minimalImages?.[slot] || formConfig?.image;
+
+  const updateSideBySideImage = (
+    slot: SideBySideImageSlotKey,
+    imageValue: HeroImage | undefined,
+  ) => {
+    if (!formConfig) return;
+
+    setFormConfig((prev) => {
+      if (!prev) return prev;
+
+      const nextSideBySideImages = { ...(prev.sideBySideImages || {}) };
+
+      if (imageValue) {
+        nextSideBySideImages[slot] = imageValue;
+      } else {
+        delete nextSideBySideImages[slot];
+      }
+
+      return {
+        ...prev,
+        sideBySideImages:
+          Object.keys(nextSideBySideImages).length > 0 ? nextSideBySideImages : undefined,
+      };
+    });
+  };
+
+  const getEffectiveSideBySideImage = (slot: SideBySideImageSlotKey) =>
+    formConfig?.sideBySideImages?.[slot] || formConfig?.image;
+
   const openGalleryModal = (fieldType: MediaFieldType) => {
     setCurrentMediaField(fieldType);
     setShowGalleryModal(true);
@@ -1284,6 +1565,28 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
       case 'background_image':
         updateConfig({ backgroundImage: imageUrl });
         break;
+      case 'minimal_image_primary':
+      case 'minimal_image_secondary_top':
+      case 'minimal_image_secondary_bottom': {
+        const slot = MINIMAL_IMAGE_FIELD_TO_SLOT[currentMediaField];
+        const fallbackImage = getEffectiveMinimalImage(slot);
+        updateMinimalImage(slot, {
+          url: imageUrl,
+          alt: fallbackImage?.alt || 'Hero image',
+        });
+        break;
+      }
+      case 'side_by_side_image_left':
+      case 'side_by_side_image_center':
+      case 'side_by_side_image_right': {
+        const slot = SIDE_BY_SIDE_IMAGE_FIELD_TO_SLOT[currentMediaField];
+        const fallbackImage = getEffectiveSideBySideImage(slot);
+        updateSideBySideImage(slot, {
+          url: imageUrl,
+          alt: fallbackImage?.alt || 'Hero image',
+        });
+        break;
+      }
     }
 
     setShowGalleryModal(false);
@@ -1320,6 +1623,14 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
   const isSecondaryButtonEnabled = formConfig.secondaryButtonEnabled !== false;
   const editablePrimaryButton = formConfig.primaryButton || DEFAULT_PRIMARY_BUTTON;
   const editableSecondaryButton = formConfig.secondaryButton || DEFAULT_SECONDARY_BUTTON;
+  const heroImagePreviewFrameStyle: CSSProperties | undefined = formConfig.imageBorderRadius?.trim()
+    ? { borderRadius: formConfig.imageBorderRadius }
+    : undefined;
+  const heroImagePreviewStyle: CSSProperties = {
+    objectFit: formConfig.imageObjectFit || 'cover',
+  };
+  const isMinimalLayout = (formConfig.layout || 'default') === 'minimal';
+  const isSideBySideLayout = (formConfig.layout || 'default') === 'side-by-side';
   const isDefaultLayout = (formConfig.layout || 'default') === 'default';
   const isMobileEditorViewport = responsiveEditorViewport === 'mobile';
   const handleResponsiveEditorViewportChange = (viewport: PreviewViewport) => {
@@ -1770,70 +2081,345 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                       <span className="text-xs font-normal text-gray-500">Used in this layout</span>
                     </label>
                     <p className="mb-3 text-xs text-gray-500">{heroImageMeta.description}</p>
-                    {formConfig.image?.url ? (
-                      <div className="overflow-hidden rounded-lg border border-gray-200">
-                        <img
-                          src={formConfig.image.url}
-                          alt={formConfig.image.alt || 'Hero image'}
-                          className="h-48 w-full object-cover"
-                        />
-                        <div className="flex gap-2 border-t border-gray-200 bg-gray-50 p-3">
-                          <button
-                            type="button"
-                            onClick={() => openGalleryModal('hero_image')}
-                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                          >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                            </svg>
-                            Change Hero Image
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => updateConfig({ image: undefined })}
-                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-                          >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                            </svg>
-                            Remove
-                          </button>
+                    {isMinimalLayout ? (
+                      <div className="space-y-4">
+                        <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-800">
+                          Minimal layout now supports three separate image slots. Each card below can use its own image.
+                          Empty slots still fall back to the older shared hero image if one exists.
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                          {MINIMAL_IMAGE_SLOTS.map((slot) => {
+                            const explicitImage = formConfig.minimalImages?.[slot.key];
+                            const effectiveImage = getEffectiveMinimalImage(slot.key);
+                            const isUsingSharedFallback = !explicitImage && Boolean(formConfig.image?.url);
+
+                            return (
+                              <div key={slot.field} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                                <div className="mb-3 flex items-start justify-between gap-3">
+                                  <div>
+                                    <h3 className="text-sm font-semibold text-gray-900">{slot.label}</h3>
+                                    <p className="mt-1 text-xs text-gray-500">{slot.description}</p>
+                                  </div>
+                                  {explicitImage ? (
+                                    <span className="inline-flex rounded-full bg-purple-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-purple-700">
+                                      Custom
+                                    </span>
+                                  ) : null}
+                                </div>
+
+                                {effectiveImage?.url ? (
+                                  <div
+                                    className={`overflow-hidden border border-gray-200 ${
+                                      heroImagePreviewFrameStyle ? '' : 'rounded-lg'
+                                    }`}
+                                    style={heroImagePreviewFrameStyle}
+                                  >
+                                    <img
+                                      src={effectiveImage?.url}
+                                      alt={effectiveImage?.alt || slot.label}
+                                      className="h-40 w-full object-cover"
+                                      style={heroImagePreviewStyle}
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500">
+                                    No image selected
+                                  </div>
+                                )}
+
+                                <div className="mt-3 flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => openGalleryModal(slot.field)}
+                                    disabled={!restaurantId}
+                                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                                    </svg>
+                                    {effectiveImage?.url ? 'Change Image' : 'Choose Image'}
+                                  </button>
+                                  {explicitImage ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => updateMinimalImage(slot.key, undefined)}
+                                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                                    >
+                                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                      </svg>
+                                      Remove
+                                    </button>
+                                  ) : null}
+                                </div>
+
+                                {effectiveImage?.url ? (
+                                  <div className="mt-3">
+                                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                                      <span>Alt Text</span>
+                                      <span className="text-xs font-normal text-gray-500">Per-image accessibility label</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={explicitImage?.alt || effectiveImage?.alt || ''}
+                                      onChange={(e) =>
+                                        updateMinimalImage(slot.key, {
+                                          url: effectiveImage?.url || '',
+                                          alt: e.target.value || slot.label,
+                                        })
+                                      }
+                                      className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                                      placeholder={`${slot.label} description`}
+                                    />
+                                  </div>
+                                ) : null}
+
+                                {isUsingSharedFallback ? (
+                                  <p className="mt-2 text-xs text-blue-700">
+                                    This slot is still inheriting the older shared hero image. Choosing a new image here overrides only this slot.
+                                  </p>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : isSideBySideLayout ? (
+                      <div className="space-y-4">
+                        <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-800">
+                          Side by Side layout now supports three separate gallery slots. Set the left, center, and right images independently.
+                          Empty slots still fall back to the older shared hero image if one exists.
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                          {SIDE_BY_SIDE_IMAGE_SLOTS.map((slot) => {
+                            const explicitImage = formConfig.sideBySideImages?.[slot.key];
+                            const effectiveImage = getEffectiveSideBySideImage(slot.key);
+                            const isUsingSharedFallback = !explicitImage && Boolean(formConfig.image?.url);
+
+                            return (
+                              <div key={slot.field} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                                <div className="mb-3 flex items-start justify-between gap-3">
+                                  <div>
+                                    <h3 className="text-sm font-semibold text-gray-900">{slot.label}</h3>
+                                    <p className="mt-1 text-xs text-gray-500">{slot.description}</p>
+                                  </div>
+                                  {explicitImage ? (
+                                    <span className="inline-flex rounded-full bg-purple-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-purple-700">
+                                      Custom
+                                    </span>
+                                  ) : null}
+                                </div>
+
+                                {effectiveImage?.url ? (
+                                  <div
+                                    className={`overflow-hidden border border-gray-200 ${
+                                      heroImagePreviewFrameStyle ? '' : 'rounded-lg'
+                                    }`}
+                                    style={heroImagePreviewFrameStyle}
+                                  >
+                                    <img
+                                      src={effectiveImage.url}
+                                      alt={effectiveImage.alt || slot.label}
+                                      className="h-40 w-full object-cover"
+                                      style={heroImagePreviewStyle}
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500">
+                                    No image selected
+                                  </div>
+                                )}
+
+                                <div className="mt-3 flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => openGalleryModal(slot.field)}
+                                    disabled={!restaurantId}
+                                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                                    </svg>
+                                    {effectiveImage?.url ? 'Change Image' : 'Choose Image'}
+                                  </button>
+                                  {explicitImage ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => updateSideBySideImage(slot.key, undefined)}
+                                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                                    >
+                                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                      </svg>
+                                      Remove
+                                    </button>
+                                  ) : null}
+                                </div>
+
+                                {effectiveImage?.url ? (
+                                  <div className="mt-3">
+                                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                                      <span>Alt Text</span>
+                                      <span className="text-xs font-normal text-gray-500">Per-image accessibility label</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={explicitImage?.alt || effectiveImage?.alt || ''}
+                                      onChange={(e) =>
+                                        updateSideBySideImage(slot.key, {
+                                          url: effectiveImage.url,
+                                          alt: e.target.value || slot.label,
+                                        })
+                                      }
+                                      className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                                      placeholder={`${slot.label} description`}
+                                    />
+                                  </div>
+                                ) : null}
+
+                                {isUsingSharedFallback ? (
+                                  <p className="mt-2 text-xs text-blue-700">
+                                    This slot is still inheriting the older shared hero image. Choosing a new image here overrides only this slot.
+                                  </p>
+                                ) : null}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     ) : (
-                      <div>
-                        <p className="mb-2 text-xs text-gray-500">Recommended: 1200x630px</p>
-                        <button
-                          type="button"
-                          onClick={() => openGalleryModal('hero_image')}
-                          disabled={!restaurantId}
-                          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                          </svg>
-                          Choose Hero Image from Gallery
-                        </button>
-                      </div>
+                      <>
+                        {formConfig.image?.url ? (
+                          <div
+                            className={`overflow-hidden border border-gray-200 ${
+                              heroImagePreviewFrameStyle ? '' : 'rounded-lg'
+                            }`}
+                            style={heroImagePreviewFrameStyle}
+                          >
+                            <img
+                              src={formConfig.image.url}
+                              alt={formConfig.image.alt || 'Hero image'}
+                              className="h-48 w-full object-cover"
+                              style={heroImagePreviewStyle}
+                            />
+                            <div className="flex gap-2 border-t border-gray-200 bg-gray-50 p-3">
+                              <button
+                                type="button"
+                                onClick={() => openGalleryModal('hero_image')}
+                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                              >
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                                </svg>
+                                Change Hero Image
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateConfig({ image: undefined })}
+                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                              >
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                </svg>
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="mb-2 text-xs text-gray-500">Recommended: 1200x630px</p>
+                            <button
+                              type="button"
+                              onClick={() => openGalleryModal('hero_image')}
+                              disabled={!restaurantId}
+                              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                              </svg>
+                              Choose Hero Image from Gallery
+                            </button>
+                          </div>
+                        )}
+
+                        {formConfig.image && (
+                          <div className="mt-3">
+                            <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                              <span>Image Alt Text</span>
+                              <span className="text-xs font-normal text-gray-500">Accessibility description</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={formConfig.image.alt}
+                              onChange={(e) => updateConfig({
+                                image: formConfig.image ? { ...formConfig.image, alt: e.target.value } : undefined
+                              })}
+                              className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                              placeholder="Hero image description"
+                            />
+                          </div>
+                        )}
+                      </>
                     )}
 
-                    {formConfig.image && (
-                      <div className="mt-3">
-                        <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                          <span>Image Alt Text</span>
-                          <span className="text-xs font-normal text-gray-500">Accessibility description</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={formConfig.image.alt}
-                          onChange={(e) => updateConfig({
-                            image: formConfig.image ? { ...formConfig.image, alt: e.target.value } : undefined
-                          })}
-                          className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                          placeholder="Hero image description"
-                        />
+                    <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                      <div className="mb-4">
+                        <h3 className="text-sm font-semibold text-gray-900">Hero Image Styling</h3>
+                        <p className="mt-1 text-xs text-gray-500">
+                          These settings apply to the visible hero image in image-based layouts.
+                        </p>
                       </div>
-                    )}
+
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                            <span>Object Fit</span>
+                            <span className="text-xs font-normal text-gray-500">How the image fills the frame</span>
+                          </label>
+                          <select
+                            value={formConfig.imageObjectFit || 'cover'}
+                            onChange={(e) =>
+                              updateConfig({
+                                imageObjectFit: e.target.value as NonNullable<HeroConfig['imageObjectFit']>,
+                              })
+                            }
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                          >
+                            {HERO_IMAGE_OBJECT_FIT_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.name}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="mt-2 text-xs text-gray-500">
+                            {HERO_IMAGE_OBJECT_FIT_OPTIONS.find(
+                              (option) => option.value === (formConfig.imageObjectFit || 'cover'),
+                            )?.description}
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                            <span>Border Radius</span>
+                            <span className="text-xs font-normal text-gray-500">Applies to the hero image only</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={formConfig.imageBorderRadius || ''}
+                            onChange={(e) =>
+                              updateConfig({ imageBorderRadius: e.target.value || undefined })
+                            }
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                            placeholder="24px"
+                          />
+                          <p className="mt-2 text-xs text-gray-500">
+                            Use values like <code>16px</code>, <code>1.5rem</code>, or <code>999px</code>. Leave blank for the default shape.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -2434,6 +3020,91 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
 
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
               <div className="mb-4">
+                <h3 className="text-sm font-semibold text-gray-900">Section Padding</h3>
+                <p className="mt-1 text-xs text-gray-500">
+                  Top and bottom spacing apply across the hero. Horizontal padding can be adjusted per viewport.
+                  Minimal layout uses a cleaner `8rem` inline and `5rem` top/bottom composition by default until you override it here.
+                </p>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-3">
+                <div>
+                  <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                    <span>Top Padding</span>
+                    <span className="text-xs font-normal text-gray-500">Shared across desktop and mobile</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formConfig.paddingTop || DEFAULT_HERO_CONFIG.paddingTop || '6rem'}
+                    onChange={(e) => updateConfig({ paddingTop: e.target.value || DEFAULT_HERO_CONFIG.paddingTop || '6rem' })}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                    placeholder="5rem"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                    <span>Bottom Padding</span>
+                    <span className="text-xs font-normal text-gray-500">Shared across desktop and mobile</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formConfig.paddingBottom || DEFAULT_HERO_CONFIG.paddingBottom || '6rem'}
+                    onChange={(e) => updateConfig({ paddingBottom: e.target.value || DEFAULT_HERO_CONFIG.paddingBottom || '6rem' })}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                    placeholder="5rem"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                    <span>{isMobileEditorViewport ? 'Mobile Horizontal Padding' : 'Desktop Horizontal Padding'}</span>
+                    <span className="text-xs font-normal text-gray-500">
+                      {isMobileEditorViewport ? 'Optional mobile override' : 'Left and right spacing'}
+                    </span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={
+                        isMobileEditorViewport
+                          ? formConfig.mobilePaddingInline || ''
+                          : formConfig.paddingInline || ''
+                      }
+                      onChange={(e) =>
+                        updateConfig(
+                          isMobileEditorViewport
+                            ? { mobilePaddingInline: e.target.value || undefined }
+                            : { paddingInline: e.target.value || undefined },
+                        )
+                      }
+                      className="flex-1 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                      placeholder={isMobileEditorViewport ? '1.5rem' : '8rem'}
+                    />
+                    {isMobileEditorViewport ? (
+                      <button
+                        type="button"
+                        onClick={() => updateConfig({ mobilePaddingInline: undefined })}
+                        className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                        title="Use desktop horizontal padding"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    {isMobileEditorViewport
+                      ? 'Leave this empty to inherit the desktop horizontal padding.'
+                      : 'Controls the left and right section spacing. Minimal layout looks best around `8rem`.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div className="mb-4">
                 <h3 className="text-sm font-semibold text-gray-900">Hero Height</h3>
                 <p className="mt-1 text-xs text-gray-500">
                   {isMobileEditorViewport
@@ -2748,9 +3419,26 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
             ? 'Select Hero Image'
             : currentMediaField === 'background_video'
             ? 'Select Background Video'
+            : currentMediaField === 'minimal_image_primary'
+            ? 'Select Large Left Image'
+            : currentMediaField === 'minimal_image_secondary_top'
+            ? 'Select Top Right Image'
+            : currentMediaField === 'minimal_image_secondary_bottom'
+            ? 'Select Bottom Right Image'
+            : currentMediaField === 'side_by_side_image_left'
+            ? 'Select Left Image'
+            : currentMediaField === 'side_by_side_image_center'
+            ? 'Select Center Image'
+            : currentMediaField === 'side_by_side_image_right'
+            ? 'Select Right Image'
             : 'Select Shared Background Image'
         }
-        description="Choose from your media library or upload new"
+        description={
+          currentMediaField === 'background_video'
+            ? 'Choose a playable video file from your media library or upload a new one'
+            : 'Choose from your media library or upload new'
+        }
+        mediaKind={currentMediaField === 'background_video' ? 'video' : 'image'}
       />
     </>
   );

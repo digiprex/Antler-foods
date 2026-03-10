@@ -102,6 +102,7 @@ const GET_PAGE_BY_SLUG_ALL = `
 
 /**
  * GraphQL query to get all templates for a specific page (staging - all sections)
+ * This query shows all sections but prioritizes drafts over their referenced originals
  */
 const GET_PAGE_TEMPLATES_ALL = `
   query GetPageTemplates($restaurant_id: uuid!, $page_id: uuid!) {
@@ -123,6 +124,7 @@ const GET_PAGE_TEMPLATES_ALL = `
       order_index
       is_deleted
       is_published
+      ref_template_id
       created_at
       updated_at
     }
@@ -217,20 +219,26 @@ export async function GET(request: NextRequest) {
         const customDomain = restaurantData.custom_domain?.toLowerCase().trim();
         const currentDomain = domain?.toLowerCase().trim();
 
-        // If current domain matches staging_domain, it's staging
+        // Check if URL includes admin path (admin interfaces should load staging content)
+        const referer = request.headers.get('referer') || '';
+        const isAdminInterface = referer.includes('/admin/');
+        
+        // If admin interface OR current domain matches staging_domain, it's staging
         // Otherwise, if it matches custom_domain (production domain), it's production
-        isStaging = currentDomain === stagingDomain;
+        isStaging = isAdminInterface || currentDomain === stagingDomain;
 
         console.log('[Page Details API] Domain check:', {
           currentDomain,
           stagingDomain,
           customDomain,
           isStaging,
+          isAdminInterface,
+          referer,
         });
       }
     } catch (error) {
       console.error('[Page Details API] Error checking domain configuration:', error);
-      // Default to production behavior (only published sections) if we can't determine
+      // Default to production behavior if we can't determine
       isStaging = false;
     }
 
@@ -267,7 +275,22 @@ export async function GET(request: NextRequest) {
 
     // Return templates as an array instead of organizing by category
     // This allows multiple templates of the same category and preserves order
-    const templates = (templatesData as any).templates || [];
+    let templates = (templatesData as any).templates || [];
+
+    // For staging environment, filter out templates that have draft versions referencing them
+    // This ensures we show only the latest version (draft takes priority over published)
+    if (isStaging && templates.length > 0) {
+      const referencedTemplateIds = new Set(
+        templates
+          .filter((t: any) => t.ref_template_id) // Find templates with references
+          .map((t: any) => t.ref_template_id)    // Get the IDs they reference
+      );
+
+      // Filter out templates that are referenced by drafts
+      templates = templates.filter((template: any) => !referencedTemplateIds.has(template.template_id));
+      
+      console.log(`[Page Details API] Filtered out ${referencedTemplateIds.size} referenced templates on staging`);
+    }
 
     console.log(`[Page Details API] Loaded ${templates.length} sections for page '${page.name}' (${isStaging ? 'staging' : 'production'})`);
 

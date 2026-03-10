@@ -30,6 +30,7 @@ export interface RestaurantListItem {
   email: string;
   createdAt: string | null;
   isDeleted: boolean | null;
+  pocUserId: string | null;
 }
 
 export interface RestaurantDraftItem {
@@ -264,6 +265,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
           name
           poc_name
           poc_email
+          poc_user_id
           custom_domain
           staging_domain
           service_model
@@ -285,6 +287,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
           name
           poc_name
           poc_email
+          poc_user_id
           custom_domain
           staging_domain
           service_model
@@ -305,6 +308,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
           name
           poc_name
           poc_email
+          poc_user_id
           custom_domain: customer_domain
           staging_domain
           service_model
@@ -326,6 +330,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
           name
           poc_name
           poc_email
+          poc_user_id
           custom_domain: customer_domian
           staging_domain
           service_model
@@ -345,6 +350,56 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
         restaurants {
           restaurant_id
           name
+          poc_user_id
+        }
+      }
+    `,
+  },
+  // Owner-specific variants with poc_user_id filtering
+  {
+    idField: "restaurant_id",
+    query: `
+      query GetRestaurantsForOwnerWithRestaurantId($poc_user_id: uuid!) {
+        restaurants(
+          where: { poc_user_id: { _eq: $poc_user_id } }
+          order_by: { created_at: desc }
+        ) {
+          restaurant_id
+          name
+          poc_name
+          poc_email
+          poc_user_id
+          custom_domain
+          staging_domain
+          service_model
+          cuisine_types
+          phone_number
+          email
+          created_at
+          is_deleted
+        }
+      }
+    `,
+  },
+  {
+    idField: "restaurant_id",
+    query: `
+      query GetRestaurantsForOwnerWithoutCreatedAt($poc_user_id: uuid!) {
+        restaurants(
+          where: { poc_user_id: { _eq: $poc_user_id } }
+        ) {
+          restaurant_id
+          name
+          poc_name
+          poc_email
+          poc_user_id
+          custom_domain
+          staging_domain
+          service_model
+          cuisine_types
+          phone_number
+          email
+          is_deleted
         }
       }
     `,
@@ -718,6 +773,93 @@ export async function getRestaurants() {
   throw new Error(`Unable to load restaurants. ${Array.from(errorMessages).join(" | ")}`);
 }
 
+export async function getRestaurantsForUser(userId?: string | null, isOwner?: boolean) {
+  const errorMessages = new Set<string>();
+
+  // If user is owner and has userId, use owner-specific queries
+  if (isOwner && userId) {
+    // Try owner-specific variants first
+    const ownerVariants = RESTAURANTS_LIST_VARIANTS.filter(variant =>
+      variant.query.includes('$poc_user_id')
+    );
+    
+    for (const variant of ownerVariants) {
+      try {
+        const data = await fetchGraphQL<RestaurantsListQueryResponse>(variant.query, {
+          poc_user_id: userId
+        });
+        const parsed = parseRestaurants(data.restaurants, variant.idField);
+        if (parsed.length >= 0) { // Allow empty results for owners with no restaurants
+          return parsed
+            .filter((item) => item.isDeleted !== true)
+            .sort((a, b) => {
+              if (a.createdAt && b.createdAt) {
+                return b.createdAt.localeCompare(a.createdAt);
+              }
+
+              if (a.createdAt) {
+                return -1;
+              }
+
+              if (b.createdAt) {
+                return 1;
+              }
+
+              return a.name.localeCompare(b.name);
+            });
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown query error";
+        errorMessages.add(message);
+      }
+    }
+  }
+
+  // Fall back to regular queries for admins or if owner queries fail
+  for (const variant of RESTAURANTS_LIST_VARIANTS) {
+    // Skip owner-specific variants for non-owners
+    if (variant.query.includes('$poc_user_id')) {
+      continue;
+    }
+    
+    try {
+      const data = await fetchGraphQL<RestaurantsListQueryResponse>(variant.query);
+      const parsed = parseRestaurants(data.restaurants, variant.idField);
+      if (parsed.length) {
+        let filteredResults = parsed.filter((item) => item.isDeleted !== true);
+        
+        // Apply client-side filtering for owners if server-side filtering failed
+        if (isOwner && userId) {
+          filteredResults = filteredResults.filter(restaurant => restaurant.pocUserId === userId);
+        }
+        
+        return filteredResults.sort((a, b) => {
+          if (a.createdAt && b.createdAt) {
+            return b.createdAt.localeCompare(a.createdAt);
+          }
+
+          if (a.createdAt) {
+            return -1;
+          }
+
+          if (b.createdAt) {
+            return 1;
+          }
+
+          return a.name.localeCompare(b.name);
+        });
+      }
+
+      return [];
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown query error";
+      errorMessages.add(message);
+    }
+  }
+
+  throw new Error(`Unable to load restaurants. ${Array.from(errorMessages).join(" | ")}`);
+}
+
 export async function getRestaurantDraftById(restaurantId: string) {
   if (!restaurantId?.trim()) {
     throw new Error("Restaurant draft id is required.");
@@ -948,6 +1090,7 @@ function parseRestaurants(rows: Array<Record<string, unknown>>, idField: string)
         email: normalizeText(row.email, ""),
         createdAt: typeof row.created_at === "string" ? row.created_at : null,
         isDeleted: typeof row.is_deleted === "boolean" ? row.is_deleted : null,
+        pocUserId: typeof row.poc_user_id === "string" && row.poc_user_id.trim() ? row.poc_user_id.trim() : null,
       } satisfies RestaurantListItem;
     })
     .filter((item): item is RestaurantListItem => Boolean(item));

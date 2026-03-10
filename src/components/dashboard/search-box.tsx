@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getRestaurants } from '@/lib/graphql/queries';
+import { getRestaurantsForUser } from '@/lib/graphql/queries';
+import { useUserData } from '@nhost/react';
+import { getUserRole } from '@/lib/auth/get-user-role';
 import { DASHBOARD_RESTAURANTS_REFRESH_EVENT } from './route-loading-events';
 
 export interface RestaurantSearchSelection {
@@ -25,12 +27,16 @@ export function SearchBox({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
+  const user = useUserData();
+  const role = user ? getUserRole(user) : null;
+  const isOwner = role === 'owner';
+
   const loadRestaurants = useCallback(async (updateSelected = false) => {
     try {
       setIsLoading(true);
       setLoadError(null);
 
-      const rows = await getRestaurants();
+      const rows = await getRestaurantsForUser(user?.id, isOwner);
 
       const normalized = rows
         .map((row) => ({
@@ -59,7 +65,7 @@ export function SearchBox({
     } finally {
       setIsLoading(false);
     }
-  }, [selectedRestaurant, onRestaurantSelect]);
+  }, [selectedRestaurant, onRestaurantSelect, user?.id, isOwner]);
 
   useEffect(() => {
     void loadRestaurants();

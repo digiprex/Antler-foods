@@ -4,9 +4,15 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   getRestaurants,
+  getRestaurantsForUser,
   type RestaurantListItem,
   updateRestaurant,
 } from '@/lib/graphql/queries';
+import {
+  useUserData,
+  useHasuraClaims,
+} from '@nhost/react';
+import { getUserRole, getRoleFromHasuraClaims } from '@/lib/auth/get-user-role';
 
 const PAGE_SIZE = 10;
 const PAGE_WINDOW_SIZE = 5;
@@ -24,6 +30,14 @@ export function RestaurantsListPage() {
   const [restaurantPendingDelete, setRestaurantPendingDelete] =
     useState<RestaurantListItem | null>(null);
 
+  const user = useUserData();
+  const hasuraClaims = useHasuraClaims();
+  const roleFromClaims = getRoleFromHasuraClaims(hasuraClaims);
+  const roleFromUser = user ? getUserRole(user) : null;
+  const role = roleFromClaims && roleFromClaims !== 'user' ? roleFromClaims : roleFromUser;
+  const isAdmin = role === 'admin';
+  const isOwner = role === 'owner';
+
   useEffect(() => {
     let isActive = true;
 
@@ -31,7 +45,7 @@ export function RestaurantsListPage() {
       try {
         setIsLoading(true);
         setErrorMessage(null);
-        const rows = await getRestaurants();
+        const rows = await getRestaurantsForUser(user?.id, isOwner);
 
         if (!isActive) {
           return;
@@ -60,7 +74,7 @@ export function RestaurantsListPage() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [isOwner, user?.id]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -233,7 +247,7 @@ export function RestaurantsListPage() {
                     <th className="px-6 py-4">Owner</th>
                     <th className="px-6 py-4">Domain</th>
                     <th className="px-6 py-4">Created</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
+                    {isAdmin && <th className="px-6 py-4 text-right">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
@@ -279,20 +293,22 @@ export function RestaurantsListPage() {
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {formatDate(restaurant.createdAt)}
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => onRequestDeleteRestaurant(restaurant)}
-                          disabled={
-                            deletingRestaurantId === restaurant.id || isLoading
-                          }
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          aria-label={`Delete ${restaurant.name}`}
-                          title="Delete restaurant"
-                        >
-                          <TrashIcon />
-                        </button>
-                      </td>
+                      {isAdmin && (
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            type="button"
+                            onClick={() => onRequestDeleteRestaurant(restaurant)}
+                            disabled={
+                              deletingRestaurantId === restaurant.id || isLoading
+                            }
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            aria-label={`Delete ${restaurant.name}`}
+                            title="Delete restaurant"
+                          >
+                            <TrashIcon />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

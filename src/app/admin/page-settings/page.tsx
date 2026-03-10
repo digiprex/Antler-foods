@@ -343,6 +343,7 @@ function PageSettingsSelector() {
                 pageId={pageId}
                 templateId={templateId}
                 showLoading={false}
+                isPreview={true}
               />
             </div>
           </div>

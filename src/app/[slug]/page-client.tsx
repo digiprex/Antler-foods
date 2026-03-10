@@ -408,6 +408,7 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           pageId={pageId}
           templateId={template.template_id}
           showLoading={true}
+          isPreview={false}
         />;
       case 'customsection':
         // Transform template data to match CustomSection config format

@@ -20,6 +20,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { HeroConfig } from '@/types/hero.types';
 import { DEFAULT_HERO_CONFIG } from '@/types/hero.types';
+import { mergeHeroConfig } from '@/lib/hero-config';
 
 interface UseHeroConfigOptions {
   /**
@@ -108,7 +109,7 @@ export function useHeroConfig(
 
   // If overrideConfig is provided, initialize with it immediately
   const [config, setConfig] = useState<HeroConfig | null>(
-    overrideConfig ? { ...DEFAULT_HERO_CONFIG, ...overrideConfig } : null
+    overrideConfig ? mergeHeroConfig(overrideConfig) : null
   );
   const [loading, setLoading] = useState(fetchOnMount && !overrideConfig);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +117,7 @@ export function useHeroConfig(
   const fetchConfig = useCallback(async () => {
     // If override config is provided, use it directly
     if (overrideConfig) {
-      const mergedConfig = { ...DEFAULT_HERO_CONFIG, ...overrideConfig };
+      const mergedConfig = mergeHeroConfig(overrideConfig);
       setConfig(mergedConfig);
       setLoading(false);
       onSuccess?.(mergedConfig);
@@ -156,8 +157,7 @@ export function useHeroConfig(
       const data = await response.json();
 
       if (data.success && data.data) {
-        // Merge with defaults to ensure all required fields are present
-        const mergedConfig = { ...DEFAULT_HERO_CONFIG, ...data.data };
+        const mergedConfig = mergeHeroConfig(data.data);
         setConfig(mergedConfig);
         onSuccess?.(mergedConfig);
       } else {
@@ -169,7 +169,7 @@ export function useHeroConfig(
       setError(errorMessage);
       
       // Fallback to default configuration
-      setConfig(DEFAULT_HERO_CONFIG);
+      setConfig(mergeHeroConfig(DEFAULT_HERO_CONFIG));
       onError?.(err instanceof Error ? err : new Error(errorMessage));
     } finally {
       setLoading(false);
@@ -189,7 +189,7 @@ export function useHeroConfig(
   // Handle overrideConfig changes
   useEffect(() => {
     if (overrideConfig) {
-      const mergedConfig = { ...DEFAULT_HERO_CONFIG, ...overrideConfig };
+      const mergedConfig = mergeHeroConfig(overrideConfig);
       setConfig(mergedConfig);
       onSuccess?.(mergedConfig);
     }

@@ -5,6 +5,13 @@
 
 import type { SectionStyleConfig } from '@/types/section-style.types';
 
+export type HeroContentAnimation =
+  | 'none'
+  | 'fade'
+  | 'fade-up'
+  | 'zoom'
+  | 'cinematic';
+
 export interface HeroButton {
   id?: string;
   label: string;
@@ -40,6 +47,8 @@ export interface HeroConfig extends SectionStyleConfig {
   // Call-to-action buttons
   primaryButton?: HeroButton;
   secondaryButton?: HeroButton;
+  primaryButtonEnabled?: boolean;
+  secondaryButtonEnabled?: boolean;
   
   // Media
   image?: HeroImage;
@@ -65,21 +74,38 @@ export interface HeroConfig extends SectionStyleConfig {
   
   // Styling
   bgColor?: string;
+  mobileBgColor?: string;
   textColor?: string;
   overlayColor?: string;
   overlayOpacity?: number;
   
   // Text alignment
   textAlign?: 'left' | 'center' | 'right';
+  mobileTextAlign?: 'left' | 'center' | 'right';
   
   // Spacing
   paddingTop?: string;
   paddingBottom?: string;
   minHeight?: string;
+  mobileMinHeight?: string;
   
   // Additional options
   showScrollIndicator?: boolean;
   contentMaxWidth?: string;
+  contentAnimation?: HeroContentAnimation;
+  defaultContentPanelEnabled?: boolean;
+  defaultContentPanelBackgroundColor?: string;
+  defaultContentPanelMobileBackgroundColor?: string;
+  defaultContentPanelBorderRadius?: string;
+  defaultContentPanelMobileBorderRadius?: string;
+  defaultContentPanelMaxWidth?: string;
+  defaultContentPanelMinHeight?: string;
+  defaultContentPanelMarginTop?: string;
+  defaultContentPanelMarginBottom?: string;
+  defaultContentPanelMobileMaxWidth?: string;
+  defaultContentPanelMobileMinHeight?: string;
+  defaultContentPanelMobileMarginTop?: string;
+  defaultContentPanelMobileMarginBottom?: string;
   
   // Metadata
   createdAt?: string;
@@ -107,32 +133,46 @@ export const DEFAULT_HERO_CONFIG: HeroConfig = {
     href: '#menu',
     variant: 'primary',
   },
+  primaryButtonEnabled: true,
   secondaryButton: {
     label: 'Book a Table',
     href: '#reservations',
     variant: 'outline',
   },
+  secondaryButtonEnabled: true,
   layout: 'centered-large',
   bgColor: '#ffffff',
+  mobileBgColor: '',
   textColor: '#000000',
   textAlign: 'center',
+  mobileTextAlign: 'center',
   paddingTop: '6rem',
   paddingBottom: '6rem',
   minHeight: '600px',
   showScrollIndicator: false,
   contentMaxWidth: '1200px',
+  contentAnimation: 'none',
+  defaultContentPanelEnabled: false,
+  defaultContentPanelBackgroundColor: '#ffffff',
+  defaultContentPanelMobileBackgroundColor: '',
+  defaultContentPanelBorderRadius: '2rem',
+  defaultContentPanelMobileBorderRadius: '',
+  defaultContentPanelMaxWidth: '960px',
   is_custom: false,
   buttonStyleVariant: 'primary',
   titleFontFamily: 'Inter, system-ui, sans-serif',
   titleFontSize: '2.25rem',
+  titleMobileFontSize: '',
   titleFontWeight: 700,
   titleColor: '#111827',
   subtitleFontFamily: 'Inter, system-ui, sans-serif',
   subtitleFontSize: '1.5rem',
+  subtitleMobileFontSize: '',
   subtitleFontWeight: 600,
   subtitleColor: '#374151',
   bodyFontFamily: 'Inter, system-ui, sans-serif',
   bodyFontSize: '1rem',
+  bodyMobileFontSize: '',
   bodyFontWeight: 400,
   bodyColor: '#6b7280',
 };

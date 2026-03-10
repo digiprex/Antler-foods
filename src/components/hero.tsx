@@ -6,11 +6,12 @@
 
 'use client';
 
-import type { CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { HeroConfig } from '@/types/hero.types';
 import styles from './hero.module.scss';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
 import { getHeroLayoutMediaCapabilities } from '@/lib/hero-layout-media';
+import { getRenderableHeroButtons, mergeHeroConfig } from '@/lib/hero-config';
 import { getSectionTypographyStyles } from '@/lib/section-style';
 
 interface HeroProps extends Partial<HeroConfig> {
@@ -19,43 +20,78 @@ interface HeroProps extends Partial<HeroConfig> {
 }
 
 export default function Hero(props: HeroProps) {
+  const { previewMode } = props;
+  const resolvedConfig = mergeHeroConfig(props);
   const {
-    headline = 'Welcome to Our Restaurant',
+    headline,
     subheadline,
     description,
-    primaryButton,
-    secondaryButton,
     image,
     videoUrl,
     backgroundImage,
     features = [],
     layout = 'centered-large',
     bgColor = '#ffffff',
+    mobileBgColor,
     textColor = '#000000',
     overlayColor = '#000000',
     overlayOpacity = 0.5,
     textAlign = 'center',
+    mobileTextAlign,
     paddingTop = '6rem',
     paddingBottom = '6rem',
     minHeight = '600px',
+    mobileMinHeight,
     showScrollIndicator = false,
     contentMaxWidth = '1200px',
     restaurant_id,
-    previewMode,
+    contentAnimation = 'none',
+    defaultContentPanelEnabled = false,
+    defaultContentPanelBackgroundColor = '#ffffff',
+    defaultContentPanelMobileBackgroundColor,
+    defaultContentPanelBorderRadius = '2rem',
+    defaultContentPanelMobileBorderRadius,
+    defaultContentPanelMaxWidth = '960px',
+    defaultContentPanelMinHeight,
+    defaultContentPanelMarginTop,
+    defaultContentPanelMarginBottom,
+    defaultContentPanelMobileMaxWidth,
+    defaultContentPanelMobileMinHeight,
+    defaultContentPanelMobileMarginTop,
+    defaultContentPanelMobileMarginBottom,
     is_custom,
     titleFontFamily,
     titleFontSize,
     titleFontWeight,
+    titleFontStyle,
     titleColor,
+    titleTextTransform,
+    titleLineHeight,
+    titleLetterSpacing,
     subtitleFontFamily,
     subtitleFontSize,
     subtitleFontWeight,
+    subtitleFontStyle,
     subtitleColor,
+    subtitleTextTransform,
+    subtitleLineHeight,
+    subtitleLetterSpacing,
     bodyFontFamily,
     bodyFontSize,
     bodyFontWeight,
+    bodyFontStyle,
     bodyColor,
-  } = props;
+    bodyTextTransform,
+    bodyLineHeight,
+    bodyLetterSpacing,
+  } = resolvedConfig;
+  const { primaryButton, secondaryButton } = getRenderableHeroButtons(resolvedConfig);
+  const heroRef = useRef<HTMLElement | null>(null);
+  const motionEnabled = contentAnimation !== 'none';
+  const [isInView, setIsInView] = useState(!motionEnabled);
+  const [isClientMobileViewport, setIsClientMobileViewport] = useState(
+    previewMode === 'mobile',
+  );
 
   if (process.env.NODE_ENV === 'development') {
     console.log('Hero component props:', {
@@ -77,27 +113,230 @@ export default function Hero(props: HeroProps) {
     apiEndpoint: globalStyleEndpoint,
     fetchOnMount: Boolean(restaurant_id),
   });
-  const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
-    {
-      is_custom,
-      titleFontFamily,
-      titleFontSize,
-      titleFontWeight,
-      titleColor,
-      subtitleFontFamily,
-      subtitleFontSize,
-      subtitleFontWeight,
-      subtitleColor,
-      bodyFontFamily,
-      bodyFontSize,
-      bodyFontWeight,
-      bodyColor,
+  const { resolved: resolvedTypography } = getSectionTypographyStyles(resolvedConfig, globalStyles);
+  const buildResponsiveTypographyVars = (
+    prefix: 'title' | 'subtitle' | 'body',
+    desktop: {
+      fontFamily?: string;
+      fontSize?: string;
+      fontWeight?: number;
+      fontStyle?: string;
+      color?: string;
+      textTransform?: string;
+      lineHeight?: string;
+      letterSpacing?: string;
     },
-    globalStyles,
+    mobile: {
+      fontFamily?: string;
+      fontSize?: string;
+      fontWeight?: number;
+      fontStyle?: string;
+      color?: string;
+      textTransform?: string;
+      lineHeight?: string;
+      letterSpacing?: string;
+    },
+  ) => {
+    const vars = {} as CSSProperties;
+    const assignVar = (name: string, value: string | number | undefined) => {
+      if (value === undefined || value === '') {
+        return;
+      }
+
+      vars[name as keyof CSSProperties] = value as CSSProperties[keyof CSSProperties];
+    };
+
+    assignVar(`--hero-${prefix}-font-family`, desktop.fontFamily);
+    assignVar(`--hero-${prefix}-font-size`, desktop.fontSize);
+    assignVar(`--hero-${prefix}-font-weight`, desktop.fontWeight);
+    assignVar(`--hero-${prefix}-font-style`, desktop.fontStyle);
+    assignVar(`--hero-${prefix}-color`, desktop.color);
+    assignVar(`--hero-${prefix}-text-transform`, desktop.textTransform);
+    assignVar(`--hero-${prefix}-line-height`, desktop.lineHeight);
+    assignVar(`--hero-${prefix}-letter-spacing`, desktop.letterSpacing);
+    assignVar(`--hero-${prefix}-mobile-font-family`, mobile.fontFamily);
+    assignVar(`--hero-${prefix}-mobile-font-size`, mobile.fontSize);
+    assignVar(`--hero-${prefix}-mobile-font-weight`, mobile.fontWeight);
+    assignVar(`--hero-${prefix}-mobile-font-style`, mobile.fontStyle);
+    assignVar(`--hero-${prefix}-mobile-color`, mobile.color);
+    assignVar(`--hero-${prefix}-mobile-text-transform`, mobile.textTransform);
+    assignVar(`--hero-${prefix}-mobile-line-height`, mobile.lineHeight);
+    assignVar(`--hero-${prefix}-mobile-letter-spacing`, mobile.letterSpacing);
+
+    return vars;
+  };
+  const titleResponsiveStyle = buildResponsiveTypographyVars(
+    'title',
+    {
+      fontFamily: resolvedTypography.titleFontFamily,
+      fontSize: resolvedTypography.titleFontSize,
+      fontWeight: resolvedTypography.titleFontWeight,
+      fontStyle: resolvedTypography.titleFontStyle,
+      color: resolvedTypography.titleColor,
+      textTransform: resolvedTypography.titleTextTransform,
+      lineHeight: resolvedTypography.titleLineHeight,
+      letterSpacing: resolvedTypography.titleLetterSpacing,
+    },
+    {
+      fontFamily: resolvedTypography.titleMobileFontFamily,
+      fontSize: resolvedTypography.titleMobileFontSize,
+      fontWeight: resolvedTypography.titleMobileFontWeight,
+      fontStyle: resolvedTypography.titleMobileFontStyle,
+      color: resolvedTypography.titleMobileColor,
+      textTransform: resolvedTypography.titleMobileTextTransform,
+      lineHeight: resolvedTypography.titleMobileLineHeight,
+      letterSpacing: resolvedTypography.titleMobileLetterSpacing,
+    },
   );
+  const subtitleResponsiveStyle = buildResponsiveTypographyVars(
+    'subtitle',
+    {
+      fontFamily: resolvedTypography.subtitleFontFamily,
+      fontSize: resolvedTypography.subtitleFontSize,
+      fontWeight: resolvedTypography.subtitleFontWeight,
+      fontStyle: resolvedTypography.subtitleFontStyle,
+      color: resolvedTypography.subtitleColor,
+      textTransform: resolvedTypography.subtitleTextTransform,
+      lineHeight: resolvedTypography.subtitleLineHeight,
+      letterSpacing: resolvedTypography.subtitleLetterSpacing,
+    },
+    {
+      fontFamily: resolvedTypography.subtitleMobileFontFamily,
+      fontSize: resolvedTypography.subtitleMobileFontSize,
+      fontWeight: resolvedTypography.subtitleMobileFontWeight,
+      fontStyle: resolvedTypography.subtitleMobileFontStyle,
+      color: resolvedTypography.subtitleMobileColor,
+      textTransform: resolvedTypography.subtitleMobileTextTransform,
+      lineHeight: resolvedTypography.subtitleMobileLineHeight,
+      letterSpacing: resolvedTypography.subtitleMobileLetterSpacing,
+    },
+  );
+  const bodyResponsiveStyle = buildResponsiveTypographyVars(
+    'body',
+    {
+      fontFamily: resolvedTypography.bodyFontFamily,
+      fontSize: resolvedTypography.bodyFontSize,
+      fontWeight: resolvedTypography.bodyFontWeight,
+      fontStyle: resolvedTypography.bodyFontStyle,
+      color: resolvedTypography.bodyColor,
+      textTransform: resolvedTypography.bodyTextTransform,
+      lineHeight: resolvedTypography.bodyLineHeight,
+      letterSpacing: resolvedTypography.bodyLetterSpacing,
+    },
+    {
+      fontFamily: resolvedTypography.bodyMobileFontFamily,
+      fontSize: resolvedTypography.bodyMobileFontSize,
+      fontWeight: resolvedTypography.bodyMobileFontWeight,
+      fontStyle: resolvedTypography.bodyMobileFontStyle,
+      color: resolvedTypography.bodyMobileColor,
+      textTransform: resolvedTypography.bodyMobileTextTransform,
+      lineHeight: resolvedTypography.bodyMobileLineHeight,
+      letterSpacing: resolvedTypography.bodyMobileLetterSpacing,
+    },
+  );
+
+  useEffect(() => {
+    if (previewMode) {
+      setIsClientMobileViewport(previewMode === 'mobile');
+      return;
+    }
+
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const updateViewport = () => {
+      setIsClientMobileViewport(mediaQuery.matches);
+    };
+
+    updateViewport();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', updateViewport);
+      return () => mediaQuery.removeEventListener('change', updateViewport);
+    }
+
+    mediaQuery.addListener(updateViewport);
+    return () => mediaQuery.removeListener(updateViewport);
+  }, [previewMode]);
+
+  useEffect(() => {
+    if (previewMode) {
+      if (!motionEnabled) {
+        setIsInView(true);
+        return;
+      }
+
+      setIsInView(false);
+      let frameOne = 0;
+      let frameTwo = 0;
+      frameOne = window.requestAnimationFrame(() => {
+        frameTwo = window.requestAnimationFrame(() => {
+          setIsInView(true);
+        });
+      });
+
+      return () => {
+        window.cancelAnimationFrame(frameOne);
+        window.cancelAnimationFrame(frameTwo);
+      };
+    }
+
+    if (!motionEnabled) {
+      setIsInView(true);
+      return;
+    }
+
+    const node = heroRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') {
+      setIsInView(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting && entry.intersectionRatio > 0.16);
+      },
+      {
+        threshold: [0, 0.16, 0.32, 0.56],
+        rootMargin: '0px 0px -12% 0px',
+      },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [motionEnabled, contentAnimation, previewMode]);
 
   const scrollToContent = () => {
     window.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
+  };
+
+  const getMotionStyle = (delay = 0): CSSProperties =>
+    motionEnabled
+      ? ({
+          ['--hero-motion-delay' as string]: `${delay}ms`,
+        } as CSSProperties)
+      : {};
+
+  const mergeMotionStyle = (
+    baseStyle: CSSProperties | undefined,
+    delay = 0,
+  ): CSSProperties => ({
+    ...(baseStyle || {}),
+    ...getMotionStyle(delay),
+  });
+
+  const isRenderableButton = (button?: HeroConfig['primaryButton']) =>
+    Boolean(button && (button.label?.trim() || button.href?.trim()));
+
+  const effectiveTextAlign =
+    isClientMobileViewport && mobileTextAlign ? mobileTextAlign : textAlign;
+
+  const getAlignedContentClass = () => {
+    if (effectiveTextAlign === 'left') return styles.contentLeft;
+    if (effectiveTextAlign === 'right') return styles.contentRight;
+    return styles.contentCentered;
   };
 
   const mediaCapabilities = getHeroLayoutMediaCapabilities(layout);
@@ -109,14 +348,17 @@ export default function Hero(props: HeroProps) {
 
   const heroStyle = {
     '--hero-bg-color': bgColor,
+    '--hero-mobile-bg-color': mobileBgColor,
     '--hero-text-color': textColor,
     '--hero-overlay-color': overlayColor,
     '--hero-overlay-opacity': overlayOpacity,
     '--hero-padding-top': paddingTop,
     '--hero-padding-bottom': paddingBottom,
     '--hero-min-height': minHeight,
+    '--hero-mobile-min-height': mobileMinHeight,
     '--hero-content-max-width': contentMaxWidth,
     '--hero-text-align': textAlign,
+    '--hero-mobile-text-align': mobileTextAlign,
     '--hero-screen-height':
       previewMode === 'mobile' ? '780px' : previewMode === 'desktop' ? '720px' : '100svh',
   } as CSSProperties;
@@ -126,38 +368,45 @@ export default function Hero(props: HeroProps) {
   }
 
   const renderButtons = () => {
-    if (!primaryButton && !secondaryButton) return null;
+    const visiblePrimaryButton = isRenderableButton(primaryButton) ? primaryButton : undefined;
+    const visibleSecondaryButton = isRenderableButton(secondaryButton)
+      ? secondaryButton
+      : undefined;
+
+    if (!visiblePrimaryButton && !visibleSecondaryButton) return null;
 
     return (
       <div className={styles.buttonGroup}>
-        {primaryButton && (
+        {visiblePrimaryButton && (
           <a
-            href={primaryButton.href || '#'}
-            className={`${styles.button} ${styles.buttonPrimary} ${
-              primaryButton.variant === 'outline' ? styles.buttonOutline : ''
-            } ${primaryButton.variant === 'secondary' ? styles.buttonSecondary : ''}`}
+            href={visiblePrimaryButton.href || '#'}
+            className={`${styles.button} ${styles.motionItem} ${styles.buttonPrimary} ${
+              visiblePrimaryButton.variant === 'outline' ? styles.buttonOutline : ''
+            } ${visiblePrimaryButton.variant === 'secondary' ? styles.buttonSecondary : ''}`}
             style={{
-              backgroundColor: primaryButton.bgColor,
-              color: primaryButton.textColor,
-              borderColor: primaryButton.borderColor,
+              ...getMotionStyle(240),
+              backgroundColor: visiblePrimaryButton.bgColor,
+              color: visiblePrimaryButton.textColor,
+              borderColor: visiblePrimaryButton.borderColor,
             }}
           >
-            {primaryButton.label}
+            {visiblePrimaryButton.label}
           </a>
         )}
-        {secondaryButton && (
+        {visibleSecondaryButton && (
           <a
-            href={secondaryButton.href || '#'}
-            className={`${styles.button} ${styles.buttonSecondary} ${
-              secondaryButton.variant === 'outline' ? styles.buttonOutline : ''
+            href={visibleSecondaryButton.href || '#'}
+            className={`${styles.button} ${styles.motionItem} ${styles.buttonSecondary} ${
+              visibleSecondaryButton.variant === 'outline' ? styles.buttonOutline : ''
             }`}
             style={{
-              backgroundColor: secondaryButton.bgColor,
-              color: secondaryButton.textColor,
-              borderColor: secondaryButton.borderColor,
+              ...getMotionStyle(320),
+              backgroundColor: visibleSecondaryButton.bgColor,
+              color: visibleSecondaryButton.textColor,
+              borderColor: visibleSecondaryButton.borderColor,
             }}
           >
-            {secondaryButton.label}
+            {visibleSecondaryButton.label}
           </a>
         )}
       </div>
@@ -167,15 +416,24 @@ export default function Hero(props: HeroProps) {
   const renderContent = (additionalClass?: string) => (
     <div className={`${styles.content} ${additionalClass || ''}`}>
       {subheadline ? (
-        <p className={styles.subheadline} style={subtitleStyle}>
+        <p
+          className={`${styles.subheadline} ${styles.motionItem}`}
+          style={mergeMotionStyle(subtitleResponsiveStyle, 40)}
+        >
           {subheadline}
         </p>
       ) : null}
-      <h1 className={styles.headline} style={titleStyle}>
+      <h1
+        className={`${styles.headline} ${styles.motionItem}`}
+        style={mergeMotionStyle(titleResponsiveStyle, 120)}
+      >
         {headline}
       </h1>
       {description ? (
-        <p className={styles.description} style={bodyStyle}>
+        <p
+          className={`${styles.description} ${styles.motionItem}`}
+          style={mergeMotionStyle(bodyResponsiveStyle, 200)}
+        >
           {description}
         </p>
       ) : null}
@@ -187,7 +445,7 @@ export default function Hero(props: HeroProps) {
     if (!activeImage) return null;
 
     return (
-      <div className={styles.imageContainer}>
+      <div className={`${styles.imageContainer} ${styles.motionDecor}`} style={getMotionStyle(260)}>
         <img
           src={activeImage.url}
           alt={activeImage.alt}
@@ -210,7 +468,11 @@ export default function Hero(props: HeroProps) {
     return (
       <div className={styles.featuresGrid}>
         {features.map((feature, index) => (
-          <div key={feature.id || index} className={styles.featureCard}>
+          <div
+            key={feature.id || index}
+            className={`${styles.featureCard} ${styles.motionItem}`}
+            style={getMotionStyle(240 + index * 80)}
+          >
             {feature.icon ? <div className={styles.featureIcon}>{feature.icon}</div> : null}
             <h3 className={styles.featureTitle}>{feature.title}</h3>
             {feature.description ? (
@@ -221,6 +483,50 @@ export default function Hero(props: HeroProps) {
       </div>
     );
   };
+
+  const renderDefaultLayout = () => (
+    <div className={styles.defaultLayout}>
+      <div className={styles.defaultAmbient} aria-hidden="true">
+        <div className={styles.defaultGlowPrimary} />
+        <div className={styles.defaultGlowSecondary} />
+        <div className={styles.defaultGrid} />
+      </div>
+      <div
+        className={styles.defaultContentColumn}
+        style={{
+          ['--hero-default-panel-max-width' as string]: defaultContentPanelMaxWidth,
+          ['--hero-default-panel-mobile-max-width' as string]: defaultContentPanelMobileMaxWidth,
+          ['--hero-default-panel-margin-top' as string]: defaultContentPanelMarginTop,
+          ['--hero-default-panel-margin-bottom' as string]: defaultContentPanelMarginBottom,
+          ['--hero-default-panel-mobile-margin-top' as string]:
+            defaultContentPanelMobileMarginTop,
+          ['--hero-default-panel-mobile-margin-bottom' as string]:
+            defaultContentPanelMobileMarginBottom,
+        }}
+      >
+        <div
+          className={`${styles.defaultContentPanel} ${styles.motionDecor} ${
+            defaultContentPanelEnabled ? styles.defaultPanelEnabled : styles.defaultPanelDisabled
+          }`}
+          style={{
+            ...getMotionStyle(40),
+            ['--hero-default-panel-bg' as string]: defaultContentPanelBackgroundColor,
+            ['--hero-default-panel-mobile-bg' as string]:
+              defaultContentPanelMobileBackgroundColor,
+            ['--hero-default-panel-border-radius' as string]:
+              defaultContentPanelBorderRadius,
+            ['--hero-default-panel-mobile-border-radius' as string]:
+              defaultContentPanelMobileBorderRadius,
+            ['--hero-default-panel-min-height' as string]: defaultContentPanelMinHeight,
+            ['--hero-default-panel-mobile-min-height' as string]:
+              defaultContentPanelMobileMinHeight,
+          }}
+        >
+          {renderContent(getAlignedContentClass())}
+        </div>
+      </div>
+    </div>
+  );
 
   const renderLayout = () => {
     switch (layout) {
@@ -364,13 +670,18 @@ export default function Hero(props: HeroProps) {
 
       case 'default':
       default:
-        return (
-          <div className={styles.defaultLayout}>
-            {renderContent(styles.contentCentered)}
-          </div>
-        );
+        return renderDefaultLayout();
     }
   };
+
+  const motionClass =
+    contentAnimation === 'fade'
+      ? styles.motionFade
+      : contentAnimation === 'zoom'
+        ? styles.motionZoom
+        : contentAnimation === 'cinematic'
+          ? styles.motionCinematic
+          : styles.motionFadeUp;
 
   const heroClass = [
     styles.hero,
@@ -378,12 +689,15 @@ export default function Hero(props: HeroProps) {
     activeVideoUrl ? styles.hasVideo : '',
     previewMode === 'desktop' ? styles.previewDesktop : '',
     previewMode === 'mobile' ? styles.previewMobile : '',
+    motionEnabled ? styles.motionEnabled : '',
+    motionEnabled ? motionClass : '',
+    motionEnabled && isInView ? styles.motionVisible : '',
   ]
     .filter(Boolean)
     .join(' ');
 
   return (
-    <section className={heroClass} style={heroStyle}>
+    <section ref={heroRef} className={heroClass} style={heroStyle}>
       {activeBackgroundImage && !activeVideoUrl ? <div className={styles.backgroundOverlay} aria-hidden="true" /> : null}
       <div className={styles.container}>{renderLayout()}</div>
 

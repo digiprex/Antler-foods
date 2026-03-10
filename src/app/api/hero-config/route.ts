@@ -14,6 +14,7 @@
 import { NextResponse } from 'next/server';
 import type { HeroConfig, HeroConfigResponse } from '@/types/hero.types';
 import { DEFAULT_HERO_CONFIG } from '@/types/hero.types';
+import { mergeHeroConfig } from '@/lib/hero-config';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
 // Restaurant ID must be provided dynamically via query parameters or domain lookup
@@ -364,10 +365,10 @@ export async function GET(request: Request) {
       // Include restaurant_id so page-client can resolve the restaurant
       const response: HeroConfigResponse = {
         success: true,
-        data: {
+        data: mergeHeroConfig({
           ...DEFAULT_HERO_CONFIG,
           restaurant_id: restaurantId,
-        },
+        }),
       };
 
       return NextResponse.json(response);
@@ -376,12 +377,11 @@ export async function GET(request: Request) {
     const template = (data as any).templates[0]; // Get most recent non-deleted template
     
     // The config field contains the complete hero configuration
-    const config: HeroConfig = {
-      ...DEFAULT_HERO_CONFIG,
+    const config: HeroConfig = mergeHeroConfig({
       ...template.config,
       layout: template.name, // name field contains layout type
       restaurant_id: restaurantId,
-    };
+    });
 
     const response: HeroConfigResponse = {
       success: true,
@@ -557,11 +557,11 @@ export async function POST(request: Request) {
     const template = (insertedData as any).insert_templates_one;
     
     // Transform back to HeroConfig
-    const responseConfig: HeroConfig = {
+    const responseConfig: HeroConfig = mergeHeroConfig({
       ...template.config,
       layout: template.name,
       restaurant_id: restaurantId,
-    };
+    });
 
     const response: HeroConfigResponse = {
       success: true,

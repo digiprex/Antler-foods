@@ -277,6 +277,7 @@ export async function GET(request: Request) {
     if (!(data as any).templates || (data as any).templates.length === 0) {
       // Return default configuration if no footer template exists - allows users to create their first footer
       config = {
+        restaurant_id: restaurantId,
         restaurantName: restaurantName || 'Restaurant',
         aboutContent: '',
         email: restaurantEmail || '',
@@ -313,6 +314,7 @@ export async function GET(request: Request) {
       // Transform template structure to FooterConfig
       // Use name, email, phone, address and social links from restaurant table, fallback to template config
       config = {
+        restaurant_id: restaurantId,
         restaurantName: restaurantName || template.config?.restaurantName || 'Restaurant',
         aboutContent: template.config?.aboutContent || '',
         email: restaurantEmail || template.config?.email || '',

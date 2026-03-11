@@ -86,10 +86,42 @@ async function updateRestaurantData(
   }
 }
 
+function generateSEOMetadata(restaurantName: string, pageSlug: string, pageName: string) {
+  const cleanRestaurantName = restaurantName.trim();
+  
+  const seoTemplates = {
+    home: {
+      meta_title: `${cleanRestaurantName} - Best Restaurant Experience | Order Online`,
+      meta_description: `Welcome to ${cleanRestaurantName}! Experience exceptional dining with our carefully crafted menu. Order online for delivery or visit us for an unforgettable meal.`
+    },
+    about: {
+      meta_title: `About ${cleanRestaurantName} - Our Story & Mission`,
+      meta_description: `Learn about ${cleanRestaurantName}'s story, our passion for great food, and commitment to exceptional dining experiences. Discover what makes us special.`
+    },
+    contact: {
+      meta_title: `Contact ${cleanRestaurantName} - Location, Hours & Reservations`,
+      meta_description: `Get in touch with ${cleanRestaurantName}. Find our location, hours, phone number, and make reservations. We're here to serve you!`
+    },
+    menu: {
+      meta_title: `${cleanRestaurantName} Menu - Fresh, Delicious Food | Order Now`,
+      meta_description: `Explore ${cleanRestaurantName}'s delicious menu featuring fresh ingredients and expertly prepared dishes. View our full menu and order online today!`
+    }
+  };
+
+  // Get SEO data for the specific page or use default
+  const seoData = seoTemplates[pageSlug as keyof typeof seoTemplates] || {
+    meta_title: `${pageName} - ${cleanRestaurantName}`,
+    meta_description: `${pageName} page for ${cleanRestaurantName}. Discover more about our restaurant and what we have to offer.`
+  };
+
+  return seoData;
+}
+
 async function createSystemPage(
   restaurantId: string,
   urlSlug: string,
-  name: string
+  name: string,
+  restaurantName: string
 ) {
   const mutation = `
     mutation InsertPage($object: web_pages_insert_input!) {
@@ -99,13 +131,16 @@ async function createSystemPage(
     }
   `;
 
+  // Generate SEO metadata for this page
+  const seoMetadata = generateSEOMetadata(restaurantName, urlSlug, name);
+
   const data = await adminGraphqlRequest<InsertPageResponse>(mutation, {
     object: {
       url_slug: urlSlug,
       name: name,
       is_deleted: false,
-      meta_title: null,
-      meta_description: null,
+      meta_title: seoMetadata.meta_title,
+      meta_description: seoMetadata.meta_description,
       restaurant_id: restaurantId,
       is_system_page: true,
       show_on_navbar: true,
@@ -121,7 +156,7 @@ async function createSystemPage(
   }
 }
 
-async function ensureDefaultSystemPagesForRestaurant(restaurantId: string) {
+async function ensureDefaultSystemPagesForRestaurant(restaurantId: string, restaurantName: string) {
   const existingSlugs = new Set(await getExistingPages(restaurantId));
 
   for (const page of DEFAULT_SYSTEM_PAGES) {
@@ -129,7 +164,7 @@ async function ensureDefaultSystemPagesForRestaurant(restaurantId: string) {
       continue;
     }
 
-    await createSystemPage(restaurantId, page.urlSlug, page.name);
+    await createSystemPage(restaurantId, page.urlSlug, page.name, restaurantName);
   }
 }
 
@@ -171,7 +206,7 @@ export async function POST(
     await updateRestaurantData(restaurantId, defaultStagingDomain);
 
     // Create default system pages
-    await ensureDefaultSystemPagesForRestaurant(restaurantId);
+    await ensureDefaultSystemPagesForRestaurant(restaurantId, restaurantName);
 
     return NextResponse.json({
       success: true,

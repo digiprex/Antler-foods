@@ -8,5 +8,11 @@ interface RoleDashboardPageProps {
 
 export default async function DashboardPage({ params }: RoleDashboardPageProps) {
   const { role } = await params;
-  redirect(`/dashboard/${role}/new-restaurant`);
+  
+  // Redirect based on role - owners go to home, admins go to new-restaurant
+  if (role === 'admin') {
+    redirect(`/dashboard/${role}/new-restaurant`);
+  } else {
+    redirect(`/dashboard/${role}/home`);
+  }
 }

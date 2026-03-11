@@ -18,7 +18,7 @@ import {
 import { Stepper } from './stepper';
 import {
   // getPages, // COMMENTED OUT: Page creation removed from flow
-  getRestaurants,
+  getRestaurantsForUser,
   getRestaurantDraftById,
   insertFranchise,
   // insertPage, // COMMENTED OUT: Page creation removed from flow
@@ -29,6 +29,8 @@ import {
 } from '@/lib/graphql/queries';
 import { resolveRoleSegmentFromPath } from '@/lib/auth/routes';
 import { emitDashboardRestaurantsRefresh } from '@/components/dashboard/route-loading-events';
+import { useUserData } from '@nhost/react';
+import { getUserRole } from '@/lib/auth/get-user-role';
 import { nhost } from '@/lib/nhost';
 
 type WizardStep = 1 | 2;
@@ -104,6 +106,9 @@ export function NewRestaurantWizard() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const user = useUserData();
+  const role = user ? getUserRole(user) : null;
+  const isOwner = role === 'owner';
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -216,7 +221,7 @@ export function NewRestaurantWizard() {
     setIsLoadingRecentRestaurants(true);
 
     try {
-      const latestRestaurants = (await getRestaurants()).slice(
+      const latestRestaurants = (await getRestaurantsForUser(user?.id, isOwner)).slice(
         0,
         MAX_RECENT_RESTAURANTS,
       );
@@ -260,7 +265,7 @@ export function NewRestaurantWizard() {
     } finally {
       setIsLoadingRecentRestaurants(false);
     }
-  }, []);
+  }, [user?.id, isOwner]);
 
   const syncWizardRoute = useCallback(
     (
@@ -677,6 +682,9 @@ export function NewRestaurantWizard() {
       });
 
       await updateFranchiseOwner(franchiseId, ownerUserId);
+
+      // Update restaurant's poc_user_id with the newly created owner's user ID
+      await updateRestaurant(primaryRestaurantId, { poc_user_id: ownerUserId });
     }
 
     // COMMENTED OUT: Page creation removed from flow

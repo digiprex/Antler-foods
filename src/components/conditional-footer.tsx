@@ -14,11 +14,12 @@ export default function ConditionalFooter() {
   const pathname = usePathname();
   
   // Hide footer on admin and dashboard routes
-  const hideFooter = 
-    pathname?.startsWith('/admin') || 
+  const hideFooter =
+    pathname?.startsWith('/admin') ||
     pathname?.startsWith('/dashboard') ||
     pathname?.startsWith('/signup') ||
-    pathname?.startsWith('/login');
+    pathname?.startsWith('/login') ||
+    pathname?.startsWith('/forgot-password');
   
   if (hideFooter) {
     return null;

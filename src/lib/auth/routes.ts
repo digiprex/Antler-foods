@@ -2,10 +2,11 @@ import type { AppRole } from "./get-user-role";
 
 export const LOGIN_ROUTE = "/login";
 export const SIGNUP_ROUTE = "/signup";
+export const FORGOT_PASSWORD_ROUTE = "/forgot-password";
 export const DEFAULT_AUTH_REDIRECT = "/dashboard/admin/home";
 export const UNAUTHORIZED_ROUTE = "/unauthorized";
 
-export const PUBLIC_ROUTES = [LOGIN_ROUTE, SIGNUP_ROUTE] as const;
+export const PUBLIC_ROUTES = [LOGIN_ROUTE, SIGNUP_ROUTE, FORGOT_PASSWORD_ROUTE] as const;
 export const PROTECTED_ROUTE_PREFIXES = [
   "/dashboard",
 ] as const;

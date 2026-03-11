@@ -20,7 +20,8 @@ export default function ConditionalNavbar() {
     pathname?.startsWith('/admin') ||
     pathname?.startsWith('/dashboard') ||
     pathname?.startsWith('/signup') ||
-    pathname?.startsWith('/login');
+    pathname?.startsWith('/login') ||
+    pathname?.startsWith('/forgot-password');
 
   if (hideNavbar) {
     return null;

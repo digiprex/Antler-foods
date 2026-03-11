@@ -130,6 +130,15 @@ export function getPageSEO(pageType: string, customConfig: SEOConfig = {}): SEOC
         ...customConfig,
       };
 
+    case 'forgot-password':
+      return {
+        ...baseConfig,
+        title: 'Reset Password - Antler Foods',
+        description: 'Reset your Antler Foods account password. Enter your email to receive a secure password reset link.',
+        noIndex: true,
+        ...customConfig,
+      };
+
     case 'dashboard':
       return {
         ...baseConfig,

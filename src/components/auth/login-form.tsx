@@ -14,6 +14,7 @@ import { useForm } from 'react-hook-form';
 import { AuthInput } from './auth-input';
 import {
   DEFAULT_AUTH_REDIRECT,
+  FORGOT_PASSWORD_ROUTE,
   getRoleDashboardRoute,
   SIGNUP_ROUTE,
 } from '@/lib/auth/routes';
@@ -115,12 +116,12 @@ export function LoginForm() {
 
         {/* Forgot Password Link */}
         <div className="flex justify-end">
-          <button
-            type="button"
-            className="text-sm font-medium text-violet-600 hover:text-violet-700 transition-colors"
+          <Link
+            href={FORGOT_PASSWORD_ROUTE}
+            className="text-sm font-medium text-violet-600 hover:text-violet-700 transition-colors hover:underline underline-offset-2"
           >
             Forgot password?
-          </button>
+          </Link>
         </div>
 
         {/* Error Messages */}

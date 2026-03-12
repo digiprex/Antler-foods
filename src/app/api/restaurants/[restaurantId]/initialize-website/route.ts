@@ -120,14 +120,14 @@ const GET_THEME_BY_ID = `
 `;
 
 const INSERT_TEMPLATE = `
-  mutation InsertTemplate($restaurant_id: uuid!, $name: String!, $category: String!, $config: jsonb!, $page_id: uuid, $order_index: numeric, $ref_template_id: uuid) {
+  mutation InsertTemplate($restaurant_id: uuid!, $name: String!, $category: String!, $config: jsonb!, $menu_items: jsonb, $page_id: uuid, $order_index: numeric, $ref_template_id: uuid) {
     insert_templates_one(
       object: {
         restaurant_id: $restaurant_id,
         name: $name,
         category: $category,
         config: $config,
-        menu_items: {},
+        menu_items: $menu_items,
         page_id: $page_id,
         order_index: $order_index,
         is_deleted: false,
@@ -238,6 +238,94 @@ async function getHomePageId(restaurantId: string): Promise<string | null> {
   return data.web_pages.length > 0 ? data.web_pages[0].page_id : null;
 }
 
+async function createNavbarFromTheme(restaurantId: string, themeId: string) {
+  // Fetch the theme to get its sections
+  const themeData = await adminGraphqlRequest<GetThemeResponse>(GET_THEME_BY_ID, {
+    theme_id: themeId,
+  });
+
+  if (!themeData.themes_by_pk || !themeData.themes_by_pk.sections) {
+    console.log('No theme sections found for navbar');
+    return;
+  }
+
+  const theme = themeData.themes_by_pk;
+  let sections: ThemeSection[] = [];
+
+  // Handle sections as either array or object
+  if (Array.isArray(theme.sections)) {
+    sections = theme.sections;
+  } else if (typeof theme.sections === 'object') {
+    sections = Object.values(theme.sections);
+  }
+
+  // Find navbar section
+  const navbarSection = sections.find(section => section.type === 'navbar');
+
+  if (!navbarSection) {
+    console.log('No navbar section found in theme');
+    return;
+  }
+
+  // Create navbar template (without page_id - it's global)
+  await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
+    restaurant_id: restaurantId,
+    name: navbarSection.name || 'navbar',
+    category: 'Navbar',
+    config: navbarSection.style || {},
+    menu_items: {},
+    page_id: null,
+    order_index: 0,
+    ref_template_id: null,
+  });
+
+  console.log('✅ Navbar template created from theme');
+}
+
+async function createFooterFromTheme(restaurantId: string, themeId: string) {
+  // Fetch the theme to get its sections
+  const themeData = await adminGraphqlRequest<GetThemeResponse>(GET_THEME_BY_ID, {
+    theme_id: themeId,
+  });
+
+  if (!themeData.themes_by_pk || !themeData.themes_by_pk.sections) {
+    console.log('No theme sections found for footer');
+    return;
+  }
+
+  const theme = themeData.themes_by_pk;
+  let sections: ThemeSection[] = [];
+
+  // Handle sections as either array or object
+  if (Array.isArray(theme.sections)) {
+    sections = theme.sections;
+  } else if (typeof theme.sections === 'object') {
+    sections = Object.values(theme.sections);
+  }
+
+  // Find footer section
+  const footerSection = sections.find(section => section.type === 'footer');
+
+  if (!footerSection) {
+    console.log('No footer section found in theme');
+    return;
+  }
+
+  // Create footer template (without page_id - it's global)
+  await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
+    restaurant_id: restaurantId,
+    name: footerSection.name || 'footer',
+    category: 'Footer',
+    config: footerSection.style || {},
+    menu_items: {},
+    page_id: null,
+    order_index: 0,
+    ref_template_id: null,
+  });
+
+  console.log('✅ Footer template created from theme');
+}
+
 async function createThemeSections(restaurantId: string, themeId: string, pageId: string) {
   // Fetch the theme to get its sections
   const themeData = await adminGraphqlRequest<GetThemeResponse>(GET_THEME_BY_ID, {
@@ -310,11 +398,14 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
       name: section.name || section.type,
       category: section.type,
       config: section.style || {},
+      menu_items: {},
       page_id: pageId,
       order_index: orderIndex,
       ref_template_id: null,
     });
   }
+
+  console.log(`✅ Created ${pageSections.length} page section(s) from theme`);
 }
 
 export async function POST(
@@ -358,6 +449,11 @@ export async function POST(
 
     // Create theme sections if templateId is provided
     if (templateId) {
+      // Create navbar and footer from theme (global templates)
+      await createNavbarFromTheme(restaurantId, templateId);
+      await createFooterFromTheme(restaurantId, templateId);
+
+      // Create page sections
       const homePageId = await getHomePageId(restaurantId);
 
       if (homePageId) {

@@ -66,6 +66,7 @@ const GET_FOOTER_CONFIG = `
       grubhub_link
       ubereats_link
       yelp_link
+      global_styles
     }
     web_pages(
       where: {
@@ -215,6 +216,7 @@ export async function GET(request: Request) {
     const restaurantName = restaurantData?.name || '';
     const restaurantEmail = restaurantData?.email || '';
     const restaurantPhone = restaurantData?.phone_number || '';
+    const globalStyles = restaurantData?.global_styles || null;
     
     // Build complete address from restaurant table fields, avoiding duplication
     const addressParts = [];
@@ -276,6 +278,7 @@ export async function GET(request: Request) {
 
     if (!(data as any).templates || (data as any).templates.length === 0) {
       // Return default configuration if no footer template exists - allows users to create their first footer
+      // Apply global_styles if available
       config = {
         restaurant_id: restaurantId,
         restaurantName: restaurantName || 'Restaurant',
@@ -288,23 +291,23 @@ export async function GET(request: Request) {
         copyrightText: `© ${new Date().getFullYear()} ${restaurantName || 'Restaurant'}. All rights reserved.`,
         showPoweredBy: true,
         layout: 'columns-4', // Default layout
-        bgColor: '#1f2937',
-        textColor: '#f9fafb',
-        linkColor: '#9ca3af',
+        bgColor: globalStyles?.secondaryButton?.backgroundColor || '#1f2937',
+        textColor: globalStyles?.paragraph?.color || '#f9fafb',
+        linkColor: globalStyles?.paragraph?.color || '#9ca3af',
         copyrightBgColor: '#000000',
         copyrightTextColor: '#ffffff',
         showNewsletter: false,
         showSocialMedia: true,
         showLocations: true,
-        fontFamily: 'Inter, system-ui, sans-serif',
-        fontSize: '0.9375rem',
-        fontWeight: 400,
+        fontFamily: globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
+        fontSize: globalStyles?.paragraph?.fontSize || '0.9375rem',
+        fontWeight: globalStyles?.paragraph?.fontWeight || 400,
         textTransform: 'none',
-        headingFontFamily: 'Inter, system-ui, sans-serif',
-        headingFontSize: '1.125rem',
-        headingFontWeight: 600,
+        headingFontFamily: globalStyles?.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
+        headingFontSize: globalStyles?.subheading?.fontSize || '1.125rem',
+        headingFontWeight: globalStyles?.subheading?.fontWeight || 600,
         headingTextTransform: 'uppercase',
-        copyrightFontFamily: 'Inter, system-ui, sans-serif',
+        copyrightFontFamily: globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
         copyrightFontSize: '0.875rem',
         copyrightFontWeight: 400,
       };
@@ -312,6 +315,7 @@ export async function GET(request: Request) {
       const template = (data as any).templates[0];
 
       // Transform template structure to FooterConfig
+      // Priority: template.config > global_styles > defaults
       // Use name, email, phone, address and social links from restaurant table, fallback to template config
       config = {
         restaurant_id: restaurantId,
@@ -325,23 +329,23 @@ export async function GET(request: Request) {
         copyrightText: template.config?.copyrightText || `© ${new Date().getFullYear()} ${restaurantName || 'Restaurant'}. All rights reserved.`,
         showPoweredBy: template.config?.showPoweredBy !== false,
         layout: template.name,
-        bgColor: template.config?.bgColor || '#1f2937',
-        textColor: template.config?.textColor || '#f9fafb',
-        linkColor: template.config?.linkColor || '#9ca3af',
+        bgColor: template.config?.bgColor || globalStyles?.secondaryButton?.backgroundColor || '#1f2937',
+        textColor: template.config?.textColor || globalStyles?.paragraph?.color || '#f9fafb',
+        linkColor: template.config?.linkColor || globalStyles?.paragraph?.color || '#9ca3af',
         copyrightBgColor: template.config?.copyrightBgColor || '#000000',
         copyrightTextColor: template.config?.copyrightTextColor || '#ffffff',
         showNewsletter: template.config?.showNewsletter || false,
         showSocialMedia: template.config?.showSocialMedia !== false,
         showLocations: template.config?.showLocations !== false,
-        fontFamily: template.config?.fontFamily || 'Inter, system-ui, sans-serif',
-        fontSize: template.config?.fontSize || '0.9375rem',
-        fontWeight: template.config?.fontWeight || 400,
+        fontFamily: template.config?.fontFamily || globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
+        fontSize: template.config?.fontSize || globalStyles?.paragraph?.fontSize || '0.9375rem',
+        fontWeight: template.config?.fontWeight || globalStyles?.paragraph?.fontWeight || 400,
         textTransform: template.config?.textTransform || 'none',
-        headingFontFamily: template.config?.headingFontFamily || 'Inter, system-ui, sans-serif',
-        headingFontSize: template.config?.headingFontSize || '1.125rem',
-        headingFontWeight: template.config?.headingFontWeight || 600,
+        headingFontFamily: template.config?.headingFontFamily || globalStyles?.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
+        headingFontSize: template.config?.headingFontSize || globalStyles?.subheading?.fontSize || '1.125rem',
+        headingFontWeight: template.config?.headingFontWeight || globalStyles?.subheading?.fontWeight || 600,
         headingTextTransform: template.config?.headingTextTransform || 'uppercase',
-        copyrightFontFamily: template.config?.copyrightFontFamily || 'Inter, system-ui, sans-serif',
+        copyrightFontFamily: template.config?.copyrightFontFamily || globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
         copyrightFontSize: template.config?.copyrightFontSize || '0.875rem',
         copyrightFontWeight: template.config?.copyrightFontWeight || 400,
       };

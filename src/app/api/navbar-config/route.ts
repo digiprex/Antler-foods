@@ -51,6 +51,7 @@ const GET_NAVBAR_CONFIG = `
       name
       restaurant_id
       logo
+      global_styles
     }
     web_pages(
       where: {
@@ -203,11 +204,13 @@ export async function GET(request: Request) {
     const restaurantData = (data as any).restaurants?.[0];
     const restaurantName = restaurantData?.name || 'Restaurant';
     const logoUrl = restaurantData?.logo || undefined;
+    const globalStyles = restaurantData?.global_styles || null;
 
     console.log('[Navbar Config] 🏪 Restaurant data:', {
       name: restaurantName,
       logo: logoUrl,
       hasLogo: !!logoUrl,
+      hasGlobalStyles: !!globalStyles,
     });
 
     // Transform web_pages to nav items
@@ -218,6 +221,7 @@ export async function GET(request: Request) {
 
     if (!(data as any).templates || (data as any).templates.length === 0) {
       // Return default navbar configuration for new restaurants
+      // Apply global_styles if available
       const defaultConfig: NavbarConfig = {
         restaurantName: restaurantName,
         logoUrl: logoUrl,
@@ -230,17 +234,17 @@ export async function GET(request: Request) {
           href: '/menu',
         },
         position: 'absolute',
-        bgColor: '#ffffff',
-        textColor: '#000000',
-        buttonBgColor: '#000000',
-        buttonTextColor: '#ffffff',
-        fontFamily: 'Inter, system-ui, sans-serif',
-        fontSize: '1rem',
-        fontWeight: 400,
+        bgColor: globalStyles?.primaryButton?.backgroundColor || '#ffffff',
+        textColor: globalStyles?.title?.color || '#000000',
+        buttonBgColor: globalStyles?.primaryAccentColor || globalStyles?.primaryButton?.backgroundColor || '#000000',
+        buttonTextColor: globalStyles?.primaryButton?.color || '#ffffff',
+        fontFamily: globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
+        fontSize: globalStyles?.title?.fontSize || '1rem',
+        fontWeight: globalStyles?.title?.fontWeight || 400,
         textTransform: 'uppercase',
       };
 
-      console.log('[Navbar Config] ✅ Returning default config for new restaurant');
+      console.log('[Navbar Config] ✅ Returning default config for new restaurant with global styles');
 
       const response: NavbarConfigResponse = {
         success: true,
@@ -253,6 +257,7 @@ export async function GET(request: Request) {
     const template = (data as any).templates[0]; // Get most recent non-deleted template
 
     // Transform template structure to NavbarConfig
+    // Priority: template.config > global_styles > defaults
     const config: NavbarConfig = {
       restaurantName: restaurantName, // Get from restaurant table
       logoUrl: logoUrl, // Get logo from restaurant table
@@ -262,13 +267,13 @@ export async function GET(request: Request) {
       rightNavItems: [],
       ctaButton: template.config?.ctaButton,
       position: template.config?.position || 'absolute',
-      bgColor: template.config?.bgColor || '#ffffff',
-      textColor: template.config?.textColor || '#000000',
-      buttonBgColor: '#000000',
-      buttonTextColor: '#ffffff',
-      fontFamily: template.config?.fontFamily || 'Inter, system-ui, sans-serif',
-      fontSize: template.config?.fontSize || '1rem',
-      fontWeight: template.config?.fontWeight || 400,
+      bgColor: template.config?.bgColor || globalStyles?.primaryButton?.backgroundColor || '#ffffff',
+      textColor: template.config?.textColor || globalStyles?.title?.color || '#000000',
+      buttonBgColor: template.config?.buttonBgColor || globalStyles?.primaryAccentColor || globalStyles?.primaryButton?.backgroundColor || '#000000',
+      buttonTextColor: template.config?.buttonTextColor || globalStyles?.primaryButton?.color || '#ffffff',
+      fontFamily: template.config?.fontFamily || globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
+      fontSize: template.config?.fontSize || globalStyles?.title?.fontSize || '1rem',
+      fontWeight: template.config?.fontWeight || globalStyles?.title?.fontWeight || 400,
       textTransform: template.config?.textTransform || 'uppercase',
     };
 

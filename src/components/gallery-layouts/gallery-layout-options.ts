@@ -1,6 +1,7 @@
 import type { GalleryConfig } from '@/types/gallery.types';
 
 export type GalleryLayoutValue =
+  | 'showcase'
   | 'spotlight'
   | 'mosaic'
   | 'editorial'
@@ -16,6 +17,11 @@ export interface GalleryLayoutOption {
 }
 
 export const GALLERY_LAYOUT_OPTIONS: GalleryLayoutOption[] = [
+  {
+    value: 'showcase',
+    name: 'Showcase',
+    description: 'Center hero with side previews',
+  },
   {
     value: 'spotlight',
     name: 'Spotlight',
@@ -65,6 +71,7 @@ export function normalizeGalleryLayout(
   }
 
   if (
+    layout === 'showcase' ||
     layout === 'spotlight' ||
     layout === 'mosaic' ||
     layout === 'editorial' ||

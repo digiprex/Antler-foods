@@ -14,6 +14,7 @@ export function CarouselGalleryLayout({
   columns,
   gap,
   aspectRatio,
+  layoutViewport,
   showCaptions,
   currentSlide,
   onImageClick,
@@ -21,7 +22,13 @@ export function CarouselGalleryLayout({
   onPrevious,
   onSelectSlide,
 }: GalleryCarouselLayoutProps) {
-  const visibleCards = getResolvedColumns(columns, 4);
+  const resolvedDesktopColumns = getResolvedColumns(columns, 4);
+  const visibleCards =
+    layoutViewport === 'mobile'
+      ? 1
+      : layoutViewport === 'tablet'
+        ? Math.min(resolvedDesktopColumns, 2)
+        : resolvedDesktopColumns;
   const maxSlide = Math.max(images.length - visibleCards, 0);
   const itemWidth = `calc((100% - (${visibleCards - 1} * ${gap})) / ${visibleCards})`;
 
@@ -50,13 +57,15 @@ export function CarouselGalleryLayout({
               <button
                 key={image.id || `${image.url}-${index}`}
                 type="button"
-                className={`${styles.cardButton} ${styles.carouselCard} ${styles.cardReveal}`}
-                style={getAnimationStyle(index)}
+                className={`${styles.cardButton} ${styles.carouselCard}`}
                 onClick={() => onImageClick(index)}
               >
                 <div
-                  className={styles.cardSurface}
-                  style={{ aspectRatio: getAspectRatioValue(aspectRatio) }}
+                  className={`${styles.cardSurface} ${styles.cardReveal}`}
+                  style={{
+                    aspectRatio: getAspectRatioValue(aspectRatio),
+                    ...getAnimationStyle(index),
+                  }}
                 >
                   <img
                     src={image.url}

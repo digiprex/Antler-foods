@@ -29,6 +29,7 @@ export interface GalleryConfig extends SectionStyleConfig {
 
   // Layout options
   layout?:
+    | 'showcase'
     | 'spotlight'
     | 'mosaic'
     | 'editorial'
@@ -45,12 +46,14 @@ export interface GalleryConfig extends SectionStyleConfig {
   bgColor?: string;
   textColor?: string;
   padding?: string;
+  margin?: string;
   maxWidth?: string;
 
   // Behavior
   showCaptions?: boolean;
   showCategories?: boolean;
   enableLightbox?: boolean;
+  enableScrollAnimation?: boolean;
   autoplay?: boolean;
   autoplaySpeed?: number;
 
@@ -77,10 +80,12 @@ export const DEFAULT_GALLERY_CONFIG: GalleryConfig = {
   bgColor: '#ffffff',
   textColor: '#000000',
   padding: '4rem 2rem',
+  margin: '0',
   maxWidth: '1200px',
   showCaptions: true,
   showCategories: false,
   enableLightbox: true,
+  enableScrollAnimation: false,
   autoplay: false,
   autoplaySpeed: 3000,
   is_custom: false,

@@ -5,14 +5,23 @@ import type { YouTubeConfig } from '@/types/youtube.types';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
 import { getSectionTypographyStyles } from '@/lib/section-style';
 
+type PreviewViewport = 'desktop' | 'mobile';
+
 interface YouTubeSectionProps {
   restaurantId: string;
   pageId?: string;
   templateId?: string;
   configData?: Partial<YouTubeConfig>;
+  previewViewport?: PreviewViewport;
 }
 
-export default function YouTubeSection({ restaurantId, pageId, templateId, configData }: YouTubeSectionProps): JSX.Element | null {
+export default function YouTubeSection({
+  restaurantId,
+  pageId,
+  templateId,
+  configData,
+  previewViewport = 'desktop',
+}: YouTubeSectionProps): JSX.Element | null {
   const [config, setConfig] = useState<YouTubeConfig | null>((configData as YouTubeConfig) || null);
 
   const [isLoading, setIsLoading] = useState(!configData);
@@ -130,30 +139,40 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
     return (
       <div
         style={{
-          position: 'relative',
-          paddingBottom,
-          height: 0,
-          overflow: 'hidden',
-          borderRadius: '12px',
-          boxShadow:
-            '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          borderRadius: previewViewport === 'mobile' ? '22px' : '28px',
+          border: '1px solid rgba(148, 163, 184, 0.18)',
+          background:
+            'linear-gradient(180deg, rgba(255,255,255,0.42), rgba(248,250,252,0.92))',
+          boxShadow: '0 26px 60px rgba(15, 23, 42, 0.14)',
+          padding: previewViewport === 'mobile' ? '0.7rem' : '0.85rem',
         }}
       >
-        <iframe
-          src={getEmbedUrl(config.videoUrl)}
+        <div
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            borderRadius: '12px',
+            position: 'relative',
+            paddingBottom,
+            height: 0,
+            overflow: 'hidden',
+            borderRadius: previewViewport === 'mobile' ? '18px' : '22px',
+            backgroundColor: '#020617',
           }}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          title={config.title || 'Video'}
-        />
+        >
+          <iframe
+            src={getEmbedUrl(config.videoUrl)}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              border: 'none',
+              borderRadius: previewViewport === 'mobile' ? '18px' : '22px',
+            }}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={config.title || 'Video'}
+          />
+        </div>
       </div>
     );
   };
@@ -164,27 +183,77 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
       config,
       globalStyles,
     );
+    const isPreviewMobile = previewViewport === 'mobile';
+    const maxWidth = config.maxWidth || '1200px';
+    const theaterMaxWidth = config.maxWidth || '1400px';
+    const contentPadding = isPreviewMobile ? '2.75rem 1rem' : '4rem 1.5rem';
+    const surfaceRadius = isPreviewMobile ? '22px' : '28px';
+    const surfacePadding = isPreviewMobile ? '1.35rem' : '1.9rem';
+    const textPanelStyle: React.CSSProperties = {
+      borderRadius: surfaceRadius,
+      border: '1px solid rgba(148, 163, 184, 0.18)',
+      background:
+        'linear-gradient(180deg, rgba(255,255,255,0.72), rgba(248,250,252,0.92))',
+      boxShadow: '0 22px 50px rgba(15, 23, 42, 0.12)',
+      padding: surfacePadding,
+      backdropFilter: 'blur(14px)',
+    };
+    const renderTextBlock = ({
+      centered = false,
+      panel = false,
+    }: {
+      centered?: boolean;
+      panel?: boolean;
+    }) => {
+      if (config.showTitle === false || (!config.title && !config.description)) {
+        return null;
+      }
+
+      return (
+        <div
+          style={{
+            ...(panel ? textPanelStyle : {}),
+            textAlign: centered ? 'center' : 'left',
+            maxWidth: centered ? '780px' : undefined,
+            margin: centered ? '0 auto' : undefined,
+          }}
+        >
+          {config.title ? (
+            <h2
+              style={{
+                marginBottom: config.description ? '0.9rem' : 0,
+                ...titleStyle,
+                fontSize: isPreviewMobile ? '1.75rem' : titleStyle.fontSize,
+              }}
+            >
+              {config.title}
+            </h2>
+          ) : null}
+          {config.description ? (
+            <p
+              style={{
+                opacity: 0.86,
+                ...bodyStyle,
+                lineHeight: 1.75,
+                fontSize: isPreviewMobile ? '0.95rem' : bodyStyle.fontSize,
+              }}
+            >
+              {config.description}
+            </p>
+          ) : null}
+        </div>
+      );
+    };
 
     const layout = config.layout || 'default';
 
     // Default Layout - Centered video with title above
     if (layout === 'default') {
       return (
-        <div style={{ maxWidth: config.maxWidth || '1200px', margin: '0 auto', padding: '4rem 1.5rem' }}>
-          {config.showTitle !== false && (config.title || config.description) && (
-            <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
-              {config.title && (
-                <h2 style={{ marginBottom: '1rem', ...titleStyle }}>
-                  {config.title}
-                </h2>
-              )}
-              {config.description && (
-                <p style={{ opacity: 0.9, maxWidth: '800px', margin: '0 auto', ...bodyStyle }}>
-                  {config.description}
-                </p>
-              )}
-            </div>
-          )}
+        <div style={{ maxWidth, margin: '0 auto', padding: contentPadding }}>
+          <div style={{ marginBottom: isPreviewMobile ? '1.5rem' : '2.25rem' }}>
+            {renderTextBlock({ centered: true })}
+          </div>
           {renderVideoEmbed()}
         </div>
       );
@@ -193,21 +262,10 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
     // Theater Mode - Extra wide video
     if (layout === 'theater') {
       return (
-        <div style={{ maxWidth: config.maxWidth || '1400px', margin: '0 auto', padding: '4rem 1.5rem' }}>
-          {config.showTitle !== false && (config.title || config.description) && (
-            <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
-              {config.title && (
-                <h2 style={{ marginBottom: '1rem', ...titleStyle }}>
-                  {config.title}
-                </h2>
-              )}
-              {config.description && (
-                <p style={{ opacity: 0.9, ...bodyStyle }}>
-                  {config.description}
-                </p>
-              )}
-            </div>
-          )}
+        <div style={{ maxWidth: theaterMaxWidth, margin: '0 auto', padding: contentPadding }}>
+          <div style={{ marginBottom: isPreviewMobile ? '1.5rem' : '2.25rem' }}>
+            {renderTextBlock({ centered: true })}
+          </div>
           {renderVideoEmbed()}
         </div>
       );
@@ -218,37 +276,21 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
       return (
         <div
           style={{
-            maxWidth: config.maxWidth || '1200px',
+            maxWidth,
             margin: '0 auto',
-            padding: '4rem 1.5rem',
+            padding: contentPadding,
           }}
         >
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '4rem',
+              gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(0, 1.1fr) minmax(320px, 0.9fr)',
+              gap: isPreviewMobile ? '1.5rem' : '2.5rem',
               alignItems: 'center',
             }}
           >
             <div>{renderVideoEmbed()}</div>
-            {config.showTitle !== false &&
-              (config.title || config.description) && (
-                <div>
-                  {config.title && (
-                    <h2 style={{ marginBottom: '1.5rem', ...titleStyle }}>
-                      {config.title}
-                    </h2>
-                  )}
-                  {config.description && (
-                    <p
-                      style={{ ...bodyStyle, lineHeight: '1.75', opacity: 0.9 }}
-                    >
-                      {config.description}
-                    </p>
-                  )}
-                </div>
-              )}
+            {renderTextBlock({ panel: true })}
           </div>
         </div>
       );
@@ -257,22 +299,9 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
     // Split Right - Content on left, video on right
     if (layout === 'split-right') {
       return (
-        <div style={{ maxWidth: config.maxWidth || '1200px', margin: '0 auto', padding: '4rem 1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
-            {config.showTitle !== false && (config.title || config.description) && (
-              <div>
-                {config.title && (
-                  <h2 style={{ marginBottom: '1.5rem', ...titleStyle }}>
-                    {config.title}
-                  </h2>
-                )}
-                {config.description && (
-                  <p style={{ ...bodyStyle, lineHeight: '1.75', opacity: 0.9 }}>
-                    {config.description}
-                  </p>
-                )}
-              </div>
-            )}
+        <div style={{ maxWidth, margin: '0 auto', padding: contentPadding }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(320px, 0.9fr) minmax(0, 1.1fr)', gap: isPreviewMobile ? '1.5rem' : '2.5rem', alignItems: 'center' }}>
+            {renderTextBlock({ panel: true })}
             <div>{renderVideoEmbed()}</div>
           </div>
         </div>
@@ -286,10 +315,11 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
           style={{
             position: 'relative',
             width: '100%',
-            minHeight: '600px',
+            minHeight: isPreviewMobile ? '460px' : '600px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            padding: isPreviewMobile ? '1.75rem 1rem' : '3rem 1.5rem',
           }}
         >
           <div
@@ -299,20 +329,41 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
               left: 0,
               width: '100%',
               height: '100%',
-              opacity: 0.3,
+              opacity: 0.28,
             }}
           >
             {renderVideoEmbed()}
           </div>
           {config.showTitle !== false && (config.title || config.description) && (
-            <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: '2rem', maxWidth: '800px' }}>
+            <div
+              style={{
+                position: 'relative',
+                zIndex: 1,
+                width: '100%',
+                maxWidth: isPreviewMobile ? '100%' : '760px',
+                ...textPanelStyle,
+              }}
+            >
               {config.title && (
-                <h2 style={{ marginBottom: '1.5rem', textShadow: '0 2px 10px rgba(0,0,0,0.5)', ...titleStyle }}>
+                <h2
+                  style={{
+                    marginBottom: config.description ? '0.9rem' : 0,
+                    textAlign: 'center',
+                    ...titleStyle,
+                  }}
+                >
                   {config.title}
                 </h2>
               )}
               {config.description && (
-                <p style={{ opacity: 0.9, textShadow: '0 2px 10px rgba(0,0,0,0.5)', ...subtitleStyle }}>
+                <p
+                  style={{
+                    textAlign: 'center',
+                    opacity: 0.92,
+                    ...subtitleStyle,
+                    lineHeight: 1.75,
+                  }}
+                >
                   {config.description}
                 </p>
               )}
@@ -325,22 +376,61 @@ export default function YouTubeSection({ restaurantId, pageId, templateId, confi
     // Grid - Multiple videos (for future enhancement)
     if (layout === 'grid') {
       return (
-        <div style={{ maxWidth: config.maxWidth || '1200px', margin: '0 auto', padding: '4rem 1.5rem' }}>
-          {config.showTitle !== false && (config.title || config.description) && (
-            <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
-              {config.title && (
-                <h2 style={{ marginBottom: '1rem', ...titleStyle }}>
-                  {config.title}
-                </h2>
-              )}
-              {config.description && (
-                <p style={{ opacity: 0.9, ...bodyStyle }}>
-                  {config.description}
+        <div style={{ maxWidth, margin: '0 auto', padding: contentPadding }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(0, 1.25fr) minmax(320px, 0.75fr)',
+              gap: isPreviewMobile ? '1.25rem' : '1.75rem',
+              alignItems: 'start',
+            }}
+          >
+            <div>{renderVideoEmbed()}</div>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              {renderTextBlock({ panel: true })}
+              <div style={textPanelStyle}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.16em',
+                    textTransform: 'uppercase',
+                    color: '#7c3aed',
+                  }}
+                >
+                  Video Layout
                 </p>
-              )}
+                <div
+                  style={{
+                    display: 'grid',
+                    gap: '0.75rem',
+                    marginTop: '1rem',
+                  }}
+                >
+                  {[
+                    `Aspect ratio: ${config.aspectRatio || '16:9'}`,
+                    config.controls === false ? 'Controls hidden' : 'Controls visible',
+                    config.autoplay ? 'Autoplay enabled' : 'Playback starts on demand',
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      style={{
+                        borderRadius: '16px',
+                        border: '1px solid rgba(148, 163, 184, 0.18)',
+                        background: 'rgba(255,255,255,0.72)',
+                        padding: '0.85rem 1rem',
+                        color: '#334155',
+                        fontSize: '0.9rem',
+                      }}
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          )}
-          {renderVideoEmbed()}
+          </div>
         </div>
       );
     }

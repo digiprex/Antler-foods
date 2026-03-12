@@ -16,6 +16,40 @@ export function SpotlightGalleryLayout({
   onNext,
   onPrevious,
 }: GalleryInteractiveLayoutProps) {
+  const visibleCards = images
+    .map((image, index) => {
+      const offset = getCircularOffset(index, activeIndex, images.length, 2);
+
+      if (offset === null) {
+        return null;
+      }
+
+      return {
+        image,
+        index,
+        offset,
+        distance: Math.abs(offset),
+      };
+    })
+    .filter(
+      (
+        card,
+      ): card is {
+        image: GalleryInteractiveLayoutProps['images'][number];
+        index: number;
+        offset: number;
+        distance: number;
+      } => Boolean(card),
+    );
+
+  const activeCard = visibleCards.find((card) => card.offset === 0);
+  const leftCards = visibleCards
+    .filter((card) => card.offset < 0)
+    .sort((a, b) => a.offset - b.offset);
+  const rightCards = visibleCards
+    .filter((card) => card.offset > 0)
+    .sort((a, b) => a.offset - b.offset);
+
   return (
     <div>
       <div className={styles.spotlightShell}>
@@ -30,82 +64,136 @@ export function SpotlightGalleryLayout({
           <div className={styles.spotlightGlow} />
           <div className={styles.spotlightMesh} />
           <div className={styles.spotlightStage}>
-            {images.map((image, index) => {
-              const offset = getCircularOffset(index, activeIndex, images.length, 2);
-
-              if (offset === null) {
-                return null;
-              }
-
-              const distance = Math.abs(offset);
-
-              const width =
-                distance === 0
-                  ? 'min(55%, 42rem)'
-                  : distance === 1
-                    ? 'min(22%, 14rem)'
-                    : 'min(13%, 8.75rem)';
-              const translateX =
-                distance === 0
-                  ? 0
-                  : distance === 1
-                    ? offset * 34
-                    : offset * 49;
-              const translateY =
-                distance === 0 ? -50 : distance === 1 ? -47 : -43;
-              const scale = distance === 0 ? 1 : distance === 1 ? 0.9 : 0.78;
-              const opacity =
-                distance === 0 ? 1 : distance === 1 ? 0.62 : 0.24;
-              const rotate = distance === 0 ? 0 : offset * -6;
-              const aspectRatio =
-                distance === 0 ? '16 / 10' : distance === 1 ? '5 / 7' : '4 / 7';
-
-              return (
+            <div
+              className={`${styles.spotlightRail} ${styles.spotlightRailLeft}`}
+            >
+              {leftCards.map((card) => (
                 <button
-                  key={image.id || `${image.url}-${index}`}
+                  key={card.image.id || `${card.image.url}-${card.index}`}
                   type="button"
-                  className={`${styles.cardButton} ${styles.spotlightCard} ${
-                    distance === 0 ? styles.spotlightCardActive : ''
-                  } ${styles.cardReveal}`}
+                  className={`${styles.cardButton} ${styles.spotlightRailCard} ${
+                    card.distance === 1
+                      ? styles.spotlightRailCardPrimary
+                      : styles.spotlightRailCardSecondary
+                  }`}
                   style={{
-                    ...getAnimationStyle(index),
-                    zIndex: 30 - distance,
-                    width,
-                    opacity,
-                    filter:
-                      distance === 0
-                        ? 'none'
-                        : distance === 1
-                          ? 'saturate(0.82) blur(0.2px)'
-                          : 'saturate(0.7) blur(0.4px)',
-                    transform: `translate(-50%, ${translateY}%) translateX(${translateX}%) scale(${scale}) rotate(${rotate}deg)`,
+                    ...getAnimationStyle(card.index),
+                    transform:
+                      card.distance === 1
+                        ? 'rotate(-3deg)'
+                        : 'rotate(-6deg)',
                   }}
-                  onMouseEnter={() => onActivate(index)}
-                  onFocus={() => onActivate(index)}
-                  onClick={() =>
-                    distance === 0 ? onImageClick(index) : onActivate(index)
-                  }
+                  onMouseEnter={() => onActivate(card.index)}
+                  onFocus={() => onActivate(card.index)}
+                  onClick={() => onActivate(card.index)}
                 >
                   <div
-                    className={`${styles.cardSurface} ${
-                      distance === 0 ? styles.spotlightSurfaceActive : styles.spotlightSurface
+                    className={`${styles.cardSurface} ${styles.cardReveal} ${
+                      card.distance === 1
+                        ? styles.spotlightSideSurfacePrimary
+                        : styles.spotlightSideSurfaceSecondary
                     }`}
-                    style={{ aspectRatio }}
+                    style={{
+                      aspectRatio: card.distance === 1 ? '5 / 6' : '4 / 5',
+                    }}
                   >
                     <img
-                      src={image.url}
-                      alt={image.alt || image.title || `Gallery image ${index + 1}`}
+                      src={card.image.url}
+                      alt={
+                        card.image.alt ||
+                        card.image.title ||
+                        `Gallery image ${card.index + 1}`
+                      }
                       className={styles.cardMedia}
                     />
                     <GalleryCaptionOverlay
-                      image={image}
-                      showCaptions={showCaptions && distance <= 1}
-                      variant={distance === 0 ? 'overlay' : 'glass'}
+                      image={card.image}
+                      showCaptions={showCaptions && card.distance === 1}
+                      variant="glass"
                     />
                   </div>
                 </button>
-              );
-            })}
+              ))}
+            </div>
+
+            {activeCard ? (
+              <button
+                type="button"
+                className={`${styles.cardButton} ${styles.spotlightHeroButton}`}
+                style={getAnimationStyle(activeCard.index)}
+                onClick={() => onImageClick(activeCard.index)}
+              >
+                <div
+                  className={`${styles.cardSurface} ${styles.cardReveal} ${styles.spotlightHeroSurface}`}
+                  style={{ aspectRatio: '16 / 11' }}
+                >
+                  <img
+                    src={activeCard.image.url}
+                    alt={
+                      activeCard.image.alt ||
+                      activeCard.image.title ||
+                      `Gallery image ${activeCard.index + 1}`
+                    }
+                    className={styles.cardMedia}
+                  />
+                  <GalleryCaptionOverlay
+                    image={activeCard.image}
+                    showCaptions={showCaptions}
+                    variant="overlay"
+                  />
+                </div>
+              </button>
+            ) : null}
+
+            <div
+              className={`${styles.spotlightRail} ${styles.spotlightRailRight}`}
+            >
+              {rightCards.map((card) => (
+                <button
+                  key={card.image.id || `${card.image.url}-${card.index}`}
+                  type="button"
+                  className={`${styles.cardButton} ${styles.spotlightRailCard} ${
+                    card.distance === 1
+                      ? styles.spotlightRailCardPrimary
+                      : styles.spotlightRailCardSecondary
+                  }`}
+                  style={{
+                    ...getAnimationStyle(card.index),
+                    transform:
+                      card.distance === 1 ? 'rotate(3deg)' : 'rotate(6deg)',
+                  }}
+                  onMouseEnter={() => onActivate(card.index)}
+                  onFocus={() => onActivate(card.index)}
+                  onClick={() => onActivate(card.index)}
+                >
+                  <div
+                    className={`${styles.cardSurface} ${styles.cardReveal} ${
+                      card.distance === 1
+                        ? styles.spotlightSideSurfacePrimary
+                        : styles.spotlightSideSurfaceSecondary
+                    }`}
+                    style={{
+                      aspectRatio: card.distance === 1 ? '5 / 6' : '4 / 5',
+                    }}
+                  >
+                    <img
+                      src={card.image.url}
+                      alt={
+                        card.image.alt ||
+                        card.image.title ||
+                        `Gallery image ${card.index + 1}`
+                      }
+                      className={styles.cardMedia}
+                    />
+                    <GalleryCaptionOverlay
+                      image={card.image}
+                      showCaptions={showCaptions && card.distance === 1}
+                      variant="glass"
+                    />
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

@@ -41,6 +41,43 @@ function pickSectionStyleConfig(source: Record<string, unknown>) {
   } as const;
 }
 
+function pickFaqStyleConfig(source: Record<string, unknown>) {
+  return {
+    faqCardBgColor:
+      typeof source.faqCardBgColor === 'string'
+        ? source.faqCardBgColor
+        : '#ffffff',
+    questionTextColor:
+      typeof source.questionTextColor === 'string'
+        ? source.questionTextColor
+        : '#1f2937',
+    answerTextColor:
+      typeof source.answerTextColor === 'string'
+        ? source.answerTextColor
+        : '#6b7280',
+    cardBorderRadius:
+      typeof source.cardBorderRadius === 'string'
+        ? source.cardBorderRadius
+        : '18px',
+    cardShadow:
+      source.cardShadow === 'none'
+      || source.cardShadow === 'sm'
+      || source.cardShadow === 'md'
+      || source.cardShadow === 'lg'
+        ? source.cardShadow
+        : 'sm',
+    accentColor:
+      typeof source.accentColor === 'string'
+        ? source.accentColor
+        : '#8b5cf6',
+    hoverColor:
+      typeof source.hoverColor === 'string'
+        ? source.hoverColor
+        : '#f8fafc',
+    enableScrollAnimation: source.enableScrollAnimation === true,
+  } as const;
+}
+
 // Restaurant ID must be provided dynamically via query parameters or domain lookup
 
 /**
@@ -402,6 +439,7 @@ export async function GET(request: Request) {
       subtitle: template.config?.subtitle || 'Find answers to common questions',
       faqs: template.menu_items || [], // FAQ items stored in menu_items
       ...pickSectionStyleConfig((template.config || {}) as Record<string, unknown>),
+      ...pickFaqStyleConfig((template.config || {}) as Record<string, unknown>),
     };
 
     const response = {
@@ -612,6 +650,7 @@ export async function POST(request: Request) {
       title: body.title,
       subtitle: body.subtitle,
       ...pickSectionStyleConfig(body as Record<string, unknown>),
+      ...pickFaqStyleConfig(body as Record<string, unknown>),
     };
 
     // FAQ items go to menu_items field
@@ -647,6 +686,7 @@ export async function POST(request: Request) {
       subtitle: template.config?.subtitle,
       faqs: template.menu_items,
       ...pickSectionStyleConfig((template.config || {}) as Record<string, unknown>),
+      ...pickFaqStyleConfig((template.config || {}) as Record<string, unknown>),
     };
 
     const response = {

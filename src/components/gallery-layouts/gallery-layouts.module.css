@@ -6,6 +6,8 @@
 .galleryShell {
   position: relative;
   z-index: 1;
+  display: grid;
+  gap: clamp(1.8rem, 3vw, 2.75rem);
 }
 
 .galleryHeader {
@@ -52,6 +54,16 @@
   font-size: clamp(0.98rem, 1vw, 1.08rem);
 }
 
+.galleryContent {
+  position: relative;
+  z-index: 1;
+}
+
+.sectionReveal {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .gridLayout {
   display: grid;
   gap: var(--gallery-gap);
@@ -88,11 +100,11 @@
 }
 
 .mosaicLayout {
-  grid-auto-rows: minmax(4rem, 5.6vw);
+  grid-auto-rows: clamp(4.75rem, 4.85vw, 6rem);
 }
 
 .editorialLayout {
-  grid-auto-rows: minmax(4rem, 5.8vw);
+  grid-auto-rows: clamp(5rem, 4.95vw, 6.25rem);
 }
 
 .carouselShell,
@@ -102,6 +114,58 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: clamp(0.85rem, 2vw, 1.35rem);
   align-items: center;
+}
+
+.showcaseShell {
+  display: grid;
+  gap: clamp(1rem, 2vw, 1.35rem);
+}
+
+.showcaseProgress {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.35rem, 1vw, 0.72rem);
+  width: min(54rem, 100%);
+  margin: 0 auto;
+}
+
+.showcaseProgressButton {
+  flex: 1 1 0;
+  border: 0;
+  background: transparent;
+  padding: 0.2rem 0;
+  cursor: pointer;
+}
+
+.showcaseProgressTrack {
+  position: relative;
+  display: block;
+  height: 0.42rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.12);
+}
+
+.showcaseProgressFill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #0f172a;
+  transform-origin: left center;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.showcaseProgressButton:hover .showcaseProgressTrack,
+.showcaseProgressButton:focus-visible .showcaseProgressTrack {
+  background: rgba(15, 23, 42, 0.18);
+}
+
+.showcaseProgressButton:focus-visible {
+  outline: none;
+}
+
+.showcaseProgressButton:focus-visible .showcaseProgressTrack {
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.12);
 }
 
 .carouselViewport,
@@ -128,6 +192,56 @@
   padding: clamp(1.15rem, 2.2vw, 1.8rem);
 }
 
+.showcaseViewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2.4rem;
+  padding: clamp(1.75rem, 3vw, 2.4rem) clamp(2.9rem, 5vw, 4.4rem);
+  background:
+    radial-gradient(circle at center, rgba(255, 242, 168, 0.72), transparent 34%),
+    linear-gradient(135deg, #f6df2b 0%, #f3cd1d 46%, #ffd742 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.56),
+    0 28px 90px rgba(146, 96, 4, 0.2);
+  isolation: isolate;
+}
+
+.showcaseViewport::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 22%),
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.18), transparent 56%);
+  pointer-events: none;
+}
+
+.showcaseGlow {
+  position: absolute;
+  inset: -8% -4%;
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.18), transparent 36%),
+    radial-gradient(circle at 18% 65%, rgba(255, 255, 255, 0.16), transparent 26%),
+    radial-gradient(circle at 82% 28%, rgba(255, 255, 255, 0.16), transparent 24%);
+  pointer-events: none;
+}
+
+.showcasePattern {
+  position: absolute;
+  inset: -14% -6%;
+  background-image:
+    radial-gradient(circle at 0% 50%, transparent 0 26%, rgba(255, 255, 255, 0.18) 26.4% 26.9%, transparent 27.2%),
+    radial-gradient(circle at 100% 50%, transparent 0 26%, rgba(255, 255, 255, 0.18) 26.4% 26.9%, transparent 27.2%),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 1.2rem,
+      rgba(255, 255, 255, 0.12) 1.2rem 1.28rem
+    );
+  opacity: 0.76;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.86), rgba(0, 0, 0, 0.44));
+  pointer-events: none;
+}
+
 .spotlightViewport::before,
 .filmstripViewport::before {
   content: '';
@@ -150,8 +264,109 @@
   min-width: 0;
 }
 
+.showcaseStage {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: var(
+    --showcase-stage-columns,
+    minmax(9rem, 0.52fr) minmax(0, 2.75fr) minmax(9rem, 0.52fr)
+  );
+  gap: 0;
+  align-items: center;
+  max-width: 88rem;
+  min-height: clamp(24rem, 43vw, 33rem);
+  margin: 0 auto;
+}
+
+.showcaseSideCard {
+  width: 100%;
+  max-width: min(100%, 16.5rem);
+  align-self: center;
+  grid-row: 1;
+  transform: translateY(1.2rem) scale(0.96);
+  opacity: 1;
+  z-index: 1;
+}
+
+.showcaseSideCardLeft {
+  grid-column: var(--showcase-left-column, 1);
+  justify-self: end;
+  margin-right: -4.75rem;
+}
+
+.showcaseSideCardRight {
+  grid-column: var(--showcase-right-column, 3);
+  justify-self: start;
+  margin-left: -4.75rem;
+}
+
+.showcaseHeroButton {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  grid-column: var(--showcase-hero-column, 2);
+  grid-row: 1;
+}
+
+.showcaseHeroSurface {
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 40px 118px rgba(116, 72, 8, 0.24),
+    0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.showcaseSideSurface {
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  box-shadow: 0 22px 58px rgba(116, 72, 8, 0.2);
+}
+
+.showcaseArrow {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  width: 4.25rem;
+  height: 4.25rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 24px 54px rgba(116, 72, 8, 0.18);
+  transform: translateY(-50%);
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease,
+    background-color 0.28s ease;
+}
+
+.showcaseArrowPrevious {
+  left: clamp(1rem, 1.8vw, 1.5rem);
+}
+
+.showcaseArrowNext {
+  right: clamp(1rem, 1.8vw, 1.5rem);
+}
+
+.showcaseArrow:hover,
+.showcaseArrow:focus-visible {
+  transform: translateY(-50%) scale(1.03);
+  box-shadow: 0 28px 62px rgba(116, 72, 8, 0.22);
+  background: rgba(255, 255, 255, 1);
+  outline: none;
+}
+
 .spotlightStage {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.72fr) minmax(0, 1.45fr) minmax(10rem, 0.72fr);
+  gap: clamp(1rem, 2vw, 1.5rem);
+  align-items: center;
   min-height: clamp(22rem, 46vw, 31rem);
   max-width: 76rem;
   margin: 0 auto;
@@ -180,21 +395,40 @@
   pointer-events: none;
 }
 
-.spotlightCard {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform-origin: center center;
-  transition:
-    transform 0.75s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.65s ease,
-    filter 0.65s ease;
+.spotlightRail {
+  display: grid;
+  gap: clamp(0.9rem, 1.8vw, 1.25rem);
+  align-content: center;
 }
 
-.spotlightCardActive {
-  z-index: 8;
+.spotlightRailLeft {
+  justify-items: end;
 }
 
+.spotlightRailRight {
+  justify-items: start;
+}
+
+.spotlightRailCard {
+  width: min(100%, 14rem);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+}
+
+.spotlightRailCardPrimary {
+  width: min(100%, 15.5rem);
+}
+
+.spotlightRailCardSecondary {
+  width: min(100%, 12rem);
+  opacity: 0.74;
+}
+
+.spotlightHeroButton {
+  width: 100%;
+}
+
+.showcaseHeroSurface,
+.showcaseSideSurface,
 .spotlightSurface,
 .spotlightSurfaceActive,
 .filmstripSurface,
@@ -214,6 +448,23 @@
   box-shadow:
     0 32px 110px rgba(15, 23, 42, 0.22),
     0 0 0 1px rgba(255, 255, 255, 0.34);
+}
+
+.spotlightHeroSurface {
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  box-shadow:
+    0 30px 90px rgba(15, 23, 42, 0.22),
+    0 0 0 1px rgba(255, 255, 255, 0.32);
+}
+
+.spotlightSideSurfacePrimary {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 20px 46px rgba(15, 23, 42, 0.14);
+}
+
+.spotlightSideSurfaceSecondary {
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.1);
 }
 
 .filmstripGlow {
@@ -262,6 +513,7 @@
 }
 
 .cardButton {
+  position: relative;
   display: block;
   width: 100%;
   padding: 0;
@@ -269,11 +521,20 @@
   background: transparent;
   cursor: pointer;
   text-align: left;
+  isolation: isolate;
 }
 
 .tiledCardButton {
   height: 100%;
-  min-height: inherit;
+  min-height: 0;
+  align-self: stretch;
+  grid-column: span var(--tile-column-span, 12);
+  grid-row: span var(--tile-row-span, 1);
+}
+
+.tiledCardButton:hover,
+.tiledCardButton:focus-visible {
+  z-index: 1;
 }
 
 .cardButton:focus-visible {
@@ -284,13 +545,19 @@
   position: relative;
   overflow: hidden;
   border-radius: 1.65rem;
-  background: linear-gradient(180deg, #edf2f7, #d9e2ec);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 24%),
+    linear-gradient(180deg, #edf2f7, #d9e2ec);
   isolation: isolate;
-  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.12);
+  box-shadow:
+    0 18px 42px rgba(15, 23, 42, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.65) inset;
   transition:
     transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.5s ease,
     filter 0.35s ease;
+  will-change: transform, box-shadow;
 }
 
 .cardSurface::after {
@@ -309,14 +576,22 @@
 
 .cardButton:hover .cardSurface,
 .cardButton:focus-visible .cardSurface {
-  transform: translateY(-10px) scale(1.012);
-  box-shadow: 0 34px 82px rgba(15, 23, 42, 0.18);
+  box-shadow:
+    0 28px 62px rgba(15, 23, 42, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
+}
+
+.tiledCardButton:hover .cardSurface,
+.tiledCardButton:focus-visible .cardSurface {
+  box-shadow:
+    0 20px 40px rgba(15, 23, 42, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
 }
 
 .cardButton:focus-visible .cardSurface {
   box-shadow:
     0 0 0 3px rgba(147, 51, 234, 0.22),
-    0 30px 70px rgba(15, 23, 42, 0.18);
+    0 24px 54px rgba(15, 23, 42, 0.16);
 }
 
 .cardMedia {
@@ -330,7 +605,12 @@
 
 .cardButton:hover .cardMedia,
 .cardButton:focus-visible .cardMedia {
-  transform: scale(1.07);
+  transform: scale(1.045);
+}
+
+.tiledCardButton:hover .cardMedia,
+.tiledCardButton:focus-visible .cardMedia {
+  transform: scale(1.018);
 }
 
 .cardCaption,
@@ -380,7 +660,8 @@
 }
 
 .cardReveal {
-  animation: galleryCardIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .navButton {
@@ -401,6 +682,14 @@
     box-shadow 0.25s ease,
     opacity 0.25s ease,
     background-color 0.25s ease;
+}
+
+.navButtonPrevious {
+  grid-column: 1;
+}
+
+.navButtonNext {
+  grid-column: 3;
 }
 
 .navButton:hover:not(:disabled),
@@ -558,6 +847,24 @@
   outline: none;
 }
 
+.gallerySection[data-gallery-motion='enabled'][data-gallery-in-view='false'] .sectionReveal {
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+.gallerySection[data-gallery-motion='enabled'][data-gallery-in-view='true'] .sectionReveal {
+  animation: gallerySectionIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gallerySection[data-gallery-motion='enabled'][data-gallery-in-view='false'] .cardReveal {
+  opacity: 0;
+  transform: translateY(24px) scale(0.985);
+}
+
+.gallerySection[data-gallery-motion='enabled'][data-gallery-in-view='true'] .cardReveal {
+  animation: galleryCardIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @keyframes galleryCardIn {
   from {
     opacity: 0;
@@ -570,6 +877,270 @@
   }
 }
 
+@keyframes gallerySectionIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gallerySection[data-gallery-layout-viewport='tablet'] .mosaicLayout,
+.gallerySection[data-gallery-layout-viewport='tablet'] .editorialLayout {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.gallerySection[data-gallery-layout-viewport='tablet'] .tiledCardButton {
+  grid-column: span var(--tile-tablet-column-span, var(--tile-column-span, 6));
+  grid-row: span var(--tile-tablet-row-span, var(--tile-row-span, 1));
+}
+
+.gallerySection[data-gallery-layout-viewport='tablet'] .spotlightStage {
+  min-height: clamp(19rem, 52vw, 28rem);
+  grid-template-columns: minmax(8rem, 0.64fr) minmax(0, 1.3fr) minmax(8rem, 0.64fr);
+}
+
+.gallerySection[data-gallery-layout-viewport='tablet'] .showcaseStage {
+  min-height: clamp(20rem, 44vw, 27rem);
+  grid-template-columns: var(
+    --showcase-stage-columns,
+    minmax(8rem, 0.5fr) minmax(0, 2.2fr) minmax(8rem, 0.5fr)
+  );
+}
+
+.gallerySection[data-gallery-layout-viewport='tablet'] .showcaseSideCardLeft {
+  margin-right: -3.2rem;
+}
+
+.gallerySection[data-gallery-layout-viewport='tablet'] .showcaseSideCardRight {
+  margin-left: -3.2rem;
+}
+
+.gallerySection[data-gallery-layout-viewport='tablet'] .filmstripTrack {
+  justify-content: flex-start;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] {
+  padding: clamp(1.6rem, 7vw, 2.2rem) 1rem !important;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .galleryShell {
+  gap: 1.35rem;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .gallerySubtitle {
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .gridLayout,
+.gallerySection[data-gallery-layout-viewport='mobile'] .gridLayout {
+  grid-template-columns: repeat(var(--gallery-mobile-columns), minmax(0, 1fr));
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .masonryLayout,
+.gallerySection[data-gallery-layout-viewport='mobile'] .masonryLayout {
+  column-count: var(--gallery-mobile-columns);
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .carouselShell,
+.gallerySection[data-gallery-layout-viewport='mobile'] .carouselShell,
+.gallerySection[data-gallery-preview-mode='mobile'] .spotlightShell,
+.gallerySection[data-gallery-layout-viewport='mobile'] .spotlightShell,
+.gallerySection[data-gallery-preview-mode='mobile'] .filmstripShell,
+.gallerySection[data-gallery-layout-viewport='mobile'] .filmstripShell {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  row-gap: 0.9rem;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .carouselViewport,
+.gallerySection[data-gallery-layout-viewport='mobile'] .carouselViewport,
+.gallerySection[data-gallery-preview-mode='mobile'] .spotlightViewport,
+.gallerySection[data-gallery-layout-viewport='mobile'] .spotlightViewport,
+.gallerySection[data-gallery-preview-mode='mobile'] .filmstripViewport,
+.gallerySection[data-gallery-layout-viewport='mobile'] .filmstripViewport {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .navButtonPrevious,
+.gallerySection[data-gallery-layout-viewport='mobile'] .navButtonPrevious {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: end;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .navButtonNext,
+.gallerySection[data-gallery-layout-viewport='mobile'] .navButtonNext {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: start;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .navButton,
+.gallerySection[data-gallery-layout-viewport='mobile'] .navButton {
+  width: 2.95rem;
+  height: 2.95rem;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .carouselCard,
+.gallerySection[data-gallery-layout-viewport='mobile'] .carouselCard {
+  flex-basis: 100%;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .spotlightStage,
+.gallerySection[data-gallery-layout-viewport='mobile'] .spotlightStage {
+  min-height: 18rem;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .showcaseProgress,
+.gallerySection[data-gallery-layout-viewport='mobile'] .showcaseProgress {
+  gap: 0.35rem;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .showcaseProgressTrack,
+.gallerySection[data-gallery-layout-viewport='mobile'] .showcaseProgressTrack {
+  height: 0.32rem;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .showcaseViewport,
+.gallerySection[data-gallery-layout-viewport='mobile'] .showcaseViewport {
+  padding: 1rem 0.95rem 4.45rem;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .showcaseStage,
+.gallerySection[data-gallery-layout-viewport='mobile'] .showcaseStage {
+  min-height: auto;
+  grid-template-columns: var(
+    --showcase-stage-mobile-columns,
+    repeat(2, minmax(0, 1fr))
+  );
+  gap: 0.8rem;
+  align-items: stretch;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .showcaseHeroButton,
+.gallerySection[data-gallery-layout-viewport='mobile'] .showcaseHeroButton {
+  grid-column: 1 / -1;
+  order: 1;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .showcaseSideCard,
+.gallerySection[data-gallery-layout-viewport='mobile'] .showcaseSideCard {
+  max-width: none;
+  margin: 0;
+  transform: none;
+  opacity: 1;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .showcaseSideCardLeft,
+.gallerySection[data-gallery-layout-viewport='mobile'] .showcaseSideCardLeft {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: stretch;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .showcaseSideCardRight,
+.gallerySection[data-gallery-layout-viewport='mobile'] .showcaseSideCardRight {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: stretch;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .showcaseArrow,
+.gallerySection[data-gallery-layout-viewport='mobile'] .showcaseArrow {
+  top: auto;
+  bottom: 0.95rem;
+  width: 2.95rem;
+  height: 2.95rem;
+  transform: none;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .showcaseArrowPrevious,
+.gallerySection[data-gallery-layout-viewport='mobile'] .showcaseArrowPrevious {
+  left: calc(50% - 3.45rem);
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .showcaseArrowNext,
+.gallerySection[data-gallery-layout-viewport='mobile'] .showcaseArrowNext {
+  right: calc(50% - 3.45rem);
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .showcaseArrow:hover,
+.gallerySection[data-gallery-layout-viewport='mobile'] .showcaseArrow:hover,
+.gallerySection[data-gallery-preview-mode='mobile'] .showcaseArrow:focus-visible,
+.gallerySection[data-gallery-layout-viewport='mobile'] .showcaseArrow:focus-visible {
+  transform: scale(1.03);
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .spotlightViewport,
+.gallerySection[data-gallery-layout-viewport='mobile'] .spotlightViewport,
+.gallerySection[data-gallery-preview-mode='mobile'] .filmstripViewport,
+.gallerySection[data-gallery-layout-viewport='mobile'] .filmstripViewport,
+.gallerySection[data-gallery-preview-mode='mobile'] .showcaseViewport,
+.gallerySection[data-gallery-layout-viewport='mobile'] .showcaseViewport,
+.gallerySection[data-gallery-preview-mode='mobile'] .mosaicLayout,
+.gallerySection[data-gallery-layout-viewport='mobile'] .mosaicLayout,
+.gallerySection[data-gallery-preview-mode='mobile'] .editorialLayout,
+.gallerySection[data-gallery-layout-viewport='mobile'] .editorialLayout {
+  border-radius: 1.6rem;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .spotlightCard,
+.gallerySection[data-gallery-layout-viewport='mobile'] .spotlightCard,
+.gallerySection[data-gallery-preview-mode='mobile'] .filmstripCard,
+.gallerySection[data-gallery-layout-viewport='mobile'] .filmstripCard,
+.gallerySection[data-gallery-preview-mode='mobile'] .filmstripCardActive,
+.gallerySection[data-gallery-layout-viewport='mobile'] .filmstripCardActive {
+  scroll-snap-align: center;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .filmstripTrack,
+.gallerySection[data-gallery-layout-viewport='mobile'] .filmstripTrack {
+  min-height: 17rem;
+  justify-content: flex-start;
+  scroll-snap-type: x mandatory;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .cardCaption,
+.gallerySection[data-gallery-layout-viewport='mobile'] .cardCaption,
+.gallerySection[data-gallery-preview-mode='mobile'] .cardCaptionGlass,
+.gallerySection[data-gallery-layout-viewport='mobile'] .cardCaptionGlass {
+  left: 0.85rem;
+  right: 0.85rem;
+  bottom: 0.85rem;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .mosaicLayout,
+.gallerySection[data-gallery-layout-viewport='mobile'] .mosaicLayout,
+.gallerySection[data-gallery-preview-mode='mobile'] .editorialLayout,
+.gallerySection[data-gallery-layout-viewport='mobile'] .editorialLayout {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  padding: 0.9rem;
+  grid-auto-rows: clamp(6rem, 24vw, 8rem);
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .tiledCardButton,
+.gallerySection[data-gallery-layout-viewport='mobile'] .tiledCardButton {
+  grid-column: span var(--tile-mobile-column-span, 1);
+  grid-row: span var(--tile-mobile-row-span, 1);
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .cardSurface,
+.gallerySection[data-gallery-layout-viewport='mobile'] .cardSurface {
+  border-radius: 1.2rem;
+}
+
+.gallerySection[data-gallery-preview-mode='mobile'] .editorialLeadSurface,
+.gallerySection[data-gallery-layout-viewport='mobile'] .editorialLeadSurface {
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.14);
+}
+
 @media (max-width: 1024px) {
   .gridLayout {
     grid-template-columns: repeat(var(--gallery-tablet-columns), minmax(0, 1fr));
@@ -579,8 +1150,35 @@
     column-count: var(--gallery-tablet-columns);
   }
 
+  .mosaicLayout,
+  .editorialLayout {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .tiledCardButton {
+    grid-column: span var(--tile-tablet-column-span, var(--tile-column-span, 6));
+    grid-row: span var(--tile-tablet-row-span, var(--tile-row-span, 1));
+  }
+
   .spotlightStage {
     min-height: clamp(19rem, 52vw, 28rem);
+    grid-template-columns: minmax(8rem, 0.64fr) minmax(0, 1.3fr) minmax(8rem, 0.64fr);
+  }
+
+  .showcaseStage {
+    min-height: clamp(20rem, 44vw, 27rem);
+    grid-template-columns: var(
+      --showcase-stage-columns,
+      minmax(8rem, 0.5fr) minmax(0, 2.2fr) minmax(8rem, 0.5fr)
+    );
+  }
+
+  .showcaseSideCardLeft {
+    margin-right: -3.2rem;
+  }
+
+  .showcaseSideCardRight {
+    margin-left: -3.2rem;
   }
 
   .filmstripTrack {
@@ -592,13 +1190,32 @@
   .carouselShell,
   .spotlightShell,
   .filmstripShell {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 0.9rem;
+  }
+
+  .carouselViewport,
+  .spotlightViewport,
+  .filmstripViewport {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .navButtonPrevious {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  .navButtonNext {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
   }
 
   .navButton {
     width: 2.95rem;
     height: 2.95rem;
-    justify-self: center;
   }
 
   .carouselCard {
@@ -607,10 +1224,118 @@
 
   .spotlightStage {
     min-height: 18rem;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .showcaseProgress {
+    gap: 0.35rem;
+  }
+
+  .showcaseProgressTrack {
+    height: 0.32rem;
+  }
+
+  .showcaseViewport {
+    padding: 1rem 0.95rem 4.45rem;
+    border-radius: 1.6rem;
+  }
+
+  .showcaseStage {
+    min-height: auto;
+    grid-template-columns: var(
+      --showcase-stage-mobile-columns,
+      repeat(2, minmax(0, 1fr))
+    );
+    gap: 0.8rem;
+    align-items: stretch;
+  }
+
+  .showcaseHeroButton {
+    grid-column: 1 / -1;
+    order: 1;
+  }
+
+  .showcaseSideCard {
+    max-width: none;
+    margin: 0;
+    transform: none;
+    opacity: 1;
+  }
+
+  .showcaseSideCardLeft {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: stretch;
+  }
+
+  .showcaseSideCardRight {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: stretch;
+  }
+
+  .showcaseArrow {
+    top: auto;
+    bottom: 0.95rem;
+    width: 2.95rem;
+    height: 2.95rem;
+    transform: none;
+  }
+
+  .showcaseArrowPrevious {
+    left: calc(50% - 3.45rem);
+  }
+
+  .showcaseArrowNext {
+    right: calc(50% - 3.45rem);
+  }
+
+  .showcaseArrow:hover,
+  .showcaseArrow:focus-visible {
+    transform: scale(1.03);
+  }
+
+  .spotlightRail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: stretch;
+  }
+
+  .spotlightRailLeft,
+  .spotlightRailRight {
+    justify-items: stretch;
+  }
+
+  .spotlightHeroButton {
+    order: 1;
+  }
+
+  .spotlightRailLeft {
+    order: 2;
+  }
+
+  .spotlightRailRight {
+    order: 3;
+  }
+
+  .spotlightRailCard,
+  .spotlightRailCardPrimary,
+  .spotlightRailCardSecondary {
+    width: 100%;
+    transform: none !important;
+  }
+
+  .spotlightRailCardPrimary {
+    grid-column: 1 / -1;
+  }
+
+  .spotlightRailCardSecondary {
+    display: none;
   }
 
   .spotlightViewport,
   .filmstripViewport,
+  .showcaseViewport,
   .mosaicLayout,
   .editorialLayout {
     border-radius: 1.6rem;
@@ -651,15 +1376,40 @@
 
   .mosaicLayout,
   .editorialLayout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.8rem;
-    grid-auto-rows: minmax(4.25rem, 6vw);
+    padding: 0.9rem;
+    grid-auto-rows: clamp(6rem, 24vw, 8rem);
+  }
+
+  .tiledCardButton {
+    grid-column: span var(--tile-mobile-column-span, 1);
+    grid-row: span var(--tile-mobile-row-span, 1);
   }
 
   .spotlightStage {
     min-height: 17rem;
   }
 
+  .showcaseViewport {
+    border-radius: 1.4rem;
+  }
+
   .cardSurface {
     border-radius: 1.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sectionReveal,
+  .cardReveal,
+  .cardSurface,
+  .cardMedia,
+  .navButton,
+  .carouselTrack,
+  .showcaseArrow,
+  .showcaseProgressFill {
+    animation: none !important;
+    transition: none !important;
   }
 }

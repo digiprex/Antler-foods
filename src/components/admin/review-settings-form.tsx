@@ -20,17 +20,223 @@ import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import type { ReviewConfig, Review } from '@/types/review.types';
 import { DEFAULT_REVIEW_CONFIG } from '@/types/review.types';
 
+type PreviewViewport = 'desktop' | 'mobile';
+
 interface ReviewSettingsFormProps {
   pageId?: string;
   templateId?: string;
   isNewSection?: boolean;
 }
 
+const reviewLayoutOptions: Array<{
+  value: ReviewConfig['layout'];
+  name: string;
+  description: string;
+  support: string;
+}> = [
+  {
+    value: 'grid',
+    name: 'Grid',
+    description: 'Balanced review cards',
+    support: 'Strong for broad social proof',
+  },
+  {
+    value: 'masonry',
+    name: 'Masonry',
+    description: 'Editorial staggered feed',
+    support: 'Works well for varied review length',
+  },
+  {
+    value: 'slider',
+    name: 'Slider',
+    description: 'Focused carousel storytelling',
+    support: 'Best for guided browsing',
+  },
+  {
+    value: 'list',
+    name: 'List',
+    description: 'Premium stacked testimonials',
+    support: 'Highlights reviewer identity clearly',
+  },
+];
+
+function renderReviewLayoutPreview(layout: ReviewConfig['layout'], active: boolean) {
+  const boardTone = active
+    ? 'border-purple-200 bg-gradient-to-b from-white to-purple-50/80'
+    : 'border-slate-200 bg-gradient-to-b from-white to-slate-50';
+  const accentTone = active ? 'bg-purple-500/90' : 'bg-slate-400';
+  const softTone = active ? 'bg-purple-200/80' : 'bg-slate-200';
+  const paleTone = active ? 'bg-purple-100/90' : 'bg-slate-100';
+
+  return (
+    <div className={`overflow-hidden rounded-2xl border ${boardTone}`}>
+      <div className="flex items-center justify-between border-b border-slate-200/80 bg-white/90 px-3 py-2">
+        <div className="flex gap-1">
+          <span className="h-2 w-2 rounded-full bg-rose-300" />
+          <span className="h-2 w-2 rounded-full bg-amber-300" />
+          <span className="h-2 w-2 rounded-full bg-emerald-300" />
+        </div>
+        <div className={`h-2 rounded-full ${softTone} w-20`} />
+      </div>
+      <div className="h-28 p-3">
+        {layout === 'grid' ? (
+          <div className="grid h-full grid-cols-2 gap-2">
+            {[0, 1, 2, 3].map((index) => (
+              <div key={index} className="rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className={`h-3 w-10 rounded-full ${accentTone}`} />
+                  <div className={`h-2 w-6 rounded-full ${softTone}`} />
+                </div>
+                <div className={`mb-1.5 h-2.5 rounded-full ${active ? 'bg-slate-700' : 'bg-slate-500'} ${index % 2 === 0 ? 'w-4/5' : 'w-3/5'}`} />
+                <div className={`h-2 rounded-full ${softTone} ${index % 2 === 0 ? 'w-full' : 'w-4/5'}`} />
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {layout === 'masonry' ? (
+          <div className="grid h-full grid-cols-3 gap-2">
+            {[0, 1, 2].map((index) => (
+              <div key={index} className="rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
+                <div className={`mb-2 h-2.5 rounded-full ${accentTone} ${index === 1 ? 'w-1/2' : 'w-3/4'}`} />
+                <div
+                  className={`mb-1.5 rounded-2xl ${paleTone}`}
+                  style={{ height: index === 0 ? '1.75rem' : index === 1 ? '1rem' : '2.25rem' }}
+                />
+                <div className={`h-2 rounded-full ${softTone} ${index === 1 ? 'w-full' : 'w-4/5'}`} />
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {layout === 'slider' ? (
+          <div className="relative flex h-full gap-2">
+            {[0, 1].map((index) => (
+              <div
+                key={index}
+                className={`flex-1 rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm ${index === 1 ? 'opacity-70' : ''}`}
+              >
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex gap-0.5">
+                    {[0, 1, 2, 3, 4].map((star) => (
+                      <span key={star} className={`h-2 w-2 rounded-full ${star < 4 ? accentTone : softTone}`} />
+                    ))}
+                  </div>
+                  <div className={`h-2 w-7 rounded-full ${softTone}`} />
+                </div>
+                <div className={`mb-1.5 h-2.5 rounded-full ${active ? 'bg-slate-700' : 'bg-slate-500'} w-11/12`} />
+                <div className={`h-2 rounded-full ${softTone} w-4/5`} />
+              </div>
+            ))}
+            <div className="absolute inset-x-0 bottom-0 flex justify-center gap-1">
+              {[0, 1, 2].map((dot) => (
+                <span key={dot} className={`h-1.5 rounded-full ${dot === 0 ? `${accentTone} w-5` : `${softTone} w-1.5`}`} />
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {layout === 'list' ? (
+          <div className="space-y-2">
+            {[0, 1, 2].map((index) => (
+              <div key={index} className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/90 px-2.5 py-2 shadow-sm">
+                <div className={`h-8 w-8 rounded-full ${paleTone}`} />
+                <div className="min-w-0 flex-1">
+                  <div className={`mb-1.5 h-2.5 rounded-full ${active ? 'bg-slate-700' : 'bg-slate-500'} ${index === 0 ? 'w-1/2' : index === 1 ? 'w-3/5' : 'w-2/5'}`} />
+                  <div className={`h-2 rounded-full ${softTone} ${index === 0 ? 'w-full' : 'w-5/6'}`} />
+                </div>
+                <div className={`h-6 w-14 rounded-full ${paleTone}`} />
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function buildSampleReviews(restaurantId: string): Review[] {
+  const now = Date.now();
+
+  return [
+    {
+      review_id: 'sample-1',
+      restaurant_id: restaurantId,
+      author_name: 'Sarah Johnson',
+      rating: 5,
+      review_text: 'Absolutely amazing experience. The food was incredible and the service felt thoughtful from start to finish.',
+      published_at: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      source: 'Google',
+      avatar_url: 'https://ui-avatars.com/api/?name=Sarah+Johnson&background=a855f7&color=fff',
+      is_hidden: false,
+      created_at: new Date(now).toISOString(),
+      updated_at: new Date(now).toISOString(),
+      is_deleted: false,
+    },
+    {
+      review_id: 'sample-2',
+      restaurant_id: restaurantId,
+      author_name: 'Michael Chen',
+      rating: 5,
+      review_text: 'Best restaurant in town. Beautiful atmosphere, polished plating, and every course felt memorable.',
+      published_at: new Date(now - 14 * 24 * 60 * 60 * 1000).toISOString(),
+      source: 'Google',
+      avatar_url: 'https://ui-avatars.com/api/?name=Michael+Chen&background=8b5cf6&color=fff',
+      is_hidden: false,
+      created_at: new Date(now).toISOString(),
+      updated_at: new Date(now).toISOString(),
+      is_deleted: false,
+    },
+    {
+      review_id: 'sample-3',
+      restaurant_id: restaurantId,
+      author_name: 'Emily Rodriguez',
+      rating: 4,
+      review_text: 'Great food, warm staff, and a space that feels lively without being loud. We will definitely come back.',
+      published_at: new Date(now - 21 * 24 * 60 * 60 * 1000).toISOString(),
+      source: 'Google',
+      avatar_url: 'https://ui-avatars.com/api/?name=Emily+Rodriguez&background=7c3aed&color=fff',
+      is_hidden: false,
+      created_at: new Date(now).toISOString(),
+      updated_at: new Date(now).toISOString(),
+      is_deleted: false,
+    },
+    {
+      review_id: 'sample-4',
+      restaurant_id: restaurantId,
+      author_name: 'David Thompson',
+      rating: 5,
+      review_text: 'Outstanding in every way. Friendly service, strong menu guidance, and dishes that genuinely surprised us.',
+      published_at: new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      source: 'Google',
+      avatar_url: 'https://ui-avatars.com/api/?name=David+Thompson&background=6d28d9&color=fff',
+      is_hidden: false,
+      created_at: new Date(now).toISOString(),
+      updated_at: new Date(now).toISOString(),
+      is_deleted: false,
+    },
+    {
+      review_id: 'sample-5',
+      restaurant_id: restaurantId,
+      author_name: 'Jessica Martinez',
+      rating: 5,
+      review_text: 'Exceptional dining experience. Fresh ingredients, creative menu, and presentation that felt premium without being stiff.',
+      published_at: new Date(now - 45 * 24 * 60 * 60 * 1000).toISOString(),
+      source: 'Google',
+      avatar_url: 'https://ui-avatars.com/api/?name=Jessica+Martinez&background=5b21b6&color=fff',
+      is_hidden: false,
+      created_at: new Date(now).toISOString(),
+      updated_at: new Date(now).toISOString(),
+      is_deleted: false,
+    },
+  ];
+}
+
 export default function ReviewSettingsForm({ pageId, templateId, isNewSection }: ReviewSettingsFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const restaurantId = searchParams.get('restaurant_id') || '';
-  const restaurantName = searchParams.get('restaurant_name') || '';
+  const restaurantId = searchParams?.get('restaurant_id') || '';
+  const restaurantName = searchParams?.get('restaurant_name') || '';
   
   // Get section style defaults
   const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
@@ -43,6 +249,9 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop');
+  const [responsiveEditorViewport, setResponsiveEditorViewport] =
+    useState<PreviewViewport>('desktop');
   
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -175,13 +384,26 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
     setConfig(prev => ({ ...prev, ...updates }));
   };
 
-  const handleTypographyChange = (field: keyof ReviewConfig, value: string | number) => {
-    setConfig((prev) => ({
-      ...prev,
-      [field]: value,
-      is_custom: true,
-    }));
-  };
+  const previewReviews = reviews.length > 0 ? reviews : buildSampleReviews(restaurantId);
+
+  const renderResponsiveEditorTabs = (scope: string) => (
+    <div className="inline-flex rounded-full bg-slate-100 p-1">
+      {(['desktop', 'mobile'] as PreviewViewport[]).map((viewport) => (
+        <button
+          key={`${scope}-${viewport}`}
+          type="button"
+          onClick={() => setResponsiveEditorViewport(viewport)}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+            responsiveEditorViewport === viewport
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          {viewport === 'desktop' ? 'Desktop' : 'Mobile'}
+        </button>
+      ))}
+    </div>
+  );
 
   if (loading) {
     return (
@@ -206,7 +428,7 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
       )}
 
       {/* Page Header */}
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-8 flex items-start">
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
             <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -230,21 +452,31 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
             )}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowPreview(!showPreview)}
-          className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
-          title={showPreview ? 'Hide Preview' : 'Show Live Preview'}
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          {showPreview ? 'Hide' : 'Show'} Preview
-        </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6 pb-40">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-500">
+                Preview Experience
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-slate-900">
+                Match the review layout across desktop and mobile while you edit.
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Layout cards, live preview, and typography controls now follow the same workflow used in Hero Settings so spacing and hierarchy stay consistent.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Editing Viewport
+              </p>
+              {renderResponsiveEditorTabs('review-preview-workspace')}
+            </div>
+          </div>
+        </div>
+
         {/* Layout Settings Section */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-center gap-3">
@@ -262,114 +494,50 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
           <div className="space-y-4">
             <div>
               <label className="mb-3 text-sm font-medium text-gray-700">Layout Type</label>
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                {[
-                  { value: 'grid', name: 'Grid', description: 'Card layout' },
-                  { value: 'masonry', name: 'Masonry', description: 'Varied heights' },
-                  { value: 'slider', name: 'Slider', description: 'Carousel with navigation' },
-                  { value: 'list', name: 'List', description: 'Horizontal cards' }
-                ].map((option) => (
-                  <div
-                    key={option.value}
-                    onClick={() => updateConfig({ layout: option.value as ReviewConfig['layout'] })}
-                    className={`group cursor-pointer rounded-lg border-2 p-3 transition-all ${
-                      config.layout === option.value
-                        ? 'border-purple-500 bg-purple-50 shadow-sm'
-                        : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="mb-2 overflow-hidden rounded border border-gray-200 bg-gray-50 p-2">
-                      <div className="h-16 w-full">
-                        {option.value === 'grid' && (
-                          <div className="grid grid-cols-2 gap-1 h-full">
-                            <div className="border border-gray-300 rounded p-1">
-                              <div className="h-2 bg-gray-400 rounded w-full mb-0.5"></div>
-                              <div className="h-1.5 bg-gray-300 rounded w-3/4"></div>
-                            </div>
-                            <div className="border border-gray-300 rounded p-1">
-                              <div className="h-2 bg-gray-400 rounded w-full mb-0.5"></div>
-                              <div className="h-1.5 bg-gray-300 rounded w-2/3"></div>
-                            </div>
-                            <div className="border border-gray-300 rounded p-1">
-                              <div className="h-2 bg-gray-400 rounded w-full mb-0.5"></div>
-                              <div className="h-1.5 bg-gray-300 rounded w-4/5"></div>
-                            </div>
-                            <div className="border border-gray-300 rounded p-1">
-                              <div className="h-2 bg-gray-400 rounded w-full mb-0.5"></div>
-                              <div className="h-1.5 bg-gray-300 rounded w-1/2"></div>
-                            </div>
-                          </div>
-                        )}
-                        {option.value === 'masonry' && (
-                          <div className="grid grid-cols-3 gap-1 h-full">
-                            <div className="border border-gray-300 rounded p-1">
-                              <div className="h-3 bg-gray-400 rounded w-full mb-0.5"></div>
-                              <div className="h-1 bg-gray-300 rounded w-full"></div>
-                            </div>
-                            <div className="border border-gray-300 rounded p-1">
-                              <div className="h-2 bg-gray-400 rounded w-full mb-0.5"></div>
-                              <div className="h-1 bg-gray-300 rounded w-2/3"></div>
-                            </div>
-                            <div className="border border-gray-300 rounded p-1">
-                              <div className="h-4 bg-gray-400 rounded w-full mb-0.5"></div>
-                              <div className="h-1 bg-gray-300 rounded w-3/4"></div>
-                            </div>
-                          </div>
-                        )}
-                        {option.value === 'slider' && (
-                          <div className="relative h-full">
-                            <div className="flex gap-1 h-full">
-                              <div className="border border-gray-300 rounded p-1 flex-1">
-                                <div className="h-2 bg-gray-400 rounded w-full mb-0.5"></div>
-                                <div className="h-1.5 bg-gray-300 rounded w-3/4"></div>
-                              </div>
-                              <div className="border border-gray-300 rounded p-1 flex-1 opacity-60">
-                                <div className="h-2 bg-gray-400 rounded w-full mb-0.5"></div>
-                                <div className="h-1.5 bg-gray-300 rounded w-2/3"></div>
-                              </div>
-                            </div>
-                            <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex gap-0.5">
-                              <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                              <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                              <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                            </div>
-                          </div>
-                        )}
-                        {option.value === 'list' && (
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 border border-gray-300 rounded p-1">
-                              <div className="w-3 h-3 bg-gray-400 rounded"></div>
-                              <div className="flex-1">
-                                <div className="h-1.5 bg-gray-400 rounded w-2/3 mb-0.5"></div>
-                                <div className="h-1 bg-gray-300 rounded w-full"></div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 border border-gray-300 rounded p-1">
-                              <div className="w-3 h-3 bg-gray-400 rounded"></div>
-                              <div className="flex-1">
-                                <div className="h-1.5 bg-gray-400 rounded w-3/4 mb-0.5"></div>
-                                <div className="h-1 bg-gray-300 rounded w-4/5"></div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 border border-gray-300 rounded p-1">
-                              <div className="w-3 h-3 bg-gray-400 rounded"></div>
-                              <div className="flex-1">
-                                <div className="h-1.5 bg-gray-400 rounded w-1/2 mb-0.5"></div>
-                                <div className="h-1 bg-gray-300 rounded w-2/3"></div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {reviewLayoutOptions.map((option) => {
+                  const isActive = config.layout === option.value;
+
+                  return (
+                    <button
+                      type="button"
+                      key={option.value}
+                      onClick={() => updateConfig({ layout: option.value })}
+                      aria-pressed={isActive}
+                      className={`group w-full rounded-2xl border p-3 text-left transition-all ${
+                        isActive
+                          ? 'border-purple-500 bg-purple-50 shadow-[0_20px_45px_rgba(124,58,237,0.12)]'
+                          : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-[0_18px_35px_rgba(15,23,42,0.08)]'
+                      }`}
+                    >
+                      <div className="mb-4">
+                        {renderReviewLayoutPreview(option.value, isActive)}
                       </div>
-                    </div>
-                    <div className={`text-sm font-medium ${
-                      config.layout === option.value ? 'text-purple-700' : 'text-gray-900'
-                    }`}>
-                      {option.name}
-                    </div>
-                    <div className="mt-0.5 text-xs text-gray-500">{option.description}</div>
-                  </div>
-                ))}
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className={`text-sm font-semibold ${isActive ? 'text-purple-700' : 'text-slate-900'}`}>
+                            {option.name}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-500">
+                            {option.description}
+                          </div>
+                        </div>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            isActive
+                              ? 'bg-purple-100 text-purple-700'
+                              : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {isActive ? 'Selected' : 'Layout'}
+                        </span>
+                      </div>
+                      <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white/75 px-3 py-2 text-xs text-slate-500">
+                        {option.support}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -593,6 +761,14 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
               </label>
             </div>
 
+            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-900">Responsive Typography Workspace</p>
+                <p className="text-xs text-slate-500">Switch between desktop and mobile overrides before opening the live preview.</p>
+              </div>
+              {renderResponsiveEditorTabs('review-typography')}
+            </div>
+
             {config.is_custom && (
               <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
                 <div>
@@ -614,6 +790,7 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
                 <SectionTypographyControls
                   value={config}
                   onChange={(updates) => updateConfig(updates)}
+                  viewport={responsiveEditorViewport}
                 />
               </div>
             )}
@@ -645,127 +822,92 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
         </div>
       </form>
 
-      {/* Preview Modal */}
+      {!showPreview ? (
+        <button
+          type="button"
+          onClick={() => {
+            setPreviewViewport(responsiveEditorViewport);
+            setShowPreview(true);
+          }}
+          className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-3 rounded-full border border-purple-200 bg-white/95 px-5 py-3 text-sm font-semibold text-purple-700 shadow-[0_18px_45px_rgba(15,23,42,0.18)] backdrop-blur transition-all hover:-translate-y-0.5 hover:border-purple-300 hover:bg-white sm:right-6"
+          aria-label="Open review preview"
+        >
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-sm">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </span>
+          <span className="flex flex-col items-start leading-tight">
+            <span>Live Preview</span>
+            <span className="text-xs font-medium text-purple-500">
+              {responsiveEditorViewport === 'mobile' ? 'Open mobile preview' : 'Open desktop preview'}
+            </span>
+          </span>
+        </button>
+      ) : null}
+
       {showPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
           <div className="relative z-10 flex h-[min(92vh,980px)] w-full max-w-7xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_35px_120px_rgba(15,23,42,0.35)]">
             <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Reviews Preview</h2>
+                <h2 className="text-xl font-bold text-slate-900">Live Preview</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Preview how your reviews will appear on the website
-                  {reviews.length === 0 && (
+                  Switch between desktop and mobile to verify every review layout.
+                  {reviews.length === 0 ? (
                     <span className="ml-1 text-purple-600">(showing sample reviews)</span>
-                  )}
+                  ) : null}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowPreview(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                aria-label="Close preview"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="inline-flex rounded-full bg-slate-100 p-1">
+                  {(['desktop', 'mobile'] as PreviewViewport[]).map((viewport) => (
+                    <button
+                      key={viewport}
+                      type="button"
+                      onClick={() => setPreviewViewport(viewport)}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        previewViewport === viewport
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      {viewport === 'desktop' ? 'Desktop' : 'Mobile'}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(false)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Close preview"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto bg-slate-950 p-4 sm:p-6">
-              <div className="mx-auto max-w-[1240px] overflow-hidden rounded-[32px] border border-white/10 bg-slate-900 shadow-[0_24px_80px_rgba(15,23,42,0.35)]">
+              <div
+                className={`mx-auto overflow-hidden border border-white/10 bg-slate-900 shadow-[0_24px_80px_rgba(15,23,42,0.35)] ${
+                  previewViewport === 'mobile'
+                    ? 'max-w-[430px] rounded-[32px]'
+                    : 'max-w-[1240px] rounded-[32px]'
+                }`}
+              >
                 <div className="flex items-center justify-between border-b border-white/10 bg-slate-950/90 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">
-                  <span>Preview</span>
-                  <span>Live Review Section</span>
+                  <span>{previewViewport === 'mobile' ? 'Phone Preview' : 'Desktop Preview'}</span>
+                  <span>{previewViewport === 'mobile' ? '390 x 780' : '1280 x 720'}</span>
                 </div>
                 <div className="bg-white">
                   <Reviews
                     {...config}
-                    reviews={reviews.length > 0 ? reviews : [
-                      {
-                        review_id: 'sample-1',
-                        restaurant_id: restaurantId,
-                        author_name: 'Sarah Johnson',
-                        rating: 5,
-                        review_text: 'Absolutely amazing experience! The food was incredible and the service was top-notch. Would highly recommend to anyone looking for a great dining experience.',
-                        published_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-                        source: 'Google',
-                        avatar_url: 'https://ui-avatars.com/api/?name=Sarah+Johnson&background=a855f7&color=fff',
-                        is_hidden: false,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                        is_deleted: false,
-                      },
-                      {
-                        review_id: 'sample-2',
-                        restaurant_id: restaurantId,
-                        author_name: 'Michael Chen',
-                        rating: 5,
-                        review_text: 'Best restaurant in town! The atmosphere is wonderful and every dish we tried was perfection. Can\'t wait to come back!',
-                        published_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-                        source: 'Google',
-                        avatar_url: 'https://ui-avatars.com/api/?name=Michael+Chen&background=8b5cf6&color=fff',
-                        is_hidden: false,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                        is_deleted: false,
-                      },
-                      {
-                        review_id: 'sample-3',
-                        restaurant_id: restaurantId,
-                        author_name: 'Emily Rodriguez',
-                        rating: 4,
-                        review_text: 'Great food and lovely ambiance. The menu has something for everyone. Service was friendly and attentive.',
-                        published_at: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
-                        source: 'Google',
-                        avatar_url: 'https://ui-avatars.com/api/?name=Emily+Rodriguez&background=7c3aed&color=fff',
-                        is_hidden: false,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                        is_deleted: false,
-                      },
-                      {
-                        review_id: 'sample-4',
-                        restaurant_id: restaurantId,
-                        author_name: 'David Thompson',
-                        rating: 5,
-                        review_text: 'Outstanding in every way! From the moment we walked in, we were treated like family. The chef really knows how to create memorable dishes.',
-                        published_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-                        source: 'Google',
-                        avatar_url: 'https://ui-avatars.com/api/?name=David+Thompson&background=6d28d9&color=fff',
-                        is_hidden: false,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                        is_deleted: false,
-                      },
-                      {
-                        review_id: 'sample-5',
-                        restaurant_id: restaurantId,
-                        author_name: 'Jessica Martinez',
-                        rating: 5,
-                        review_text: 'Exceptional dining experience! Fresh ingredients, creative menu, and impeccable presentation. A must-visit for food lovers.',
-                        published_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
-                        source: 'Google',
-                        avatar_url: 'https://ui-avatars.com/api/?name=Jessica+Martinez&background=5b21b6&color=fff',
-                        is_hidden: false,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                        is_deleted: false,
-                      },
-                      {
-                        review_id: 'sample-6',
-                        restaurant_id: restaurantId,
-                        author_name: 'Robert Wilson',
-                        rating: 4,
-                        review_text: 'Very impressed with the quality and taste. Portions are generous and prices are reasonable. Will definitely be returning soon!',
-                        published_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
-                        source: 'Google',
-                        avatar_url: 'https://ui-avatars.com/api/?name=Robert+Wilson&background=4c1d95&color=fff',
-                        is_hidden: false,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                        is_deleted: false,
-                      },
-                    ]}
+                    restaurantId={restaurantId}
+                    reviews={previewReviews}
+                    previewViewport={previewViewport}
                   />
                 </div>
               </div>
@@ -777,14 +919,13 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  Live preview reflects your current review section configuration and styling changes.
+                  {reviews.length === 0
+                    ? 'Sample reviews fill empty states so you can evaluate spacing, hierarchy, and motion before publishing.'
+                    : 'Live preview reflects your current review content, layout, and typography changes.'}
                 </div>
-                <button
-                  onClick={() => setShowPreview(false)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                >
-                  Close Preview
-                </button>
+                <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                  {previewViewport === 'mobile' ? 'Mobile responsiveness check' : 'Desktop composition check'}
+                </div>
               </div>
             </div>
           </div>

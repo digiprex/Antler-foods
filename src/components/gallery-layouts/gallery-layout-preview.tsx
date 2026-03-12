@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { normalizeGalleryLayout } from './gallery-layout-options';
 import type { GalleryConfig } from '@/types/gallery.types';
 
@@ -8,20 +8,245 @@ interface GalleryLayoutPreviewProps {
   size?: 'card' | 'panel';
 }
 
-const blockStyle: CSSProperties = {
-  borderRadius: '0.8rem',
-  background: 'linear-gradient(135deg, #94a3b8 0%, #cbd5e1 100%)',
-  opacity: 0.95,
-};
+const PHOTO_PALETTES = [
+  {
+    base: '#28544b',
+    accent: '#4d8a74',
+    warm: '#efc06d',
+    plate: '#f4f5e7',
+  },
+  {
+    base: '#23437a',
+    accent: '#4f7fe0',
+    warm: '#74c8f8',
+    plate: '#eef7ff',
+  },
+  {
+    base: '#71411f',
+    accent: '#be7426',
+    warm: '#efc750',
+    plate: '#fff3d9',
+  },
+  {
+    base: '#8a2449',
+    accent: '#d75b79',
+    warm: '#ff9eb2',
+    plate: '#fff0f4',
+  },
+  {
+    base: '#365a7f',
+    accent: '#69a4c8',
+    warm: '#d7bf93',
+    plate: '#eff8fb',
+  },
+  {
+    base: '#5b1c20',
+    accent: '#bf5f31',
+    warm: '#efb36b',
+    plate: '#fff3df',
+  },
+];
 
-function PreviewCard({
-  style,
-  className = '',
+function getPhotoBackground(index: number) {
+  const palette = PHOTO_PALETTES[index % PHOTO_PALETTES.length];
+
+  return `
+    radial-gradient(circle at 82% 20%, rgba(255,255,255,0.2) 0 9%, transparent 10%),
+    linear-gradient(135deg, ${palette.base} 0%, ${palette.accent} 54%, ${palette.warm} 100%)
+  `;
+}
+
+function PreviewFrame({
+  children,
+  isPanel,
 }: {
-  style?: CSSProperties;
-  className?: string;
+  children: ReactNode;
+  isPanel: boolean;
 }) {
-  return <div className={className} style={{ ...blockStyle, ...style }} />;
+  return (
+    <div className={isPanel ? 'mx-auto w-full max-w-5xl' : 'h-full w-full'}>
+      <div
+        style={{
+          borderRadius: isPanel ? '1.6rem' : '1.15rem',
+          border: '1px solid rgba(226, 232, 240, 0.95)',
+          background:
+            'linear-gradient(145deg, rgba(255,255,255,0.99), rgba(246,248,252,0.97) 58%, rgba(235,240,248,0.94))',
+          boxShadow: isPanel
+            ? '0 24px 64px rgba(15, 23, 42, 0.1)'
+            : '0 16px 32px rgba(15, 23, 42, 0.08)',
+          padding: isPanel ? '0.85rem' : '0.5rem',
+        }}
+      >
+        <div
+          style={{
+            overflow: 'hidden',
+            borderRadius: isPanel ? '1.25rem' : '0.9rem',
+            border: '1px solid rgba(226, 232, 240, 0.92)',
+            background:
+              'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(244,247,251,0.98))',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: isPanel
+                ? '0.7rem 0.8rem 0.55rem'
+                : '0.42rem 0.5rem 0.34rem',
+              borderBottom: '1px solid rgba(226, 232, 240, 0.88)',
+            }}
+          >
+            <div style={{ display: 'grid', gap: isPanel ? '0.25rem' : '0.13rem' }}>
+              <span
+                style={{
+                  width: isPanel ? '5.2rem' : '2.3rem',
+                  height: isPanel ? '0.42rem' : '0.19rem',
+                  borderRadius: 999,
+                  background: 'rgba(148, 163, 184, 0.36)',
+                }}
+              />
+              <span
+                style={{
+                  width: isPanel ? '8rem' : '3.6rem',
+                  height: isPanel ? '0.32rem' : '0.14rem',
+                  borderRadius: 999,
+                  background: 'rgba(203, 213, 225, 0.92)',
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: isPanel ? '0.24rem' : '0.12rem' }}>
+              {Array.from({ length: 3 }).map((_, index) => (
+                <span
+                  key={index}
+                  style={{
+                    width: isPanel ? '0.34rem' : '0.16rem',
+                    height: isPanel ? '0.34rem' : '0.16rem',
+                    borderRadius: 999,
+                    background:
+                      index === 0
+                        ? 'rgba(99, 102, 241, 0.48)'
+                        : 'rgba(203, 213, 225, 0.92)',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: isPanel ? '0.85rem' : '0.48rem',
+              background:
+                'linear-gradient(180deg, rgba(244,247,251,0.96), rgba(238,242,247,0.98))',
+              minHeight: isPanel ? '13.8rem' : '5.55rem',
+            }}
+          >
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PhotoTile({
+  index,
+  featured = false,
+  portrait = false,
+  style,
+}: {
+  index: number;
+  featured?: boolean;
+  portrait?: boolean;
+  style?: CSSProperties;
+}) {
+  return (
+    <div
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: featured ? '1rem' : '0.85rem',
+        border: '1px solid rgba(255, 255, 255, 0.52)',
+        background: getPhotoBackground(index),
+        boxShadow: featured
+          ? '0 18px 34px rgba(15, 23, 42, 0.16)'
+          : '0 10px 22px rgba(15, 23, 42, 0.1)',
+        ...style,
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'linear-gradient(180deg, rgba(255,255,255,0.15), rgba(255,255,255,0.04) 28%, rgba(15,23,42,0.2) 100%)',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: portrait ? '14%' : featured ? '10%' : '8%',
+          bottom: portrait ? '12%' : featured ? '14%' : '10%',
+          width: portrait ? '58%' : featured ? '46%' : '38%',
+          aspectRatio: portrait ? '4 / 5' : '1 / 1',
+          borderRadius: portrait ? '40%' : 999,
+          background:
+            portrait
+              ? 'linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.2))'
+              : 'radial-gradient(circle, rgba(255,255,255,0.86), rgba(255,255,255,0.2) 62%, rgba(255,255,255,0.04) 100%)',
+          boxShadow: '0 10px 24px rgba(15, 23, 42, 0.18)',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: portrait ? '20%' : featured ? '18%' : '13%',
+          bottom: portrait ? '18%' : featured ? '18%' : '13%',
+          width: portrait ? '30%' : featured ? '14%' : '12%',
+          height: portrait ? '10%' : '12%',
+          borderRadius: 999,
+          background: 'rgba(255,255,255,0.24)',
+          filter: 'blur(6px)',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 'auto 0 0 0',
+          height: featured ? '42%' : '36%',
+          background:
+            'linear-gradient(180deg, rgba(15,23,42,0), rgba(15,23,42,0.24) 48%, rgba(15,23,42,0.42) 100%)',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: '8%',
+          right: '8%',
+          bottom: '9%',
+          display: 'grid',
+          gap: '0.22rem',
+        }}
+      >
+        <span
+          style={{
+            width: featured ? '42%' : portrait ? '54%' : '48%',
+            height: '0.3rem',
+            borderRadius: 999,
+            background: 'rgba(255,255,255,0.88)',
+          }}
+        />
+        <span
+          style={{
+            width: featured ? '56%' : portrait ? '70%' : '64%',
+            height: '0.24rem',
+            borderRadius: 999,
+            background: 'rgba(255,255,255,0.56)',
+          }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export function GalleryLayoutPreview({
@@ -31,177 +256,449 @@ export function GalleryLayoutPreview({
 }: GalleryLayoutPreviewProps) {
   const normalizedLayout = normalizeGalleryLayout(layout);
   const isPanel = size === 'panel';
-  const wrapperClassName = isPanel
-    ? 'mx-auto w-full max-w-5xl'
-    : 'h-full w-full';
-  const innerClassName = isPanel
-    ? 'rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-6'
-    : 'h-full rounded-2xl border border-slate-200/80 bg-white/90 p-2.5';
-  const iconSize = isPanel ? 'text-3xl' : 'text-lg';
+  const gap = isPanel ? '0.75rem' : '0.35rem';
   const gridColumns = Math.max(2, Math.min(columns, 4));
+  const baseHeight = isPanel ? '11.4rem' : '4rem';
 
-  if (normalizedLayout === 'spotlight') {
-    return (
-      <div className={wrapperClassName}>
-        <div className={innerClassName}>
-          <div className="relative flex min-h-[5rem] items-center justify-center overflow-hidden rounded-2xl bg-slate-100 px-3 py-2 sm:min-h-[14rem] sm:px-6 sm:py-5">
-            <div className="absolute left-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm sm:left-4 sm:h-10 sm:w-10">
-              <span className={iconSize}>{'<'}</span>
-            </div>
-            <div className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm sm:right-4 sm:h-10 sm:w-10">
-              <span className={iconSize}>{'>'}</span>
-            </div>
-            <div className="relative flex h-[3.75rem] w-full items-center justify-center sm:h-[11rem]">
-              <PreviewCard className="absolute left-[10%] top-[18%] h-[54%] w-[20%] opacity-40 shadow-lg sm:left-[12%] sm:h-[68%] sm:w-[18%]" />
-              <PreviewCard className="absolute left-[18%] top-[12%] h-[62%] w-[26%] opacity-60 shadow-xl sm:left-[20%] sm:h-[76%] sm:w-[23%]" />
-              <PreviewCard className="absolute left-1/2 top-1/2 h-[84%] w-[46%] -translate-x-1/2 -translate-y-1/2 shadow-2xl" />
-              <PreviewCard className="absolute right-[18%] top-[12%] h-[62%] w-[26%] opacity-60 shadow-xl sm:right-[20%] sm:h-[76%] sm:w-[23%]" />
-              <PreviewCard className="absolute right-[10%] top-[18%] h-[54%] w-[20%] opacity-40 shadow-lg sm:right-[12%] sm:h-[68%] sm:w-[18%]" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const renderGrid = () => (
+    <div
+      style={{
+        display: 'grid',
+        gap,
+        gridTemplateColumns: isPanel
+          ? `repeat(${gridColumns}, minmax(0, 1fr))`
+          : 'repeat(2, minmax(0, 1fr))',
+        minHeight: baseHeight,
+      }}
+    >
+      {Array.from({ length: isPanel ? gridColumns * 2 : 4 }).map((_, index) => (
+        <PhotoTile
+          key={index}
+          index={index}
+          featured={!isPanel && index === 0}
+          style={{ minHeight: isPanel ? '4.7rem' : index === 0 ? '2.4rem' : '1.95rem' }}
+        />
+      ))}
+    </div>
+  );
 
-  if (normalizedLayout === 'mosaic') {
-    return (
-      <div className={wrapperClassName}>
-        <div className={innerClassName}>
-          <div className="grid min-h-[5rem] grid-cols-12 gap-2 rounded-2xl bg-slate-100 p-2 sm:min-h-[14rem] sm:gap-3 sm:p-4">
-            <PreviewCard className="col-span-3 row-span-2 min-h-[1.65rem] sm:min-h-[4rem]" />
-            <PreviewCard className="col-span-5 row-span-2 min-h-[1.65rem] sm:min-h-[4rem]" />
-            <PreviewCard className="col-span-4 row-span-2 min-h-[1.65rem] sm:min-h-[4rem]" />
-            <PreviewCard className="col-span-6 row-span-3 min-h-[1.65rem] sm:min-h-[6rem]" />
-            <PreviewCard className="col-span-3 row-span-2 min-h-[1.65rem] sm:min-h-[4rem]" />
-            <PreviewCard className="col-span-3 row-span-2 min-h-[1.65rem] sm:min-h-[4rem]" />
-            <PreviewCard className="col-span-3 row-span-2 min-h-[1.65rem] sm:min-h-[4rem]" />
-            <PreviewCard className="col-span-4 row-span-2 min-h-[1.65rem] sm:min-h-[4rem]" />
-            <PreviewCard className="col-span-5 row-span-2 min-h-[1.65rem] sm:min-h-[4rem]" />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const renderShowcase = () => (
+    <div
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: isPanel ? '1.35rem' : '0.95rem',
+        padding: isPanel ? '0.9rem 1rem 1.1rem' : '0.42rem 0.46rem 0.82rem',
+        minHeight: baseHeight,
+        background:
+          'radial-gradient(circle at center, rgba(255,245,182,0.75), transparent 34%), linear-gradient(135deg, #f6df2b 0%, #f3cd1d 46%, #ffd742 100%)',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          inset: '-8% -4%',
+          opacity: 0.64,
+          backgroundImage:
+            'radial-gradient(circle at 0% 50%, transparent 0 28%, rgba(255,255,255,0.22) 28.5% 29%, transparent 29.4%), radial-gradient(circle at 100% 50%, transparent 0 28%, rgba(255,255,255,0.22) 28.5% 29%, transparent 29.4%), repeating-linear-gradient(90deg, transparent 0 0.9rem, rgba(255,255,255,0.12) 0.9rem 0.96rem)',
+        }}
+      />
 
-  if (normalizedLayout === 'editorial') {
-    return (
-      <div className={wrapperClassName}>
-        <div className={innerClassName}>
-          <div className="grid min-h-[5rem] grid-cols-12 gap-2 rounded-2xl bg-slate-100 p-2 sm:min-h-[14rem] sm:gap-3 sm:p-4">
-            <PreviewCard className="col-span-12 min-h-[2.1rem] sm:min-h-[6.5rem]" />
-            <PreviewCard className="col-span-3 min-h-[1.9rem] sm:min-h-[5.5rem]" />
-            <PreviewCard className="col-span-3 min-h-[1.9rem] sm:min-h-[5.5rem]" />
-            <PreviewCard className="col-span-3 min-h-[1.9rem] sm:min-h-[5.5rem]" />
-            <PreviewCard className="col-span-3 min-h-[1.9rem] sm:min-h-[5.5rem]" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (normalizedLayout === 'filmstrip') {
-    return (
-      <div className={wrapperClassName}>
-        <div className={innerClassName}>
-          <div className="rounded-2xl bg-slate-100 p-2 sm:p-4">
-            <div className="flex min-h-[5rem] items-end justify-center gap-2 overflow-hidden sm:min-h-[14rem] sm:gap-4">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <PreviewCard
-                  key={index}
-                  className={
-                    index === 2
-                      ? 'h-[3.5rem] w-[22%] sm:h-[9rem] sm:w-[16%]'
-                      : index === 3
-                        ? 'h-[3.1rem] w-[21%] sm:h-[8rem] sm:w-[15%]'
-                        : 'h-[2.7rem] w-[18%] sm:h-[6.5rem] sm:w-[13%]'
-                  }
-                  style={{
-                    transform:
-                      index === 2
-                        ? 'translateY(-0.35rem)'
-                        : index === 0 || index === 5
-                          ? 'translateY(0.5rem)'
-                          : 'translateY(0.2rem)',
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (normalizedLayout === 'masonry') {
-    return (
-      <div className={wrapperClassName}>
-        <div className={innerClassName}>
-          <div
-            className="grid gap-2 rounded-2xl bg-slate-100 p-2 sm:gap-3 sm:p-4"
+      <div
+        style={{
+          position: 'relative',
+          display: 'flex',
+          gap: isPanel ? '0.38rem' : '0.2rem',
+          width: 'min(100%, 74%)',
+          margin: '0 auto',
+        }}
+      >
+        {Array.from({ length: 4 }).map((_, index) => (
+          <span
+            key={index}
             style={{
-              gridTemplateColumns: `repeat(${Math.min(gridColumns, 4)}, minmax(0, 1fr))`,
+              flex: 1,
+              height: isPanel ? '0.32rem' : '0.17rem',
+              borderRadius: 999,
+              background:
+                index === 0 ? 'rgba(15,23,42,0.96)' : 'rgba(15,23,42,0.14)',
             }}
-          >
-            {['5rem', '3.75rem', '4.5rem', '4rem', '3.5rem', '4.75rem']
-              .slice(0, gridColumns * 2)
-              .map((height, index) => (
-                <PreviewCard
-                  key={index}
-                  style={{ height: isPanel ? height : '100%' }}
-                  className="min-h-[2rem]"
-                />
-              ))}
-          </div>
-        </div>
+          />
+        ))}
       </div>
-    );
-  }
 
-  if (normalizedLayout === 'carousel') {
-    return (
-      <div className={wrapperClassName}>
-        <div className={innerClassName}>
-          <div className="rounded-2xl bg-slate-100 p-2 sm:p-4">
-            <div className="flex min-h-[5rem] gap-2 sm:min-h-[14rem] sm:gap-3">
-              <PreviewCard className="h-full flex-[1.6] min-h-[4rem] sm:min-h-[11rem]" />
-              <PreviewCard className="h-full flex-1 min-h-[4rem] sm:min-h-[11rem]" />
-              <PreviewCard className="hidden h-full flex-1 min-h-[4rem] sm:block sm:min-h-[11rem]" />
-            </div>
-            <div className="mt-3 flex justify-center gap-2">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div
-                  key={index}
-                  className={`h-2 rounded-full ${
-                    index === 0 ? 'w-8 bg-slate-500' : 'w-2 bg-slate-300'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={wrapperClassName}>
-      <div className={innerClassName}>
-        <div
-          className="grid rounded-2xl bg-slate-100 p-2 sm:p-4"
+      <div
+        style={{
+          position: 'relative',
+          display: 'grid',
+          gridTemplateColumns: isPanel ? '0.42fr 2.18fr 0.42fr' : '0.38fr 1.92fr 0.38fr',
+          gap: 0,
+          alignItems: 'center',
+          minHeight: isPanel ? '10.4rem' : '4.05rem',
+          paddingTop: isPanel ? '1.15rem' : '0.55rem',
+        }}
+      >
+        <PhotoTile
+          index={1}
           style={{
-            gap: isPanel ? '0.9rem' : '0.35rem',
-            gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
+            height: isPanel ? '8rem' : '3rem',
+            transform: isPanel
+              ? 'translateX(1.1rem) translateY(0.85rem)'
+              : 'translateX(0.45rem) translateY(0.3rem)',
+            opacity: 1,
+            zIndex: 1,
           }}
-        >
-          {Array.from({ length: gridColumns * 2 }).map((_, index) => (
-            <PreviewCard
-              key={index}
-              className="min-h-[2rem] sm:min-h-[4.25rem]"
-            />
-          ))}
-        </div>
+        />
+        <PhotoTile
+          index={0}
+          featured
+          style={{
+            height: isPanel ? '11.2rem' : '4.5rem',
+            zIndex: 2,
+          }}
+        />
+        <PhotoTile
+          index={2}
+          style={{
+            height: isPanel ? '8rem' : '3rem',
+            transform: isPanel
+              ? 'translateX(-1.1rem) translateY(0.85rem)'
+              : 'translateX(-0.45rem) translateY(0.3rem)',
+            opacity: 1,
+            zIndex: 1,
+          }}
+        />
+
+        <span
+          style={{
+            position: 'absolute',
+            left: isPanel ? '0.4rem' : '0.12rem',
+            top: '50%',
+            transform: 'translateY(-10%)',
+            width: isPanel ? '2rem' : '0.88rem',
+            height: isPanel ? '2rem' : '0.88rem',
+            borderRadius: 999,
+            background: 'rgba(255,255,255,0.96)',
+            boxShadow: '0 10px 24px rgba(146, 96, 4, 0.18)',
+          }}
+        />
+        <span
+          style={{
+            position: 'absolute',
+            right: isPanel ? '0.4rem' : '0.12rem',
+            top: '50%',
+            transform: 'translateY(-10%)',
+            width: isPanel ? '2rem' : '0.88rem',
+            height: isPanel ? '2rem' : '0.88rem',
+            borderRadius: 999,
+            background: 'rgba(255,255,255,0.96)',
+            boxShadow: '0 10px 24px rgba(146, 96, 4, 0.18)',
+          }}
+        />
       </div>
     </div>
+  );
+
+  const renderSpotlight = () => (isPanel ? (
+    <div
+      style={{
+        display: 'grid',
+        gap,
+        gridTemplateColumns: '1.05fr 1.2fr 1.7fr 1.2fr 1.05fr',
+        alignItems: 'end',
+        minHeight: baseHeight,
+      }}
+    >
+      <PhotoTile
+        index={1}
+        portrait
+        style={{ height: isPanel ? '7rem' : '2.45rem', opacity: 0.68 }}
+      />
+      <PhotoTile
+        index={2}
+        portrait
+        style={{ height: isPanel ? '8.2rem' : '2.95rem', opacity: 0.84 }}
+      />
+      <PhotoTile
+        index={0}
+        featured
+        portrait
+        style={{ height: isPanel ? '11.3rem' : '4rem' }}
+      />
+      <PhotoTile
+        index={3}
+        portrait
+        style={{ height: isPanel ? '8.2rem' : '2.95rem', opacity: 0.84 }}
+      />
+      <PhotoTile
+        index={4}
+        portrait
+        style={{ height: isPanel ? '7rem' : '2.45rem', opacity: 0.68 }}
+      />
+    </div>
+  ) : (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '0.85fr 1.25fr 0.85fr',
+        gap,
+        alignItems: 'center',
+        minHeight: '5rem',
+      }}
+    >
+      <div style={{ display: 'grid', gap: gap }}>
+        <PhotoTile index={1} portrait style={{ height: '1.7rem', opacity: 0.9 }} />
+        <PhotoTile index={2} portrait style={{ height: '1.5rem', opacity: 0.72 }} />
+      </div>
+      <PhotoTile index={0} featured portrait style={{ height: '4.4rem' }} />
+      <div style={{ display: 'grid', gap: gap }}>
+        <PhotoTile index={3} portrait style={{ height: '1.7rem', opacity: 0.9 }} />
+        <PhotoTile index={4} portrait style={{ height: '1.5rem', opacity: 0.72 }} />
+      </div>
+    </div>
+  ));
+
+  const renderMosaic = () => (isPanel ? (
+    <div
+      style={{
+        display: 'grid',
+        gap,
+        gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+        minHeight: baseHeight,
+      }}
+    >
+      <PhotoTile
+        index={0}
+        featured
+        style={{ gridColumn: 'span 5 / span 5', minHeight: isPanel ? '9.8rem' : '3.5rem' }}
+      />
+      <PhotoTile
+        index={1}
+        style={{ gridColumn: 'span 4 / span 4', minHeight: isPanel ? '4.5rem' : '1.6rem' }}
+      />
+      <PhotoTile
+        index={2}
+        style={{ gridColumn: 'span 3 / span 3', minHeight: isPanel ? '4.5rem' : '1.6rem' }}
+      />
+      <PhotoTile
+        index={3}
+        style={{ gridColumn: 'span 3 / span 3', minHeight: isPanel ? '4.5rem' : '1.6rem' }}
+      />
+      <PhotoTile
+        index={4}
+        style={{ gridColumn: 'span 4 / span 4', minHeight: isPanel ? '4.5rem' : '1.6rem' }}
+      />
+      <PhotoTile
+        index={5}
+        style={{ gridColumn: 'span 5 / span 5', minHeight: isPanel ? '4.5rem' : '1.6rem' }}
+      />
+    </div>
+  ) : (
+    <div
+      style={{
+        display: 'grid',
+        gap,
+        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+        gridAutoRows: '1.2rem',
+        minHeight: '5rem',
+      }}
+    >
+      <PhotoTile
+        index={0}
+        featured
+        style={{ gridColumn: 'span 2', gridRow: 'span 2' }}
+      />
+      <PhotoTile index={1} style={{ gridColumn: 'span 2' }} />
+      <PhotoTile index={2} style={{ gridColumn: 'span 1' }} />
+      <PhotoTile index={3} style={{ gridColumn: 'span 1' }} />
+      <PhotoTile index={4} style={{ gridColumn: 'span 2' }} />
+    </div>
+  ));
+
+  const renderEditorial = () => (isPanel ? (
+    <div
+      style={{
+        display: 'grid',
+        gap,
+        gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+        minHeight: baseHeight,
+      }}
+    >
+      <PhotoTile
+        index={0}
+        featured
+        style={{ gridColumn: '1 / -1', minHeight: isPanel ? '6.3rem' : '2.25rem' }}
+      />
+      {Array.from({ length: 4 }).map((_, index) => (
+        <PhotoTile
+          key={index}
+          index={index + 1}
+          style={{
+            gridColumn: 'span 3 / span 3',
+            minHeight: isPanel ? '4.4rem' : '1.55rem',
+          }}
+        />
+      ))}
+    </div>
+  ) : (
+    <div
+      style={{
+        display: 'grid',
+        gap,
+        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+        gridAutoRows: '1.35rem',
+        minHeight: '5rem',
+      }}
+    >
+      <PhotoTile
+        index={0}
+        featured
+        style={{ gridColumn: '1 / -1', gridRow: 'span 2' }}
+      />
+      <PhotoTile index={1} style={{ gridColumn: 'span 1' }} />
+      <PhotoTile index={2} style={{ gridColumn: 'span 1' }} />
+      <PhotoTile index={3} style={{ gridColumn: 'span 1' }} />
+    </div>
+  ));
+
+  const renderFilmstrip = () => (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'end',
+        justifyContent: 'center',
+        gap,
+        minHeight: baseHeight,
+      }}
+    >
+      {Array.from({ length: isPanel ? 5 : 4 }).map((_, index) => (
+        <PhotoTile
+          key={index}
+          index={index}
+          portrait
+          featured={index === (isPanel ? 2 : 1)}
+          style={{
+            width: index === (isPanel ? 2 : 1)
+              ? (isPanel ? '22%' : '25%')
+              : isPanel
+                ? '16%'
+                : '18%',
+            height:
+              index === (isPanel ? 2 : 1)
+                ? isPanel
+                  ? '10.4rem'
+                  : '4.2rem'
+                : isPanel
+                  ? '7.4rem'
+                  : index === 0 || index === 3
+                    ? '2.9rem'
+                    : '3.45rem',
+            opacity: index === (isPanel ? 2 : 1) ? 1 : 0.84,
+          }}
+        />
+      ))}
+    </div>
+  );
+
+  const renderMasonry = () => {
+    const heights = isPanel
+      ? ['6.8rem', '4.6rem', '5.9rem', '5rem', '4.4rem', '6.3rem', '4.9rem', '5.8rem']
+      : ['2.4rem', '1.55rem', '2.05rem', '1.85rem', '1.45rem', '2.2rem'];
+
+    return (
+      <div
+        style={{
+          display: 'grid',
+          gap,
+          gridTemplateColumns: isPanel
+            ? `repeat(${Math.min(gridColumns, 4)}, minmax(0, 1fr))`
+            : 'repeat(3, minmax(0, 1fr))',
+          minHeight: baseHeight,
+        }}
+      >
+        {heights
+          .slice(0, isPanel ? Math.min(gridColumns, 4) * 2 : 6)
+          .map((height, index) => (
+            <PhotoTile
+              key={index}
+              index={index}
+              featured={!isPanel && index === 0}
+              style={{ height }}
+            />
+          ))}
+      </div>
+    );
+  };
+
+  const renderCarousel = () => (
+    <div style={{ display: 'grid', gap, minHeight: baseHeight }}>
+      <div
+        style={{
+          display: 'grid',
+          gap,
+          gridTemplateColumns: isPanel ? '1.7fr 1fr 1fr' : '1.5fr 1fr',
+          minHeight: isPanel ? '9rem' : '3.15rem',
+        }}
+      >
+        <PhotoTile index={0} featured style={{ minHeight: '100%' }} />
+        <div style={{ display: 'grid', gap }}>
+          <PhotoTile index={1} style={{ minHeight: isPanel ? '100%' : '1.45rem' }} />
+          {isPanel ? (
+            <PhotoTile index={2} style={{ minHeight: '100%' }} />
+          ) : (
+            <PhotoTile index={2} style={{ minHeight: '1.45rem' }} />
+          )}
+        </div>
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: isPanel ? '0.38rem' : '0.22rem',
+        }}
+      >
+        {Array.from({ length: 4 }).map((_, index) => (
+          <span
+            key={index}
+            style={{
+              width:
+                index === 0
+                  ? isPanel
+                    ? '1.8rem'
+                    : '0.78rem'
+                  : isPanel
+                    ? '0.48rem'
+                    : '0.24rem',
+              height: isPanel ? '0.36rem' : '0.18rem',
+              borderRadius: 999,
+              background:
+                index === 0
+                  ? 'rgba(99, 102, 241, 0.7)'
+                  : 'rgba(148, 163, 184, 0.34)',
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <PreviewFrame isPanel={isPanel}>
+      {normalizedLayout === 'showcase'
+        ? renderShowcase()
+        : normalizedLayout === 'spotlight'
+        ? renderSpotlight()
+        : normalizedLayout === 'mosaic'
+          ? renderMosaic()
+          : normalizedLayout === 'editorial'
+            ? renderEditorial()
+            : normalizedLayout === 'filmstrip'
+              ? renderFilmstrip()
+              : normalizedLayout === 'masonry'
+                ? renderMasonry()
+                : normalizedLayout === 'carousel'
+                  ? renderCarousel()
+                  : renderGrid()}
+    </PreviewFrame>
   );
 }

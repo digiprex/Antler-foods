@@ -10,6 +10,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { ReviewConfig, Review } from '@/types/review.types';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
 import {
@@ -18,9 +19,12 @@ import {
   getButtonInlineStyle,
 } from '@/lib/section-style';
 
+type PreviewViewport = 'desktop' | 'mobile';
+
 interface ReviewsProps extends Partial<ReviewConfig> {
   reviews?: Review[];
   restaurantId?: string;
+  previewViewport?: PreviewViewport;
 }
 
 interface ReviewIntentGetResponse {
@@ -73,6 +77,7 @@ export default function Reviews({
   bodyFontSize,
   bodyFontWeight,
   bodyColor,
+  previewViewport = 'desktop',
 }: ReviewsProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -124,6 +129,28 @@ export default function Reviews({
   const selectedButtonStyle = getButtonInlineStyle(
     getSelectedGlobalButtonStyle(sectionStyleConfig, globalStyles),
   );
+  const isPreviewMobile = previewViewport === 'mobile';
+  const resolvedColumns = Math.max(1, Number(columns) || 1);
+  const gridColumns = isPreviewMobile ? 1 : resolvedColumns;
+  const masonryColumns = isPreviewMobile ? 1 : Math.min(resolvedColumns, 3);
+  const sliderColumns = isPreviewMobile ? 1 : resolvedColumns;
+  const sliderMaxStart = Math.max(0, displayReviews.length - sliderColumns);
+  const sectionPadding = isPreviewMobile ? '2.75rem 1rem' : padding;
+  const sectionMaxWidth = isPreviewMobile ? '100%' : maxWidth;
+  const cardBorder = '1px solid rgba(148, 163, 184, 0.18)';
+  const cardShadow = '0 18px 45px rgba(15, 23, 42, 0.08)';
+  const cardRadius = isPreviewMobile ? '20px' : '24px';
+  const cardPadding = isPreviewMobile ? '1.15rem' : '1.45rem';
+  const reviewTextStyle: CSSProperties = {
+    fontSize: isPreviewMobile ? '0.92rem' : '0.98rem',
+    lineHeight: 1.75,
+    color: effectiveBodyColor,
+    margin: 0,
+  };
+
+  useEffect(() => {
+    setCurrentSlide((prev) => Math.min(prev, sliderMaxStart));
+  }, [sliderMaxStart]);
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }).map((_, index) => (
@@ -131,7 +158,7 @@ export default function Reviews({
         key={index}
         style={{
           color: index < rating ? starColor : '#d1d5db',
-          fontSize: '1.25rem',
+          fontSize: isPreviewMobile ? '1rem' : '1.05rem',
         }}
       >
         {'\u2605'}
@@ -192,6 +219,180 @@ export default function Reviews({
   useEffect(() => {
     setLiveReviews(reviews);
   }, [reviews]);
+
+  const renderAvatar = (review: Review, size: number) => {
+    if (!showAvatar) {
+      return null;
+    }
+
+    if (review.avatar_url) {
+      return (
+        <img
+          src={review.avatar_url}
+          alt={review.author_name || 'User'}
+          style={{
+            width: `${size}px`,
+            height: `${size}px`,
+            borderRadius: '999px',
+            objectFit: 'cover',
+            flexShrink: 0,
+          }}
+        />
+      );
+    }
+
+    const fallbackLabel = (review.author_name || 'A').trim().charAt(0).toUpperCase();
+    return (
+      <div
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          borderRadius: '999px',
+          background:
+            'linear-gradient(135deg, rgba(124, 58, 237, 0.14), rgba(59, 130, 246, 0.16))',
+          color: '#5b21b6',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: size >= 48 ? '1rem' : '0.875rem',
+          fontWeight: 700,
+          flexShrink: 0,
+        }}
+      >
+        {fallbackLabel}
+      </div>
+    );
+  };
+
+  const renderReviewCard = (
+    review: Review,
+    variant: 'grid' | 'slider' | 'list' | 'masonry',
+  ) => {
+    const isListVariant = variant === 'list' && !isPreviewMobile;
+    const avatarSize = isListVariant ? 56 : 44;
+
+    return (
+      <div
+        style={{
+          background: cardBgColor,
+          borderRadius: cardRadius,
+          padding: cardPadding,
+          border: cardBorder,
+          boxShadow: cardShadow,
+          display: 'flex',
+          flexDirection: isListVariant ? 'row' : 'column',
+          gap: isListVariant ? '1.25rem' : '1rem',
+          minHeight: variant === 'masonry' && !isPreviewMobile ? 'unset' : '100%',
+          breakInside: 'avoid',
+        }}
+      >
+        {isListVariant ? renderAvatar(review, avatarSize) : null}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.95rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: isListVariant ? 'flex-start' : 'center',
+              justifyContent: 'space-between',
+              gap: '0.9rem',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.85rem',
+                minWidth: 0,
+              }}
+            >
+              {!isListVariant ? renderAvatar(review, avatarSize) : null}
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    color: '#0f172a',
+                    fontSize: isPreviewMobile ? '0.98rem' : '1rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  {review.author_name || 'Anonymous'}
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    flexWrap: 'wrap',
+                    marginTop: '0.3rem',
+                    fontSize: '0.74rem',
+                    color: '#64748b',
+                  }}
+                >
+                  {showDate && review.published_at ? (
+                    <span>{formatDate(review.published_at)}</span>
+                  ) : null}
+                  {showSource && review.source ? (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        borderRadius: '999px',
+                        border: '1px solid rgba(148, 163, 184, 0.2)',
+                        background: 'rgba(248, 250, 252, 0.92)',
+                        padding: '0.18rem 0.55rem',
+                        fontWeight: 600,
+                        color: '#475569',
+                      }}
+                    >
+                      {review.source}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            {showRating ? (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  borderRadius: '999px',
+                  background: 'rgba(248, 250, 252, 0.9)',
+                  border: '1px solid rgba(148, 163, 184, 0.18)',
+                  padding: '0.4rem 0.7rem',
+                }}
+              >
+                <div style={{ display: 'inline-flex', gap: '0.08rem' }}>
+                  {renderStars(review.rating)}
+                </div>
+                <span
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    color: '#334155',
+                  }}
+                >
+                  {review.rating.toFixed(1)}
+                </span>
+              </div>
+            ) : null}
+          </div>
+
+          {review.review_text ? (
+            <p
+              style={{
+                ...reviewTextStyle,
+                opacity: 0.92,
+                flex: variant === 'list' ? undefined : 1,
+              }}
+            >
+              {`\u201C${review.review_text}\u201D`}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
 
   const openModal = () => {
     setIsModalOpen(true);
@@ -391,10 +592,17 @@ export default function Reviews({
   };
 
   return (
-    <section style={{ backgroundColor: bgColor, padding, ...bodyStyle }}>
-      <div style={{ maxWidth, margin: '0 auto' }}>
+    <section style={{ backgroundColor: bgColor, padding: sectionPadding, ...bodyStyle }}>
+      <div style={{ maxWidth: sectionMaxWidth, margin: '0 auto' }}>
         {(title || subtitle || description) && (
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div
+            style={{
+              textAlign: 'center',
+              marginBottom: isPreviewMobile ? '1.75rem' : '2.5rem',
+              maxWidth: isPreviewMobile ? '100%' : '52rem',
+              marginInline: 'auto',
+            }}
+          >
             {subtitle && (
               <p
                 style={{
@@ -436,7 +644,7 @@ export default function Reviews({
         <div
           style={{
             display: 'flex',
-            justifyContent: 'flex-end',
+            justifyContent: isPreviewMobile ? 'stretch' : 'flex-end',
             marginBottom: '1.25rem',
           }}
         >
@@ -462,6 +670,7 @@ export default function Reviews({
               boxShadow: restaurantId
                 ? '0 8px 20px rgba(111, 76, 246, 0.25)'
                 : 'none',
+              width: isPreviewMobile ? '100%' : undefined,
             }}
           >
             Add Review
@@ -471,12 +680,13 @@ export default function Reviews({
         {displayReviews.length === 0 ? (
           <div
             style={{
-              borderRadius: '0.75rem',
-              border: '1px solid rgba(148, 163, 184, 0.35)',
+              borderRadius: cardRadius,
+              border: cardBorder,
               background: cardBgColor,
-              padding: '1.25rem',
+              padding: cardPadding,
               textAlign: 'center',
               opacity: 0.86,
+              boxShadow: cardShadow,
             }}
           >
             No reviews yet. Be the first to share your feedback.
@@ -493,107 +703,31 @@ export default function Reviews({
                 style={{
                   display: 'flex',
                   transition: 'transform 0.5s ease',
-                  transform: `translateX(-${currentSlide * (100 / columns)}%)`,
-                  gap: '1rem',
+                  transform: `translateX(-${currentSlide * (100 / sliderColumns)}%)`,
+                  gap: isPreviewMobile ? '0.75rem' : '1rem',
                 }}
               >
                 {displayReviews.map((review) => (
                   <div
                     key={review.review_id}
                     style={{
-                      minWidth: `calc((100% - 1rem * ${columns - 1}) / ${columns})`,
-                      background: cardBgColor,
-                      borderRadius: '0.75rem',
-                      padding: '1.5rem',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                      minWidth: `calc((100% - ${(isPreviewMobile ? 0.75 : 1)}rem * ${sliderColumns - 1}) / ${sliderColumns})`,
                     }}
                   >
-                    {showRating && (
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: '0.25rem',
-                          marginBottom: '0.75rem',
-                        }}
-                      >
-                        {renderStars(review.rating)}
-                      </div>
-                    )}
-
-                    {review.review_text && (
-                      <p
-                        style={{
-                          fontSize: '0.9375rem',
-                          lineHeight: '1.6',
-                          marginBottom: '1rem',
-                          color: effectiveBodyColor,
-                        }}
-                      >
-                        {`\u201C${review.review_text}\u201D`}
-                      </p>
-                    )}
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                        paddingTop: '1rem',
-                        borderTop: '1px solid rgba(0,0,0,0.1)',
-                      }}
-                    >
-                      {showAvatar && review.avatar_url && (
-                        <img
-                          src={review.avatar_url}
-                          alt={review.author_name || 'User'}
-                          style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '50%',
-                            objectFit: 'cover',
-                          }}
-                        />
-                      )}
-                      <div style={{ flex: 1 }}>
-                        <div
-                          style={{
-                            fontWeight: '600',
-                            fontSize: '0.875rem',
-                          }}
-                        >
-                          {review.author_name || 'Anonymous'}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: '0.75rem',
-                            opacity: 0.7,
-                            display: 'flex',
-                            gap: '0.5rem',
-                            flexWrap: 'wrap',
-                          }}
-                        >
-                          {showDate && review.published_at && (
-                            <span>{formatDate(review.published_at)}</span>
-                          )}
-                          {showSource && review.source && (
-                            <span>{`\u2022 ${review.source}`}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                    {renderReviewCard(review, 'slider')}
                   </div>
                 ))}
               </div>
             </div>
 
-            {displayReviews.length > columns && (
+            {displayReviews.length > sliderColumns && (
               <>
                 <button
                   onClick={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
                   disabled={currentSlide === 0}
                   style={{
                     position: 'absolute',
-                    left: '-1.25rem',
+                    left: isPreviewMobile ? '0.5rem' : '-1.25rem',
                     top: '50%',
                     transform: 'translateY(-50%)',
                     background: 'rgba(255, 255, 255, 0.9)',
@@ -613,13 +747,13 @@ export default function Reviews({
                 <button
                   onClick={() =>
                     setCurrentSlide((prev) =>
-                      Math.min(displayReviews.length - columns, prev + 1),
+                      Math.min(sliderMaxStart, prev + 1),
                     )
                   }
-                  disabled={currentSlide >= displayReviews.length - columns}
+                  disabled={currentSlide >= sliderMaxStart}
                   style={{
                     position: 'absolute',
-                    right: '-1.25rem',
+                    right: isPreviewMobile ? '0.5rem' : '-1.25rem',
                     top: '50%',
                     transform: 'translateY(-50%)',
                     background: 'rgba(255, 255, 255, 0.9)',
@@ -627,7 +761,7 @@ export default function Reviews({
                     color: '#000',
                     fontSize: '2rem',
                     cursor:
-                      currentSlide >= displayReviews.length - columns
+                      currentSlide >= sliderMaxStart
                         ? 'not-allowed'
                         : 'pointer',
                     padding: '0.5rem 1rem',
@@ -635,7 +769,7 @@ export default function Reviews({
                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
                     zIndex: 10,
                     opacity:
-                      currentSlide >= displayReviews.length - columns ? 0.4 : 1,
+                      currentSlide >= sliderMaxStart ? 0.4 : 1,
                   }}
                 >
                   {'\u203A'}
@@ -646,78 +780,26 @@ export default function Reviews({
         ) : layout === 'list' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {displayReviews.map((review) => (
+              <div key={review.review_id}>{renderReviewCard(review, 'list')}</div>
+            ))}
+          </div>
+        ) : layout === 'masonry' ? (
+          <div
+            style={{
+              columnCount: masonryColumns,
+              columnGap: '1rem',
+            }}
+          >
+            {displayReviews.map((review) => (
               <div
                 key={review.review_id}
                 style={{
-                  background: cardBgColor,
-                  borderRadius: '0.75rem',
-                  padding: '1.5rem',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                  display: 'flex',
-                  gap: '1.5rem',
+                  display: 'inline-block',
+                  width: '100%',
+                  marginBottom: '1rem',
                 }}
               >
-                {showAvatar && review.avatar_url && (
-                  <img
-                    src={review.avatar_url}
-                    alt={review.author_name || 'User'}
-                    style={{
-                      width: '60px',
-                      height: '60px',
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      flexShrink: 0,
-                    }}
-                  />
-                )}
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      marginBottom: '0.5rem',
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
-                        {review.author_name || 'Anonymous'}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '0.75rem',
-                          opacity: 0.7,
-                          display: 'flex',
-                          gap: '0.5rem',
-                        }}
-                      >
-                        {showDate && review.published_at && (
-                          <span>{formatDate(review.published_at)}</span>
-                        )}
-                        {showSource && review.source && (
-                          <span>{`\u2022 ${review.source}`}</span>
-                        )}
-                      </div>
-                    </div>
-                    {showRating && (
-                      <div style={{ display: 'flex', gap: '0.25rem' }}>
-                        {renderStars(review.rating)}
-                      </div>
-                    )}
-                  </div>
-                  {review.review_text && (
-                    <p
-                      style={{
-                        fontSize: '0.9375rem',
-                        lineHeight: '1.6',
-                        color: effectiveBodyColor,
-                        margin: 0,
-                      }}
-                    >
-                      {review.review_text}
-                    </p>
-                  )}
-                </div>
+                {renderReviewCard(review, 'masonry')}
               </div>
             ))}
           </div>
@@ -725,92 +807,12 @@ export default function Reviews({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: `repeat(${columns}, 1fr)`,
+              gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
               gap: '1rem',
             }}
           >
             {displayReviews.map((review) => (
-              <div
-                key={review.review_id}
-                style={{
-                  background: cardBgColor,
-                  borderRadius: '0.75rem',
-                  padding: '1.5rem',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                {showRating && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '0.25rem',
-                      marginBottom: '0.75rem',
-                    }}
-                  >
-                    {renderStars(review.rating)}
-                  </div>
-                )}
-
-                {review.review_text && (
-                  <p
-                    style={{
-                      fontSize: '0.9375rem',
-                      lineHeight: '1.6',
-                      marginBottom: '1rem',
-                      color: effectiveBodyColor,
-                      flex: 1,
-                    }}
-                  >
-                    {`\u201C${review.review_text}\u201D`}
-                  </p>
-                )}
-
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                    paddingTop: '1rem',
-                    borderTop: '1px solid rgba(0,0,0,0.1)',
-                  }}
-                >
-                  {showAvatar && review.avatar_url && (
-                    <img
-                      src={review.avatar_url}
-                      alt={review.author_name || 'User'}
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                      }}
-                    />
-                  )}
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: '600', fontSize: '0.875rem' }}>
-                      {review.author_name || 'Anonymous'}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '0.75rem',
-                        opacity: 0.7,
-                        display: 'flex',
-                        gap: '0.5rem',
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      {showDate && review.published_at && (
-                        <span>{formatDate(review.published_at)}</span>
-                      )}
-                      {showSource && review.source && (
-                        <span>{`\u2022 ${review.source}`}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <div key={review.review_id}>{renderReviewCard(review, 'grid')}</div>
             ))}
           </div>
         )}

@@ -2,6 +2,8 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { GalleryConfig, GalleryImage } from '@/types/gallery.types';
 import styles from './gallery-layouts.module.css';
 
+export type GalleryLayoutViewport = 'desktop' | 'tablet' | 'mobile';
+
 export interface GalleryLayoutCommonProps {
   images: GalleryImage[];
   columns: number;
@@ -9,6 +11,7 @@ export interface GalleryLayoutCommonProps {
   aspectRatio: NonNullable<GalleryConfig['aspectRatio']>;
   showCaptions: boolean;
   enableLightbox: boolean;
+  layoutViewport?: GalleryLayoutViewport;
   onImageClick: (index: number) => void;
 }
 
@@ -80,6 +83,7 @@ export function GalleryCaptionOverlay({
 }
 
 export function GallerySectionHeader({
+  className,
   title,
   subtitle,
   description,
@@ -87,6 +91,7 @@ export function GallerySectionHeader({
   subtitleStyle,
   bodyStyle,
 }: {
+  className?: string;
   title?: string;
   subtitle?: string;
   description?: string;
@@ -99,7 +104,7 @@ export function GallerySectionHeader({
   }
 
   return (
-    <div className={styles.galleryHeader}>
+    <div className={`${styles.galleryHeader} ${className || ''}`.trim()}>
       {subtitle && (
         <p className={styles.gallerySubtitle} style={subtitleStyle}>
           {subtitle}
@@ -135,7 +140,11 @@ export function GalleryNavButton({
   return (
     <button
       type="button"
-      className={styles.navButton}
+      className={`${styles.navButton} ${
+        direction === 'previous'
+          ? styles.navButtonPrevious
+          : styles.navButtonNext
+      }`}
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}

@@ -25,14 +25,15 @@ export function EditorialGalleryLayout({
           <button
             key={image.id || `${image.url}-${index}`}
             type="button"
-            className={`${styles.cardButton} ${styles.tiledCardButton} ${styles.cardReveal}`}
-            style={{ ...getAnimationStyle(index), ...tilePattern }}
+            className={`${styles.cardButton} ${styles.tiledCardButton}`}
+            style={tilePattern}
             onClick={() => onImageClick(index)}
           >
             <div
-              className={`${styles.cardSurface} ${styles.editorialSurface} ${
+              className={`${styles.cardSurface} ${styles.editorialSurface} ${styles.cardReveal} ${
                 index === 0 ? styles.editorialLeadSurface : ''
               }`}
+              style={getAnimationStyle(index)}
             >
               <img
                 src={image.url}

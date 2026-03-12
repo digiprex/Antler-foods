@@ -45,9 +45,12 @@ export interface GlobalStyleConfig {
   primaryButton?: ButtonStyle;
   secondaryButton?: ButtonStyle;
 
-  // Accent colors
-  primaryAccentColor?: string;
-  secondaryAccentColor?: string;
+  // Base theme colors
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  backgroundColor?: string;
+  textColor?: string;
 
   // Metadata
   createdAt?: string;
@@ -120,6 +123,9 @@ export const DEFAULT_GLOBAL_STYLE_CONFIG: GlobalStyleConfig = {
     fontFamily: 'Inter, system-ui, sans-serif',
     textTransform: 'none',
   },
-  primaryAccentColor: '#2563eb',
-  secondaryAccentColor: '#10b981',
+  primaryColor: '#2563eb',
+  secondaryColor: '#e5e7eb',
+  accentColor: '#8b5cf6',
+  backgroundColor: '#ffffff',
+  textColor: '#111827',
 };

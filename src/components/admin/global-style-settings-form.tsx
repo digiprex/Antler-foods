@@ -242,9 +242,12 @@ export default function GlobalStyleSettingsForm() {
   const [secondaryButtonFontFamily, setSecondaryButtonFontFamily] = useState('Inter, system-ui, sans-serif');
   const [secondaryButtonTextTransform, setSecondaryButtonTextTransform] = useState<'none' | 'uppercase' | 'lowercase' | 'capitalize'>('none');
 
-  // Accent colors
-  const [primaryAccentColor, setPrimaryAccentColor] = useState('#2563eb');
-  const [secondaryAccentColor, setSecondaryAccentColor] = useState('#10b981');
+  // Base theme colors
+  const [primaryColor, setPrimaryColor] = useState('#2563eb');
+  const [secondaryColor, setSecondaryColor] = useState('#e5e7eb');
+  const [accentColor, setAccentColor] = useState('#8b5cf6');
+  const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [textColor, setTextColor] = useState('#111827');
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -320,9 +323,12 @@ export default function GlobalStyleSettingsForm() {
         setSecondaryButtonTextTransform(config.secondaryButton.textTransform || 'none');
       }
 
-      // Accent colors
-      setPrimaryAccentColor((config as any).primaryAccentColor || '#2563eb');
-      setSecondaryAccentColor((config as any).secondaryAccentColor || '#10b981');
+      // Base theme colors
+      setPrimaryColor((config as any).primaryColor || '#2563eb');
+      setSecondaryColor((config as any).secondaryColor || '#e5e7eb');
+      setAccentColor((config as any).accentColor || '#8b5cf6');
+      setBackgroundColor((config as any).backgroundColor || '#ffffff');
+      setTextColor((config as any).textColor || '#111827');
     }
   }, [config]);
 
@@ -415,8 +421,11 @@ export default function GlobalStyleSettingsForm() {
           fontFamily: secondaryButtonFontFamily,
           textTransform: secondaryButtonTextTransform,
         },
-        primaryAccentColor,
-        secondaryAccentColor,
+        primaryColor,
+        secondaryColor,
+        accentColor,
+        backgroundColor,
+        textColor,
       });
 
       setToastMessage('Global style settings saved successfully!');
@@ -512,7 +521,7 @@ export default function GlobalStyleSettingsForm() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Accent Colors */}
+        {/* Base Theme Colors */}
         <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white px-6 py-4">
             <div className="flex items-center gap-3">
@@ -522,61 +531,139 @@ export default function GlobalStyleSettingsForm() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Accent Colors</h3>
-                <p className="text-sm text-gray-600">Brand accent colors for highlights and emphasis</p>
+                <h3 className="text-lg font-bold text-gray-900">Base Theme Colors</h3>
+                <p className="text-sm text-gray-600">Core brand colors used throughout your website</p>
               </div>
             </div>
           </div>
 
-          <div className="space-y-6 p-6">
-            {/* Primary Accent Color */}
+          <div className="grid grid-cols-1 gap-6 p-6 md:grid-cols-2">
+            {/* Primary Color */}
             <div>
               <label className="block text-sm font-medium text-gray-900">
-                Primary Accent Color
+                Primary Color
               </label>
-              <p className="mt-1 text-xs text-gray-600">Main brand accent color</p>
+              <p className="mt-1 text-xs text-gray-600">Main brand color</p>
               <div className="mt-2 flex gap-3">
                 <div className="relative flex-1">
                   <input
                     type="color"
-                    value={primaryAccentColor}
-                    onChange={(e) => setPrimaryAccentColor(e.target.value)}
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
                     className="h-10 w-full cursor-pointer rounded-lg border border-gray-300"
                     style={{ padding: '2px' }}
                   />
                 </div>
                 <input
                   type="text"
-                  value={primaryAccentColor}
-                  onChange={(e) => setPrimaryAccentColor(e.target.value)}
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
                   className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="#2563eb"
                 />
               </div>
             </div>
 
-            {/* Secondary Accent Color */}
+            {/* Secondary Color */}
             <div>
               <label className="block text-sm font-medium text-gray-900">
-                Secondary Accent Color
+                Secondary Color
               </label>
-              <p className="mt-1 text-xs text-gray-600">Alternative accent color for variety</p>
+              <p className="mt-1 text-xs text-gray-600">Complementary brand color</p>
               <div className="mt-2 flex gap-3">
                 <div className="relative flex-1">
                   <input
                     type="color"
-                    value={secondaryAccentColor}
-                    onChange={(e) => setSecondaryAccentColor(e.target.value)}
+                    value={secondaryColor}
+                    onChange={(e) => setSecondaryColor(e.target.value)}
                     className="h-10 w-full cursor-pointer rounded-lg border border-gray-300"
                     style={{ padding: '2px' }}
                   />
                 </div>
                 <input
                   type="text"
-                  value={secondaryAccentColor}
-                  onChange={(e) => setSecondaryAccentColor(e.target.value)}
+                  value={secondaryColor}
+                  onChange={(e) => setSecondaryColor(e.target.value)}
                   className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="#10b981"
+                  placeholder="#e5e7eb"
+                />
+              </div>
+            </div>
+
+            {/* Accent Color */}
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Accent Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Highlight and emphasis color</p>
+              <div className="mt-2 flex gap-3">
+                <div className="relative flex-1">
+                  <input
+                    type="color"
+                    value={accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    className="h-10 w-full cursor-pointer rounded-lg border border-gray-300"
+                    style={{ padding: '2px' }}
+                  />
+                </div>
+                <input
+                  type="text"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#8b5cf6"
+                />
+              </div>
+            </div>
+
+            {/* Background Color */}
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Background Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Default page background</p>
+              <div className="mt-2 flex gap-3">
+                <div className="relative flex-1">
+                  <input
+                    type="color"
+                    value={backgroundColor}
+                    onChange={(e) => setBackgroundColor(e.target.value)}
+                    className="h-10 w-full cursor-pointer rounded-lg border border-gray-300"
+                    style={{ padding: '2px' }}
+                  />
+                </div>
+                <input
+                  type="text"
+                  value={backgroundColor}
+                  onChange={(e) => setBackgroundColor(e.target.value)}
+                  className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#ffffff"
+                />
+              </div>
+            </div>
+
+            {/* Text Color */}
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Text Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Default text color</p>
+              <div className="mt-2 flex gap-3">
+                <div className="relative flex-1">
+                  <input
+                    type="color"
+                    value={textColor}
+                    onChange={(e) => setTextColor(e.target.value)}
+                    className="h-10 w-full cursor-pointer rounded-lg border border-gray-300"
+                    style={{ padding: '2px' }}
+                  />
+                </div>
+                <input
+                  type="text"
+                  value={textColor}
+                  onChange={(e) => setTextColor(e.target.value)}
+                  className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#111827"
                 />
               </div>
             </div>

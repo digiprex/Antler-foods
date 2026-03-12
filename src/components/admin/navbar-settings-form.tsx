@@ -18,10 +18,8 @@ import { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useNavbarConfig, useUpdateNavbarConfig } from '@/hooks/use-navbar-config';
 import type { NavbarConfig } from '@/types/navbar.types';
-import Navbar from '@/components/navbar';
 import Toast from '@/components/ui/toast';
 import styles from './navbar-settings-form.module.css';
-import { generateNavbarPropsFromConfig } from '@/utils/navbar-layout-generator';
 
 // Font options for navbar menu text
 const FONT_OPTIONS = [
@@ -107,6 +105,18 @@ const TEXT_TRANSFORM_OPTIONS = [
   { value: 'capitalize', label: 'Capitalize Each Word' },
 ];
 
+const BORDER_RADIUS_OPTIONS = [
+  { value: '0', label: 'None (0px)' },
+  { value: '0.125rem', label: 'Slight (2px)' },
+  { value: '0.25rem', label: 'Small (4px)' },
+  { value: '0.375rem', label: 'Medium (6px)' },
+  { value: '0.5rem', label: 'Default (8px)' },
+  { value: '0.75rem', label: 'Large (12px)' },
+  { value: '1rem', label: 'Extra Large (16px)' },
+  { value: '1.5rem', label: 'Rounded (24px)' },
+  { value: '9999px', label: 'Pill Shape' },
+];
+
 // Restaurant ID should be provided dynamically - no default static ID
 
 export default function NavbarSettingsForm() {
@@ -162,10 +172,8 @@ export default function NavbarSettingsForm() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
-  // Preview visibility state
-  const [showPreview, setShowPreview] = useState(false);
 
-  // Load Google Fonts dynamically
+  // Load Google Fonts dynamically (excluding Poppins since it's already loaded globally)
   useEffect(() => {
     // Check if fonts are already loaded
     const existingLink = document.getElementById('navbar-google-fonts');
@@ -173,7 +181,7 @@ export default function NavbarSettingsForm() {
       const link = document.createElement('link');
       link.id = 'navbar-google-fonts';
       link.rel = 'stylesheet';
-      link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;600;700&family=Lato:wght@300;400;700&family=Montserrat:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Merriweather:wght@300;400;700&display=swap';
+      link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;600;700&family=Lato:wght@300;400;700&family=Montserrat:wght@300;400;500;600;700&family=Source+Sans+Pro:wght@300;400;600;700&family=Nunito:wght@300;400;600;700&family=Raleway:wght@300;400;500;600;700&family=Ubuntu:wght@300;400;500;700&family=Noto+Sans:wght@300;400;600;700&family=Fira+Sans:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600;700&family=Barlow:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Merriweather:wght@300;400;700&family=Lora:wght@300;400;600;700&family=Source+Serif+Pro:wght@300;400;600;700&family=Crimson+Text:wght@400;600;700&family=Libre+Baskerville:wght@400;700&family=Cormorant+Garamond:wght@300;400;500;600;700&family=EB+Garamond:wght@400;500;600;700&family=Vollkorn:wght@400;500;600;700&family=Bitter:wght@300;400;600;700&family=Oswald:wght@300;400;500;600;700&family=Bebas+Neue&family=Anton&family=Righteous&family=Fredoka+One&family=Comfortaa:wght@300;400;600;700&family=Quicksand:wght@300;400;500;600;700&family=Pacifico&family=Dancing+Script:wght@400;600;700&family=Lobster&family=JetBrains+Mono:wght@300;400;500;600;700&family=Fira+Code:wght@300;400;500;600;700&family=Source+Code+Pro:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap';
       document.head.appendChild(link);
     }
   }, []);
@@ -291,32 +299,6 @@ export default function NavbarSettingsForm() {
             <p className="mt-1 text-sm text-gray-600">Customize your website navigation</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowPreview(!showPreview)}
-          className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
-          title={showPreview ? 'Hide Preview' : 'Show Live Preview'}
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
-          {showPreview ? 'Hide' : 'Show'} Preview
-        </button>
       </div>
 
       {/* Error Messages */}
@@ -1034,16 +1016,17 @@ export default function NavbarSettingsForm() {
                     <span className="text-sm font-semibold text-gray-900">Button Border Radius</span>
                     <span className="mt-0.5 block text-xs text-gray-600">Roundness of button corners</span>
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={buttonBorderRadius}
                     onChange={(e) => setButtonBorderRadius(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-mono focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="0.5rem"
-                  />
-                  <div className="mt-2 text-xs text-gray-500">
-                    Examples: 0.25rem (slight), 0.5rem (medium), 1rem (rounded), 9999px (pill)
-                  </div>
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    {BORDER_RADIUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </>
@@ -1078,80 +1061,6 @@ export default function NavbarSettingsForm() {
         </div>
       </form>
 
-      {/* Preview Modal Popup */}
-      {showPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
-          <div className="relative z-10 w-full max-w-6xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
-              <div>
-                <h2 className="text-xl font-bold text-white">Navbar Live Preview</h2>
-                <p className="mt-0.5 text-sm text-purple-100">Updates in real-time</p>
-              </div>
-              <button
-                onClick={() => setShowPreview(false)}
-                className="rounded-lg p-2 text-white transition-colors hover:bg-white/20"
-                aria-label="Close preview"
-              >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="max-h-[80vh] overflow-y-auto bg-gray-50 p-8">
-              <div className="mx-auto max-w-5xl">
-                <div className="overflow-hidden rounded-xl border border-gray-300 bg-white shadow-lg">
-                  <Navbar
-                    key={`${bgColor}-${textColor}-${showOrderButton}-${logoSize}`}
-                    {...generateNavbarPropsFromConfig(config, {
-                      logoSize,
-                      layout,
-                      position: 'relative',
-                      bgColor,
-                      textColor,
-                      buttonBgColor,
-                      buttonTextColor,
-                      buttonBorderRadius,
-                      fontFamily,
-                      fontSize,
-                      fontWeight,
-                      textTransform,
-                      showCtaButton: showOrderButton,
-                      ctaButton: showOrderButton ? {
-                        label: orderButtonText,
-                        href: orderButtonHref,
-                      } : undefined,
-                    })}
-                  />
-                </div>
-              </div>
-              <div className="mt-6 flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 p-4">
-                <svg
-                  className="h-5 w-5 shrink-0 text-purple-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-                <p className="text-sm text-purple-900">
-                  Preview shows how your navbar will appear on the website
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

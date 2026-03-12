@@ -161,6 +161,7 @@ export default function DynamicNavbar({
       textColor={config.textColor}
       buttonBgColor={config.buttonBgColor}
       buttonTextColor={config.buttonTextColor}
+      buttonBorderRadius={config.buttonBorderRadius}
       borderColor={config.borderColor}
       borderWidth={config.borderWidth}
       bagCount={config.bagCount}

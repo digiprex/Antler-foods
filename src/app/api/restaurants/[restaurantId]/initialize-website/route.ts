@@ -142,7 +142,7 @@ const INSERT_TEMPLATE = `
 
 function generateSEOMetadata(restaurantName: string, pageSlug: string, pageName: string) {
   const cleanRestaurantName = restaurantName.trim();
-  
+
   const seoTemplates = {
     home: {
       meta_title: `${cleanRestaurantName} - Best Restaurant Experience | Order Online`,
@@ -267,19 +267,84 @@ async function createNavbarFromTheme(restaurantId: string, themeId: string) {
     return;
   }
 
+  // Fetch restaurant's global_styles
+  const restaurantQuery = `
+    query GetRestaurantGlobalStyles($restaurant_id: uuid!) {
+      restaurants_by_pk(restaurant_id: $restaurant_id) {
+        global_styles
+      }
+    }
+  `;
+
+  const restaurantData = await adminGraphqlRequest<{ restaurants_by_pk: { global_styles: any } | null }>(
+    restaurantQuery,
+    { restaurant_id: restaurantId }
+  );
+
+  const globalStyles = restaurantData.restaurants_by_pk?.global_styles || {};
+
+  // Fetch pages with show_on_navbar to populate menu_items
+  const pagesQuery = `
+    query GetNavbarPages($restaurant_id: uuid!) {
+      web_pages(
+        where: {
+          restaurant_id: {_eq: $restaurant_id},
+          show_on_navbar: {_eq: true},
+          published: {_eq: true},
+          is_deleted: {_eq: false}
+        },
+        order_by: {created_at: asc}
+      ) {
+        page_id
+        name
+        url_slug
+      }
+    }
+  `;
+
+  const pagesData = await adminGraphqlRequest<{ web_pages: Array<{ page_id: string; name: string; url_slug: string }> }>(
+    pagesQuery,
+    { restaurant_id: restaurantId }
+  );
+
+  // Transform pages to menu items
+  const menuItems = (pagesData.web_pages || []).map((page: any) => ({
+    label: page.name,
+    href: `/${page.url_slug}`,
+  }));
+
+  // Build config based on global styles
+  const config = {
+    bgColor: (globalStyles as any)?.primaryColor || navbarSection.style?.bgColor || '#4a90e2',
+    textColor: (globalStyles as any)?.textColor || globalStyles?.title?.color || navbarSection.style?.textColor || '#2c3e50',
+    buttonBgColor: (globalStyles as any)?.accentColor || globalStyles?.primaryButton?.backgroundColor || navbarSection.style?.buttonBgColor || '#000000',
+    buttonTextColor: globalStyles?.primaryButton?.color || navbarSection.style?.buttonTextColor || '#ffffff',
+    position: navbarSection.style?.position || 'fixed',
+    logoSize: navbarSection.style?.logoSize || 40,
+    fontFamily: globalStyles?.title?.fontFamily || navbarSection.style?.fontFamily || 'Inter, system-ui, sans-serif',
+    fontSize: globalStyles?.title?.fontSize || navbarSection.style?.fontSize || '2.25rem',
+    fontWeight: globalStyles?.title?.fontWeight || navbarSection.style?.fontWeight || 700,
+    textTransform: navbarSection.style?.textTransform || 'uppercase',
+    ctaButton: {
+      label: 'Order Online',
+      href: '/menu',
+      style: 'primary'
+    }
+  };
+
   // Create navbar template (without page_id - it's global)
   await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
     restaurant_id: restaurantId,
     name: navbarSection.name || 'navbar',
     category: 'Navbar',
-    config: navbarSection.style || {},
-    menu_items: {},
+    config: config,
+    menu_items: menuItems,
     page_id: null,
     order_index: 0,
     ref_template_id: null,
   });
 
-  console.log('✅ Navbar template created from theme');
+  console.log('✅ Navbar template created from theme with global styles');
 }
 
 async function createFooterFromTheme(restaurantId: string, themeId: string) {
@@ -311,19 +376,58 @@ async function createFooterFromTheme(restaurantId: string, themeId: string) {
     return;
   }
 
+  // Fetch restaurant's global_styles
+  const restaurantQuery = `
+    query GetRestaurantGlobalStyles($restaurant_id: uuid!) {
+      restaurants_by_pk(restaurant_id: $restaurant_id) {
+        global_styles
+      }
+    }
+  `;
+
+  const restaurantData = await adminGraphqlRequest<{ restaurants_by_pk: { global_styles: any } | null }>(
+    restaurantQuery,
+    { restaurant_id: restaurantId }
+  );
+
+  const globalStyles = restaurantData.restaurants_by_pk?.global_styles || {};
+
+  // Build config based on global styles
+  const config = {
+    bgColor: (globalStyles as any)?.primaryColor || footerSection.style?.bgColor || '#4a90e2',
+    textColor: (globalStyles as any)?.textColor || globalStyles?.paragraph?.color || footerSection.style?.textColor || '#ffffff',
+    linkColor: (globalStyles as any)?.textColor || footerSection.style?.linkColor || '#ffffff',
+    copyrightBgColor: (globalStyles as any)?.accentColor || footerSection.style?.copyrightBgColor || '#ffca58',
+    copyrightTextColor: footerSection.style?.copyrightTextColor || '#ffffff',
+    fontFamily: globalStyles?.paragraph?.fontFamily || footerSection.style?.fontFamily || 'Inter, system-ui, sans-serif',
+    fontSize: globalStyles?.paragraph?.fontSize || footerSection.style?.fontSize || '0.9375rem',
+    fontWeight: globalStyles?.paragraph?.fontWeight || footerSection.style?.fontWeight || 400,
+    textTransform: footerSection.style?.textTransform || 'none',
+    headingFontFamily: globalStyles?.subheading?.fontFamily || footerSection.style?.headingFontFamily || 'Inter, system-ui, sans-serif',
+    headingFontSize: globalStyles?.subheading?.fontSize || footerSection.style?.headingFontSize || '1.125rem',
+    headingFontWeight: globalStyles?.subheading?.fontWeight || footerSection.style?.headingFontWeight || 600,
+    headingTextTransform: footerSection.style?.headingTextTransform || 'uppercase',
+    copyrightFontFamily: globalStyles?.paragraph?.fontFamily || footerSection.style?.copyrightFontFamily || 'Inter, system-ui, sans-serif',
+    copyrightFontSize: footerSection.style?.copyrightFontSize || '0.875rem',
+    copyrightFontWeight: footerSection.style?.copyrightFontWeight || 400,
+    aboutContent: footerSection.style?.aboutContent || '',
+    showNewsletter: footerSection.style?.showNewsletter !== undefined ? footerSection.style.showNewsletter : true,
+    showSocialMedia: footerSection.style?.showSocialMedia !== undefined ? footerSection.style.showSocialMedia : true,
+  };
+
   // Create footer template (without page_id - it's global)
   await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
     restaurant_id: restaurantId,
     name: footerSection.name || 'footer',
     category: 'Footer',
-    config: footerSection.style || {},
+    config: config,
     menu_items: {},
     page_id: null,
     order_index: 0,
     ref_template_id: null,
   });
 
-  console.log('✅ Footer template created from theme');
+  console.log('✅ Footer template created from theme with global styles');
 }
 
 async function createThemeSections(restaurantId: string, themeId: string, pageId: string) {

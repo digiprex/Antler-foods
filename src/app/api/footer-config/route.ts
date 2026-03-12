@@ -291,7 +291,7 @@ export async function GET(request: Request) {
         copyrightText: `© ${new Date().getFullYear()} ${restaurantName || 'Restaurant'}. All rights reserved.`,
         showPoweredBy: true,
         layout: 'columns-4', // Default layout
-        bgColor: globalStyles?.secondaryButton?.backgroundColor || '#1f2937',
+        bgColor: (globalStyles as any)?.primaryColor || '#1f2937',
         textColor: globalStyles?.paragraph?.color || '#f9fafb',
         linkColor: globalStyles?.secondaryColor || globalStyles?.paragraph?.color || '#9ca3af',
         copyrightBgColor: globalStyles?.accentColor || '#000000',
@@ -329,7 +329,7 @@ export async function GET(request: Request) {
         copyrightText: template.config?.copyrightText || `© ${new Date().getFullYear()} ${restaurantName || 'Restaurant'}. All rights reserved.`,
         showPoweredBy: template.config?.showPoweredBy !== false,
         layout: template.name,
-        bgColor: template.config?.bgColor || globalStyles?.secondaryButton?.backgroundColor || '#1f2937',
+        bgColor: template.config?.bgColor || (globalStyles as any)?.primaryColor || '#1f2937',
         textColor: template.config?.textColor || globalStyles?.paragraph?.color || '#f9fafb',
         linkColor: template.config?.linkColor || globalStyles?.secondaryColor || globalStyles?.paragraph?.color || '#9ca3af',
         copyrightBgColor: template.config?.copyrightBgColor || globalStyles?.accentColor || '#000000',

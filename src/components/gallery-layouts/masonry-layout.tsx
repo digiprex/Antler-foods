@@ -4,6 +4,7 @@ import {
   GalleryCaptionOverlay,
   type GalleryLayoutCommonProps,
   getAnimationStyle,
+  getAspectRatioValue,
   getResolvedColumns,
 } from './shared';
 
@@ -11,6 +12,7 @@ export function MasonryGalleryLayout({
   images,
   columns,
   gap,
+  aspectRatio,
   showCaptions,
   onImageClick,
 }: GalleryLayoutCommonProps) {
@@ -29,17 +31,22 @@ export function MasonryGalleryLayout({
       }
     >
       {images.map((image, index) => (
-        <div
-          key={image.id || `${image.url}-${index}`}
-          className={styles.masonryItem}
-          style={getAnimationStyle(index)}
-        >
+        <div key={image.id || `${image.url}-${index}`} className={styles.masonryItem}>
           <button
             type="button"
-            className={`${styles.cardButton} ${styles.cardReveal}`}
+            className={styles.cardButton}
             onClick={() => onImageClick(index)}
           >
-            <div className={`${styles.cardSurface} ${styles.cardSurfaceSoft}`}>
+            <div
+              className={`${styles.cardSurface} ${styles.cardSurfaceSoft} ${styles.cardReveal}`}
+              style={{
+                aspectRatio:
+                  aspectRatio === 'auto'
+                    ? undefined
+                    : getAspectRatioValue(aspectRatio),
+                ...getAnimationStyle(index),
+              }}
+            >
               <img
                 src={image.url}
                 alt={image.alt || image.title || `Gallery image ${index + 1}`}

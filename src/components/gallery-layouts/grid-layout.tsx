@@ -34,13 +34,15 @@ export function GridGalleryLayout({
         <button
           key={image.id || `${image.url}-${index}`}
           type="button"
-          className={`${styles.cardButton} ${styles.cardReveal}`}
-          style={getAnimationStyle(index)}
+          className={styles.cardButton}
           onClick={() => onImageClick(index)}
         >
           <div
-            className={styles.cardSurface}
-            style={{ aspectRatio: getAspectRatioValue(aspectRatio) }}
+            className={`${styles.cardSurface} ${styles.cardReveal}`}
+            style={{
+              aspectRatio: getAspectRatioValue(aspectRatio),
+              ...getAnimationStyle(index),
+            }}
           >
             <img
               src={image.url}

@@ -22,6 +22,15 @@ interface FAQConfig extends SectionStyleConfig {
   title: string;
   subtitle: string;
   faqs: FAQ[];
+  // New FAQ Card Styling options
+  faqCardBgColor?: string;
+  questionTextColor?: string;
+  answerTextColor?: string;
+  cardBorderRadius?: string;
+  cardShadow?: string;
+  accentColor?: string;
+  hoverColor?: string;
+  enableScrollAnimation?: boolean;
 }
 
 interface FAQConfigResponse {
@@ -134,6 +143,15 @@ interface UpdateFAQConfigData {
   bodyFontSize?: string;
   bodyFontWeight?: number;
   bodyColor?: string;
+  // New FAQ Card Styling options
+  faqCardBgColor?: string;
+  questionTextColor?: string;
+  answerTextColor?: string;
+  cardBorderRadius?: string;
+  cardShadow?: string;
+  accentColor?: string;
+  hoverColor?: string;
+  enableScrollAnimation?: boolean;
 }
 
 export function useUpdateFAQConfig() {

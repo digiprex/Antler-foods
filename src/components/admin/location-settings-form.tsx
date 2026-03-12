@@ -53,6 +53,8 @@ interface PlaceDetails {
   }>;
 }
 
+type PreviewViewport = 'desktop' | 'mobile';
+
 export default function LocationSettingsForm({ restaurantId, pageId, templateId, isNewSection = false }: LocationSettingsFormProps) {
   const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,9 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
   const [googlePlaceId, setGooglePlaceId] = useState<string>('');
   const [loadingPlace, setLoadingPlace] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [previewViewport, setPreviewViewport] = useState<'desktop' | 'mobile'>('desktop');
+  const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop');
+  const [responsiveEditorViewport, setResponsiveEditorViewport] =
+    useState<PreviewViewport>('desktop');
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -89,18 +93,33 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
     { value: 'fullscreen', name: 'Fullscreen', description: 'Full-width immersive', icon: '🖼️' },
   ];
 
+  const layoutSupportText: Record<string, string> = {
+    default: 'Balanced address-first presentation',
+    grid: 'Best for clean map and info balance',
+    list: 'Great for long-form location details',
+    cards: 'Modular highlights with more breathing room',
+    map: 'Map-first experience with supporting info',
+    compact: 'Tight footprint for denser pages',
+    sidebar: 'Strong for multi-column page composition',
+    fullscreen: 'Best for bold destination-style sections',
+  };
+
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   // Render layout preview artwork with address, map, and hours
-  const renderLocationLayoutPreview = (layoutValue: string) => {
+  const renderLocationLayoutPreview = (layoutValue: string, active = false) => {
     const frameStyle = {
       position: 'relative' as const,
       height: '130px',
       borderRadius: '18px',
       overflow: 'hidden',
-      border: '1px solid #dbe3ec',
-      background: 'linear-gradient(180deg, #fdfefe 0%, #f7f9fc 100%)',
-      boxShadow: '0 12px 26px rgba(15, 23, 42, 0.07)',
+      border: active ? '1px solid rgba(167, 139, 250, 0.55)' : '1px solid #dbe3ec',
+      background: active
+        ? 'linear-gradient(180deg, #ffffff 0%, #faf5ff 100%)'
+        : 'linear-gradient(180deg, #fdfefe 0%, #f7f9fc 100%)',
+      boxShadow: active
+        ? '0 18px 36px rgba(124, 58, 237, 0.14)'
+        : '0 12px 26px rgba(15, 23, 42, 0.07)',
     };
 
     const boardStyle = {
@@ -108,8 +127,8 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
       inset: '44px 10px 10px',
       overflow: 'hidden',
       borderRadius: '12px',
-      background: '#f3f6f8',
-      border: '1px solid #edf2f6',
+      background: active ? '#f8f5ff' : '#f3f6f8',
+      border: active ? '1px solid #eadcff' : '1px solid #edf2f6',
       padding: '8px',
     };
 
@@ -123,7 +142,7 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
 
     // Address bar (darker gray) - represents address text
     const addressBox = (width = '100%', height = '10px') => (
-      <div style={{ background: '#9ca3af', borderRadius: '4px', width, height }} />
+      <div style={{ background: active ? '#7c3aed' : '#9ca3af', borderRadius: '999px', width, height, opacity: active ? 0.72 : 1 }} />
     );
 
     // Map area (green gradient with pin)
@@ -135,7 +154,7 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
 
     // Hours/info box (lighter gray) - represents opening hours
     const hoursBox = (width = '100%', height = '8px') => (
-      <div style={{ background: '#d1d5db', borderRadius: '4px', width, height }} />
+      <div style={{ background: active ? '#d8b4fe' : '#d1d5db', borderRadius: '999px', width, height, opacity: active ? 0.84 : 1 }} />
     );
 
     switch (layoutValue) {
@@ -274,6 +293,25 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
         );
     }
   };
+
+  const renderResponsiveEditorTabs = (scope: string) => (
+    <div className="inline-flex rounded-full bg-slate-100 p-1">
+      {(['desktop', 'mobile'] as PreviewViewport[]).map((viewport) => (
+        <button
+          key={`${scope}-${viewport}`}
+          type="button"
+          onClick={() => setResponsiveEditorViewport(viewport)}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+            responsiveEditorViewport === viewport
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          {viewport === 'desktop' ? 'Desktop' : 'Mobile'}
+        </button>
+      ))}
+    </div>
+  );
 
   // Load configuration and restaurant place_id from API
   useEffect(() => {
@@ -471,6 +509,12 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
     setConfig(prev => ({ ...prev, ...updates }));
   };
 
+  const activeLayout: NonNullable<LocationConfig['layout']> =
+    config.layout || 'default';
+  const activeLayoutOption =
+    layoutOptions.find((option) => option.value === activeLayout) ??
+    layoutOptions[0];
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -556,9 +600,9 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6 pb-40">
         {/* Header */}
-        <div className="mb-8 flex items-start justify-between">
+        <div className="mb-8 flex items-start">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
               <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -573,19 +617,32 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowPreviewModal(true)}
-            disabled={!placeDetails}
-            title={placeDetails ? 'Preview Layout' : 'Preview disabled - location not loaded'}
-            className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Preview Layout
-          </button>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-500">
+                Preview Experience
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-slate-900">
+                Compare map-heavy and content-heavy layouts in desktop and mobile before publishing.
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                The location editor now follows the Hero preview pattern so selection cards, typography controls, and live preview stay aligned.
+              </p>
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-700">
+                <span className="inline-flex h-2 w-2 rounded-full bg-purple-500" />
+                Current layout: {activeLayoutOption.name}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Editing Viewport
+              </p>
+              {renderResponsiveEditorTabs('location-preview-workspace')}
+            </div>
+          </div>
         </div>
 
         {/* Location Information */}
@@ -605,34 +662,64 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {layoutOptions.map((option) => (
-              <button
-                type="button"
-                key={option.value}
-                onClick={() => updateConfig({ layout: option.value as LocationConfig['layout'] })}
-                className={`group w-full cursor-pointer rounded-xl border-2 p-3 text-left transition-all ${
-                  config.layout === option.value
-                    ? 'border-purple-500 bg-purple-50 shadow-sm'
-                    : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'
-                }`}
-                aria-pressed={config.layout === option.value}
-              >
-                <div className="mb-3">
-                  {renderLocationLayoutPreview(option.value)}
-                </div>
-                <div className={`text-sm font-medium ${
-                  config.layout === option.value
-                    ? 'text-purple-700'
-                    : 'text-gray-900'
-                }`}>
-                  {option.name}
-                </div>
-                <div className="mt-0.5 text-xs text-gray-500">
-                  {option.description}
-                </div>
-              </button>
-            ))}
+          <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-900">
+                Selected Layout
+              </p>
+              <p className="text-xs text-slate-500">
+                {activeLayoutOption.name}: {activeLayoutOption.description}
+              </p>
+            </div>
+            <span className="inline-flex rounded-full border border-purple-200 bg-white px-3 py-1.5 text-xs font-semibold text-purple-700">
+              Preview matches live output
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {layoutOptions.map((option) => {
+              const isActive = activeLayout === option.value;
+
+              return (
+                <button
+                  type="button"
+                  key={option.value}
+                  onClick={() =>
+                    updateConfig({ layout: option.value as LocationConfig['layout'] })
+                  }
+                  className={`group w-full rounded-2xl border p-3 text-left transition-all ${
+                    isActive
+                      ? 'border-purple-500 bg-purple-50 shadow-[0_20px_45px_rgba(124,58,237,0.12)]'
+                      : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-[0_18px_35px_rgba(15,23,42,0.08)]'
+                  }`}
+                  aria-pressed={isActive}
+                >
+                  <div className="mb-4">
+                    {renderLocationLayoutPreview(option.value, isActive)}
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className={`text-sm font-semibold ${isActive ? 'text-purple-700' : 'text-slate-900'}`}>
+                        {option.name}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {option.description}
+                      </div>
+                    </div>
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                        isActive ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-500'
+                      }`}
+                    >
+                      {isActive ? 'Selected' : 'Layout'}
+                    </span>
+                  </div>
+                  <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white/75 px-3 py-2 text-xs text-slate-500">
+                    {layoutSupportText[option.value]}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -828,6 +915,14 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
               </label>
             </div>
 
+            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-900">Responsive Typography Workspace</p>
+                <p className="text-xs text-slate-500">Switch between desktop and mobile overrides before opening the live preview.</p>
+              </div>
+              {renderResponsiveEditorTabs('location-typography')}
+            </div>
+
             {!sectionStyle.is_custom ? (
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
                 <div className="flex items-start gap-3">
@@ -850,6 +945,7 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
                   onChange={(updates) =>
                     setSectionStyle((prev) => ({ ...prev, ...updates }))
                   }
+                  viewport={responsiveEditorViewport}
                 />
               </div>
             )}
@@ -883,61 +979,79 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
         </div>
       </form>
 
-      {/* Preview Modal */}
-      {showPreviewModal && placeDetails && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setShowPreviewModal(false)}
+      {!showPreviewModal ? (
+        <button
+          type="button"
+          onClick={() => {
+            if (!placeDetails) return;
+            setPreviewViewport(responsiveEditorViewport);
+            setShowPreviewModal(true);
+          }}
+          disabled={!placeDetails}
+          title={placeDetails ? 'Open location preview' : 'Preview disabled until location details load'}
+          className={`fixed bottom-24 right-4 z-40 inline-flex items-center gap-3 rounded-full px-5 py-3 text-sm font-semibold shadow-[0_18px_45px_rgba(15,23,42,0.18)] backdrop-blur transition-all sm:right-6 ${
+            placeDetails
+              ? 'border border-purple-200 bg-white/95 text-purple-700 hover:-translate-y-0.5 hover:border-purple-300 hover:bg-white'
+              : 'cursor-not-allowed border border-slate-200 bg-white/90 text-slate-400'
+          }`}
+          aria-label="Open location preview"
         >
-          <div
-            className="relative w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white p-6">
+          <span className={`inline-flex h-10 w-10 items-center justify-center rounded-full shadow-sm ${
+            placeDetails
+              ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white'
+              : 'bg-slate-200 text-slate-500'
+          }`}>
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </span>
+          <span className="flex flex-col items-start leading-tight">
+            <span>Live Preview</span>
+            <span className={`text-xs font-medium ${placeDetails ? 'text-purple-500' : 'text-slate-400'}`}>
+              {placeDetails
+                ? `${responsiveEditorViewport === 'mobile' ? 'Open mobile' : 'Open desktop'} ${activeLayoutOption.name.toLowerCase()} preview`
+                : 'Waiting for location data'}
+            </span>
+          </span>
+        </button>
+      ) : null}
+
+      {showPreviewModal && placeDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => setShowPreviewModal(false)} />
+          <div className="relative z-10 flex h-[min(92vh,980px)] w-full max-w-7xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_35px_120px_rgba(15,23,42,0.35)]">
+            <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  Layout Preview: {layoutOptions.find(opt => opt.value === config.layout)?.name}
+                <h2 className="text-xl font-bold text-slate-900">
+                  Live Preview
                 </h2>
-                <p className="mt-1 text-sm text-gray-600">Preview how your location will appear</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Switch between desktop and mobile to verify map placement, spacing, and hierarchy for the {activeLayoutOption.name} layout.
+                </p>
               </div>
-
               <div className="flex items-center gap-3">
-                {/* Desktop/Mobile Toggle */}
-                <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
-                  <button
-                    type="button"
-                    onClick={() => setPreviewViewport('desktop')}
-                    className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                      previewViewport === 'desktop'
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    Desktop
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewViewport('mobile')}
-                    className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                      previewViewport === 'mobile'
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                    Mobile
-                  </button>
+                <div className="inline-flex rounded-full bg-slate-100 p-1">
+                  {(['desktop', 'mobile'] as PreviewViewport[]).map((viewport) => (
+                    <button
+                      key={viewport}
+                      type="button"
+                      onClick={() => setPreviewViewport(viewport)}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        previewViewport === viewport
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      {viewport === 'desktop' ? 'Desktop' : 'Mobile'}
+                    </button>
+                  ))}
                 </div>
-
                 <button
                   type="button"
                   onClick={() => setShowPreviewModal(false)}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Close preview"
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -946,28 +1060,21 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
               </div>
             </div>
 
-            <div className="overflow-auto p-0" style={{ maxHeight: 'calc(90vh - 180px)' }}>
-              <div style={{
-                backgroundColor: '#f3f4f6',
-                minHeight: '500px',
-                padding: '2rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <div style={{
-                  width: previewViewport === 'desktop' ? '100%' : '375px',
-                  maxWidth: previewViewport === 'desktop' ? '1400px' : '375px',
-                  backgroundColor: config.bgColor || '#ffffff',
-                  color: config.textColor || '#000000',
-                  borderRadius: previewViewport === 'mobile' ? '24px' : '0',
-                  boxShadow: previewViewport === 'mobile' ? '0 20px 60px rgba(0, 0, 0, 0.3)' : 'none',
-                  border: previewViewport === 'mobile' ? '8px solid #1f2937' : 'none',
-                  overflow: 'hidden',
-                  transition: 'all 300ms ease',
-                }}>
+            <div className="flex-1 overflow-y-auto bg-slate-950 p-4 sm:p-6">
+              <div
+                className={`mx-auto overflow-hidden border border-white/10 bg-slate-900 shadow-[0_24px_80px_rgba(15,23,42,0.35)] ${
+                  previewViewport === 'mobile'
+                    ? 'max-w-[430px] rounded-[32px]'
+                    : 'max-w-[1240px] rounded-[32px]'
+                }`}
+              >
+                <div className="flex items-center justify-between border-b border-white/10 bg-slate-950/90 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">
+                  <span>{previewViewport === 'mobile' ? 'Phone Preview' : 'Desktop Preview'}</span>
+                  <span>{previewViewport === 'mobile' ? '390 x 780' : '1280 x 720'}</span>
+                </div>
+                <div className="bg-white">
                   <LocationFullPreview
-                    layout={config.layout || 'default'}
+                    layout={activeLayout}
                     placeDetails={placeDetails}
                     title={config.title || 'Our Location'}
                     subtitle={config.subtitle || ''}
@@ -984,14 +1091,19 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-gray-200 bg-gray-50 p-6">
-              <button
-                type="button"
-                onClick={() => setShowPreviewModal(false)}
-                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:from-purple-700 hover:to-purple-800 hover:shadow-xl"
-              >
-                Close Preview
-              </button>
+            <div className="border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
+              <div className="flex flex-col gap-2 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <svg className="h-5 w-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Live preview reflects your current location content, layout, and visibility settings.
+                </div>
+                <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                  {previewViewport === 'mobile' ? 'Mobile responsiveness check' : 'Desktop composition check'}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1639,9 +1751,10 @@ function LocationFullPreview({
 // Static Map Preview Component for Layout Previews
 function SimpleMapPreview({ lat, lng, name }: { lat: number; lng: number; name: string }) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const hasValidCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
   
   // Check if we have valid coordinates
-  if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+  if (!hasValidCoordinates) {
     return (
       <div style={{
         width: '100%',
@@ -1657,6 +1770,60 @@ function SimpleMapPreview({ lat, lng, name }: { lat: number; lng: number; name: 
           <p style={{ fontSize: '0.875rem', color: '#666' }}>Map Preview</p>
           <p style={{ fontSize: '0.75rem', color: '#999' }}>Invalid coordinates</p>
         </div>
+      </div>
+    );
+  }
+
+  const embedUrl =
+    `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lng}`)}&z=15&output=embed`;
+  const mapsLink =
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+  const useIframePreview = typeof window !== 'undefined';
+
+  if (useIframePreview) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '100%',
+        minHeight: '200px',
+        backgroundColor: '#e8e8e8',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <iframe
+          src={embedUrl}
+          title={`Map showing ${name}`}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          style={{
+            width: '100%',
+            height: '100%',
+            minHeight: '200px',
+            border: 'none',
+            display: 'block',
+          }}
+        />
+        <a
+          href={mapsLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            borderRadius: '999px',
+            background: 'rgba(15, 23, 42, 0.82)',
+            color: '#ffffff',
+            padding: '0.45rem 0.8rem',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            textDecoration: 'none',
+            boxShadow: '0 12px 28px rgba(15, 23, 42, 0.18)',
+            backdropFilter: 'blur(10px)',
+          }}
+        >
+          Open in Maps
+        </a>
       </div>
     );
   }

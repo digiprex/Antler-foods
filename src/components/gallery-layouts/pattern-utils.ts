@@ -1,13 +1,37 @@
 import type { CSSProperties } from 'react';
 
 interface TilePattern {
-  gridColumn: string;
-  gridRow?: string;
-  minHeight?: string;
+  columnSpan: number;
+  rowSpan?: number;
+  tabletColumnSpan?: number;
+  tabletRowSpan?: number;
+  mobileColumnSpan?: number;
+  mobileRowSpan?: number;
 }
 
 function getPattern<T>(patterns: T[], index: number): T {
   return patterns[index % patterns.length];
+}
+
+function toTileStyle(pattern: TilePattern): CSSProperties {
+  const style = {
+    '--tile-column-span': String(pattern.columnSpan),
+    '--tile-row-span': String(pattern.rowSpan ?? 1),
+    '--tile-tablet-column-span': String(
+      pattern.tabletColumnSpan ?? pattern.columnSpan,
+    ),
+    '--tile-tablet-row-span': String(
+      pattern.tabletRowSpan ?? pattern.rowSpan ?? 1,
+    ),
+    '--tile-mobile-column-span': String(
+      pattern.mobileColumnSpan ?? pattern.tabletColumnSpan ?? pattern.columnSpan,
+    ),
+    '--tile-mobile-row-span': String(
+      pattern.mobileRowSpan ?? pattern.tabletRowSpan ?? pattern.rowSpan ?? 1,
+    ),
+  };
+
+  return style as CSSProperties;
 }
 
 export function getMosaicTilePattern(
@@ -15,41 +39,190 @@ export function getMosaicTilePattern(
   index: number,
 ): CSSProperties {
   const presets: Record<number, TilePattern[]> = {
-    1: [{ gridColumn: 'span 12', minHeight: 'clamp(22rem, 52vw, 34rem)' }],
+    1: [
+      {
+        columnSpan: 12,
+        rowSpan: 5,
+        tabletColumnSpan: 6,
+        tabletRowSpan: 5,
+        mobileColumnSpan: 2,
+        mobileRowSpan: 3,
+      },
+    ],
     2: [
-      { gridColumn: 'span 6', minHeight: 'clamp(18rem, 42vw, 30rem)' },
-      { gridColumn: 'span 6', minHeight: 'clamp(18rem, 42vw, 30rem)' },
+      {
+        columnSpan: 6,
+        rowSpan: 4,
+        tabletColumnSpan: 3,
+        tabletRowSpan: 4,
+        mobileColumnSpan: 2,
+        mobileRowSpan: 2,
+      },
+      {
+        columnSpan: 6,
+        rowSpan: 4,
+        tabletColumnSpan: 3,
+        tabletRowSpan: 4,
+        mobileColumnSpan: 2,
+        mobileRowSpan: 2,
+      },
     ],
     3: [
-      { gridColumn: 'span 7', gridRow: 'span 4', minHeight: 'clamp(22rem, 44vw, 32rem)' },
-      { gridColumn: 'span 5', gridRow: 'span 2', minHeight: 'clamp(10rem, 18vw, 14rem)' },
-      { gridColumn: 'span 5', gridRow: 'span 2', minHeight: 'clamp(10rem, 18vw, 14rem)' },
+      {
+        columnSpan: 7,
+        rowSpan: 4,
+        tabletColumnSpan: 6,
+        tabletRowSpan: 4,
+        mobileColumnSpan: 2,
+        mobileRowSpan: 2,
+      },
+      {
+        columnSpan: 5,
+        rowSpan: 2,
+        tabletColumnSpan: 3,
+        tabletRowSpan: 2,
+        mobileColumnSpan: 1,
+        mobileRowSpan: 1,
+      },
+      {
+        columnSpan: 5,
+        rowSpan: 2,
+        tabletColumnSpan: 3,
+        tabletRowSpan: 2,
+        mobileColumnSpan: 1,
+        mobileRowSpan: 1,
+      },
     ],
     4: [
-      { gridColumn: 'span 7', gridRow: 'span 4', minHeight: 'clamp(22rem, 44vw, 32rem)' },
-      { gridColumn: 'span 5', gridRow: 'span 2', minHeight: 'clamp(10rem, 18vw, 14rem)' },
-      { gridColumn: 'span 3', gridRow: 'span 2', minHeight: 'clamp(10rem, 18vw, 14rem)' },
-      { gridColumn: 'span 2', gridRow: 'span 2', minHeight: 'clamp(10rem, 18vw, 14rem)' },
+      {
+        columnSpan: 7,
+        rowSpan: 4,
+        tabletColumnSpan: 6,
+        tabletRowSpan: 4,
+        mobileColumnSpan: 2,
+        mobileRowSpan: 2,
+      },
+      {
+        columnSpan: 5,
+        rowSpan: 2,
+        tabletColumnSpan: 3,
+        tabletRowSpan: 2,
+        mobileColumnSpan: 1,
+        mobileRowSpan: 1,
+      },
+      {
+        columnSpan: 3,
+        rowSpan: 2,
+        tabletColumnSpan: 3,
+        tabletRowSpan: 2,
+        mobileColumnSpan: 1,
+        mobileRowSpan: 1,
+      },
+      {
+        columnSpan: 2,
+        rowSpan: 2,
+        tabletColumnSpan: 6,
+        tabletRowSpan: 2,
+        mobileColumnSpan: 2,
+        mobileRowSpan: 1,
+      },
     ],
     5: [
-      { gridColumn: 'span 6', gridRow: 'span 4', minHeight: 'clamp(22rem, 44vw, 32rem)' },
-      { gridColumn: 'span 3', gridRow: 'span 2', minHeight: 'clamp(10rem, 18vw, 14rem)' },
-      { gridColumn: 'span 3', gridRow: 'span 2', minHeight: 'clamp(10rem, 18vw, 14rem)' },
-      { gridColumn: 'span 4', gridRow: 'span 2', minHeight: 'clamp(11rem, 18vw, 15rem)' },
-      { gridColumn: 'span 2', gridRow: 'span 2', minHeight: 'clamp(11rem, 18vw, 15rem)' },
+      {
+        columnSpan: 6,
+        rowSpan: 4,
+        tabletColumnSpan: 6,
+        tabletRowSpan: 4,
+        mobileColumnSpan: 2,
+        mobileRowSpan: 2,
+      },
+      {
+        columnSpan: 3,
+        rowSpan: 2,
+        tabletColumnSpan: 3,
+        tabletRowSpan: 2,
+        mobileColumnSpan: 1,
+        mobileRowSpan: 1,
+      },
+      {
+        columnSpan: 3,
+        rowSpan: 2,
+        tabletColumnSpan: 3,
+        tabletRowSpan: 2,
+        mobileColumnSpan: 1,
+        mobileRowSpan: 1,
+      },
+      {
+        columnSpan: 4,
+        rowSpan: 2,
+        tabletColumnSpan: 3,
+        tabletRowSpan: 2,
+        mobileColumnSpan: 1,
+        mobileRowSpan: 1,
+      },
+      {
+        columnSpan: 2,
+        rowSpan: 2,
+        tabletColumnSpan: 3,
+        tabletRowSpan: 2,
+        mobileColumnSpan: 1,
+        mobileRowSpan: 1,
+      },
     ],
   };
 
   const defaultPattern: TilePattern[] = [
-    { gridColumn: 'span 6', gridRow: 'span 4', minHeight: 'clamp(22rem, 44vw, 32rem)' },
-    { gridColumn: 'span 3', gridRow: 'span 2', minHeight: 'clamp(10rem, 18vw, 14rem)' },
-    { gridColumn: 'span 3', gridRow: 'span 2', minHeight: 'clamp(10rem, 18vw, 14rem)' },
-    { gridColumn: 'span 2', gridRow: 'span 2', minHeight: 'clamp(9rem, 16vw, 13rem)' },
-    { gridColumn: 'span 4', gridRow: 'span 2', minHeight: 'clamp(11rem, 18vw, 15rem)' },
-    { gridColumn: 'span 3', gridRow: 'span 2', minHeight: 'clamp(10rem, 18vw, 14rem)' },
+    {
+      columnSpan: 6,
+      rowSpan: 4,
+      tabletColumnSpan: 6,
+      tabletRowSpan: 4,
+      mobileColumnSpan: 2,
+      mobileRowSpan: 2,
+    },
+    {
+      columnSpan: 3,
+      rowSpan: 2,
+      tabletColumnSpan: 3,
+      tabletRowSpan: 2,
+      mobileColumnSpan: 1,
+      mobileRowSpan: 1,
+    },
+    {
+      columnSpan: 3,
+      rowSpan: 2,
+      tabletColumnSpan: 3,
+      tabletRowSpan: 2,
+      mobileColumnSpan: 1,
+      mobileRowSpan: 1,
+    },
+    {
+      columnSpan: 2,
+      rowSpan: 2,
+      tabletColumnSpan: 3,
+      tabletRowSpan: 2,
+      mobileColumnSpan: 1,
+      mobileRowSpan: 1,
+    },
+    {
+      columnSpan: 4,
+      rowSpan: 2,
+      tabletColumnSpan: 6,
+      tabletRowSpan: 2,
+      mobileColumnSpan: 2,
+      mobileRowSpan: 1,
+    },
+    {
+      columnSpan: 3,
+      rowSpan: 2,
+      tabletColumnSpan: 3,
+      tabletRowSpan: 2,
+      mobileColumnSpan: 1,
+      mobileRowSpan: 1,
+    },
   ];
 
-  return getPattern(presets[total] || defaultPattern, index);
+  return toTileStyle(getPattern(presets[total] || defaultPattern, index));
 }
 
 export function getEditorialTilePattern(
@@ -57,34 +230,148 @@ export function getEditorialTilePattern(
   index: number,
 ): CSSProperties {
   const presets: Record<number, TilePattern[]> = {
-    1: [{ gridColumn: 'span 12', minHeight: 'clamp(24rem, 54vw, 36rem)' }],
+    1: [
+      {
+        columnSpan: 12,
+        rowSpan: 5,
+        tabletColumnSpan: 6,
+        tabletRowSpan: 5,
+        mobileColumnSpan: 2,
+        mobileRowSpan: 3,
+      },
+    ],
     2: [
-      { gridColumn: 'span 12', minHeight: 'clamp(20rem, 44vw, 30rem)' },
-      { gridColumn: 'span 12', minHeight: 'clamp(14rem, 32vw, 22rem)' },
+      {
+        columnSpan: 12,
+        rowSpan: 4,
+        tabletColumnSpan: 6,
+        tabletRowSpan: 4,
+        mobileColumnSpan: 2,
+        mobileRowSpan: 2,
+      },
+      {
+        columnSpan: 12,
+        rowSpan: 3,
+        tabletColumnSpan: 6,
+        tabletRowSpan: 3,
+        mobileColumnSpan: 2,
+        mobileRowSpan: 2,
+      },
     ],
     3: [
-      { gridColumn: 'span 12', gridRow: 'span 4', minHeight: 'clamp(21rem, 42vw, 30rem)' },
-      { gridColumn: 'span 6', gridRow: 'span 3', minHeight: 'clamp(12rem, 20vw, 16rem)' },
-      { gridColumn: 'span 6', gridRow: 'span 3', minHeight: 'clamp(12rem, 20vw, 16rem)' },
+      {
+        columnSpan: 12,
+        rowSpan: 4,
+        tabletColumnSpan: 6,
+        tabletRowSpan: 4,
+        mobileColumnSpan: 2,
+        mobileRowSpan: 2,
+      },
+      {
+        columnSpan: 6,
+        rowSpan: 3,
+        tabletColumnSpan: 3,
+        tabletRowSpan: 2,
+        mobileColumnSpan: 1,
+        mobileRowSpan: 1,
+      },
+      {
+        columnSpan: 6,
+        rowSpan: 3,
+        tabletColumnSpan: 3,
+        tabletRowSpan: 2,
+        mobileColumnSpan: 1,
+        mobileRowSpan: 1,
+      },
     ],
     4: [
-      { gridColumn: 'span 12', gridRow: 'span 4', minHeight: 'clamp(21rem, 42vw, 30rem)' },
-      { gridColumn: 'span 4', gridRow: 'span 3', minHeight: 'clamp(11rem, 18vw, 15rem)' },
-      { gridColumn: 'span 4', gridRow: 'span 3', minHeight: 'clamp(11rem, 18vw, 15rem)' },
-      { gridColumn: 'span 4', gridRow: 'span 3', minHeight: 'clamp(11rem, 18vw, 15rem)' },
+      {
+        columnSpan: 12,
+        rowSpan: 4,
+        tabletColumnSpan: 6,
+        tabletRowSpan: 4,
+        mobileColumnSpan: 2,
+        mobileRowSpan: 2,
+      },
+      {
+        columnSpan: 4,
+        rowSpan: 3,
+        tabletColumnSpan: 3,
+        tabletRowSpan: 2,
+        mobileColumnSpan: 1,
+        mobileRowSpan: 1,
+      },
+      {
+        columnSpan: 4,
+        rowSpan: 3,
+        tabletColumnSpan: 3,
+        tabletRowSpan: 2,
+        mobileColumnSpan: 1,
+        mobileRowSpan: 1,
+      },
+      {
+        columnSpan: 4,
+        rowSpan: 3,
+        tabletColumnSpan: 6,
+        tabletRowSpan: 2,
+        mobileColumnSpan: 2,
+        mobileRowSpan: 1,
+      },
     ],
   };
 
   const defaultPattern: TilePattern[] = [
-    { gridColumn: 'span 12', gridRow: 'span 4', minHeight: 'clamp(21rem, 42vw, 30rem)' },
-    { gridColumn: 'span 5', gridRow: 'span 3', minHeight: 'clamp(12rem, 18vw, 16rem)' },
-    { gridColumn: 'span 3', gridRow: 'span 3', minHeight: 'clamp(12rem, 18vw, 16rem)' },
-    { gridColumn: 'span 4', gridRow: 'span 3', minHeight: 'clamp(12rem, 18vw, 16rem)' },
-    { gridColumn: 'span 4', gridRow: 'span 2', minHeight: 'clamp(11rem, 16vw, 14rem)' },
-    { gridColumn: 'span 4', gridRow: 'span 2', minHeight: 'clamp(11rem, 16vw, 14rem)' },
+    {
+      columnSpan: 12,
+      rowSpan: 4,
+      tabletColumnSpan: 6,
+      tabletRowSpan: 4,
+      mobileColumnSpan: 2,
+      mobileRowSpan: 2,
+    },
+    {
+      columnSpan: 5,
+      rowSpan: 3,
+      tabletColumnSpan: 3,
+      tabletRowSpan: 2,
+      mobileColumnSpan: 1,
+      mobileRowSpan: 1,
+    },
+    {
+      columnSpan: 3,
+      rowSpan: 3,
+      tabletColumnSpan: 3,
+      tabletRowSpan: 2,
+      mobileColumnSpan: 1,
+      mobileRowSpan: 1,
+    },
+    {
+      columnSpan: 4,
+      rowSpan: 3,
+      tabletColumnSpan: 6,
+      tabletRowSpan: 2,
+      mobileColumnSpan: 2,
+      mobileRowSpan: 1,
+    },
+    {
+      columnSpan: 4,
+      rowSpan: 2,
+      tabletColumnSpan: 3,
+      tabletRowSpan: 2,
+      mobileColumnSpan: 1,
+      mobileRowSpan: 1,
+    },
+    {
+      columnSpan: 4,
+      rowSpan: 2,
+      tabletColumnSpan: 3,
+      tabletRowSpan: 2,
+      mobileColumnSpan: 1,
+      mobileRowSpan: 1,
+    },
   ];
 
-  return getPattern(presets[total] || defaultPattern, index);
+  return toTileStyle(getPattern(presets[total] || defaultPattern, index));
 }
 
 export function getCircularOffset(

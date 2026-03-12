@@ -25,11 +25,14 @@ export function MosaicGalleryLayout({
           <button
             key={image.id || `${image.url}-${index}`}
             type="button"
-            className={`${styles.cardButton} ${styles.tiledCardButton} ${styles.cardReveal}`}
-            style={{ ...getAnimationStyle(index), ...tilePattern }}
+            className={`${styles.cardButton} ${styles.tiledCardButton}`}
+            style={tilePattern}
             onClick={() => onImageClick(index)}
           >
-            <div className={`${styles.cardSurface} ${styles.mosaicSurface}`}>
+            <div
+              className={`${styles.cardSurface} ${styles.mosaicSurface} ${styles.cardReveal}`}
+              style={getAnimationStyle(index)}
+            >
               <img
                 src={image.url}
                 alt={image.alt || image.title || `Gallery image ${index + 1}`}

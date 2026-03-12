@@ -237,6 +237,7 @@ function PageSettingsSelector() {
         } : undefined;
 
         const galleryPreviewHeights: Record<string, string> = {
+          showcase: '560px',
           masonry: '560px',
           mosaic: '540px',
           editorial: '520px',
@@ -245,6 +246,7 @@ function PageSettingsSelector() {
         };
 
         const galleryPreviewScales: Record<string, number> = {
+          showcase: 0.58,
           grid: 0.65,
           masonry: 0.58,
           carousel: 0.64,

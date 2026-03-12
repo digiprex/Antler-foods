@@ -11,7 +11,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import type { YouTubeConfig } from "@/types/youtube.types";
 import { DEFAULT_YOUTUBE_CONFIG } from "@/types/youtube.types";
@@ -26,20 +26,178 @@ interface YouTubeFormProps {
   restaurantId?: string;
 }
 
+type PreviewViewport = "desktop" | "mobile";
+
+const youtubeLayoutOptions: Array<{
+  value: NonNullable<YouTubeConfig["layout"]>;
+  name: string;
+  description: string;
+  support: string;
+}> = [
+  {
+    value: "default",
+    name: "Default",
+    description: "Centered feature video",
+    support: "Clean and familiar for most pages",
+  },
+  {
+    value: "theater",
+    name: "Theater",
+    description: "Wide cinematic framing",
+    support: "Best for immersive storytelling",
+  },
+  {
+    value: "split-left",
+    name: "Split Left",
+    description: "Video first, content second",
+    support: "Strong visual-first composition",
+  },
+  {
+    value: "split-right",
+    name: "Split Right",
+    description: "Content first, video second",
+    support: "Good when copy needs more emphasis",
+  },
+  {
+    value: "background",
+    name: "Background",
+    description: "Overlay content on motion",
+    support: "Best for bold promotional moments",
+  },
+  {
+    value: "grid",
+    name: "Grid",
+    description: "Video with supporting panels",
+    support: "Balanced for richer content groupings",
+  },
+];
+
+function renderYouTubeLayoutPreview(
+  layout: NonNullable<YouTubeConfig["layout"]>,
+  active: boolean,
+) {
+  const boardTone = active
+    ? "border-purple-200 bg-gradient-to-b from-white to-purple-50/80"
+    : "border-slate-200 bg-gradient-to-b from-white to-slate-50";
+  const accentTone = active ? "bg-purple-500/90" : "bg-slate-500";
+  const softTone = active ? "bg-purple-200/90" : "bg-slate-200";
+  const paleTone = active ? "bg-purple-100/80" : "bg-slate-100";
+
+  return (
+    <div className={`overflow-hidden rounded-2xl border ${boardTone}`}>
+      <div className="flex items-center justify-between border-b border-slate-200/80 bg-white/90 px-3 py-2">
+        <div className="flex gap-1">
+          <span className="h-2 w-2 rounded-full bg-rose-300" />
+          <span className="h-2 w-2 rounded-full bg-amber-300" />
+          <span className="h-2 w-2 rounded-full bg-emerald-300" />
+        </div>
+        <div className={`h-2 w-20 rounded-full ${softTone}`} />
+      </div>
+      <div className="h-28 p-3">
+        {layout === "default" ? (
+          <div className="flex h-full items-center justify-center rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
+            <div className="w-full rounded-[18px] bg-slate-900 p-2">
+              <div className="relative flex aspect-video items-center justify-center rounded-[14px] bg-slate-800">
+                <div className={`h-10 w-10 rounded-full ${accentTone} flex items-center justify-center`}>
+                  <div className="ml-0.5 h-0 w-0 border-y-[7px] border-y-transparent border-l-[12px] border-l-white" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {layout === "theater" ? (
+          <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
+            <div className="rounded-[18px] bg-slate-900 p-2">
+              <div className="relative aspect-[2.2/1] rounded-[14px] bg-slate-800">
+                <div className={`absolute bottom-2 left-2 h-2 w-20 rounded-full ${softTone}`} />
+                <div className={`absolute right-2 top-2 h-7 w-7 rounded-full ${accentTone} flex items-center justify-center`}>
+                  <div className="ml-0.5 h-0 w-0 border-y-[5px] border-y-transparent border-l-[9px] border-l-white" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {layout === "split-left" || layout === "split-right" ? (
+          <div className="grid h-full grid-cols-2 gap-2">
+            {layout === "split-right" ? (
+              <>
+                <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
+                  <div className={`mb-2 h-2.5 rounded-full ${accentTone} w-3/4`} />
+                  <div className={`mb-1.5 h-2 rounded-full ${softTone} w-full`} />
+                  <div className={`h-2 rounded-full ${softTone} w-4/5`} />
+                </div>
+                <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
+                  <div className="rounded-[18px] bg-slate-900 p-2">
+                    <div className="relative aspect-video rounded-[12px] bg-slate-800" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
+                  <div className="rounded-[18px] bg-slate-900 p-2">
+                    <div className="relative aspect-video rounded-[12px] bg-slate-800" />
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
+                  <div className={`mb-2 h-2.5 rounded-full ${accentTone} w-3/4`} />
+                  <div className={`mb-1.5 h-2 rounded-full ${softTone} w-full`} />
+                  <div className={`h-2 rounded-full ${softTone} w-4/5`} />
+                </div>
+              </>
+            )}
+          </div>
+        ) : null}
+
+        {layout === "background" ? (
+          <div className="relative h-full overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-900 shadow-sm">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.35),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.3),transparent_45%)]" />
+            <div className="absolute inset-0 opacity-35">
+              <div className="h-full w-full bg-[linear-gradient(135deg,#0f172a,#1e293b)]" />
+            </div>
+            <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/15 bg-white/80 p-3 backdrop-blur">
+              <div className={`mb-1.5 h-2.5 rounded-full ${accentTone} w-2/3`} />
+              <div className={`h-2 rounded-full ${softTone} w-full`} />
+            </div>
+          </div>
+        ) : null}
+
+        {layout === "grid" ? (
+          <div className="grid h-full grid-cols-[1.25fr_0.75fr] gap-2">
+            <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
+              <div className="rounded-[18px] bg-slate-900 p-2">
+                <div className="relative aspect-video rounded-[12px] bg-slate-800" />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              {[0, 1].map((item) => (
+                <div key={item} className="rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
+                  <div className={`mb-2 h-2.5 rounded-full ${item === 0 ? accentTone : softTone} ${item === 0 ? "w-3/4" : "w-2/3"}`} />
+                  <div className={`h-2 rounded-full ${softTone} w-full`} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export default function YouTubeSettingsForm({
   pageId,
   restaurantId,
 }: YouTubeFormProps) {
   const searchParams = useSearchParams();
-  const restaurantNameFromQuery =
-    searchParams.get("restaurant_name") || undefined;
-  const restaurantIdFromQuery = searchParams.get("restaurant_id")?.trim() ?? "";
+  const restaurantIdFromQuery = searchParams?.get("restaurant_id")?.trim() ?? "";
   const finalRestaurantId = restaurantIdFromQuery || restaurantId || "";
   const sectionStyleDefaults = useSectionStyleDefaults(finalRestaurantId);
 
   // Check if this is a new section being created or editing existing
-  const isNewSection = searchParams.get("new_section") === "true";
-  const templateId = searchParams.get("template_id") || null;
+  const isNewSection = searchParams?.get("new_section") === "true";
+  const templateId = searchParams?.get("template_id") || null;
 
   // Form state
   const [config, setConfig] = useState<YouTubeConfig>({
@@ -56,6 +214,10 @@ export default function YouTubeSettingsForm({
 
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
+  const [previewViewport, setPreviewViewport] =
+    useState<PreviewViewport>("desktop");
+  const [responsiveEditorViewport, setResponsiveEditorViewport] =
+    useState<PreviewViewport>("desktop");
 
   // Gallery popup state
   const [showGallery, setShowGallery] = useState(false);
@@ -83,6 +245,25 @@ export default function YouTubeSettingsForm({
       ...prev,
     }));
   }, [isNewSection, sectionStyleDefaults]);
+
+  const renderResponsiveEditorTabs = (scope: string) => (
+    <div className="inline-flex rounded-full bg-slate-100 p-1">
+      {(["desktop", "mobile"] as PreviewViewport[]).map((viewport) => (
+        <button
+          key={`${scope}-${viewport}`}
+          type="button"
+          onClick={() => setResponsiveEditorViewport(viewport)}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+            responsiveEditorViewport === viewport
+              ? "bg-white text-slate-900 shadow-sm"
+              : "text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          {viewport === "desktop" ? "Desktop" : "Mobile"}
+        </button>
+      ))}
+    </div>
+  );
 
   const fetchYouTubeConfig = async () => {
     // Don't fetch existing config if this is a new section
@@ -364,7 +545,7 @@ export default function YouTubeSettingsForm({
       )}
 
       {/* Page Header */}
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-8 flex items-start">
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
             <svg
@@ -384,35 +565,31 @@ export default function YouTubeSettingsForm({
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowPreview(!showPreview)}
-          className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
-          title={showPreview ? "Hide Preview" : "Show Live Preview"}
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
-          {showPreview ? "Hide" : "Show"} Preview
-        </button>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
+      <form onSubmit={handleSave} className="space-y-6 pb-40">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-500">
+                Preview Experience
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-slate-900">
+                Shape the video section for desktop and mobile from one consistent workspace.
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Layout cards, responsive editing tabs, and the live preview now follow the same interaction pattern used in Hero Settings.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Editing Viewport
+              </p>
+              {renderResponsiveEditorTabs("youtube-preview-workspace")}
+            </div>
+          </div>
+        </div>
+
         {/* Display Settings */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-center gap-3">
@@ -473,116 +650,56 @@ export default function YouTubeSettingsForm({
                   Video layout style
                 </span>
               </label>
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  {
-                    value: "default",
-                    name: "Default",
-                    description: "Centered video",
-                  },
-                  {
-                    value: "theater",
-                    name: "Theater",
-                    description: "Wide video mode",
-                  },
-                  {
-                    value: "split-left",
-                    name: "Split Left",
-                    description: "Video on left",
-                  },
-                  {
-                    value: "split-right",
-                    name: "Split Right",
-                    description: "Video on right",
-                  },
-                  {
-                    value: "background",
-                    name: "Background",
-                    description: "Background video",
-                  },
-                  {
-                    value: "grid",
-                    name: "Grid",
-                    description: "Multiple videos",
-                  },
-                ].map((option) => (
-                  <div
-                    key={option.value}
-                    onClick={() =>
-                      setConfig({ ...config, layout: option.value as any })
-                    }
-                    className={`group cursor-pointer rounded-lg border-2 p-3 transition-all ${
-                      (config.layout || "default") === option.value
-                        ? "border-purple-500 bg-purple-50 shadow-sm"
-                        : "border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="mb-2 overflow-hidden rounded border border-gray-200 bg-gray-50 p-2">
-                      <div className="h-16 w-full">
-                        {option.value === "default" && (
-                          <div className="flex h-full items-center justify-center">
-                            <div className="h-10 w-12 bg-gray-400 rounded"></div>
-                          </div>
-                        )}
-                        {option.value === "theater" && (
-                          <div className="flex h-full items-center justify-center">
-                            <div className="h-8 w-full bg-gray-400 rounded"></div>
-                          </div>
-                        )}
-                        {option.value === "split-left" && (
-                          <div className="flex h-full gap-1">
-                            <div className="h-full w-1/2 bg-gray-400 rounded"></div>
-                            <div className="h-full w-1/2 space-y-1">
-                              <div className="h-2 bg-gray-300 rounded w-3/4"></div>
-                              <div className="h-1.5 bg-gray-300 rounded w-full"></div>
-                              <div className="h-1.5 bg-gray-300 rounded w-2/3"></div>
-                            </div>
-                          </div>
-                        )}
-                        {option.value === "split-right" && (
-                          <div className="flex h-full gap-1">
-                            <div className="h-full w-1/2 space-y-1">
-                              <div className="h-2 bg-gray-300 rounded w-3/4"></div>
-                              <div className="h-1.5 bg-gray-300 rounded w-full"></div>
-                              <div className="h-1.5 bg-gray-300 rounded w-2/3"></div>
-                            </div>
-                            <div className="h-full w-1/2 bg-gray-400 rounded"></div>
-                          </div>
-                        )}
-                        {option.value === "background" && (
-                          <div className="relative h-full">
-                            <div className="h-full w-full bg-gray-400 rounded"></div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="bg-white/80 rounded px-2 py-1 text-xs">
-                                Content
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        {option.value === "grid" && (
-                          <div className="grid grid-cols-2 gap-1 h-full">
-                            <div className="bg-gray-400 rounded"></div>
-                            <div className="bg-gray-400 rounded"></div>
-                            <div className="bg-gray-400 rounded"></div>
-                            <div className="bg-gray-400 rounded"></div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div
-                      className={`text-sm font-medium ${
-                        (config.layout || "default") === option.value
-                          ? "text-purple-700"
-                          : "text-gray-900"
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {youtubeLayoutOptions.map((option) => {
+                  const isActive = (config.layout || "default") === option.value;
+
+                  return (
+                    <button
+                      type="button"
+                      key={option.value}
+                      onClick={() =>
+                        setConfig({ ...config, layout: option.value as any })
+                      }
+                      aria-pressed={isActive}
+                      className={`group w-full rounded-2xl border p-3 text-left transition-all ${
+                        isActive
+                          ? "border-purple-500 bg-purple-50 shadow-[0_20px_45px_rgba(124,58,237,0.12)]"
+                          : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-[0_18px_35px_rgba(15,23,42,0.08)]"
                       }`}
                     >
-                      {option.name}
-                    </div>
-                    <div className="mt-0.5 text-xs text-gray-500">
-                      {option.description}
-                    </div>
-                  </div>
-                ))}
+                      <div className="mb-4">
+                        {renderYouTubeLayoutPreview(option.value, isActive)}
+                      </div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div
+                            className={`text-sm font-semibold ${
+                              isActive ? "text-purple-700" : "text-slate-900"
+                            }`}
+                          >
+                            {option.name}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-500">
+                            {option.description}
+                          </div>
+                        </div>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            isActive
+                              ? "bg-purple-100 text-purple-700"
+                              : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {isActive ? "Selected" : "Layout"}
+                        </span>
+                      </div>
+                      <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white/75 px-3 py-2 text-xs text-slate-500">
+                        {option.support}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -997,6 +1114,18 @@ export default function YouTubeSettingsForm({
               </label>
             </div>
 
+            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-900">
+                  Responsive Typography Workspace
+                </p>
+                <p className="text-xs text-slate-500">
+                  Preview desktop and mobile overrides before opening the live preview.
+                </p>
+              </div>
+              {renderResponsiveEditorTabs("youtube-typography")}
+            </div>
+
             {!config.is_custom ? (
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
                 <div className="flex items-start gap-3">
@@ -1033,6 +1162,7 @@ export default function YouTubeSettingsForm({
                   onChange={(updates) =>
                     setConfig((prev) => ({ ...prev, ...updates }))
                   }
+                  viewport={responsiveEditorViewport}
                 />
               </div>
             )}
@@ -1075,87 +1205,176 @@ export default function YouTubeSettingsForm({
         </div>
       </form>
 
-      {/* Preview Modal Popup */}
+      {!showPreview ? (
+        <button
+          type="button"
+          onClick={() => {
+            setPreviewViewport(responsiveEditorViewport);
+            setShowPreview(true);
+          }}
+          className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-3 rounded-full border border-purple-200 bg-white/95 px-5 py-3 text-sm font-semibold text-purple-700 shadow-[0_18px_45px_rgba(15,23,42,0.18)] backdrop-blur transition-all hover:-translate-y-0.5 hover:border-purple-300 hover:bg-white sm:right-6"
+          aria-label="Open YouTube preview"
+        >
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-sm">
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+          </span>
+          <span className="flex flex-col items-start leading-tight">
+            <span>Live Preview</span>
+            <span className="text-xs font-medium text-purple-500">
+              {responsiveEditorViewport === "mobile"
+                ? "Open mobile preview"
+                : "Open desktop preview"}
+            </span>
+          </span>
+        </button>
+      ) : null}
+
       {showPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
             onClick={() => setShowPreview(false)}
           />
-          <div className="relative z-10 w-full max-w-6xl h-[80vh] flex flex-col rounded-2xl border border-gray-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 flex-shrink-0">
+          <div className="relative z-10 flex h-[min(92vh,980px)] w-full max-w-7xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_35px_120px_rgba(15,23,42,0.35)]">
+            <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  YouTube Live Preview
+                <h2 className="text-xl font-bold text-slate-900">
+                  Live Preview
                 </h2>
-                <p className="mt-0.5 text-sm text-gray-600">
-                  Updates in real-time
+                <p className="mt-1 text-sm text-slate-600">
+                  Switch between desktop and mobile to verify every video layout.
+                  {!config.videoUrl ? (
+                    <span className="ml-1 text-purple-600">
+                      (showing sample video)
+                    </span>
+                  ) : null}
                 </p>
               </div>
-              <button
-                onClick={() => setShowPreview(false)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                aria-label="Close preview"
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
+              <div className="flex items-center gap-3">
+                <div className="inline-flex rounded-full bg-slate-100 p-1">
+                  {(["desktop", "mobile"] as PreviewViewport[]).map(
+                    (viewport) => (
+                      <button
+                        key={viewport}
+                        type="button"
+                        onClick={() => setPreviewViewport(viewport)}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                          previewViewport === viewport
+                            ? "bg-white text-slate-900 shadow-sm"
+                            : "text-slate-500 hover:text-slate-700"
+                        }`}
+                      >
+                        {viewport === "desktop" ? "Desktop" : "Mobile"}
+                      </button>
+                    ),
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(false)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Close preview"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto bg-slate-950 p-4 sm:p-6">
-              <div className="mx-auto max-w-[1240px]">
-                <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
+              <div
+                className={`mx-auto overflow-hidden border border-white/10 bg-slate-900 shadow-[0_24px_80px_rgba(15,23,42,0.35)] ${
+                  previewViewport === "mobile"
+                    ? "max-w-[430px] rounded-[32px]"
+                    : "max-w-[1240px] rounded-[32px]"
+                }`}
+              >
+                <div className="flex items-center justify-between border-b border-white/10 bg-slate-950/90 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">
+                  <span>
+                    {previewViewport === "mobile"
+                      ? "Phone Preview"
+                      : "Desktop Preview"}
+                  </span>
+                  <span>
+                    {previewViewport === "mobile" ? "390 x 780" : "1280 x 720"}
+                  </span>
+                </div>
+                <div className="bg-white">
                   <YouTubeSection
-                    key={`preview-${config.layout || 'default'}-${config.videoUrl || 'sample'}`}
+                    key={`preview-${previewViewport}-${config.layout || "default"}-${config.videoUrl || "sample"}`}
                     restaurantId={finalRestaurantId}
+                    previewViewport={previewViewport}
                     configData={{
                       ...config,
                       enabled: true,
                       showTitle: true,
-                      // Use sample video if no videoUrl is set, so users can preview layouts
-                      videoUrl: config.videoUrl || 'dQw4w9WgXcQ',
-                      title: config.title || 'Your Video Title',
-                      description: config.description || 'Add a compelling description for your video to engage your audience.',
+                      videoUrl: config.videoUrl || "dQw4w9WgXcQ",
+                      title: config.title || "Your Video Title",
+                      description:
+                        config.description ||
+                        "Add a compelling description for your video to engage your audience.",
                     }}
                   />
                 </div>
               </div>
-              <div className="mt-6 flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 p-4">
-                <svg
-                  className="h-5 w-5 shrink-0 text-purple-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-                <p className="text-sm text-purple-900">
-                  Preview shows how your YouTube section will appear on the
-                  website
-                  {!config.videoUrl && (
-                    <span className="ml-1 text-purple-600">(showing sample video)</span>
-                  )}
-                </p>
+            </div>
+            <div className="border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
+              <div className="flex flex-col gap-2 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="h-5 w-5 text-purple-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                  {!config.videoUrl
+                    ? "A sample YouTube video is used so you can evaluate layout spacing and hierarchy before linking your own video."
+                    : "Live preview reflects your current video content, layout, and styling changes."}
+                </div>
+                <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                  {previewViewport === "mobile"
+                    ? "Mobile responsiveness check"
+                    : "Desktop composition check"}
+                </div>
               </div>
             </div>
           </div>

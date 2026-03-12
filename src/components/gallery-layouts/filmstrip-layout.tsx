@@ -48,9 +48,8 @@ export function FilmstripGalleryLayout({
                   type="button"
                   className={`${styles.cardButton} ${styles.filmstripCard} ${
                     index === activeIndex ? styles.filmstripCardActive : ''
-                  } ${styles.cardReveal}`}
+                  }`}
                   style={{
-                    ...getAnimationStyle(index),
                     opacity: distance > 3 ? 0.5 : 1 - distance * 0.12,
                     filter: distance === 0 ? 'none' : 'saturate(0.84)',
                     transform: `translateY(${lift}px) scale(${scale})`,
@@ -62,8 +61,11 @@ export function FilmstripGalleryLayout({
                   }
                 >
                   <div
-                    className={`${styles.cardSurface} ${styles.filmstripSurface}`}
-                    style={{ aspectRatio: distance === 0 ? '4 / 5' : '3 / 4' }}
+                    className={`${styles.cardSurface} ${styles.filmstripSurface} ${styles.cardReveal}`}
+                    style={{
+                      aspectRatio: distance === 0 ? '4 / 5' : '3 / 4',
+                      ...getAnimationStyle(index),
+                    }}
                   >
                     <img
                       src={image.url}

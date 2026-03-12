@@ -242,6 +242,10 @@ export default function GlobalStyleSettingsForm() {
   const [secondaryButtonFontFamily, setSecondaryButtonFontFamily] = useState('Inter, system-ui, sans-serif');
   const [secondaryButtonTextTransform, setSecondaryButtonTextTransform] = useState<'none' | 'uppercase' | 'lowercase' | 'capitalize'>('none');
 
+  // Accent colors
+  const [primaryAccentColor, setPrimaryAccentColor] = useState('#2563eb');
+  const [secondaryAccentColor, setSecondaryAccentColor] = useState('#10b981');
+
   // Toast state
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -315,6 +319,10 @@ export default function GlobalStyleSettingsForm() {
         setSecondaryButtonFontFamily(config.secondaryButton.fontFamily || 'Inter, system-ui, sans-serif');
         setSecondaryButtonTextTransform(config.secondaryButton.textTransform || 'none');
       }
+
+      // Accent colors
+      setPrimaryAccentColor((config as any).primaryAccentColor || '#2563eb');
+      setSecondaryAccentColor((config as any).secondaryAccentColor || '#10b981');
     }
   }, [config]);
 
@@ -407,6 +415,8 @@ export default function GlobalStyleSettingsForm() {
           fontFamily: secondaryButtonFontFamily,
           textTransform: secondaryButtonTextTransform,
         },
+        primaryAccentColor,
+        secondaryAccentColor,
       });
 
       setToastMessage('Global style settings saved successfully!');
@@ -502,6 +512,77 @@ export default function GlobalStyleSettingsForm() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Accent Colors */}
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
+                <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Accent Colors</h3>
+                <p className="text-sm text-gray-600">Brand accent colors for highlights and emphasis</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6 p-6">
+            {/* Primary Accent Color */}
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Primary Accent Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Main brand accent color</p>
+              <div className="mt-2 flex gap-3">
+                <div className="relative flex-1">
+                  <input
+                    type="color"
+                    value={primaryAccentColor}
+                    onChange={(e) => setPrimaryAccentColor(e.target.value)}
+                    className="h-10 w-full cursor-pointer rounded-lg border border-gray-300"
+                    style={{ padding: '2px' }}
+                  />
+                </div>
+                <input
+                  type="text"
+                  value={primaryAccentColor}
+                  onChange={(e) => setPrimaryAccentColor(e.target.value)}
+                  className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#2563eb"
+                />
+              </div>
+            </div>
+
+            {/* Secondary Accent Color */}
+            <div>
+              <label className="block text-sm font-medium text-gray-900">
+                Secondary Accent Color
+              </label>
+              <p className="mt-1 text-xs text-gray-600">Alternative accent color for variety</p>
+              <div className="mt-2 flex gap-3">
+                <div className="relative flex-1">
+                  <input
+                    type="color"
+                    value={secondaryAccentColor}
+                    onChange={(e) => setSecondaryAccentColor(e.target.value)}
+                    className="h-10 w-full cursor-pointer rounded-lg border border-gray-300"
+                    style={{ padding: '2px' }}
+                  />
+                </div>
+                <input
+                  type="text"
+                  value={secondaryAccentColor}
+                  onChange={(e) => setSecondaryAccentColor(e.target.value)}
+                  className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="#10b981"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Title Section */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-center gap-3">

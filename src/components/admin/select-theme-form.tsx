@@ -375,11 +375,10 @@ export default function SelectThemeForm() {
                                         key={idx}
                                         className={`h-2.5 flex items-center px-1.5 gap-1 ${
                                           navbarStyle === 'transparent' ? 'bg-white/10 backdrop-blur-sm border-b border-gray-200/20' :
-                                          navbarStyle === 'gradient' ? `bg-gradient-to-r ${gradient}` :
                                           navbarStyle === 'minimal' ? 'bg-transparent border-b border-gray-200' :
                                           'rounded-sm shadow-sm'
                                         }`}
-                                        style={navbarStyle === 'solid' ? { backgroundColor: primaryColor } : {}}
+                                        style={navbarStyle === 'solid' || navbarStyle === 'gradient' ? { backgroundColor: primaryColor } : {}}
                                       >
                                         <div className={`w-3 h-0.5 rounded-full ${navbarStyle === 'minimal' ? 'bg-gray-800' : 'bg-white/90'}`}></div>
                                         <div className="ml-auto flex gap-0.5">
@@ -793,11 +792,10 @@ export default function SelectThemeForm() {
                                       key={idx}
                                       className={`px-8 py-4 flex items-center justify-between ${
                                         navbarStyle === 'transparent' ? 'bg-white/10 backdrop-blur-md border-b border-gray-200/20 absolute w-full z-10' :
-                                        navbarStyle === 'gradient' ? `bg-gradient-to-r ${gradient}` :
                                         navbarStyle === 'minimal' ? 'bg-white border-b border-gray-200' :
                                         ''
                                       }`}
-                                      style={navbarStyle === 'solid' ? { backgroundColor: primaryColor } : {}}
+                                      style={navbarStyle === 'solid' || navbarStyle === 'gradient' ? { backgroundColor: primaryColor } : {}}
                                     >
                                       <div className={`text-xl font-bold ${navbarStyle === 'minimal' ? 'text-gray-900' : 'text-white'}`}>
                                         Restaurant Name

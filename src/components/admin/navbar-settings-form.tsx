@@ -153,6 +153,8 @@ export default function NavbarSettingsForm() {
   const [orderButtonText, setOrderButtonText] = useState('Order Online');
   const [orderButtonHref, setOrderButtonHref] = useState('/menu');
   const [buttonStyle, setButtonStyle] = useState<'primary' | 'secondary'>('primary');
+  const [buttonBgColor, setButtonBgColor] = useState('#000000');
+  const [buttonTextColor, setButtonTextColor] = useState('#ffffff');
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -191,6 +193,8 @@ export default function NavbarSettingsForm() {
       setOrderButtonText(config.ctaButton?.label || 'Order Online');
       setOrderButtonHref(config.ctaButton?.href || '/menu');
       setButtonStyle(config.ctaButton?.style || 'primary');
+      setButtonBgColor(config.buttonBgColor || '#000000');
+      setButtonTextColor(config.buttonTextColor || '#ffffff');
     }
   }, [config]);
 
@@ -1086,8 +1090,8 @@ export default function NavbarSettingsForm() {
                     position="relative"
                     bgColor={bgColor}
                     textColor={textColor}
-                    buttonBgColor="#000000"
-                    buttonTextColor="#ffffff"
+                    buttonBgColor={buttonBgColor}
+                    buttonTextColor={buttonTextColor}
                     fontFamily={fontFamily}
                     fontSize={fontSize}
                     fontWeight={fontWeight}

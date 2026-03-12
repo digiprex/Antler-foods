@@ -566,6 +566,7 @@ export default function Footer(props: FooterProps) {
     '--footer-link-color': linkColor,
     '--copyright-bg-color': copyrightBgColor,
     '--copyright-text-color': copyrightTextColor,
+    '--scroll-button-bg-color': copyrightBgColor,
     '--footer-font-family': fontFamily,
     '--footer-font-size': fontSize,
     '--footer-font-weight': fontWeight,

@@ -153,6 +153,7 @@ export default function DynamicNavbar({
       leftNavItems={config.leftNavItems}
       rightNavItems={config.rightNavItems}
       ctaButton={config.ctaButton}
+      showCtaButton={config.showCtaButton}
       layout={config.layout}
       position={config.position}
       zIndex={config.zIndex}

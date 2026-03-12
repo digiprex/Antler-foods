@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import navbarLayoutsData from '@/data/navbar-layouts.json';
+import footerLayoutsData from '@/data/footer-layouts.json';
 
 interface ThemeSection {
   id: string;
@@ -10,6 +12,7 @@ interface ThemeSection {
   order?: number;
   order_index?: number;
   style?: any;
+  layout_id?: string; // For navbar sections, references navbar-layouts.json
 }
 
 interface Theme {
@@ -32,6 +35,63 @@ interface Theme {
   created_at: string;
   updated_at: string;
 }
+
+interface NavbarLayoutPreviewItem {
+  type: string;
+  width?: string;
+  height?: string;
+  items?: NavbarLayoutPreviewItem[];
+}
+
+interface NavbarLayoutPreview {
+  type: string;
+  justify?: string;
+  direction?: string;
+  bordered?: boolean;
+  items: NavbarLayoutPreviewItem[];
+}
+
+interface NavbarLayout {
+  id: string;
+  name: string;
+  description: string;
+  preview: NavbarLayoutPreview;
+}
+
+type NavbarLayoutId = 'default' | 'centered' | 'logo-center' | 'stacked' | 'split' | 'logo-left-items-left' | 'bordered-centered';
+
+// Get navbar layouts from JSON
+const navbarLayouts: NavbarLayout[] = navbarLayoutsData.layouts;
+
+// Helper component to render preview items
+const PreviewItem = ({ item }: { item: NavbarLayoutPreviewItem }) => {
+  if (item.type === 'group') {
+    return (
+      <div className="flex gap-0.5">
+        {item.items?.map((subItem, idx) => (
+          <PreviewItem key={idx} item={subItem} />
+        ))}
+      </div>
+    );
+  }
+
+  const widthClass = `w-${item.width || '4'}`;
+  const heightClass = `h-${item.height || '1.5'}`;
+
+  if (item.type === 'logo') {
+    return <div className={`${heightClass} ${widthClass} rounded bg-gray-400`}></div>;
+  }
+
+  if (item.type === 'menu-item') {
+    return <div className={`${heightClass} ${widthClass} rounded bg-gray-300`}></div>;
+  }
+
+  if (item.type === 'button') {
+    return <div className={`${heightClass} ${widthClass} rounded bg-purple-400`}></div>;
+  }
+
+  return null;
+};
 
 // Helper function to determine if a color is light or dark
 const getContrastColor = (hexColor: string): string => {
@@ -56,6 +116,7 @@ export default function SelectThemeForm() {
   const restaurantName = searchParams.get('restaurant_name');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [previewTheme, setPreviewTheme] = useState<Theme | null>(null);
+  const [previewNavbarLayout, setPreviewNavbarLayout] = useState<NavbarLayoutId>('bordered-centered');
   const [themes, setThemes] = useState<Theme[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -368,8 +429,66 @@ export default function SelectThemeForm() {
                                 {sections.slice(0, 6).map((section: ThemeSection, idx: number) => {
                                   const sectionType = section.type;
 
-                                  // Navbar
+                                  // Navbar - use layout from navbar-layouts.json
                                   if (sectionType === 'navbar') {
+                                    // Find the layout configuration from JSON based on section.id
+                                    const layoutId = section.id || 'default';
+                                    const navbarLayout = navbarLayouts.find(l => l.id === layoutId);
+
+                                    if (navbarLayout) {
+                                      const preview = navbarLayout.preview;
+                                      return (
+                                        <div
+                                          key={idx}
+                                          className={`h-2.5 px-1.5 ${preview.bordered ? 'border border-gray-300' : ''} ${
+                                            navbarStyle === 'transparent' ? 'bg-white/10 backdrop-blur-sm border-b border-gray-200/20' :
+                                            navbarStyle === 'minimal' ? 'bg-transparent border-b border-gray-200' :
+                                            'rounded-sm shadow-sm'
+                                          }`}
+                                          style={navbarStyle === 'solid' || navbarStyle === 'gradient' ? { backgroundColor: primaryColor } : {}}
+                                        >
+                                          <div className={`flex items-center gap-0.5 h-full ${
+                                            preview.direction === 'column' ? 'flex-col justify-center' : ''
+                                          } ${
+                                            preview.justify === 'center' ? 'justify-center' :
+                                            preview.justify === 'between' ? 'justify-between' : ''
+                                          }`}>
+                                            {preview.items.map((item, itemIdx) => {
+                                              if (item.type === 'group') {
+                                                return (
+                                                  <div key={itemIdx} className="flex gap-0.5">
+                                                    {item.items?.map((subItem, subIdx) => {
+                                                      if (subItem.type === 'logo') {
+                                                        return <div key={subIdx} className={`w-3 h-0.5 rounded-full ${navbarStyle === 'minimal' ? 'bg-gray-800' : 'bg-white/90'}`}></div>;
+                                                      }
+                                                      if (subItem.type === 'menu-item') {
+                                                        return <div key={subIdx} className={`w-1.5 h-0.5 rounded-full ${navbarStyle === 'minimal' ? 'bg-gray-600' : 'bg-white/80'}`}></div>;
+                                                      }
+                                                      if (subItem.type === 'button') {
+                                                        return <div key={subIdx} className="w-2 h-0.5 rounded-full" style={{ backgroundColor: accentColor, opacity: 0.9 }}></div>;
+                                                      }
+                                                      return null;
+                                                    })}
+                                                  </div>
+                                                );
+                                              }
+                                              if (item.type === 'logo') {
+                                                return <div key={itemIdx} className={`w-3 h-0.5 rounded-full ${navbarStyle === 'minimal' ? 'bg-gray-800' : 'bg-white/90'}`}></div>;
+                                              }
+                                              if (item.type === 'menu-item') {
+                                                return <div key={itemIdx} className={`w-1.5 h-0.5 rounded-full ${navbarStyle === 'minimal' ? 'bg-gray-600' : 'bg-white/80'}`}></div>;
+                                              }
+                                              if (item.type === 'button') {
+                                                return <div key={itemIdx} className="w-2 h-0.5 rounded-full" style={{ backgroundColor: accentColor, opacity: 0.9 }}></div>;
+                                              }
+                                              return null;
+                                            })}
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+
+                                    // Fallback to default navbar if layout not found
                                     return (
                                       <div
                                         key={idx}
@@ -530,6 +649,71 @@ export default function SelectThemeForm() {
 
                                   // Footer
                                   if (sectionType === 'footer') {
+                                    const layoutId = section.id || 'default';
+                                    const footerLayout = footerLayoutsData.layouts.find(l => l.id === layoutId);
+
+                                    // Render different footer miniatures based on layout
+                                    if (layoutId === 'minimal') {
+                                      return (
+                                        <div key={idx} className="h-2.5 rounded-md flex items-center justify-center gap-1 shadow-sm" style={{ backgroundColor: primaryColor }}>
+                                          <div className="w-4 h-0.5 bg-white/70 rounded-full"></div>
+                                          <div className="flex gap-0.5">
+                                            <div className="w-0.5 h-0.5 bg-white/70 rounded-full"></div>
+                                            <div className="w-0.5 h-0.5 bg-white/70 rounded-full"></div>
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+
+                                    if (layoutId === 'centered') {
+                                      return (
+                                        <div key={idx} className="h-3.5 rounded-md flex flex-col items-center justify-center gap-0.5 shadow-sm" style={{ backgroundColor: primaryColor }}>
+                                          <div className="w-5 h-0.5 bg-white/70 rounded-full"></div>
+                                          <div className="flex gap-0.5">
+                                            <div className="w-0.5 h-0.5 bg-white/70 rounded-full"></div>
+                                            <div className="w-0.5 h-0.5 bg-white/70 rounded-full"></div>
+                                            <div className="w-0.5 h-0.5 bg-white/70 rounded-full"></div>
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+
+                                    if (layoutId === 'two-column') {
+                                      return (
+                                        <div key={idx} className="h-3 rounded-md grid grid-cols-2 gap-1 px-1.5 py-1 shadow-sm" style={{ backgroundColor: primaryColor }}>
+                                          <div className="flex flex-col gap-0.5">
+                                            <div className="w-4 h-0.5 bg-white/70 rounded-full"></div>
+                                            <div className="w-3 h-0.5 bg-white/50 rounded-full"></div>
+                                          </div>
+                                          <div className="flex flex-col gap-0.5">
+                                            <div className="w-3 h-0.5 bg-white/50 rounded-full"></div>
+                                            <div className="w-4 h-0.5 bg-white/50 rounded-full"></div>
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+
+                                    if (layoutId === 'three-column') {
+                                      return (
+                                        <div key={idx} className="h-3 rounded-md grid grid-cols-3 gap-0.5 px-1.5 py-1 shadow-sm" style={{ backgroundColor: primaryColor }}>
+                                          <div className="w-3 h-0.5 bg-white/70 rounded-full"></div>
+                                          <div className="w-3 h-0.5 bg-white/50 rounded-full"></div>
+                                          <div className="w-3 h-0.5 bg-white/50 rounded-full"></div>
+                                        </div>
+                                      );
+                                    }
+
+                                    if (layoutId === 'mega') {
+                                      return (
+                                        <div key={idx} className="h-3.5 rounded-md grid grid-cols-5 gap-0.5 px-1.5 py-1 shadow-sm" style={{ backgroundColor: primaryColor }}>
+                                          {[...Array(5)].map((_, i) => (
+                                            <div key={i} className="w-2 h-0.5 bg-white/50 rounded-full"></div>
+                                          ))}
+                                        </div>
+                                      );
+                                    }
+
+                                    // Default 4-column layout
                                     return (
                                       <div key={idx} className="h-3 rounded-md flex items-center justify-between px-1.5 shadow-sm" style={{ backgroundColor: primaryColor }}>
                                         <div className="w-6 h-0.5 bg-white/70 rounded-full"></div>
@@ -759,6 +943,46 @@ export default function SelectThemeForm() {
                       </div>
                     </div>
 
+                    {/* Navbar Layout Selection */}
+                    <div>
+                      <h3 className="mb-4 text-lg font-bold text-gray-900">Navbar Layout</h3>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                        {navbarLayouts.map((layout) => (
+                          <button
+                            key={layout.id}
+                            type="button"
+                            className={`group relative cursor-pointer rounded-lg border-2 p-3 text-left transition-all ${
+                              previewNavbarLayout === layout.id
+                                ? 'border-purple-500 bg-purple-50 shadow-md'
+                                : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
+                            }`}
+                            onClick={() => setPreviewNavbarLayout(layout.id as NavbarLayoutId)}
+                          >
+                            <div className={`mb-2 rounded bg-gray-50 p-1.5 ${layout.preview.bordered ? 'border-2 border-gray-300' : 'border border-gray-300'}`}>
+                              <div className={`flex items-center gap-1 ${
+                                layout.preview.direction === 'column' ? 'flex-col' : ''
+                              } ${
+                                layout.preview.justify === 'center' ? 'justify-center' :
+                                layout.preview.justify === 'between' ? 'justify-between' : ''
+                              }`}>
+                                {layout.preview.items.map((item, idx) => (
+                                  <PreviewItem key={idx} item={item} />
+                                ))}
+                              </div>
+                            </div>
+                            <div className="text-xs font-semibold text-gray-900">{layout.name}</div>
+                            {previewNavbarLayout === layout.id && (
+                              <div className="absolute right-1 top-1">
+                                <svg className="h-4 w-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Preview */}
                     <div>
                       <h3 className="mb-4 text-lg font-bold text-gray-900">Website Preview</h3>
@@ -785,27 +1009,190 @@ export default function SelectThemeForm() {
                                 const navbarStyle = style.navbarStyle || 'solid';
                                 const buttonStyle = style.buttonStyle || 'rounded';
 
-                                // Navbar
+                                // Navbar - use layout from section.id matching navbar-layouts.json
                                 if (sectionType === 'navbar') {
+                                  const navBgColor = navbarStyle === 'minimal' ? backgroundColor : primaryColor;
+                                  const navTextColor = navbarStyle === 'minimal' ? textColor : getContrastColor(primaryColor);
+                                  const buttonBg = accentColor;
+                                  const buttonText = getContrastColor(accentColor);
+
+                                  // Get layout ID from section.id or use previewNavbarLayout for preview
+                                  const layoutId = section.id || previewNavbarLayout || 'default';
+
+                                  // Stacked layout
+                                  if (layoutId === 'stacked') {
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="px-8 py-4 flex flex-col items-center gap-3"
+                                        style={{ backgroundColor: navBgColor }}
+                                      >
+                                        <div className="text-xl font-bold" style={{ color: navTextColor }}>
+                                          Restaurant Name
+                                        </div>
+                                        <div className="flex items-center gap-6">
+                                          {['Home', 'Menu', 'About', 'Contact'].map((item, i) => (
+                                            <span key={i} className="text-sm font-medium" style={{ color: navTextColor }}>
+                                              {item}
+                                            </span>
+                                          ))}
+                                          <button
+                                            className="px-4 py-1.5 text-sm font-semibold rounded-lg"
+                                            style={{ backgroundColor: buttonBg, color: buttonText }}
+                                          >
+                                            Order Now
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+
+                                  // Centered layout
+                                  if (layoutId === 'centered') {
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="px-8 py-4 flex items-center justify-center gap-8"
+                                        style={{ backgroundColor: navBgColor }}
+                                      >
+                                        <div className="text-xl font-bold" style={{ color: navTextColor }}>
+                                          Logo
+                                        </div>
+                                        <div className="flex items-center gap-6">
+                                          {['Home', 'Menu', 'About', 'Contact'].map((item, i) => (
+                                            <span key={i} className="text-sm font-medium" style={{ color: navTextColor }}>
+                                              {item}
+                                            </span>
+                                          ))}
+                                        </div>
+                                        <button
+                                          className="px-4 py-1.5 text-sm font-semibold rounded-lg"
+                                          style={{ backgroundColor: buttonBg, color: buttonText }}
+                                        >
+                                          Order Now
+                                        </button>
+                                      </div>
+                                    );
+                                  }
+
+                                  // Logo Center layout
+                                  if (layoutId === 'logo-center') {
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="px-8 py-4 flex items-center justify-between"
+                                        style={{ backgroundColor: navBgColor }}
+                                      >
+                                        <div className="flex items-center gap-6">
+                                          {['Home', 'Menu'].map((item, i) => (
+                                            <span key={i} className="text-sm font-medium" style={{ color: navTextColor }}>
+                                              {item}
+                                            </span>
+                                          ))}
+                                        </div>
+                                        <div className="text-xl font-bold" style={{ color: navTextColor }}>
+                                          Logo
+                                        </div>
+                                        <div className="flex items-center gap-6">
+                                          {['About', 'Contact'].map((item, i) => (
+                                            <span key={i} className="text-sm font-medium" style={{ color: navTextColor }}>
+                                              {item}
+                                            </span>
+                                          ))}
+                                          <button
+                                            className="px-4 py-1.5 text-sm font-semibold rounded-lg"
+                                            style={{ backgroundColor: buttonBg, color: buttonText }}
+                                          >
+                                            Order Now
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+
+                                  // Bordered Centered layout
+                                  if (layoutId === 'bordered-centered') {
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="px-8 py-4"
+                                        style={{ backgroundColor: navBgColor }}
+                                      >
+                                        <div className="max-w-6xl mx-auto border-2 rounded-lg px-6 py-3 flex items-center justify-center gap-8" style={{ borderColor: textColor }}>
+                                          <div className="text-xl font-bold" style={{ color: navTextColor }}>
+                                            Logo
+                                          </div>
+                                          <div className="flex items-center gap-6">
+                                            {['Home', 'Menu', 'About', 'Contact'].map((item, i) => (
+                                              <span key={i} className="text-sm font-medium" style={{ color: navTextColor }}>
+                                                {item}
+                                              </span>
+                                            ))}
+                                          </div>
+                                          <button
+                                            className="px-4 py-1.5 text-sm font-semibold rounded-lg"
+                                            style={{ backgroundColor: buttonBg, color: buttonText }}
+                                          >
+                                            Order Now
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+
+                                  // Split layout
+                                  if (layoutId === 'split') {
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="px-8 py-4 flex items-center justify-between"
+                                        style={{ backgroundColor: navBgColor }}
+                                      >
+                                        <div className="flex items-center gap-6">
+                                          {['Home', 'Menu', 'About', 'Contact'].map((item, i) => (
+                                            <span key={i} className="text-sm font-medium" style={{ color: navTextColor }}>
+                                              {item}
+                                            </span>
+                                          ))}
+                                        </div>
+                                        <div className="text-xl font-bold" style={{ color: navTextColor }}>
+                                          Logo
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                          <span className="text-sm font-medium" style={{ color: navTextColor }}>Location: NY</span>
+                                          <button
+                                            className="px-4 py-1.5 text-sm font-semibold rounded-lg"
+                                            style={{ backgroundColor: buttonBg, color: buttonText }}
+                                          >
+                                            Order Now
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+
+                                  // Default layout
                                   return (
                                     <div
                                       key={idx}
-                                      className={`px-8 py-4 flex items-center justify-between ${
-                                        navbarStyle === 'transparent' ? 'bg-white/10 backdrop-blur-md border-b border-gray-200/20 absolute w-full z-10' :
-                                        navbarStyle === 'minimal' ? 'bg-white border-b border-gray-200' :
-                                        ''
-                                      }`}
-                                      style={navbarStyle === 'solid' || navbarStyle === 'gradient' ? { backgroundColor: primaryColor } : {}}
+                                      className="px-8 py-4 flex items-center justify-between"
+                                      style={{ backgroundColor: navBgColor }}
                                     >
-                                      <div className={`text-xl font-bold ${navbarStyle === 'minimal' ? 'text-gray-900' : 'text-white'}`}>
+                                      <div className="text-xl font-bold" style={{ color: navTextColor }}>
                                         Restaurant Name
                                       </div>
                                       <div className="flex items-center gap-6">
                                         {['Home', 'Menu', 'About', 'Contact'].map((item, i) => (
-                                          <span key={i} className={`text-sm font-medium ${navbarStyle === 'minimal' ? 'text-gray-600' : 'text-white/90'}`}>
+                                          <span key={i} className="text-sm font-medium" style={{ color: navTextColor }}>
                                             {item}
                                           </span>
                                         ))}
+                                        <button
+                                          className="px-4 py-1.5 text-sm font-semibold rounded-lg"
+                                          style={{ backgroundColor: buttonBg, color: buttonText }}
+                                        >
+                                          Order Now
+                                        </button>
                                       </div>
                                     </div>
                                   );
@@ -1278,6 +1665,197 @@ export default function SelectThemeForm() {
 
                                 // Footer
                                 if (sectionType === 'footer') {
+                                  const layoutId = section.id || 'default';
+
+                                  // Minimal footer layout
+                                  if (layoutId === 'minimal') {
+                                    return (
+                                      <div key={idx} className="px-8 py-6" style={{ backgroundColor: primaryColor }}>
+                                        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4 text-white">
+                                          <div className="text-lg font-bold">Restaurant Name</div>
+                                          <div className="flex gap-4 text-sm text-white/80">
+                                            <a href="#" className="hover:text-white transition">Home</a>
+                                            <a href="#" className="hover:text-white transition">Menu</a>
+                                            <a href="#" className="hover:text-white transition">About</a>
+                                            <a href="#" className="hover:text-white transition">Contact</a>
+                                          </div>
+                                          <div className="flex gap-3">
+                                            {['F', 'I', 'T'].map((social, i) => (
+                                              <div key={i} className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition">
+                                                <span className="text-xs font-semibold">{social}</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+
+                                  // Centered footer layout
+                                  if (layoutId === 'centered') {
+                                    return (
+                                      <div key={idx} className="px-8 py-12" style={{ backgroundColor: primaryColor }}>
+                                        <div className="max-w-4xl mx-auto text-center text-white">
+                                          <h3 className="text-2xl font-bold mb-4">Restaurant Name</h3>
+                                          <p className="text-white/80 text-sm mb-6">
+                                            Serving excellence since 2000
+                                          </p>
+                                          <div className="flex justify-center gap-6 mb-6 text-sm">
+                                            <a href="#" className="hover:text-white/80 transition">Home</a>
+                                            <a href="#" className="hover:text-white/80 transition">Menu</a>
+                                            <a href="#" className="hover:text-white/80 transition">About</a>
+                                            <a href="#" className="hover:text-white/80 transition">Contact</a>
+                                          </div>
+                                          <div className="flex justify-center gap-3 mb-6">
+                                            {['F', 'I', 'T'].map((social, i) => (
+                                              <div key={i} className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition">
+                                                <span className="text-sm font-semibold">{social}</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                          <div className="border-t border-white/20 pt-6 text-sm text-white/70">
+                                            © 2026 Restaurant Name. All rights reserved.
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+
+                                  // Two-column footer layout
+                                  if (layoutId === 'two-column') {
+                                    return (
+                                      <div key={idx} className="px-8 py-12" style={{ backgroundColor: primaryColor }}>
+                                        <div className="max-w-6xl mx-auto">
+                                          <div className="grid md:grid-cols-2 gap-12 text-white mb-8">
+                                            <div>
+                                              <h3 className="text-2xl font-bold mb-4">Restaurant Name</h3>
+                                              <p className="text-white/80 text-sm mb-4">
+                                                Serving excellence since 2000
+                                              </p>
+                                              <div className="flex gap-3">
+                                                {['F', 'I', 'T'].map((social, i) => (
+                                                  <div key={i} className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition">
+                                                    <span className="text-xs font-semibold">{social}</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-8">
+                                              <div>
+                                                <h4 className="font-bold mb-3">Quick Links</h4>
+                                                <div className="space-y-2 text-sm text-white/80">
+                                                  <div>Home</div>
+                                                  <div>Menu</div>
+                                                  <div>About</div>
+                                                </div>
+                                              </div>
+                                              <div>
+                                                <h4 className="font-bold mb-3">Contact</h4>
+                                                <div className="space-y-2 text-sm text-white/80">
+                                                  <div>Phone: (555) 123-4567</div>
+                                                  <div>Email: info@restaurant.com</div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <div className="border-t border-white/20 pt-6 text-center text-sm text-white/70">
+                                            © 2026 Restaurant Name. All rights reserved.
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+
+                                  // Three-column footer layout
+                                  if (layoutId === 'three-column') {
+                                    return (
+                                      <div key={idx} className="px-8 py-12" style={{ backgroundColor: primaryColor }}>
+                                        <div className="max-w-6xl mx-auto">
+                                          <div className="grid md:grid-cols-3 gap-8 text-white mb-8">
+                                            <div>
+                                              <h3 className="text-xl font-bold mb-4">Restaurant Name</h3>
+                                              <p className="text-white/80 text-sm">
+                                                Serving excellence since 2000
+                                              </p>
+                                            </div>
+                                            <div>
+                                              <h4 className="font-bold mb-4">Quick Links</h4>
+                                              <div className="space-y-2 text-sm text-white/80">
+                                                <div>Home</div>
+                                                <div>Menu</div>
+                                                <div>About</div>
+                                                <div>Contact</div>
+                                              </div>
+                                            </div>
+                                            <div>
+                                              <h4 className="font-bold mb-4">Contact</h4>
+                                              <div className="space-y-2 text-sm text-white/80">
+                                                <div>123 Main St</div>
+                                                <div>Phone: (555) 123-4567</div>
+                                                <div>Email: info@restaurant.com</div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <div className="border-t border-white/20 pt-6 text-center text-sm text-white/70">
+                                            © 2026 Restaurant Name. All rights reserved.
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+
+                                  // Mega footer layout (5 columns)
+                                  if (layoutId === 'mega') {
+                                    return (
+                                      <div key={idx} className="px-8 py-12" style={{ backgroundColor: primaryColor }}>
+                                        <div className="max-w-7xl mx-auto">
+                                          <div className="grid md:grid-cols-5 gap-6 text-white mb-8">
+                                            <div className="md:col-span-2">
+                                              <h3 className="text-xl font-bold mb-4">Restaurant Name</h3>
+                                              <p className="text-white/80 text-sm">
+                                                Serving excellence since 2000. Experience the finest cuisine.
+                                              </p>
+                                            </div>
+                                            <div>
+                                              <h4 className="font-bold mb-3">Menu</h4>
+                                              <div className="space-y-2 text-sm text-white/80">
+                                                <div>Appetizers</div>
+                                                <div>Main Course</div>
+                                                <div>Desserts</div>
+                                              </div>
+                                            </div>
+                                            <div>
+                                              <h4 className="font-bold mb-3">Company</h4>
+                                              <div className="space-y-2 text-sm text-white/80">
+                                                <div>About Us</div>
+                                                <div>Careers</div>
+                                                <div>Press</div>
+                                              </div>
+                                            </div>
+                                            <div>
+                                              <h4 className="font-bold mb-3">Contact</h4>
+                                              <div className="space-y-2 text-sm text-white/80">
+                                                <div>(555) 123-4567</div>
+                                                <div>info@restaurant.com</div>
+                                                <div className="flex gap-2 mt-3">
+                                                  {['F', 'I', 'T'].map((social, i) => (
+                                                    <div key={i} className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-xs font-semibold">
+                                                      {social}
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <div className="border-t border-white/20 pt-6 text-center text-sm text-white/70">
+                                            © 2026 Restaurant Name. All rights reserved.
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+
+                                  // Default 4-column footer layout
                                   return (
                                     <div key={idx} className="px-8 py-12" style={{ backgroundColor: primaryColor }}>
                                       <div className="max-w-6xl mx-auto">
@@ -1318,7 +1896,7 @@ export default function SelectThemeForm() {
                                           </div>
                                         </div>
                                         <div className="border-t border-white/20 mt-8 pt-6 text-center text-sm text-white/70">
-                                          © 2024 Restaurant Name. All rights reserved.
+                                          © 2026 Restaurant Name. All rights reserved.
                                         </div>
                                       </div>
                                     </div>

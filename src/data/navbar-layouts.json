@@ -1,0 +1,131 @@
+{
+  "layouts": [
+    {
+      "id": "default",
+      "name": "Default",
+      "description": "Logo left, menu items right",
+      "preview": {
+        "type": "flex",
+        "justify": "between",
+        "items": [
+          { "type": "logo", "width": "4", "height": "1.5" },
+          {
+            "type": "group",
+            "items": [
+              { "type": "menu-item", "width": "3", "height": "1.5" },
+              { "type": "menu-item", "width": "3", "height": "1.5" },
+              { "type": "button", "width": "4", "height": "1.5" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "centered",
+      "name": "Centered",
+      "description": "All items centered",
+      "preview": {
+        "type": "flex",
+        "justify": "center",
+        "items": [
+          { "type": "logo", "width": "4", "height": "1.5" },
+          {
+            "type": "group",
+            "items": [
+              { "type": "menu-item", "width": "3", "height": "1.5" },
+              { "type": "menu-item", "width": "3", "height": "1.5" }
+            ]
+          },
+          { "type": "button", "width": "4", "height": "1.5" }
+        ]
+      }
+    },
+    {
+      "id": "logo-center",
+      "name": "Logo Center",
+      "description": "Logo in middle",
+      "preview": {
+        "type": "flex",
+        "justify": "between",
+        "items": [
+          {
+            "type": "group",
+            "items": [
+              { "type": "menu-item", "width": "3", "height": "1.5" },
+              { "type": "menu-item", "width": "3", "height": "1.5" }
+            ]
+          },
+          { "type": "logo", "width": "4", "height": "1.5" },
+          { "type": "button", "width": "4", "height": "1.5" }
+        ]
+      }
+    },
+    {
+      "id": "bordered-centered",
+      "name": "Bordered",
+      "description": "Centered with border",
+      "preview": {
+        "type": "flex",
+        "justify": "center",
+        "bordered": true,
+        "items": [
+          { "type": "logo", "width": "4", "height": "1.5" },
+          {
+            "type": "group",
+            "items": [
+              { "type": "menu-item", "width": "3", "height": "1.5" },
+              { "type": "menu-item", "width": "3", "height": "1.5" }
+            ]
+          },
+          { "type": "button", "width": "4", "height": "1.5" }
+        ]
+      }
+    },
+    {
+      "id": "stacked",
+      "name": "Stacked",
+      "description": "Vertical layout",
+      "preview": {
+        "type": "flex",
+        "direction": "column",
+        "justify": "center",
+        "items": [
+          { "type": "logo", "width": "4", "height": "1.5" },
+          {
+            "type": "group",
+            "items": [
+              { "type": "menu-item", "width": "3", "height": "1.5" },
+              { "type": "menu-item", "width": "3", "height": "1.5" },
+              { "type": "button", "width": "4", "height": "1.5" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "split",
+      "name": "Split",
+      "description": "Items left, logo center, text & button right",
+      "preview": {
+        "type": "flex",
+        "justify": "between",
+        "items": [
+          {
+            "type": "group",
+            "items": [
+              { "type": "menu-item", "width": "3", "height": "1.5" }
+            ]
+          },
+          { "type": "logo", "width": "4", "height": "1.5" },
+          {
+            "type": "group",
+            "items": [
+              { "type": "menu-item", "width": "3", "height": "1.5" },
+              { "type": "button", "width": "4", "height": "1.5" }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

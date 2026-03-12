@@ -313,29 +313,33 @@ async function createNavbarFromTheme(restaurantId: string, themeId: string) {
     href: `/${page.url_slug}`,
   }));
 
-  // Build config based on global styles
+  // Build config based on global styles with navbar section overrides
+  // Priority: globalStyles > navbarSection.style > defaults
   const config = {
     bgColor: (globalStyles as any)?.primaryColor || navbarSection.style?.bgColor || '#4a90e2',
-    textColor: (globalStyles as any)?.textColor || globalStyles?.title?.color || navbarSection.style?.textColor || '#2c3e50',
+    textColor: (globalStyles as any)?.navbarTextColor || globalStyles?.title?.color || navbarSection.style?.textColor || '#2c3e50',
     buttonBgColor: (globalStyles as any)?.accentColor || globalStyles?.primaryButton?.backgroundColor || navbarSection.style?.buttonBgColor || '#000000',
     buttonTextColor: globalStyles?.primaryButton?.color || navbarSection.style?.buttonTextColor || '#ffffff',
+    buttonBorderRadius: globalStyles?.primaryButton?.borderRadius || navbarSection.style?.buttonBorderRadius || '0.5rem',
     position: navbarSection.style?.position || 'fixed',
     logoSize: navbarSection.style?.logoSize || 40,
-    fontFamily: globalStyles?.title?.fontFamily || navbarSection.style?.fontFamily || 'Inter, system-ui, sans-serif',
-    fontSize: globalStyles?.title?.fontSize || navbarSection.style?.fontSize || '2.25rem',
-    fontWeight: globalStyles?.title?.fontWeight || navbarSection.style?.fontWeight || 700,
+    fontFamily: globalStyles?.title?.fontFamily || navbarSection.style?.fontFamily || 'Poppins, sans-serif',
+    fontSize: navbarSection.style?.fontSize || '0.875rem',
+    fontWeight: navbarSection.style?.fontWeight || 500,
     textTransform: navbarSection.style?.textTransform || 'uppercase',
     ctaButton: {
       label: 'Order Online',
       href: '/menu',
       style: 'primary'
-    }
+    },
+    showCtaButton: navbarSection.style?.showCtaButton !== undefined ? navbarSection.style.showCtaButton : true
   };
 
   // Create navbar template (without page_id - it's global)
+  // Use navbarSection.id as the name (contains layout ID like "bordered-centered")
   await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
     restaurant_id: restaurantId,
-    name: navbarSection.name || 'navbar',
+    name: navbarSection.id || navbarSection.name || 'default',
     category: 'Navbar',
     config: config,
     menu_items: menuItems,
@@ -392,22 +396,23 @@ async function createFooterFromTheme(restaurantId: string, themeId: string) {
 
   const globalStyles = restaurantData.restaurants_by_pk?.global_styles || {};
 
-  // Build config based on global styles
+  // Build config based on global styles with footer section overrides
+  // Priority: globalStyles > footerSection.style > defaults
   const config = {
     bgColor: (globalStyles as any)?.primaryColor || footerSection.style?.bgColor || '#4a90e2',
-    textColor: (globalStyles as any)?.textColor || globalStyles?.paragraph?.color || footerSection.style?.textColor || '#ffffff',
+    textColor: globalStyles?.paragraph?.color || footerSection.style?.textColor || '#ffffff',
     linkColor: (globalStyles as any)?.textColor || footerSection.style?.linkColor || '#ffffff',
     copyrightBgColor: (globalStyles as any)?.accentColor || footerSection.style?.copyrightBgColor || '#ffca58',
     copyrightTextColor: footerSection.style?.copyrightTextColor || '#ffffff',
-    fontFamily: globalStyles?.paragraph?.fontFamily || footerSection.style?.fontFamily || 'Inter, system-ui, sans-serif',
+    fontFamily: globalStyles?.paragraph?.fontFamily || footerSection.style?.fontFamily || 'Poppins, sans-serif',
     fontSize: globalStyles?.paragraph?.fontSize || footerSection.style?.fontSize || '0.9375rem',
     fontWeight: globalStyles?.paragraph?.fontWeight || footerSection.style?.fontWeight || 400,
     textTransform: footerSection.style?.textTransform || 'none',
-    headingFontFamily: globalStyles?.subheading?.fontFamily || footerSection.style?.headingFontFamily || 'Inter, system-ui, sans-serif',
+    headingFontFamily: globalStyles?.subheading?.fontFamily || footerSection.style?.headingFontFamily || 'Poppins, sans-serif',
     headingFontSize: globalStyles?.subheading?.fontSize || footerSection.style?.headingFontSize || '1.125rem',
     headingFontWeight: globalStyles?.subheading?.fontWeight || footerSection.style?.headingFontWeight || 600,
     headingTextTransform: footerSection.style?.headingTextTransform || 'uppercase',
-    copyrightFontFamily: globalStyles?.paragraph?.fontFamily || footerSection.style?.copyrightFontFamily || 'Inter, system-ui, sans-serif',
+    copyrightFontFamily: globalStyles?.paragraph?.fontFamily || footerSection.style?.copyrightFontFamily || 'Poppins, sans-serif',
     copyrightFontSize: footerSection.style?.copyrightFontSize || '0.875rem',
     copyrightFontWeight: footerSection.style?.copyrightFontWeight || 400,
     aboutContent: footerSection.style?.aboutContent || '',
@@ -416,9 +421,10 @@ async function createFooterFromTheme(restaurantId: string, themeId: string) {
   };
 
   // Create footer template (without page_id - it's global)
+  // Use footerSection.id as the name (contains layout ID like "centered", "three-column", etc.)
   await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
     restaurant_id: restaurantId,
-    name: footerSection.name || 'footer',
+    name: footerSection.id || footerSection.name || 'default',
     category: 'Footer',
     config: config,
     menu_items: {},

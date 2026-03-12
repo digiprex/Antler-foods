@@ -21,17 +21,18 @@ import type { NavbarConfig } from '@/types/navbar.types';
 import Navbar from '@/components/navbar';
 import Toast from '@/components/ui/toast';
 import styles from './navbar-settings-form.module.css';
+import { generateNavbarPropsFromConfig } from '@/utils/navbar-layout-generator';
 
 // Font options for navbar menu text
 const FONT_OPTIONS = [
-  { value: 'Inter, system-ui, sans-serif', label: 'Inter (Default)' },
+  { value: 'Poppins, sans-serif', label: 'Poppins (Default)' },
 
   // Sans-serif fonts
+  { value: 'Inter, system-ui, sans-serif', label: 'Inter' },
   { value: 'Roboto, sans-serif', label: 'Roboto' },
   { value: 'Open Sans, sans-serif', label: 'Open Sans' },
   { value: 'Lato, sans-serif', label: 'Lato' },
   { value: 'Montserrat, sans-serif', label: 'Montserrat' },
-  { value: 'Poppins, sans-serif', label: 'Poppins' },
   { value: 'Source Sans Pro, sans-serif', label: 'Source Sans Pro' },
   { value: 'Nunito, sans-serif', label: 'Nunito' },
   { value: 'Raleway, sans-serif', label: 'Raleway' },
@@ -145,16 +146,16 @@ export default function NavbarSettingsForm() {
   const [bgColor, setBgColor] = useState('#ffffff');
   const [textColor, setTextColor] = useState('#000000');
   const [logoSize, setLogoSize] = useState<number>(40);
-  const [fontFamily, setFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [fontFamily, setFontFamily] = useState('Poppins, sans-serif');
   const [fontSize, setFontSize] = useState('1rem');
   const [fontWeight, setFontWeight] = useState<number>(400);
   const [textTransform, setTextTransform] = useState<'none' | 'uppercase' | 'lowercase' | 'capitalize'>('uppercase');
   const [showOrderButton, setShowOrderButton] = useState(true);
   const [orderButtonText, setOrderButtonText] = useState('Order Online');
   const [orderButtonHref, setOrderButtonHref] = useState('/menu');
-  const [buttonStyle, setButtonStyle] = useState<'primary' | 'secondary'>('primary');
   const [buttonBgColor, setButtonBgColor] = useState('#000000');
   const [buttonTextColor, setButtonTextColor] = useState('#ffffff');
+  const [buttonBorderRadius, setButtonBorderRadius] = useState('0.5rem');
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -185,16 +186,16 @@ export default function NavbarSettingsForm() {
       setBgColor(config.bgColor || '#ffffff');
       setTextColor(config.textColor || '#000000');
       setLogoSize(config.logoSize || 40);
-      setFontFamily(config.fontFamily || 'Inter, system-ui, sans-serif');
+      setFontFamily(config.fontFamily || 'Poppins, sans-serif');
       setFontSize(config.fontSize || '1rem');
       setFontWeight(config.fontWeight || 400);
       setTextTransform(config.textTransform || 'uppercase');
-      setShowOrderButton(!!config.ctaButton);
+      setShowOrderButton(config.showCtaButton !== undefined ? config.showCtaButton : !!config.ctaButton);
       setOrderButtonText(config.ctaButton?.label || 'Order Online');
       setOrderButtonHref(config.ctaButton?.href || '/menu');
-      setButtonStyle(config.ctaButton?.style || 'primary');
       setButtonBgColor(config.buttonBgColor || '#000000');
       setButtonTextColor(config.buttonTextColor || '#ffffff');
+      setButtonBorderRadius(config.buttonBorderRadius || '0.5rem');
     }
   }, [config]);
 
@@ -221,11 +222,14 @@ export default function NavbarSettingsForm() {
         fontSize,
         fontWeight,
         textTransform,
+        buttonBgColor,
+        buttonTextColor,
+        buttonBorderRadius,
+        showCtaButton: showOrderButton,
         ctaButton: showOrderButton
           ? {
             label: orderButtonText,
             href: orderButtonHref,
-            style: buttonStyle,
           }
           : undefined,
       });
@@ -948,41 +952,6 @@ export default function NavbarSettingsForm() {
           {/* Button Style & Settings (shown when toggle is on) */}
           {showOrderButton && (
             <>
-              <div className="mt-6">
-                <label className="mb-3 block">
-                  <span className="text-sm font-semibold text-gray-900">Button Style</span>
-                  <span className="mt-0.5 block text-xs text-gray-600">Visual appearance</span>
-                </label>
-                <div className="flex gap-4">
-                  <label className="flex flex-1 cursor-pointer items-center gap-3 rounded-lg border-2 p-4 transition-all hover:bg-purple-50/50 has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50">
-                    <input
-                      type="radio"
-                      value="primary"
-                      checked={buttonStyle === 'primary'}
-                      onChange={(e) => setButtonStyle(e.target.value as 'primary' | 'secondary')}
-                      className="h-4 w-4 border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm font-semibold text-gray-900">Primary</div>
-                      <div className="text-xs text-gray-600">Filled button</div>
-                    </div>
-                  </label>
-                  <label className="flex flex-1 cursor-pointer items-center gap-3 rounded-lg border-2 p-4 transition-all hover:bg-purple-50/50 has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50">
-                    <input
-                      type="radio"
-                      value="secondary"
-                      checked={buttonStyle === 'secondary'}
-                      onChange={(e) => setButtonStyle(e.target.value as 'primary' | 'secondary')}
-                      className="h-4 w-4 border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm font-semibold text-gray-900">Secondary</div>
-                      <div className="text-xs text-gray-600">Outlined button</div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
               <div className="mt-6 space-y-4">
                 <div>
                   <label className="mb-2 block">
@@ -1010,6 +979,71 @@ export default function NavbarSettingsForm() {
                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="/menu"
                   />
+                </div>
+
+                {/* Button Colors */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block">
+                      <span className="text-sm font-semibold text-gray-900">Button Background</span>
+                      <span className="mt-0.5 block text-xs text-gray-600">Button fill color</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={buttonBgColor}
+                        onChange={(e) => setButtonBgColor(e.target.value)}
+                        className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      <input
+                        type="text"
+                        value={buttonBgColor}
+                        onChange={(e) => setButtonBgColor(e.target.value)}
+                        className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="#000000"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block">
+                      <span className="text-sm font-semibold text-gray-900">Button Text</span>
+                      <span className="mt-0.5 block text-xs text-gray-600">Button text color</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={buttonTextColor}
+                        onChange={(e) => setButtonTextColor(e.target.value)}
+                        className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      <input
+                        type="text"
+                        value={buttonTextColor}
+                        onChange={(e) => setButtonTextColor(e.target.value)}
+                        className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="#ffffff"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Button Border Radius */}
+                <div>
+                  <label className="mb-2 block">
+                    <span className="text-sm font-semibold text-gray-900">Button Border Radius</span>
+                    <span className="mt-0.5 block text-xs text-gray-600">Roundness of button corners</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={buttonBorderRadius}
+                    onChange={(e) => setButtonBorderRadius(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-mono focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="0.5rem"
+                  />
+                  <div className="mt-2 text-xs text-gray-500">
+                    Examples: 0.25rem (slight), 0.5rem (medium), 1rem (rounded), 9999px (pill)
+                  </div>
                 </div>
               </div>
             </>
@@ -1069,33 +1103,25 @@ export default function NavbarSettingsForm() {
                 <div className="overflow-hidden rounded-xl border border-gray-300 bg-white shadow-lg">
                   <Navbar
                     key={`${bgColor}-${textColor}-${showOrderButton}-${logoSize}`}
-                    restaurantName={config?.restaurantName || 'Restaurant Name'}
-                    logoUrl={config?.logoUrl}
-                    logoSize={logoSize}
-                    leftNavItems={config?.leftNavItems || [
-                      { label: 'Menu', href: '#menu' },
-                      { label: 'About', href: '#about' },
-                      { label: 'Contact', href: '#contact' },
-                    ]}
-                    rightNavItems={config?.rightNavItems || []}
-                    ctaButton={
-                      showOrderButton
-                        ? {
-                          label: orderButtonText,
-                          href: orderButtonHref,
-                        }
-                        : undefined
-                    }
-                    layout={layout}
-                    position="relative"
-                    bgColor={bgColor}
-                    textColor={textColor}
-                    buttonBgColor={buttonBgColor}
-                    buttonTextColor={buttonTextColor}
-                    fontFamily={fontFamily}
-                    fontSize={fontSize}
-                    fontWeight={fontWeight}
-                    textTransform={textTransform}
+                    {...generateNavbarPropsFromConfig(config, {
+                      logoSize,
+                      layout,
+                      position: 'relative',
+                      bgColor,
+                      textColor,
+                      buttonBgColor,
+                      buttonTextColor,
+                      buttonBorderRadius,
+                      fontFamily,
+                      fontSize,
+                      fontWeight,
+                      textTransform,
+                      showCtaButton: showOrderButton,
+                      ctaButton: showOrderButton ? {
+                        label: orderButtonText,
+                        href: orderButtonHref,
+                      } : undefined,
+                    })}
                   />
                 </div>
               </div>

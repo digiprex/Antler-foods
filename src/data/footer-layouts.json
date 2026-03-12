@@ -1,0 +1,97 @@
+{
+  "layouts": [
+    {
+      "id": "default",
+      "name": "Default",
+      "description": "4 columns with logo, links, hours, and social",
+      "columns": 4,
+      "preview": {
+        "type": "grid",
+        "columns": 4,
+        "sections": [
+          { "type": "logo-text", "span": 1 },
+          { "type": "links", "span": 1 },
+          { "type": "links", "span": 1 },
+          { "type": "social", "span": 1 }
+        ]
+      }
+    },
+    {
+      "id": "minimal",
+      "name": "Minimal",
+      "description": "Simple single row with logo and links",
+      "columns": 1,
+      "preview": {
+        "type": "flex",
+        "direction": "row",
+        "justify": "between",
+        "sections": [
+          { "type": "logo-text", "span": 1 },
+          { "type": "links-horizontal", "span": 1 },
+          { "type": "social-horizontal", "span": 1 }
+        ]
+      }
+    },
+    {
+      "id": "centered",
+      "name": "Centered",
+      "description": "All content centered with logo on top",
+      "columns": 1,
+      "preview": {
+        "type": "flex",
+        "direction": "column",
+        "justify": "center",
+        "sections": [
+          { "type": "logo-text", "span": 1 },
+          { "type": "links-horizontal", "span": 1 },
+          { "type": "social-horizontal", "span": 1 }
+        ]
+      }
+    },
+    {
+      "id": "three-column",
+      "name": "Three Column",
+      "description": "3 columns - logo/about, links, contact info",
+      "columns": 3,
+      "preview": {
+        "type": "grid",
+        "columns": 3,
+        "sections": [
+          { "type": "logo-text", "span": 1 },
+          { "type": "links", "span": 1 },
+          { "type": "contact", "span": 1 }
+        ]
+      }
+    },
+    {
+      "id": "two-column",
+      "name": "Two Column",
+      "description": "2 columns - branding left, links right",
+      "columns": 2,
+      "preview": {
+        "type": "grid",
+        "columns": 2,
+        "sections": [
+          { "type": "logo-text", "span": 1 },
+          { "type": "links-grid", "span": 1 }
+        ]
+      }
+    },
+    {
+      "id": "mega",
+      "name": "Mega Footer",
+      "description": "Large footer with 5 columns",
+      "columns": 5,
+      "preview": {
+        "type": "grid",
+        "columns": 5,
+        "sections": [
+          { "type": "logo-text", "span": 2 },
+          { "type": "links", "span": 1 },
+          { "type": "links", "span": 1 },
+          { "type": "contact", "span": 1 }
+        ]
+      }
+    }
+  ]
+}

@@ -20,17 +20,18 @@ import type { FooterConfig } from '@/types/footer.types';
 import Footer from '@/components/footer';
 import Toast from '@/components/ui/toast';
 import styles from './footer-settings-form.module.css';
+import { generateFooterPropsFromConfig } from '@/utils/footer-layout-generator';
 
 // Font options for footer text
 const FONT_OPTIONS = [
-  { value: 'Inter, system-ui, sans-serif', label: 'Inter (Default)' },
+  { value: 'Poppins, sans-serif', label: 'Poppins (Default)' },
 
   // Sans-serif fonts
+  { value: 'Inter, system-ui, sans-serif', label: 'Inter' },
   { value: 'Roboto, sans-serif', label: 'Roboto' },
   { value: 'Open Sans, sans-serif', label: 'Open Sans' },
   { value: 'Lato, sans-serif', label: 'Lato' },
   { value: 'Montserrat, sans-serif', label: 'Montserrat' },
-  { value: 'Poppins, sans-serif', label: 'Poppins' },
   { value: 'Source Sans Pro, sans-serif', label: 'Source Sans Pro' },
   { value: 'Nunito, sans-serif', label: 'Nunito' },
   { value: 'Raleway, sans-serif', label: 'Raleway' },
@@ -132,17 +133,17 @@ export default function FooterSettingsForm() {
   const [showSocialMedia, setShowSocialMedia] = useState(true);
 
   // Font styling state
-  const [fontFamily, setFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [fontFamily, setFontFamily] = useState('Poppins, sans-serif');
   const [fontSize, setFontSize] = useState('0.9375rem');
   const [fontWeight, setFontWeight] = useState<number>(400);
   const [textTransform, setTextTransform] = useState<'none' | 'uppercase' | 'lowercase' | 'capitalize'>('none');
 
-  const [headingFontFamily, setHeadingFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [headingFontFamily, setHeadingFontFamily] = useState('Poppins, sans-serif');
   const [headingFontSize, setHeadingFontSize] = useState('1.125rem');
   const [headingFontWeight, setHeadingFontWeight] = useState<number>(600);
   const [headingTextTransform, setHeadingTextTransform] = useState<'none' | 'uppercase' | 'lowercase' | 'capitalize'>('uppercase');
 
-  const [copyrightFontFamily, setCopyrightFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [copyrightFontFamily, setCopyrightFontFamily] = useState('Poppins, sans-serif');
   const [copyrightFontSize, setCopyrightFontSize] = useState('0.875rem');
   const [copyrightFontWeight, setCopyrightFontWeight] = useState<number>(400);
 
@@ -190,15 +191,15 @@ export default function FooterSettingsForm() {
       setCopyrightTextColor(config.copyrightTextColor || '#ffffff');
       setShowNewsletter(config.showNewsletter || false);
       setShowSocialMedia(config.showSocialMedia !== false);
-      setFontFamily(config.fontFamily || 'Inter, system-ui, sans-serif');
+      setFontFamily(config.fontFamily || 'Poppins, sans-serif');
       setFontSize(config.fontSize || '0.9375rem');
       setFontWeight(config.fontWeight || 400);
       setTextTransform(config.textTransform || 'none');
-      setHeadingFontFamily(config.headingFontFamily || 'Inter, system-ui, sans-serif');
+      setHeadingFontFamily(config.headingFontFamily || 'Poppins, sans-serif');
       setHeadingFontSize(config.headingFontSize || '1.125rem');
       setHeadingFontWeight(config.headingFontWeight || 600);
       setHeadingTextTransform(config.headingTextTransform || 'uppercase');
-      setCopyrightFontFamily(config.copyrightFontFamily || 'Inter, system-ui, sans-serif');
+      setCopyrightFontFamily(config.copyrightFontFamily || 'Poppins, sans-serif');
       setCopyrightFontSize(config.copyrightFontSize || '0.875rem');
       setCopyrightFontWeight(config.copyrightFontWeight || 400);
     }
@@ -1230,36 +1231,38 @@ export default function FooterSettingsForm() {
               <div className="mx-auto max-w-5xl">
                 <div className="overflow-hidden rounded-xl border border-gray-300 bg-white shadow-lg">
                   <Footer
-                    restaurantName={config?.restaurantName || 'Antler Foods'}
-                    aboutContent={aboutContent}
-                    email={email}
-                    phone={phone}
-                    address={address}
-                    socialLinks={config?.socialLinks || [
-                      { platform: 'facebook', url: 'https://facebook.com', order: 1 },
-                      { platform: 'instagram', url: 'https://instagram.com', order: 2 },
-                      { platform: 'twitter', url: 'https://twitter.com', order: 3 },
-                    ]}
-                    columns={config?.columns || []}
-                    showSocialMedia={showSocialMedia}
-                    showNewsletter={showNewsletter}
-                    layout={layout}
-                    bgColor={bgColor}
-                    textColor={textColor}
-                    linkColor={linkColor}
-                    copyrightBgColor={copyrightBgColor}
-                    copyrightTextColor={copyrightTextColor}
-                    fontFamily={fontFamily}
-                    fontSize={fontSize}
-                    fontWeight={fontWeight}
-                    textTransform={textTransform}
-                    headingFontFamily={headingFontFamily}
-                    headingFontSize={headingFontSize}
-                    headingFontWeight={headingFontWeight}
-                    headingTextTransform={headingTextTransform}
-                    copyrightFontFamily={copyrightFontFamily}
-                    copyrightFontSize={copyrightFontSize}
-                    copyrightFontWeight={copyrightFontWeight}
+                    {...generateFooterPropsFromConfig(config, {
+                      restaurantName: config?.restaurantName || 'Antler Foods',
+                      aboutContent,
+                      email,
+                      phone,
+                      address,
+                      socialLinks: config?.socialLinks || [
+                        { platform: 'facebook', url: 'https://facebook.com', order: 1 },
+                        { platform: 'instagram', url: 'https://instagram.com', order: 2 },
+                        { platform: 'twitter', url: 'https://twitter.com', order: 3 },
+                      ],
+                      columns: config?.columns || [],
+                      showSocialMedia,
+                      showNewsletter,
+                      layout,
+                      bgColor,
+                      textColor,
+                      linkColor,
+                      copyrightBgColor,
+                      copyrightTextColor,
+                      fontFamily,
+                      fontSize,
+                      fontWeight,
+                      textTransform,
+                      headingFontFamily,
+                      headingFontSize,
+                      headingFontWeight,
+                      headingTextTransform,
+                      copyrightFontFamily,
+                      copyrightFontSize,
+                      copyrightFontWeight,
+                    })}
                   />
                 </div>
               </div>

@@ -233,14 +233,16 @@ export async function GET(request: Request) {
           label: 'Order Online',
           href: '/menu',
         },
+        showCtaButton: true,
         position: 'absolute',
         bgColor: (globalStyles as any)?.primaryColor || '#ffffff',
-        textColor: globalStyles?.title?.color || '#000000',
+        textColor: (globalStyles as any)?.navbarTextColor || globalStyles?.title?.color || '#000000',
         buttonBgColor: (globalStyles as any)?.accentColor || globalStyles?.primaryButton?.backgroundColor || '#000000',
         buttonTextColor: globalStyles?.primaryButton?.color || '#ffffff',
-        fontFamily: globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
-        fontSize: globalStyles?.title?.fontSize || '1rem',
-        fontWeight: globalStyles?.title?.fontWeight || 400,
+        buttonBorderRadius: globalStyles?.primaryButton?.borderRadius || '0.5rem',
+        fontFamily: globalStyles?.title?.fontFamily || 'Poppins, sans-serif',
+        fontSize: globalStyles?.title?.fontSize || '0.875rem',
+        fontWeight: globalStyles?.title?.fontWeight || 500,
         textTransform: 'uppercase',
       };
 
@@ -266,12 +268,14 @@ export async function GET(request: Request) {
       leftNavItems: navItems, // Use pages with show_on_navbar=true
       rightNavItems: [],
       ctaButton: template.config?.ctaButton,
+      showCtaButton: template.config?.showCtaButton !== undefined ? template.config.showCtaButton : true,
       position: template.config?.position || 'absolute',
       bgColor: template.config?.bgColor || (globalStyles as any)?.primaryColor || '#ffffff',
-      textColor: template.config?.textColor || globalStyles?.title?.color || '#000000',
+      textColor: template.config?.textColor || (globalStyles as any)?.navbarTextColor || globalStyles?.title?.color || '#000000',
       buttonBgColor: template.config?.buttonBgColor || (globalStyles as any)?.accentColor || globalStyles?.primaryButton?.backgroundColor || '#000000',
       buttonTextColor: template.config?.buttonTextColor || globalStyles?.primaryButton?.color || '#ffffff',
-      fontFamily: template.config?.fontFamily || globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
+      buttonBorderRadius: template.config?.buttonBorderRadius || globalStyles?.primaryButton?.borderRadius || '0.5rem',
+      fontFamily: template.config?.fontFamily || globalStyles?.title?.fontFamily || 'Poppins, sans-serif',
       fontSize: template.config?.fontSize || globalStyles?.title?.fontSize || '1rem',
       fontWeight: template.config?.fontWeight || globalStyles?.title?.fontWeight || 400,
       textTransform: template.config?.textTransform || 'uppercase',
@@ -327,37 +331,46 @@ export async function POST(request: Request) {
       throw new Error('restaurant_id is required in request body');
     }
     
-    // Step 1: Get current template to mark as deleted and preserve menu_items
+    // Step 1: Get current template to mark as deleted and preserve menu_items and config
     const currentData = await graphqlRequest(GET_NAVBAR_CONFIG, {
       restaurant_id: restaurantId,
     });
 
     let menu_items = [];
+    let existingConfig: any = {};
 
-    // Step 2: Mark current template as deleted (if exists) and get menu_items
+    // Step 2: Mark current template as deleted (if exists) and get menu_items & config
     if ((currentData as any).templates && (currentData as any).templates.length > 0) {
       const currentTemplate = (currentData as any).templates[0];
 
       // Preserve menu_items from old record
       menu_items = currentTemplate.menu_items || [];
 
+      // Preserve existing config to merge with updates
+      existingConfig = currentTemplate.config || {};
+
       await graphqlRequest(MARK_AS_DELETED, {
         template_id: currentTemplate.template_id,
       });
     }
-    
+
     // Transform NavbarConfig to template structure
-    const name = body.layout || 'bordered-centered'; // layout goes to name field
+    // Merge new values with existing config - only update properties that are provided
+    const name = body.layout !== undefined ? body.layout : (existingConfig.layout || 'bordered-centered'); // layout goes to name field
     const config = {
-      bgColor: body.bgColor,
-      textColor: body.textColor,
-      position: body.position,
-      logoSize: body.logoSize,
-      fontFamily: body.fontFamily,
-      fontSize: body.fontSize,
-      fontWeight: body.fontWeight,
-      textTransform: body.textTransform,
-      ctaButton: body.ctaButton,
+      bgColor: body.bgColor !== undefined ? body.bgColor : existingConfig.bgColor,
+      textColor: body.navbarTextColor !== undefined ? body.navbarTextColor : (body.textColor !== undefined ? body.textColor : existingConfig.textColor),
+      position: body.position !== undefined ? body.position : existingConfig.position,
+      logoSize: body.logoSize !== undefined ? body.logoSize : existingConfig.logoSize,
+      fontFamily: body.fontFamily !== undefined ? body.fontFamily : existingConfig.fontFamily,
+      fontSize: body.fontSize !== undefined ? body.fontSize : existingConfig.fontSize,
+      fontWeight: body.fontWeight !== undefined ? body.fontWeight : existingConfig.fontWeight,
+      textTransform: body.textTransform !== undefined ? body.textTransform : existingConfig.textTransform,
+      ctaButton: body.ctaButton !== undefined ? body.ctaButton : existingConfig.ctaButton,
+      showCtaButton: body.showCtaButton !== undefined ? body.showCtaButton : existingConfig.showCtaButton,
+      buttonBgColor: body.buttonBgColor !== undefined ? body.buttonBgColor : existingConfig.buttonBgColor,
+      buttonTextColor: body.buttonTextColor !== undefined ? body.buttonTextColor : existingConfig.buttonTextColor,
+      buttonBorderRadius: body.buttonBorderRadius !== undefined ? body.buttonBorderRadius : existingConfig.buttonBorderRadius,
     };
 
     // Step 3: Insert new template with preserved menu_items
@@ -374,7 +387,7 @@ export async function POST(request: Request) {
     }
 
     const template = (insertedData as any).insert_templates_one;
-    
+
     // Transform back to NavbarConfig
     const responseConfig: NavbarConfig = {
       restaurantName: 'Restaurant', // Note: POST doesn't fetch restaurant name, should be handled by GET
@@ -382,9 +395,18 @@ export async function POST(request: Request) {
       leftNavItems: template.menu_items,
       rightNavItems: [],
       ctaButton: template.config?.ctaButton,
+      showCtaButton: template.config?.showCtaButton !== undefined ? template.config.showCtaButton : true,
       position: template.config?.position,
+      logoSize: template.config?.logoSize,
       bgColor: template.config?.bgColor,
       textColor: template.config?.textColor,
+      buttonBgColor: template.config?.buttonBgColor,
+      buttonTextColor: template.config?.buttonTextColor,
+      buttonBorderRadius: template.config?.buttonBorderRadius,
+      fontFamily: template.config?.fontFamily,
+      fontSize: template.config?.fontSize,
+      fontWeight: template.config?.fontWeight,
+      textTransform: template.config?.textTransform,
     };
 
     const response: NavbarConfigResponse = {

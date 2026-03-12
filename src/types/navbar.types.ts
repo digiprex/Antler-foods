@@ -33,7 +33,8 @@ export interface NavbarConfig {
   
   // CTA Button (e.g., "Order Online") - optional
   ctaButton?: CTAButton;
-  
+  showCtaButton?: boolean; // Toggle to show/hide CTA button
+
   // Layout and styling
   layout?: 'default' | 'centered' | 'logo-center' | 'stacked' | 'split' | 'logo-left-items-left' | 'bordered-centered';
   position?: 'fixed' | 'sticky' | 'relative' | 'absolute' | 'static';
@@ -44,6 +45,7 @@ export interface NavbarConfig {
   textColor?: string;
   buttonBgColor?: string;
   buttonTextColor?: string;
+  buttonBorderRadius?: string;
   borderColor?: string;
   borderWidth?: string;
 
@@ -87,6 +89,7 @@ export const DEFAULT_NAVBAR_CONFIG: NavbarConfig = {
     label: 'Order Online',
     href: '/menu',
   },
+  showCtaButton: true,
   layout: 'bordered-centered',
   position: 'absolute',
   zIndex: 1000,
@@ -94,6 +97,7 @@ export const DEFAULT_NAVBAR_CONFIG: NavbarConfig = {
   textColor: 'black',
   buttonBgColor: 'black',
   buttonTextColor: 'white',
+  buttonBorderRadius: '0.5rem',
   borderColor: '#000000',
   borderWidth: '2px',
   bagCount: 0,

@@ -190,7 +190,7 @@ export default function GlobalStyleSettingsForm() {
   const { updateGlobalStyle, updating, error: updateError } = useUpdateGlobalStyleConfig(configApiEndpoint);
 
   // Form state for title
-  const [titleFontFamily, setTitleFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [titleFontFamily, setTitleFontFamily] = useState('Poppins, sans-serif');
   const [titleFontSize, setTitleFontSize] = useState('2.25rem');
   const [titleFontWeight, setTitleFontWeight] = useState(700);
   const [titleColor, setTitleColor] = useState('#111827');
@@ -199,7 +199,7 @@ export default function GlobalStyleSettingsForm() {
   const [titleTextTransform, setTitleTextTransform] = useState<'none' | 'uppercase' | 'lowercase' | 'capitalize'>('none');
 
   // Form state for subheading
-  const [subheadingFontFamily, setSubheadingFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [subheadingFontFamily, setSubheadingFontFamily] = useState('Poppins, sans-serif');
   const [subheadingFontSize, setSubheadingFontSize] = useState('1.5rem');
   const [subheadingFontWeight, setSubheadingFontWeight] = useState(600);
   const [subheadingColor, setSubheadingColor] = useState('#374151');
@@ -208,7 +208,7 @@ export default function GlobalStyleSettingsForm() {
   const [subheadingTextTransform, setSubheadingTextTransform] = useState<'none' | 'uppercase' | 'lowercase' | 'capitalize'>('none');
 
   // Form state for paragraph
-  const [paragraphFontFamily, setParagraphFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [paragraphFontFamily, setParagraphFontFamily] = useState('Poppins, sans-serif');
   const [paragraphFontSize, setParagraphFontSize] = useState('1rem');
   const [paragraphFontWeight, setParagraphFontWeight] = useState(400);
   const [paragraphColor, setParagraphColor] = useState('#6b7280');
@@ -226,7 +226,7 @@ export default function GlobalStyleSettingsForm() {
   const [primaryButtonBorder, setPrimaryButtonBorder] = useState('none');
   const [primaryButtonHoverBgColor, setPrimaryButtonHoverBgColor] = useState('#1d4ed8');
   const [primaryButtonHoverColor, setPrimaryButtonHoverColor] = useState('#ffffff');
-  const [primaryButtonFontFamily, setPrimaryButtonFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [primaryButtonFontFamily, setPrimaryButtonFontFamily] = useState('Poppins, sans-serif');
   const [primaryButtonTextTransform, setPrimaryButtonTextTransform] = useState<'none' | 'uppercase' | 'lowercase' | 'capitalize'>('none');
 
   // Form state for secondary button
@@ -239,7 +239,7 @@ export default function GlobalStyleSettingsForm() {
   const [secondaryButtonBorder, setSecondaryButtonBorder] = useState('1px solid #d1d5db');
   const [secondaryButtonHoverBgColor, setSecondaryButtonHoverBgColor] = useState('#f9fafb');
   const [secondaryButtonHoverColor, setSecondaryButtonHoverColor] = useState('#111827');
-  const [secondaryButtonFontFamily, setSecondaryButtonFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [secondaryButtonFontFamily, setSecondaryButtonFontFamily] = useState('Poppins, sans-serif');
   const [secondaryButtonTextTransform, setSecondaryButtonTextTransform] = useState<'none' | 'uppercase' | 'lowercase' | 'capitalize'>('none');
 
   // Base theme colors
@@ -262,7 +262,7 @@ export default function GlobalStyleSettingsForm() {
     if (config) {
       // Title settings
       if (config.title) {
-        setTitleFontFamily(config.title.fontFamily || 'Inter, system-ui, sans-serif');
+        setTitleFontFamily(config.title.fontFamily || 'Poppins, sans-serif');
         setTitleFontSize(config.title.fontSize || '2.25rem');
         setTitleFontWeight(config.title.fontWeight || 700);
         setTitleColor(config.title.color || '#111827');
@@ -273,7 +273,7 @@ export default function GlobalStyleSettingsForm() {
 
       // Subheading settings
       if (config.subheading) {
-        setSubheadingFontFamily(config.subheading.fontFamily || 'Inter, system-ui, sans-serif');
+        setSubheadingFontFamily(config.subheading.fontFamily || 'Poppins, sans-serif');
         setSubheadingFontSize(config.subheading.fontSize || '1.5rem');
         setSubheadingFontWeight(config.subheading.fontWeight || 600);
         setSubheadingColor(config.subheading.color || '#374151');
@@ -284,7 +284,7 @@ export default function GlobalStyleSettingsForm() {
 
       // Paragraph settings
       if (config.paragraph) {
-        setParagraphFontFamily(config.paragraph.fontFamily || 'Inter, system-ui, sans-serif');
+        setParagraphFontFamily(config.paragraph.fontFamily || 'Poppins, sans-serif');
         setParagraphFontSize(config.paragraph.fontSize || '1rem');
         setParagraphFontWeight(config.paragraph.fontWeight || 400);
         setParagraphColor(config.paragraph.color || '#6b7280');
@@ -304,7 +304,7 @@ export default function GlobalStyleSettingsForm() {
         setPrimaryButtonBorder(config.primaryButton.border || 'none');
         setPrimaryButtonHoverBgColor(config.primaryButton.hoverBackgroundColor || '#1d4ed8');
         setPrimaryButtonHoverColor(config.primaryButton.hoverColor || '#ffffff');
-        setPrimaryButtonFontFamily(config.primaryButton.fontFamily || 'Inter, system-ui, sans-serif');
+        setPrimaryButtonFontFamily(config.primaryButton.fontFamily || 'Poppins, sans-serif');
         setPrimaryButtonTextTransform(config.primaryButton.textTransform || 'none');
       }
 
@@ -319,7 +319,7 @@ export default function GlobalStyleSettingsForm() {
         setSecondaryButtonBorder(config.secondaryButton.border || '1px solid #d1d5db');
         setSecondaryButtonHoverBgColor(config.secondaryButton.hoverBackgroundColor || '#f9fafb');
         setSecondaryButtonHoverColor(config.secondaryButton.hoverColor || '#111827');
-        setSecondaryButtonFontFamily(config.secondaryButton.fontFamily || 'Inter, system-ui, sans-serif');
+        setSecondaryButtonFontFamily(config.secondaryButton.fontFamily || 'Poppins, sans-serif');
         setSecondaryButtonTextTransform(config.secondaryButton.textTransform || 'none');
       }
 

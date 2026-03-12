@@ -180,8 +180,11 @@ export default function SelectThemeForm() {
         fontWeight: 600,
         textTransform: 'none'
       },
-      primaryAccentColor: accentColor || primaryColor,
-      secondaryAccentColor: secondaryColor || '#10b981'
+      primaryColor: primaryColor,
+      secondaryColor: secondaryColor,
+      accentColor: accentColor,
+      backgroundColor: backgroundColor,
+      textColor: textColor
     };
   };
 

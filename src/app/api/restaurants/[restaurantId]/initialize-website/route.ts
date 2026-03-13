@@ -1197,6 +1197,9 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
       // Use AI content if available, otherwise use defaults
       const content = aiContent || defaultContent;
 
+      // Check if layout requires an image and fetch from media table
+      const mediaImage = await getRestaurantMedia(restaurantId);
+
       // Build enhanced config using global_styles for CSS/styling and AI/default content for dynamic text
       sectionConfig = {
         ...sectionConfig, // Keep any existing theme styles
@@ -1206,6 +1209,9 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
         headline: content.headline,
         subheadline: content.subheadline,
         description: content.description,
+
+        // Dynamic image from media table if layout supports it
+        ...(mediaImage && { backgroundImage: mediaImage.url }),
 
         // CSS/Styling from global_styles (same as other pages)
         bgColor: globalStyles?.backgroundColor || sectionConfig.bgColor || '#ffffff',
@@ -1408,15 +1414,82 @@ async function createOtherPageSectionsFromTheme(
         // Normalize category names to match expected format
         const isHeroSection = category.toLowerCase() === 'hero';
         const isCustomSection = category.toLowerCase() === 'customsection';
+        const isFormSection = category.toLowerCase() === 'form';
 
         if (isHeroSection) {
           category = 'Hero';
         } else if (isCustomSection) {
           category = 'CustomSection';
+        } else if (isFormSection) {
+          category = 'form';
         }
 
         // Use full config if provided, otherwise create minimal config with layout ID
         let sectionConfig = section.config || { layout: section.id };
+
+        // For Form sections on contact page, ensure they have the form_id regardless of existing config
+        if (isFormSection && pageName === 'contact' && contactFormId) {
+          // Build complete form configuration
+          const formConfig = {
+            // Essential form configuration
+            form_id: contactFormId,
+            isEnabled: true,
+            restaurant_id: restaurantId,
+            layout: sectionConfig.layout || section.id || 'centered',
+            
+            // Content configuration with fallbacks
+            title: sectionConfig.title || 'Get In Touch',
+            subtitle: sectionConfig.subtitle || 'We\'re here to help',
+            description: sectionConfig.description || 'Fill out the form below and we\'ll get back to you as soon as possible.',
+            
+            // Visual configuration
+            backgroundColor: sectionConfig.backgroundColor || '#f8fafc',
+            mobileBackgroundColor: sectionConfig.mobileBackgroundColor || '',
+            textColor: sectionConfig.textColor || '#0f172a',
+            mobileTextColor: sectionConfig.mobileTextColor || '',
+            accentColor: sectionConfig.accentColor || globalStyles?.primaryColor || '#7c3aed',
+            mobileAccentColor: sectionConfig.mobileAccentColor || '',
+            buttonText: sectionConfig.buttonText || 'Send Message',
+            showImage: sectionConfig.showImage !== undefined ? sectionConfig.showImage : false,
+            imageUrl: sectionConfig.imageUrl || '',
+            
+            // Typography from global_styles
+            titleFontFamily: sectionConfig.titleFontFamily || globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
+            titleFontSize: sectionConfig.titleFontSize || globalStyles?.title?.fontSize || '2.25rem',
+            titleMobileFontSize: sectionConfig.titleMobileFontSize || '',
+            titleFontWeight: sectionConfig.titleFontWeight || globalStyles?.title?.fontWeight || 700,
+            titleColor: sectionConfig.titleColor || globalStyles?.title?.color || '#111827',
+
+            subtitleFontFamily: sectionConfig.subtitleFontFamily || globalStyles?.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
+            subtitleFontSize: sectionConfig.subtitleFontSize || globalStyles?.subheading?.fontSize || '1.5rem',
+            subtitleMobileFontSize: sectionConfig.subtitleMobileFontSize || '',
+            subtitleFontWeight: sectionConfig.subtitleFontWeight || globalStyles?.subheading?.fontWeight || 600,
+            subtitleColor: sectionConfig.subtitleColor || globalStyles?.subheading?.color || '#374151',
+
+            bodyFontFamily: sectionConfig.bodyFontFamily || globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
+            bodyFontSize: sectionConfig.bodyFontSize || globalStyles?.paragraph?.fontSize || '1rem',
+            bodyMobileFontSize: sectionConfig.bodyMobileFontSize || '',
+            bodyFontWeight: sectionConfig.bodyFontWeight || globalStyles?.paragraph?.fontWeight || 400,
+            bodyColor: sectionConfig.bodyColor || globalStyles?.paragraph?.color || '#6b7280',
+
+            // Section style settings
+            is_custom: sectionConfig.is_custom !== undefined ? sectionConfig.is_custom : false,
+            buttonStyleVariant: sectionConfig.buttonStyleVariant || 'primary',
+            sectionTextAlign: sectionConfig.sectionTextAlign || 'center',
+            sectionMaxWidth: sectionConfig.sectionMaxWidth || '1200px',
+            sectionPaddingY: sectionConfig.sectionPaddingY || '5rem',
+            sectionPaddingX: sectionConfig.sectionPaddingX || '1.5rem',
+            surfaceBorderRadius: sectionConfig.surfaceBorderRadius || '1.75rem',
+            surfaceShadow: sectionConfig.surfaceShadow || 'soft',
+            enableScrollReveal: sectionConfig.enableScrollReveal !== undefined ? sectionConfig.enableScrollReveal : false,
+            scrollRevealAnimation: sectionConfig.scrollRevealAnimation || 'fade-up',
+          };
+          
+          // Merge with any additional properties from original config, but prioritize form config
+          sectionConfig = { ...sectionConfig, ...formConfig };
+          
+          console.log(`  ✓ Configured form section with form_id: ${contactFormId} and full config`);
+        }
 
         // For Hero sections without full config, generate AI content and merge with global styles
         if (isHeroSection && !section.config) {
@@ -1463,6 +1536,9 @@ async function createOtherPageSectionsFromTheme(
           // Use AI content if available, otherwise use defaults
           const content = aiContent || defaultContent;
 
+          // Check if layout requires an image and fetch from media table
+          const mediaImage = await getRestaurantMedia(restaurantId);
+
           // Build config using global_styles for CSS/styling and AI/default content for dynamic text
           sectionConfig = {
             layout: section.id, // Layout from theme
@@ -1471,6 +1547,9 @@ async function createOtherPageSectionsFromTheme(
             headline: content.headline,
             subheadline: content.subheadline,
             description: content.description,
+
+            // Dynamic image from media table if layout supports it
+            ...(mediaImage && { backgroundImage: mediaImage.url }),
 
             // CSS/Styling from global_styles
             bgColor: globalStyles?.backgroundColor || '#ffffff',
@@ -1628,72 +1707,81 @@ async function createOtherPageSectionsFromTheme(
         console.log(`  ✓ Created ${category} section "${section.name || section.id}" (layout: ${sectionConfig.layout}) for page_id: ${pageId}`);
       }
 
-      // Add form section to contact page if form was created
+      // Add form section to contact page if form was created and no form sections exist in theme
       if (pageName === 'contact' && contactFormId) {
-        const formSectionConfig = {
-          isEnabled: true,
-          form_id: contactFormId,
-          title: 'Get In Touch',
-          subtitle: 'We\'re here to help',
-          description: 'Fill out the form below and we\'ll get back to you as soon as possible.',
-          layout: 'centered',
-          backgroundColor: '#f8fafc',
-          mobileBackgroundColor: '',
-          textColor: '#0f172a',
-          mobileTextColor: '',
-          accentColor: globalStyles?.primaryColor || '#7c3aed',
-          mobileAccentColor: '',
-          buttonText: 'Send Message',
-          showImage: false,
-          imageUrl: '',
+        // Check if there are already form sections in the theme configuration
+        const hasFormSection = sortedSections.some(section =>
+          section.type.toLowerCase() === 'form'
+        );
 
-          // Typography from global_styles
-          titleFontFamily: globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
-          titleFontSize: globalStyles?.title?.fontSize || '2.25rem',
-          titleMobileFontSize: '',
-          titleFontWeight: globalStyles?.title?.fontWeight || 700,
-          titleColor: globalStyles?.title?.color || '#111827',
+        if (!hasFormSection) {
+          const formSectionConfig = {
+            isEnabled: true,
+            form_id: contactFormId,
+            title: 'Get In Touch',
+            subtitle: 'We\'re here to help',
+            description: 'Fill out the form below and we\'ll get back to you as soon as possible.',
+            layout: 'centered',
+            backgroundColor: '#f8fafc',
+            mobileBackgroundColor: '',
+            textColor: '#0f172a',
+            mobileTextColor: '',
+            accentColor: globalStyles?.primaryColor || '#7c3aed',
+            mobileAccentColor: '',
+            buttonText: 'Send Message',
+            showImage: false,
+            imageUrl: '',
 
-          subtitleFontFamily: globalStyles?.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
-          subtitleFontSize: globalStyles?.subheading?.fontSize || '1.5rem',
-          subtitleMobileFontSize: '',
-          subtitleFontWeight: globalStyles?.subheading?.fontWeight || 600,
-          subtitleColor: globalStyles?.subheading?.color || '#374151',
+            // Typography from global_styles
+            titleFontFamily: globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
+            titleFontSize: globalStyles?.title?.fontSize || '2.25rem',
+            titleMobileFontSize: '',
+            titleFontWeight: globalStyles?.title?.fontWeight || 700,
+            titleColor: globalStyles?.title?.color || '#111827',
 
-          bodyFontFamily: globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
-          bodyFontSize: globalStyles?.paragraph?.fontSize || '1rem',
-          bodyMobileFontSize: '',
-          bodyFontWeight: globalStyles?.paragraph?.fontWeight || 400,
-          bodyColor: globalStyles?.paragraph?.color || '#6b7280',
+            subtitleFontFamily: globalStyles?.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
+            subtitleFontSize: globalStyles?.subheading?.fontSize || '1.5rem',
+            subtitleMobileFontSize: '',
+            subtitleFontWeight: globalStyles?.subheading?.fontWeight || 600,
+            subtitleColor: globalStyles?.subheading?.color || '#374151',
 
-          // Section style settings
-          is_custom: false,
-          buttonStyleVariant: 'primary',
-          sectionTextAlign: 'center',
-          sectionMaxWidth: '1200px',
-          sectionPaddingY: '5rem',
-          sectionPaddingX: '1.5rem',
-          surfaceBorderRadius: '1.75rem',
-          surfaceShadow: 'soft',
-          enableScrollReveal: false,
-          scrollRevealAnimation: 'fade-up',
-        };
+            bodyFontFamily: globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
+            bodyFontSize: globalStyles?.paragraph?.fontSize || '1rem',
+            bodyMobileFontSize: '',
+            bodyFontWeight: globalStyles?.paragraph?.fontWeight || 400,
+            bodyColor: globalStyles?.paragraph?.color || '#6b7280',
 
-        // Calculate the order_index (after all existing sections)
-        const maxOrderIndex = Math.max(...sortedSections.map(s => s.order_index ?? 0), 0);
+            // Section style settings
+            is_custom: false,
+            buttonStyleVariant: 'primary',
+            sectionTextAlign: 'center',
+            sectionMaxWidth: '1200px',
+            sectionPaddingY: '5rem',
+            sectionPaddingX: '1.5rem',
+            surfaceBorderRadius: '1.75rem',
+            surfaceShadow: 'soft',
+            enableScrollReveal: false,
+            scrollRevealAnimation: 'fade-up',
+          };
 
-        await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
-          restaurant_id: restaurantId,
-          name: 'Contact Form',
-          category: 'form',
-          config: formSectionConfig,
-          menu_items: {},
-          page_id: pageId,
-          order_index: maxOrderIndex + 1,
-          ref_template_id: null,
-        });
+          // Calculate the order_index (after all existing sections)
+          const maxOrderIndex = Math.max(...sortedSections.map(s => s.order_index ?? 0), 0);
 
-        console.log(`  ✓ Created form section with form_id: ${contactFormId} for page_id: ${pageId}`);
+          await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
+            restaurant_id: restaurantId,
+            name: 'Contact Form',
+            category: 'form',
+            config: formSectionConfig,
+            menu_items: {},
+            page_id: pageId,
+            order_index: maxOrderIndex + 1,
+            ref_template_id: null,
+          });
+
+          console.log(`  ✓ Created form section with form_id: ${contactFormId} for page_id: ${pageId}`);
+        } else {
+          console.log(`  ⚠️ Skipping form section creation - form section already exists in theme for ${pageName} page`);
+        }
       }
 
       console.log(`✅ Created ${sortedSections.length} section(s) for "${pageName}" page`);

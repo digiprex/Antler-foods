@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Toast from '@/components/ui/toast';
 import { ImageGalleryModal } from './image-gallery-modal';
 import styles from './gallery-settings-form.module.css';
-import { getCustomSectionMediaSupport } from '@/utils/custom-section-layout-utils';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import { SectionAppearanceControls } from '@/components/admin/section-appearance-controls';
 import {
@@ -117,43 +116,6 @@ export default function CustomSectionSettingsForm({
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showImageGallery, setShowImageGallery] = useState(false);
   const [imageFieldType, setImageFieldType] = useState<'image' | 'background'>('image');
-
-  // Helper function to determine what media is needed for each layout
-  // Now uses dynamic media support data from custom-section-layouts.json
-  const getMediaRequirements = (layout: LayoutType) => {
-    const requirements = {
-      needsImage: false,
-      needsVideo: false,
-      needsBackgroundImage: false,
-      imageLabel: 'Section Image',
-      imageHint: 'Upload an image for this layout',
-    };
-
-    // Get media support from JSON configuration
-    const mediaSupport = getCustomSectionMediaSupport(layout);
-
-    if (mediaSupport) {
-      requirements.needsImage = mediaSupport.image;
-      requirements.needsVideo = mediaSupport.video;
-      requirements.needsBackgroundImage = mediaSupport.backgroundImage;
-
-      // Set appropriate labels based on media type
-      if (mediaSupport.backgroundImage) {
-        requirements.imageLabel = 'Background Image';
-        requirements.imageHint = 'Background image for this layout';
-      } else if (mediaSupport.video) {
-        requirements.imageLabel = 'Video';
-        requirements.imageHint = 'Video for this layout';
-      } else if (mediaSupport.image) {
-        requirements.imageLabel = 'Section Image';
-        requirements.imageHint = 'Image for this layout';
-      }
-    }
-
-    return requirements;
-  };
-
-  const mediaRequirements = getMediaRequirements(formData.layout || 'layout-1');
 
   // Fetch existing custom section data when editing
 

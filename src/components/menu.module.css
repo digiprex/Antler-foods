@@ -733,6 +733,21 @@
   margin-top: 2.6rem;
 }
 
+.menuButtonGroupStart,
+.menuButtonGroupCenter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.menuButtonGroupStart {
+  justify-content: flex-start;
+}
+
+.menuButtonGroupCenter {
+  justify-content: center;
+}
+
 .mobileViewport .menuHeader {
   margin-bottom: 2.35rem;
 }

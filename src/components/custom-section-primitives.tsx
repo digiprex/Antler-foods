@@ -234,8 +234,14 @@ export function CustomSectionIntro({
         </p>
       ) : null}
       <CustomSectionButtons
-        primaryButton={config.primaryButton}
-        secondaryButton={config.secondaryButton}
+        primaryButton={
+          config.primaryButtonEnabled === false ? undefined : config.primaryButton
+        }
+        secondaryButton={
+          config.secondaryButtonEnabled === false
+            ? undefined
+            : config.secondaryButton
+        }
         buttonStyles={buttonStyles}
         align={align}
       />

@@ -15,9 +15,19 @@ import { useRouter } from 'next/navigation';
 import Toast from '@/components/ui/toast';
 import type { GalleryConfig } from '@/types/gallery.types';
 import { DEFAULT_GALLERY_CONFIG } from '@/types/gallery.types';
+import {
+  SECTION_STYLE_KEYS,
+  type SectionStyleConfig,
+} from '@/types/section-style.types';
 import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import { GalleryPreviewModal } from '@/components/admin/gallery-preview-modal';
+import {
+  FloatingPreviewButton,
+  ResponsiveViewportTabs,
+  SettingsCard,
+  ToggleRow,
+} from '@/components/admin/section-settings-primitives';
 import {
   GALLERY_LAYOUT_OPTIONS,
   normalizeGalleryLayout,
@@ -33,6 +43,85 @@ interface GallerySettingsFormProps {
   restaurantId: string;
   restaurantName?: string;
   pageName?: string;
+}
+
+const NON_TYPOGRAPHY_SECTION_KEYS = new Set([
+  'is_custom',
+  'buttonStyleVariant',
+  'sectionTextAlign',
+  'mobileSectionTextAlign',
+  'sectionMaxWidth',
+  'mobileSectionMaxWidth',
+  'sectionPaddingY',
+  'mobileSectionPaddingY',
+  'sectionPaddingX',
+  'mobileSectionPaddingX',
+  'surfaceBorderRadius',
+  'mobileSurfaceBorderRadius',
+  'surfaceShadow',
+  'mobileSurfaceShadow',
+  'enableScrollReveal',
+  'scrollRevealAnimation',
+] satisfies Array<keyof SectionStyleConfig>);
+
+const TYPOGRAPHY_SECTION_KEYS = SECTION_STYLE_KEYS.filter(
+  (key) => !NON_TYPOGRAPHY_SECTION_KEYS.has(key),
+);
+
+function buildGalleryConfig({
+  restaurantId,
+  sectionStyleDefaults,
+  sourceConfig,
+}: {
+  restaurantId: string;
+  sectionStyleDefaults: Partial<GalleryConfig>;
+  sourceConfig?: Partial<GalleryConfig> | null;
+}): GalleryConfig {
+  const enableScrollReveal =
+    sourceConfig?.enableScrollReveal ??
+    sourceConfig?.enableScrollAnimation ??
+    sectionStyleDefaults.enableScrollReveal ??
+    false;
+
+  return {
+    ...DEFAULT_GALLERY_CONFIG,
+    ...sectionStyleDefaults,
+    ...(sourceConfig || {}),
+    restaurant_id: restaurantId,
+    enableScrollReveal,
+    enableScrollAnimation: enableScrollReveal,
+    scrollRevealAnimation:
+      sourceConfig?.scrollRevealAnimation ||
+      sectionStyleDefaults.scrollRevealAnimation ||
+      'fade-up',
+  };
+}
+
+function mergeGlobalTypographyDefaults(
+  config: GalleryConfig,
+  defaults?: Partial<GalleryConfig>,
+): GalleryConfig {
+  if (!defaults) {
+    return config;
+  }
+
+  const typographyDefaults: Partial<GalleryConfig> = {};
+
+  TYPOGRAPHY_SECTION_KEYS.forEach((key) => {
+    const value = defaults[key];
+    if (value !== undefined) {
+      (typographyDefaults as Record<string, unknown>)[key] = value;
+    }
+  });
+
+  return buildGalleryConfig({
+    restaurantId: config.restaurant_id || '',
+    sectionStyleDefaults: defaults,
+    sourceConfig: {
+      ...config,
+      ...typographyDefaults,
+    },
+  });
 }
 
 export default function GallerySettingsForm({
@@ -96,15 +185,26 @@ export default function GallerySettingsForm({
   // Initialize form config
   useEffect(() => {
     if (isNewSection && !formConfig) {
-      setFormConfig({
-        ...DEFAULT_GALLERY_CONFIG,
-        ...sectionStyleDefaults,
-        restaurant_id: restaurantId,
-      });
+      setFormConfig(
+        buildGalleryConfig({
+          restaurantId,
+          sectionStyleDefaults,
+        }),
+      );
     } else if (!isNewSection && !formConfig) {
       fetchGalleryConfig();
     }
   }, [isNewSection, sectionStyleDefaults, restaurantId]);
+
+  useEffect(() => {
+    setFormConfig((current) => {
+      if (!current || current.is_custom === true) {
+        return current;
+      }
+
+      return mergeGlobalTypographyDefaults(current, sectionStyleDefaults);
+    });
+  }, [sectionStyleDefaults]);
 
   const fetchGalleryConfig = async () => {
     setLoading(true);
@@ -119,26 +219,29 @@ export default function GallerySettingsForm({
       const data = await response.json();
 
       if (data.success && data.data) {
-        setFormConfig({
-          ...DEFAULT_GALLERY_CONFIG,
-          ...sectionStyleDefaults,
-          ...data.data,
-          restaurant_id: restaurantId,
-        });
+        setFormConfig(
+          buildGalleryConfig({
+            restaurantId,
+            sectionStyleDefaults,
+            sourceConfig: data.data,
+          }),
+        );
       } else {
-        setFormConfig({
-          ...DEFAULT_GALLERY_CONFIG,
-          ...sectionStyleDefaults,
-          restaurant_id: restaurantId,
-        });
+        setFormConfig(
+          buildGalleryConfig({
+            restaurantId,
+            sectionStyleDefaults,
+          }),
+        );
       }
     } catch (error) {
       console.error('Error fetching gallery config:', error);
-      setFormConfig({
-        ...DEFAULT_GALLERY_CONFIG,
-        ...sectionStyleDefaults,
-        restaurant_id: restaurantId,
-      });
+      setFormConfig(
+        buildGalleryConfig({
+          restaurantId,
+          sectionStyleDefaults,
+        }),
+      );
     } finally {
       setLoading(false);
     }
@@ -151,12 +254,23 @@ export default function GallerySettingsForm({
 
     setSaving(true);
     try {
+      const enableScrollReveal =
+        formConfig.enableScrollReveal ?? formConfig.enableScrollAnimation ?? false;
       const payload = {
         ...formConfig,
+        enableScrollReveal,
+        enableScrollAnimation: enableScrollReveal,
         restaurant_id: restaurantId,
         page_id: pageId || null,
         template_id: templateId || null,
-      };
+      } as Record<string, unknown>;
+
+      if (formConfig.is_custom !== true) {
+        TYPOGRAPHY_SECTION_KEYS.forEach((key) => {
+          delete payload[key];
+        });
+        payload.is_custom = false;
+      }
 
       const response = await fetch('/api/gallery-config', {
         method: 'POST',
@@ -198,6 +312,26 @@ export default function GallerySettingsForm({
   const updateConfig = (updates: Partial<GalleryConfig>) => {
     if (!formConfig) return;
     setFormConfig((prev) => (prev ? { ...prev, ...updates } : null));
+  };
+
+  const handleGlobalStylesToggle = (checked: boolean) => {
+    setFormConfig((current) => {
+      if (!current) {
+        return current;
+      }
+
+      if (checked) {
+        return {
+          ...mergeGlobalTypographyDefaults(current, sectionStyleDefaults),
+          is_custom: false,
+        };
+      }
+
+      return {
+        ...mergeGlobalTypographyDefaults(current, sectionStyleDefaults),
+        is_custom: true,
+      };
+    });
   };
 
   const fetchMediaFiles = async () => {
@@ -317,31 +451,12 @@ export default function GallerySettingsForm({
   }
 
   const selectedLayout = normalizeGalleryLayout(formConfig.layout);
-  const isMobileEditorViewport = responsiveEditorViewport === 'mobile';
   const handleResponsiveEditorViewportChange = (
     viewport: PreviewViewport,
   ) => {
     setResponsiveEditorViewport(viewport);
     setPreviewViewport(viewport);
   };
-  const renderResponsiveEditorTabs = (scope: string) => (
-    <div className="inline-flex rounded-full bg-slate-100 p-1">
-      {(['desktop', 'mobile'] as PreviewViewport[]).map((viewport) => (
-        <button
-          key={`${scope}-viewport-${viewport}`}
-          type="button"
-          onClick={() => handleResponsiveEditorViewportChange(viewport)}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-            responsiveEditorViewport === viewport
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          {viewport === 'desktop' ? 'Desktop' : 'Mobile'}
-        </button>
-      ))}
-    </div>
-  );
 
   return (
     <>
@@ -692,396 +807,87 @@ export default function GallerySettingsForm({
           </div>
         </div>
 
-        {/* Colors & Styling */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-              <svg
-                className="h-5 w-5 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 711.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42"
-                />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Colors & Styling
-              </h2>
-              <p className="text-sm text-gray-600">
-                Customize colors and appearance
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Enable Scroll Animation
-                </label>
-                <p className="text-xs text-gray-500">
-                  Fade the gallery in with a fast upward motion and stagger the
-                  images as the section enters the viewport.
-                </p>
-              </div>
-              <label className="relative inline-flex cursor-pointer items-center">
-                <input
-                  type="checkbox"
-                  checked={formConfig.enableScrollAnimation || false}
-                  onChange={(e) =>
-                    updateConfig({ enableScrollAnimation: e.target.checked })
-                  }
-                  className="peer sr-only"
-                />
-                <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
-              </label>
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Section Width</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Content container max width
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formConfig.maxWidth || '1200px'}
-                  onChange={(e) => updateConfig({ maxWidth: e.target.value })}
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="1200px"
-                />
-                <button
-                  type="button"
-                  onClick={() => updateConfig({ maxWidth: '1200px' })}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Section Padding</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Inner spacing around the gallery
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formConfig.padding || '4rem 2rem'}
-                  onChange={(e) => updateConfig({ padding: e.target.value })}
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="4rem 2rem"
-                />
-                <button
-                  type="button"
-                  onClick={() => updateConfig({ padding: '4rem 2rem' })}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Section Margin</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Outer spacing around the full section
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formConfig.margin || '0'}
-                  onChange={(e) => updateConfig({ margin: e.target.value })}
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="0"
-                />
-                <button
-                  type="button"
-                  onClick={() => updateConfig({ margin: '0' })}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Background Color</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Gallery background color
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={formConfig.bgColor || '#ffffff'}
-                  onChange={(e) => updateConfig({ bgColor: e.target.value })}
-                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white"
-                />
-                <input
-                  type="text"
-                  value={formConfig.bgColor || '#ffffff'}
-                  onChange={(e) => updateConfig({ bgColor: e.target.value })}
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="#ffffff"
-                />
-                <button
-                  type="button"
-                  onClick={() => updateConfig({ bgColor: '#ffffff' })}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Title Color</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Gallery title color
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={formConfig.titleColor || '#000000'}
-                  onChange={(e) => updateConfig({ titleColor: e.target.value })}
-                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white"
-                />
-                <input
-                  type="text"
-                  value={formConfig.titleColor || '#000000'}
-                  onChange={(e) => updateConfig({ titleColor: e.target.value })}
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="#000000"
-                />
-                <button
-                  type="button"
-                  onClick={() => updateConfig({ titleColor: '#000000' })}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Text Color</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Description text color
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={formConfig.textColor || '#666666'}
-                  onChange={(e) => updateConfig({ textColor: e.target.value })}
-                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white"
-                />
-                <input
-                  type="text"
-                  value={formConfig.textColor || '#666666'}
-                  onChange={(e) => updateConfig({ textColor: e.target.value })}
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="#666666"
-                />
-                <button
-                  type="button"
-                  onClick={() => updateConfig({ textColor: '#666666' })}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Typography & Custom Styles */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-                <svg
-                  className="h-5 w-5 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"
+        <SettingsCard
+          icon={
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M7.5 6h9M6.75 10.5h10.5M9 15h6m-6.75 4.5h7.5A2.25 2.25 0 0018 17.25V6.75A2.25 2.25 0 0015.75 4.5h-7.5A2.25 2.25 0 006 6.75v10.5A2.25 2.25 0 008.25 19.5z"
+              />
+            </svg>
+          }
+          title="Typography and Responsive Structure"
+          action={
+            <ResponsiveViewportTabs
+              value={responsiveEditorViewport}
+              onChange={handleResponsiveEditorViewportChange}
+              scope="gallery-typography"
+            />
+          }
+        >
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Page Scroll Animation
+                  </h3>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={formConfig.enableScrollReveal === true}
+                    onChange={(event) =>
+                      updateConfig({
+                        enableScrollReveal: event.target.checked,
+                        enableScrollAnimation: event.target.checked,
+                      })
+                    }
+                    className="peer sr-only"
                   />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Typography & Custom Styles
-                </h2>
-                <p className="text-sm text-gray-600">
-                  Customize fonts and text styling
-                </p>
-              </div>
-            </div>
-            {renderResponsiveEditorTabs('gallery-typography')}
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Custom Typography & Styles
+                  <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
                 </label>
-                <p className="text-xs text-gray-500">
-                  Override global CSS with custom styling options
-                </p>
               </div>
-              <label className="relative inline-flex cursor-pointer items-center">
-                <input
-                  type="checkbox"
-                  checked={formConfig.is_custom || false}
-                  onChange={(e) =>
-                    updateConfig({ is_custom: e.target.checked })
-                  }
-                  className="peer sr-only"
-                />
-                <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
-              </label>
+              {formConfig.enableScrollReveal ? (
+                <div className="mt-4">
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                    Reveal Animation Style
+                  </label>
+                  <select
+                    value={formConfig.scrollRevealAnimation || 'fade-up'}
+                    onChange={(event) =>
+                      updateConfig({
+                        scrollRevealAnimation:
+                          event.target
+                            .value as SectionStyleConfig['scrollRevealAnimation'],
+                      })
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                  >
+                    <option value="fade">Fade</option>
+                    <option value="fade-up">Fade Up</option>
+                    <option value="slide-up">Slide Up</option>
+                    <option value="soft-reveal">Soft Reveal</option>
+                  </select>
+                </div>
+              ) : null}
             </div>
 
-            {!formConfig.is_custom ? (
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <div className="flex items-start gap-3">
-                  <svg
-                    className="h-5 w-5 shrink-0 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
-                    />
-                  </svg>
-                  <div>
-                    <h4 className="text-sm font-medium text-blue-900">
-                      Using Global Styles
-                    </h4>
-                    <p className="mt-1 text-xs text-blue-700">
-                      This section is currently using the global CSS styles
-                      defined in your theme settings. Enable custom typography
-                      above to override these styles with section-specific
-                      options.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-gray-200 bg-white p-4">
-                <div className="mb-4 rounded-lg border border-purple-100 bg-purple-50 px-4 py-3 text-xs text-purple-800">
-                  {isMobileEditorViewport
-                    ? 'Mobile tab unlocks the mobile typography overrides used by the live preview. Use "Use Desktop Settings" inside any group to clear mobile-only values.'
-                    : 'Desktop tab defines the main typography system. Mobile keeps using these values until you override them in the mobile tab.'}
-                </div>
+            <ToggleRow
+              title="Use Global Styles"
+              checked={formConfig.is_custom !== true}
+              onChange={handleGlobalStylesToggle}
+            />
+
+            {formConfig.is_custom ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <SectionTypographyControls
                   value={formConfig}
                   onChange={(updates) => updateConfig(updates)}
@@ -1089,9 +895,9 @@ export default function GallerySettingsForm({
                   viewport={responsiveEditorViewport}
                 />
               </div>
-            )}
+            ) : null}
           </div>
-        </div>
+        </SettingsCard>
 
         {/* Save Button */}
         <div className="flex justify-end">
@@ -1259,44 +1065,13 @@ export default function GallerySettingsForm({
 
       {/* Floating Preview Button */}
       {!showPreview ? (
-        <button
-          type="button"
+        <FloatingPreviewButton
+          viewport="desktop"
           onClick={() => {
             setPreviewViewport('desktop');
             setShowPreview(true);
           }}
-          className="fixed bottom-24 right-6 z-40 inline-flex items-center gap-3 rounded-full border border-purple-200 bg-white/95 px-5 py-3 text-sm font-semibold text-purple-700 shadow-[0_18px_45px_rgba(15,23,42,0.18)] backdrop-blur transition-all hover:-translate-y-0.5 hover:border-purple-300 hover:bg-white"
-          aria-label="Open gallery preview"
-        >
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-sm">
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-          </span>
-          <span className="flex flex-col items-start leading-tight">
-            <span>Live Preview</span>
-            <span className="text-xs font-medium text-purple-500">
-              {responsiveEditorViewport === 'mobile'
-                ? 'Open mobile preview'
-                : 'Open desktop preview'}
-            </span>
-          </span>
-        </button>
+        />
       ) : null}
 
       <GalleryPreviewModal

@@ -6,12 +6,10 @@ import Menu from '@/components/menu';
 import Toast from '@/components/ui/toast';
 import { ImageGalleryModal } from '@/components/admin/image-gallery-modal';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
-import { SectionAppearanceControls } from '@/components/admin/section-appearance-controls';
 import {
   FloatingPreviewButton,
   LayoutCard,
   PreviewModal,
-  ResponsiveViewportTabs,
   SettingsCard,
   SettingsHeader,
   ToggleRow,
@@ -41,6 +39,10 @@ import {
   type MenuItem,
   type MenuLayout,
 } from '@/types/menu.types';
+import {
+  SECTION_STYLE_KEYS,
+  type SectionStyleConfig,
+} from '@/types/section-style.types';
 
 interface MenuSettingsFormProps {
   pageId?: string;
@@ -56,6 +58,41 @@ type MenuMediaField =
 
 type LayoutSettingsMap = NonNullable<MenuConfig['layoutSettings']>;
 type LayoutSettingsValue = string | number | boolean | undefined;
+
+const NON_TYPOGRAPHY_SECTION_KEYS = new Set([
+  'is_custom',
+  'buttonStyleVariant',
+  'sectionTextAlign',
+  'mobileSectionTextAlign',
+  'sectionMaxWidth',
+  'mobileSectionMaxWidth',
+  'sectionPaddingY',
+  'mobileSectionPaddingY',
+  'sectionPaddingX',
+  'mobileSectionPaddingX',
+  'surfaceBorderRadius',
+  'mobileSurfaceBorderRadius',
+  'surfaceShadow',
+  'mobileSurfaceShadow',
+  'enableScrollReveal',
+  'scrollRevealAnimation',
+] satisfies Array<keyof SectionStyleConfig>);
+
+const TYPOGRAPHY_SECTION_KEYS = SECTION_STYLE_KEYS.filter(
+  (key) => !NON_TYPOGRAPHY_SECTION_KEYS.has(key),
+);
+
+const DEFAULT_PRIMARY_MENU_BUTTON: MenuButton = {
+  label: '',
+  href: '',
+  variant: 'primary',
+};
+
+const DEFAULT_SECONDARY_MENU_BUTTON: MenuButton = {
+  label: '',
+  href: '',
+  variant: 'outline',
+};
 
 function getSearchParams() {
   return typeof window === 'undefined'
@@ -126,15 +163,62 @@ function ensureLayoutItems(config: MenuConfig): MenuConfig {
   };
 }
 
+function normalizeMenuButtons(config: MenuConfig): MenuConfig {
+  const legacyPrimaryButton = config.primaryButton || config.ctaButton;
+
+  return {
+    ...config,
+    primaryButton: legacyPrimaryButton
+      ? {
+          ...DEFAULT_PRIMARY_MENU_BUTTON,
+          ...legacyPrimaryButton,
+          variant: legacyPrimaryButton.variant || 'primary',
+        }
+      : undefined,
+    secondaryButton: config.secondaryButton
+      ? {
+          ...DEFAULT_SECONDARY_MENU_BUTTON,
+          ...config.secondaryButton,
+          variant: config.secondaryButton.variant || 'outline',
+        }
+      : undefined,
+  };
+}
+
 function normalizeMenuConfig(config: Partial<MenuConfig>): MenuConfig {
   return ensureLayoutItems(
     hydrateFeaturedItems(
       withMenuLayoutDefaults({
-        ...DEFAULT_MENU_CONFIG,
-        ...config,
-      } as MenuConfig),
+        ...normalizeMenuButtons({
+          ...DEFAULT_MENU_CONFIG,
+          ...config,
+        } as MenuConfig),
+      }),
     ),
   );
+}
+
+function mergeGlobalTypographyDefaults(
+  config: MenuConfig,
+  defaults?: Partial<SectionStyleConfig>,
+): MenuConfig {
+  if (!defaults) {
+    return config;
+  }
+
+  const typographyDefaults: Partial<MenuConfig> = {};
+
+  TYPOGRAPHY_SECTION_KEYS.forEach((key) => {
+    const value = defaults[key];
+    if (value !== undefined) {
+      (typographyDefaults as Record<string, unknown>)[key] = value;
+    }
+  });
+
+  return normalizeMenuConfig({
+    ...config,
+    ...typographyDefaults,
+  });
 }
 
 function getMenuItemCount(categories?: MenuCategory[]) {
@@ -187,21 +271,6 @@ function getGalleryModalCopy(field: MenuMediaField | null) {
         description: 'Choose an image from your media library or upload a new one.',
       };
   }
-}
-
-function getResponsiveValue<T>(
-  config: MenuConfig,
-  desktopKey: keyof MenuConfig,
-  mobileKey: keyof MenuConfig | undefined,
-  viewport: EditorViewport,
-  fallback: T,
-) {
-  if (viewport === 'mobile') {
-    const mobileValue = mobileKey ? config[mobileKey] : undefined;
-    return (mobileValue ?? config[desktopKey] ?? fallback) as T;
-  }
-
-  return (config[desktopKey] ?? fallback) as T;
 }
 
 function getResponsiveLayoutValue(
@@ -559,7 +628,6 @@ function LayoutControl({
     return (
       <ToggleRow
         title={control.label}
-        description={control.description}
         checked={Boolean(value)}
         onChange={(checked) =>
           onChange(isMobile && control.mobileField ? control.mobileField : control.field, checked)
@@ -570,7 +638,7 @@ function LayoutControl({
 
   if (control.kind === 'select') {
     return (
-      <FieldShell label={control.label} hint={control.description} action={reset}>
+      <FieldShell label={control.label} action={reset}>
         <select
           value={String(value)}
           onChange={(event) =>
@@ -594,7 +662,6 @@ function LayoutControl({
   return (
     <FieldShell
       label={control.label}
-      hint={control.description}
       action={
         <span className="flex items-center gap-2 text-xs text-slate-500">
           <span>{typeof value === 'number' ? `${value}${control.unit || ''}` : value}</span>
@@ -634,8 +701,8 @@ function MediaPickerCard({
   onClear: () => void;
 }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
-      <div className="flex items-start justify-between gap-4">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-slate-900">{label}</h3>
           <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
@@ -644,7 +711,7 @@ function MediaPickerCard({
           <button
             type="button"
             onClick={onSelect}
-            className="rounded-xl border border-violet-200 bg-white px-3 py-2 text-xs font-semibold text-violet-700 transition-colors hover:border-violet-300 hover:bg-violet-50"
+            className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-colors hover:border-violet-300 hover:bg-violet-100"
           >
             {value ? 'Replace' : 'Choose'}
           </button>
@@ -652,19 +719,19 @@ function MediaPickerCard({
             <button
               type="button"
               onClick={onClear}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:border-rose-200 hover:text-rose-600"
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:border-rose-200 hover:text-rose-600"
             >
               Remove
             </button>
           ) : null}
         </div>
       </div>
-      <div className="mt-4 overflow-hidden rounded-[22px] border border-slate-200 bg-white">
+      <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
         {value ? (
-          <img src={value} alt={label} className="h-44 w-full object-cover" />
+          <img src={value} alt={label} className="h-32 w-full object-cover" />
         ) : (
-          <div className="flex h-44 items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.14),transparent_42%),linear-gradient(135deg,rgba(248,250,252,1),rgba(241,245,249,1))] text-sm font-medium text-slate-500">
-            No media selected
+          <div className="flex h-32 items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.12),transparent_42%),linear-gradient(135deg,rgba(248,250,252,1),rgba(241,245,249,1))] text-sm font-medium text-slate-500">
+            No image selected
           </div>
         )}
       </div>
@@ -687,92 +754,59 @@ function DirectLayoutItemEditor({
   const showImages = definition.usesImages || definition.imageOptional;
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Layout Mode</div>
-          <div className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{definition.name}</div>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{definition.description}</p>
-        </div>
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Editable Slots</div>
-          <div className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{definition.itemSlots}</div>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Each slot maps directly to a card, tile, or highlight in the selected layout.
-          </p>
-        </div>
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Media Support</div>
-          <div className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-            {showImages ? 'Images Ready' : 'Text Focused'}
-          </div>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            {showImages
-              ? 'Upload per-item images for richer cards, or leave them empty to use polished placeholders.'
-              : 'This layout prioritizes text and CTA hierarchy over imagery.'}
-          </p>
-        </div>
-      </div>
-
+    <div className="space-y-4">
       <div className="grid gap-5 xl:grid-cols-2">
         {items.map((item, itemIndex) => (
           <div
             key={`menu-layout-item-${itemIndex}`}
-            className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_22px_60px_rgba(15,23,42,0.06)]"
+            className="rounded-2xl border border-slate-200 bg-white p-4"
           >
-            <div className="border-b border-slate-100 bg-slate-50/80 px-5 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-600">
-                    Slot {itemIndex + 1}
-                  </div>
-                  <h3 className="mt-1 text-base font-semibold text-slate-900">
-                    {item.name?.trim() || `Menu Card ${itemIndex + 1}`}
-                  </h3>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-600">
+                  Item {itemIndex + 1}
                 </div>
-                {item.badge?.trim() ? (
-                  <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-700">
-                    {item.badge}
-                  </span>
-                ) : null}
+                <h3 className="mt-1 text-base font-semibold text-slate-900">
+                  {item.name?.trim() || `${definition.name} Item ${itemIndex + 1}`}
+                </h3>
               </div>
-            </div>
-
-            <div className="space-y-4 p-5">
               {showImages ? (
-                <>
-                  <div className="overflow-hidden rounded-[22px] border border-slate-200 bg-slate-50">
-                    {item.image ? (
-                      <img src={item.image} alt={item.name || `Menu card ${itemIndex + 1}`} className="h-48 w-full object-cover" />
-                    ) : (
-                      <div className="flex h-48 items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.14),transparent_42%),linear-gradient(135deg,rgba(248,250,252,1),rgba(241,245,249,1))] text-sm font-medium text-slate-500">
-                        No image selected
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onOpenImage(itemIndex)}
+                    className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-sm font-semibold text-violet-700 transition-colors hover:border-violet-300 hover:bg-violet-100"
+                  >
+                    {item.image ? 'Replace' : 'Choose Image'}
+                  </button>
+                  {item.image ? (
                     <button
                       type="button"
-                      onClick={() => onOpenImage(itemIndex)}
-                      className="rounded-xl border border-violet-200 bg-violet-50 px-3.5 py-2 text-sm font-semibold text-violet-700 transition-colors hover:border-violet-300 hover:bg-violet-100"
+                      onClick={() => onUpdate(itemIndex, { image: '' })}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 transition-colors hover:border-rose-200 hover:text-rose-600"
                     >
-                      {item.image ? 'Replace Image' : 'Choose Image'}
+                      Remove
                     </button>
-                    {item.image ? (
-                      <button
-                        type="button"
-                        onClick={() => onUpdate(itemIndex, { image: '' })}
-                        className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 transition-colors hover:border-rose-200 hover:text-rose-600"
-                      >
-                        Remove Image
-                      </button>
-                    ) : null}
-                  </div>
-                </>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="space-y-4">
+              {showImages ? (
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                  {item.image ? (
+                    <img src={item.image} alt={item.name || `Menu item ${itemIndex + 1}`} className="h-36 w-full object-cover" />
+                  ) : (
+                    <div className="flex h-36 items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.14),transparent_42%),linear-gradient(135deg,rgba(248,250,252,1),rgba(241,245,249,1))] text-sm font-medium text-slate-500">
+                      No image selected
+                    </div>
+                  )}
+                </div>
               ) : null}
 
               <div className="grid gap-4 md:grid-cols-2">
-                <FieldShell label="Item Title" hint="Headline shown in the card">
+                <FieldShell label="Title">
                   <input
                     type="text"
                     value={item.name || ''}
@@ -781,7 +815,7 @@ function DirectLayoutItemEditor({
                     placeholder="Signature Pasta"
                   />
                 </FieldShell>
-                <FieldShell label="Category Label" hint="Small label above the title">
+                <FieldShell label="Label">
                   <input
                     type="text"
                     value={item.category || ''}
@@ -790,7 +824,7 @@ function DirectLayoutItemEditor({
                     placeholder="Chef Pick"
                   />
                 </FieldShell>
-                <FieldShell label="Price" hint="Optional price badge">
+                <FieldShell label="Price">
                   <input
                     type="text"
                     value={item.price || ''}
@@ -799,7 +833,7 @@ function DirectLayoutItemEditor({
                     placeholder="24"
                   />
                 </FieldShell>
-                <FieldShell label="Tag / Badge" hint="Optional badge on the card">
+                <FieldShell label="Badge">
                   <input
                     type="text"
                     value={item.badge || ''}
@@ -810,7 +844,7 @@ function DirectLayoutItemEditor({
                 </FieldShell>
               </div>
 
-              <FieldShell label="Description" hint="Keep copy concise for a stronger card layout">
+              <FieldShell label="Description">
                 <textarea
                   value={item.description || ''}
                   onChange={(event) => onUpdate(itemIndex, { description: event.target.value })}
@@ -821,7 +855,7 @@ function DirectLayoutItemEditor({
 
               {definition.usesButtons ? (
                 <div className="grid gap-4 md:grid-cols-2">
-                  <FieldShell label="CTA Label" hint="Button text inside the card">
+                  <FieldShell label="Button Text">
                     <input
                       type="text"
                       value={item.ctaLabel || ''}
@@ -830,7 +864,7 @@ function DirectLayoutItemEditor({
                       placeholder="Order Now"
                     />
                   </FieldShell>
-                  <FieldShell label="CTA Link" hint="Action URL for this specific card">
+                  <FieldShell label="Button Link">
                     <input
                       type="text"
                       value={item.ctaLink || ''}
@@ -843,7 +877,7 @@ function DirectLayoutItemEditor({
               ) : null}
 
               {showImages ? (
-                <FieldShell label="Image Click Link" hint="Optional link when the card image itself is clicked">
+                <FieldShell label="Image Link">
                   <input
                     type="text"
                     value={item.imageLink || ''}
@@ -886,7 +920,7 @@ export default function MenuSettingsFormEnhanced({
   const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
 
   const [formConfig, setFormConfig] = useState<MenuConfig | null>(null);
-  const [editorViewport, setEditorViewport] = useState<EditorViewport>('mobile');
+  const editorViewport: EditorViewport = 'desktop';
   const [previewViewport, setPreviewViewport] = useState<EditorViewport>('desktop');
   const [showPreview, setShowPreview] = useState(false);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
@@ -902,24 +936,31 @@ export default function MenuSettingsFormEnhanced({
 
     if (isNewSection) {
       setFormConfig(
-        normalizeMenuConfig({
-          ...DEFAULT_MENU_CONFIG,
-          ...sectionStyleDefaults,
-          title: '',
-          subtitle: '',
-          description: '',
-          restaurant_id: restaurantId,
-        }),
+        mergeGlobalTypographyDefaults(
+          normalizeMenuConfig({
+            ...DEFAULT_MENU_CONFIG,
+            ...sectionStyleDefaults,
+            title: '',
+            subtitle: '',
+            description: '',
+            restaurant_id: restaurantId,
+          }),
+          sectionStyleDefaults,
+        ),
       );
       return;
     }
 
     if (config) {
+      const normalized = normalizeMenuConfig({
+        ...sectionStyleDefaults,
+        ...config,
+      });
+
       setFormConfig(
-        normalizeMenuConfig({
-          ...sectionStyleDefaults,
-          ...config,
-        }),
+        config.is_custom === true
+          ? normalized
+          : mergeGlobalTypographyDefaults(normalized, sectionStyleDefaults),
       );
     }
   }, [config, formConfig, isNewSection, restaurantId, sectionStyleDefaults]);
@@ -927,10 +968,18 @@ export default function MenuSettingsFormEnhanced({
   useEffect(() => {
     setFormConfig((previous) =>
       previous
-        ? normalizeMenuConfig({
-            ...sectionStyleDefaults,
-            ...previous,
-          })
+        ? previous.is_custom === true
+          ? normalizeMenuConfig({
+              ...sectionStyleDefaults,
+              ...previous,
+            })
+          : mergeGlobalTypographyDefaults(
+              normalizeMenuConfig({
+                ...sectionStyleDefaults,
+                ...previous,
+              }),
+              sectionStyleDefaults,
+            )
         : previous,
     );
   }, [sectionStyleDefaults]);
@@ -949,6 +998,29 @@ export default function MenuSettingsFormEnhanced({
     setFormConfig((previous) =>
       previous ? normalizeMenuConfig({ ...previous, ...updates }) : previous,
     );
+  };
+
+  const handleCustomTypographyToggle = (checked: boolean) => {
+    setFormConfig((previous) => {
+      if (!previous) {
+        return previous;
+      }
+
+      if (!checked) {
+        return mergeGlobalTypographyDefaults(
+          normalizeMenuConfig({
+            ...previous,
+            is_custom: false,
+          }),
+          sectionStyleDefaults,
+        );
+      }
+
+      return normalizeMenuConfig({
+        ...mergeGlobalTypographyDefaults(previous, sectionStyleDefaults),
+        is_custom: true,
+      });
+    });
   };
 
   const currentLayout = (formConfig?.layout || 'grid') as MenuLayout;
@@ -1001,15 +1073,36 @@ export default function MenuSettingsFormEnhanced({
     });
   };
 
-  const updateCtaButton = (updates: Partial<MenuButton>) => {
+  const updatePrimaryButton = (updates: Partial<MenuButton>) => {
     setFormConfig((previous) =>
       previous
         ? normalizeMenuConfig({
             ...previous,
+            primaryButtonEnabled: true,
+            primaryButton: {
+              ...DEFAULT_PRIMARY_MENU_BUTTON,
+              ...(previous.primaryButton || previous.ctaButton || {}),
+              ...updates,
+            },
             ctaButton: {
-              label: '',
-              href: '',
-              ...(previous.ctaButton || {}),
+              ...DEFAULT_PRIMARY_MENU_BUTTON,
+              ...(previous.primaryButton || previous.ctaButton || {}),
+              ...updates,
+            },
+          })
+        : previous,
+    );
+  };
+
+  const updateSecondaryButton = (updates: Partial<MenuButton>) => {
+    setFormConfig((previous) =>
+      previous
+        ? normalizeMenuConfig({
+            ...previous,
+            secondaryButtonEnabled: true,
+            secondaryButton: {
+              ...DEFAULT_SECONDARY_MENU_BUTTON,
+              ...(previous.secondaryButton || {}),
               ...updates,
             },
           })
@@ -1192,6 +1285,13 @@ export default function MenuSettingsFormEnhanced({
         restaurant_id: restaurantId,
       };
 
+      if (normalizedConfig.is_custom !== true) {
+        TYPOGRAPHY_SECTION_KEYS.forEach((key) => {
+          delete payload[key];
+        });
+        payload.is_custom = false;
+      }
+
       if (pageId) {
         payload.page_id = pageId;
       }
@@ -1245,44 +1345,17 @@ export default function MenuSettingsFormEnhanced({
   const menuImageCount = getMenuImageCount(formConfig.categories);
   const categoryEditorCopy = getCategoryEditorCopy(currentLayout);
   const layoutItems = (formConfig.layoutItems || []).slice(0, currentLayoutDefinition.itemSlots);
-  const isMobileEditing = editorViewport === 'mobile';
   const galleryCopy = getGalleryModalCopy(currentMediaField);
-
-  const updateResponsiveField = (
-    desktopKey: keyof MenuConfig,
-    mobileKey: keyof MenuConfig | undefined,
-    value: LayoutSettingsValue,
-  ) => {
-    updateConfig({
-      [isMobileEditing && mobileKey ? mobileKey : desktopKey]: value,
-    } as Partial<MenuConfig>);
-  };
-
-  const currentBgColor = getResponsiveValue(formConfig, 'bgColor', 'mobileBgColor', editorViewport, DEFAULT_MENU_CONFIG.bgColor || '#ffffff');
-  const currentTextColor = getResponsiveValue(formConfig, 'textColor', 'mobileTextColor', editorViewport, DEFAULT_MENU_CONFIG.textColor || '#111827');
-  const currentAccentColor = getResponsiveValue(formConfig, 'accentColor', 'mobileAccentColor', editorViewport, DEFAULT_MENU_CONFIG.accentColor || '#7c3aed');
-  const currentCardBgColor = getResponsiveValue(formConfig, 'cardBgColor', 'mobileCardBgColor', editorViewport, DEFAULT_MENU_CONFIG.cardBgColor || '#f8fafc');
-  const currentCardBorderColor = getResponsiveValue(formConfig, 'cardBorderColor', 'mobileCardBorderColor', editorViewport, DEFAULT_MENU_CONFIG.cardBorderColor || 'rgba(148, 163, 184, 0.22)');
-  const currentDividerColor = getResponsiveValue(formConfig, 'dividerColor', 'mobileDividerColor', editorViewport, DEFAULT_MENU_CONFIG.dividerColor || 'rgba(148, 163, 184, 0.24)');
-  const currentBadgeColor = getResponsiveValue(formConfig, 'badgeColor', 'mobileBadgeColor', editorViewport, DEFAULT_MENU_CONFIG.badgeColor || '#7c3aed');
-  const currentButtonBgColor = getResponsiveValue(formConfig, 'buttonBgColor', 'mobileButtonBgColor', editorViewport, DEFAULT_MENU_CONFIG.buttonBgColor || '#7c3aed');
-  const currentButtonTextColor = getResponsiveValue(formConfig, 'buttonTextColor', 'mobileButtonTextColor', editorViewport, DEFAULT_MENU_CONFIG.buttonTextColor || '#ffffff');
-  const currentPriceColor = getResponsiveValue(formConfig, 'priceColor', 'mobilePriceColor', editorViewport, DEFAULT_MENU_CONFIG.priceColor || '#7c3aed');
-  const currentActiveTabColor = getResponsiveValue(formConfig, 'activeTabColor', 'mobileActiveTabColor', editorViewport, DEFAULT_MENU_CONFIG.activeTabColor || '#7c3aed');
-  const currentAccordionActiveColor = getResponsiveValue(formConfig, 'accordionActiveColor', 'mobileAccordionActiveColor', editorViewport, DEFAULT_MENU_CONFIG.accordionActiveColor || '#ede9fe');
-  const currentCardRadius = getResponsiveValue(formConfig, 'cardRadius', 'mobileCardRadius', editorViewport, DEFAULT_MENU_CONFIG.cardRadius || '1.4rem');
-  const currentCardShadow = getResponsiveValue(formConfig, 'cardShadow', 'mobileCardShadow', editorViewport, DEFAULT_MENU_CONFIG.cardShadow || 'soft');
-  const currentCardGap = getResponsiveValue(formConfig, 'cardGap', 'mobileCardGap', editorViewport, DEFAULT_MENU_CONFIG.cardGap || '1.25rem');
-  const currentGridGap = getResponsiveValue(formConfig, 'gridGap', 'mobileGridGap', editorViewport, DEFAULT_MENU_CONFIG.gridGap || '1.4rem');
-  const currentRowGap = getResponsiveValue(formConfig, 'rowSpacing', 'mobileRowSpacing', editorViewport, DEFAULT_MENU_CONFIG.rowSpacing || '1.5rem');
-  const currentItemPadding = getResponsiveValue(formConfig, 'itemPadding', 'mobileItemPadding', editorViewport, DEFAULT_MENU_CONFIG.itemPadding || '1.25rem');
-  const currentColumnSpacing = getResponsiveValue(formConfig, 'columnSpacing', 'mobileColumnSpacing', editorViewport, DEFAULT_MENU_CONFIG.columnSpacing || '1.5rem');
-  const currentItemTitleSize = getResponsiveValue(formConfig, 'itemTitleSize', 'mobileItemTitleSize', editorViewport, DEFAULT_MENU_CONFIG.itemTitleSize || '1.125rem');
-  const currentItemDescriptionSize = getResponsiveValue(formConfig, 'itemDescriptionSize', 'mobileItemDescriptionSize', editorViewport, DEFAULT_MENU_CONFIG.itemDescriptionSize || '0.95rem');
-  const currentPriceTextSize = getResponsiveValue(formConfig, 'priceTextSize', 'mobilePriceTextSize', editorViewport, DEFAULT_MENU_CONFIG.priceTextSize || '1rem');
-  const currentItemTextAlign = getResponsiveValue(formConfig, 'itemTextAlign', 'mobileItemTextAlign', editorViewport, DEFAULT_MENU_CONFIG.itemTextAlign || 'left');
-  const currentItemLineHeight = getResponsiveValue(formConfig, 'itemLineHeight', 'mobileItemLineHeight', editorViewport, DEFAULT_MENU_CONFIG.itemLineHeight || '1.65');
-  const currentItemLetterSpacing = getResponsiveValue(formConfig, 'itemLetterSpacing', 'mobileItemLetterSpacing', editorViewport, DEFAULT_MENU_CONFIG.itemLetterSpacing || '0');
+  const primaryButtonEnabled = formConfig.primaryButtonEnabled !== false;
+  const secondaryButtonEnabled =
+    formConfig.secondaryButtonEnabled === true ||
+    Boolean(formConfig.secondaryButton?.label?.trim() || formConfig.secondaryButton?.href?.trim());
+  const editablePrimaryButton =
+    formConfig.primaryButton ||
+    formConfig.ctaButton ||
+    DEFAULT_PRIMARY_MENU_BUTTON;
+  const editableSecondaryButton =
+    formConfig.secondaryButton || DEFAULT_SECONDARY_MENU_BUTTON;
 
   const layoutSection = (
     <SettingsCard
@@ -1292,7 +1365,7 @@ export default function MenuSettingsFormEnhanced({
         </svg>
       }
       title="Layout Configuration"
-      description="Select the menu layout, then tune layout-specific behavior with responsive controls."
+      description="Choose a menu layout and adjust only the settings for that layout."
     >
       <div className="grid gap-4 xl:grid-cols-3">
         {MENU_LAYOUT_ORDER.map((layout) => {
@@ -1311,60 +1384,16 @@ export default function MenuSettingsFormEnhanced({
         })}
       </div>
 
-      <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-        <div className="rounded-[26px] border border-slate-200 bg-slate-50/80 p-5">
-          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-600">
-            Selected Layout
-          </div>
-          <h3 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">
-            {currentLayoutDefinition.name}
-          </h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            {currentLayoutDefinition.description}
-          </p>
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Content Model</div>
-              <div className="mt-2 text-base font-semibold text-slate-900">
-                {isCategoryMenuLayout(currentLayout) ? 'Category Driven' : 'Direct Cards'}
-              </div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Editable Slots</div>
-              <div className="mt-2 text-base font-semibold text-slate-900">
-                {currentLayoutDefinition.itemSlots || 'Dynamic'}
-              </div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Media Support</div>
-              <div className="mt-2 text-base font-semibold text-slate-900">
-                {currentLayoutDefinition.usesImages || currentLayoutDefinition.imageOptional ? 'Image Ready' : 'Text Led'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-[26px] border border-violet-200 bg-[linear-gradient(180deg,rgba(245,243,255,1),rgba(255,255,255,1))] p-5">
-          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-600">
-            Editing Scope
-          </div>
-          <h3 className="mt-3 text-lg font-semibold text-slate-900">
-            {editorViewport === 'mobile' ? 'Mobile overrides are active' : 'Desktop base styles are active'}
-          </h3>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Layout-specific fields below update the live preview instantly. Mobile values automatically fall back to desktop until you override them.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-6 space-y-4">
+      <div className="mt-5 space-y-3">
         {currentLayoutDefinition.controlGroups.map((group) => (
-          <div key={`${currentLayout}-${group.title}`} className="rounded-[26px] border border-slate-200 bg-white p-5">
-            <div className="mb-4">
-              <h3 className="text-base font-semibold text-slate-900">{group.title}</h3>
-              <p className="mt-1 text-sm text-slate-600">{group.description}</p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
+          <div
+            key={`${currentLayout}-${group.title}`}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-4"
+          >
+            {currentLayoutDefinition.controlGroups.length > 1 ? (
+              <h3 className="mb-3 text-sm font-semibold text-slate-900">{group.title}</h3>
+            ) : null}
+            <div className="grid gap-3 md:grid-cols-2">
               {group.controls.map((control) => (
                 <LayoutControl
                   key={`${currentLayout}-${group.title}-${control.field}`}
@@ -1393,7 +1422,7 @@ export default function MenuSettingsFormEnhanced({
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
         <div className="space-y-4">
-          <FieldShell label="Section Title" hint="Main menu heading">
+          <FieldShell label="Section Title">
             <input
               type="text"
               value={formConfig.title || ''}
@@ -1402,7 +1431,7 @@ export default function MenuSettingsFormEnhanced({
               placeholder="Our Menu"
             />
           </FieldShell>
-          <FieldShell label="Subtitle" hint="Supporting subheading above or below the title">
+          <FieldShell label="Subtitle">
             <input
               type="text"
               value={formConfig.subtitle || ''}
@@ -1411,7 +1440,7 @@ export default function MenuSettingsFormEnhanced({
               placeholder="Seasonal dishes and house favorites"
             />
           </FieldShell>
-          <FieldShell label="Description" hint="Short descriptive paragraph for the section">
+          <FieldShell label="Description">
             <textarea
               value={formConfig.description || ''}
               onChange={(event) => updateConfig({ description: event.target.value })}
@@ -1421,33 +1450,172 @@ export default function MenuSettingsFormEnhanced({
           </FieldShell>
         </div>
 
-        <div className="rounded-[26px] border border-slate-200 bg-slate-50/80 p-5">
-          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-600">
-            Shared CTA
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+          <div className="border-b border-slate-100 pb-4">
+            <h3 className="text-base font-semibold text-slate-900">Section Actions</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Primary button is used as the shared CTA for this section.
+            </p>
           </div>
-          <h3 className="mt-3 text-lg font-semibold text-slate-900">Section Button</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Use this CTA as the shared button for category layouts or as the fallback action for cards without custom buttons.
-          </p>
-          <div className="mt-5 grid gap-4">
-            <FieldShell label="Button Label" hint="Shared CTA text">
-              <input
-                type="text"
-                value={formConfig.ctaButton?.label || ''}
-                onChange={(event) => updateCtaButton({ label: event.target.value })}
-                className={textInputClassName()}
-                placeholder="Order Online"
-              />
-            </FieldShell>
-            <FieldShell label="Button Link" hint="URL or section anchor">
-              <input
-                type="text"
-                value={formConfig.ctaButton?.href || ''}
-                onChange={(event) => updateCtaButton({ href: event.target.value })}
-                className={textInputClassName()}
-                placeholder="#order"
-              />
-            </FieldShell>
+
+          <div className="mt-4 space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">
+                    Primary Button
+                  </label>
+                  <p className="text-xs text-slate-500">Shared CTA</p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={primaryButtonEnabled}
+                    onChange={(event) => {
+                      if (event.target.checked) {
+                        updateConfig({
+                          primaryButtonEnabled: true,
+                          primaryButton:
+                            formConfig.primaryButton ||
+                            formConfig.ctaButton || {
+                              ...DEFAULT_PRIMARY_MENU_BUTTON,
+                            },
+                        });
+                      } else {
+                        updateConfig({ primaryButtonEnabled: false });
+                      }
+                    }}
+                    className="peer sr-only"
+                  />
+                  <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
+                </label>
+              </div>
+
+              {primaryButtonEnabled ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <FieldShell label="Text">
+                    <input
+                      type="text"
+                      value={editablePrimaryButton.label}
+                      onChange={(event) =>
+                        updatePrimaryButton({ label: event.target.value })
+                      }
+                      className={textInputClassName()}
+                      placeholder="Order Online"
+                    />
+                  </FieldShell>
+                  <FieldShell label="Link">
+                    <input
+                      type="text"
+                      value={editablePrimaryButton.href}
+                      onChange={(event) =>
+                        updatePrimaryButton({ href: event.target.value })
+                      }
+                      className={textInputClassName()}
+                      placeholder="#order"
+                    />
+                  </FieldShell>
+                  <div className="md:col-span-2">
+                    <FieldShell label="Style">
+                      <select
+                        value={editablePrimaryButton.variant || 'primary'}
+                        onChange={(event) =>
+                          updatePrimaryButton({
+                            variant: event.target.value as
+                              | 'primary'
+                              | 'secondary'
+                              | 'outline',
+                          })
+                        }
+                        className={selectClassName()}
+                      >
+                        <option value="primary">Primary</option>
+                        <option value="secondary">Secondary</option>
+                        <option value="outline">Outline</option>
+                      </select>
+                    </FieldShell>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">
+                    Secondary Button
+                  </label>
+                  <p className="text-xs text-slate-500">Optional action</p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={secondaryButtonEnabled}
+                    onChange={(event) => {
+                      if (event.target.checked) {
+                        updateConfig({
+                          secondaryButtonEnabled: true,
+                          secondaryButton: formConfig.secondaryButton || {
+                            ...DEFAULT_SECONDARY_MENU_BUTTON,
+                          },
+                        });
+                      } else {
+                        updateConfig({ secondaryButtonEnabled: false });
+                      }
+                    }}
+                    className="peer sr-only"
+                  />
+                  <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
+                </label>
+              </div>
+
+              {secondaryButtonEnabled ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <FieldShell label="Text">
+                    <input
+                      type="text"
+                      value={editableSecondaryButton.label}
+                      onChange={(event) =>
+                        updateSecondaryButton({ label: event.target.value })
+                      }
+                      className={textInputClassName()}
+                      placeholder="Book a Table"
+                    />
+                  </FieldShell>
+                  <FieldShell label="Link">
+                    <input
+                      type="text"
+                      value={editableSecondaryButton.href}
+                      onChange={(event) =>
+                        updateSecondaryButton({ href: event.target.value })
+                      }
+                      className={textInputClassName()}
+                      placeholder="#reservations"
+                    />
+                  </FieldShell>
+                  <div className="md:col-span-2">
+                    <FieldShell label="Style">
+                      <select
+                        value={editableSecondaryButton.variant || 'outline'}
+                        onChange={(event) =>
+                          updateSecondaryButton({
+                            variant: event.target.value as
+                              | 'primary'
+                              | 'secondary'
+                              | 'outline',
+                          })
+                        }
+                        className={selectClassName()}
+                      >
+                        <option value="primary">Primary</option>
+                        <option value="secondary">Secondary</option>
+                        <option value="outline">Outline</option>
+                      </select>
+                    </FieldShell>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
@@ -1497,77 +1665,87 @@ export default function MenuSettingsFormEnhanced({
           <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 15l2.25-2.25a1.5 1.5 0 012.122 0L15 15m-5.25-5.25h.008v.008H9.75V9.75z" />
         </svg>
       }
-      title="Media & Display"
-      description="Manage section-level media, image fallback behavior, and display toggles used across the selected menu layout."
+      title="Media and Display"
+      description="Choose section images and the basic display options used in the live menu."
     >
       <div className="grid gap-5 xl:grid-cols-2">
         <MediaPickerCard
           label="Header Image"
-          description="Used by tabs, feature layouts, and as fallback media when item images are missing."
+          description="Used as the main section image and as fallback media where needed."
           value={formConfig.headerImage}
           onSelect={() => openMediaGallery({ type: 'header_image' })}
           onClear={() => updateConfig({ headerImage: '' })}
         />
         <MediaPickerCard
           label="Background Image"
-          description="Optional section backdrop for a more atmospheric preview and live section presentation."
+          description="Optional backdrop behind the menu section."
           value={formConfig.backgroundImage}
           onSelect={() => openMediaGallery({ type: 'background_image' })}
           onClear={() => updateConfig({ backgroundImage: '' })}
         />
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <ColorField
-          label="Overlay Color"
-          value={formConfig.overlayColor || '#0f172a'}
-          onChange={(value) => updateConfig({ overlayColor: value })}
-          hint="Applied when a background image is active"
-        />
-        <FieldShell label="Overlay Opacity" hint={`${Math.round((formConfig.overlayOpacity || 0.52) * 100)}%`}>
-          <input
-            type="range"
-            min="0"
-            max="0.9"
-            step="0.02"
-            value={formConfig.overlayOpacity || 0.52}
-            onChange={(event) => updateConfig({ overlayOpacity: Number(event.target.value) })}
-            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-violet-600"
-          />
-        </FieldShell>
-      </div>
+      {formConfig.backgroundImage ? (
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-slate-900">
+              Background Overlay
+            </h3>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ColorField
+              label="Overlay Color"
+              value={formConfig.overlayColor || '#0f172a'}
+              onChange={(value) => updateConfig({ overlayColor: value })}
+            />
+            <FieldShell label="Overlay Opacity" hint={`${Math.round((formConfig.overlayOpacity || 0.52) * 100)}%`}>
+              <input
+                type="range"
+                min="0"
+                max="0.9"
+                step="0.02"
+                value={formConfig.overlayOpacity || 0.52}
+                onChange={(event) => updateConfig({ overlayOpacity: Number(event.target.value) })}
+                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-violet-600"
+              />
+            </FieldShell>
+          </div>
+        </div>
+      ) : null}
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+        <div className="mb-4">
+          <h3 className="text-sm font-semibold text-slate-900">
+            Display Options
+          </h3>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-2">
         <ToggleRow
           title="Show Item Images"
-          description="Display per-item images in layouts that support media."
           checked={Boolean(formConfig.showImages)}
           onChange={(checked) => updateConfig({ showImages: checked })}
         />
         <ToggleRow
           title="Show Prices"
-          description="Display pricing in cards, lists, and accordion rows."
           checked={Boolean(formConfig.showPrices)}
           onChange={(checked) => updateConfig({ showPrices: checked })}
         />
         <ToggleRow
           title="Show Descriptions"
-          description="Display item descriptions in previews and the live layout."
           checked={Boolean(formConfig.showDescriptions)}
           onChange={(checked) => updateConfig({ showDescriptions: checked })}
         />
         <ToggleRow
           title="Show Dietary Badges"
-          description="Display dietary tags when menu items include them."
           checked={Boolean(formConfig.showDietaryInfo)}
           onChange={(checked) => updateConfig({ showDietaryInfo: checked })}
         />
         <ToggleRow
           title="Show Category Icons"
-          description="Display category icon initials where supported."
           checked={Boolean(formConfig.showCategoryIcons)}
           onChange={(checked) => updateConfig({ showCategoryIcons: checked })}
         />
+        </div>
       </div>
     </SettingsCard>
   );
@@ -1579,142 +1757,74 @@ export default function MenuSettingsFormEnhanced({
           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 7.5h15M7.5 4.5v6m9-6v6M4.5 13.5h9m-9 4.5h15" />
         </svg>
       }
-      title="Typography"
-      description="Control section typography plus menu-item text styling for desktop and mobile."
-      action={<ResponsiveViewportTabs value={editorViewport} onChange={setEditorViewport} scope="menu-typography" />}
+      title="Typography and Responsive Structure"
+      description="Keep menu typography aligned with the global theme by default, then opt into section-specific overrides only when needed."
     >
       <div className="space-y-5">
+        <div className="rounded-[26px] border border-slate-200 bg-slate-50/70 p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-semibold text-slate-900">Page Scroll Animation</h3>
+              <p className="mt-1 text-sm text-slate-600">
+                Reveal the entire menu section when it enters the viewport.
+              </p>
+            </div>
+            <label className="relative inline-flex cursor-pointer items-center">
+              <input
+                type="checkbox"
+                checked={formConfig.enableScrollReveal === true}
+                onChange={(event) =>
+                  updateConfig({ enableScrollReveal: event.target.checked })
+                }
+                className="peer sr-only"
+              />
+              <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
+            </label>
+          </div>
+          {formConfig.enableScrollReveal ? (
+            <div className="mt-4">
+              <FieldShell label="Reveal Animation Style">
+                <select
+                  value={formConfig.scrollRevealAnimation || 'fade-up'}
+                  onChange={(event) =>
+                    updateConfig({
+                      scrollRevealAnimation:
+                        event.target.value as SectionStyleConfig['scrollRevealAnimation'],
+                    })
+                  }
+                  className={selectClassName()}
+                >
+                  <option value="fade">Fade</option>
+                  <option value="fade-up">Fade Up</option>
+                  <option value="slide-up">Slide Up</option>
+                  <option value="soft-reveal">Soft Reveal</option>
+                </select>
+              </FieldShell>
+            </div>
+          ) : null}
+        </div>
+
         <ToggleRow
-          title="Use Custom Section Typography"
-          description="When disabled, title, subtitle, and paragraph typography follow the global style config."
-          checked={Boolean(formConfig.is_custom)}
-          onChange={(checked) => updateConfig({ is_custom: checked })}
+          title="Use Global Styles"
+          description="When enabled, title, subtitle, and paragraph typography inherit from the global theme."
+          checked={formConfig.is_custom !== true}
+          onChange={(checked) => handleCustomTypographyToggle(!checked)}
         />
 
-        <div className="rounded-[26px] border border-slate-200 bg-slate-50/70 p-5">
-          <SectionTypographyControls
-            value={formConfig}
-            onChange={updateConfig}
-            showAdvancedControls
-            viewport={editorViewport}
-          />
-        </div>
-
-        <div className="rounded-[26px] border border-slate-200 bg-white p-5">
-          <div className="mb-4">
-            <h3 className="text-base font-semibold text-slate-900">Menu Item Typography</h3>
-            <p className="mt-1 text-sm text-slate-600">
-              Separate item-level text styling for titles, descriptions, prices, and card alignment.
-            </p>
+        {formConfig.is_custom ? (
+          <div className="rounded-[26px] border border-slate-200 bg-slate-50/70 p-5">
+            <SectionTypographyControls
+              value={formConfig}
+              onChange={updateConfig}
+              showAdvancedControls
+              viewport={editorViewport}
+            />
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <FieldShell label="Item Title Size" hint="Desktop card headline size" action={isMobileEditing ? resetButton(() => updateConfig({ mobileItemTitleSize: undefined }), 'Use desktop item title size') : undefined}>
-              <input type="text" value={currentItemTitleSize} onChange={(event) => updateResponsiveField('itemTitleSize', 'mobileItemTitleSize', event.target.value)} className={textInputClassName()} placeholder="1.125rem" />
-            </FieldShell>
-            <FieldShell label="Item Title Weight" hint="Font weight for card titles" action={isMobileEditing ? resetButton(() => updateConfig({ mobileItemTitleWeight: undefined }), 'Use desktop item title weight') : undefined}>
-              <select value={String(getResponsiveValue(formConfig, 'itemTitleWeight', 'mobileItemTitleWeight', editorViewport, DEFAULT_MENU_CONFIG.itemTitleWeight || 700))} onChange={(event) => updateResponsiveField('itemTitleWeight', 'mobileItemTitleWeight', Number(event.target.value))} className={selectClassName()}>
-                {[400, 500, 600, 700, 800].map((weight) => (
-                  <option key={weight} value={weight}>
-                    {weight}
-                  </option>
-                ))}
-              </select>
-            </FieldShell>
-            <FieldShell label="Description Size" hint="Size for supporting copy" action={isMobileEditing ? resetButton(() => updateConfig({ mobileItemDescriptionSize: undefined }), 'Use desktop description size') : undefined}>
-              <input type="text" value={currentItemDescriptionSize} onChange={(event) => updateResponsiveField('itemDescriptionSize', 'mobileItemDescriptionSize', event.target.value)} className={textInputClassName()} placeholder="0.95rem" />
-            </FieldShell>
-            <FieldShell label="Price Size" hint="Price highlight size" action={isMobileEditing ? resetButton(() => updateConfig({ mobilePriceTextSize: undefined }), 'Use desktop price size') : undefined}>
-              <input type="text" value={currentPriceTextSize} onChange={(event) => updateResponsiveField('priceTextSize', 'mobilePriceTextSize', event.target.value)} className={textInputClassName()} placeholder="1rem" />
-            </FieldShell>
-            <FieldShell label="Line Height" hint="Line height for body copy" action={isMobileEditing ? resetButton(() => updateConfig({ mobileItemLineHeight: undefined }), 'Use desktop line height') : undefined}>
-              <input type="text" value={currentItemLineHeight} onChange={(event) => updateResponsiveField('itemLineHeight', 'mobileItemLineHeight', event.target.value)} className={textInputClassName()} placeholder="1.65" />
-            </FieldShell>
-            <FieldShell label="Letter Spacing" hint="Tracking for card copy" action={isMobileEditing ? resetButton(() => updateConfig({ mobileItemLetterSpacing: undefined }), 'Use desktop letter spacing') : undefined}>
-              <input type="text" value={currentItemLetterSpacing} onChange={(event) => updateResponsiveField('itemLetterSpacing', 'mobileItemLetterSpacing', event.target.value)} className={textInputClassName()} placeholder="0" />
-            </FieldShell>
-            <FieldShell label="Item Alignment" hint="Alignment for card copy" action={isMobileEditing ? resetButton(() => updateConfig({ mobileItemTextAlign: undefined }), 'Use desktop item alignment') : undefined}>
-              <select value={currentItemTextAlign} onChange={(event) => updateResponsiveField('itemTextAlign', 'mobileItemTextAlign', event.target.value)} className={selectClassName()}>
-                <option value="left">Left</option>
-                <option value="center">Center</option>
-                <option value="right">Right</option>
-              </select>
-            </FieldShell>
+        ) : (
+          <div className="rounded-[26px] border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-800">
+            Typography is inherited from the global theme. Disable the toggle above to edit section-specific title, subtitle, and paragraph typography for this menu.
           </div>
-        </div>
-      </div>
-    </SettingsCard>
-  );
-
-  const stylingSection = (
-    <SettingsCard
-      icon={
-        <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M6.75 3.75v6m10.5-6v6M4.5 13.5h15m-12 3.75h9" />
-        </svg>
-      }
-      title="Colors, Styling & Motion"
-      description="Fine-tune colors, card surfaces, spacing, width, and page-scroll animation settings."
-      action={<ResponsiveViewportTabs value={editorViewport} onChange={setEditorViewport} scope="menu-styling" />}
-    >
-      <div className="space-y-6">
-        <div className="rounded-[26px] border border-slate-200 bg-white p-5">
-          <div className="mb-4">
-            <h3 className="text-base font-semibold text-slate-900">Section Colors</h3>
-            <p className="mt-1 text-sm text-slate-600">
-              Apply section-level background, card, border, accent, and state colors for this viewport.
-            </p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <ColorField label="Section Background" value={currentBgColor} onChange={(value) => updateResponsiveField('bgColor', 'mobileBgColor', value)} action={isMobileEditing ? resetButton(() => updateConfig({ mobileBgColor: undefined }), 'Use desktop background') : undefined} />
-            <ColorField label="Text Color" value={currentTextColor} onChange={(value) => updateResponsiveField('textColor', 'mobileTextColor', value)} action={isMobileEditing ? resetButton(() => updateConfig({ mobileTextColor: undefined }), 'Use desktop text color') : undefined} />
-            <ColorField label="Accent Color" value={currentAccentColor} onChange={(value) => updateResponsiveField('accentColor', 'mobileAccentColor', value)} action={isMobileEditing ? resetButton(() => updateConfig({ mobileAccentColor: undefined }), 'Use desktop accent color') : undefined} />
-            <ColorField label="Card Background" value={currentCardBgColor} onChange={(value) => updateResponsiveField('cardBgColor', 'mobileCardBgColor', value)} action={isMobileEditing ? resetButton(() => updateConfig({ mobileCardBgColor: undefined }), 'Use desktop card background') : undefined} />
-            <ColorField label="Card Border" value={currentCardBorderColor} onChange={(value) => updateResponsiveField('cardBorderColor', 'mobileCardBorderColor', value)} action={isMobileEditing ? resetButton(() => updateConfig({ mobileCardBorderColor: undefined }), 'Use desktop card border') : undefined} />
-            <ColorField label="Divider Color" value={currentDividerColor} onChange={(value) => updateResponsiveField('dividerColor', 'mobileDividerColor', value)} action={isMobileEditing ? resetButton(() => updateConfig({ mobileDividerColor: undefined }), 'Use desktop divider color') : undefined} />
-            <ColorField label="Badge Color" value={currentBadgeColor} onChange={(value) => updateResponsiveField('badgeColor', 'mobileBadgeColor', value)} action={isMobileEditing ? resetButton(() => updateConfig({ mobileBadgeColor: undefined }), 'Use desktop badge color') : undefined} />
-            <ColorField label="Price Highlight" value={currentPriceColor} onChange={(value) => updateResponsiveField('priceColor', 'mobilePriceColor', value)} action={isMobileEditing ? resetButton(() => updateConfig({ mobilePriceColor: undefined }), 'Use desktop price color') : undefined} />
-            <ColorField label="Button Background" value={currentButtonBgColor} onChange={(value) => updateResponsiveField('buttonBgColor', 'mobileButtonBgColor', value)} action={isMobileEditing ? resetButton(() => updateConfig({ mobileButtonBgColor: undefined }), 'Use desktop button background') : undefined} />
-            <ColorField label="Button Text" value={currentButtonTextColor} onChange={(value) => updateResponsiveField('buttonTextColor', 'mobileButtonTextColor', value)} action={isMobileEditing ? resetButton(() => updateConfig({ mobileButtonTextColor: undefined }), 'Use desktop button text color') : undefined} />
-            <ColorField label="Active Tab Color" value={currentActiveTabColor} onChange={(value) => updateResponsiveField('activeTabColor', 'mobileActiveTabColor', value)} action={isMobileEditing ? resetButton(() => updateConfig({ mobileActiveTabColor: undefined }), 'Use desktop active tab color') : undefined} />
-            <ColorField label="Accordion Active" value={currentAccordionActiveColor} onChange={(value) => updateResponsiveField('accordionActiveColor', 'mobileAccordionActiveColor', value)} action={isMobileEditing ? resetButton(() => updateConfig({ mobileAccordionActiveColor: undefined }), 'Use desktop accordion active color') : undefined} />
-          </div>
-        </div>
-
-        <div className="rounded-[26px] border border-slate-200 bg-white p-5">
-          <div className="mb-4">
-            <h3 className="text-base font-semibold text-slate-900">Card Styling & Spacing</h3>
-            <p className="mt-1 text-sm text-slate-600">
-              Control card radius, shadow intensity, and spacing between content blocks.
-            </p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <FieldShell label="Card Radius" hint="Rounded corners for cards" action={isMobileEditing ? resetButton(() => updateConfig({ mobileCardRadius: undefined }), 'Use desktop card radius') : undefined}>
-              <input type="text" value={currentCardRadius} onChange={(event) => updateResponsiveField('cardRadius', 'mobileCardRadius', event.target.value)} className={textInputClassName()} placeholder="1.4rem" />
-            </FieldShell>
-            <FieldShell label="Card Shadow" hint="Elevation of the menu cards" action={isMobileEditing ? resetButton(() => updateConfig({ mobileCardShadow: undefined }), 'Use desktop card shadow') : undefined}>
-              <select value={String(currentCardShadow)} onChange={(event) => updateResponsiveField('cardShadow', 'mobileCardShadow', event.target.value)} className={selectClassName()}>
-                <option value="none">None</option>
-                <option value="soft">Soft</option>
-                <option value="medium">Medium</option>
-                <option value="large">Large</option>
-              </select>
-            </FieldShell>
-            <FieldShell label="Card Gap" hint="Generic card spacing" action={isMobileEditing ? resetButton(() => updateConfig({ mobileCardGap: undefined }), 'Use desktop card gap') : undefined}>
-              <input type="text" value={currentCardGap} onChange={(event) => updateResponsiveField('cardGap', 'mobileCardGap', event.target.value)} className={textInputClassName()} placeholder="1.25rem" />
-            </FieldShell>
-            <FieldShell label="Grid Gap" hint="Grid spacing between items" action={isMobileEditing ? resetButton(() => updateConfig({ mobileGridGap: undefined }), 'Use desktop grid gap') : undefined}>
-              <input type="text" value={currentGridGap} onChange={(event) => updateResponsiveField('gridGap', 'mobileGridGap', event.target.value)} className={textInputClassName()} placeholder="1.4rem" />
-            </FieldShell>
-            <FieldShell label="Row Spacing" hint="Spacing between larger layout groups" action={isMobileEditing ? resetButton(() => updateConfig({ mobileRowSpacing: undefined }), 'Use desktop row spacing') : undefined}>
-              <input type="text" value={currentRowGap} onChange={(event) => updateResponsiveField('rowSpacing', 'mobileRowSpacing', event.target.value)} className={textInputClassName()} placeholder="1.5rem" />
-            </FieldShell>
-            <FieldShell label="Item Padding" hint="Inner padding for cards" action={isMobileEditing ? resetButton(() => updateConfig({ mobileItemPadding: undefined }), 'Use desktop item padding') : undefined}>
-              <input type="text" value={currentItemPadding} onChange={(event) => updateResponsiveField('itemPadding', 'mobileItemPadding', event.target.value)} className={textInputClassName()} placeholder="1.25rem" />
-            </FieldShell>
-            <FieldShell label="Column Spacing" hint="Gap between larger layout columns" action={isMobileEditing ? resetButton(() => updateConfig({ mobileColumnSpacing: undefined }), 'Use desktop column spacing') : undefined}>
-              <input type="text" value={currentColumnSpacing} onChange={(event) => updateResponsiveField('columnSpacing', 'mobileColumnSpacing', event.target.value)} className={textInputClassName()} placeholder="1.5rem" />
-            </FieldShell>
-          </div>
+        )}
         </div>
 
         <div className="rounded-[26px] border border-slate-200 bg-slate-50/70 p-5">
@@ -1737,7 +1847,7 @@ export default function MenuSettingsFormEnhanced({
           </svg>
         }
         title={isNewSection ? 'Add Menu Section' : 'Menu Settings'}
-        description="Upgrade menu layouts with responsive layout-specific controls, richer styling, and polished live previews."
+        description="Configure menu layouts with cleaner responsive controls, polished typography, and live preview."
         meta={restaurantName ? `Restaurant: ${restaurantName}` : undefined}
         action={
           <button
@@ -1754,24 +1864,11 @@ export default function MenuSettingsFormEnhanced({
         }
       />
 
-      <div className="mb-8 flex flex-col gap-4 rounded-[26px] border border-slate-200 bg-white px-5 py-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-600">
-            Responsive Editing
-          </div>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Switch between desktop and mobile overrides for layout settings, typography, spacing, colors, and live preview behavior.
-          </p>
-        </div>
-        <ResponsiveViewportTabs value={editorViewport} onChange={setEditorViewport} scope="menu-editor" />
-      </div>
-
       <div className="space-y-8">
         {layoutSection}
         {contentSection}
         {mediaSection}
         {typographySection}
-        {stylingSection}
       </div>
 
       <FloatingPreviewButton
@@ -1785,11 +1882,11 @@ export default function MenuSettingsFormEnhanced({
       {showPreview ? (
         <PreviewModal
           title="Menu Preview"
-          description="Desktop and mobile previews update instantly as you edit layout-specific controls, media, typography, colors, and spacing."
+          description="Desktop and mobile previews update instantly as you edit layout, media, typography, and motion settings."
           viewport={previewViewport}
           onViewportChange={setPreviewViewport}
           onClose={() => setShowPreview(false)}
-          note="Live preview reflects the selected layout, responsive overrides, colors, media, and motion settings."
+          note="Live preview reflects the selected layout, responsive overrides, media, typography, and motion settings."
         >
           <Menu {...formConfig} previewMode={previewViewport} />
         </PreviewModal>

@@ -212,6 +212,29 @@ function buildCardAction(item: PreparedMenuItem, ctaButton?: MenuButton) {
   return { label, href };
 }
 
+function resolveMenuButton(
+  button: MenuButton | undefined,
+  fallbackVariant: MenuButton['variant'],
+) {
+  if (!button) {
+    return undefined;
+  }
+
+  const label = button.label?.trim() || '';
+  const href = button.href?.trim() || '#menu';
+
+  if (!label) {
+    return undefined;
+  }
+
+  return {
+    ...button,
+    label,
+    href,
+    variant: button.variant || fallbackVariant,
+  } satisfies MenuButton;
+}
+
 function resolveResponsiveValue<T>(
   desktopValue: T | undefined,
   mobileValue: T | undefined,
@@ -336,6 +359,10 @@ export default function Menu({
   featuredItems = [],
   layoutItems = [],
   ctaButton,
+  primaryButtonEnabled,
+  secondaryButtonEnabled,
+  primaryButton,
+  secondaryButton,
   headerImage,
   backgroundImage,
   layout = 'grid',
@@ -694,6 +721,14 @@ export default function Menu({
   const directItems = preparedLayoutItems.length > 0 ? preparedLayoutItems : preparedItems;
   const spotlightDirectItems =
     preparedLayoutItems.length > 0 ? preparedLayoutItems : highlightedItems;
+  const resolvedPrimaryButton =
+    primaryButtonEnabled === false
+      ? undefined
+      : resolveMenuButton(primaryButton || ctaButton, 'primary');
+  const resolvedSecondaryButton =
+    secondaryButtonEnabled === false
+      ? undefined
+      : resolveMenuButton(secondaryButton, 'outline');
 
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
   const [expandedCategoryIndex, setExpandedCategoryIndex] = useState(0);
@@ -795,15 +830,58 @@ export default function Menu({
     ['--menu-price-size' as string]: resolvedPriceTextSize,
   };
 
-  const globalButtonInlineStyle: CSSProperties = {
-    ...ctaButtonStyle,
-    backgroundColor:
-      ctaButtonStyle.backgroundColor || ctaButton?.bgColor || resolvedButtonBgColor,
-    color: ctaButtonStyle.color || ctaButton?.textColor || resolvedButtonTextColor,
-    borderColor:
-      ctaButtonStyle.borderColor || ctaButton?.borderColor || resolvedButtonBgColor,
-    borderRadius: resolvedCardRadius,
+  const getSectionButtonInlineStyle = (
+    button: MenuButton | undefined,
+    fallbackVariant: MenuButton['variant'],
+  ): CSSProperties => {
+    const variant = button?.variant || fallbackVariant;
+
+    if (variant === 'outline') {
+      return {
+        backgroundColor: 'transparent',
+        color: button?.textColor || button?.borderColor || resolvedAccentColor,
+        borderColor:
+          button?.borderColor || button?.bgColor || resolvedAccentColor,
+        borderRadius: resolvedCardRadius,
+      };
+    }
+
+    if (variant === 'secondary') {
+      return {
+        backgroundColor: button?.bgColor || '#ffffff',
+        color: button?.textColor || button?.borderColor || resolvedAccentColor,
+        borderColor:
+          button?.borderColor || button?.bgColor || resolvedAccentColor,
+        borderRadius: resolvedCardRadius,
+      };
+    }
+
+    return {
+      ...ctaButtonStyle,
+      backgroundColor:
+        ctaButtonStyle.backgroundColor ||
+        button?.bgColor ||
+        resolvedButtonBgColor,
+      color:
+        ctaButtonStyle.color ||
+        button?.textColor ||
+        resolvedButtonTextColor,
+      borderColor:
+        ctaButtonStyle.borderColor ||
+        button?.borderColor ||
+        resolvedButtonBgColor,
+      borderRadius: resolvedCardRadius,
+    };
   };
+
+  const primaryButtonInlineStyle = getSectionButtonInlineStyle(
+    resolvedPrimaryButton,
+    'primary',
+  );
+  const secondaryButtonInlineStyle = getSectionButtonInlineStyle(
+    resolvedSecondaryButton,
+    'outline',
+  );
 
   const cardButtonInlineStyle: CSSProperties = {
     color: resolvedAccentColor,
@@ -866,7 +944,7 @@ export default function Menu({
     item: PreparedMenuItem,
     variant: 'outline' | 'solid' = 'outline',
   ) => {
-    const action = buildCardAction(item, ctaButton);
+    const action = buildCardAction(item, resolvedPrimaryButton);
     if (!action) return null;
 
     return (
@@ -876,10 +954,43 @@ export default function Menu({
           styles.itemButton,
           variant === 'solid' ? styles.itemButtonSolid : styles.itemButtonOutline,
         )}
-        style={variant === 'solid' ? globalButtonInlineStyle : cardButtonInlineStyle}
+        style={variant === 'solid' ? primaryButtonInlineStyle : cardButtonInlineStyle}
       >
         {action.label}
       </a>
+    );
+  };
+
+  const renderSectionButtons = (
+    className: string,
+    primaryClassName: string,
+    secondaryClassName: string,
+  ) => {
+    if (!resolvedPrimaryButton?.label && !resolvedSecondaryButton?.label) {
+      return null;
+    }
+
+    return (
+      <div className={className}>
+        {resolvedPrimaryButton?.label ? (
+          <a
+            href={resolvedPrimaryButton.href}
+            className={primaryClassName}
+            style={primaryButtonInlineStyle}
+          >
+            {resolvedPrimaryButton.label}
+          </a>
+        ) : null}
+        {resolvedSecondaryButton?.label ? (
+          <a
+            href={resolvedSecondaryButton.href}
+            className={secondaryClassName}
+            style={secondaryButtonInlineStyle}
+          >
+            {resolvedSecondaryButton.label}
+          </a>
+        ) : null}
+      </div>
     );
   };
 
@@ -1426,11 +1537,11 @@ export default function Menu({
                   {description ||
                     'Use categories to highlight different collections and help guests scan faster.'}
                 </p>
-                {ctaButton?.label ? (
-                  <a href={ctaButton.href} className={styles.itemButton} style={globalButtonInlineStyle}>
-                    {ctaButton.label}
-                  </a>
-                ) : null}
+                {renderSectionButtons(
+                  styles.menuButtonGroupStart,
+                  styles.itemButton,
+                  styles.itemButton,
+                )}
               </div>
               <div
                 className={styles.tabSelectors}
@@ -1882,13 +1993,13 @@ export default function Menu({
           </div>
         )}
 
-        {ctaButton?.label && categoryDrivenLayout ? (
-          <div className={styles.menuCta}>
-            <a href={ctaButton.href} className={styles.ctaButton} style={globalButtonInlineStyle}>
-              {ctaButton.label}
-            </a>
-          </div>
-        ) : null}
+        {categoryDrivenLayout
+          ? renderSectionButtons(
+              joinClasses(styles.menuCta, styles.menuButtonGroupCenter),
+              styles.ctaButton,
+              styles.ctaButton,
+            )
+          : null}
       </div>
     </section>
   );

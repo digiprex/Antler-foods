@@ -137,6 +137,8 @@ export interface CustomSectionConfig extends Partial<SectionStyleConfig> {
   badgeText?: string;
   subheadline?: string;
   description?: string;
+  primaryButtonEnabled?: boolean;
+  secondaryButtonEnabled?: boolean;
   primaryButton?: CustomSectionButton;
   secondaryButton?: CustomSectionButton;
   image?: CustomSectionImage;
@@ -223,6 +225,8 @@ export const DEFAULT_CUSTOM_SECTION_CONFIG: CustomSectionConfig = {
     preset: 'fade-up',
     speed: 'normal',
   },
+  primaryButtonEnabled: true,
+  secondaryButtonEnabled: true,
   primaryButton: {
     label: 'Explore More',
     href: '/menu',

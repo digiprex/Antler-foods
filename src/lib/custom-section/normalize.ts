@@ -50,6 +50,12 @@ export function normalizeCustomSectionConfig(
     ...DEFAULT_CUSTOM_SECTION_CONFIG,
     ...(sectionStyleDefaults || {}),
     ...(source || {}),
+    primaryButtonEnabled:
+      source?.primaryButtonEnabled ??
+      DEFAULT_CUSTOM_SECTION_CONFIG.primaryButtonEnabled,
+    secondaryButtonEnabled:
+      source?.secondaryButtonEnabled ??
+      DEFAULT_CUSTOM_SECTION_CONFIG.secondaryButtonEnabled,
     primaryButton: source?.primaryButton
       ? {
         label: source.primaryButton.label || '',

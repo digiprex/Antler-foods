@@ -8,7 +8,10 @@ import type {
   CustomSectionViewport,
 } from '@/types/custom-section.types';
 import { getCustomSectionLayoutDefinition } from '@/lib/custom-section/layouts';
-import { normalizeCustomSectionConfig } from '@/lib/custom-section/normalize';
+import {
+  getDefaultCustomSectionConfig,
+  normalizeCustomSectionConfig,
+} from '@/lib/custom-section/normalize';
 import {
   getSectionContainerStyles,
   getSectionTypographyStyles,
@@ -69,6 +72,88 @@ function revealDuration(speed?: string) {
   }
 }
 
+function applyPreviewContentFallbacks(
+  config: CustomSectionConfig,
+): CustomSectionConfig {
+  const previewDefaults = getDefaultCustomSectionConfig(config.layout);
+  const fallbackItems = previewDefaults.items || [];
+
+  return {
+    ...config,
+    primaryButtonEnabled:
+      config.primaryButtonEnabled ?? previewDefaults.primaryButtonEnabled,
+    secondaryButtonEnabled:
+      config.secondaryButtonEnabled ?? previewDefaults.secondaryButtonEnabled,
+    headline: config.headline?.trim()
+      ? config.headline
+      : previewDefaults.headline,
+    subheadline: config.subheadline?.trim()
+      ? config.subheadline
+      : previewDefaults.subheadline,
+    description: config.description?.trim()
+      ? config.description
+      : previewDefaults.description,
+    primaryButton:
+      config.primaryButtonEnabled === false
+        ? undefined
+        : {
+            ...(previewDefaults.primaryButton || {}),
+            ...(config.primaryButton || {}),
+            label: config.primaryButton?.label?.trim()
+              ? config.primaryButton.label
+              : previewDefaults.primaryButton?.label || '',
+            href: config.primaryButton?.href?.trim()
+              ? config.primaryButton.href
+              : previewDefaults.primaryButton?.href || '',
+            variant:
+              config.primaryButton?.variant ||
+              previewDefaults.primaryButton?.variant ||
+              'primary',
+          },
+    secondaryButton:
+      config.secondaryButtonEnabled === false
+        ? undefined
+        : {
+            ...(previewDefaults.secondaryButton || {}),
+            ...(config.secondaryButton || {}),
+            label: config.secondaryButton?.label?.trim()
+              ? config.secondaryButton.label
+              : previewDefaults.secondaryButton?.label || '',
+            href: config.secondaryButton?.href?.trim()
+              ? config.secondaryButton.href
+              : previewDefaults.secondaryButton?.href || '',
+            variant:
+              config.secondaryButton?.variant ||
+              previewDefaults.secondaryButton?.variant ||
+              'outline',
+          },
+    items: (config.items || []).map((item, index) => {
+      const fallbackItem =
+        fallbackItems[index] ||
+        fallbackItems[index % Math.max(fallbackItems.length, 1)];
+
+      if (!fallbackItem) {
+        return item;
+      }
+
+      return {
+        ...item,
+        badge: item.badge?.trim() ? item.badge : fallbackItem.badge,
+        title: item.title?.trim() ? item.title : fallbackItem.title,
+        description: item.description?.trim()
+          ? item.description
+          : fallbackItem.description,
+        statLabel: item.statLabel?.trim()
+          ? item.statLabel
+          : fallbackItem.statLabel,
+        statValue: item.statValue?.trim()
+          ? item.statValue
+          : fallbackItem.statValue,
+      };
+    }),
+  };
+}
+
 export function CustomSectionRenderer(props: CustomSectionRendererProps) {
   const [viewport, setViewport] = useState<CustomSectionViewport>(() =>
     resolveViewport(props.previewMode),
@@ -101,7 +186,17 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
     return () => window.removeEventListener('resize', updateViewport);
   }, [props.previewMode]);
 
-  const config = useMemo(() => normalizeCustomSectionConfig(props), [props]);
+  const normalizedConfig = useMemo(
+    () => normalizeCustomSectionConfig(props),
+    [props],
+  );
+  const config = useMemo(
+    () =>
+      props.previewMode
+        ? applyPreviewContentFallbacks(normalizedConfig)
+        : normalizedConfig,
+    [normalizedConfig, props.previewMode],
+  );
   const definition = useMemo(
     () => getCustomSectionLayoutDefinition(config.layout),
     [config.layout],

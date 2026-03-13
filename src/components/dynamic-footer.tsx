@@ -148,7 +148,7 @@ export default function DynamicFooter({
       layout={config.layout}
       bgColor={config.bgColor}
       textColor={config.textColor}
-      linkColor={config.linkColor}
+      linkColor={config.textColor}
       copyrightBgColor={config.copyrightBgColor}
       copyrightTextColor={config.copyrightTextColor}
       fontFamily={config.fontFamily}

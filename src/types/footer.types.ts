@@ -139,7 +139,7 @@ export const DEFAULT_FOOTER_CONFIG: FooterConfig = {
   layout: "restaurant",
   bgColor: "#f5f5f5",
   textColor: "#333333",
-  linkColor: "#666666",
+  linkColor: "#333333",
   borderColor: "#374151",
   copyrightBgColor: "#000000",
   copyrightTextColor: "#ffffff",

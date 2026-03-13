@@ -363,7 +363,7 @@ export default function TimelineSettingsForm() {
               <ColorField label="Line Color" hint={isMobileEditor ? 'Mobile connector color' : 'Connector line color'} value={isMobileEditor ? formConfig.mobileLineColor || formConfig.lineColor || '#cbd5e1' : formConfig.lineColor || '#cbd5e1'} onChange={(value) => updateConfig(isMobileEditor ? { mobileLineColor: value } : { lineColor: value })} onReset={isMobileEditor ? () => updateConfig({ mobileLineColor: undefined }) : () => updateConfig({ lineColor: '#cbd5e1' })} placeholder="#cbd5e1" />
               <ColorField label="Card Background" hint={isMobileEditor ? 'Mobile milestone cards' : 'Milestone card surface'} value={isMobileEditor ? formConfig.mobileCardBackgroundColor || formConfig.cardBackgroundColor || '#ffffff' : formConfig.cardBackgroundColor || '#ffffff'} onChange={(value) => updateConfig(isMobileEditor ? { mobileCardBackgroundColor: value } : { cardBackgroundColor: value })} onReset={isMobileEditor ? () => updateConfig({ mobileCardBackgroundColor: undefined }) : () => updateConfig({ cardBackgroundColor: '#ffffff' })} placeholder="#ffffff" />
             </div>
-            <SectionAppearanceControls value={formConfig} onChange={updateConfig} viewport={editorViewport} widthLabel="Timeline Max Width" sectionLabel="timeline cards" />
+            <SectionAppearanceControls value={formConfig} onChange={updateConfig} viewport={editorViewport} />
           </div>
         </SettingsCard>
 

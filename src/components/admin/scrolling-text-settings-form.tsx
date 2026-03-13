@@ -481,8 +481,6 @@ export default function ScrollingTextSettingsForm() {
               value={formConfig}
               onChange={updateConfig}
               viewport={responsiveEditorViewport}
-              widthLabel="Marquee Max Width"
-              sectionLabel="marquee shell"
             />
           </div>
         </SettingsCard>

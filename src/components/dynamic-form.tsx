@@ -45,6 +45,7 @@ interface FormConfig extends SectionStyleConfig {
   buttonText?: string;
   imageUrl?: string;
   showImage?: boolean;
+  restaurant_id?: string;
 }
 
 interface DynamicFormProps {
@@ -133,6 +134,7 @@ function normalizeFormLayout(layout: string | undefined) {
     case 'split-left':
     case 'background-image':
     case 'image-top':
+    case 'centered':
       return layout;
     case 'card':
     case 'two-column':
@@ -179,10 +181,49 @@ export default function DynamicForm({
 
   useEffect(() => {
     if (configData) {
-      setConfig({
+      const newConfig = {
         ...DEFAULT_FORM_CONFIG,
         ...configData,
-      });
+      };
+      setConfig(newConfig);
+      
+      // Even with configData, we still need to fetch the form definition if form_id is provided
+      const effectiveRestaurantId = restaurantId || newConfig.restaurant_id;
+      if (newConfig.form_id && effectiveRestaurantId) {
+        console.log('[DynamicForm] 🔍 Fetching form definition:', { form_id: newConfig.form_id, effectiveRestaurantId });
+        const fetchForm = async () => {
+          try {
+            const formUrl = `/api/forms?restaurant_id=${encodeURIComponent(effectiveRestaurantId)}&form_id=${encodeURIComponent(newConfig.form_id!)}`;
+            console.log('[DynamicForm] 📡 Form API URL:', formUrl);
+            
+            const formResponse = await fetch(formUrl);
+            console.log('[DynamicForm] 📡 Form API response status:', formResponse.status);
+            
+            const formPayload = await formResponse.json();
+            console.log('[DynamicForm] 📡 Form API payload:', formPayload);
+
+            // API returns single object when form_id is provided, array when listing all forms
+            const formData = formPayload.success ? (Array.isArray(formPayload.data) ? formPayload.data[0] : formPayload.data) : null;
+
+            if (formData) {
+              console.log('[DynamicForm] ✅ Form definition loaded:', formData);
+              setForm(formData);
+            } else {
+              console.log('[DynamicForm] ❌ No form data found:', formPayload);
+            }
+          } catch (error) {
+            console.error('[DynamicForm] ❌ Error fetching form definition:', error);
+          }
+        };
+        fetchForm();
+      } else {
+        console.log('[DynamicForm] ⚠️ Skipping form fetch - missing form_id or restaurantId:', {
+          form_id: newConfig.form_id,
+          restaurantId,
+          effectiveRestaurantId: restaurantId || newConfig.restaurant_id
+        });
+      }
+      
       setLoading(false);
       return;
     }
@@ -220,8 +261,12 @@ export default function DynamicForm({
             `/api/forms?restaurant_id=${encodeURIComponent(restaurantId)}&form_id=${encodeURIComponent(resolvedConfig.form_id)}`,
           );
           const formPayload = await formResponse.json();
-          if (formPayload.success && formPayload.data?.length > 0) {
-            setForm(formPayload.data[0]);
+
+          // API returns single object when form_id is provided, array when listing all forms
+          const formData = formPayload.success ? (Array.isArray(formPayload.data) ? formPayload.data[0] : formPayload.data) : null;
+
+          if (formData) {
+            setForm(formData);
           }
         }
       } catch (fetchError) {
@@ -255,24 +300,31 @@ export default function DynamicForm({
     return SAMPLE_FORM;
   }, [form, previewForm]);
 
-  const backgroundColor = resolveViewportColor(
-    displayConfig?.backgroundColor,
-    displayConfig?.mobileBackgroundColor,
-    viewport,
-    '#f8fafc',
-  );
-  const textColor = resolveViewportColor(
-    displayConfig?.textColor,
-    displayConfig?.mobileTextColor,
-    viewport,
-    '#0f172a',
-  );
-  const accentColor = resolveViewportColor(
-    displayConfig?.accentColor,
-    displayConfig?.mobileAccentColor,
-    viewport,
-    '#7c3aed',
-  );
+  // Use global styles when is_custom is false, otherwise use config colors
+  const backgroundColor = displayConfig?.is_custom === false
+    ? (globalStyles?.backgroundColor || '#f8fafc')
+    : resolveViewportColor(
+        displayConfig?.backgroundColor,
+        displayConfig?.mobileBackgroundColor,
+        viewport,
+        '#f8fafc',
+      );
+  const textColor = displayConfig?.is_custom === false
+    ? (globalStyles?.textColor || '#0f172a')
+    : resolveViewportColor(
+        displayConfig?.textColor,
+        displayConfig?.mobileTextColor,
+        viewport,
+        '#0f172a',
+      );
+  const accentColor = displayConfig?.is_custom === false
+    ? (globalStyles?.accentColor || '#7c3aed')
+    : resolveViewportColor(
+        displayConfig?.accentColor,
+        displayConfig?.mobileAccentColor,
+        viewport,
+        '#7c3aed',
+      );
 
   const layout = normalizeFormLayout(displayConfig?.layout);
   const isDisabled = displayConfig?.isEnabled === false;
@@ -305,6 +357,7 @@ export default function DynamicForm({
   };
 
   if (loading && showLoading) {
+    console.log('[DynamicForm] 🔄 Loading form...', { restaurantId, pageId, templateId });
     return (
       <div className="flex min-h-[220px] items-center justify-center rounded-3xl border border-slate-200 bg-white p-6 text-sm font-medium text-slate-600 shadow-sm">
         Loading form...
@@ -313,12 +366,45 @@ export default function DynamicForm({
   }
 
   if (!displayConfig || (isDisabled && !isPreview)) {
+    console.log('[DynamicForm] ❌ Form not displayed - config or disabled:', {
+      displayConfig: !!displayConfig,
+      isDisabled,
+      isPreview,
+      config: displayConfig
+    });
     return null;
   }
 
   if (!isPreview && (!displayConfig.form_id || !form)) {
+    console.log('[DynamicForm] ❌ Form not displayed - missing form_id or form:', {
+      isPreview,
+      form_id: displayConfig.form_id,
+      form: !!form,
+      displayConfig
+    });
+    
+    // If no form_id is configured, show a message to configure the form
+    if (!displayConfig.form_id) {
+      return (
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-center">
+          <div className="text-4xl mb-4">📝</div>
+          <h3 className="text-lg font-semibold text-amber-800 mb-2">Form Not Configured</h3>
+          <p className="text-sm text-amber-700">
+            This form section needs to be configured with a form. Please go to the admin panel and select a form for this section.
+          </p>
+        </div>
+      );
+    }
+    
     return null;
   }
+
+  console.log('[DynamicForm] ✅ Rendering form:', {
+    layout: normalizeFormLayout(displayConfig?.layout),
+    form_id: displayConfig.form_id,
+    isEnabled: displayConfig.isEnabled,
+    form: !!form
+  });
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
@@ -446,20 +532,6 @@ export default function DynamicForm({
           <div className="absolute inset-x-6 top-6 rounded-full border border-white/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 backdrop-blur">
             Guest experience
           </div>
-          <div className="absolute bottom-8 left-8 right-8 rounded-[28px] border border-white/70 bg-white/82 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.15)] backdrop-blur">
-            <div className="mb-3 flex items-center gap-3">
-              <span className="inline-flex h-3 w-3 rounded-full" style={{ backgroundColor: accentColor }} />
-              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Editorial panel
-              </span>
-            </div>
-            <h3 className="text-lg font-semibold text-slate-900">
-              Pair rich storytelling with a conversion-ready form surface.
-            </h3>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              The split layouts keep the form readable while giving the section room for imagery, brand cues, or trust-building copy.
-            </p>
-          </div>
         </div>
       )}
     </div>
@@ -493,22 +565,6 @@ export default function DynamicForm({
         background: 'linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.9))',
       }}
     >
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: accentColor }}>
-            {displayForm.name}
-          </p>
-          <h3 className="mt-2 text-lg font-semibold text-slate-900">
-            {isPreview ? 'Preview submission flow' : 'Tell us what you need'}
-          </h3>
-        </div>
-        <div
-          className="inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
-          style={{ borderColor: `${accentColor}30`, color: accentColor, backgroundColor: `${accentColor}10` }}
-        >
-          {fieldsToRender.length} fields
-        </div>
-      </div>
 
       {submitSuccess && !isPreview ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
@@ -592,8 +648,8 @@ export default function DynamicForm({
         ...surfaceStyle,
         background:
           displayConfig.imageUrl && displayConfig.showImage !== false
-            ? `linear-gradient(135deg, rgba(15,23,42,0.66), rgba(15,23,42,0.34)), url(${displayConfig.imageUrl}) center / cover`
-            : `linear-gradient(135deg, ${accentColor} 0%, rgba(15,23,42,0.94) 100%)`,
+            ? `url(${displayConfig.imageUrl}) center / cover`
+            : `${accentColor}`,
       }}
     >
       <div className="mx-auto max-w-3xl rounded-[28px] bg-white/92 p-6 shadow-[0_32px_90px_rgba(15,23,42,0.24)] backdrop-blur sm:p-8">

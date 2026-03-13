@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import DynamicForm from '@/components/dynamic-form';
 import { ImageGalleryModal } from '@/components/admin/image-gallery-modal';
 import { SectionAppearanceControls } from '@/components/admin/section-appearance-controls';
@@ -79,9 +79,9 @@ interface FormSettingsFormProps {
 const DEFAULT_FORM_CONFIG: FormSettingsConfig = {
   form_id: '',
   layout: 'centered',
-  title: 'Reserve your table',
-  subtitle: 'Make your next visit seamless',
-  description: 'Present the form in a polished layout that supports the brand story and keeps conversion friction low.',
+  title: '',
+  subtitle: '',
+  description: '',
   backgroundColor: '#f8fafc',
   mobileBackgroundColor: undefined,
   textColor: '#0f172a',
@@ -91,6 +91,7 @@ const DEFAULT_FORM_CONFIG: FormSettingsConfig = {
   buttonText: 'Submit Request',
   showImage: true,
   isEnabled: true,
+  is_custom: false,
 };
 
 const FORM_LAYOUTS = [
@@ -165,41 +166,6 @@ function LayoutPreview({ layout }: { layout: string }) {
   );
 }
 
-function ColorField({
-  label,
-  hint,
-  value,
-  onChange,
-  onReset,
-  placeholder,
-}: {
-  label: string;
-  hint: string;
-  value: string;
-  onChange: (value: string) => void;
-  onReset?: () => void;
-  placeholder: string;
-}) {
-  return (
-    <div>
-      <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
-        <span>{label}</span>
-        <span className="text-xs font-normal text-slate-500">{hint}</span>
-      </label>
-      <div className="flex gap-2">
-        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="h-11 w-16 cursor-pointer rounded-xl border border-slate-300 bg-white" />
-        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="flex-1 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20" placeholder={placeholder} />
-        {onReset ? (
-          <button type="button" onClick={onReset} className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-            </svg>
-          </button>
-        ) : null}
-      </div>
-    </div>
-  );
-}
 
 function toPreviewForm(form: FormRecord | null): PreviewFormRecord | null {
   if (!form) return null;
@@ -219,6 +185,7 @@ function toPreviewForm(form: FormRecord | null): PreviewFormRecord | null {
 }
 
 export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsFormProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const restaurantName = searchParams?.get('restaurant_name')?.trim() || '';
   const templateId = searchParams?.get('template_id') || null;
@@ -272,7 +239,13 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
         const response = await fetch(`/api/form-settings?${params.toString()}`);
         const data = await response.json();
         if (data.success && data.data) {
-          setConfig({ ...DEFAULT_FORM_CONFIG, ...sectionStyleDefaults, ...data.data });
+          setConfig({
+            ...DEFAULT_FORM_CONFIG,
+            ...sectionStyleDefaults,
+            ...data.data,
+            // Ensure is_custom defaults to false if not specified
+            is_custom: data.data.is_custom ?? false
+          });
         }
       } catch (error) {
         console.error('Error loading form settings:', error);
@@ -283,8 +256,36 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
 
   const selectedForm = useMemo(() => forms.find((form) => form.form_id === config.form_id) || null, [config.form_id, forms]);
   const previewForm = toPreviewForm(selectedForm);
-  const isMobileEditor = editorViewport === 'mobile';
   const updateConfig = (updates: Partial<FormSettingsConfig>) => setConfig((current) => ({ ...current, ...updates }));
+
+  // Create preview config that uses global styles when custom typography is disabled
+  const previewConfig = useMemo(() => {
+    if (config.is_custom) {
+      return config;
+    }
+    
+    // When using global styles, only keep essential form properties and remove all custom styling
+    return {
+      // Keep only essential form configuration
+      form_id: config.form_id,
+      layout: config.layout,
+      title: config.title,
+      subtitle: config.subtitle,
+      description: config.description,
+      buttonText: config.buttonText,
+      imageUrl: config.imageUrl,
+      showImage: config.showImage,
+      isEnabled: config.isEnabled,
+      enableScrollReveal: config.enableScrollReveal,
+      scrollRevealAnimation: config.scrollRevealAnimation,
+      // Explicitly set to use global styles
+      is_custom: false,
+      // Pass restaurant ID so DynamicForm can fetch global styles from restaurant table
+      restaurantId: restaurantId,
+      // Remove all custom styling properties so global styles are used
+      // (no backgroundColor, textColor, accentColor, fontFamily, fontSize, etc.)
+    };
+  }, [config, restaurantId]);
 
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -295,11 +296,29 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
       return;
     }
     try {
+      // Prepare config for saving - remove custom styling properties when using global styles
+      const saveConfig = config.is_custom ? config : {
+        // Keep only essential form configuration when using global styles
+        form_id: config.form_id,
+        layout: config.layout,
+        title: config.title,
+        subtitle: config.subtitle,
+        description: config.description,
+        buttonText: config.buttonText,
+        imageUrl: config.imageUrl,
+        showImage: config.showImage,
+        isEnabled: config.isEnabled,
+        enableScrollReveal: config.enableScrollReveal,
+        scrollRevealAnimation: config.scrollRevealAnimation,
+        is_custom: false,
+        // Don't save any custom styling properties when using global styles
+      };
+
       const response = await fetch('/api/form-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...config,
+          ...saveConfig,
           restaurant_id: restaurantId,
           page_id: pageId || null,
           template_id: templateId || null,
@@ -308,9 +327,20 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
       });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || 'Failed to save');
-      setToastMessage(isNewSection ? 'Form section created successfully.' : 'Form settings saved successfully.');
-      setToastType('success');
-      setShowToast(true);
+      
+      if (isNewSection) {
+        // For new sections, route back to page-settings and add the new section at the end
+        const params = new URLSearchParams();
+        params.set('restaurant_id', restaurantId);
+        if (restaurantName) params.set('restaurant_name', restaurantName);
+        if (pageId) params.set('page_id', pageId);
+        
+        router.push(`/admin/page-settings?${params.toString()}`);
+      } else {
+        setToastMessage('Form settings saved successfully.');
+        setToastType('success');
+        setShowToast(true);
+      }
     } catch (error) {
       console.error('Failed to save form settings:', error);
       setToastMessage('Failed to save form settings.');
@@ -368,88 +398,148 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
           </div>
         </SettingsCard>
 
-        <SettingsCard icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.75 5.25h14.5A2.25 2.25 0 0121.5 7.5v9a2.25 2.25 0 01-2.25 2.25H4.75A2.25 2.25 0 012.5 16.5v-9A2.25 2.25 0 014.75 5.25z" /></svg>} title="Layout Options" description="Choose the presentation style that best fits the page content and conversion goal.">
-          <div className="grid gap-4 lg:grid-cols-3">
-            {FORM_LAYOUTS.map((layout) => (
-              <LayoutCard key={layout.value} title={layout.title} description={layout.description} preview={<LayoutPreview layout={layout.value} />} selected={config.layout === layout.value} onClick={() => updateConfig({ layout: layout.value })} badge={layout.value === 'centered' ? 'Recommended' : undefined} />
-            ))}
-          </div>
-        </SettingsCard>
+        {config.form_id && (
+          <>
+            <SettingsCard icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.75 5.25h14.5A2.25 2.25 0 0121.5 7.5v9a2.25 2.25 0 01-2.25 2.25H4.75A2.25 2.25 0 012.5 16.5v-9A2.25 2.25 0 014.75 5.25z" /></svg>} title="Layout Options" description="Choose the presentation style that best fits the page content and conversion goal.">
+              <div className="grid gap-4 lg:grid-cols-3">
+                {FORM_LAYOUTS.map((layout) => (
+                  <LayoutCard key={layout.value} title={layout.title} description={layout.description} preview={<LayoutPreview layout={layout.value} />} selected={config.layout === layout.value} onClick={() => updateConfig({ layout: layout.value })} badge={layout.value === 'centered' ? 'Recommended' : undefined} />
+                ))}
+              </div>
+            </SettingsCard>
 
-        <SettingsCard icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>} title="Content & CTA" description="Set the section heading, supporting copy, and the submit button label.">
-          <div className="grid gap-5 lg:grid-cols-2">
-            <input type="text" value={config.title} onChange={(e) => updateConfig({ title: e.target.value })} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20" placeholder="Reserve your table" />
-            <input type="text" value={config.subtitle} onChange={(e) => updateConfig({ subtitle: e.target.value })} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20" placeholder="Make your next visit seamless" />
-            <textarea value={config.description} onChange={(e) => updateConfig({ description: e.target.value })} className="lg:col-span-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20" rows={4} placeholder="Present the form in a polished layout that supports the brand story and keeps conversion friction low." />
-            <input type="text" value={config.buttonText} onChange={(e) => updateConfig({ buttonText: e.target.value })} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20" placeholder="Submit Request" />
-          </div>
-        </SettingsCard>
-
-        <SettingsCard
-          icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" /></svg>}
-          title="Supporting Media"
-          description="Choose optional artwork for split, image-top, or background layouts."
-          action={<button type="button" onClick={() => setShowGalleryModal(true)} className="rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-medium text-violet-700 transition-colors hover:bg-violet-100">Choose Image</button>}
-        >
-          <div className="space-y-5">
-            <ToggleRow title="Show Supporting Image" description="Use the selected image in layouts that support media." checked={config.showImage} onChange={(checked) => updateConfig({ showImage: checked })} />
-            {config.imageUrl ? (
-              <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
-                <img src={config.imageUrl} alt="Selected form media" className="h-56 w-full object-cover" />
-                <div className="flex gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3">
-                  <button type="button" onClick={() => setShowGalleryModal(true)} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">Change Image</button>
-                  <button type="button" onClick={() => updateConfig({ imageUrl: undefined })} className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-100">Remove Image</button>
+            <SettingsCard icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>} title="Content Management" description="Set the section heading, subheading, and supporting copy.">
+              <div className="grid gap-5 lg:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Title</label>
+                  <input type="text" value={config.title} onChange={(e) => updateConfig({ title: e.target.value })} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Subtitle</label>
+                  <input type="text" value={config.subtitle} onChange={(e) => updateConfig({ subtitle: e.target.value })} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+                </div>
+                <div className="lg:col-span-2">
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Description</label>
+                  <textarea value={config.description} onChange={(e) => updateConfig({ description: e.target.value })} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20" rows={4} />
                 </div>
               </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">No image selected. The preview will use an editorial placeholder panel until you choose one.</div>
+            </SettingsCard>
+
+            {['split-right', 'split-left', 'image-top', 'background-image'].includes(config.layout) && (
+              <SettingsCard
+                icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" /></svg>}
+                title="Supporting Media"
+                description="Choose artwork for your selected layout."
+                action={<button type="button" onClick={() => setShowGalleryModal(true)} className="rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-medium text-violet-700 transition-colors hover:bg-violet-100">Choose Image</button>}
+              >
+                <div className="space-y-5">
+                  {config.imageUrl ? (
+                    <div className="flex items-start gap-4">
+                      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        <img src={config.imageUrl} alt="Selected form media" className="h-24 w-32 object-cover" />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <button type="button" onClick={() => setShowGalleryModal(true)} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">Change Image</button>
+                        <button type="button" onClick={() => updateConfig({ imageUrl: undefined })} className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-100">Remove Image</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">No image selected. Click "Choose Image" to select artwork for your layout.</div>
+                  )}
+                </div>
+              </SettingsCard>
             )}
-          </div>
-        </SettingsCard>
 
-        <SettingsCard
-          icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" /></svg>}
-          title="Colors, Surface & Reveal"
-          description="Tune the section palette, card finish, and page-enter animation."
-          action={<ResponsiveViewportTabs value={editorViewport} onChange={setEditorViewport} scope="form-style" />}
-        >
-          <div className="space-y-5">
-            <div className="grid gap-5 lg:grid-cols-2">
-              <ColorField label="Background Color" hint={isMobileEditor ? 'Mobile section background' : 'Desktop section background'} value={isMobileEditor ? config.mobileBackgroundColor || config.backgroundColor : config.backgroundColor} onChange={(value) => updateConfig(isMobileEditor ? { mobileBackgroundColor: value } : { backgroundColor: value })} onReset={isMobileEditor ? () => updateConfig({ mobileBackgroundColor: undefined }) : () => updateConfig({ backgroundColor: '#f8fafc' })} placeholder="#f8fafc" />
-              <ColorField label="Text Color" hint={isMobileEditor ? 'Mobile text override' : 'Primary text color'} value={isMobileEditor ? config.mobileTextColor || config.textColor : config.textColor} onChange={(value) => updateConfig(isMobileEditor ? { mobileTextColor: value } : { textColor: value })} onReset={isMobileEditor ? () => updateConfig({ mobileTextColor: undefined }) : () => updateConfig({ textColor: '#0f172a' })} placeholder="#0f172a" />
-              <ColorField label="Accent Color" hint={isMobileEditor ? 'Mobile CTA override' : 'Buttons, highlights, and supporting accents'} value={isMobileEditor ? config.mobileAccentColor || config.accentColor : config.accentColor} onChange={(value) => updateConfig(isMobileEditor ? { mobileAccentColor: value } : { accentColor: value })} onReset={isMobileEditor ? () => updateConfig({ mobileAccentColor: undefined }) : () => updateConfig({ accentColor: '#7c3aed' })} placeholder="#7c3aed" />
-            </div>
-            <SectionAppearanceControls value={config} onChange={updateConfig} viewport={editorViewport} widthLabel="Form Section Max Width" sectionLabel="form surface" />
-          </div>
-        </SettingsCard>
-
-        <SettingsCard
-          icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>}
-          title="Typography"
-          description="Apply Hero Settings style desktop/mobile typography controls."
-          action={<ResponsiveViewportTabs value={editorViewport} onChange={setEditorViewport} scope="form-typography" />}
-        >
-          <div className="space-y-4">
-            <ToggleRow title="Custom Typography" description="Override the global theme typography for this section." checked={config.is_custom || false} onChange={(checked) => updateConfig({ is_custom: checked })} />
-            {!config.is_custom ? (
-              <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-800">Global theme typography is active. Enable custom typography to adjust section-specific type styling.</div>
-            ) : (
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <SectionTypographyControls value={config} onChange={updateConfig} showAdvancedControls viewport={editorViewport} />
+            <SettingsCard
+              icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>}
+              title="Custom Styling"
+              description="Configure typography and scroll animation settings."
+            >
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900">Page Scroll Animation</h3>
+                      <p className="text-xs text-slate-500">
+                        Reveal the whole section when it enters the viewport.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        checked={config.enableScrollReveal === true}
+                        onChange={(event) => updateConfig({ enableScrollReveal: event.target.checked })}
+                        className="peer sr-only"
+                      />
+                      <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
+                    </label>
+                  </div>
+                  {config.enableScrollReveal ? (
+                    <div className="mt-4">
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                        Reveal Animation Style
+                      </label>
+                      <select
+                        value={config.scrollRevealAnimation || 'fade-up'}
+                        onChange={(event) =>
+                          updateConfig({
+                            scrollRevealAnimation: event.target.value as SectionStyleConfig['scrollRevealAnimation'],
+                          })
+                        }
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                      >
+                        <option value="fade">Fade</option>
+                        <option value="fade-up">Fade Up</option>
+                        <option value="slide-up">Slide Up</option>
+                        <option value="soft-reveal">Soft Reveal</option>
+                      </select>
+                      <p className="mt-2 text-xs text-slate-500">
+                        {config.scrollRevealAnimation === 'fade' && 'Opacity only, minimal motion.'}
+                        {config.scrollRevealAnimation === 'fade-up' && 'Soft lift with subtle fade.'}
+                        {config.scrollRevealAnimation === 'slide-up' && 'Slightly stronger upward movement.'}
+                        {(config.scrollRevealAnimation === 'soft-reveal' || !config.scrollRevealAnimation) && 'Blur-to-sharp premium entrance.'}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+                <ToggleRow title="Custom Typography" description="Override the global theme typography for this section." checked={config.is_custom || false} onChange={(checked) => updateConfig({ is_custom: checked })} />
+                {!config.is_custom ? (
+                  <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-800">Global theme typography is active. Enable custom typography to adjust section-specific type styling.</div>
+                ) : (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <SectionTypographyControls value={config} onChange={updateConfig} showAdvancedControls />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </SettingsCard>
+            </SettingsCard>
+          </>
+        )}
 
         <div className="flex justify-end">
-          <button type="submit" className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-purple-700 px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(109,40,217,0.28)] transition-all hover:-translate-y-0.5 hover:from-violet-700 hover:to-purple-800">{isNewSection ? 'Create Form Section' : 'Save Form Settings'}</button>
+          <button
+            type="submit"
+            disabled={!config.form_id}
+            className={`inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all ${
+              config.form_id
+                ? 'bg-gradient-to-r from-violet-600 to-purple-700 text-white shadow-[0_18px_45px_rgba(109,40,217,0.28)] hover:-translate-y-0.5 hover:from-violet-700 hover:to-purple-800'
+                : 'bg-slate-200 text-slate-500 cursor-not-allowed'
+            }`}
+          >
+            {isNewSection ? 'Create Form Section' : 'Save Form Settings'}
+          </button>
         </div>
       </form>
 
-      {!showPreview ? <FloatingPreviewButton viewport={editorViewport} onClick={() => { setPreviewViewport(editorViewport); setShowPreview(true); }} disabled={!selectedForm} /> : null}
+      {config.form_id && !showPreview ? <FloatingPreviewButton viewport={editorViewport} onClick={() => { setPreviewViewport(editorViewport); setShowPreview(true); }} disabled={!selectedForm} /> : null}
       {showPreview ? (
-        <PreviewModal title="Live Preview" description="Switch between desktop and mobile to check composition, readability, and field hierarchy." viewport={previewViewport} onViewportChange={setPreviewViewport} onClose={() => setShowPreview(false)} note={selectedForm ? 'Preview reflects your current form selection, layout, colors, and typography instantly.' : 'Select a form first to preview the section.'}>
-          <DynamicForm configData={config} previewForm={previewForm} isPreview previewViewport={previewViewport} restaurantId={restaurantId} />
+        <PreviewModal title="Show Preview" description="Switch between desktop and mobile to check composition, readability, and field hierarchy." viewport={previewViewport} onViewportChange={setPreviewViewport} onClose={() => setShowPreview(false)} note={selectedForm ? 'Preview reflects your current form selection, layout, colors, and typography instantly.' : 'Select a form first to preview the section.'}>
+          <DynamicForm
+            configData={previewConfig}
+            previewForm={previewForm}
+            isPreview
+            previewViewport={previewViewport}
+            restaurantId={restaurantId}
+          />
         </PreviewModal>
       ) : null}
 

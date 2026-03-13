@@ -400,13 +400,29 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           showLoading={true}
         />;
       case 'form':
-        // Pass template_id to fetch specific instance of form
-        // This ensures each section loads its own unique data
+        // Debug logging for form templates
+        console.log('[Page Client] 📝 Rendering form section:', {
+          template_id: template.template_id,
+          category: template.category,
+          name: template.name,
+          config: template.config,
+          restaurantId,
+          pageId
+        });
+        
+        // Transform template data to match Form config format (similar to other sections)
+        const formConfigData = template.config ? {
+          ...template.config,
+          layout: template.name,
+          restaurant_id: restaurantId,
+        } : undefined;
+
         return <DynamicForm
           key={uniqueKey}
           restaurantId={restaurantId}
           pageId={pageId}
           templateId={template.template_id}
+          configData={formConfigData}
           showLoading={true}
           isPreview={false}
         />;

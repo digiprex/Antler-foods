@@ -238,7 +238,7 @@ export function ToggleRow({
   onChange,
 }: {
   title: string;
-  description: string;
+  description?: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
 }) {
@@ -246,7 +246,9 @@ export function ToggleRow({
     <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
       <div>
         <p className="text-sm font-medium text-slate-900">{title}</p>
-        <p className="text-xs text-slate-500">{description}</p>
+        {description ? (
+          <p className="text-xs text-slate-500">{description}</p>
+        ) : null}
       </div>
       <label className="relative inline-flex cursor-pointer items-center">
         <input

@@ -25,6 +25,7 @@ import { DEFAULT_HERO_CONFIG } from '@/types/hero.types';
 import { getHeroLayoutMediaCapabilities } from '@/lib/hero-layout-media';
 import { getRenderableHeroButtons, mergeHeroConfig } from '@/lib/hero-config';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
+import { getAllHeroLayouts } from '@/utils/hero-layout-utils';
 
 type MinimalImageSlotKey = keyof NonNullable<HeroConfig['minimalImages']>;
 type SideBySideImageSlotKey = keyof NonNullable<HeroConfig['sideBySideImages']>;
@@ -46,19 +47,12 @@ interface HeroSettingsFormProps {
   isNewSection?: boolean;
 }
 
-const LAYOUT_OPTIONS = [
-  { value: 'default', name: 'Default', description: 'Centered content card over background' },
-  { value: 'centered-large', name: 'Centered Large', description: 'Large centered hero' },
-  { value: 'split', name: 'Split', description: 'Text left, image right' },
-  { value: 'split-reverse', name: 'Split Reverse', description: 'Image left, text right' },
-  { value: 'minimal', name: 'Minimal', description: 'Text with 3-image grid' },
-  { value: 'video-background', name: 'Video Background', description: 'Full-screen video background' },
-  { value: 'side-by-side', name: 'Side by Side', description: 'Three images in a row' },
-  { value: 'offset', name: 'Offset', description: 'Image top, text below centered' },
-  { value: 'full-height', name: 'Full Height', description: 'Full viewport height' },
-  { value: 'with-features', name: 'With Features', description: 'Hero with feature cards' },
-  { value: 'image-collage', name: 'Image Collage', description: 'Text with stacked images' },
-] as const;
+// Dynamically load layout options from hero-layouts.json
+const LAYOUT_OPTIONS = getAllHeroLayouts().map(layout => ({
+  value: layout.id,
+  name: layout.name,
+  description: layout.description
+}));
 
 const HERO_ANIMATION_OPTIONS = [
   { value: 'none', name: 'No Animation', description: 'Keep hero content static.' },

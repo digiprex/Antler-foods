@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { addVercelDomain } from '@/lib/server/vercel-domains';
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 
 const DEFAULT_STAGING_DOMAIN_SUFFIX = '.vercel.app';
+
+// Initialize Bedrock client
+const bedrockClient = new BedrockRuntimeClient({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: {
+    accessKeyId: 'bedrock-api-key',
+    secretAccessKey: process.env.AWS_BEARER_TOKEN_BEDROCK || '',
+  },
+});
 
 const DEFAULT_SYSTEM_PAGES = [
   { urlSlug: 'home', name: 'Home' },
@@ -41,9 +51,20 @@ interface ThemeSection {
   style?: any;
 }
 
+interface OtherPageSection {
+  id: string;
+  name: string;
+  type: string;
+  order_index: number;
+  config?: any; // Full configuration object for the section (e.g., hero config, custom section config)
+}
+
 interface Theme {
   theme_id: string;
   sections: ThemeSection[] | Record<string, ThemeSection>;
+  other_page_sections?: Array<{
+    [pageName: string]: OtherPageSection[];
+  }>;
 }
 
 interface GetThemeResponse {
@@ -115,6 +136,7 @@ const GET_THEME_BY_ID = `
     themes_by_pk(theme_id: $theme_id) {
       theme_id
       sections
+      other_page_sections
     }
   }
 `;
@@ -223,9 +245,13 @@ async function ensureDefaultSystemPagesForRestaurant(restaurantId: string, resta
 }
 
 async function getHomePageId(restaurantId: string): Promise<string | null> {
+  return getPageIdBySlug(restaurantId, 'home');
+}
+
+async function getPageIdBySlug(restaurantId: string, urlSlug: string): Promise<string | null> {
   const query = `
-    query GetHomePage($restaurant_id: uuid!) {
-      web_pages(where: { restaurant_id: { _eq: $restaurant_id }, url_slug: { _eq: "home" }, is_deleted: { _eq: false } }) {
+    query GetPageBySlug($restaurant_id: uuid!, $url_slug: String!) {
+      web_pages(where: { restaurant_id: { _eq: $restaurant_id }, url_slug: { _eq: $url_slug }, is_deleted: { _eq: false } }) {
         page_id
       }
     }
@@ -233,9 +259,359 @@ async function getHomePageId(restaurantId: string): Promise<string | null> {
 
   const data = await adminGraphqlRequest<{ web_pages: Array<{ page_id: string }> }>(query, {
     restaurant_id: restaurantId,
+    url_slug: urlSlug,
   });
 
   return data.web_pages.length > 0 ? data.web_pages[0].page_id : null;
+}
+
+/**
+ * Fetch a media image for the restaurant
+ */
+async function getRestaurantMedia(restaurantId: string) {
+  const query = `
+    query GetRestaurantMedia($restaurant_id: uuid!) {
+      medias(
+        where: {
+          restaurant_id: { _eq: $restaurant_id },
+          is_deleted: { _eq: false },
+          is_hidden: { _eq: false },
+          type: { _eq: "image" }
+        },
+        limit: 1,
+        order_by: { created_at: asc }
+      ) {
+        file_id
+        alt_text
+      }
+    }
+  `;
+
+  const data = await adminGraphqlRequest<{
+    medias: Array<{
+      file_id: string;
+      alt_text?: string | null;
+    }>
+  }>(query, { restaurant_id: restaurantId });
+
+  if (data.medias && data.medias.length > 0) {
+    const media = data.medias[0];
+    return {
+      url: `/api/image-proxy?fileId=${media.file_id}`,
+      alt: media.alt_text || 'Section image',
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Fetch restaurant details for AI content generation
+ */
+async function getRestaurantDetails(restaurantId: string) {
+  const query = `
+    query GetRestaurantDetails($restaurant_id: uuid!) {
+      restaurants_by_pk(restaurant_id: $restaurant_id) {
+        name
+        business_type
+        cuisine_types
+        address
+        city
+        state
+        country
+      }
+    }
+  `;
+
+  const data = await adminGraphqlRequest<{
+    restaurants_by_pk: {
+      name: string;
+      business_type?: string;
+      cuisine_types?: string[] | null;
+      address?: string;
+      city?: string;
+      state?: string;
+      country?: string;
+    } | null
+  }>(query, { restaurant_id: restaurantId });
+
+  return data.restaurants_by_pk;
+}
+
+/**
+ * Generate custom section content using Amazon Bedrock AI
+ * @param restaurantId - Restaurant ID
+ * @param pageName - Page name (e.g., 'about', 'contact')
+ * @param sectionName - Section name (e.g., 'Mission', 'Values', 'Team')
+ */
+async function generateCustomSectionContent(
+  restaurantId: string,
+  pageName: string,
+  sectionName: string
+) {
+  try {
+    // Check if Bedrock is configured
+    if (!process.env.AWS_BEARER_TOKEN_BEDROCK) {
+      console.log('AWS Bedrock not configured, skipping AI content generation');
+      return null;
+    }
+
+    // Fetch restaurant details
+    const restaurant = await getRestaurantDetails(restaurantId);
+    if (!restaurant) {
+      console.log('Restaurant not found, skipping AI content generation');
+      return null;
+    }
+
+    // Build context for the AI prompt
+    const contextParts = [];
+    if (restaurant.business_type) contextParts.push(restaurant.business_type);
+    if (restaurant.cuisine_types && Array.isArray(restaurant.cuisine_types) && restaurant.cuisine_types.length > 0) {
+      contextParts.push(`${restaurant.cuisine_types.join(', ')} cuisine`);
+    }
+
+    const locationInfo = [restaurant.city, restaurant.state, restaurant.country]
+      .filter(Boolean)
+      .join(', ');
+    if (locationInfo) contextParts.push(`located in ${locationInfo}`);
+
+    const context = contextParts.length > 0 ? ` - ${contextParts.join(', ')}` : '';
+
+    // Create prompt for custom section on about page
+    const prompt = `Generate compelling custom section content for the "${sectionName}" section on the About page of a restaurant website.
+
+Restaurant Details:
+- Name: ${restaurant.name}${context}
+
+Requirements:
+- Write a headline (1-3 words only) that captures the essence of "${sectionName}" (e.g., for "Mission": "Our Mission", "Our Purpose"; for "Values": "Core Values", "What We Believe")
+- Write a subheadline (4-6 words) that provides emotional context
+- Write a description (2-3 sentences, max 180 characters) that elaborates on the "${sectionName}" theme
+- Use professional but warm tone
+- Make it authentic and compelling
+- Focus on the restaurant's unique story and values
+- Create content based on the restaurant type, cuisine, and location provided above
+
+Generate the content in JSON format:
+{
+  "headline": "...",
+  "subheadline": "...",
+  "description": "..."
+}`;
+
+    // Prepare the request for Claude 3 Haiku
+    const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
+
+    const requestBody = {
+      anthropic_version: 'bedrock-2023-05-31',
+      max_tokens: 300,
+      temperature: 0.7,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    };
+
+    // Invoke the model
+    const command = new InvokeModelCommand({
+      modelId,
+      body: JSON.stringify(requestBody),
+      contentType: 'application/json',
+      accept: 'application/json',
+    });
+
+    const response = await bedrockClient.send(command);
+
+    // Parse the response
+    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+
+    if (!responseBody.content || !responseBody.content[0] || !responseBody.content[0].text) {
+      throw new Error('Invalid response from Bedrock model');
+    }
+
+    const generatedText = responseBody.content[0].text.trim();
+
+    // Extract JSON from the response
+    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Could not extract JSON from Bedrock response');
+    }
+
+    const generatedContent = JSON.parse(jsonMatch[0]);
+
+    console.log(`✅ Generated AI content for ${sectionName} custom section on ${pageName} page`);
+
+    return {
+      headline: generatedContent.headline || sectionName,
+      subheadline: generatedContent.subheadline || '',
+      description: generatedContent.description || '',
+    };
+
+  } catch (error) {
+    console.error('Error generating custom section content with Bedrock:', error);
+    return null;
+  }
+}
+
+/**
+ * Generate hero section content using Amazon Bedrock AI
+ * @param restaurantId - Restaurant ID
+ * @param pageName - Page name (e.g., 'about', 'contact')
+ * @param layoutId - Hero layout ID
+ */
+async function generateHeroContent(
+  restaurantId: string,
+  pageName: string,
+  layoutId: string
+) {
+  try {
+    // Check if Bedrock is configured
+    if (!process.env.AWS_BEARER_TOKEN_BEDROCK) {
+      console.log('AWS Bedrock not configured, skipping AI content generation');
+      return null;
+    }
+
+    // Fetch restaurant details
+    const restaurant = await getRestaurantDetails(restaurantId);
+    if (!restaurant) {
+      console.log('Restaurant not found, skipping AI content generation');
+      return null;
+    }
+
+    // Build context for the AI prompt
+    const contextParts = [];
+    if (restaurant.business_type) contextParts.push(restaurant.business_type);
+    if (restaurant.cuisine_types && Array.isArray(restaurant.cuisine_types) && restaurant.cuisine_types.length > 0) {
+      contextParts.push(`${restaurant.cuisine_types.join(', ')} cuisine`);
+    }
+
+    const locationInfo = [restaurant.city, restaurant.state, restaurant.country]
+      .filter(Boolean)
+      .join(', ');
+    if (locationInfo) contextParts.push(`located in ${locationInfo}`);
+
+    const context = contextParts.length > 0 ? ` - ${contextParts.join(', ')}` : '';
+
+    // Create page-specific prompt
+    const pagePrompts: Record<string, string> = {
+      about: `Generate compelling hero section content for the About page of a restaurant website.
+
+Restaurant Details:
+- Name: ${restaurant.name}${context}
+
+Requirements:
+- Write a headline (1-3 words only) that includes "About Us" or similar about-related phrase (e.g., "Our Story", "About Us", "Our Journey")
+- Write a subheadline (1-3 words only) that provides context or emotion (e.g., "Passion & Quality", "Family Tradition", "Culinary Excellence")
+- Write a description (2 sentences, max 120 characters) that tells the restaurant's story and values
+- Use professional but warm tone
+- Make it authentic and inviting
+- Focus on the restaurant's unique story, values, and what makes them special
+- Create the description based on the restaurant type, cuisine, and location provided above
+
+Generate the content in JSON format:
+{
+  "headline": "...",
+  "subheadline": "...",
+  "description": "..."
+}`,
+      contact: `Generate compelling hero section content for the Contact page of a restaurant website.
+
+Restaurant Details:
+- Name: ${restaurant.name}${context}
+
+Requirements:
+- Write a headline (1-3 words only) that includes "Contact" or similar contact-related phrase (e.g., "Get In Touch", "Contact Us", "Reach Out", "Connect")
+- Write a subheadline (1-3 words only) that provides context or emotion (e.g., "We're Here", "Let's Talk", "Always Available", "Visit Us")
+- Write a description (2 sentences, max 120 characters) that invites questions, reservations, or feedback
+- Use friendly and welcoming tone
+- Make it inviting and approachable
+- Focus on accessibility and making guests feel welcome to reach out
+
+Generate the content in JSON format:
+{
+  "headline": "...",
+  "subheadline": "...",
+  "description": "..."
+}`,
+      menu: `Generate compelling hero section content for the Menu page of a restaurant website.
+
+Restaurant Details:
+- Name: ${restaurant.name}${context}
+
+Requirements:
+- Write a headline (1-3 words only) that includes "Menu" or similar menu-related phrase (e.g., "Our Menu", "Explore Menu", "What We Serve", "Discover")
+- Write a subheadline (1-3 words only) that emphasizes quality or variety (e.g., "Fresh Daily", "Crafted Perfectly", "Flavors Await", "Pure Quality")
+- Write a description (2 sentences, max 120 characters) that invites guests to explore the menu
+- Use appetizing and inviting tone
+- Focus on food quality and variety
+- Create excitement about the culinary offerings
+
+Generate the content in JSON format:
+{
+  "headline": "...",
+  "subheadline": "...",
+  "description": "..."
+}`,
+    };
+
+    const prompt = pagePrompts[pageName] || pagePrompts['about'];
+
+    // Prepare the request for Claude 3 Haiku
+    const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
+
+    const requestBody = {
+      anthropic_version: 'bedrock-2023-05-31',
+      max_tokens: 300,
+      temperature: 0.7,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    };
+
+    // Invoke the model
+    const command = new InvokeModelCommand({
+      modelId,
+      body: JSON.stringify(requestBody),
+      contentType: 'application/json',
+      accept: 'application/json',
+    });
+
+    const response = await bedrockClient.send(command);
+
+    // Parse the response
+    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+
+    if (!responseBody.content || !responseBody.content[0] || !responseBody.content[0].text) {
+      throw new Error('Invalid response from Bedrock model');
+    }
+
+    const generatedText = responseBody.content[0].text.trim();
+
+    // Extract JSON from the response
+    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Could not extract JSON from Bedrock response');
+    }
+
+    const generatedContent = JSON.parse(jsonMatch[0]);
+
+    console.log(`✅ Generated AI content for ${pageName} page hero`);
+
+    return {
+      headline: generatedContent.headline || `Welcome to ${restaurant.name}`,
+      subheadline: generatedContent.subheadline || '',
+      description: generatedContent.description || '',
+    };
+
+  } catch (error) {
+    console.error('Error generating hero content with Bedrock:', error);
+    return null;
+  }
 }
 
 async function createNavbarFromTheme(restaurantId: string, themeId: string) {
@@ -578,6 +954,292 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
   console.log(`✅ Created ${pageSections.length} page section(s) from theme`);
 }
 
+/**
+ * Creates sections for other pages (like About, Contact, etc.) from theme's other_page_sections
+ * @param restaurantId - Restaurant ID
+ * @param themeId - Theme ID to fetch other_page_sections from
+ */
+async function createOtherPageSectionsFromTheme(
+  restaurantId: string,
+  themeId: string
+) {
+  // Fetch the theme to get other_page_sections
+  const themeData = await adminGraphqlRequest<GetThemeResponse>(GET_THEME_BY_ID, {
+    theme_id: themeId,
+  });
+
+  if (!themeData.themes_by_pk || !themeData.themes_by_pk.other_page_sections) {
+    console.log('No other_page_sections found in theme');
+    return;
+  }
+
+  const otherPageSections = themeData.themes_by_pk.other_page_sections;
+
+  if (!Array.isArray(otherPageSections) || otherPageSections.length === 0) {
+    console.log('other_page_sections is empty or not an array');
+    return;
+  }
+
+  // Fetch restaurant's global_styles once for all sections
+  const restaurantQuery = `
+    query GetRestaurantGlobalStyles($restaurant_id: uuid!) {
+      restaurants_by_pk(restaurant_id: $restaurant_id) {
+        global_styles
+      }
+    }
+  `;
+
+  const restaurantData = await adminGraphqlRequest<{ restaurants_by_pk: { global_styles: any } | null }>(
+    restaurantQuery,
+    { restaurant_id: restaurantId }
+  );
+
+  const globalStyles = restaurantData.restaurants_by_pk?.global_styles || {};
+
+  // Process each page configuration in other_page_sections
+  // Format: [{ "about": [...sections] }, { "contact": [...sections] }]
+  for (const pageConfig of otherPageSections) {
+    for (const [pageName, sections] of Object.entries(pageConfig)) {
+      if (!Array.isArray(sections) || sections.length === 0) {
+        continue;
+      }
+
+      // Get page ID by slug (e.g., "about" -> about page ID)
+      const pageId = await getPageIdBySlug(restaurantId, pageName);
+
+      if (!pageId) {
+        console.log(`Page "${pageName}" not found, skipping sections`);
+        continue;
+      }
+
+      console.log(`Creating ${sections.length} section(s) for "${pageName}" page`);
+
+      // Sort sections by order_index
+      const sortedSections = [...sections].sort((a, b) => {
+        return (a.order_index ?? 0) - (b.order_index ?? 0);
+      });
+
+      // Create a template entry for each section
+      for (const section of sortedSections) {
+        // Map section type to category
+        let category = section.type;
+
+        // Normalize category names to match expected format
+        const isHeroSection = category.toLowerCase() === 'hero';
+        const isCustomSection = category.toLowerCase() === 'customsection';
+
+        if (isHeroSection) {
+          category = 'Hero';
+        } else if (isCustomSection) {
+          category = 'CustomSection';
+        }
+
+        // Use full config if provided, otherwise create minimal config with layout ID
+        let sectionConfig = section.config || { layout: section.id };
+
+        // For Hero sections without full config, generate AI content and merge with global styles
+        if (isHeroSection && !section.config) {
+          console.log(`  ⚡ Generating AI content for ${pageName} page hero (layout: ${section.id})...`);
+          const aiContent = await generateHeroContent(restaurantId, pageName, section.id);
+
+          // Default fallback content if AI generation fails (page-specific)
+          const defaultContentByPage: Record<string, { headline: string; subheadline: string; description: string }> = {
+            about: {
+              headline: 'Our Story',
+              subheadline: 'Passion & Quality',
+              description: 'We craft memorable dining experiences. Fresh ingredients meet culinary excellence.',
+            },
+            contact: {
+              headline: 'Get In Touch',
+              subheadline: "We're Here",
+              description: 'Have questions or reservations? Contact us anytime. We love hearing from you!',
+            },
+            menu: {
+              headline: 'Our Menu',
+              subheadline: 'Fresh Daily',
+              description: 'Explore our carefully crafted dishes. Every plate tells a delicious story.',
+            },
+          };
+
+          const defaultContent = defaultContentByPage[pageName] || {
+            headline: 'Welcome',
+            subheadline: 'Discover More',
+            description: 'Exceptional experiences await. Join us for something special.',
+          };
+
+          // Use AI content if available, otherwise use defaults
+          const content = aiContent || defaultContent;
+
+          // Build config using global_styles for CSS/styling and AI/default content for dynamic text
+          sectionConfig = {
+            layout: section.id, // Layout from theme
+
+            // Dynamic content from AI or defaults
+            headline: content.headline,
+            subheadline: content.subheadline,
+            description: content.description,
+
+            // CSS/Styling from global_styles
+            bgColor: globalStyles?.backgroundColor || '#ffffff',
+            mobileBgColor: '',
+            textColor: globalStyles?.textColor || '#000000',
+            textAlign: 'center',
+            mobileTextAlign: 'center',
+
+            // Spacing
+            paddingTop: '6rem',
+            paddingBottom: '6rem',
+            paddingInline: '',
+            mobilePaddingInline: '',
+            minHeight: '600px',
+
+            // Typography from global_styles
+            titleFontFamily: globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
+            titleFontSize: globalStyles?.title?.fontSize || '2.25rem',
+            titleMobileFontSize: '',
+            titleFontWeight: globalStyles?.title?.fontWeight || 700,
+            titleColor: globalStyles?.title?.color || '#111827',
+
+            subtitleFontFamily: globalStyles?.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
+            subtitleFontSize: globalStyles?.subheading?.fontSize || '1.5rem',
+            subtitleMobileFontSize: '',
+            subtitleFontWeight: globalStyles?.subheading?.fontWeight || 600,
+            subtitleColor: globalStyles?.subheading?.color || '#374151',
+
+            bodyFontFamily: globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
+            bodyFontSize: globalStyles?.paragraph?.fontSize || '1rem',
+            bodyMobileFontSize: '',
+            bodyFontWeight: globalStyles?.paragraph?.fontWeight || 400,
+            bodyColor: globalStyles?.paragraph?.color || '#6b7280',
+
+            // Content panel
+            contentMaxWidth: '1200px',
+            contentAnimation: 'none',
+
+            // Buttons (disabled by default for about/contact pages, but include config for easy enabling)
+            primaryButton: {
+              label: 'View Menu',
+              href: '#menu',
+              variant: 'primary',
+            },
+            secondaryButton: {
+              label: 'Book a Table',
+              href: '#reservations',
+              variant: 'outline',
+            },
+            primaryButtonEnabled: false,
+            secondaryButtonEnabled: false,
+
+            // Other defaults
+            showScrollIndicator: false,
+            imageBorderRadius: '',
+            imageObjectFit: 'cover',
+            is_custom: false,
+            buttonStyleVariant: 'primary',
+
+            // Content panels
+            defaultContentPanelEnabled: false,
+            defaultContentPanelBackgroundColor: '#ffffff',
+            defaultContentPanelMobileBackgroundColor: '',
+            defaultContentPanelBorderRadius: '2rem',
+            defaultContentPanelMobileBorderRadius: '',
+            defaultContentPanelMaxWidth: '960px',
+
+            videoContentPanelEnabled: false,
+            videoContentPanelBackgroundColor: 'rgba(15, 23, 42, 0.48)',
+            videoContentPanelMobileBackgroundColor: '',
+            videoContentPanelBorderRadius: '2rem',
+            videoContentPanelMobileBorderRadius: '',
+            videoContentPanelMaxWidth: '640px',
+            videoContentPanelMinHeight: '',
+            videoContentPanelMarginTop: '',
+            videoContentPanelMarginBottom: '',
+            videoContentPanelMobileMaxWidth: '',
+            videoContentPanelMobileMinHeight: '',
+            videoContentPanelMobileMarginTop: '',
+            videoContentPanelMobileMarginBottom: '',
+            videoContentPanelPosition: 'left',
+          };
+        }
+
+        // For Custom sections without full config, generate AI content and merge with global styles
+        if (isCustomSection && !section.config) {
+          console.log(`  ⚡ Generating AI content for ${pageName} page custom section (name: ${section.name || section.id})...`);
+          const aiContent = await generateCustomSectionContent(restaurantId, pageName, section.name || section.id);
+
+          // Default fallback content for custom sections
+          const defaultCustomContent = {
+            headline: section.name || 'Our Values',
+            subheadline: 'What Sets Us Apart',
+            description: 'We are committed to excellence in everything we do. Quality and service are our priorities.',
+          };
+
+          // Use AI content if available, otherwise use defaults
+          const content = aiContent || defaultCustomContent;
+
+          // Fetch media image for the custom section
+          const mediaImage = await getRestaurantMedia(restaurantId);
+
+          // Build config using global_styles for CSS/styling and AI/default content for dynamic text
+          // Note: Fonts and typography will be applied from global_styles at render time
+          sectionConfig = {
+            layout: section.id, // Layout from theme
+
+            // Dynamic content from AI or defaults
+            headline: content.headline,
+            subheadline: content.subheadline,
+            description: content.description,
+
+            // Image from media table (or placeholder if no image found)
+            image: mediaImage || {
+              url: '',
+              alt: 'Section image',
+            },
+
+            // CSS/Styling from global_styles (simple structure)
+            bgColor: globalStyles?.backgroundColor || '#ffffff',
+            textColor: globalStyles?.textColor || '#000000',
+            textAlign: 'center',
+
+            // Spacing
+            paddingTop: '4rem',
+            paddingBottom: '4rem',
+            minHeight: '400px',
+
+            // Content settings
+            contentMaxWidth: '1200px',
+          };
+        }
+
+        // Ensure restaurant_id is set in config if not already present
+        if (!sectionConfig.restaurant_id) {
+          sectionConfig = { ...sectionConfig, restaurant_id: restaurantId };
+        }
+
+        // Ensure layout is set in config if not already present (for backwards compatibility)
+        if (!sectionConfig.layout && section.id) {
+          sectionConfig = { ...sectionConfig, layout: section.id };
+        }
+
+        await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
+          restaurant_id: restaurantId,
+          name: section.name || section.id || section.type,
+          category: category,
+          config: sectionConfig, // Use full config or minimal config with layout and AI content
+          menu_items: {},
+          page_id: pageId, // Correctly pass the page ID for the specific page
+          order_index: section.order_index ?? 0,
+          ref_template_id: null,
+        });
+
+        console.log(`  ✓ Created ${category} section "${section.name || section.id}" (layout: ${sectionConfig.layout}) for page_id: ${pageId}`);
+      }
+
+      console.log(`✅ Created ${sortedSections.length} section(s) for "${pageName}" page`);
+    }
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { restaurantId: string } }
@@ -623,7 +1285,7 @@ export async function POST(
       await createNavbarFromTheme(restaurantId, templateId);
       await createFooterFromTheme(restaurantId, templateId);
 
-      // Create page sections
+      // Create page sections for home page
       const homePageId = await getHomePageId(restaurantId);
 
       if (homePageId) {
@@ -631,6 +1293,9 @@ export async function POST(
       } else {
         console.warn('Home page not found, skipping theme sections creation');
       }
+
+      // Create sections for other pages (about, contact, etc.) from theme's other_page_sections
+      await createOtherPageSectionsFromTheme(restaurantId, templateId);
     }
 
     return NextResponse.json({

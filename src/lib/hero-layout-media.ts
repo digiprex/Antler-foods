@@ -1,10 +1,18 @@
-import type { HeroConfig } from '@/types/hero.types';
+/**
+ * Hero Layout Media Capabilities
+ *
+ * This module provides functionality to determine what media types
+ * a hero layout supports based on the dynamic layout configuration
+ * loaded from hero-layouts.json
+ */
 
-export interface HeroLayoutMediaCapabilities {
-  showHeroImage: boolean;
-  showBackgroundVideo: boolean;
-  showBackgroundImage: boolean;
-}
+import type { HeroConfig } from '@/types/hero.types';
+import {
+  getHeroLayoutMediaCapabilities as getCapabilitiesFromJson,
+  type HeroLayoutMediaCapabilities
+} from '@/utils/hero-layout-utils';
+
+export type { HeroLayoutMediaCapabilities };
 
 const DEFAULT_CAPABILITIES: HeroLayoutMediaCapabilities = {
   showHeroImage: false,
@@ -12,46 +20,18 @@ const DEFAULT_CAPABILITIES: HeroLayoutMediaCapabilities = {
   showBackgroundImage: true,
 };
 
+/**
+ * Get media capabilities for a hero layout
+ * Now dynamically loads from hero-layouts.json instead of hardcoded switch statement
+ * @param layout - The hero layout ID
+ * @returns Media capabilities object indicating what media types the layout supports
+ */
 export function getHeroLayoutMediaCapabilities(
   layout: HeroConfig['layout'] | undefined,
 ): HeroLayoutMediaCapabilities {
-  switch (layout) {
-    case 'split':
-    case 'split-reverse':
-    case 'side-by-side':
-    case 'offset':
-    case 'with-features':
-    case 'image-collage':
-      return {
-        showHeroImage: true,
-        showBackgroundVideo: false,
-        showBackgroundImage: false,
-      };
+  // Use the utility function to get capabilities from JSON
+  const capabilities = getCapabilitiesFromJson(layout);
 
-    case 'video-background':
-      return {
-        showHeroImage: false,
-        showBackgroundVideo: true,
-        showBackgroundImage: false,
-      };
-
-    case 'minimal':
-      return {
-        showHeroImage: true,
-        showBackgroundVideo: false,
-        showBackgroundImage: false,
-      };
-
-    case 'full-height':
-    case 'default':
-    case 'centered-large':
-      return {
-        showHeroImage: false,
-        showBackgroundVideo: false,
-        showBackgroundImage: true,
-      };
-
-    default:
-      return DEFAULT_CAPABILITIES;
-  }
+  // Return capabilities from JSON or fallback to default
+  return capabilities || DEFAULT_CAPABILITIES;
 }

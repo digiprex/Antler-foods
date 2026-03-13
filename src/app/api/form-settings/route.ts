@@ -8,25 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
-
-function pickSectionStyleConfig(source: Record<string, unknown>) {
-  return {
-    is_custom: source.is_custom === true,
-    buttonStyleVariant: source.buttonStyleVariant === 'secondary' ? 'secondary' : 'primary',
-    titleFontFamily: source.titleFontFamily ?? 'Inter, system-ui, sans-serif',
-    titleFontSize: source.titleFontSize ?? '2.25rem',
-    titleFontWeight: source.titleFontWeight ?? 700,
-    titleColor: source.titleColor ?? '#111827',
-    subtitleFontFamily: source.subtitleFontFamily ?? 'Inter, system-ui, sans-serif',
-    subtitleFontSize: source.subtitleFontSize ?? '1.5rem',
-    subtitleFontWeight: source.subtitleFontWeight ?? 600,
-    subtitleColor: source.subtitleColor ?? '#374151',
-    bodyFontFamily: source.bodyFontFamily ?? 'Inter, system-ui, sans-serif',
-    bodyFontSize: source.bodyFontSize ?? '1rem',
-    bodyFontWeight: source.bodyFontWeight ?? 400,
-    bodyColor: source.bodyColor ?? '#6b7280',
-  } as const;
-}
+import { extractSectionStyleConfig } from '@/lib/section-style-config';
 
 /**
  * GraphQL query to fetch form settings from templates by page_id
@@ -185,8 +167,12 @@ export async function GET(request: NextRequest) {
         imagePosition: config.imagePosition,
         buttonColor: config.buttonColor,
         buttonText: config.buttonText,
+        accentColor: config.accentColor,
+        mobileBackgroundColor: config.mobileBackgroundColor,
+        mobileTextColor: config.mobileTextColor,
+        mobileAccentColor: config.mobileAccentColor,
         isEnabled: config.enabled ?? config.isEnabled ?? true,
-        ...pickSectionStyleConfig(config),
+        ...extractSectionStyleConfig(config),
       }
     });
 
@@ -211,6 +197,7 @@ export async function POST(request: NextRequest) {
       description,
       backgroundColor,
       textColor,
+      buttonText,
       imageUrl,
       showImage,
       imagePosition,
@@ -221,18 +208,10 @@ export async function POST(request: NextRequest) {
       template_id,
       is_custom,
       buttonStyleVariant,
-      titleFontFamily,
-      titleFontSize,
-      titleFontWeight,
-      titleColor,
-      subtitleFontFamily,
-      subtitleFontSize,
-      subtitleFontWeight,
-      subtitleColor,
-      bodyFontFamily,
-      bodyFontSize,
-      bodyFontWeight,
-      bodyColor,
+      accentColor,
+      mobileBackgroundColor,
+      mobileTextColor,
+      mobileAccentColor,
     } = body;
 
     // Validate required fields
@@ -266,26 +245,20 @@ export async function POST(request: NextRequest) {
       description,
       backgroundColor,
       textColor,
+      buttonText,
       imageUrl,
       showImage,
       imagePosition,
+      accentColor,
+      mobileBackgroundColor,
+      mobileTextColor,
+      mobileAccentColor,
       isEnabled: isEnabled !== undefined ? isEnabled : (enabled !== undefined ? enabled : true),
-      ...pickSectionStyleConfig({
+      ...extractSectionStyleConfig({
+        ...body,
         is_custom,
         buttonStyleVariant,
-        titleFontFamily,
-        titleFontSize,
-        titleFontWeight,
-        titleColor,
-        subtitleFontFamily,
-        subtitleFontSize,
-        subtitleFontWeight,
-        subtitleColor,
-        bodyFontFamily,
-        bodyFontSize,
-        bodyFontWeight,
-        bodyColor,
-      }),
+      } as Record<string, unknown>),
     };
 
     // Step 4: Insert new template

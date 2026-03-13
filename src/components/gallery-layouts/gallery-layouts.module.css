@@ -198,11 +198,12 @@
   border-radius: 2.4rem;
   padding: clamp(1.75rem, 3vw, 2.4rem) clamp(2.9rem, 5vw, 4.4rem);
   background:
-    radial-gradient(circle at center, rgba(255, 242, 168, 0.72), transparent 34%),
-    linear-gradient(135deg, #f6df2b 0%, #f3cd1d 46%, #ffd742 100%);
+    radial-gradient(circle at center, rgba(221, 214, 254, 0.54), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.74) 0%, rgba(241, 245, 249, 0.82) 44%, rgba(245, 243, 255, 0.92) 100%),
+    var(--gallery-showcase-base, #ffffff);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.56),
-    0 28px 90px rgba(146, 96, 4, 0.2);
+    0 28px 90px rgba(91, 33, 182, 0.12);
   isolation: isolate;
 }
 

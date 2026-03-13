@@ -32,10 +32,10 @@ const DynamicYouTube = dynamic(() => import('@/components/dynamic-youtube'), { s
 function PageSettingsSelector() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const restaurantId = searchParams.get('restaurant_id');
-  const restaurantName = searchParams.get('restaurant_name');
-  const pageId = searchParams.get('page_id');
-  const pageNameParam = searchParams.get('page_name');
+  const restaurantId = searchParams?.get('restaurant_id');
+  const restaurantName = searchParams?.get('restaurant_name');
+  const pageId = searchParams?.get('page_id');
+  const pageNameParam = searchParams?.get('page_name');
   const [existingSections, setExistingSections] = useState<Set<string>>(new Set());
   const [sectionConfigs, setSectionConfigs] = useState<Map<string, any>>(new Map());
   const [sectionTemplates, setSectionTemplates] = useState<Map<string, any>>(new Map());
@@ -565,7 +565,7 @@ function PageSettingsSelector() {
       category: 'Timeline',
       description: 'Create a visual timeline to showcase your journey and milestones',
       route: '/admin/timeline-settings',
-      layouts: ['Vertical', 'Horizontal', 'Compact']
+      layouts: ['Alternating', 'Left Aligned', 'Right Aligned', 'Center']
     },
     {
       name: 'Form Display',
@@ -1541,49 +1541,104 @@ function PageSettingsSelector() {
             <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {availableSectionsData.map((section, idx) => (
-                  <div
-                    key={idx}
-                    className={`group rounded-lg border-2 border-gray-200 bg-white p-6 text-left transition-all ${navigating
-                      ? 'opacity-50 cursor-not-allowed'
-                      : 'cursor-pointer hover:border-purple-300 hover:bg-purple-50/50'
-                      }`}
-                    onClick={() => {
+                  (() => {
+                    const featuredCard =
+                      section.category === 'ScrollingText' ||
+                      section.category === 'Timeline' ||
+                      section.category === 'Form';
+
+                    const handleClick = () => {
                       if (navigating) return;
                       const params = buildParams();
                       const targetUrl = `${section.route}?${params}&new_section=true`;
                       setNavigationTarget(section.name);
                       setNavigating(true);
                       router.push(targetUrl);
-                    }}
-                  >
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex-1">
-                        <div className="text-sm font-semibold text-gray-900 mb-1">
-                          {section.name}
-                        </div>
-                        <div className="text-xs text-gray-600 leading-relaxed">
-                          {section.description}
-                        </div>
+                    };
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`group text-left transition-all ${
+                          featuredCard
+                            ? `rounded-[26px] border bg-white p-4 shadow-[0_22px_55px_rgba(15,23,42,0.08)] ${
+                                navigating
+                                  ? 'cursor-not-allowed border-slate-200 opacity-50'
+                                  : 'cursor-pointer border-slate-200 hover:-translate-y-1 hover:border-violet-300 hover:shadow-[0_28px_80px_rgba(109,40,217,0.14)]'
+                              }`
+                            : `rounded-lg border-2 border-gray-200 bg-white p-6 ${
+                                navigating
+                                  ? 'cursor-not-allowed opacity-50'
+                                  : 'cursor-pointer hover:border-purple-300 hover:bg-purple-50/50'
+                              }`
+                        }`}
+                        onClick={handleClick}
+                      >
+                        {featuredCard ? (
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1">
+                                <div className="text-sm font-semibold text-slate-900">
+                                  {section.name}
+                                </div>
+                                <div className="mt-1 text-xs leading-relaxed text-slate-600">
+                                  {section.description}
+                                </div>
+                              </div>
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-violet-600 transition-colors group-hover:bg-violet-600 group-hover:text-white">
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                </svg>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-1.5">
+                              {section.layouts.slice(0, 3).map((layout: string, layoutIdx: number) => (
+                                <span key={layoutIdx} className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                                  {layout}
+                                </span>
+                              ))}
+                              {section.layouts.length > 3 ? (
+                                <span className="rounded-lg bg-violet-100 px-2.5 py-1 text-xs font-medium text-violet-700">
+                                  +{section.layouts.length - 3}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="mb-3 flex items-start justify-between gap-3">
+                              <div className="flex-1">
+                                <div className="mb-1 text-sm font-semibold text-gray-900">
+                                  {section.name}
+                                </div>
+                                <div className="text-xs leading-relaxed text-gray-600">
+                                  {section.description}
+                                </div>
+                              </div>
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-100 transition-colors group-hover:bg-purple-600">
+                                <svg className="h-4 w-4 text-purple-600 transition-colors group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                </svg>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {section.layouts.slice(0, 3).map((layout: string, layoutIdx: number) => (
+                                <span key={layoutIdx} className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700">
+                                  {layout}
+                                </span>
+                              ))}
+                              {section.layouts.length > 3 ? (
+                                <span className="rounded bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700">
+                                  +{section.layouts.length - 3}
+                                </span>
+                              ) : null}
+                            </div>
+                          </>
+                        )}
                       </div>
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-100 group-hover:bg-purple-600 transition-colors">
-                        <svg className="h-4 w-4 text-purple-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {section.layouts.slice(0, 3).map((layout: string, layoutIdx: number) => (
-                        <span key={layoutIdx} className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded font-medium">
-                          {layout}
-                        </span>
-                      ))}
-                      {section.layouts.length > 3 && (
-                        <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded font-medium">
-                          +{section.layouts.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                    );
+                  })()
                 ))}
               </div>
 

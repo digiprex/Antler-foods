@@ -459,6 +459,7 @@ export default function GallerySettingsForm({
                         <GalleryLayoutPreview
                           layout={option.value}
                           size="card"
+                          bgColor={formConfig.bgColor || '#ffffff'}
                         />
                       </div>
 
@@ -1231,6 +1232,7 @@ export default function GallerySettingsForm({
                       layout={formConfig.layout}
                       columns={formConfig.columns}
                       size="panel"
+                      bgColor={formConfig.bgColor || '#ffffff'}
                     />
                     legacy-preview-placeholder-start
 

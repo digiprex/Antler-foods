@@ -44,6 +44,62 @@ interface ReviewIntentPostResponse {
   error?: string;
 }
 
+type ReviewLayoutMode = 'grid' | 'slider' | 'list';
+
+function normalizeReviewLayout(layout: ReviewConfig['layout']): ReviewLayoutMode {
+  if (layout === 'slider') {
+    return 'slider';
+  }
+
+  if (layout === 'list' || layout === 'masonry') {
+    return 'list';
+  }
+
+  return 'grid';
+}
+
+function truncateReviewText(text: string | null | undefined, limit: number) {
+  if (!text) {
+    return '';
+  }
+
+  if (text.length <= limit) {
+    return text;
+  }
+
+  return `${text.slice(0, limit).trim()}...`;
+}
+
+function createSpotlightPlaceholder(label: string) {
+  const safeLabel = label
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+      <defs>
+        <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="#0f172a" />
+          <stop offset="45%" stop-color="#6d28d9" />
+          <stop offset="100%" stop-color="#a855f7" />
+        </linearGradient>
+      </defs>
+      <rect width="1200" height="900" rx="48" fill="url(#bg)" />
+      <rect x="120" y="140" width="960" height="620" rx="28" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.18)" />
+      <rect x="210" y="260" width="780" height="260" rx="18" fill="rgba(15,23,42,0.48)" />
+      <rect x="240" y="310" width="320" height="24" rx="12" fill="rgba(255,255,255,0.72)" />
+      <rect x="240" y="354" width="410" height="18" rx="9" fill="rgba(255,255,255,0.46)" />
+      <rect x="240" y="390" width="380" height="18" rx="9" fill="rgba(255,255,255,0.46)" />
+      <rect x="240" y="462" width="220" height="54" rx="27" fill="#7c3aed" />
+      <text x="240" y="625" fill="rgba(255,255,255,0.88)" font-family="Arial, sans-serif" font-size="44" font-weight="700">${safeLabel}</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
 export default function Reviews({
   title = '',
   subtitle,
@@ -51,12 +107,15 @@ export default function Reviews({
   reviews = [],
   restaurantId,
   layout = 'grid',
-  columns = 3,
   showAvatar = true,
   showRating = true,
   showDate = true,
   showSource = true,
   maxReviews,
+  highlightImageUrl,
+  enableAnimations = true,
+  animationStyle = 'fade-up',
+  animationSpeed = 'normal',
   bgColor = '#f9fafb',
   textColor = '#000000',
   cardBgColor = '#ffffff',
@@ -130,27 +189,90 @@ export default function Reviews({
     getSelectedGlobalButtonStyle(sectionStyleConfig, globalStyles),
   );
   const isPreviewMobile = previewViewport === 'mobile';
-  const resolvedColumns = Math.max(1, Number(columns) || 1);
-  const gridColumns = isPreviewMobile ? 1 : resolvedColumns;
-  const masonryColumns = isPreviewMobile ? 1 : Math.min(resolvedColumns, 3);
-  const sliderColumns = isPreviewMobile ? 1 : resolvedColumns;
-  const sliderMaxStart = Math.max(0, displayReviews.length - sliderColumns);
+  const effectiveLayout = normalizeReviewLayout(layout);
   const sectionPadding = isPreviewMobile ? '2.75rem 1rem' : padding;
   const sectionMaxWidth = isPreviewMobile ? '100%' : maxWidth;
   const cardBorder = '1px solid rgba(148, 163, 184, 0.18)';
-  const cardShadow = '0 18px 45px rgba(15, 23, 42, 0.08)';
-  const cardRadius = isPreviewMobile ? '20px' : '24px';
+  const cardShadow = '0 20px 50px rgba(15, 23, 42, 0.08)';
+  const cardRadius = isPreviewMobile ? '20px' : '28px';
   const cardPadding = isPreviewMobile ? '1.15rem' : '1.45rem';
+  const stripTargetCount = isPreviewMobile ? 1 : 3;
+  const cardRailTargetCount = isPreviewMobile ? 1 : 3;
+  const stripGapPx = isPreviewMobile ? 16 : 36;
+  const cardRailGapPx = isPreviewMobile ? 16 : 24;
+  const stripVisibleCount = Math.max(
+    1,
+    Math.min(stripTargetCount, displayReviews.length || stripTargetCount),
+  );
+  const cardRailVisibleCount = Math.max(
+    1,
+    Math.min(cardRailTargetCount, displayReviews.length || cardRailTargetCount),
+  );
+  const hasStripOverflow = displayReviews.length > stripVisibleCount;
+  const hasCardRailOverflow = displayReviews.length > cardRailVisibleCount;
+  const stripCardWidth = isPreviewMobile
+    ? '100%'
+    : hasStripOverflow
+      ? 'calc((100% - 72px) / 3.18)'
+      : `calc((100% - ${(stripVisibleCount - 1) * stripGapPx}px) / ${stripVisibleCount})`;
+  const cardRailWidth = isPreviewMobile
+    ? '100%'
+    : hasCardRailOverflow
+      ? 'calc((100% - 48px) / 3.2)'
+      : `calc((100% - ${(cardRailVisibleCount - 1) * cardRailGapPx}px) / ${cardRailVisibleCount})`;
+  const layoutMaxStart =
+    effectiveLayout === 'slider'
+      ? Math.max(0, displayReviews.length - 1)
+      : effectiveLayout === 'grid'
+        ? Math.max(0, displayReviews.length - stripVisibleCount)
+        : Math.max(0, displayReviews.length - cardRailVisibleCount);
+  const spotlightImage =
+    highlightImageUrl?.trim() ||
+    createSpotlightPlaceholder(title || subtitle || 'Restaurant Spotlight');
+  const subtleSurface = 'rgba(255, 255, 255, 0.92)';
+  const reviewAccent = {
+    solid: '#7c3aed',
+    solidDark: '#6d28d9',
+    soft: '#f5f3ff',
+    border: '#c4b5fd',
+    text: '#6d28d9',
+    textSoft: '#7c3aed',
+    shadow: 'rgba(124, 58, 237, 0.24)',
+    shadowSoft: 'rgba(124, 58, 237, 0.12)',
+    progressSoft: 'rgba(124, 58, 237, 0.24)',
+    navBorder: 'rgba(196, 181, 253, 0.7)',
+    navDisabled: '#c4b5fd',
+  };
+  const layoutFrameStyle: CSSProperties = {
+    borderRadius: isPreviewMobile ? '26px' : '32px',
+    border: '1px solid rgba(226, 232, 240, 0.82)',
+    background: 'rgba(255, 255, 255, 0.5)',
+    boxShadow: '0 24px 60px rgba(15, 23, 42, 0.06)',
+    padding: isPreviewMobile ? '1.35rem 1rem' : '2rem 2rem 1.8rem',
+  };
   const reviewTextStyle: CSSProperties = {
     fontSize: isPreviewMobile ? '0.92rem' : '0.98rem',
-    lineHeight: 1.75,
+    lineHeight: 1.8,
     color: effectiveBodyColor,
     margin: 0,
   };
+  const motionDurationMs =
+    animationSpeed === 'fast' ? 260 : animationSpeed === 'slow' ? 560 : 380;
+  const motionEnabled = enableAnimations !== false;
+  const [isMotionReady, setIsMotionReady] = useState(false);
 
   useEffect(() => {
-    setCurrentSlide((prev) => Math.min(prev, sliderMaxStart));
-  }, [sliderMaxStart]);
+    setCurrentSlide((prev) => Math.min(prev, layoutMaxStart));
+  }, [layoutMaxStart]);
+
+  useEffect(() => {
+    setIsMotionReady(false);
+    const animationFrame = window.requestAnimationFrame(() => {
+      setIsMotionReady(true);
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [effectiveLayout, currentSlide, previewViewport, animationStyle, animationSpeed]);
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }).map((_, index) => (
@@ -264,135 +386,501 @@ export default function Reviews({
     );
   };
 
-  const renderReviewCard = (
-    review: Review,
-    variant: 'grid' | 'slider' | 'list' | 'masonry',
-  ) => {
-    const isListVariant = variant === 'list' && !isPreviewMobile;
-    const avatarSize = isListVariant ? 56 : 44;
+  const renderGoogleMark = (size = 18) => (
+    <span
+      aria-hidden="true"
+      style={{
+        position: 'relative',
+        display: 'inline-flex',
+        width: `${size}px`,
+        height: `${size}px`,
+        flexShrink: 0,
+        borderRadius: '999px',
+        background:
+          'conic-gradient(from 210deg, #4285f4 0deg, #34a853 140deg, #fbbc05 220deg, #ea4335 320deg, #4285f4 360deg)',
+      }}
+    >
+      <span
+        style={{
+          position: 'absolute',
+          inset: `${Math.max(2, Math.round(size * 0.18))}px`,
+          borderRadius: '999px',
+          background: '#ffffff',
+        }}
+      />
+      <span
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#4285f4',
+          fontSize: `${Math.max(10, size * 0.68)}px`,
+          fontWeight: 800,
+          fontFamily: 'Arial, sans-serif',
+          lineHeight: 1,
+        }}
+      >
+        G
+      </span>
+    </span>
+  );
+
+  const renderMetaLine = (review: Review, centered = false) => {
+    const items: string[] = [];
+
+    if (showSource && review.source) {
+      items.push(review.source);
+    }
+
+    if (showDate && review.published_at) {
+      items.push(formatDate(review.published_at));
+    }
+
+    if (items.length === 0) {
+      return null;
+    }
 
     return (
       <div
         style={{
-          background: cardBgColor,
-          borderRadius: cardRadius,
-          padding: cardPadding,
-          border: cardBorder,
-          boxShadow: cardShadow,
           display: 'flex',
-          flexDirection: isListVariant ? 'row' : 'column',
-          gap: isListVariant ? '1.25rem' : '1rem',
-          minHeight: variant === 'masonry' && !isPreviewMobile ? 'unset' : '100%',
-          breakInside: 'avoid',
+          gap: '0.45rem',
+          flexWrap: 'wrap',
+          justifyContent: centered ? 'center' : 'flex-start',
+          fontSize: '0.72rem',
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: '#94a3b8',
         }}
       >
-        {isListVariant ? renderAvatar(review, avatarSize) : null}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.95rem' }}>
-          <div
+        {items.map((item, index) => (
+          <span key={`${review.review_id}-${item}`}>
+            {index > 0 ? '• ' : ''}
+            {item}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
+  const getEntranceStyle = (index: number): CSSProperties => {
+    if (!motionEnabled) {
+      return {};
+    }
+
+    const delay = Math.min(index, 5) * 70;
+    const hiddenTransform =
+      animationStyle === 'soft-scale'
+        ? 'translate3d(0, 12px, 0) scale(0.96)'
+        : animationStyle === 'slide-up'
+          ? 'translate3d(24px, 18px, 0)'
+          : 'translate3d(0, 22px, 0)';
+
+    return {
+      opacity: isMotionReady ? 1 : 0,
+      transform: isMotionReady ? 'translate3d(0, 0, 0) scale(1)' : hiddenTransform,
+      transition: `opacity ${motionDurationMs}ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms, transform ${motionDurationMs}ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms`,
+      willChange: 'opacity, transform',
+    };
+  };
+
+  const renderReadMore = (
+    review: Review,
+    centered = false,
+    color = '#475569',
+  ) => {
+    if (!review.review_text) {
+      return null;
+    }
+
+    const sharedStyle: CSSProperties = {
+      display: 'inline-flex',
+      justifyContent: centered ? 'center' : 'flex-start',
+      alignSelf: centered ? 'center' : 'flex-start',
+      fontSize: '0.84rem',
+      fontWeight: 600,
+      color,
+      textDecoration: 'none',
+      marginTop: '0.25rem',
+    };
+
+    if (review.review_url) {
+      return (
+        <a
+          href={review.review_url}
+          target="_blank"
+          rel="noreferrer"
+          style={sharedStyle}
+        >
+          Read more
+        </a>
+      );
+    }
+
+    return <span style={sharedStyle}>Read more</span>;
+  };
+
+  const renderGoogleCta = ({
+    label,
+    variant,
+    fullWidth = false,
+  }: {
+    label: string;
+    variant: 'outline' | 'solid';
+    fullWidth?: boolean;
+  }) => {
+    const isSolid = variant === 'solid';
+    const isDisabled = !restaurantId;
+
+    return (
+      <button
+        type="button"
+        onClick={openModal}
+        disabled={isDisabled}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.7rem',
+          width: fullWidth ? '100%' : undefined,
+          borderRadius: selectedButtonStyle.borderRadius || '16px',
+          border: isSolid
+            ? `1px solid ${reviewAccent.solid}`
+            : `2px solid ${reviewAccent.border}`,
+          background: isDisabled
+            ? '#d1d5db'
+            : isSolid
+              ? `linear-gradient(135deg, ${reviewAccent.solid}, ${reviewAccent.solidDark})`
+              : reviewAccent.soft,
+          color: isDisabled ? '#64748b' : isSolid ? '#ffffff' : reviewAccent.text,
+          padding: isSolid ? '1rem 1.35rem' : '0.9rem 1.2rem',
+          fontFamily: selectedButtonStyle.fontFamily || bodyFontFamily,
+          fontSize: selectedButtonStyle.fontSize || '0.96rem',
+          fontWeight: selectedButtonStyle.fontWeight || 700,
+          textTransform: selectedButtonStyle.textTransform,
+          cursor: isDisabled ? 'not-allowed' : 'pointer',
+          boxShadow: isDisabled
+            ? 'none'
+            : isSolid
+              ? `0 18px 40px ${reviewAccent.shadow}`
+              : `0 14px 30px ${reviewAccent.shadowSoft}`,
+          transition: 'transform 180ms ease, box-shadow 180ms ease',
+        }}
+      >
+        {renderGoogleMark(isSolid ? 20 : 18)}
+        <span>{label}</span>
+      </button>
+    );
+  };
+
+  const renderNavigationButton = (
+    direction: 'prev' | 'next',
+    onClick: () => void,
+    disabled: boolean,
+  ) => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        width: isPreviewMobile ? '44px' : '52px',
+        height: isPreviewMobile ? '44px' : '52px',
+        borderRadius: '999px',
+        border: `1px solid ${reviewAccent.navBorder}`,
+        background: '#ffffff',
+        color: disabled ? reviewAccent.navDisabled : reviewAccent.textSoft,
+        boxShadow: `0 12px 24px ${reviewAccent.shadowSoft}`,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        fontSize: isPreviewMobile ? '1rem' : '1.15rem',
+        transition: 'transform 180ms ease, box-shadow 180ms ease',
+      }}
+      aria-label={direction === 'prev' ? 'Show previous review' : 'Show next review'}
+    >
+      {direction === 'prev' ? '\u2190' : '\u2192'}
+    </button>
+  );
+
+  const renderEditorialReviewCard = (review: Review) => (
+    <div
+      style={{
+        width: '100%',
+        borderRadius: isPreviewMobile ? '24px' : '28px',
+        border: '1px solid rgba(226, 232, 240, 0.9)',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)',
+        boxShadow: '0 18px 44px rgba(15, 23, 42, 0.08)',
+        padding: isPreviewMobile ? '1.25rem 1rem' : '1.65rem 1.3rem',
+        display: 'flex',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          gap: '0.9rem',
+          color: effectiveBodyColor,
+        }}
+      >
+        {renderAvatar(review, isPreviewMobile ? 56 : 68)}
+        {showRating ? (
+          <div style={{ display: 'inline-flex', gap: '0.08rem' }}>{renderStars(review.rating)}</div>
+        ) : null}
+        <p style={{ ...reviewTextStyle, maxWidth: '100%' }}>
+          {truncateReviewText(review.review_text, isPreviewMobile ? 120 : 165)}
+        </p>
+        {renderReadMore(review, true, '#334155')}
+        <div
+          style={{
+            fontSize: isPreviewMobile ? '1rem' : '1.08rem',
+            fontWeight: 800,
+            letterSpacing: '0.08em',
+            color: '#111827',
+            textTransform: 'uppercase',
+          }}
+        >
+          {review.author_name || 'Anonymous'}
+        </div>
+        {renderMetaLine(review, true)}
+      </div>
+    </div>
+  );
+
+  const renderSpotlightReview = (review: Review) => (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(0, 0.98fr) minmax(0, 1.02fr)',
+        borderRadius: isPreviewMobile ? '28px' : '34px',
+        overflow: 'hidden',
+        border: '1px solid rgba(226, 232, 240, 0.85)',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(248,250,252,0.98) 100%)',
+        boxShadow: '0 28px 80px rgba(15, 23, 42, 0.12)',
+      }}
+    >
+      <div
+        style={{
+          order: isPreviewMobile ? 2 : 1,
+          padding: isPreviewMobile ? '1.6rem 1.25rem' : '2.8rem 3rem',
+          background: 'rgba(248, 250, 252, 0.88)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: isPreviewMobile ? '1rem' : '1.25rem',
+          minHeight: isPreviewMobile ? 'unset' : '100%',
+          ...getEntranceStyle(0),
+        }}
+      >
+        {(title || subtitle || description) && (
+          <div style={{ marginBottom: isPreviewMobile ? '0.4rem' : '0.8rem' }}>
+            {subtitle ? (
+              <p
+                style={{
+                  ...subtitleStyle,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  opacity: 0.72,
+                  marginBottom: '0.55rem',
+                }}
+              >
+                {subtitle}
+              </p>
+            ) : null}
+            {title ? (
+              <h2
+                style={{
+                  ...titleStyle,
+                  margin: 0,
+                  marginBottom: description ? '0.85rem' : 0,
+                }}
+              >
+                {title}
+              </h2>
+            ) : null}
+            {description ? (
+              <p style={{ ...bodyStyle, margin: 0, opacity: 0.82 }}>{description}</p>
+            ) : null}
+          </div>
+        )}
+
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: isPreviewMobile ? 'stretch' : 'center',
+            textAlign: isPreviewMobile ? 'left' : 'center',
+            gap: '0.9rem',
+          }}
+        >
+          {!isPreviewMobile ? renderAvatar(review, 74) : renderAvatar(review, 60)}
+          {showRating ? (
+            <div
+              style={{
+                display: 'inline-flex',
+                gap: '0.1rem',
+                justifyContent: isPreviewMobile ? 'flex-start' : 'center',
+              }}
+            >
+              {renderStars(review.rating)}
+            </div>
+          ) : null}
+          <p
             style={{
-              display: 'flex',
-              alignItems: isListVariant ? 'flex-start' : 'center',
-              justifyContent: 'space-between',
-              gap: '0.9rem',
-              flexWrap: 'wrap',
+              ...reviewTextStyle,
+              fontSize: isPreviewMobile ? '1rem' : '1.06rem',
+              color: '#374151',
+              maxWidth: isPreviewMobile ? '100%' : '32rem',
             }}
           >
+            {truncateReviewText(review.review_text, isPreviewMobile ? 190 : 235)}
+          </p>
+          {renderReadMore(review, !isPreviewMobile, '#475569')}
+          <div
+            style={{
+              fontSize: isPreviewMobile ? '1.02rem' : '1.08rem',
+              fontWeight: 800,
+              color: '#111827',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+            }}
+          >
+            {review.author_name || 'Anonymous'}
+          </div>
+          {renderMetaLine(review, !isPreviewMobile)}
+          {displayReviews.length > 1 ? (
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.85rem',
-                minWidth: 0,
+                justifyContent: isPreviewMobile ? 'space-between' : 'center',
+                gap: '1rem',
+                marginTop: '0.1rem',
               }}
             >
-              {!isListVariant ? renderAvatar(review, avatarSize) : null}
-              <div style={{ minWidth: 0 }}>
-                <div
-                  style={{
-                    color: '#0f172a',
-                    fontSize: isPreviewMobile ? '0.98rem' : '1rem',
-                    fontWeight: 700,
-                  }}
-                >
-                  {review.author_name || 'Anonymous'}
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.45rem',
-                    flexWrap: 'wrap',
-                    marginTop: '0.3rem',
-                    fontSize: '0.74rem',
-                    color: '#64748b',
-                  }}
-                >
-                  {showDate && review.published_at ? (
-                    <span>{formatDate(review.published_at)}</span>
-                  ) : null}
-                  {showSource && review.source ? (
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        borderRadius: '999px',
-                        border: '1px solid rgba(148, 163, 184, 0.2)',
-                        background: 'rgba(248, 250, 252, 0.92)',
-                        padding: '0.18rem 0.55rem',
-                        fontWeight: 600,
-                        color: '#475569',
-                      }}
-                    >
-                      {review.source}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-
-            {showRating ? (
-              <div
+              {renderNavigationButton('prev', () => setCurrentSlide((prev) => Math.max(0, prev - 1)), safeCurrentSlide === 0)}
+              <span
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
+                  width: isPreviewMobile ? '100%' : '7rem',
+                  height: '6px',
                   borderRadius: '999px',
-                  background: 'rgba(248, 250, 252, 0.9)',
-                  border: '1px solid rgba(148, 163, 184, 0.18)',
-                  padding: '0.4rem 0.7rem',
+                  background: 'rgba(226, 232, 240, 0.95)',
+                  overflow: 'hidden',
                 }}
               >
-                <div style={{ display: 'inline-flex', gap: '0.08rem' }}>
-                  {renderStars(review.rating)}
-                </div>
                 <span
                   style={{
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    color: '#334155',
+                    display: 'block',
+                    width: `${((safeCurrentSlide + 1) / Math.max(displayReviews.length, 1)) * 100}%`,
+                    height: '100%',
+                    background: reviewAccent.solid,
+                    borderRadius: '999px',
                   }}
-                >
-                  {review.rating.toFixed(1)}
-                </span>
-              </div>
-            ) : null}
-          </div>
-
-          {review.review_text ? (
-            <p
-              style={{
-                ...reviewTextStyle,
-                opacity: 0.92,
-                flex: variant === 'list' ? undefined : 1,
-              }}
-            >
-              {`\u201C${review.review_text}\u201D`}
-            </p>
+                />
+              </span>
+              {renderNavigationButton(
+                'next',
+                () => setCurrentSlide((prev) => Math.min(layoutMaxStart, prev + 1)),
+                safeCurrentSlide >= layoutMaxStart,
+              )}
+            </div>
           ) : null}
+          <div style={{ width: '100%', maxWidth: isPreviewMobile ? '100%' : '34rem', marginTop: '0.45rem' }}>
+            {renderGoogleCta({
+              label: 'Rate Us On Google',
+              variant: 'solid',
+              fullWidth: true,
+            })}
+          </div>
         </div>
       </div>
-    );
-  };
+
+      <div
+        style={{
+          order: isPreviewMobile ? 1 : 2,
+          minHeight: isPreviewMobile ? '260px' : '100%',
+          background: '#e5e7eb',
+          ...getEntranceStyle(1),
+        }}
+      >
+        <img
+          src={spotlightImage}
+          alt={`${title || 'Review spotlight'} feature`}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            minHeight: isPreviewMobile ? '260px' : '640px',
+            objectFit: 'cover',
+          }}
+        />
+      </div>
+    </div>
+  );
+
+  const renderCardRailReview = (review: Review) => (
+    <div
+      style={{
+        width: '100%',
+      }}
+    >
+      <div
+        style={{
+          background:
+            cardBgColor === '#ffffff'
+              ? 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)'
+              : cardBgColor || subtleSurface,
+          borderRadius: cardRadius,
+          padding: isPreviewMobile ? '1.3rem 1.1rem' : '1.75rem 1.45rem',
+          border: '1px solid rgba(226, 232, 240, 0.9)',
+          boxShadow: '0 20px 50px rgba(15, 23, 42, 0.08)',
+          minHeight: isPreviewMobile ? '100%' : '25rem',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          gap: '0.92rem',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            right: isPreviewMobile ? '-10px' : '-6px',
+            top: isPreviewMobile ? '-14px' : '-12px',
+            fontSize: isPreviewMobile ? '4.5rem' : '5.4rem',
+            lineHeight: 1,
+            color: 'rgba(226, 232, 240, 0.65)',
+            fontFamily: 'Georgia, serif',
+          }}
+        >
+          "
+        </span>
+        {renderAvatar(review, isPreviewMobile ? 56 : 62)}
+        {showRating ? (
+          <div style={{ display: 'inline-flex', gap: '0.08rem' }}>{renderStars(review.rating)}</div>
+        ) : null}
+        <p style={{ ...reviewTextStyle, flex: 1 }}>
+          {truncateReviewText(review.review_text, isPreviewMobile ? 120 : 175)}
+        </p>
+        {renderReadMore(review, true, '#475569')}
+        <div
+          style={{
+            fontSize: isPreviewMobile ? '1rem' : '1.08rem',
+            fontWeight: 800,
+            color: '#111827',
+          }}
+        >
+          {review.author_name || 'Anonymous'}
+        </div>
+        {renderMetaLine(review, true)}
+      </div>
+    </div>
+  );
 
   const openModal = () => {
     setIsModalOpen(true);
@@ -591,92 +1079,14 @@ export default function Reviews({
     }
   };
 
+  const safeCurrentSlide = Math.min(currentSlide, layoutMaxStart);
+  const activeReview = displayReviews[safeCurrentSlide] || displayReviews[0];
+  const canGoPrev = safeCurrentSlide > 0;
+  const canGoNext = safeCurrentSlide < layoutMaxStart;
+
   return (
     <section style={{ backgroundColor: bgColor, padding: sectionPadding, ...bodyStyle }}>
       <div style={{ maxWidth: sectionMaxWidth, margin: '0 auto' }}>
-        {(title || subtitle || description) && (
-          <div
-            style={{
-              textAlign: 'center',
-              marginBottom: isPreviewMobile ? '1.75rem' : '2.5rem',
-              maxWidth: isPreviewMobile ? '100%' : '52rem',
-              marginInline: 'auto',
-            }}
-          >
-            {subtitle && (
-              <p
-                style={{
-                  ...subtitleStyle,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  marginBottom: '0.5rem',
-                  opacity: 0.7,
-                }}
-              >
-                {subtitle}
-              </p>
-            )}
-            {title && (
-              <h2
-                style={{
-                  marginBottom: '1rem',
-                  ...titleStyle,
-                }}
-              >
-                {title}
-              </h2>
-            )}
-            {description && (
-              <p
-                style={{
-                  opacity: 0.8,
-                  maxWidth: '800px',
-                  margin: '0 auto',
-                  ...bodyStyle,
-                }}
-              >
-                {description}
-              </p>
-            )}
-          </div>
-        )}
-
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: isPreviewMobile ? 'stretch' : 'flex-end',
-            marginBottom: '1.25rem',
-          }}
-        >
-          <button
-            type="button"
-            onClick={openModal}
-            disabled={!restaurantId}
-            style={{
-              border: selectedButtonStyle.border || 'none',
-              borderRadius: selectedButtonStyle.borderRadius || '999px',
-              padding: '0.7rem 1.2rem',
-              fontSize: selectedButtonStyle.fontSize || '0.9rem',
-              fontWeight: selectedButtonStyle.fontWeight || 700,
-              fontFamily: selectedButtonStyle.fontFamily,
-              textTransform: selectedButtonStyle.textTransform,
-              cursor: restaurantId ? 'pointer' : 'not-allowed',
-              color: selectedButtonStyle.color || '#ffffff',
-              background:
-                selectedButtonStyle.backgroundColor ||
-                (restaurantId
-                  ? 'linear-gradient(135deg, #6f4cf6, #5e3de1)'
-                  : '#c9ced6'),
-              boxShadow: restaurantId
-                ? '0 8px 20px rgba(111, 76, 246, 0.25)'
-                : 'none',
-              width: isPreviewMobile ? '100%' : undefined,
-            }}
-          >
-            Add Review
-          </button>
-        </div>
-
         {displayReviews.length === 0 ? (
           <div
             style={{
@@ -691,129 +1101,263 @@ export default function Reviews({
           >
             No reviews yet. Be the first to share your feedback.
           </div>
-        ) : layout === 'slider' ? (
-          <div style={{ position: 'relative' }}>
-            <div
-              style={{
-                overflow: 'hidden',
-                position: 'relative',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  transition: 'transform 0.5s ease',
-                  transform: `translateX(-${currentSlide * (100 / sliderColumns)}%)`,
-                  gap: isPreviewMobile ? '0.75rem' : '1rem',
-                }}
-              >
-                {displayReviews.map((review) => (
-                  <div
-                    key={review.review_id}
-                    style={{
-                      minWidth: `calc((100% - ${(isPreviewMobile ? 0.75 : 1)}rem * ${sliderColumns - 1}) / ${sliderColumns})`,
-                    }}
-                  >
-                    {renderReviewCard(review, 'slider')}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {displayReviews.length > sliderColumns && (
-              <>
-                <button
-                  onClick={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
-                  disabled={currentSlide === 0}
-                  style={{
-                    position: 'absolute',
-                    left: isPreviewMobile ? '0.5rem' : '-1.25rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'rgba(255, 255, 255, 0.9)',
-                    border: 'none',
-                    color: '#000',
-                    fontSize: '2rem',
-                    cursor: currentSlide === 0 ? 'not-allowed' : 'pointer',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.5rem',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-                    zIndex: 10,
-                    opacity: currentSlide === 0 ? 0.4 : 1,
-                  }}
-                >
-                  {'\u2039'}
-                </button>
-                <button
-                  onClick={() =>
-                    setCurrentSlide((prev) =>
-                      Math.min(sliderMaxStart, prev + 1),
-                    )
-                  }
-                  disabled={currentSlide >= sliderMaxStart}
-                  style={{
-                    position: 'absolute',
-                    right: isPreviewMobile ? '0.5rem' : '-1.25rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'rgba(255, 255, 255, 0.9)',
-                    border: 'none',
-                    color: '#000',
-                    fontSize: '2rem',
-                    cursor:
-                      currentSlide >= sliderMaxStart
-                        ? 'not-allowed'
-                        : 'pointer',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.5rem',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-                    zIndex: 10,
-                    opacity:
-                      currentSlide >= sliderMaxStart ? 0.4 : 1,
-                  }}
-                >
-                  {'\u203A'}
-                </button>
-              </>
-            )}
-          </div>
-        ) : layout === 'list' ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {displayReviews.map((review) => (
-              <div key={review.review_id}>{renderReviewCard(review, 'list')}</div>
-            ))}
-          </div>
-        ) : layout === 'masonry' ? (
+        ) : effectiveLayout === 'slider' && activeReview ? (
+          renderSpotlightReview(activeReview)
+        ) : effectiveLayout === 'grid' ? (
           <div
             style={{
-              columnCount: masonryColumns,
-              columnGap: '1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: isPreviewMobile ? '1.5rem' : '2.2rem',
             }}
           >
-            {displayReviews.map((review) => (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '1rem',
+                maxWidth: '32rem',
+                ...getEntranceStyle(0),
+              }}
+            >
+              {title ? (
+                <h2
+                  style={{
+                    ...titleStyle,
+                    margin: 0,
+                    textTransform: titleStyle.textTransform || 'uppercase',
+                    letterSpacing: titleStyle.letterSpacing || '0.04em',
+                  }}
+                >
+                  {title}
+                </h2>
+              ) : null}
+              {subtitle ? (
+                <p
+                  style={{
+                    ...subtitleStyle,
+                    margin: 0,
+                    opacity: 0.72,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.12em',
+                  }}
+                >
+                  {subtitle}
+                </p>
+              ) : null}
+              {description ? (
+                <p style={{ ...bodyStyle, margin: 0, opacity: 0.82 }}>{description}</p>
+              ) : null}
+              {renderGoogleCta({
+                label: 'Rate Us On Google',
+                variant: 'outline',
+              })}
+            </div>
+
               <div
-                key={review.review_id}
                 style={{
-                  display: 'inline-block',
-                  width: '100%',
-                  marginBottom: '1rem',
+                  ...layoutFrameStyle,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: isPreviewMobile ? '1.25rem' : '1.6rem',
+                  ...getEntranceStyle(1),
                 }}
               >
-                {renderReviewCard(review, 'masonry')}
+                <div style={{ overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: `${stripGapPx}px`,
+                      alignItems: 'stretch',
+                      transition: 'transform 420ms ease',
+                      transform: `translateX(calc(-${safeCurrentSlide} * (${stripCardWidth} + ${stripGapPx}px)))`,
+                    }}
+                  >
+                    {displayReviews.map((review, index) => (
+                      <div
+                        key={review.review_id}
+                        style={{
+                          flex: `0 0 ${stripCardWidth}`,
+                          display: 'flex',
+                          ...getEntranceStyle(index),
+                        }}
+                      >
+                        {renderEditorialReviewCard(review)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {displayReviews.length > stripVisibleCount ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: isPreviewMobile ? 'center' : 'flex-end',
+                      alignItems: 'center',
+                      gap: isPreviewMobile ? '0.8rem' : '1rem',
+                    }}
+                  >
+                    {renderNavigationButton('prev', () => setCurrentSlide((prev) => Math.max(0, prev - 1)), !canGoPrev)}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: isPreviewMobile ? '4rem' : '4.8rem',
+                          height: '8px',
+                          borderRadius: '999px',
+                          background: reviewAccent.solid,
+                        }}
+                      />
+                      {Array.from({
+                        length: Math.max(1, displayReviews.length - stripVisibleCount + 1),
+                      }).map((_, index) => (
+                        <span
+                          key={`grid-progress-${index}`}
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '999px',
+                            background:
+                              index === safeCurrentSlide
+                                ? reviewAccent.progressSoft
+                                : 'rgba(226, 232, 240, 0.95)',
+                          }}
+                        />
+                      ))}
+                    </div>
+                    {renderNavigationButton(
+                      'next',
+                      () => setCurrentSlide((prev) => Math.min(layoutMaxStart, prev + 1)),
+                      !canGoNext,
+                    )}
+                  </div>
+                ) : null}
               </div>
-            ))}
           </div>
         ) : (
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
-              gap: '1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: isPreviewMobile ? '1.5rem' : '2rem',
             }}
           >
-            {displayReviews.map((review) => (
-              <div key={review.review_id}>{renderReviewCard(review, 'grid')}</div>
-            ))}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '1rem',
+                maxWidth: '34rem',
+                ...getEntranceStyle(0),
+              }}
+            >
+              {title ? <h2 style={{ ...titleStyle, margin: 0 }}>{title}</h2> : null}
+              {subtitle ? (
+                <p
+                  style={{
+                    ...subtitleStyle,
+                    margin: 0,
+                    opacity: 0.76,
+                  }}
+                >
+                  {subtitle}
+                </p>
+              ) : null}
+              {description ? (
+                <p style={{ ...bodyStyle, margin: 0, opacity: 0.84 }}>{description}</p>
+              ) : null}
+              {renderGoogleCta({
+                label: 'Rate Us On Google',
+                variant: 'outline',
+              })}
+            </div>
+
+            <div
+              style={{
+                ...layoutFrameStyle,
+                position: 'relative',
+                ...getEntranceStyle(1),
+              }}
+            >
+              {!isPreviewMobile && displayReviews.length > cardRailVisibleCount ? (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: '-18px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    zIndex: 2,
+                  }}
+                >
+                  {renderNavigationButton('prev', () => setCurrentSlide((prev) => Math.max(0, prev - 1)), !canGoPrev)}
+                </div>
+              ) : null}
+
+              {!isPreviewMobile && displayReviews.length > cardRailVisibleCount ? (
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: '-18px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    zIndex: 2,
+                  }}
+                >
+                  {renderNavigationButton(
+                    'next',
+                    () => setCurrentSlide((prev) => Math.min(layoutMaxStart, prev + 1)),
+                    !canGoNext,
+                  )}
+                </div>
+              ) : null}
+
+              <div style={{ overflow: 'hidden' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: `${cardRailGapPx}px`,
+                    transition: 'transform 420ms ease',
+                    transform: `translateX(calc(-${safeCurrentSlide} * (${cardRailWidth} + ${cardRailGapPx}px)))`,
+                  }}
+                >
+                  {displayReviews.map((review, index) => (
+                    <div
+                      key={review.review_id}
+                      style={{
+                        flex: `0 0 ${cardRailWidth}`,
+                        ...getEntranceStyle(index),
+                      }}
+                    >
+                      {renderCardRailReview(review)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {isPreviewMobile && displayReviews.length > cardRailVisibleCount ? (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: '1rem',
+                }}
+              >
+                {renderNavigationButton('prev', () => setCurrentSlide((prev) => Math.max(0, prev - 1)), !canGoPrev)}
+                {renderNavigationButton(
+                  'next',
+                  () => setCurrentSlide((prev) => Math.min(layoutMaxStart, prev + 1)),
+                  !canGoNext,
+                )}
+              </div>
+            ) : null}
           </div>
         )}
       </div>

@@ -6,7 +6,14 @@
 
 import type { SectionStyleConfig } from '@/types/section-style.types';
 
-export type TimelineLayout = 'alternating' | 'left' | 'right' | 'center';
+export type TimelineLayout =
+  | 'vertical'
+  | 'horizontal'
+  | 'compact'
+  | 'alternating'
+  | 'left'
+  | 'right'
+  | 'center';
 
 export interface TimelineItem {
   id: string;
@@ -26,9 +33,15 @@ export interface TimelineConfig extends SectionStyleConfig {
   items: TimelineItem[];
   // Styling
   backgroundColor?: string;
+  mobileBackgroundColor?: string;
   textColor?: string;
+  mobileTextColor?: string;
   accentColor?: string;
+  mobileAccentColor?: string;
   lineColor?: string;
+  mobileLineColor?: string;
+  cardBackgroundColor?: string;
+  mobileCardBackgroundColor?: string;
 }
 
 export interface TimelineConfigResponse {
@@ -41,18 +54,18 @@ export interface TimelineConfigResponse {
 export const TIMELINE_LAYOUTS = {
   alternating: {
     name: 'Alternating',
-    description: 'Items alternate between left and right sides',
+    description: 'Items alternate between the left and right sides of the timeline.',
   },
   left: {
     name: 'Left Aligned',
-    description: 'All items on the left side of the timeline',
+    description: 'All items stay on the left side of the timeline.',
   },
   right: {
     name: 'Right Aligned',
-    description: 'All items on the right side of the timeline',
+    description: 'All items stay on the right side of the timeline.',
   },
   center: {
     name: 'Center',
-    description: 'Items centered with timeline in middle',
+    description: 'Items stay centered with the timeline in the middle.',
   },
 } as const;

@@ -41,6 +41,10 @@ export interface ReviewConfig {
   showDate?: boolean;
   showSource?: boolean;
   maxReviews?: number;
+  highlightImageUrl?: string;
+  enableAnimations?: boolean;
+  animationStyle?: 'fade-up' | 'soft-scale' | 'slide-up';
+  animationSpeed?: 'fast' | 'normal' | 'slow';
 
   // Styling
   bgColor?: string;
@@ -85,7 +89,11 @@ export const DEFAULT_REVIEW_CONFIG: ReviewConfig = {
   showRating: true,
   showDate: true,
   showSource: true,
-  maxReviews: 6,
+  maxReviews: 3,
+  highlightImageUrl: '',
+  enableAnimations: true,
+  animationStyle: 'fade-up',
+  animationSpeed: 'normal',
   bgColor: '#f9fafb',
   textColor: '#000000',
   cardBgColor: '#ffffff',

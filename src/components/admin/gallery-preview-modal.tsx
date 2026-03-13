@@ -35,6 +35,8 @@ export function GalleryPreviewModal({
   }
 
   const hasImages = config.images.length > 0;
+  const revealEnabled =
+    config.enableScrollReveal ?? config.enableScrollAnimation ?? false;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -209,7 +211,7 @@ export function GalleryPreviewModal({
               <span>
                 {!hasImages
                   ? 'Add images to see the full gallery layout in action.'
-                  : config.enableScrollAnimation
+                  : revealEnabled
                     ? 'Live preview reflects your current gallery content, styling, and motion settings.'
                     : 'Live preview reflects your current gallery content and styling.'}
               </span>

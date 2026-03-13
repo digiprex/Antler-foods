@@ -208,6 +208,11 @@ export interface MenuConfig extends SectionStyleConfig {
   categories?: MenuCategory[];
   featuredItems?: MenuItem[];
   layoutItems?: MenuItem[];
+  primaryButtonEnabled?: boolean;
+  secondaryButtonEnabled?: boolean;
+  primaryButton?: MenuButton;
+  secondaryButton?: MenuButton;
+  // Legacy shared CTA field kept for backward compatibility.
   ctaButton?: MenuButton;
   headerImage?: string;
   backgroundImage?: string;

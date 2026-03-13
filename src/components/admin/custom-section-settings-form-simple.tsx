@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Toast from '@/components/ui/toast';
 import {
   FloatingPreviewButton,
+  ResponsiveViewportTabs,
   SettingsCard,
   SettingsHeader,
   ToggleRow,
@@ -28,7 +29,10 @@ import { CustomSectionLayoutPicker } from './custom-section-builder/layout-picke
 import { CustomSectionPreviewModal } from './custom-section-builder/preview-modal';
 import type { EditorViewport } from '@/components/admin/section-settings-primitives';
 import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
-import type { SectionStyleConfig } from '@/types/section-style.types';
+import {
+  SECTION_STYLE_KEYS,
+  type SectionStyleConfig,
+} from '@/types/section-style.types';
 
 type MediaSlot =
   | 'image'
@@ -36,6 +40,29 @@ type MediaSlot =
   | 'secondaryImage'
   | 'fallbackImage'
   | 'videoUrl';
+
+const NON_TYPOGRAPHY_SECTION_KEYS = new Set([
+  'is_custom',
+  'buttonStyleVariant',
+  'sectionTextAlign',
+  'mobileSectionTextAlign',
+  'sectionMaxWidth',
+  'mobileSectionMaxWidth',
+  'sectionPaddingY',
+  'mobileSectionPaddingY',
+  'sectionPaddingX',
+  'mobileSectionPaddingX',
+  'surfaceBorderRadius',
+  'mobileSurfaceBorderRadius',
+  'surfaceShadow',
+  'mobileSurfaceShadow',
+  'enableScrollReveal',
+  'scrollRevealAnimation',
+] satisfies Array<keyof SectionStyleConfig>);
+
+const TYPOGRAPHY_SECTION_KEYS = SECTION_STYLE_KEYS.filter(
+  (key) => !NON_TYPOGRAPHY_SECTION_KEYS.has(key),
+);
 
 interface LayoutSchema {
   id: CustomSectionLayout;
@@ -50,6 +77,75 @@ function buildLayoutSchema(
     id: layout.value,
     supportsItems: layout.supportsItems ?? false,
     mediaSlots: layout.mediaSlots as MediaSlot[],
+  };
+}
+
+function clearEditorContentDefaults(
+  config: CustomSectionConfig,
+  source?: Partial<CustomSectionConfig> | null,
+): CustomSectionConfig {
+  const sourceItems = source?.items || [];
+
+  return {
+    ...config,
+    headline: source?.headline ?? '',
+    subheadline: source?.subheadline ?? '',
+    description: source?.description ?? '',
+    primaryButtonEnabled:
+      source?.primaryButtonEnabled ?? config.primaryButtonEnabled ?? true,
+    secondaryButtonEnabled:
+      source?.secondaryButtonEnabled ?? config.secondaryButtonEnabled ?? true,
+    primaryButton: {
+      ...(config.primaryButton || {}),
+      label: source?.primaryButton?.label ?? '',
+      href: source?.primaryButton?.href ?? '',
+      variant:
+        source?.primaryButton?.variant ||
+        config.primaryButton?.variant ||
+        'primary',
+    },
+    secondaryButton: {
+      ...(config.secondaryButton || {}),
+      label: source?.secondaryButton?.label ?? '',
+      href: source?.secondaryButton?.href ?? '',
+      variant:
+        source?.secondaryButton?.variant ||
+        config.secondaryButton?.variant ||
+        'outline',
+    },
+    items: (config.items || []).map((item, index) => {
+      const sourceItem = sourceItems[index];
+      return {
+        ...item,
+        title: sourceItem?.title ?? '',
+        description: sourceItem?.description ?? '',
+      };
+    }),
+  };
+}
+
+function mergeGlobalTypographyDefaults(
+  config: CustomSectionConfig,
+  defaults?: Partial<SectionStyleConfig>,
+): CustomSectionConfig {
+  if (!defaults) {
+    return config;
+  }
+
+  const typographyDefaults: Partial<CustomSectionConfig> = {};
+
+  TYPOGRAPHY_SECTION_KEYS.forEach((key) => {
+    const value = defaults[key];
+    if (value !== undefined) {
+      (
+        typographyDefaults as Record<string, unknown>
+      )[key] = value;
+    }
+  });
+
+  return {
+    ...config,
+    ...typographyDefaults,
   };
 }
 
@@ -529,6 +625,8 @@ export default function CustomSectionSettingsForm({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [editorViewport, setEditorViewport] =
+    useState<EditorViewport>('desktop');
   const [previewViewport, setPreviewViewport] =
     useState<EditorViewport>('desktop');
   const [toast, setToast] = useState<{
@@ -546,7 +644,9 @@ export default function CustomSectionSettingsForm({
       try {
         if (isNewSection) {
           setConfig(
-            getDefaultCustomSectionConfig('layout-1', sectionStyleDefaults),
+            clearEditorContentDefaults(
+              getDefaultCustomSectionConfig('layout-1', sectionStyleDefaults),
+            ),
           );
           return;
         }
@@ -563,16 +663,20 @@ export default function CustomSectionSettingsForm({
             data.data,
             sectionStyleDefaults,
           );
-          setConfig(normalized);
+          setConfig(clearEditorContentDefaults(normalized, data.data));
         } else {
           setConfig(
-            getDefaultCustomSectionConfig('layout-1', sectionStyleDefaults),
+            clearEditorContentDefaults(
+              getDefaultCustomSectionConfig('layout-1', sectionStyleDefaults),
+            ),
           );
         }
       } catch (err) {
         console.error('Error fetching custom section config:', err);
         setConfig(
-          getDefaultCustomSectionConfig('layout-1', sectionStyleDefaults),
+          clearEditorContentDefaults(
+            getDefaultCustomSectionConfig('layout-1', sectionStyleDefaults),
+          ),
         );
         setToast({
           message: 'Failed to load custom section settings.',
@@ -584,6 +688,16 @@ export default function CustomSectionSettingsForm({
     };
     hydrate();
   }, [isNewSection, pageId, restaurantId, sectionStyleDefaults, templateId]);
+
+  useEffect(() => {
+    setConfig((current) => {
+      if (!current || current.is_custom === true) {
+        return current;
+      }
+
+      return mergeGlobalTypographyDefaults(current, sectionStyleDefaults);
+    });
+  }, [sectionStyleDefaults]);
 
   const selectedLayout = config
     ? getCustomSectionLayoutDefinition(config.layout)
@@ -599,8 +713,43 @@ export default function CustomSectionSettingsForm({
     [config],
   );
 
+  const primaryButtonEnabled = config?.primaryButtonEnabled !== false;
+  const secondaryButtonEnabled = config?.secondaryButtonEnabled !== false;
+  const editablePrimaryButton = config?.primaryButton || {
+    label: '',
+    href: '',
+    variant: 'primary' as const,
+  };
+  const editableSecondaryButton = config?.secondaryButton || {
+    label: '',
+    href: '',
+    variant: 'outline' as const,
+  };
+
   const updateConfig = (updates: Partial<CustomSectionConfig>) => {
     setConfig((prev) => (prev ? { ...prev, ...updates } : prev));
+  };
+
+  const updatePrimaryButton = (
+    updates: Partial<NonNullable<CustomSectionConfig['primaryButton']>>,
+  ) => {
+    updateConfig({
+      primaryButton: {
+        ...editablePrimaryButton,
+        ...updates,
+      },
+    });
+  };
+
+  const updateSecondaryButton = (
+    updates: Partial<NonNullable<CustomSectionConfig['secondaryButton']>>,
+  ) => {
+    updateConfig({
+      secondaryButton: {
+        ...editableSecondaryButton,
+        ...updates,
+      },
+    });
   };
 
   const handleLayoutChange = (layout: CustomSectionLayout) => {
@@ -615,7 +764,23 @@ export default function CustomSectionSettingsForm({
   };
 
   const handleGlobalStylesToggle = (value: boolean) => {
-    updateConfig({ is_custom: !value });
+    setConfig((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      if (value) {
+        return {
+          ...prev,
+          is_custom: false,
+        };
+      }
+
+      return {
+        ...mergeGlobalTypographyDefaults(prev, sectionStyleDefaults),
+        is_custom: true,
+      };
+    });
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -640,6 +805,11 @@ export default function CustomSectionSettingsForm({
       ];
       for (const key of stripKeys) {
         delete sanitized[key];
+      }
+      if (config.is_custom !== true) {
+        TYPOGRAPHY_SECTION_KEYS.forEach((key) => {
+          delete sanitized[key];
+        });
       }
       const payload = {
         ...sanitized,
@@ -981,11 +1151,228 @@ export default function CustomSectionSettingsForm({
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
+              />
+            </svg>
+          }
+          title="Call-to-Action Buttons"
+        >
+          <div className="space-y-6">
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-slate-700">
+                    Primary Button
+                  </label>
+                  <p className="text-xs text-slate-500">Main action button</p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={primaryButtonEnabled}
+                    onChange={(event) => {
+                      if (event.target.checked) {
+                        updateConfig({
+                          primaryButtonEnabled: true,
+                          primaryButton: config.primaryButton || {
+                            label: '',
+                            href: '',
+                            variant: 'primary',
+                          },
+                        });
+                      } else {
+                        updateConfig({ primaryButtonEnabled: false });
+                      }
+                    }}
+                    className="peer sr-only"
+                  />
+                  <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
+                </label>
+              </div>
+
+              {primaryButtonEnabled ? (
+                <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
+                      <span>Button Text</span>
+                      <span className="text-xs font-normal text-slate-500">
+                        Button label
+                      </span>
+                    </label>
+                    <TextInput
+                      value={editablePrimaryButton.label}
+                      onChange={(event) =>
+                        updatePrimaryButton({ label: event.target.value })
+                      }
+                      placeholder="View Menu"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
+                      <span>Button Link</span>
+                      <span className="text-xs font-normal text-slate-500">
+                        Where it navigates
+                      </span>
+                    </label>
+                    <TextInput
+                      value={editablePrimaryButton.href}
+                      onChange={(event) =>
+                        updatePrimaryButton({ href: event.target.value })
+                      }
+                      placeholder="#menu"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
+                      <span>Button Style</span>
+                      <span className="text-xs font-normal text-slate-500">
+                        Visual style
+                      </span>
+                    </label>
+                    <select
+                      value={editablePrimaryButton.variant || 'primary'}
+                      onChange={(event) =>
+                        updatePrimaryButton({
+                          variant: event.target.value as
+                            | 'primary'
+                            | 'secondary'
+                            | 'outline',
+                        })
+                      }
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                    >
+                      <option value="primary">Primary</option>
+                      <option value="secondary">Secondary</option>
+                      <option value="outline">Outline</option>
+                    </select>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-slate-700">
+                    Secondary Button
+                  </label>
+                  <p className="text-xs text-slate-500">
+                    Optional second button
+                  </p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={secondaryButtonEnabled}
+                    onChange={(event) => {
+                      if (event.target.checked) {
+                        updateConfig({
+                          secondaryButtonEnabled: true,
+                          secondaryButton: config.secondaryButton || {
+                            label: '',
+                            href: '',
+                            variant: 'outline',
+                          },
+                        });
+                      } else {
+                        updateConfig({ secondaryButtonEnabled: false });
+                      }
+                    }}
+                    className="peer sr-only"
+                  />
+                  <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
+                </label>
+              </div>
+
+              {secondaryButtonEnabled ? (
+                <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
+                      <span>Button Text</span>
+                      <span className="text-xs font-normal text-slate-500">
+                        Button label
+                      </span>
+                    </label>
+                    <TextInput
+                      value={editableSecondaryButton.label}
+                      onChange={(event) =>
+                        updateSecondaryButton({ label: event.target.value })
+                      }
+                      placeholder="Book a Table"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
+                      <span>Button Link</span>
+                      <span className="text-xs font-normal text-slate-500">
+                        Where it navigates
+                      </span>
+                    </label>
+                    <TextInput
+                      value={editableSecondaryButton.href}
+                      onChange={(event) =>
+                        updateSecondaryButton({ href: event.target.value })
+                      }
+                      placeholder="#reservations"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
+                      <span>Button Style</span>
+                      <span className="text-xs font-normal text-slate-500">
+                        Visual style
+                      </span>
+                    </label>
+                    <select
+                      value={editableSecondaryButton.variant || 'outline'}
+                      onChange={(event) =>
+                        updateSecondaryButton({
+                          variant: event.target.value as
+                            | 'primary'
+                            | 'secondary'
+                            | 'outline',
+                        })
+                      }
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                    >
+                      <option value="primary">Primary</option>
+                      <option value="secondary">Secondary</option>
+                      <option value="outline">Outline</option>
+                    </select>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </SettingsCard>
+
+        <SettingsCard
+          icon={
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 d="M7.5 6h9M6.75 10.5h10.5M9 15h6m-6.75 4.5h7.5A2.25 2.25 0 0018 17.25V6.75A2.25 2.25 0 0015.75 4.5h-7.5A2.25 2.25 0 006 6.75v10.5A2.25 2.25 0 008.25 19.5z"
               />
             </svg>
           }
           title="Typography and Responsive Structure"
+          action={
+            <ResponsiveViewportTabs
+              value={editorViewport}
+              onChange={(viewport) => {
+                setEditorViewport(viewport);
+                setPreviewViewport(viewport);
+              }}
+              scope="custom-section-typography"
+            />
+          }
         >
           <div className="space-y-6">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
@@ -1090,6 +1477,7 @@ export default function CustomSectionSettingsForm({
                   value={config}
                   onChange={updateConfig}
                   showAdvancedControls
+                  viewport={editorViewport}
                 />
               </div>
             ) : null}

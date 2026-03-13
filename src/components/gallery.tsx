@@ -9,7 +9,11 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { GalleryConfig } from '@/types/gallery.types';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
-import { getSectionTypographyStyles } from '@/lib/section-style';
+import { useSectionReveal } from '@/hooks/use-section-reveal';
+import {
+  getSectionContainerStyles,
+  getSectionTypographyStyles,
+} from '@/lib/section-style';
 import { normalizeGalleryLayout } from './gallery-layouts/gallery-layout-options';
 import styles from './gallery-layouts/gallery-layouts.module.css';
 import { GridGalleryLayout } from './gallery-layouts/grid-layout';
@@ -29,26 +33,6 @@ import {
 
 interface GalleryProps extends Partial<GalleryConfig> {
   previewMode?: 'desktop' | 'mobile';
-}
-
-function buildResponsiveTypographyStyle(
-  isMobileViewport: boolean,
-  desktop: CSSProperties,
-  mobile: CSSProperties,
-) {
-  if (!isMobileViewport) {
-    return desktop;
-  }
-
-  const mergedStyle: CSSProperties = { ...desktop };
-
-  Object.entries(mobile).forEach(([key, value]) => {
-    if (value !== undefined && value !== '') {
-      mergedStyle[key as keyof CSSProperties] = value as never;
-    }
-  });
-
-  return mergedStyle;
 }
 
 export default function Gallery({
@@ -71,62 +55,13 @@ export default function Gallery({
   enableScrollAnimation = false,
   autoplay = false,
   autoplaySpeed = 3000,
-  is_custom,
-  titleFontFamily,
-  titleFontSize,
-  titleMobileFontSize,
-  titleMobileFontFamily,
-  titleFontWeight,
-  titleMobileFontWeight,
-  titleFontStyle,
-  titleMobileFontStyle,
-  titleColor,
-  titleMobileColor,
-  titleTextTransform,
-  titleMobileTextTransform,
-  titleLineHeight,
-  titleMobileLineHeight,
-  titleLetterSpacing,
-  titleMobileLetterSpacing,
-  subtitleFontFamily,
-  subtitleFontSize,
-  subtitleMobileFontSize,
-  subtitleMobileFontFamily,
-  subtitleFontWeight,
-  subtitleMobileFontWeight,
-  subtitleFontStyle,
-  subtitleMobileFontStyle,
-  subtitleColor,
-  subtitleMobileColor,
-  subtitleTextTransform,
-  subtitleMobileTextTransform,
-  subtitleLineHeight,
-  subtitleMobileLineHeight,
-  subtitleLetterSpacing,
-  subtitleMobileLetterSpacing,
-  bodyFontFamily,
-  bodyFontSize,
-  bodyMobileFontSize,
-  bodyMobileFontFamily,
-  bodyFontWeight,
-  bodyMobileFontWeight,
-  bodyFontStyle,
-  bodyMobileFontStyle,
-  bodyColor,
-  bodyMobileColor,
-  bodyTextTransform,
-  bodyMobileTextTransform,
-  bodyLineHeight,
-  bodyMobileLineHeight,
-  bodyLetterSpacing,
-  bodyMobileLetterSpacing,
   previewMode,
+  ...sectionStyleConfig
 }: GalleryProps) {
   const sectionRef = useRef<HTMLElement | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isInView, setIsInView] = useState(!enableScrollAnimation);
   const [isClientMobileViewport, setIsClientMobileViewport] = useState(
     previewMode === 'mobile',
   );
@@ -149,60 +84,26 @@ export default function Gallery({
     apiEndpoint: globalStyleEndpoint,
     fetchOnMount: Boolean(restaurant_id),
   });
-  const { resolved } = getSectionTypographyStyles(
-    {
-      is_custom,
-      titleFontFamily,
-      titleFontSize,
-      titleMobileFontSize,
-      titleMobileFontFamily,
-      titleFontWeight,
-      titleMobileFontWeight,
-      titleFontStyle,
-      titleMobileFontStyle,
-      titleColor,
-      titleMobileColor,
-      titleTextTransform,
-      titleMobileTextTransform,
-      titleLineHeight,
-      titleMobileLineHeight,
-      titleLetterSpacing,
-      titleMobileLetterSpacing,
-      subtitleFontFamily,
-      subtitleFontSize,
-      subtitleMobileFontSize,
-      subtitleMobileFontFamily,
-      subtitleFontWeight,
-      subtitleMobileFontWeight,
-      subtitleFontStyle,
-      subtitleMobileFontStyle,
-      subtitleColor,
-      subtitleMobileColor,
-      subtitleTextTransform,
-      subtitleMobileTextTransform,
-      subtitleLineHeight,
-      subtitleMobileLineHeight,
-      subtitleLetterSpacing,
-      subtitleMobileLetterSpacing,
-      bodyFontFamily,
-      bodyFontSize,
-      bodyMobileFontSize,
-      bodyMobileFontFamily,
-      bodyFontWeight,
-      bodyMobileFontWeight,
-      bodyFontStyle,
-      bodyMobileFontStyle,
-      bodyColor,
-      bodyMobileColor,
-      bodyTextTransform,
-      bodyMobileTextTransform,
-      bodyLineHeight,
-      bodyMobileLineHeight,
-      bodyLetterSpacing,
-      bodyMobileLetterSpacing,
-    },
+  const sectionViewport =
+    previewMode === 'mobile' || isClientMobileViewport ? 'mobile' : 'desktop';
+  const scrollRevealEnabled =
+    sectionStyleConfig.enableScrollReveal ?? enableScrollAnimation;
+  const scrollRevealAnimation =
+    sectionStyleConfig.scrollRevealAnimation || 'fade-up';
+  const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
+    sectionStyleConfig,
     globalStyles,
+    sectionViewport,
   );
+  const { sectionStyle: sharedSectionStyle } = getSectionContainerStyles(
+    sectionStyleConfig,
+    sectionViewport,
+  );
+  const reveal = useSectionReveal({
+    enabled: scrollRevealEnabled,
+    animation: scrollRevealAnimation,
+    isPreview: Boolean(previewMode),
+  });
 
   useEffect(() => {
     if (previewMode) {
@@ -274,53 +175,6 @@ export default function Gallery({
   }, [isClientMobileViewport, previewMode]);
 
   useEffect(() => {
-    if (previewMode) {
-      if (!enableScrollAnimation) {
-        setIsInView(true);
-        return;
-      }
-
-      setIsInView(false);
-      let frameOne = 0;
-      let frameTwo = 0;
-      frameOne = window.requestAnimationFrame(() => {
-        frameTwo = window.requestAnimationFrame(() => {
-          setIsInView(true);
-        });
-      });
-
-      return () => {
-        window.cancelAnimationFrame(frameOne);
-        window.cancelAnimationFrame(frameTwo);
-      };
-    }
-
-    if (!enableScrollAnimation) {
-      setIsInView(true);
-      return;
-    }
-
-    const node = sectionRef.current;
-    if (!node || typeof IntersectionObserver === 'undefined') {
-      setIsInView(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInView(entry.isIntersecting && entry.intersectionRatio > 0.16);
-      },
-      {
-        threshold: [0, 0.16, 0.32, 0.56],
-        rootMargin: '0px 0px -12% 0px',
-      },
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [enableScrollAnimation, previewMode]);
-
-  useEffect(() => {
     const maxSlide = Math.max(images.length - carouselVisibleCards, 0);
     setCurrentSlide((prev) => Math.min(prev, maxSlide));
     setActiveIndex((prev) => {
@@ -370,76 +224,6 @@ export default function Gallery({
     return null;
   }
 
-  const titleStyle = buildResponsiveTypographyStyle(
-    isClientMobileViewport,
-    {
-      fontFamily: resolved.titleFontFamily,
-      fontSize: resolved.titleFontSize,
-      fontWeight: resolved.titleFontWeight,
-      fontStyle: resolved.titleFontStyle,
-      color: resolved.titleColor,
-      textTransform: resolved.titleTextTransform,
-      lineHeight: resolved.titleLineHeight,
-      letterSpacing: resolved.titleLetterSpacing,
-    },
-    {
-      fontFamily: resolved.titleMobileFontFamily,
-      fontSize: resolved.titleMobileFontSize,
-      fontWeight: resolved.titleMobileFontWeight,
-      fontStyle: resolved.titleMobileFontStyle,
-      color: resolved.titleMobileColor,
-      textTransform: resolved.titleMobileTextTransform,
-      lineHeight: resolved.titleMobileLineHeight,
-      letterSpacing: resolved.titleMobileLetterSpacing,
-    },
-  );
-  const subtitleStyle = buildResponsiveTypographyStyle(
-    isClientMobileViewport,
-    {
-      fontFamily: resolved.subtitleFontFamily,
-      fontSize: resolved.subtitleFontSize,
-      fontWeight: resolved.subtitleFontWeight,
-      fontStyle: resolved.subtitleFontStyle,
-      color: resolved.subtitleColor,
-      textTransform: resolved.subtitleTextTransform,
-      lineHeight: resolved.subtitleLineHeight,
-      letterSpacing: resolved.subtitleLetterSpacing,
-    },
-    {
-      fontFamily: resolved.subtitleMobileFontFamily,
-      fontSize: resolved.subtitleMobileFontSize,
-      fontWeight: resolved.subtitleMobileFontWeight,
-      fontStyle: resolved.subtitleMobileFontStyle,
-      color: resolved.subtitleMobileColor,
-      textTransform: resolved.subtitleMobileTextTransform,
-      lineHeight: resolved.subtitleMobileLineHeight,
-      letterSpacing: resolved.subtitleMobileLetterSpacing,
-    },
-  );
-  const bodyStyle = buildResponsiveTypographyStyle(
-    isClientMobileViewport,
-    {
-      fontFamily: resolved.bodyFontFamily,
-      fontSize: resolved.bodyFontSize,
-      fontWeight: resolved.bodyFontWeight,
-      fontStyle: resolved.bodyFontStyle,
-      color: resolved.bodyColor,
-      textTransform: resolved.bodyTextTransform,
-      lineHeight: resolved.bodyLineHeight,
-      letterSpacing: resolved.bodyLetterSpacing,
-    },
-    {
-      fontFamily: resolved.bodyMobileFontFamily,
-      fontSize: resolved.bodyMobileFontSize,
-      fontWeight: resolved.bodyMobileFontWeight,
-      fontStyle: resolved.bodyMobileFontStyle,
-      color: resolved.bodyMobileColor,
-      textTransform: resolved.bodyMobileTextTransform,
-      lineHeight: resolved.bodyMobileLineHeight,
-      letterSpacing: resolved.bodyMobileLetterSpacing,
-    },
-  );
-
   const openLightbox = (index: number) => {
     if (enableLightbox) {
       setLightboxIndex(index);
@@ -477,11 +261,26 @@ export default function Gallery({
     setCurrentSlide((prev) => Math.max(prev - 1, 0));
   };
 
+  const hasSharedPaddingOverrides =
+    sectionStyleConfig.sectionPaddingY !== undefined ||
+    sectionStyleConfig.mobileSectionPaddingY !== undefined ||
+    sectionStyleConfig.sectionPaddingX !== undefined ||
+    sectionStyleConfig.mobileSectionPaddingX !== undefined;
+  const contentMaxWidth =
+    sectionStyleConfig.sectionMaxWidth ||
+    sectionStyleConfig.mobileSectionMaxWidth ||
+    maxWidth;
   const sectionStyle = {
     backgroundColor: bgColor,
-    padding,
     margin,
-    color: textColor,
+    textAlign: sharedSectionStyle.textAlign,
+    color: bodyStyle.color || textColor,
+    ...(hasSharedPaddingOverrides
+      ? {
+          paddingBlock: sharedSectionStyle.paddingBlock,
+          paddingInline: sharedSectionStyle.paddingInline,
+        }
+      : { padding }),
     '--gallery-accent': bodyStyle.color || textColor,
     '--gallery-showcase-base': bgColor,
   } as CSSProperties;
@@ -501,80 +300,81 @@ export default function Gallery({
     <section
       ref={sectionRef}
       className={styles.gallerySection}
-      data-gallery-motion={enableScrollAnimation ? 'enabled' : 'disabled'}
-      data-gallery-in-view={isInView ? 'true' : 'false'}
+      data-gallery-motion="disabled"
       data-gallery-layout-viewport={layoutViewport}
       data-gallery-preview-mode={previewMode}
       style={{ ...sectionStyle, ...bodyStyle }}
     >
-      <div
-        className={styles.galleryShell}
-        style={{ maxWidth, margin: '0 auto' }}
-      >
-        <GallerySectionHeader
-          className={styles.sectionReveal}
-          title={title}
-          subtitle={subtitle}
-          description={description}
-          titleStyle={titleStyle}
-          subtitleStyle={subtitleStyle}
-          bodyStyle={bodyStyle}
-        />
+      <div ref={reveal.ref} style={reveal.style}>
+        <div
+          className={styles.galleryShell}
+          style={{ maxWidth: contentMaxWidth, margin: '0 auto' }}
+        >
+          <GallerySectionHeader
+            className={styles.sectionReveal}
+            title={title}
+            subtitle={subtitle}
+            description={description}
+            titleStyle={titleStyle}
+            subtitleStyle={subtitleStyle}
+            bodyStyle={bodyStyle}
+          />
 
-        <div className={`${styles.galleryContent} ${styles.sectionReveal}`}>
-          {normalizedLayout === 'showcase' ? (
-            <ShowcaseGalleryLayout
-              {...sharedLayoutProps}
-              activeIndex={activeIndex}
-              onActivate={setActiveIndex}
-              onNext={nextActiveImage}
-              onPrevious={previousActiveImage}
+          <div className={`${styles.galleryContent} ${styles.sectionReveal}`}>
+            {normalizedLayout === 'showcase' ? (
+              <ShowcaseGalleryLayout
+                {...sharedLayoutProps}
+                activeIndex={activeIndex}
+                onActivate={setActiveIndex}
+                onNext={nextActiveImage}
+                onPrevious={previousActiveImage}
+              />
+            ) : normalizedLayout === 'spotlight' ? (
+              <SpotlightGalleryLayout
+                {...sharedLayoutProps}
+                activeIndex={activeIndex}
+                onActivate={setActiveIndex}
+                onNext={nextActiveImage}
+                onPrevious={previousActiveImage}
+              />
+            ) : normalizedLayout === 'mosaic' ? (
+              <MosaicGalleryLayout {...sharedLayoutProps} />
+            ) : normalizedLayout === 'editorial' ? (
+              <EditorialGalleryLayout {...sharedLayoutProps} />
+            ) : normalizedLayout === 'filmstrip' ? (
+              <FilmstripGalleryLayout
+                {...sharedLayoutProps}
+                activeIndex={activeIndex}
+                onActivate={setActiveIndex}
+                onNext={nextActiveImage}
+                onPrevious={previousActiveImage}
+              />
+            ) : normalizedLayout === 'masonry' ? (
+              <MasonryGalleryLayout {...sharedLayoutProps} />
+            ) : normalizedLayout === 'carousel' ? (
+              <CarouselGalleryLayout
+                {...sharedLayoutProps}
+                currentSlide={currentSlide}
+                onNext={nextCarouselSlide}
+                onPrevious={previousCarouselSlide}
+                onSelectSlide={setCurrentSlide}
+              />
+            ) : (
+              <GridGalleryLayout {...sharedLayoutProps} />
+            )}
+          </div>
+
+          {enableLightbox && (
+            <GalleryLightbox
+              images={images}
+              index={lightboxIndex}
+              showCaptions={showCaptions}
+              onClose={closeLightbox}
+              onNext={nextLightboxImage}
+              onPrevious={previousLightboxImage}
             />
-          ) : normalizedLayout === 'spotlight' ? (
-            <SpotlightGalleryLayout
-              {...sharedLayoutProps}
-              activeIndex={activeIndex}
-              onActivate={setActiveIndex}
-              onNext={nextActiveImage}
-              onPrevious={previousActiveImage}
-            />
-          ) : normalizedLayout === 'mosaic' ? (
-            <MosaicGalleryLayout {...sharedLayoutProps} />
-          ) : normalizedLayout === 'editorial' ? (
-            <EditorialGalleryLayout {...sharedLayoutProps} />
-          ) : normalizedLayout === 'filmstrip' ? (
-            <FilmstripGalleryLayout
-              {...sharedLayoutProps}
-              activeIndex={activeIndex}
-              onActivate={setActiveIndex}
-              onNext={nextActiveImage}
-              onPrevious={previousActiveImage}
-            />
-          ) : normalizedLayout === 'masonry' ? (
-            <MasonryGalleryLayout {...sharedLayoutProps} />
-          ) : normalizedLayout === 'carousel' ? (
-            <CarouselGalleryLayout
-              {...sharedLayoutProps}
-              currentSlide={currentSlide}
-              onNext={nextCarouselSlide}
-              onPrevious={previousCarouselSlide}
-              onSelectSlide={setCurrentSlide}
-            />
-          ) : (
-            <GridGalleryLayout {...sharedLayoutProps} />
           )}
         </div>
-
-        {enableLightbox && (
-          <GalleryLightbox
-            images={images}
-            index={lightboxIndex}
-            showCaptions={showCaptions}
-            onClose={closeLightbox}
-            onNext={nextLightboxImage}
-            onPrevious={previousLightboxImage}
-          />
-        )}
       </div>
     </section>
   );

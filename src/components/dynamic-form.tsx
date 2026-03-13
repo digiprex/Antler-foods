@@ -40,8 +40,16 @@ interface FormConfig extends SectionStyleConfig {
   mobileBackgroundColor?: string;
   textColor?: string;
   mobileTextColor?: string;
+  titleColor?: string;
+  mobileTitleColor?: string;
+  subtitleColor?: string;
+  mobileSubtitleColor?: string;
+  bodyColor?: string;
+  mobileBodyColor?: string;
   accentColor?: string;
   mobileAccentColor?: string;
+  primaryButtonColor?: string;
+  mobilePrimaryButtonColor?: string;
   buttonText?: string;
   imageUrl?: string;
   showImage?: boolean;
@@ -165,12 +173,14 @@ export default function DynamicForm({
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const viewport = useSectionViewport(previewViewport);
-  const globalStyleEndpoint = restaurantId
-    ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`
+  // Use effective restaurant ID for global styles (from prop or config)
+  const effectiveRestaurantIdForStyles = restaurantId || (configData?.restaurant_id);
+  const globalStyleEndpoint = effectiveRestaurantIdForStyles
+    ? `/api/global-style-config?restaurant_id=${encodeURIComponent(effectiveRestaurantIdForStyles)}`
     : '/api/global-style-config';
   const { config: globalStyles } = useGlobalStyleConfig({
     apiEndpoint: globalStyleEndpoint,
-    fetchOnMount: Boolean(restaurantId),
+    fetchOnMount: Boolean(effectiveRestaurantIdForStyles),
   });
 
   useEffect(() => {
@@ -309,6 +319,38 @@ export default function DynamicForm({
         viewport,
         '#f8fafc',
       );
+  
+  // Title color for headings (h2)
+  const titleColor = displayConfig?.is_custom === false
+    ? (globalStyles?.textColor || '#0f172a')
+    : resolveViewportColor(
+        displayConfig?.titleColor || displayConfig?.textColor,
+        displayConfig?.mobileTitleColor || displayConfig?.mobileTextColor,
+        viewport,
+        '#0f172a',
+      );
+  
+  // Subtitle color for subtitle text
+  const subtitleColor = displayConfig?.is_custom === false
+    ? (globalStyles?.accentColor || '#7c3aed')
+    : resolveViewportColor(
+        displayConfig?.subtitleColor || displayConfig?.accentColor,
+        displayConfig?.mobileSubtitleColor || displayConfig?.mobileAccentColor,
+        viewport,
+        '#7c3aed',
+      );
+  
+  // Body color for paragraph descriptions
+  const bodyColor = displayConfig?.is_custom === false
+    ? (globalStyles?.textColor || '#0f172a')
+    : resolveViewportColor(
+        displayConfig?.bodyColor || displayConfig?.textColor,
+        displayConfig?.mobileBodyColor || displayConfig?.mobileTextColor,
+        viewport,
+        '#0f172a',
+      );
+  
+  // Keep textColor for form fields and labels
   const textColor = displayConfig?.is_custom === false
     ? (globalStyles?.textColor || '#0f172a')
     : resolveViewportColor(
@@ -317,11 +359,22 @@ export default function DynamicForm({
         viewport,
         '#0f172a',
       );
+  
   const accentColor = displayConfig?.is_custom === false
     ? (globalStyles?.accentColor || '#7c3aed')
     : resolveViewportColor(
         displayConfig?.accentColor,
         displayConfig?.mobileAccentColor,
+        viewport,
+        '#7c3aed',
+      );
+
+  // Primary button color for form submit button
+  const primaryButtonColor = displayConfig?.is_custom === false
+    ? (globalStyles?.primaryButton?.backgroundColor || globalStyles?.accentColor || '#7c3aed')
+    : resolveViewportColor(
+        displayConfig?.primaryButtonColor || displayConfig?.accentColor,
+        displayConfig?.mobilePrimaryButtonColor || displayConfig?.mobileAccentColor,
         viewport,
         '#7c3aed',
       );
@@ -349,11 +402,11 @@ export default function DynamicForm({
   );
   const submitButtonStyle: CSSProperties = {
     ...globalButtonStyle,
-    backgroundColor: accentColor,
-    borderColor: accentColor,
+    backgroundColor: primaryButtonColor,
+    borderColor: primaryButtonColor,
     color: globalButtonStyle.color || '#ffffff',
     borderRadius: globalButtonStyle.borderRadius || '999px',
-    border: globalButtonStyle.border || `1px solid ${accentColor}`,
+    border: globalButtonStyle.border || `1px solid ${primaryButtonColor}`,
   };
 
   if (loading && showLoading) {
@@ -540,17 +593,17 @@ export default function DynamicForm({
   const headingBlock = (
     <div style={{ textAlign: layoutConfig.sectionTextAlign }}>
       {displayConfig.title ? (
-        <h2 className="text-balance" style={{ ...titleStyle, color: textColor }}>
+        <h2 className="text-balance" style={{ ...titleStyle, color: titleColor }}>
           {displayConfig.title}
         </h2>
       ) : null}
       {displayConfig.subtitle ? (
-        <p className="mt-3" style={{ ...subtitleStyle, color: accentColor }}>
+        <p className="mt-3" style={{ ...subtitleStyle, color: subtitleColor }}>
           {displayConfig.subtitle}
         </p>
       ) : null}
       {displayConfig.description ? (
-        <p className="mt-4 max-w-2xl text-sm leading-7" style={{ ...bodyStyle, color: textColor, opacity: 0.78 }}>
+        <p className="mt-4 max-w-2xl text-sm leading-7" style={{ ...bodyStyle, color: bodyColor, opacity: 0.78 }}>
           {displayConfig.description}
         </p>
       ) : null}

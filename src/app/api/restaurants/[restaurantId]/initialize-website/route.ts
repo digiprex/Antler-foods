@@ -380,24 +380,84 @@ async function createFooterFromTheme(restaurantId: string, themeId: string) {
     return;
   }
 
-  // Fetch restaurant's global_styles
+  // Fetch restaurant's global_styles and details for AI content generation
   const restaurantQuery = `
-    query GetRestaurantGlobalStyles($restaurant_id: uuid!) {
+    query GetRestaurantDetails($restaurant_id: uuid!) {
       restaurants_by_pk(restaurant_id: $restaurant_id) {
+        name
         global_styles
+        address
+        city
+        state
+        country
+        postal_code
       }
     }
   `;
 
-  const restaurantData = await adminGraphqlRequest<{ restaurants_by_pk: { global_styles: any } | null }>(
+  const restaurantData = await adminGraphqlRequest<{
+    restaurants_by_pk: {
+      name: string;
+      global_styles: any;
+      address?: string;
+      city?: string;
+      state?: string;
+      country?: string;
+      postal_code?: string;
+    } | null
+  }>(
     restaurantQuery,
     { restaurant_id: restaurantId }
   );
 
   const globalStyles = restaurantData.restaurants_by_pk?.global_styles || {};
+  const restaurantDetails = restaurantData.restaurants_by_pk;
+
+  // Generate AI-powered aboutContent
+  let generatedAboutContent = '';
+
+  if (restaurantDetails) {
+    try {
+      // Build location string from address components
+      const locationParts = [];
+      if (restaurantDetails.city) locationParts.push(restaurantDetails.city);
+      if (restaurantDetails.state) locationParts.push(restaurantDetails.state);
+      if (restaurantDetails.country) locationParts.push(restaurantDetails.country);
+      const location = locationParts.join(', ');
+
+      // Call the generate-footer-content API
+      const apiUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/generate-footer-content`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurantName: restaurantDetails.name || 'Restaurant',
+          location: location,
+          address: restaurantDetails.address,
+          city: restaurantDetails.city,
+          state: restaurantDetails.state,
+          country: restaurantDetails.country,
+          tone: 'professional',
+          maxLength: 200,
+        }),
+      });
+
+      const contentData = await response.json();
+
+      if (contentData.success && contentData.content) {
+        generatedAboutContent = contentData.content;
+        console.log('✅ AI-generated footer content created');
+      } else {
+        console.warn('Failed to generate AI content:', contentData.error);
+      }
+    } catch (error) {
+      console.error('Error generating AI content for footer:', error);
+      // Continue without AI-generated content
+    }
+  }
 
   // Build config based on global styles with footer section overrides
-  // Priority: globalStyles > footerSection.style > defaults
+  // Priority: AI-generated content > globalStyles > footerSection.style > defaults
   const config = {
     bgColor: (globalStyles as any)?.primaryColor || footerSection.style?.bgColor || '#4a90e2',
     textColor: globalStyles?.paragraph?.color || footerSection.style?.textColor || '#ffffff',
@@ -415,7 +475,7 @@ async function createFooterFromTheme(restaurantId: string, themeId: string) {
     copyrightFontFamily: globalStyles?.paragraph?.fontFamily || footerSection.style?.copyrightFontFamily || 'Poppins, sans-serif',
     copyrightFontSize: footerSection.style?.copyrightFontSize || '0.875rem',
     copyrightFontWeight: footerSection.style?.copyrightFontWeight || 400,
-    aboutContent: footerSection.style?.aboutContent || '',
+    aboutContent: generatedAboutContent || footerSection.style?.aboutContent || '',
     showNewsletter: footerSection.style?.showNewsletter !== undefined ? footerSection.style.showNewsletter : true,
     showSocialMedia: footerSection.style?.showSocialMedia !== undefined ? footerSection.style.showSocialMedia : true,
   };

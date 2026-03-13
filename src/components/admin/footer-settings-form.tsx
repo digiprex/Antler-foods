@@ -651,13 +651,76 @@ export default function FooterSettingsForm() {
               <span className="text-sm font-semibold text-gray-900">About Content</span>
               <span className="mt-0.5 block text-xs text-gray-600">Description about your business</span>
             </label>
-            <textarea
-              value={aboutContent}
-              onChange={(e) => setAboutContent(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="Experience fine dining at its best. We offer premium quality food with exceptional service."
-              rows={4}
-            />
+            <div className="space-y-2">
+              <textarea
+                value={aboutContent}
+                onChange={(e) => setAboutContent(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Experience fine dining at its best. We offer premium quality food with exceptional service."
+                rows={4}
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    // Fetch restaurant details from the database
+                    const restaurantResponse = await fetch(
+                      `/api/footer-config?restaurant_id=${encodeURIComponent(restaurantId)}`
+                    );
+                    const restaurantData = await restaurantResponse.json();
+
+                    // Extract restaurant details for better content generation
+                    const restaurantDetails = restaurantData.success && restaurantData.data ? {
+                      restaurantName: restaurantData.data.restaurantName || restaurantNameFromQuery || 'Restaurant',
+                      location: restaurantData.data.address || '',
+                      city: restaurantData.data.address?.split(',')[1]?.trim() || '',
+                      state: restaurantData.data.address?.split(',')[2]?.trim() || '',
+                      email: restaurantData.data.email || '',
+                      phone: restaurantData.data.phone || '',
+                    } : {
+                      restaurantName: restaurantNameFromQuery || 'Restaurant',
+                    };
+
+                    // Generate content with restaurant details
+                    const response = await fetch('/api/generate-footer-content', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        restaurantName: restaurantDetails.restaurantName,
+                        location: restaurantDetails.location,
+                        city: restaurantDetails.city,
+                        state: restaurantDetails.state,
+                        tone: 'professional',
+                        maxLength: 200,
+                      }),
+                    });
+                    const data = await response.json();
+                    if (data.success && data.content) {
+                      setAboutContent(data.content);
+                      setToastMessage('Content generated successfully!');
+                      setToastType('success');
+                      setShowToast(true);
+                    } else {
+                      console.error('Failed to generate content:', data.error);
+                      setToastMessage('Failed to generate content. Please try again.');
+                      setToastType('error');
+                      setShowToast(true);
+                    }
+                  } catch (error) {
+                    console.error('Error generating content:', error);
+                    setToastMessage('Error generating content. Please try again.');
+                    setToastType('error');
+                    setShowToast(true);
+                  }
+                }}
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-blue-800 hover:shadow-md"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423L18.75 16.5l.394 1.183a2.25 2.25 0 001.423 1.423L21.75 18.5l-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                </svg>
+                Generate with AI
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">

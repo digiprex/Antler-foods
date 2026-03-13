@@ -278,7 +278,20 @@ export async function GET(request: Request) {
 
     if (!(data as any).templates || (data as any).templates.length === 0) {
       // Return default configuration if no footer template exists - allows users to create their first footer
-      // Apply global_styles if available
+      // Apply global_styles if available, with proper text color fallbacks
+      const defaultBgColor = (globalStyles as any)?.primaryColor || '#1f2937';
+      const defaultTextColor = globalStyles?.paragraph?.color || '#f9fafb';
+      
+      // Ensure proper contrast: if background is dark, use light text; if light, use dark text
+      const isLightBackground = defaultBgColor && (
+        defaultBgColor.toLowerCase() === '#ffffff' ||
+        defaultBgColor.toLowerCase() === '#fff' ||
+        defaultBgColor.toLowerCase().includes('white') ||
+        (defaultBgColor.startsWith('#') && parseInt(defaultBgColor.slice(1, 3), 16) > 200)
+      );
+      
+      const finalTextColor = defaultTextColor || (isLightBackground ? '#1f2937' : '#f9fafb');
+      
       config = {
         restaurant_id: restaurantId,
         restaurantName: restaurantName || 'Restaurant',
@@ -291,9 +304,9 @@ export async function GET(request: Request) {
         copyrightText: `© ${new Date().getFullYear()} ${restaurantName || 'Restaurant'}. All rights reserved.`,
         showPoweredBy: true,
         layout: 'columns-4', // Default layout
-        bgColor: (globalStyles as any)?.primaryColor || '#1f2937',
-        textColor: globalStyles?.paragraph?.color || '#f9fafb',
-        linkColor: globalStyles?.secondaryColor || globalStyles?.paragraph?.color || '#9ca3af',
+        bgColor: defaultBgColor,
+        textColor: finalTextColor,
+        linkColor: finalTextColor, // Link color same as text color
         copyrightBgColor: globalStyles?.accentColor || '#000000',
         copyrightTextColor: '#ffffff',
         showNewsletter: false,
@@ -309,7 +322,7 @@ export async function GET(request: Request) {
         headingTextTransform: 'uppercase',
         copyrightFontFamily: globalStyles?.paragraph?.fontFamily || 'Poppins, sans-serif',
         copyrightFontSize: '0.875rem',
-        copyrightFontWeight: 400,
+        copyrightFontWeight: 400
       };
     } else {
       const template = (data as any).templates[0];
@@ -317,6 +330,25 @@ export async function GET(request: Request) {
       // Transform template structure to FooterConfig
       // Priority: template.config > global_styles > defaults
       // Use name, email, phone, address and social links from restaurant table, fallback to template config
+      
+      // Determine background and text colors with proper fallbacks
+      const templateBgColor = template.config?.bgColor || (globalStyles as any)?.primaryColor || '#1f2937';
+      const globalTextColor = globalStyles?.paragraph?.color;
+      let templateTextColor = template.config?.textColor;
+      
+      // If no text color is explicitly set, determine based on background for better contrast
+      if (!templateTextColor && !globalTextColor) {
+        const isLightBackground = templateBgColor && (
+          templateBgColor.toLowerCase() === '#ffffff' ||
+          templateBgColor.toLowerCase() === '#fff' ||
+          templateBgColor.toLowerCase().includes('white') ||
+          (templateBgColor.startsWith('#') && parseInt(templateBgColor.slice(1, 3), 16) > 200)
+        );
+        templateTextColor = isLightBackground ? '#1f2937' : '#f9fafb';
+      } else {
+        templateTextColor = templateTextColor || globalTextColor || '#f9fafb';
+      }
+      
       config = {
         restaurant_id: restaurantId,
         restaurantName: restaurantName || template.config?.restaurantName || 'Restaurant',
@@ -329,9 +361,9 @@ export async function GET(request: Request) {
         copyrightText: template.config?.copyrightText || `© ${new Date().getFullYear()} ${restaurantName || 'Restaurant'}. All rights reserved.`,
         showPoweredBy: template.config?.showPoweredBy !== false,
         layout: template.name,
-        bgColor: template.config?.bgColor || (globalStyles as any)?.primaryColor || '#1f2937',
-        textColor: template.config?.textColor || globalStyles?.paragraph?.color || '#f9fafb',
-        linkColor: template.config?.linkColor || globalStyles?.secondaryColor || globalStyles?.paragraph?.color || '#9ca3af',
+        bgColor: templateBgColor,
+        textColor: templateTextColor,
+        linkColor: templateTextColor, // Link color same as text color
         copyrightBgColor: template.config?.copyrightBgColor || globalStyles?.accentColor || '#000000',
         copyrightTextColor: template.config?.copyrightTextColor || '#ffffff',
         showNewsletter: template.config?.showNewsletter || false,
@@ -347,7 +379,7 @@ export async function GET(request: Request) {
         headingTextTransform: template.config?.headingTextTransform || 'uppercase',
         copyrightFontFamily: template.config?.copyrightFontFamily || globalStyles?.paragraph?.fontFamily || 'Poppins, sans-serif',
         copyrightFontSize: template.config?.copyrightFontSize || '0.875rem',
-        copyrightFontWeight: template.config?.copyrightFontWeight || 400,
+        copyrightFontWeight: template.config?.copyrightFontWeight || 400
       };
     }
 
@@ -409,8 +441,8 @@ export async function POST(request: Request) {
     const config = {
       aboutContent: body.aboutContent,
       bgColor: body.bgColor,
-      textColor: body.textColor,
-      linkColor: body.linkColor,
+      textColor: body.textColor, // Ensure text color is properly saved
+      linkColor: body.textColor, // Link color same as text color
       copyrightBgColor: body.copyrightBgColor,
       copyrightTextColor: body.copyrightTextColor,
       copyrightText: body.copyrightText,
@@ -428,7 +460,7 @@ export async function POST(request: Request) {
       headingTextTransform: body.headingTextTransform,
       copyrightFontFamily: body.copyrightFontFamily,
       copyrightFontSize: body.copyrightFontSize,
-      copyrightFontWeight: body.copyrightFontWeight,
+      copyrightFontWeight: body.copyrightFontWeight
     };
 
     const menu_items = body.columns || [];
@@ -451,14 +483,15 @@ export async function POST(request: Request) {
     // Transform back to FooterConfig
     // Note: restaurantName, email, phone, address and socialLinks will be fetched from restaurant table on next GET request
     const responseConfig: FooterConfig = {
+      restaurant_id: restaurantId,
       restaurantName: '', // Will be fetched from restaurant table
       aboutContent: template.config?.aboutContent,
       layout: template.name,
       columns: template.menu_items,
       socialLinks: [], // Will be fetched from restaurant table
       bgColor: template.config?.bgColor,
-      textColor: template.config?.textColor,
-      linkColor: template.config?.linkColor,
+      textColor: template.config?.textColor, // Ensure text color is returned
+      linkColor: template.config?.textColor, // Link color same as text color
       copyrightBgColor: template.config?.copyrightBgColor,
       copyrightTextColor: template.config?.copyrightTextColor,
       copyrightText: template.config?.copyrightText,
@@ -476,7 +509,7 @@ export async function POST(request: Request) {
       headingTextTransform: template.config?.headingTextTransform,
       copyrightFontFamily: template.config?.copyrightFontFamily,
       copyrightFontSize: template.config?.copyrightFontSize,
-      copyrightFontWeight: template.config?.copyrightFontWeight,
+      copyrightFontWeight: template.config?.copyrightFontWeight
     };
 
     const response: FooterConfigResponse = {

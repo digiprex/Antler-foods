@@ -205,7 +205,7 @@ export default function Footer(props: FooterProps) {
       {/* Center Section: Quick Links */}
       {columns.length > 0 && (
         <div className={styles.centerSection}>
-          <h4 className={styles.sectionTitle}>Quick Links</h4>
+          <h3 className={styles.sectionTitle}>Quick Links</h3>
           <div className={styles.quickLinks}>
             {columns.map((column, index) =>
               column.links.map((link, linkIndex) => (
@@ -222,7 +222,7 @@ export default function Footer(props: FooterProps) {
       <div className={styles.rightSection}>
         {showLocations && (email || phone || address) && (
           <div className={styles.contactDetails}>
-            <h4 className={styles.sectionTitle}>Contact</h4>
+            <h3 className={styles.sectionTitle}>Contact</h3>
             {address && (
               <div className={styles.contactItem}>
                 <span className={styles.contactIcon}>📍</span>
@@ -297,7 +297,7 @@ export default function Footer(props: FooterProps) {
         {/* Newsletter Section */}
         {showNewsletter && (
           <div className={styles.newsletterSectionCentered}>
-            <h4 className={styles.newsletterTitleCentered}>{newsletterTitle}</h4>
+            <h3 className={styles.newsletterTitleCentered}>{newsletterTitle}</h3>
             <form onSubmit={handleNewsletterSubmit} className={styles.newsletterFormCentered}>
               <input
                 type="email"
@@ -366,7 +366,7 @@ export default function Footer(props: FooterProps) {
       {/* Dynamic Columns */}
       {columns.map((column, index) => (
         <div key={index} className={styles.linkColumn}>
-          <h4 className={styles.columnTitle}>{column.title}</h4>
+          <h3 className={styles.columnTitle}>{column.title}</h3>
           <ul className={styles.linkList}>
             {column.links.map((link, linkIndex) => (
               <li key={linkIndex}>
@@ -382,7 +382,7 @@ export default function Footer(props: FooterProps) {
       {/* Contact Column */}
       {showLocations && (email || phone || address) && (
         <div className={styles.contactColumn}>
-          <h4 className={styles.columnTitle}>Contact</h4>
+          <h3 className={styles.columnTitle}>Contact</h3>
           <div className={styles.contactList}>
             {address && (
               <div className={styles.contactItem}>
@@ -409,7 +409,7 @@ export default function Footer(props: FooterProps) {
       {/* Newsletter Column - Compulsory for 4 Columns Layout */}
       {layout === 'columns-4' && (
         <div className={styles.newsletterColumn}>
-          <h4 className={styles.columnTitle}>{newsletterTitle}</h4>
+          <h3 className={styles.columnTitle}>{newsletterTitle}</h3>
           <form onSubmit={handleNewsletterSubmit} className={styles.newsletterForm}>
             <input
               type="email"
@@ -483,7 +483,7 @@ export default function Footer(props: FooterProps) {
         {/* Address Section */}
         {showLocations && address && (
           <div className={styles.restaurantAddress}>
-            <h4 className={styles.sectionTitleUpper}>ADDRESS</h4>
+            <h3 className={styles.sectionTitleUpper}>ADDRESS</h3>
             <div className={styles.addressText}>{address}</div>
           </div>
         )}
@@ -491,7 +491,7 @@ export default function Footer(props: FooterProps) {
         {/* Contact Section */}
         {showLocations && (email || phone) && (
           <div className={styles.restaurantContact}>
-            <h4 className={styles.sectionTitleUpper}>CONTACT</h4>
+            <h3 className={styles.sectionTitleUpper}>CONTACT</h3>
             <div className={styles.contactList}>
               {phone && <div className={styles.contactItem}>{phone}</div>}
               {email && <div className={styles.contactItem}>{email}</div>}
@@ -502,7 +502,7 @@ export default function Footer(props: FooterProps) {
         {/* Newsletter Section */}
         {showNewsletter && (
           <div className={styles.restaurantNewsletter}>
-            <h4 className={styles.sectionTitleUpper}>NEWSLETTER</h4>
+            <h3 className={styles.sectionTitleUpper}>NEWSLETTER</h3>
             <form onSubmit={handleNewsletterSubmit} className={styles.newsletterForm}>
               <input
                 type="email"

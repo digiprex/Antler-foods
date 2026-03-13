@@ -17,10 +17,8 @@ import { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useFooterConfig, useUpdateFooterConfig } from '@/hooks/use-footer-config';
 import type { FooterConfig } from '@/types/footer.types';
-import Footer from '@/components/footer';
 import Toast from '@/components/ui/toast';
 import styles from './footer-settings-form.module.css';
-import { generateFooterPropsFromConfig } from '@/utils/footer-layout-generator';
 
 // Font options for footer text
 const FONT_OPTIONS = [
@@ -126,7 +124,6 @@ export default function FooterSettingsForm() {
   const [address, setAddress] = useState('');
   const [bgColor, setBgColor] = useState('#1f2937');
   const [textColor, setTextColor] = useState('#f9fafb');
-  const [linkColor, setLinkColor] = useState('#9ca3af');
   const [copyrightBgColor, setCopyrightBgColor] = useState('#000000');
   const [copyrightTextColor, setCopyrightTextColor] = useState('#ffffff');
   const [showNewsletter, setShowNewsletter] = useState(false);
@@ -152,8 +149,6 @@ export default function FooterSettingsForm() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
-  // Preview visibility state
-  const [showPreview, setShowPreview] = useState(false);
 
   const configApiEndpoint = useMemo(
     () =>
@@ -186,7 +181,6 @@ export default function FooterSettingsForm() {
       setAddress(config.address || '');
       setBgColor(config.bgColor || '#1f2937');
       setTextColor(config.textColor || '#f9fafb');
-      setLinkColor(config.linkColor || '#9ca3af');
       setCopyrightBgColor(config.copyrightBgColor || '#000000');
       setCopyrightTextColor(config.copyrightTextColor || '#ffffff');
       setShowNewsletter(config.showNewsletter || false);
@@ -272,7 +266,7 @@ export default function FooterSettingsForm() {
         // restaurantName, email, phone, address and socialLinks are not saved here - they come from restaurant table
         bgColor,
         textColor,
-        linkColor,
+        linkColor: textColor,
         copyrightBgColor,
         copyrightTextColor,
         showNewsletter: layout === 'default' ? false : (layout === 'restaurant' || layout === 'columns-4') ? true : showNewsletter, // Force newsletter off for default, on for restaurant and columns-4
@@ -347,32 +341,6 @@ export default function FooterSettingsForm() {
             <p className="mt-1 text-sm text-gray-600">Customize your website footer</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowPreview(!showPreview)}
-          className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
-          title={showPreview ? 'Hide Preview' : 'Show Live Preview'}
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
-          {showPreview ? 'Hide' : 'Show'} Preview
-        </button>
       </div>
 
       {/* Error Messages */}
@@ -458,7 +426,7 @@ export default function FooterSettingsForm() {
             </label>
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {/* Default Layout */}
+              {/* Three Section Layout */}
               <button
                 type="button"
                 className={`group relative cursor-pointer rounded-lg border-2 p-4 text-left transition-all ${layout === 'default'
@@ -467,11 +435,25 @@ export default function FooterSettingsForm() {
                   }`}
                 onClick={() => setLayout('default')}
               >
-                <div className="mb-3 rounded border border-gray-300 bg-gray-50 p-2">
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="h-2 w-4 rounded bg-gray-400"></div>
-                    <div className="h-2 w-4 rounded bg-gray-400"></div>
-                    <div className="h-2 w-4 rounded bg-gray-400"></div>
+                <div className="mb-3 rounded border border-gray-300 bg-gray-50 p-3">
+                  <div className="space-y-2">
+                    {/* Main content area */}
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="space-y-1">
+                        <div className="h-1.5 w-8 rounded bg-gray-400"></div>
+                        <div className="h-1 w-6 rounded bg-gray-300"></div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="h-1.5 w-8 rounded bg-gray-400"></div>
+                        <div className="h-1 w-6 rounded bg-gray-300"></div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="h-1.5 w-8 rounded bg-gray-400"></div>
+                        <div className="h-1 w-6 rounded bg-gray-300"></div>
+                      </div>
+                    </div>
+                    {/* Copyright bar */}
+                    <div className="h-1 w-full rounded bg-gray-600"></div>
                   </div>
                 </div>
                 <div className="text-sm font-semibold text-gray-900">Three Section</div>
@@ -498,9 +480,20 @@ export default function FooterSettingsForm() {
                   }`}
                 onClick={() => setLayout('centered')}
               >
-                <div className="mb-3 rounded border border-gray-300 bg-gray-50 p-2">
-                  <div className="flex items-center justify-center gap-1">
-                    <div className="h-2 w-6 rounded bg-gray-400"></div>
+                <div className="mb-3 rounded border border-gray-300 bg-gray-50 p-3">
+                  <div className="space-y-2">
+                    {/* Centered content */}
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="h-2 w-10 rounded bg-gray-400"></div>
+                      <div className="h-1 w-8 rounded bg-gray-300"></div>
+                      <div className="flex gap-1 mt-1">
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                      </div>
+                    </div>
+                    {/* Copyright bar */}
+                    <div className="h-1 w-full rounded bg-gray-600"></div>
                   </div>
                 </div>
                 <div className="text-sm font-semibold text-gray-900">Centered</div>
@@ -527,16 +520,36 @@ export default function FooterSettingsForm() {
                   }`}
                 onClick={() => setLayout('restaurant')}
               >
-                <div className="mb-3 rounded border border-gray-300 bg-gray-50 p-2">
-                  <div className="flex items-center justify-between gap-0.5">
-                    <div className="h-2 w-3 rounded bg-gray-400"></div>
-                    <div className="h-2 w-3 rounded bg-gray-400"></div>
-                    <div className="h-2 w-3 rounded bg-gray-400"></div>
-                    <div className="h-2 w-3 rounded bg-gray-400"></div>
+                <div className="mb-3 rounded border border-gray-300 bg-gray-50 p-3">
+                  <div className="space-y-2">
+                    {/* 4 columns with navigation */}
+                    <div className="flex items-start justify-between gap-0.5">
+                      <div className="space-y-1">
+                        <div className="h-1.5 w-4 rounded bg-gray-400"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="h-1.5 w-4 rounded bg-gray-400"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="h-1.5 w-4 rounded bg-gray-400"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="h-1.5 w-4 rounded bg-purple-400"></div>
+                        <div className="h-1 w-3 rounded bg-purple-300"></div>
+                      </div>
+                    </div>
+                    {/* Copyright bar */}
+                    <div className="h-1 w-full rounded bg-gray-600"></div>
                   </div>
                 </div>
                 <div className="text-sm font-semibold text-gray-900">Restaurant</div>
-                <div className="text-xs text-gray-600">4 Columns + Nav</div>
+                <div className="text-xs text-gray-600">4 Columns + Newsletter</div>
                 {layout === 'restaurant' && (
                   <div className="absolute right-2 top-2">
                     <svg className="h-5 w-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
@@ -559,16 +572,40 @@ export default function FooterSettingsForm() {
                   }`}
                 onClick={() => setLayout('columns-4')}
               >
-                <div className="mb-3 rounded border border-gray-300 bg-gray-50 p-2">
-                  <div className="flex items-center justify-between gap-0.5">
-                    <div className="h-2 w-3 rounded bg-gray-400"></div>
-                    <div className="h-2 w-3 rounded bg-gray-400"></div>
-                    <div className="h-2 w-3 rounded bg-gray-400"></div>
-                    <div className="h-2 w-3 rounded bg-gray-400"></div>
+                <div className="mb-3 rounded border border-gray-300 bg-gray-50 p-3">
+                  <div className="space-y-2">
+                    {/* 4 equal columns */}
+                    <div className="flex items-start justify-between gap-0.5">
+                      <div className="space-y-1">
+                        <div className="h-1.5 w-4 rounded bg-gray-400"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="h-1.5 w-4 rounded bg-gray-400"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="h-1.5 w-4 rounded bg-gray-400"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                        <div className="h-1 w-3 rounded bg-gray-300"></div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="h-1.5 w-4 rounded bg-purple-400"></div>
+                        <div className="h-1 w-3 rounded bg-purple-300"></div>
+                        <div className="h-1 w-3 rounded bg-purple-300"></div>
+                      </div>
+                    </div>
+                    {/* Copyright bar */}
+                    <div className="h-1 w-full rounded bg-gray-600"></div>
                   </div>
                 </div>
                 <div className="text-sm font-semibold text-gray-900">4 Columns</div>
-                <div className="text-xs text-gray-600">Wide Layout</div>
+                <div className="text-xs text-gray-600">Wide Layout + Newsletter</div>
                 {layout === 'columns-4' && (
                   <div className="absolute right-2 top-2">
                     <svg className="h-5 w-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
@@ -737,41 +774,6 @@ export default function FooterSettingsForm() {
               </div>
             </div>
 
-            <div>
-              <label className="mb-2 block">
-                <span className="text-sm font-semibold text-gray-900">Link Color</span>
-                <span className="mt-0.5 block text-xs text-gray-600">Footer link color</span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={linkColor}
-                  onChange={(e) => setLinkColor(e.target.value)}
-                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-                <input
-                  type="text"
-                  value={linkColor}
-                  onChange={(e) => setLinkColor(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="#9ca3af"
-                />
-                <button
-                  type="button"
-                  onClick={() => setLinkColor('#9ca3af')}
-                  className="rounded-lg border border-gray-300 px-3 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  title="Reset to default"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
 
             <div>
               <label className="mb-2 block">
@@ -1207,92 +1209,6 @@ export default function FooterSettingsForm() {
         </div>
       </form>
 
-      {/* Preview Modal Popup */}
-      {showPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
-          <div className="relative z-10 w-full max-w-6xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
-              <div>
-                <h2 className="text-xl font-bold text-white">Footer Live Preview</h2>
-                <p className="mt-0.5 text-sm text-purple-100">Updates in real-time</p>
-              </div>
-              <button
-                onClick={() => setShowPreview(false)}
-                className="rounded-lg p-2 text-white transition-colors hover:bg-white/20"
-                aria-label="Close preview"
-              >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="max-h-[80vh] overflow-y-auto bg-gray-50 p-8">
-              <div className="mx-auto max-w-5xl">
-                <div className="overflow-hidden rounded-xl border border-gray-300 bg-white shadow-lg">
-                  <Footer
-                    {...generateFooterPropsFromConfig(config, {
-                      restaurantName: config?.restaurantName || 'Antler Foods',
-                      aboutContent,
-                      email,
-                      phone,
-                      address,
-                      socialLinks: config?.socialLinks || [
-                        { platform: 'facebook', url: 'https://facebook.com', order: 1 },
-                        { platform: 'instagram', url: 'https://instagram.com', order: 2 },
-                        { platform: 'twitter', url: 'https://twitter.com', order: 3 },
-                      ],
-                      columns: config?.columns || [],
-                      showSocialMedia,
-                      showNewsletter,
-                      layout,
-                      bgColor,
-                      textColor,
-                      linkColor,
-                      copyrightBgColor,
-                      copyrightTextColor,
-                      fontFamily,
-                      fontSize,
-                      fontWeight,
-                      textTransform,
-                      headingFontFamily,
-                      headingFontSize,
-                      headingFontWeight,
-                      headingTextTransform,
-                      copyrightFontFamily,
-                      copyrightFontSize,
-                      copyrightFontWeight,
-                    })}
-                  />
-                </div>
-              </div>
-              <div className="mt-6 flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 p-4">
-                <svg
-                  className="h-5 w-5 shrink-0 text-purple-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-                <p className="text-sm text-purple-900">
-                  Preview shows how your footer will appear on the website
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

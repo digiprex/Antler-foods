@@ -2,13 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import type { CustomSectionConfig, CustomSectionItem, CustomSectionViewport } from '@/types/custom-section.types';
+import type {
+  CustomSectionConfig,
+  CustomSectionItem,
+  CustomSectionViewport,
+} from '@/types/custom-section.types';
 import { getCustomSectionLayoutDefinition } from '@/lib/custom-section/layouts';
 import { normalizeCustomSectionConfig } from '@/lib/custom-section/normalize';
 import {
   getSectionContainerStyles,
   getSectionTypographyStyles,
   getSurfaceShadowValue,
+  mergeGlobalStyleConfig,
 } from '@/lib/section-style';
 import {
   CustomSectionIntro,
@@ -16,6 +21,7 @@ import {
   CustomSectionMedia,
   getShapeRadius,
 } from './custom-section-primitives';
+import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
 
 interface CustomSectionRendererProps extends Partial<CustomSectionConfig> {
   previewMode?: CustomSectionViewport;
@@ -40,7 +46,11 @@ function hiddenRevealStyle(preset: string): CSSProperties {
     case 'slide-up':
       return { opacity: 0, transform: 'translate3d(0, 28px, 0)' };
     case 'soft-reveal':
-      return { opacity: 0, transform: 'translate3d(0, 22px, 0) scale(0.985)', filter: 'blur(8px)' };
+      return {
+        opacity: 0,
+        transform: 'translate3d(0, 22px, 0) scale(0.985)',
+        filter: 'blur(8px)',
+      };
     case 'fade-up':
     default:
       return { opacity: 0, transform: 'translate3d(0, 18px, 0)' };
@@ -60,10 +70,24 @@ function revealDuration(speed?: string) {
 }
 
 export function CustomSectionRenderer(props: CustomSectionRendererProps) {
-  const [viewport, setViewport] = useState<CustomSectionViewport>(() => resolveViewport(props.previewMode));
+  const [viewport, setViewport] = useState<CustomSectionViewport>(() =>
+    resolveViewport(props.previewMode),
+  );
   const [isVisible, setIsVisible] = useState(props.enableScrollReveal !== true);
   const [activeSlide, setActiveSlide] = useState(0);
   const sectionRef = useRef<HTMLElement | null>(null);
+
+  const restaurantId = props.restaurant_id?.trim() || '';
+  const { config: rawGlobalStyles } = useGlobalStyleConfig({
+    apiEndpoint: restaurantId
+      ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`
+      : '/api/global-style-config',
+    fetchOnMount: Boolean(restaurantId),
+  });
+  const globalStyles = useMemo(
+    () => mergeGlobalStyleConfig(rawGlobalStyles),
+    [rawGlobalStyles],
+  );
 
   useEffect(() => {
     if (props.previewMode) {
@@ -78,7 +102,10 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
   }, [props.previewMode]);
 
   const config = useMemo(() => normalizeCustomSectionConfig(props), [props]);
-  const definition = useMemo(() => getCustomSectionLayoutDefinition(config.layout), [config.layout]);
+  const definition = useMemo(
+    () => getCustomSectionLayoutDefinition(config.layout),
+    [config.layout],
+  );
   const isMobile = viewport === 'mobile';
 
   useEffect(() => {
@@ -117,7 +144,10 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
   }, [config.enableScrollReveal]);
 
   useEffect(() => {
-    if (definition.value !== 'layout-31' || config.layoutSettings?.autoplay === false) {
+    if (
+      definition.value !== 'layout-31' ||
+      config.layoutSettings?.autoplay === false
+    ) {
       return;
     }
 
@@ -126,30 +156,52 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       return;
     }
 
-    const timeout = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % items.length);
-    }, (config.layoutSettings?.autoplayInterval || 5) * 1000);
+    const timeout = window.setInterval(
+      () => {
+        setActiveSlide((current) => (current + 1) % items.length);
+      },
+      (config.layoutSettings?.autoplayInterval || 5) * 1000,
+    );
 
     return () => window.clearInterval(timeout);
-  }, [config.items, config.layout, config.layoutSettings?.autoplay, config.layoutSettings?.autoplayInterval, definition.value]);
+  }, [
+    config.items,
+    config.layout,
+    config.layoutSettings?.autoplay,
+    config.layoutSettings?.autoplayInterval,
+    definition.value,
+  ]);
 
-  const { sectionStyle, contentStyle, surfaceStyle, layoutConfig } = getSectionContainerStyles(config, viewport);
-  const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(config, undefined, viewport);
+  const { sectionStyle, contentStyle, layoutConfig } =
+    getSectionContainerStyles(config, viewport);
+  const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
+    config,
+    globalStyles,
+    viewport,
+  );
 
   const align = (
     isMobile
-      ? config.responsive?.mobileContentAlignment || config.layoutSettings?.contentAlignment || layoutConfig.sectionTextAlign
+      ? config.responsive?.mobileContentAlignment ||
+        config.layoutSettings?.contentAlignment ||
+        layoutConfig.sectionTextAlign
       : config.layoutSettings?.contentAlignment || layoutConfig.sectionTextAlign
   ) as 'left' | 'center' | 'right';
 
   const contentGap = isMobile
-    ? config.responsive?.mobileContentGap || config.layoutSettings?.contentGap || '1.25rem'
+    ? config.responsive?.mobileContentGap ||
+      config.layoutSettings?.contentGap ||
+      '1.25rem'
     : config.layoutSettings?.contentGap || '2rem';
   const contentWidth = isMobile
-    ? config.responsive?.mobileContentWidth || config.layoutSettings?.contentWidth || '100%'
+    ? config.responsive?.mobileContentWidth ||
+      config.layoutSettings?.contentWidth ||
+      '100%'
     : config.layoutSettings?.contentWidth || '560px';
   const mediaRatio = isMobile
-    ? config.responsive?.mobileMediaRatio || config.layoutSettings?.mediaRatio || '4 / 3'
+    ? config.responsive?.mobileMediaRatio ||
+      config.layoutSettings?.mediaRatio ||
+      '4 / 3'
     : config.layoutSettings?.mediaRatio || '4 / 3';
   const cardColumns = isMobile
     ? config.responsive?.mobileCardColumns || 1
@@ -158,27 +210,74 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
   const stackOnMobile = config.layoutSettings?.stackOnMobile !== false;
   const shouldStack = isMobile && stackOnMobile;
 
-  const palette = {
-    background: config.styleConfig?.sectionBackgroundColor || config.bgColor || '#ffffff',
-    contentSurface: config.styleConfig?.contentSurfaceBackground || '#ffffff',
-    card: config.styleConfig?.cardBackgroundColor || '#ffffff',
-    accent: config.styleConfig?.accentColor || '#7c3aed',
-    mutedAccent: config.styleConfig?.mutedAccentColor || '#ede9fe',
-    border: config.styleConfig?.borderColor || '#e2e8f0',
-    overlayColor: config.styleConfig?.overlayColor || config.overlayColor || '#0f172a',
-    overlayOpacity: config.styleConfig?.overlayOpacity ?? config.overlayOpacity ?? 0.48,
-    buttonPrimary: config.styleConfig?.buttonBackgroundColor || '#7c3aed',
-    buttonPrimaryText: config.styleConfig?.buttonTextColor || '#ffffff',
-    buttonSecondary: config.styleConfig?.buttonSecondaryBackgroundColor || '#ffffff',
-    buttonSecondaryText: config.styleConfig?.buttonSecondaryTextColor || '#6d28d9',
-    buttonBorder: config.styleConfig?.buttonBorderColor || '#d8b4fe',
-    badgeBackground: config.styleConfig?.badgeBackgroundColor || '#f3e8ff',
-    badgeText: config.styleConfig?.badgeTextColor || '#6d28d9',
-  };
-  const darkPresentation = definition.family === 'hero' || definition.family === 'video' || definition.value === 'layout-30';
+  // Resolve global theme colors — used as fallbacks when useGlobalStyles is ON (is_custom === false)
+  const globalAccent =
+    globalStyles.accentColor ||
+    globalStyles.primaryButton?.backgroundColor ||
+    '#7c3aed';
+  const globalButtonPrimary =
+    globalStyles.primaryButton?.backgroundColor || globalAccent;
+  const globalButtonPrimaryText =
+    globalStyles.primaryButton?.color || '#ffffff';
+  const globalButtonSecondaryBg =
+    globalStyles.secondaryButton?.backgroundColor || '#ffffff';
+  const globalButtonSecondaryText =
+    globalStyles.secondaryButton?.color || globalAccent;
+  const globalButtonBorder = globalStyles.secondaryButton?.border
+    ? globalStyles.secondaryButton.border
+        .replace(/^[0-9a-z.\s]+solid\s+/i, '')
+        .trim()
+    : `${globalAccent}66`;
+  // Derive muted accent tint from global accent (lighten to ~10% opacity)
+  const globalMutedAccent = `${globalAccent}1a`;
+  const globalBadgeBg = `${globalAccent}18`;
+  const globalBadgeText = globalAccent;
+  const globalBg = globalStyles.backgroundColor || '#ffffff';
+  const globalText = globalStyles.textColor || '#0f172a';
 
-  const radius = config.styleConfig?.cardBorderRadius || layoutConfig.surfaceBorderRadius || '1.5rem';
-  const shadow = getSurfaceShadowValue(config.styleConfig?.cardShadow || layoutConfig.surfaceShadow);
+  const palette = {
+    background:
+      config.styleConfig?.sectionBackgroundColor || config.bgColor || globalBg,
+    contentSurface: config.styleConfig?.contentSurfaceBackground || globalBg,
+    card: config.styleConfig?.cardBackgroundColor || globalBg,
+    accent: config.styleConfig?.accentColor || globalAccent,
+    mutedAccent: config.styleConfig?.mutedAccentColor || globalMutedAccent,
+    border: config.styleConfig?.borderColor || '#e2e8f0',
+    overlayColor:
+      config.styleConfig?.overlayColor || config.overlayColor || '#0f172a',
+    overlayOpacity:
+      config.styleConfig?.overlayOpacity ?? config.overlayOpacity ?? 0.48,
+    buttonPrimary:
+      config.styleConfig?.buttonBackgroundColor || globalButtonPrimary,
+    buttonPrimaryText:
+      config.styleConfig?.buttonTextColor || globalButtonPrimaryText,
+    buttonSecondary:
+      config.styleConfig?.buttonSecondaryBackgroundColor ||
+      globalButtonSecondaryBg,
+    buttonSecondaryText:
+      config.styleConfig?.buttonSecondaryTextColor || globalButtonSecondaryText,
+    buttonBorder: config.styleConfig?.buttonBorderColor || globalButtonBorder,
+    badgeBackground: config.styleConfig?.badgeBackgroundColor || globalBadgeBg,
+    badgeText: config.styleConfig?.badgeTextColor || globalBadgeText,
+  };
+  // Only use dark/white-text presentation when there is actually a background image/video
+  const hasMediaBackground =
+    Boolean(config.backgroundImage) ||
+    Boolean(config.fallbackImage?.url) ||
+    Boolean(config.videoUrl);
+  const darkPresentation =
+    hasMediaBackground &&
+    (definition.family === 'hero' ||
+      definition.family === 'video' ||
+      definition.value === 'layout-30');
+
+  const radius =
+    config.styleConfig?.cardBorderRadius ||
+    layoutConfig.surfaceBorderRadius ||
+    '1.5rem';
+  const shadow = getSurfaceShadowValue(
+    config.styleConfig?.cardShadow || layoutConfig.surfaceShadow,
+  );
   const items = config.items || [];
   const intro = (
     <CustomSectionIntro
@@ -186,7 +285,9 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       align={align}
       maxWidth={contentWidth}
       badgeStyle={{
-        backgroundColor: darkPresentation ? 'rgba(255,255,255,0.14)' : palette.badgeBackground,
+        backgroundColor: darkPresentation
+          ? 'rgba(255,255,255,0.14)'
+          : palette.badgeBackground,
         color: darkPresentation ? '#ffffff' : palette.badgeText,
       }}
       eyebrowStyle={{
@@ -195,15 +296,21 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       }}
       titleStyle={{
         ...(titleStyle as CSSProperties),
-        color: darkPresentation ? '#ffffff' : (titleStyle as CSSProperties).color,
+        color: darkPresentation
+          ? '#ffffff'
+          : (titleStyle as CSSProperties).color,
       }}
       subtitleStyle={{
         ...(subtitleStyle as CSSProperties),
-        color: darkPresentation ? 'rgba(255,255,255,0.86)' : (subtitleStyle as CSSProperties).color,
+        color: darkPresentation
+          ? 'rgba(255,255,255,0.86)'
+          : (subtitleStyle as CSSProperties).color,
       }}
       bodyStyle={{
         ...(bodyStyle as CSSProperties),
-        color: darkPresentation ? 'rgba(255,255,255,0.78)' : (bodyStyle as CSSProperties).color,
+        color: darkPresentation
+          ? 'rgba(255,255,255,0.78)'
+          : (bodyStyle as CSSProperties).color,
       }}
       buttonStyles={{
         primary: {
@@ -221,15 +328,16 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
   );
 
   const baseSurfaceStyle: CSSProperties = {
-    ...surfaceStyle,
     backgroundColor: palette.contentSurface,
-    border: `1px solid ${palette.border}`,
-    boxShadow: shadow,
     borderRadius: radius,
   };
 
-  const revealPreset = config.scrollRevealAnimation || config.animation?.preset || 'fade-up';
-  const revealStyle: CSSProperties = config.enableScrollReveal && !isVisible ? hiddenRevealStyle(revealPreset) : {};
+  const revealPreset =
+    config.scrollRevealAnimation || config.animation?.preset || 'fade-up';
+  const revealStyle: CSSProperties =
+    config.enableScrollReveal && !isVisible
+      ? hiddenRevealStyle(revealPreset)
+      : {};
   const animatedStyle: CSSProperties = {
     transition: `opacity ${revealDuration(config.animation?.speed)}ms ease, transform ${revealDuration(config.animation?.speed)}ms ease, filter ${revealDuration(config.animation?.speed)}ms ease`,
     ...revealStyle,
@@ -252,7 +360,10 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
           backgroundColor={palette.card}
           radius={radius}
           shadow={shadow}
-          titleStyle={{ ...(titleStyle as CSSProperties), fontSize: isMobile ? '1.15rem' : '1.25rem' }}
+          titleStyle={{
+            ...(titleStyle as CSSProperties),
+            fontSize: isMobile ? '1.15rem' : '1.25rem',
+          }}
           bodyStyle={bodyStyle as CSSProperties}
         />
       ))}
@@ -281,7 +392,9 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
           image={config.image}
           label={selectedLayout.name}
           aspectRatio={mediaRatio}
-          shape={options?.circular ? 'circle' : config.layoutSettings?.mediaShape}
+          shape={
+            options?.circular ? 'circle' : config.layoutSettings?.mediaShape
+          }
           accentColor={palette.accent}
           borderColor={palette.border}
         />
@@ -310,11 +423,22 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       <div
         className="flex"
         style={{
-          flexDirection: shouldStack ? 'column' : reverse ? 'row-reverse' : 'row',
+          flexDirection: shouldStack
+            ? 'column'
+            : reverse
+              ? 'row-reverse'
+              : 'row',
           gap: contentGap,
-          alignItems: config.layoutSettings?.verticalAlignment === 'start' ? 'flex-start' : config.layoutSettings?.verticalAlignment === 'end' ? 'flex-end' : 'center',
+          alignItems:
+            config.layoutSettings?.verticalAlignment === 'start'
+              ? 'flex-start'
+              : config.layoutSettings?.verticalAlignment === 'end'
+                ? 'flex-end'
+                : 'center',
           padding: options?.accentShell ? (isMobile ? '1rem' : '1.25rem') : 0,
-          borderRadius: options?.accentShell ? `calc(${radius} + 0.5rem)` : undefined,
+          borderRadius: options?.accentShell
+            ? `calc(${radius} + 0.5rem)`
+            : undefined,
           background: options?.accentShell
             ? `linear-gradient(135deg, ${palette.mutedAccent}, rgba(255,255,255,0.92))`
             : options?.diagonal
@@ -325,7 +449,16 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
         {options?.overlap && !shouldStack ? (
           <>
             <div style={{ flex: options?.wideMedia ? 1.15 : 1 }}>{media}</div>
-            <div style={{ flex: 1, marginLeft: '-4.5rem', position: 'relative', zIndex: 2 }}>{content}</div>
+            <div
+              style={{
+                flex: 1,
+                marginLeft: '-4.5rem',
+                position: 'relative',
+                zIndex: 2,
+              }}
+            >
+              {content}
+            </div>
           </>
         ) : (
           <>
@@ -337,37 +470,66 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
     );
   };
 
-  const renderHeroLayout = (options?: { compact?: boolean; video?: boolean; full?: boolean }) => (
-    <div
-      className="relative overflow-hidden"
-      style={{
-        borderRadius: options?.full ? 0 : radius,
-        minHeight: options?.full ? (isMobile ? '520px' : '720px') : options?.compact ? '360px' : config.minHeight || '520px',
-        backgroundColor: '#0f172a',
-        boxShadow: options?.full ? undefined : shadow,
-      }}
-    >
-      {options?.video && config.videoUrl ? (
-        <video src={config.videoUrl} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover" />
-      ) : config.backgroundImage || config.fallbackImage?.url ? (
-        <img
-          src={config.backgroundImage || config.fallbackImage?.url || ''}
-          alt={config.headline}
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-      ) : null}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `${palette.overlayColor}`,
-          opacity: palette.overlayOpacity,
-        }}
-      />
-      <div className="relative z-10 flex h-full w-full items-center" style={{ padding: isMobile ? '1.5rem' : '2.25rem' }}>
-        <div style={{ width: '100%' }}>{intro}</div>
-      </div>
-    </div>
+  const hasHeroBg = Boolean(
+    config.backgroundImage || config.fallbackImage?.url,
   );
+  const hasHeroVideo = Boolean(config.videoUrl);
+
+  const renderHeroLayout = (options?: {
+    compact?: boolean;
+    video?: boolean;
+    full?: boolean;
+  }) => {
+    const hasBg = options?.video ? hasHeroVideo || hasHeroBg : hasHeroBg;
+    return (
+      <div
+        className="relative overflow-hidden"
+        style={{
+          borderRadius: options?.full ? 0 : radius,
+          minHeight: options?.full
+            ? isMobile
+              ? '520px'
+              : '720px'
+            : options?.compact
+              ? '360px'
+              : '520px',
+          backgroundColor: hasBg ? palette.overlayColor : palette.background,
+        }}
+      >
+        {options?.video && config.videoUrl ? (
+          <video
+            src={config.videoUrl}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : config.backgroundImage || config.fallbackImage?.url ? (
+          <img
+            src={config.backgroundImage || config.fallbackImage?.url || ''}
+            alt={config.headline}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : null}
+        {hasBg ? (
+          <div
+            className="absolute inset-0"
+            style={{
+              background: palette.overlayColor,
+              opacity: palette.overlayOpacity,
+            }}
+          />
+        ) : null}
+        <div
+          className="relative z-10 flex h-full w-full items-center"
+          style={{ padding: isMobile ? '1.5rem' : '2.25rem' }}
+        >
+          <div style={{ width: '100%' }}>{intro}</div>
+        </div>
+      </div>
+    );
+  };
 
   const selectedLayout = definition;
 
@@ -394,7 +556,9 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
             className="grid items-center"
             style={{
               gap: contentGap,
-              gridTemplateColumns: shouldStack ? '1fr' : '0.8fr minmax(0, 1fr) 0.8fr',
+              gridTemplateColumns: shouldStack
+                ? '1fr'
+                : '0.8fr minmax(0, 1fr) 0.8fr',
             }}
           >
             <CustomSectionMedia
@@ -405,7 +569,14 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
               accentColor={palette.accent}
               borderColor={palette.border}
             />
-            <div style={{ ...baseSurfaceStyle, padding: isMobile ? '1.5rem' : '2rem' }}>{intro}</div>
+            <div
+              style={{
+                ...baseSurfaceStyle,
+                padding: isMobile ? '1.5rem' : '2rem',
+              }}
+            >
+              {intro}
+            </div>
             <CustomSectionMedia
               image={config.secondaryImage || config.image}
               label="Right media"
@@ -429,7 +600,14 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
               accentColor={palette.accent}
               borderColor={palette.border}
             />
-            <div style={{ ...baseSurfaceStyle, padding: isMobile ? '1.5rem' : '2rem' }}>{intro}</div>
+            <div
+              style={{
+                ...baseSurfaceStyle,
+                padding: isMobile ? '1.5rem' : '2rem',
+              }}
+            >
+              {intro}
+            </div>
           </div>
         );
       case 'layout-11':
@@ -459,7 +637,14 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
                 borderColor={palette.border}
               />
             </div>
-            <div style={{ ...baseSurfaceStyle, padding: isMobile ? '1.5rem' : '2rem' }}>{intro}</div>
+            <div
+              style={{
+                ...baseSurfaceStyle,
+                padding: isMobile ? '1.5rem' : '2rem',
+              }}
+            >
+              {intro}
+            </div>
           </div>
         );
       case 'layout-12':
@@ -481,7 +666,13 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
         return renderSplitLayout({ overlap: true });
       case 'layout-19':
         return (
-          <div className="mx-auto max-w-4xl" style={{ ...baseSurfaceStyle, padding: isMobile ? '1.5rem' : '2.5rem' }}>
+          <div
+            className="mx-auto max-w-4xl"
+            style={{
+              ...baseSurfaceStyle,
+              padding: isMobile ? '1.5rem' : '2.5rem',
+            }}
+          >
             {intro}
           </div>
         );
@@ -496,20 +687,29 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
                 className="grid items-center"
                 style={{
                   gap: contentGap,
-                  gridTemplateColumns: shouldStack ? '1fr' : index % 2 === 0 ? '1fr minmax(0, 1fr)' : 'minmax(0, 1fr) 1fr',
+                  gridTemplateColumns: shouldStack
+                    ? '1fr'
+                    : index % 2 === 0
+                      ? '1fr minmax(0, 1fr)'
+                      : 'minmax(0, 1fr) 1fr',
                 }}
               >
                 {index % 2 === 0 || shouldStack ? (
                   <CustomSectionMedia
-                    image={item.image || config.image}
-                    label={item.title}
+                    image={item.image}
+                    label={item.title || `Block ${index + 1}`}
                     aspectRatio={mediaRatio}
                     shape={config.layoutSettings?.mediaShape}
                     accentColor={palette.accent}
                     borderColor={palette.border}
                   />
                 ) : null}
-                <div style={{ ...baseSurfaceStyle, padding: isMobile ? '1.25rem' : '1.75rem' }}>
+                <div
+                  style={{
+                    ...baseSurfaceStyle,
+                    padding: isMobile ? '1.25rem' : '1.75rem',
+                  }}
+                >
                   <CustomSectionItemCard
                     item={item}
                     accentColor={palette.accent}
@@ -517,14 +717,20 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
                     backgroundColor={palette.card}
                     radius={radius}
                     shadow="none"
-                    titleStyle={{ ...(titleStyle as CSSProperties), fontSize: isMobile ? '1.2rem' : '1.35rem' }}
+                    titleStyle={{
+                      ...(titleStyle as CSSProperties),
+                      fontSize: isMobile ? '1.2rem' : '1.35rem',
+                    }}
                     bodyStyle={bodyStyle as CSSProperties}
+                    showMedia={false}
+                    showBorder={false}
+                    showMeta={false}
                   />
                 </div>
                 {index % 2 !== 0 && !shouldStack ? (
                   <CustomSectionMedia
-                    image={item.image || config.image}
-                    label={item.title}
+                    image={item.image}
+                    label={item.title || `Block ${index + 1}`}
                     aspectRatio={mediaRatio}
                     shape={config.layoutSettings?.mediaShape}
                     accentColor={palette.accent}
@@ -541,12 +747,27 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
             className="grid items-center"
             style={{
               gap: contentGap,
-              gridTemplateColumns: shouldStack ? '1fr' : '0.6fr minmax(0, 1fr) 0.6fr',
+              gridTemplateColumns: shouldStack
+                ? '1fr'
+                : '0.6fr minmax(0, 1fr) 0.6fr',
             }}
           >
-            <div className="hidden rounded-[24px] border border-dashed border-slate-300 bg-slate-50 md:block" style={{ minHeight: 220 }} />
-            <div style={{ ...baseSurfaceStyle, padding: isMobile ? '1.5rem' : '2.5rem' }}>{intro}</div>
-            <div className="hidden rounded-[24px] border border-dashed border-slate-300 bg-slate-50 md:block" style={{ minHeight: 220 }} />
+            <div
+              className="hidden rounded-[24px] border border-dashed border-slate-300 bg-slate-50 md:block"
+              style={{ minHeight: 220 }}
+            />
+            <div
+              style={{
+                ...baseSurfaceStyle,
+                padding: isMobile ? '1.5rem' : '2.5rem',
+              }}
+            >
+              {intro}
+            </div>
+            <div
+              className="hidden rounded-[24px] border border-dashed border-slate-300 bg-slate-50 md:block"
+              style={{ minHeight: 220 }}
+            />
           </div>
         );
       case 'layout-24':
@@ -561,7 +782,14 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       case 'layout-26':
         return (
           <div className="mx-auto max-w-4xl text-center">
-            <div style={{ ...baseSurfaceStyle, padding: isMobile ? '1.5rem' : '2.25rem' }}>{intro}</div>
+            <div
+              style={{
+                ...baseSurfaceStyle,
+                padding: isMobile ? '1.5rem' : '2.25rem',
+              }}
+            >
+              {intro}
+            </div>
           </div>
         );
       case 'layout-27':
@@ -585,18 +813,25 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
               className="grid items-center"
               style={{
                 gap: contentGap,
-                gridTemplateColumns: shouldStack ? '1fr' : '1.1fr minmax(0, 0.9fr)',
+                gridTemplateColumns: shouldStack
+                  ? '1fr'
+                  : '1.1fr minmax(0, 0.9fr)',
               }}
             >
               <CustomSectionMedia
-                image={currentItem?.image || config.image}
+                image={currentItem?.image}
                 label={currentItem?.title || 'Featured slide'}
                 aspectRatio={mediaRatio}
                 shape={config.layoutSettings?.mediaShape}
                 accentColor={palette.accent}
                 borderColor={palette.border}
               />
-              <div style={{ ...baseSurfaceStyle, padding: isMobile ? '1.5rem' : '2rem' }}>
+              <div
+                style={{
+                  ...baseSurfaceStyle,
+                  padding: isMobile ? '1.5rem' : '2rem',
+                }}
+              >
                 {currentItem ? (
                   <CustomSectionItemCard
                     item={currentItem}
@@ -607,6 +842,8 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
                     shadow="none"
                     titleStyle={titleStyle as CSSProperties}
                     bodyStyle={bodyStyle as CSSProperties}
+                    showMedia={false}
+                    showBorder={false}
                   />
                 ) : (
                   intro
@@ -616,7 +853,11 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
             <div className="flex items-center justify-between gap-4">
               <button
                 type="button"
-                onClick={() => setActiveSlide((current) => (current - 1 + items.length) % items.length)}
+                onClick={() =>
+                  setActiveSlide(
+                    (current) => (current - 1 + items.length) % items.length,
+                  )
+                }
                 disabled={items.length <= 1}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:border-violet-200 hover:text-violet-700 disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -629,7 +870,9 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
                     type="button"
                     onClick={() => setActiveSlide(index)}
                     className={`h-2.5 rounded-full transition-all ${
-                      activeSlide === index ? 'w-10 bg-violet-600' : 'w-2.5 bg-slate-300'
+                      activeSlide === index
+                        ? 'w-10 bg-violet-600'
+                        : 'w-2.5 bg-slate-300'
                     }`}
                     aria-label={`Go to slide ${index + 1}`}
                   />
@@ -637,7 +880,9 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
               </div>
               <button
                 type="button"
-                onClick={() => setActiveSlide((current) => (current + 1) % items.length)}
+                onClick={() =>
+                  setActiveSlide((current) => (current + 1) % items.length)
+                }
                 disabled={items.length <= 1}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:border-violet-200 hover:text-violet-700 disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -659,9 +904,13 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
               }}
             >
               {items.map((item) => (
-                <div key={item.id} className="group relative overflow-hidden" style={{ borderRadius: radius, boxShadow: shadow }}>
+                <div
+                  key={item.id}
+                  className="group relative overflow-hidden"
+                  style={{ borderRadius: radius, boxShadow: shadow }}
+                >
                   <CustomSectionMedia
-                    image={item.image || config.image}
+                    image={item.image}
                     label={item.title}
                     aspectRatio={mediaRatio}
                     shape={config.layoutSettings?.mediaShape}
@@ -670,7 +919,9 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
                     overlay={
                       <div
                         className={`absolute inset-0 p-5 transition-all duration-300 ${
-                          isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                          isMobile
+                            ? 'opacity-100'
+                            : 'opacity-0 group-hover:opacity-100'
                         }`}
                         style={{
                           background: `linear-gradient(180deg, transparent 0%, rgba(15,23,42,0.82) 100%)`,
@@ -679,9 +930,14 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
                         }}
                       >
                         <div>
-                          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/70">{item.badge || 'Hover reveal'}</p>
-                          <h3 className="mt-2 text-xl font-semibold text-white">{item.title}</h3>
-                          {item.description ? <p className="mt-2 text-sm text-white/80">{item.description}</p> : null}
+                          <h3 className="mt-2 text-xl font-semibold text-white">
+                            {item.title}
+                          </h3>
+                          {item.description ? (
+                            <p className="mt-2 text-sm text-white/80">
+                              {item.description}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
                     }
@@ -702,16 +958,18 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       style={{
         ...sectionStyle,
         backgroundColor: palette.background,
-        color: config.textColor || '#0f172a',
+        color: config.textColor || globalText,
         ...animatedStyle,
       }}
     >
-      <div style={definition.value === 'layout-24' ? { width: '100%', maxWidth: '100%' } : contentStyle}>
-        <div style={definition.value === 'layout-24' ? undefined : baseSurfaceStyle}>
-          <div style={{ padding: definition.value === 'layout-24' ? 0 : isMobile ? '1rem' : '1.5rem' }}>
-            {layoutContent}
-          </div>
-        </div>
+      <div
+        style={
+          definition.value === 'layout-24'
+            ? { width: '100%', maxWidth: '100%' }
+            : contentStyle
+        }
+      >
+        {layoutContent}
       </div>
     </section>
   );

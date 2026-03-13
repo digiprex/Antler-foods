@@ -553,9 +553,9 @@ export default function ScrollingTextSettingsForm() {
 
       {!showPreview ? (
         <FloatingPreviewButton
-          viewport={responsiveEditorViewport}
+          viewport="desktop"
           onClick={() => {
-            setPreviewViewport(responsiveEditorViewport);
+            setPreviewViewport('desktop');
             setShowPreview(true);
           }}
         />

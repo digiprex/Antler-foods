@@ -24,9 +24,13 @@ export function SettingsHeader({
           {icon}
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{title}</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+            {title}
+          </h1>
           <p className="mt-1 text-sm text-slate-600">{description}</p>
-          {meta ? <p className="mt-1 text-xs font-medium text-slate-500">{meta}</p> : null}
+          {meta ? (
+            <p className="mt-1 text-xs font-medium text-slate-500">{meta}</p>
+          ) : null}
         </div>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
@@ -43,7 +47,7 @@ export function SettingsCard({
 }: {
   icon: ReactNode;
   title: string;
-  description: string;
+  description?: string;
   action?: ReactNode;
   children: ReactNode;
 }) {
@@ -57,7 +61,9 @@ export function SettingsCard({
             </div>
             <div>
               <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-              <p className="text-sm text-slate-600">{description}</p>
+              {description ? (
+                <p className="text-sm text-slate-600">{description}</p>
+              ) : null}
             </div>
           </div>
           {action ? <div>{action}</div> : null}
@@ -93,13 +99,37 @@ export function ResponsiveViewportTabs({
             }`}
           >
             {viewport === 'desktop' ? (
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L8.25 21h7.5L14.25 17m-7.5 0h10.5A2.25 2.25 0 0019.5 14.75V6.75A2.25 2.25 0 0017.25 4.5H6.75A2.25 2.25 0 004.5 6.75v8A2.25 2.25 0 006.75 17z" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9.75 17L8.25 21h7.5L14.25 17m-7.5 0h10.5A2.25 2.25 0 0019.5 14.75V6.75A2.25 2.25 0 0017.25 4.5H6.75A2.25 2.25 0 004.5 6.75v8A2.25 2.25 0 006.75 17z"
+                />
               </svg>
             ) : (
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 4.5h10.5A2.25 2.25 0 0119.5 6.75v10.5A2.25 2.25 0 0117.25 19.5H6.75A2.25 2.25 0 014.5 17.25V6.75A2.25 2.25 0 016.75 4.5z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 7.5h6m-6 9h6" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6.75 4.5h10.5A2.25 2.25 0 0119.5 6.75v10.5A2.25 2.25 0 0117.25 19.5H6.75A2.25 2.25 0 014.5 17.25V6.75A2.25 2.25 0 016.75 4.5z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 7.5h6m-6 9h6"
+                />
               </svg>
             )}
             {viewport === 'desktop' ? 'Desktop' : 'Mobile'}
@@ -142,10 +172,14 @@ export function LayoutCard({
       <div className="px-1 pb-1 pt-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className={`text-sm font-semibold ${selected ? 'text-violet-900' : 'text-slate-900'}`}>
+            <h3
+              className={`text-sm font-semibold ${selected ? 'text-violet-900' : 'text-slate-900'}`}
+            >
               {title}
             </h3>
-            <p className={`mt-1 text-xs leading-relaxed ${selected ? 'text-violet-700' : 'text-slate-500'}`}>
+            <p
+              className={`mt-1 text-xs leading-relaxed ${selected ? 'text-violet-700' : 'text-slate-500'}`}
+            >
               {description}
             </p>
           </div>
@@ -157,12 +191,32 @@ export function LayoutCard({
             }`}
           >
             {selected ? (
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.6}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2.6}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
             ) : (
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4v16m8-8H4"
+                />
               </svg>
             )}
           </div>
@@ -228,16 +282,34 @@ export function FloatingPreviewButton({
       }`}
       aria-label="Open live preview"
     >
-      <span className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${disabled ? 'bg-slate-200 text-slate-500' : 'bg-gradient-to-br from-violet-600 to-purple-700 text-white'}`}>
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <span
+        className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${disabled ? 'bg-slate-200 text-slate-500' : 'bg-gradient-to-br from-violet-600 to-purple-700 text-white'}`}
+      >
+        <svg
+          className="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+          />
         </svg>
       </span>
       <span className="flex flex-col items-start leading-tight">
         <span>Live Preview</span>
         <span className="text-xs font-medium text-violet-500">
-          {viewport === 'mobile' ? 'Open mobile preview' : 'Open desktop preview'}
+          {viewport === 'mobile'
+            ? 'Open mobile preview'
+            : 'Open desktop preview'}
         </span>
       </span>
     </button>
@@ -263,7 +335,10 @@ export function PreviewModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
       <div className="relative z-10 flex h-[min(92vh,980px)] w-full max-w-7xl flex-col overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_35px_120px_rgba(15,23,42,0.35)]">
         <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -271,15 +346,29 @@ export function PreviewModal({
             <p className="mt-1 text-sm text-slate-600">{description}</p>
           </div>
           <div className="flex items-center gap-3">
-            <ResponsiveViewportTabs value={viewport} onChange={onViewportChange} scope="preview" />
+            <ResponsiveViewportTabs
+              value={viewport}
+              onChange={onViewportChange}
+              scope="preview"
+            />
             <button
               type="button"
               onClick={onClose}
               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
               aria-label="Close preview"
             >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -287,11 +376,15 @@ export function PreviewModal({
         <div className="flex-1 overflow-y-auto bg-slate-950 p-4 sm:p-6">
           <div
             className={`mx-auto overflow-hidden border border-white/10 bg-slate-900 shadow-[0_24px_80px_rgba(15,23,42,0.35)] ${
-              viewport === 'mobile' ? 'max-w-[430px] rounded-[32px]' : 'max-w-[1240px] rounded-[32px]'
+              viewport === 'mobile'
+                ? 'max-w-[430px] rounded-[32px]'
+                : 'max-w-[1240px] rounded-[32px]'
             }`}
           >
             <div className="flex items-center justify-between border-b border-white/10 bg-slate-950/90 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">
-              <span>{viewport === 'mobile' ? 'Phone Preview' : 'Desktop Preview'}</span>
+              <span>
+                {viewport === 'mobile' ? 'Phone Preview' : 'Desktop Preview'}
+              </span>
               <span>{viewport === 'mobile' ? '390 x 780' : '1280 x 720'}</span>
             </div>
             <div className="bg-white">{children}</div>
@@ -300,14 +393,30 @@ export function PreviewModal({
         <div className="border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
           <div className="flex flex-col gap-2 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <svg className="h-5 w-5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <svg
+                className="h-5 w-5 text-violet-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
               <span>{note}</span>
             </div>
             <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
-              {viewport === 'mobile' ? 'Mobile responsiveness check' : 'Desktop composition check'}
+              {viewport === 'mobile'
+                ? 'Mobile responsiveness check'
+                : 'Desktop composition check'}
             </div>
           </div>
         </div>

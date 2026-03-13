@@ -1571,6 +1571,7 @@ export default function FAQSettingsForm({
         <button
           type="button"
           onClick={() => {
+            setPreviewViewport('desktop');
             setShowPreview(true);
           }}
           className="fixed bottom-24 right-6 z-40 inline-flex items-center gap-3 rounded-full border border-purple-200 bg-white/95 px-5 py-3 text-sm font-semibold text-purple-700 shadow-[0_18px_45px_rgba(15,23,42,0.18)] backdrop-blur transition-all hover:-translate-y-0.5 hover:border-purple-300 hover:bg-white"

@@ -986,7 +986,6 @@ export default function CustomSectionSettingsForm({
             </svg>
           }
           title="Typography and Responsive Structure"
-          description="Typography inherits from the global theme by default. Responsive structure stays aligned with Global CSS, and section reveal animation is configured here."
         >
           <div className="space-y-6">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
@@ -995,9 +994,6 @@ export default function CustomSectionSettingsForm({
                   <h3 className="text-sm font-semibold text-slate-900">
                     Page Scroll Animation
                   </h3>
-                  <p className="text-xs text-slate-500">
-                    Reveal the whole custom section when it enters the viewport.
-                  </p>
                 </div>
                 <label className="relative inline-flex cursor-pointer items-center">
                   <input
@@ -1052,17 +1048,6 @@ export default function CustomSectionSettingsForm({
                       <option value="slide-up">Slide Up</option>
                       <option value="soft-reveal">Soft Reveal</option>
                     </select>
-                    <p className="mt-2 text-xs text-slate-500">
-                      {config.scrollRevealAnimation === 'fade' &&
-                        'Opacity only, minimal motion.'}
-                      {config.scrollRevealAnimation === 'fade-up' &&
-                        'Soft lift with subtle fade.'}
-                      {config.scrollRevealAnimation === 'slide-up' &&
-                        'Slightly stronger upward movement.'}
-                      {(config.scrollRevealAnimation === 'soft-reveal' ||
-                        !config.scrollRevealAnimation) &&
-                        'Blur-to-sharp premium entrance.'}
-                    </p>
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -1090,22 +1075,12 @@ export default function CustomSectionSettingsForm({
                       <option value="normal">Normal</option>
                       <option value="slow">Slow</option>
                     </select>
-                    <p className="mt-2 text-xs text-slate-500">
-                      {config.animation?.speed === 'fast' &&
-                        'Quick, lightweight reveal for denser pages.'}
-                      {(config.animation?.speed === 'normal' ||
-                        !config.animation?.speed) &&
-                        'Balanced entrance timing for most sections.'}
-                      {config.animation?.speed === 'slow' &&
-                        'Longer reveal for more cinematic hero-style sections.'}
-                    </p>
                   </div>
                 </div>
               ) : null}
             </div>
             <ToggleRow
               title="Use Global Styles"
-              description="When enabled, typography inherits from the global theme. Disable to set section-specific type styles."
               checked={config.is_custom !== true}
               onChange={handleGlobalStylesToggle}
             />
@@ -1117,12 +1092,7 @@ export default function CustomSectionSettingsForm({
                   showAdvancedControls
                 />
               </div>
-            ) : (
-              <InfoBanner>
-                Typography is inherited from the Global CSS theme. To override
-                font styles for this section only, disable the toggle above.
-              </InfoBanner>
-            )}
+            ) : null}
           </div>
         </SettingsCard>
 

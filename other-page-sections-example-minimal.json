@@ -1,5 +1,29 @@
 [
     {
+        "home": [
+            {
+                "id": "default",
+                "name": "default",
+                "type": "Hero",
+                "order_index": 1
+            },
+            {
+                "id": "layout-2",
+                "name": "layout-2",
+                "type": "CustomSection",
+                "content": "about",
+                "order_index": 2
+            },
+            {
+                "id": "layout-6",
+                "name": "layout-6",
+                "type": "CustomSection",
+                "content": "dining",
+                "order_index": 3
+            }
+        ]
+    },
+    {
         "about": [
             {
                 "id": "default",
@@ -11,6 +35,7 @@
                 "id": "layout-2",
                 "name": "layout-2",
                 "type": "CustomSection",
+                "content": "mission",
                 "order_index": 2
             }
         ]

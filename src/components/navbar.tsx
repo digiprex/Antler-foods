@@ -84,7 +84,7 @@ export default function Navbar({
   additionalText,
   borderColor = '#000000',
   borderWidth = '2px',
-  fontFamily = 'Inter, system-ui, sans-serif',
+  fontFamily = 'Poppins, system-ui, sans-serif',
   fontSize = '1rem',
   fontWeight = 400,
   textTransform = 'uppercase'
@@ -229,9 +229,9 @@ export default function Navbar({
         </nav>
 
         {/* Mobile Sidebar */}
-        <div className={`${styles.sidebar} ${isSidebarOpen ? styles.open : styles.closed}`}>
+        <div className={`${styles.sidebar} ${isSidebarOpen ? styles.open : styles.closed}`} style={navbarStyle}>
           <div onClick={toggleSidebar} className={styles.sidebarOverlay}></div>
-          
+
           <div className={styles.sidebarContent}>
             <button onClick={toggleSidebar} className={styles.closeButton} aria-label="Close">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -239,7 +239,7 @@ export default function Navbar({
                 <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             </button>
-            
+
             {leftNavItems.map((item, index) => (
               <a key={index} href={item.href} className={styles.sidebarLink}>
                 {item.label}
@@ -387,9 +387,9 @@ export default function Navbar({
       </nav>
 
       {/* Mobile Sidebar */}
-      <div className={`${styles.sidebar} ${isSidebarOpen ? styles.open : styles.closed}`}>
+      <div className={`${styles.sidebar} ${isSidebarOpen ? styles.open : styles.closed}`} style={navbarStyle}>
         <div onClick={toggleSidebar} className={styles.sidebarOverlay}></div>
-        
+
         <div className={styles.sidebarContent}>
           <button onClick={toggleSidebar} className={styles.closeButton} aria-label="Close">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -397,7 +397,7 @@ export default function Navbar({
               <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </button>
-          
+
           {leftNavItems.map((item, index) => (
             <a key={index} href={item.href} className={styles.sidebarLink}>
               {item.label}

@@ -292,7 +292,7 @@ $cta-hover-bg-color: rgb(31 41 55);
   display: none;
   text-transform: var(--navbar-text-transform, uppercase);
   letter-spacing: 0.1em;
-  font-family: var(--navbar-font-family, 'Inter, system-ui, sans-serif');
+  font-family: var(--navbar-font-family, 'Poppins, system-ui, sans-serif');
   font-size: var(--navbar-font-size, $nav-link-font-size);
   font-weight: var(--navbar-font-weight, 700);
   color: var(--navbar-text-color, $nav-link-color);
@@ -439,7 +439,7 @@ $cta-hover-bg-color: rgb(31 41 55);
 .navLink {
   text-transform: var(--navbar-text-transform, uppercase);
   letter-spacing: 0.1em;
-  font-family: var(--navbar-font-family, 'Inter, system-ui, sans-serif');
+  font-family: var(--navbar-font-family, 'Poppins, system-ui, sans-serif');
   font-size: var(--navbar-font-size, $nav-link-font-size);
   font-weight: var(--navbar-font-weight, 700);
   color: var(--navbar-text-color, $nav-link-color);
@@ -495,7 +495,7 @@ $cta-hover-bg-color: rgb(31 41 55);
   display: none;
   text-transform: var(--navbar-text-transform, uppercase);
   letter-spacing: 0.1em;
-  font-family: var(--navbar-font-family, 'Inter, system-ui, sans-serif');
+  font-family: var(--navbar-font-family, 'Poppins, system-ui, sans-serif');
   font-size: var(--navbar-font-size, $nav-link-font-size);
   font-weight: var(--navbar-font-weight, 700);
   color: var(--navbar-text-color, $nav-link-color);
@@ -518,7 +518,7 @@ $cta-hover-bg-color: rgb(31 41 55);
   color: var(--button-text-color, $cta-text-color);
   text-transform: var(--navbar-text-transform, uppercase);
   letter-spacing: 0.1em;
-  font-family: var(--navbar-font-family, 'Inter, system-ui, sans-serif');
+  font-family: var(--navbar-font-family, 'Poppins, system-ui, sans-serif');
   font-size: $nav-link-font-size;
   font-weight: 700;
   border-radius: var(--button-border-radius, 0.5rem);
@@ -602,10 +602,10 @@ $cta-hover-bg-color: rgb(31 41 55);
 }
 
 .sidebarLink {
-  font-size: 1.5rem;
+  font-size: calc(var(--navbar-font-size, $nav-link-font-size) * 2);
   text-transform: var(--navbar-text-transform, uppercase);
   letter-spacing: 0.2em;
-  font-family: var(--navbar-font-family, 'Inter, system-ui, sans-serif');
+  font-family: var(--navbar-font-family, 'Poppins, system-ui, sans-serif');
   font-weight: var(--navbar-font-weight, 300);
   color: var(--navbar-text-color, rgb(31 41 55));
   transition: color 0.2s;
@@ -618,14 +618,14 @@ $cta-hover-bg-color: rgb(31 41 55);
 
 .sidebarCta {
   display: inline-block;
-  padding: 0.75rem 2rem;
+  padding: 0.625rem 1.5rem;
   margin-top: 1rem;
   background-color: var(--button-bg-color, $cta-bg-color);
   color: var(--button-text-color, $cta-text-color);
   text-transform: var(--navbar-text-transform, uppercase);
-  letter-spacing: 0.2em;
-  font-family: var(--navbar-font-family, 'Inter, system-ui, sans-serif');
-  font-size: 1rem;
+  letter-spacing: 0.1em;
+  font-family: var(--navbar-font-family, 'Poppins, system-ui, sans-serif');
+  font-size: calc($nav-link-font-size * 2);
   font-weight: 700;
   border-radius: var(--button-border-radius, 0.5rem);
   white-space: nowrap;

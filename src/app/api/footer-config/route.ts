@@ -236,6 +236,9 @@ export async function GET(request: Request) {
     if (restaurantData?.insta_link) {
       socialLinks.push({ platform: 'instagram' as const, url: restaurantData.insta_link, order: order++ });
     }
+    if (restaurantData?.x_link) {
+      socialLinks.push({ platform: 'twitter' as const, url: restaurantData.x_link, order: order++ });
+    }
     if (restaurantData?.yt_link) {
       socialLinks.push({ platform: 'youtube' as const, url: restaurantData.yt_link, order: order++ });
     }

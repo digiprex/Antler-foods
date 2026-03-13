@@ -35,12 +35,16 @@ interface PlaceDetails {
   }>;
 }
 
+type PreviewViewport = 'desktop' | 'mobile';
+
 interface DynamicLocationProps {
   restaurantId?: string;
   pageId?: string;
   templateId?: string;
   showLoading?: boolean;
   configData?: Partial<LocationConfig>;
+  placeDetailsData?: PlaceDetails;
+  previewViewport?: PreviewViewport;
 }
 
 interface GoogleMapTarget {
@@ -108,7 +112,15 @@ function buildGoogleMapsDirectionsUrl(target: GoogleMapTarget) {
   return 'https://www.google.com/maps';
 }
 
-export default function DynamicLocation({ restaurantId, pageId, templateId, showLoading = false, configData }: DynamicLocationProps) {
+export default function DynamicLocation({
+  restaurantId,
+  pageId,
+  templateId,
+  showLoading = false,
+  configData,
+  placeDetailsData,
+  previewViewport = 'desktop',
+}: DynamicLocationProps) {
   const [config, setConfig] = useState<LocationConfig | null>(null);
   const [placeDetails, setPlaceDetails] = useState<PlaceDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -135,8 +147,13 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
       if (configData.enabled !== false && configData.google_place_id) {
         console.log('[Location] Config is enabled and has place ID, setting config and fetching details');
         setConfig(configData as LocationConfig);
-        fetchPlaceDetails(configData.google_place_id);
-        // Don't set isLoading to false here - wait for place details to load
+        if (placeDetailsData) {
+          setPlaceDetails(placeDetailsData);
+          setIsLoading(false);
+        } else {
+          fetchPlaceDetails(configData.google_place_id);
+          // Don't set isLoading to false here - wait for place details to load
+        }
       } else {
         console.log('[Location] Config disabled or missing place ID:', {
           enabled: configData.enabled,
@@ -195,7 +212,7 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
   useEffect(() => {
     fetchLocationConfig();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restaurantId, pageId, templateId, configData]);
+  }, [restaurantId, pageId, templateId, configData, placeDetailsData]);
 
   const fetchPlaceDetails = async (placeId: string) => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -384,6 +401,7 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
       name: placeDetails.name,
     };
     const directionsUrl = buildGoogleMapsDirectionsUrl(mapTarget);
+    const isPreviewMobile = previewViewport === 'mobile';
     const sectionStyleInput = {
       ...config,
       subtitleFontFamily:
@@ -588,7 +606,13 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
           <p style={{ ...descriptionTypography, fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8 }}>
             {config.description}
           </p>
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+          <div
+            style={{
+              display: 'grid',
+              gap: isPreviewMobile ? '1.5rem' : '2rem',
+              gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(0,1fr) minmax(0,2fr)',
+            }}
+          >
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -654,7 +678,14 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
           <h2 style={{ ...titleTypography, fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'center' }}>
             {config.title}
           </h2>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" style={{ alignItems: 'stretch' }}>
+          <div
+            style={{
+              display: 'grid',
+              gap: isPreviewMobile ? '1.5rem' : '1.5rem',
+              gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(0,1fr) minmax(0,1.2fr)',
+              alignItems: 'stretch',
+            }}
+          >
             {/* Info Card */}
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -831,14 +862,24 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
           <p style={{ ...descriptionTypography, fontSize: '1rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.7 }}>
             {config.description}
           </p>
-          <div className="grid grid-cols-1 overflow-hidden lg:grid-cols-[350px_minmax(0,1fr)]" style={{ gap: '0', border: '1px solid rgba(0, 0, 0, 0.1)', borderRadius: '12px', backgroundColor: '#fff' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isPreviewMobile ? '1fr' : '350px minmax(0,1fr)',
+              gap: '0',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              borderRadius: '12px',
+              backgroundColor: '#fff',
+              overflow: 'hidden',
+            }}
+          >
             {/* Sidebar with location list */}
             <div style={{
               backgroundColor: '#f8f9fa',
-              padding: '2rem',
-              borderRight: '1px solid rgba(0, 0, 0, 0.1)',
+              padding: isPreviewMobile ? '1.5rem' : '2rem',
+              borderRight: isPreviewMobile ? 'none' : '1px solid rgba(0, 0, 0, 0.1)',
               overflowY: 'auto',
-              maxHeight: '600px',
+              maxHeight: isPreviewMobile ? 'none' : '600px',
             }}>
               <div style={{
                 backgroundColor: '#fff',
@@ -899,7 +940,7 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
             {/* Map area */}
             <div style={{
               backgroundColor: '#e8e8e8',
-              minHeight: 'clamp(320px, 60vw, 600px)',
+              minHeight: isPreviewMobile ? '320px' : 'clamp(320px, 60vw, 600px)',
               position: 'relative',
             }}>
               <SimpleMapPreview
@@ -920,8 +961,8 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
     if (layout === 'fullscreen') {
       return (
         <div style={{
-          margin: '-4rem -1.5rem',
-          minHeight: '100vh',
+          margin: isPreviewMobile ? '-2.75rem -1rem' : '-4rem -1.5rem',
+          minHeight: isPreviewMobile ? '760px' : '100vh',
           position: 'relative',
           backgroundColor: config.bgColor || '#1a2332',
           backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255, 107, 107, 0.1), transparent 50%), radial-gradient(circle at 80% 70%, rgba(107, 148, 255, 0.1), transparent 50%)',
@@ -948,18 +989,18 @@ export default function DynamicLocation({ restaurantId, pageId, templateId, show
           {/* Floating location card */}
           <div style={{
             position: 'relative',
-            padding: '3rem 2rem',
+            padding: isPreviewMobile ? '2rem 1.25rem' : '3rem 2rem',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            minHeight: '100vh',
+            minHeight: isPreviewMobile ? '760px' : '100vh',
           }}>
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               backdropFilter: 'blur(10px)',
               borderRadius: '16px',
-              padding: '2.5rem',
-              maxWidth: '500px',
+              padding: isPreviewMobile ? '1.75rem 1.25rem' : '2.5rem',
+              maxWidth: isPreviewMobile ? '100%' : '500px',
               boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
               border: '1px solid rgba(255, 255, 255, 0.2)',
             }}>

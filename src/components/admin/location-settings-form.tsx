@@ -21,6 +21,7 @@ import type { SectionStyleConfig } from '@/types/section-style.types';
 
 // Dynamically import Google Location Picker to avoid SSR issues
 const GoogleLocationPicker = dynamic(() => import('./google-location-picker'), { ssr: false });
+const DynamicLocationPreview = dynamic(() => import('../dynamic-location'), { ssr: false });
 
 interface LocationSettingsFormProps {
   restaurantId: string;
@@ -211,12 +212,32 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
           <div style={frameStyle}>
             {chrome}
             <div style={boardStyle}>
-              <div style={{ display: 'flex', gap: '6px', height: '100%' }}>
-                <div style={{ flex: 1, background: '#ffffff', borderRadius: '6px', border: '1px solid #e5e7eb', padding: '4px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  {addressBox('90%', '6px')}
-                  {hoursBox('70%', '5px')}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  {addressBox('52%', '8px')}
                 </div>
-                <div style={{ flex: 1 }}>{mapBox()}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', flex: 1 }}>
+                  {[0, 1, 2].map((index) => (
+                    <div
+                      key={index}
+                      style={{
+                        background: '#ffffff',
+                        borderRadius: '8px',
+                        border: active ? '1px solid #e9d5ff' : '1px solid #e5e7eb',
+                        padding: '6px 5px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <div style={{ width: '22px', height: '22px', borderRadius: '7px', background: index === 0 ? '#d1fae5' : '#ede9fe' }} />
+                      {addressBox(index === 0 ? '85%' : '72%', '5px')}
+                      {hoursBox(index === 2 ? '88%' : '68%', '4px')}
+                      {hoursBox(index === 1 ? '78%' : '60%', '4px')}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -227,12 +248,17 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
           <div style={frameStyle}>
             {chrome}
             <div style={boardStyle}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', height: '100%' }}>
-                <div style={{ flex: 1, minHeight: 0 }}>{mapBox()}</div>
-                <div style={{ background: '#ffffff', borderRadius: '6px', padding: '3px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  {addressBox('80%', '6px')}
-                  {hoursBox('60%', '5px')}
+              <div style={{ display: 'grid', gridTemplateColumns: '0.92fr 1.18fr', gap: '6px', height: '100%' }}>
+                <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {addressBox('92%', '7px')}
+                  {hoursBox('72%', '5px')}
+                  {hoursBox('88%', '5px')}
+                  <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    {hoursBox('68%', '4px')}
+                    {hoursBox('54%', '4px')}
+                  </div>
                 </div>
+                {mapBox()}
               </div>
             </div>
           </div>
@@ -243,12 +269,19 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
           <div style={frameStyle}>
             {chrome}
             <div style={boardStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '6px' }}>
-                <div style={{ width: '35px', height: '35px' }}>{mapBox()}</div>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  {addressBox('100%', '7px')}
-                  {hoursBox('80%', '5px')}
+              <div style={{ display: 'grid', gridTemplateColumns: '0.95fr 1.05fr', gap: '6px', height: '100%' }}>
+                <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {addressBox('72%', '7px')}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '2px' }}>
+                    {hoursBox('90%', '4px')}
+                    {hoursBox('82%', '4px')}
+                    {hoursBox('64%', '4px')}
+                  </div>
+                  <div style={{ marginTop: 'auto' }}>
+                    {hoursBox('56%', '6px')}
+                  </div>
                 </div>
+                {mapBox()}
               </div>
             </div>
           </div>
@@ -260,11 +293,15 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
             {chrome}
             <div style={boardStyle}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.8fr', gap: '6px', height: '100%' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '2px' }}>
-                  {addressBox('100%', '8px')}
-                  {hoursBox('90%', '6px')}
-                  {hoursBox('80%', '6px')}
-                  {hoursBox('70%', '6px')}
+                <div style={{ background: '#f8fafc', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '5px' }}>
+                  <div style={{ background: '#ffffff', borderRadius: '6px', border: active ? '1px solid #d8b4fe' : '1px solid #e5e7eb', padding: '5px', display: 'flex', flexDirection: 'column', gap: '4px', height: '100%' }}>
+                    {addressBox('90%', '6px')}
+                    {hoursBox('72%', '5px')}
+                    {hoursBox('84%', '5px')}
+                    <div style={{ marginTop: 'auto' }}>
+                      {hoursBox('58%', '5px')}
+                    </div>
+                  </div>
                 </div>
                 {mapBox()}
               </div>
@@ -277,15 +314,27 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
           <div style={frameStyle}>
             {chrome}
             <div style={boardStyle}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', height: '100%' }}>
-                <div style={{ flex: 1, minHeight: 0 }}>{mapBox()}</div>
-                <div style={{ background: '#ffffff', borderRadius: '6px', padding: '4px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '3px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    {addressBox('90%', '5px')}
-                    {hoursBox('70%', '4px')}
+              <div style={{ position: 'relative', height: '100%' }}>
+                <div style={{ position: 'absolute', inset: 0 }}>
+                  {mapBox()}
+                </div>
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: '14px 18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <div style={{ width: '70%', background: 'rgba(255, 255, 255, 0.92)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.7)', boxShadow: '0 10px 24px rgba(15, 23, 42, 0.14)', padding: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {addressBox('74%', '6px')}
+                    {hoursBox('92%', '5px')}
+                    {hoursBox('68%', '5px')}
+                    <div style={{ marginTop: '2px' }}>
+                      {hoursBox('100%', '8px')}
+                    </div>
                   </div>
-                  {hoursBox('100%', '10px')}
-                  {hoursBox('100%', '10px')}
                 </div>
               </div>
             </div>
@@ -514,6 +563,13 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
   const activeLayoutOption =
     layoutOptions.find((option) => option.value === activeLayout) ??
     layoutOptions[0];
+  const previewUsesLiveRenderer = ['cards', 'map', 'compact', 'sidebar', 'fullscreen'].includes(activeLayout);
+  const previewConfigData: Partial<LocationConfig> = {
+    ...config,
+    ...sectionStyle,
+    enabled: true,
+    google_place_id: googlePlaceId || config.google_place_id,
+  };
 
   if (loading) {
     return (
@@ -1073,20 +1129,31 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
                   <span>{previewViewport === 'mobile' ? '390 x 780' : '1280 x 720'}</span>
                 </div>
                 <div className="bg-white">
-                  <LocationFullPreview
-                    layout={activeLayout}
-                    placeDetails={placeDetails}
-                    title={config.title || 'Our Location'}
-                    subtitle={config.subtitle || ''}
-                    description={config.description || 'Visit us at our location'}
-                    textColor={config.textColor || '#000000'}
-                    bgColor={config.bgColor || '#ffffff'}
-                    maxWidth={config.maxWidth}
-                    viewport={previewViewport}
-                    showAddress={config.showAddress !== false}
-                    showHours={config.showHours !== false}
-                    showMap={config.showMap !== false}
-                  />
+                  {previewUsesLiveRenderer ? (
+                    <DynamicLocationPreview
+                      restaurantId={restaurantId}
+                      pageId={pageId}
+                      templateId={templateId}
+                      configData={previewConfigData}
+                      placeDetailsData={placeDetails}
+                      previewViewport={previewViewport}
+                    />
+                  ) : (
+                    <LocationFullPreview
+                      layout={activeLayout}
+                      placeDetails={placeDetails}
+                      title={config.title || 'Our Location'}
+                      subtitle={config.subtitle || ''}
+                      description={config.description || 'Visit us at our location'}
+                      textColor={config.textColor || '#000000'}
+                      bgColor={config.bgColor || '#ffffff'}
+                      maxWidth={config.maxWidth}
+                      viewport={previewViewport}
+                      showAddress={config.showAddress !== false}
+                      showHours={config.showHours !== false}
+                      showMap={config.showMap !== false}
+                    />
+                  )}
                 </div>
               </div>
             </div>

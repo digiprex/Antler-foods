@@ -16,9 +16,15 @@ export interface ScrollingTextConfig extends SectionStyleConfig {
   text: string;
 
   // Styling
+  layout?: 'horizontal' | 'vertical';
   bgColor: string;
+  mobileBgColor?: string;
   textColor: string;
+  mobileTextColor?: string;
+  accentColor?: string;
+  mobileAccentColor?: string;
   fontSize?: string;
+  textGap?: string;
 
   // Animation
   scrollSpeed: 'slow' | 'medium' | 'fast';
@@ -44,8 +50,14 @@ export const DEFAULT_SCROLLING_TEXT_CONFIG: ScrollingTextConfig = {
   isEnabled: false,
   text: 'Welcome to our restaurant!',
   bgColor: '#000000',
+  mobileBgColor: undefined,
   textColor: '#ffffff',
+  mobileTextColor: undefined,
+  accentColor: '#f59e0b',
+  mobileAccentColor: undefined,
   fontSize: '16px',
+  layout: 'horizontal',
+  textGap: '3rem',
   scrollSpeed: 'medium',
   is_custom: false,
   buttonStyleVariant: 'primary',

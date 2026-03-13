@@ -1,19 +1,17 @@
-/**
- * Dynamic Form Component
- * 
- * Fetches form configuration from API and renders the form section
- */
-
 'use client';
 
-import { useEffect, useState } from 'react';
-import type { SectionStyleConfig } from '@/types/section-style.types';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
+import { useSectionReveal } from '@/hooks/use-section-reveal';
+import { useSectionViewport } from '@/hooks/use-section-viewport';
 import {
+  getButtonInlineStyle,
+  getSectionContainerStyles,
   getSectionTypographyStyles,
   getSelectedGlobalButtonStyle,
-  getButtonInlineStyle,
+  type SectionViewport,
 } from '@/lib/section-style';
+import type { SectionStyleConfig } from '@/types/section-style.types';
 
 interface FormField {
   field_id: string;
@@ -25,24 +23,28 @@ interface FormField {
   options?: string[];
 }
 
+interface FormDefinition {
+  form_id: string;
+  name: string;
+  fields: FormField[];
+}
+
 interface FormConfig extends SectionStyleConfig {
   isEnabled?: boolean;
   form_id?: string;
   title?: string;
+  subtitle?: string;
   description?: string;
   layout?: string;
   backgroundColor?: string;
+  mobileBackgroundColor?: string;
   textColor?: string;
-  buttonColor?: string;
+  mobileTextColor?: string;
+  accentColor?: string;
+  mobileAccentColor?: string;
   buttonText?: string;
   imageUrl?: string;
-  selectedFormId?: string; // Backwards compatibility
-}
-
-interface Form {
-  form_id: string;
-  name: string;
-  fields: FormField[];
+  showImage?: boolean;
 }
 
 interface DynamicFormProps {
@@ -51,7 +53,94 @@ interface DynamicFormProps {
   templateId?: string;
   showLoading?: boolean;
   configData?: Partial<FormConfig>;
-  isPreview?: boolean; // New prop to determine if this is a preview or live form
+  isPreview?: boolean;
+  previewViewport?: SectionViewport;
+  previewForm?: FormDefinition | null;
+}
+
+const SAMPLE_FORM: FormDefinition = {
+  form_id: 'sample-form',
+  name: 'Reservations',
+  fields: [
+    {
+      field_id: 'name',
+      type: 'text',
+      label: 'Full Name',
+      placeholder: 'Jordan Lee',
+      required: true,
+      order: 0,
+    },
+    {
+      field_id: 'email',
+      type: 'email',
+      label: 'Email Address',
+      placeholder: 'jordan@example.com',
+      required: true,
+      order: 1,
+    },
+    {
+      field_id: 'date',
+      type: 'text',
+      label: 'Preferred Date',
+      placeholder: 'Friday, 7:30 PM',
+      required: true,
+      order: 2,
+    },
+    {
+      field_id: 'notes',
+      type: 'textarea',
+      label: 'Special Notes',
+      placeholder: 'Let us know about dietary requests or celebrations.',
+      required: false,
+      order: 3,
+    },
+  ],
+};
+
+const DEFAULT_FORM_CONFIG: FormConfig = {
+  isEnabled: true,
+  layout: 'centered',
+  title: 'Reserve your table',
+  subtitle: 'Make your next visit seamless',
+  description:
+    'Choose a layout that balances editorial storytelling with a fast, confident submission flow.',
+  backgroundColor: '#f8fafc',
+  mobileBackgroundColor: undefined,
+  textColor: '#0f172a',
+  mobileTextColor: undefined,
+  accentColor: '#7c3aed',
+  mobileAccentColor: undefined,
+  buttonText: 'Submit Request',
+  showImage: true,
+};
+
+function resolveViewportColor(
+  desktopColor: string | undefined,
+  mobileColor: string | undefined,
+  viewport: SectionViewport,
+  fallback: string,
+) {
+  if (viewport === 'mobile') {
+    return mobileColor || desktopColor || fallback;
+  }
+
+  return desktopColor || fallback;
+}
+
+function normalizeFormLayout(layout: string | undefined) {
+  switch (layout) {
+    case 'split-right':
+    case 'split-left':
+    case 'background-image':
+    case 'image-top':
+      return layout;
+    case 'card':
+    case 'two-column':
+    case 'minimal':
+      return 'centered';
+    default:
+      return 'centered';
+  }
 }
 
 export default function DynamicForm({
@@ -60,15 +149,20 @@ export default function DynamicForm({
   templateId,
   showLoading = true,
   configData,
-  isPreview = false
+  isPreview = false,
+  previewViewport,
+  previewForm,
 }: DynamicFormProps) {
-  const [config, setConfig] = useState<FormConfig | null>(configData || null);
-  const [form, setForm] = useState<Form | null>(null);
+  const [config, setConfig] = useState<FormConfig | null>(
+    configData ? { ...DEFAULT_FORM_CONFIG, ...configData } : null,
+  );
+  const [form, setForm] = useState<FormDefinition | null>(previewForm || null);
   const [loading, setLoading] = useState(!configData);
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, string | string[]>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const viewport = useSectionViewport(previewViewport);
   const globalStyleEndpoint = restaurantId
     ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`
     : '/api/global-style-config';
@@ -78,546 +172,572 @@ export default function DynamicForm({
   });
 
   useEffect(() => {
-    // If configData is provided, use it directly
+    if (previewForm) {
+      setForm(previewForm);
+    }
+  }, [previewForm]);
+
+  useEffect(() => {
     if (configData) {
-      setConfig(configData as FormConfig);
+      setConfig({
+        ...DEFAULT_FORM_CONFIG,
+        ...configData,
+      });
       setLoading(false);
       return;
     }
 
     const fetchConfig = async () => {
-      if (!restaurantId) {
+      if (!restaurantId || (!pageId && !templateId)) {
         setLoading(false);
         return;
       }
 
       try {
-        // Build API URL with appropriate parameters
-        let configUrl = `/api/form-settings?restaurant_id=${restaurantId}`;
+        setLoading(true);
 
-        // If templateId is provided, use it for specific template fetch
+        let configUrl = `/api/form-settings?restaurant_id=${encodeURIComponent(restaurantId)}`;
         if (templateId) {
-          configUrl += `&template_id=${templateId}`;
-          console.log('[Form] Fetching by template_id:', templateId);
+          configUrl += `&template_id=${encodeURIComponent(templateId)}`;
         } else if (pageId) {
-          configUrl += `&page_id=${pageId}`;
-          console.log('[Form] Fetching by page_id:', pageId);
+          configUrl += `&page_id=${encodeURIComponent(pageId)}`;
         }
 
         const configResponse = await fetch(configUrl);
-        const configData = await configResponse.json();
+        const configPayload = await configResponse.json();
 
-        if (configData.success && configData.data) {
-          setConfig(configData.data);
+        if (!configResponse.ok) {
+          throw new Error(configPayload.error || 'Failed to load form settings');
+        }
 
-          // If a form is selected, fetch the form details
-          if (configData.data.form_id) {
-            const formResponse = await fetch(`/api/forms?restaurant_id=${restaurantId}&form_id=${configData.data.form_id}`);
-            const formData = await formResponse.json();
+        const resolvedConfig = configPayload.success && configPayload.data
+          ? { ...DEFAULT_FORM_CONFIG, ...configPayload.data }
+          : null;
+        setConfig(resolvedConfig);
 
-            if (formData.success && formData.data && formData.data.length > 0) {
-              setForm(formData.data[0]);
-            }
+        if (resolvedConfig?.form_id) {
+          const formResponse = await fetch(
+            `/api/forms?restaurant_id=${encodeURIComponent(restaurantId)}&form_id=${encodeURIComponent(resolvedConfig.form_id)}`,
+          );
+          const formPayload = await formResponse.json();
+          if (formPayload.success && formPayload.data?.length > 0) {
+            setForm(formPayload.data[0]);
           }
         }
-      } catch (err) {
-        console.error('Error fetching form config:', err);
+      } catch (fetchError) {
+        console.error('Error fetching form config:', fetchError);
+        setConfig(null);
       } finally {
         setLoading(false);
       }
     };
 
     fetchConfig();
-  }, [restaurantId, pageId, templateId, configData]);
+  }, [configData, pageId, restaurantId, templateId]);
 
-  // Show loading state
+  const displayConfig = useMemo<FormConfig | null>(() => {
+    if (!config) {
+      return isPreview ? DEFAULT_FORM_CONFIG : null;
+    }
+
+    return config;
+  }, [config, isPreview]);
+
+  const displayForm = useMemo<FormDefinition>(() => {
+    if (previewForm) {
+      return previewForm;
+    }
+
+    if (form) {
+      return form;
+    }
+
+    return SAMPLE_FORM;
+  }, [form, previewForm]);
+
+  const backgroundColor = resolveViewportColor(
+    displayConfig?.backgroundColor,
+    displayConfig?.mobileBackgroundColor,
+    viewport,
+    '#f8fafc',
+  );
+  const textColor = resolveViewportColor(
+    displayConfig?.textColor,
+    displayConfig?.mobileTextColor,
+    viewport,
+    '#0f172a',
+  );
+  const accentColor = resolveViewportColor(
+    displayConfig?.accentColor,
+    displayConfig?.mobileAccentColor,
+    viewport,
+    '#7c3aed',
+  );
+
+  const layout = normalizeFormLayout(displayConfig?.layout);
+  const isDisabled = displayConfig?.isEnabled === false;
+  const sortedFields = [...displayForm.fields].sort((a, b) => a.order - b.order);
+  const fieldsToRender = isPreview ? sortedFields.slice(0, 4) : sortedFields;
+
+  const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
+    displayConfig,
+    globalStyles,
+    viewport,
+  );
+  const { sectionStyle, contentStyle, surfaceStyle, layoutConfig } =
+    getSectionContainerStyles(displayConfig, viewport);
+  const { ref, style: revealStyle } = useSectionReveal({
+    enabled: displayConfig?.enableScrollReveal,
+    animation: displayConfig?.scrollRevealAnimation,
+    isPreview,
+  });
+
+  const globalButtonStyle = getButtonInlineStyle(
+    getSelectedGlobalButtonStyle(displayConfig, globalStyles),
+  );
+  const submitButtonStyle: CSSProperties = {
+    ...globalButtonStyle,
+    backgroundColor: accentColor,
+    borderColor: accentColor,
+    color: globalButtonStyle.color || '#ffffff',
+    borderRadius: globalButtonStyle.borderRadius || '999px',
+    border: globalButtonStyle.border || `1px solid ${accentColor}`,
+  };
+
   if (loading && showLoading) {
     return (
-      <div style={{
-        minHeight: '300px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#f9fafb'
-      }}>
-        <div style={{
-          textAlign: 'center',
-          color: '#6b7280'
-        }}>
-          <p>Loading form...</p>
-        </div>
+      <div className="flex min-h-[220px] items-center justify-center rounded-3xl border border-slate-200 bg-white p-6 text-sm font-medium text-slate-600 shadow-sm">
+        Loading form...
       </div>
     );
   }
 
-  // Use actual config if available, otherwise use sample config for preview
-  const displayConfig = config || {
-    title: 'Contact Form',
-    description: 'Get in touch with us',
-    layout: 'centered',
-    backgroundColor: '#ffffff',
-    textColor: '#000000',
-    buttonColor: '#3b82f6',
-    buttonText: 'Submit',
-    isEnabled: true
-  };
+  if (!displayConfig || (isDisabled && !isPreview)) {
+    return null;
+  }
 
-  const displayForm = form || {
-    form_id: 'sample',
-    name: 'Sample Contact Form',
-    fields: [
-      { field_id: '1', type: 'text' as const, label: 'Full Name', placeholder: 'Enter your full name', required: true, order: 1 },
-      { field_id: '2', type: 'email' as const, label: 'Email Address', placeholder: 'Enter your email', required: true, order: 2 },
-      { field_id: '3', type: 'textarea' as const, label: 'Message', placeholder: 'Enter your message', required: true, order: 3 }
-    ]
-  };
-
-  // Always show preview for page settings, even if disabled
-  // We'll indicate the status in the preview banner
-
-  // Render form preview
-  const {
-    title = 'Contact Form',
-    description = 'Get in touch with us',
-    layout = 'centered',
-    backgroundColor = '#ffffff',
-    textColor = '#000000',
-    buttonColor = '#3b82f6',
-    buttonText = 'Submit',
-    imageUrl
-  } = displayConfig;
-  const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
-    displayConfig,
-    globalStyles,
-  );
-  const buttonStyle = getButtonInlineStyle(
-    getSelectedGlobalButtonStyle(displayConfig, globalStyles),
-  );
-
-  // Form submission handlers
-  const handleInputChange = (fieldId: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [fieldId]: value
-    }));
-  };
+  if (!isPreview && (!displayConfig.form_id || !form)) {
+    return null;
+  }
 
   const validateForm = () => {
-    // Use current form (real or sample)
-    const currentForm = form || displayForm;
-    if (!currentForm || !currentForm.fields) return { isValid: false, errors: {} };
-    
     const errors: Record<string, string> = {};
-    
-    currentForm.fields.forEach(field => {
-      if (field.required && (!formData[field.field_id] || formData[field.field_id].toString().trim() === '')) {
-        errors[field.field_id] = `${field.label} is required`;
+
+    sortedFields.forEach((field) => {
+      const value = formData[field.field_id];
+      if (field.required) {
+        if (field.type === 'checkbox') {
+          if (!Array.isArray(value) || value.length === 0) {
+            errors[field.field_id] = `${field.label} is required`;
+          }
+        } else if (!value || value.toString().trim() === '') {
+          errors[field.field_id] = `${field.label} is required`;
+        }
       }
-      
-      // Email validation
-      if (field.type === 'email' && formData[field.field_id]) {
+
+      if (field.type === 'email' && value && typeof value === 'string') {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(formData[field.field_id])) {
+        if (!emailRegex.test(value)) {
           errors[field.field_id] = 'Please enter a valid email address';
         }
       }
     });
-    
-    return {
-      isValid: Object.keys(errors).length === 0,
-      errors
-    };
+
+    return errors;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    console.log('[Form Submit] Starting submission process');
-    console.log('[Form Submit] isPreview:', isPreview);
-    console.log('[Form Submit] form:', form);
-    console.log('[Form Submit] restaurantId:', restaurantId);
-    console.log('[Form Submit] formData:', formData);
-    
+  const handleInputChange = (fieldId: string, value: string | string[]) => {
+    setFormData((current) => ({
+      ...current,
+      [fieldId]: value,
+    }));
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
     if (isPreview) {
-      console.log('[Form Submit] Blocked: Preview mode');
       return;
     }
-    
+
     if (!restaurantId) {
-      console.log('[Form Submit] Blocked: No restaurant ID');
-      setSubmitError('Restaurant ID is required for form submission');
+      setSubmitError('Restaurant ID is required for form submission.');
       return;
     }
-    
-    // Allow submission even with sample form for testing
-    const currentForm = form || displayForm;
-    console.log('[Form Submit] Using form:', currentForm);
-    
-    const validation = validateForm();
-    console.log('[Form Submit] Validation result:', validation);
-    
-    if (!validation.isValid) {
-      setSubmitError('Please fill in all required fields correctly');
+
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setSubmitError('Please fill in all required fields correctly.');
       return;
     }
-    
-    setSubmitting(true);
-    setSubmitError(null);
-    
-    try {
-      // Find email field value for submission
-      const emailField = currentForm.fields.find(f => f.type === 'email');
-      const submitterEmail = emailField ? formData[emailField.field_id] : '';
-      
-      console.log('[Form Submit] Email field:', emailField);
-      console.log('[Form Submit] Submitter email:', submitterEmail);
-      
-      if (!submitterEmail) {
-        throw new Error('Email is required for form submission');
+
+    const emailField = sortedFields.find((field) => field.type === 'email');
+    const emailValue = emailField ? formData[emailField.field_id] : '';
+
+    if (!emailValue || typeof emailValue !== 'string') {
+      setSubmitError('A valid email field is required.');
+      return;
+    }
+
+    const submissionPayload: Record<string, string | string[]> = {};
+    sortedFields.forEach((field) => {
+      const value = formData[field.field_id];
+      if (value !== undefined && value !== '') {
+        submissionPayload[field.label] = value;
       }
-      
-      // Transform formData to use label names as keys instead of field IDs
-      const labelBasedData: Record<string, any> = {};
-      currentForm.fields.forEach(field => {
-        if (formData[field.field_id] !== undefined && formData[field.field_id] !== '') {
-          labelBasedData[field.label] = formData[field.field_id];
-        }
-      });
-      
-      console.log('[Form Submit] Original formData:', formData);
-      console.log('[Form Submit] Label-based data:', labelBasedData);
-      
-      const submissionData = {
-        form_id: currentForm.form_id,
-        form_title: config?.title || currentForm.name,
-        restaurant_id: restaurantId,
-        email: submitterEmail,
-        data: labelBasedData
-      };
-      
-      console.log('[Form Submit] Submission data:', submissionData);
-      
+    });
+
+    try {
+      setSubmitting(true);
+      setSubmitError(null);
+
       const response = await fetch('/api/form-submissions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submissionData),
+        body: JSON.stringify({
+          form_id: displayForm.form_id,
+          form_title: displayConfig.title || displayForm.name,
+          restaurant_id: restaurantId,
+          email: emailValue,
+          data: submissionPayload,
+        }),
       });
-      
-      console.log('[Form Submit] Response status:', response.status);
-      
+
       const result = await response.json();
-      console.log('[Form Submit] Response data:', result);
-      
-      if (result.success) {
-        setSubmitSuccess(true);
-        setFormData({}); // Reset form
-        console.log('[Form Submit] Success! Submission ID:', result.data?.submission_id);
-      } else {
+      if (!response.ok || !result.success) {
         throw new Error(result.error || 'Failed to submit form');
       }
-    } catch (error) {
-      console.error('[Form Submit] Error:', error);
-      setSubmitError(error instanceof Error ? error.message : 'Failed to submit form');
+
+      setSubmitSuccess(true);
+      setFormData({});
+    } catch (submitFailure) {
+      console.error('Error submitting form:', submitFailure);
+      setSubmitError(
+        submitFailure instanceof Error
+          ? submitFailure.message
+          : 'Failed to submit form',
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const renderFormFields = () => {
-    if (!displayForm || !displayForm.fields) {
-      return (
-        <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
-          <p>No form fields configured</p>
+  const mediaPanel = (
+    <div
+      className="relative h-full min-h-[240px] overflow-hidden border border-white/40"
+      style={{
+        ...surfaceStyle,
+        background:
+          displayConfig.imageUrl && displayConfig.showImage !== false
+            ? undefined
+            : `linear-gradient(160deg, ${accentColor}22 0%, ${accentColor}08 42%, rgba(15,23,42,0.04) 100%)`,
+      }}
+    >
+      {displayConfig.imageUrl && displayConfig.showImage !== false ? (
+        <img
+          src={displayConfig.imageUrl}
+          alt={displayConfig.title || 'Form media'}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="absolute inset-0">
+          <div className="absolute inset-x-6 top-6 rounded-full border border-white/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 backdrop-blur">
+            Guest experience
+          </div>
+          <div className="absolute bottom-8 left-8 right-8 rounded-[28px] border border-white/70 bg-white/82 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.15)] backdrop-blur">
+            <div className="mb-3 flex items-center gap-3">
+              <span className="inline-flex h-3 w-3 rounded-full" style={{ backgroundColor: accentColor }} />
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Editorial panel
+              </span>
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Pair rich storytelling with a conversion-ready form surface.
+            </h3>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              The split layouts keep the form readable while giving the section room for imagery, brand cues, or trust-building copy.
+            </p>
+          </div>
         </div>
-      );
-    }
+      )}
+    </div>
+  );
 
-    // For preview mode, show only first 3 fields
-    const fieldsToShow = isPreview
-      ? displayForm.fields.sort((a, b) => a.order - b.order).slice(0, 3)
-      : displayForm.fields.sort((a, b) => a.order - b.order);
+  const headingBlock = (
+    <div style={{ textAlign: layoutConfig.sectionTextAlign }}>
+      {displayConfig.title ? (
+        <h2 className="text-balance" style={{ ...titleStyle, color: textColor }}>
+          {displayConfig.title}
+        </h2>
+      ) : null}
+      {displayConfig.subtitle ? (
+        <p className="mt-3" style={{ ...subtitleStyle, color: accentColor }}>
+          {displayConfig.subtitle}
+        </p>
+      ) : null}
+      {displayConfig.description ? (
+        <p className="mt-4 max-w-2xl text-sm leading-7" style={{ ...bodyStyle, color: textColor, opacity: 0.78 }}>
+          {displayConfig.description}
+        </p>
+      ) : null}
+    </div>
+  );
 
-    const validation = !isPreview ? validateForm() : { isValid: true, errors: {} };
-
-    return (
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {fieldsToShow.map((field) => (
-          <div key={field.field_id}>
-            <label style={{
-              display: 'block',
-              marginBottom: '4px',
-              ...subtitleStyle,
-            }}>
-              {field.label} {field.required && <span style={{ color: '#ef4444' }}>*</span>}
-            </label>
-            {field.type === 'textarea' ? (
-              <textarea
-                placeholder={field.placeholder || ''}
-                value={isPreview ? '' : (formData[field.field_id] || '')}
-                onChange={(e) => !isPreview && handleInputChange(field.field_id, e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: `1px solid ${validation.errors[field.field_id] ? '#ef4444' : '#d1d5db'}`,
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  minHeight: '80px',
-                  resize: 'vertical',
-                  backgroundColor: isPreview ? '#f9fafb' : '#ffffff'
-                }}
-                disabled={isPreview}
-              />
-            ) : field.type === 'select' ? (
-              <select
-                value={isPreview ? '' : (formData[field.field_id] || '')}
-                onChange={(e) => !isPreview && handleInputChange(field.field_id, e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: `1px solid ${validation.errors[field.field_id] ? '#ef4444' : '#d1d5db'}`,
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  backgroundColor: isPreview ? '#f9fafb' : '#ffffff'
-                }}
-                disabled={isPreview}
-              >
-                <option value="">{field.placeholder || 'Select an option'}</option>
-                {field.options?.map((option, idx) => (
-                  <option key={idx} value={option}>{option}</option>
-                ))}
-              </select>
-            ) : field.type === 'checkbox' ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  type="checkbox"
-                  checked={isPreview ? false : (formData[field.field_id] || false)}
-                  onChange={(e) => !isPreview && handleInputChange(field.field_id, e.target.checked)}
-                  disabled={isPreview}
-                  style={{ margin: 0 }}
-                />
-                <span style={{ fontSize: '14px' }}>{field.placeholder || field.label}</span>
-              </div>
-            ) : field.type === 'radio' && field.options ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {field.options.map((option, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="radio"
-                      name={field.field_id}
-                      value={option}
-                      checked={isPreview ? false : (formData[field.field_id] === option)}
-                      onChange={(e) => !isPreview && handleInputChange(field.field_id, e.target.value)}
-                      disabled={isPreview}
-                      style={{ margin: 0 }}
-                    />
-                    <span style={{ fontSize: '14px' }}>{option}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <input
-                type={field.type}
-                placeholder={field.placeholder || ''}
-                value={isPreview ? '' : (formData[field.field_id] || '')}
-                onChange={(e) => !isPreview && handleInputChange(field.field_id, e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: `1px solid ${validation.errors[field.field_id] ? '#ef4444' : '#d1d5db'}`,
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  backgroundColor: isPreview ? '#f9fafb' : '#ffffff'
-                }}
-                disabled={isPreview}
-              />
-            )}
-            {!isPreview && validation.errors[field.field_id] && (
-              <div style={{
-                fontSize: '12px',
-                color: '#ef4444',
-                marginTop: '4px'
-              }}>
-                {validation.errors[field.field_id]}
-              </div>
-            )}
-          </div>
-        ))}
-        
-        {isPreview && displayForm.fields.length > 3 && (
-          <div style={{
-            padding: '8px',
-            textAlign: 'center',
-            fontSize: '12px',
-            color: '#6b7280',
-            fontStyle: 'italic'
-          }}>
-            ... and {displayForm.fields.length - 3} more fields
-          </div>
-        )}
-
-        {/* Success message */}
-        {!isPreview && submitSuccess && (
-          <div style={{
-            padding: '12px',
-            backgroundColor: '#dcfce7',
-            border: '1px solid #16a34a',
-            borderRadius: '6px',
-            color: '#15803d',
-            fontSize: '14px',
-            textAlign: 'center'
-          }}>
-            ✅ Thank you! Your form has been submitted successfully.
-          </div>
-        )}
-
-        {/* Error message */}
-        {!isPreview && submitError && (
-          <div style={{
-            padding: '12px',
-            backgroundColor: '#fef2f2',
-            border: '1px solid #ef4444',
-            borderRadius: '6px',
-            color: '#dc2626',
-            fontSize: '14px',
-            textAlign: 'center'
-          }}>
-            ❌ {submitError}
-          </div>
-        )}
-
-        <button
-          type={isPreview ? 'button' : 'submit'}
-          style={{
-            backgroundColor: buttonStyle.backgroundColor || buttonColor,
-            color: buttonStyle.color || '#ffffff',
-            padding: '12px 24px',
-            border: buttonStyle.border || 'none',
-            borderRadius: buttonStyle.borderRadius || '6px',
-            fontSize: buttonStyle.fontSize || '14px',
-            fontWeight: buttonStyle.fontWeight || '500',
-            fontFamily: buttonStyle.fontFamily,
-            textTransform: buttonStyle.textTransform,
-            cursor: isPreview || submitting ? 'not-allowed' : 'pointer',
-            opacity: isPreview || submitting ? 0.7 : 1,
-          }}
-          disabled={isPreview || submitting || submitSuccess}
+  const formCard = (
+    <div
+      className="border border-white/60 p-6 sm:p-7"
+      style={{
+        ...surfaceStyle,
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.9))',
+      }}
+    >
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: accentColor }}>
+            {displayForm.name}
+          </p>
+          <h3 className="mt-2 text-lg font-semibold text-slate-900">
+            {isPreview ? 'Preview submission flow' : 'Tell us what you need'}
+          </h3>
+        </div>
+        <div
+          className="inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
+          style={{ borderColor: `${accentColor}30`, color: accentColor, backgroundColor: `${accentColor}10` }}
         >
-          {submitting ? 'Submitting...' : submitSuccess ? 'Submitted ✓' : buttonText}
-        </button>
-      </form>
-    );
-  };
-
-  const containerStyle = {
-    backgroundColor,
-    padding: '40px 20px',
-    borderRadius: '8px',
-    ...bodyStyle,
-  };
-
-  // Add preview indicator if using sample data or if disabled
-  const isUsingSampleData = !config || !form;
-  // Check for both 'enabled' and 'isEnabled' for backwards compatibility
-  // Only disable if explicitly set to false AND not in preview mode
-  const isDisabled = !isPreview && config && !(config.isEnabled ?? (config as any).enabled ?? true);
-
-  // Render based on layout
-  if (layout === 'split' && imageUrl) {
-    return (
-      <div style={containerStyle}>
-        {/* Only show preview indicators in preview mode or when actually disabled */}
-        {(isPreview && (isUsingSampleData || isDisabled)) && (
-          <div style={{
-            textAlign: 'center',
-            marginBottom: '20px',
-            padding: '8px',
-            backgroundColor: isDisabled ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-            borderRadius: '4px',
-            fontSize: '12px',
-            color: isDisabled ? '#ef4444' : '#3b82f6'
-          }}>
-            {isDisabled ? '📝 Form Display (Disabled - Enable in settings to show to customers)' : '📝 Sample Form Preview (Configure form settings to see actual form)'}
-          </div>
-        )}
-        
-        {/* Show functional form indicator when not in preview */}
-        {!isPreview && isUsingSampleData && (
-          <div style={{
-            textAlign: 'center',
-            marginBottom: '20px',
-            padding: '8px',
-            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-            borderRadius: '4px',
-            fontSize: '12px',
-            color: '#16a34a'
-          }}>
-            ✅ Live Form (Ready to accept submissions)
-          </div>
-        )}
-        <div style={{ display: 'flex', gap: '40px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1', minWidth: '300px' }}>
-            <h2 style={{ marginBottom: '8px', ...titleStyle }}>{title}</h2>
-            <p style={{ marginBottom: '24px', opacity: 0.8, ...subtitleStyle }}>{description}</p>
-            {renderFormFields()}
-          </div>
-          <div style={{ flex: '1', minWidth: '300px' }}>
-            <img
-              src={imageUrl}
-              alt="Form image"
-              style={{
-                width: '100%',
-                height: '300px',
-                objectFit: 'cover',
-                borderRadius: '8px'
-              }}
-            />
-          </div>
+          {fieldsToRender.length} fields
         </div>
       </div>
-    );
-  }
 
-  // Default centered layout
-  return (
-    <div style={containerStyle}>
-      {/* Only show preview indicators in preview mode or when actually disabled */}
-      {(isPreview && (isUsingSampleData || isDisabled)) && (
-        <div style={{
-          textAlign: 'center',
-          marginBottom: '20px',
-          padding: '8px',
-          backgroundColor: isDisabled ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-          borderRadius: '4px',
-          fontSize: '12px',
-          color: isDisabled ? '#ef4444' : '#3b82f6'
-        }}>
-          {isDisabled ? '📝 Form Display (Disabled - Enable in settings to show to customers)' : '📝 Sample Form Preview (Configure form settings to see actual form)'}
+      {submitSuccess && !isPreview ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+          Your submission has been sent successfully.
         </div>
-      )}
-      
-      {/* Show functional form indicator when not in preview */}
-      {!isPreview && isUsingSampleData && (
-        <div style={{
-          textAlign: 'center',
-          marginBottom: '20px',
-          padding: '8px',
-          backgroundColor: 'rgba(34, 197, 94, 0.1)',
-          borderRadius: '4px',
-          fontSize: '12px',
-          color: '#16a34a'
-        }}>
-          ✅ Live Form (Ready to accept submissions)
+      ) : null}
+      {submitError ? (
+        <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+          {submitError}
         </div>
+      ) : null}
+
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        {fieldsToRender.map((field) => (
+          <FieldRenderer
+            key={field.field_id}
+            field={field}
+            value={formData[field.field_id]}
+            onChange={(value) => handleInputChange(field.field_id, value)}
+            isPreview={isPreview}
+            accentColor={accentColor}
+            textColor={textColor}
+          />
+        ))}
+
+        <button
+          type="submit"
+          disabled={submitting || isPreview}
+          className="inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-semibold shadow-lg transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+          style={submitButtonStyle}
+        >
+          {isPreview ? displayConfig.buttonText || 'Submit Request' : submitting ? 'Submitting...' : displayConfig.buttonText || 'Submit Request'}
+        </button>
+      </form>
+    </div>
+  );
+
+  const centeredLayout = (
+    <div className="mx-auto max-w-3xl space-y-8">
+      {headingBlock}
+      {formCard}
+    </div>
+  );
+
+  const splitContent = (
+    <div className={`grid gap-6 ${viewport === 'mobile' ? 'grid-cols-1' : 'lg:grid-cols-[1.05fr_0.95fr]'}`}>
+      {layout === 'split-left' ? (
+        <>
+          {mediaPanel}
+          <div className="space-y-8">
+            {headingBlock}
+            {formCard}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="space-y-8">
+            {headingBlock}
+            {formCard}
+          </div>
+          {mediaPanel}
+        </>
       )}
-      <div style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
-        <h2 style={{ marginBottom: '8px', ...titleStyle }}>{title}</h2>
-        <p style={{ marginBottom: '24px', opacity: 0.8, ...subtitleStyle }}>{description}</p>
-        <div style={{ textAlign: 'left' }}>
-          {renderFormFields()}
+    </div>
+  );
+
+  const imageTopLayout = (
+    <div className="space-y-8">
+      {mediaPanel}
+      <div className="mx-auto max-w-3xl space-y-8">
+        {headingBlock}
+        {formCard}
+      </div>
+    </div>
+  );
+
+  const backgroundImageLayout = (
+    <div
+      className="relative overflow-hidden border border-white/30 p-6 sm:p-8"
+      style={{
+        ...surfaceStyle,
+        background:
+          displayConfig.imageUrl && displayConfig.showImage !== false
+            ? `linear-gradient(135deg, rgba(15,23,42,0.66), rgba(15,23,42,0.34)), url(${displayConfig.imageUrl}) center / cover`
+            : `linear-gradient(135deg, ${accentColor} 0%, rgba(15,23,42,0.94) 100%)`,
+      }}
+    >
+      <div className="mx-auto max-w-3xl rounded-[28px] bg-white/92 p-6 shadow-[0_32px_90px_rgba(15,23,42,0.24)] backdrop-blur sm:p-8">
+        <div className="space-y-8">
+          {headingBlock}
+          {formCard}
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <section
+      ref={ref}
+      style={{
+        ...sectionStyle,
+        ...revealStyle,
+        background: `radial-gradient(circle at top left, ${accentColor}16, transparent 34%), ${backgroundColor}`,
+      }}
+    >
+      <div style={contentStyle}>
+        {isPreview && isDisabled ? (
+          <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/90 px-6 py-12 text-center shadow-inner">
+            <p className="text-sm font-semibold text-slate-700">Form display is currently disabled</p>
+            <p className="mt-2 text-sm text-slate-500">
+              Enable the section to preview the selected form layout.
+            </p>
+          </div>
+        ) : layout === 'split-right' || layout === 'split-left' ? (
+          splitContent
+        ) : layout === 'image-top' ? (
+          imageTopLayout
+        ) : layout === 'background-image' ? (
+          backgroundImageLayout
+        ) : (
+          centeredLayout
+        )}
+      </div>
+    </section>
+  );
+}
+
+function FieldRenderer({
+  field,
+  value,
+  onChange,
+  isPreview,
+  accentColor,
+  textColor,
+}: {
+  field: FormField;
+  value: string | string[] | undefined;
+  onChange: (value: string | string[]) => void;
+  isPreview: boolean;
+  accentColor: string;
+  textColor: string;
+}) {
+  const baseInputClassName =
+    'w-full rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20';
+
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-medium" style={{ color: textColor }}>
+        {field.label}
+        {field.required ? <span style={{ color: accentColor }}> *</span> : null}
+      </span>
+
+      {field.type === 'textarea' ? (
+        <textarea
+          className={baseInputClassName}
+          rows={4}
+          value={typeof value === 'string' ? value : ''}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={isPreview}
+          placeholder={field.placeholder || ''}
+        />
+      ) : field.type === 'select' ? (
+        <select
+          className={baseInputClassName}
+          value={typeof value === 'string' ? value : ''}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={isPreview}
+        >
+          <option value="">Select an option</option>
+          {(field.options || []).map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      ) : field.type === 'checkbox' ? (
+        <div className="grid gap-2">
+          {(field.options || ['Yes']).map((option) => {
+            const values = Array.isArray(value) ? value : [];
+            const checked = values.includes(option);
+            return (
+              <label
+                key={option}
+                className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-700 shadow-sm"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={isPreview}
+                  onChange={(event) => {
+                    if (event.target.checked) {
+                      onChange([...values, option]);
+                    } else {
+                      onChange(values.filter((item) => item !== option));
+                    }
+                  }}
+                />
+                {option}
+              </label>
+            );
+          })}
+        </div>
+      ) : field.type === 'radio' ? (
+        <div className="grid gap-2">
+          {(field.options || ['Option']).map((option) => (
+            <label
+              key={option}
+              className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-700 shadow-sm"
+            >
+              <input
+                type="radio"
+                checked={value === option}
+                disabled={isPreview}
+                onChange={() => onChange(option)}
+              />
+              {option}
+            </label>
+          ))}
+        </div>
+      ) : (
+        <input
+          type={field.type === 'phone' ? 'tel' : field.type}
+          className={baseInputClassName}
+          value={typeof value === 'string' ? value : ''}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={isPreview}
+          placeholder={field.placeholder || ''}
+        />
+      )}
+    </label>
   );
 }

@@ -23,16 +23,15 @@ import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import CustomSectionSettingsForm from '@/components/admin/custom-section-settings-form-simple';
-import styles from '@/components/admin/gallery-settings-form.module.css';
 
 function CustomSectionSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const restaurantId = searchParams.get('restaurant_id');
-  const restaurantName = searchParams.get('restaurant_name');
-  const pageId = searchParams.get('page_id');
-  const isNewSection = searchParams.get('new_section') === 'true';
-  const templateId = searchParams.get('template_id') || null;
+  const restaurantId = searchParams?.get('restaurant_id');
+  const restaurantName = searchParams?.get('restaurant_name');
+  const pageId = searchParams?.get('page_id');
+  const isNewSection = searchParams?.get('new_section') === 'true';
+  const templateId = searchParams?.get('template_id') || null;
 
   const handleBack = () => {
     const params = new URLSearchParams();
@@ -57,6 +56,7 @@ function CustomSectionSettingsContent() {
           </button>
           <CustomSectionSettingsForm
             pageId={pageId || undefined}
+            templateId={templateId}
             isNewSection={isNewSection}
           />
         </>

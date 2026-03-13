@@ -161,6 +161,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const restaurantId = searchParams.get('restaurant_id');
     const pageId = searchParams.get('page_id');
+    const templateId = searchParams.get('template_id');
 
     if (!restaurantId) {
       const errorResponse: CustomSectionConfigResponse = {
@@ -171,9 +172,34 @@ export async function GET(request: Request) {
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    // Use page-specific query if page_id is available
-    const data = pageId
+    const data = templateId
       ? await graphqlRequest(`
+          query GetCustomSectionConfigByTemplate($template_id: uuid!) {
+            templates(
+              where: {
+                template_id: {_eq: $template_id},
+                category: {_eq: "CustomSection"},
+                is_deleted: {_eq: false}
+              },
+              limit: 1
+            ) {
+              category
+              config
+              created_at
+              is_deleted
+              menu_items
+              name
+              restaurant_id
+              template_id
+              updated_at
+              page_id
+            }
+          }
+        `, {
+          template_id: templateId,
+        })
+      : pageId
+        ? await graphqlRequest(`
           query GetCustomSectionConfigByPage($restaurant_id: uuid!, $page_id: uuid!) {
             templates(
               where: {
@@ -200,10 +226,10 @@ export async function GET(request: Request) {
         `, {
           restaurant_id: restaurantId,
           page_id: pageId,
-        })
-      : await graphqlRequest(GET_CUSTOM_SECTION_CONFIG, {
-          restaurant_id: restaurantId,
-        });
+          })
+        : await graphqlRequest(GET_CUSTOM_SECTION_CONFIG, {
+            restaurant_id: restaurantId,
+          });
 
     if (!(data as any).templates || (data as any).templates.length === 0) {
       const response: CustomSectionConfigResponse = {
@@ -223,6 +249,8 @@ export async function GET(request: Request) {
       ...template.config,
       layout: template.name as any,
       restaurant_id: restaurantId,
+      page_id: template.page_id || null,
+      template_id: template.template_id || null,
     };
 
     const response: CustomSectionConfigResponse = {
@@ -449,6 +477,8 @@ export async function POST(request: Request) {
       ...template.config,
       layout: template.name as any,
       restaurant_id: restaurantId,
+      page_id: template.page_id || null,
+      template_id: template.template_id || null,
     };
 
     const response: CustomSectionConfigResponse = {

@@ -6,8 +6,13 @@ import { DEFAULT_GLOBAL_STYLE_CONFIG } from '@/types/global-style.types';
 import type {
   SectionStyleConfig,
   SectionButtonStyleVariant,
+  SectionSurfaceShadow,
+  SectionScrollRevealAnimation,
+  SectionTextAlign,
 } from '@/types/section-style.types';
 import type { CSSProperties } from 'react';
+
+export type SectionViewport = 'desktop' | 'mobile';
 
 type ResolvedSectionStyleConfig = SectionStyleConfig & {
   is_custom: boolean;
@@ -48,6 +53,17 @@ type ResolvedSectionStyleConfig = SectionStyleConfig & {
   bodyMobileLineHeight?: string;
   bodyMobileLetterSpacing?: string;
   bodyColor: string;
+};
+
+export type ResolvedSectionLayoutConfig = {
+  sectionTextAlign: SectionTextAlign;
+  sectionMaxWidth: string;
+  sectionPaddingY: string;
+  sectionPaddingX: string;
+  surfaceBorderRadius: string;
+  surfaceShadow: SectionSurfaceShadow;
+  enableScrollReveal: boolean;
+  scrollRevealAnimation: SectionScrollRevealAnimation;
 };
 
 function toStringValue(value: unknown, fallback: string): string {
@@ -165,6 +181,20 @@ export function getSectionStyleDefaults(
     bodyMobileLineHeight: undefined,
     bodyLetterSpacing: undefined,
     bodyMobileLetterSpacing: undefined,
+    sectionTextAlign: 'left',
+    mobileSectionTextAlign: undefined,
+    sectionMaxWidth: '1200px',
+    mobileSectionMaxWidth: undefined,
+    sectionPaddingY: '4rem',
+    mobileSectionPaddingY: undefined,
+    sectionPaddingX: '1.5rem',
+    mobileSectionPaddingX: undefined,
+    surfaceBorderRadius: '1.5rem',
+    mobileSurfaceBorderRadius: undefined,
+    surfaceShadow: 'soft',
+    mobileSurfaceShadow: undefined,
+    enableScrollReveal: false,
+    scrollRevealAnimation: 'fade-up',
   };
 }
 
@@ -343,42 +373,274 @@ export function buildSectionStyleConfig(
   };
 }
 
+function resolveViewportString(
+  desktopValue: string | undefined,
+  mobileValue: string | undefined,
+  fallback: string,
+  viewport: SectionViewport,
+) {
+  if (viewport === 'mobile') {
+    return toStringValue(mobileValue, toStringValue(desktopValue, fallback));
+  }
+
+  return toStringValue(desktopValue, fallback);
+}
+
+function resolveViewportNumber(
+  desktopValue: number | undefined,
+  mobileValue: number | undefined,
+  fallback: number,
+  viewport: SectionViewport,
+) {
+  if (viewport === 'mobile') {
+    return toNumberValue(mobileValue, toNumberValue(desktopValue, fallback));
+  }
+
+  return toNumberValue(desktopValue, fallback);
+}
+
+function resolveViewportOptionalString(
+  desktopValue: string | undefined,
+  mobileValue: string | undefined,
+  viewport: SectionViewport,
+) {
+  if (viewport === 'mobile') {
+    return toOptionalStringValue(mobileValue, desktopValue);
+  }
+
+  return toOptionalStringValue(desktopValue);
+}
+
+export function getSectionLayoutConfig(
+  sourceConfig: Partial<SectionStyleConfig> | null | undefined,
+  viewport: SectionViewport = 'desktop',
+): ResolvedSectionLayoutConfig {
+  const defaults = getSectionStyleDefaults();
+  const source = sourceConfig || {};
+
+  return {
+    sectionTextAlign:
+      viewport === 'mobile'
+        ? (source.mobileSectionTextAlign ||
+            source.sectionTextAlign ||
+            defaults.sectionTextAlign ||
+            'left')
+        : (source.sectionTextAlign || defaults.sectionTextAlign || 'left'),
+    sectionMaxWidth: resolveViewportString(
+      source.sectionMaxWidth,
+      source.mobileSectionMaxWidth,
+      defaults.sectionMaxWidth || '1200px',
+      viewport,
+    ),
+    sectionPaddingY: resolveViewportString(
+      source.sectionPaddingY,
+      source.mobileSectionPaddingY,
+      defaults.sectionPaddingY || '4rem',
+      viewport,
+    ),
+    sectionPaddingX: resolveViewportString(
+      source.sectionPaddingX,
+      source.mobileSectionPaddingX,
+      defaults.sectionPaddingX || '1.5rem',
+      viewport,
+    ),
+    surfaceBorderRadius: resolveViewportString(
+      source.surfaceBorderRadius,
+      source.mobileSurfaceBorderRadius,
+      defaults.surfaceBorderRadius || '1.5rem',
+      viewport,
+    ),
+    surfaceShadow:
+      viewport === 'mobile'
+        ? (source.mobileSurfaceShadow ||
+            source.surfaceShadow ||
+            defaults.surfaceShadow ||
+            'soft')
+        : (source.surfaceShadow || defaults.surfaceShadow || 'soft'),
+    enableScrollReveal: source.enableScrollReveal === true,
+    scrollRevealAnimation:
+      source.scrollRevealAnimation || defaults.scrollRevealAnimation || 'fade-up',
+  };
+}
+
+export function getSurfaceShadowValue(shadow: SectionSurfaceShadow = 'soft') {
+  switch (shadow) {
+    case 'none':
+      return 'none';
+    case 'medium':
+      return '0 24px 60px rgba(15, 23, 42, 0.14)';
+    case 'large':
+      return '0 32px 90px rgba(15, 23, 42, 0.18)';
+    case 'soft':
+    default:
+      return '0 18px 45px rgba(15, 23, 42, 0.1)';
+  }
+}
+
+export function getSectionContainerStyles(
+  sourceConfig: Partial<SectionStyleConfig> | null | undefined,
+  viewport: SectionViewport = 'desktop',
+) {
+  const layoutConfig = getSectionLayoutConfig(sourceConfig, viewport);
+
+  return {
+    layoutConfig,
+    sectionStyle: {
+      paddingBlock: layoutConfig.sectionPaddingY,
+      paddingInline: layoutConfig.sectionPaddingX,
+      textAlign: layoutConfig.sectionTextAlign,
+    } as CSSProperties,
+    contentStyle: {
+      width: '100%',
+      maxWidth: layoutConfig.sectionMaxWidth,
+      marginInline: 'auto',
+    } as CSSProperties,
+    surfaceStyle: {
+      borderRadius: layoutConfig.surfaceBorderRadius,
+      boxShadow: getSurfaceShadowValue(layoutConfig.surfaceShadow),
+    } as CSSProperties,
+  };
+}
+
 export function getSectionTypographyStyles(
   sourceConfig: Partial<SectionStyleConfig> | null | undefined,
   globalStyles?: GlobalStyleConfig | null,
+  viewport: SectionViewport = 'desktop',
 ) {
   const resolved = buildSectionStyleConfig(sourceConfig, globalStyles);
   return {
     resolved,
     titleStyle: {
-      fontFamily: resolved.titleFontFamily,
-      fontSize: resolved.titleFontSize,
-      fontWeight: resolved.titleFontWeight,
-      fontStyle: resolved.titleFontStyle,
-      color: resolved.titleColor,
-      textTransform: resolved.titleTextTransform,
-      lineHeight: resolved.titleLineHeight,
-      letterSpacing: resolved.titleLetterSpacing,
+      fontFamily: resolveViewportString(
+        resolved.titleFontFamily,
+        resolved.titleMobileFontFamily,
+        resolved.titleFontFamily,
+        viewport,
+      ),
+      fontSize: resolveViewportString(
+        resolved.titleFontSize,
+        resolved.titleMobileFontSize,
+        resolved.titleFontSize,
+        viewport,
+      ),
+      fontWeight: resolveViewportNumber(
+        resolved.titleFontWeight,
+        resolved.titleMobileFontWeight,
+        resolved.titleFontWeight,
+        viewport,
+      ),
+      fontStyle:
+        viewport === 'mobile'
+          ? resolved.titleMobileFontStyle || resolved.titleFontStyle
+          : resolved.titleFontStyle,
+      color: resolveViewportString(
+        resolved.titleColor,
+        resolved.titleMobileColor,
+        resolved.titleColor,
+        viewport,
+      ),
+      textTransform:
+        viewport === 'mobile'
+          ? resolved.titleMobileTextTransform || resolved.titleTextTransform
+          : resolved.titleTextTransform,
+      lineHeight: resolveViewportOptionalString(
+        resolved.titleLineHeight,
+        resolved.titleMobileLineHeight,
+        viewport,
+      ),
+      letterSpacing: resolveViewportOptionalString(
+        resolved.titleLetterSpacing,
+        resolved.titleMobileLetterSpacing,
+        viewport,
+      ),
     } as const,
     subtitleStyle: {
-      fontFamily: resolved.subtitleFontFamily,
-      fontSize: resolved.subtitleFontSize,
-      fontWeight: resolved.subtitleFontWeight,
-      fontStyle: resolved.subtitleFontStyle,
-      color: resolved.subtitleColor,
-      textTransform: resolved.subtitleTextTransform,
-      lineHeight: resolved.subtitleLineHeight,
-      letterSpacing: resolved.subtitleLetterSpacing,
+      fontFamily: resolveViewportString(
+        resolved.subtitleFontFamily,
+        resolved.subtitleMobileFontFamily,
+        resolved.subtitleFontFamily,
+        viewport,
+      ),
+      fontSize: resolveViewportString(
+        resolved.subtitleFontSize,
+        resolved.subtitleMobileFontSize,
+        resolved.subtitleFontSize,
+        viewport,
+      ),
+      fontWeight: resolveViewportNumber(
+        resolved.subtitleFontWeight,
+        resolved.subtitleMobileFontWeight,
+        resolved.subtitleFontWeight,
+        viewport,
+      ),
+      fontStyle:
+        viewport === 'mobile'
+          ? resolved.subtitleMobileFontStyle || resolved.subtitleFontStyle
+          : resolved.subtitleFontStyle,
+      color: resolveViewportString(
+        resolved.subtitleColor,
+        resolved.subtitleMobileColor,
+        resolved.subtitleColor,
+        viewport,
+      ),
+      textTransform:
+        viewport === 'mobile'
+          ? resolved.subtitleMobileTextTransform || resolved.subtitleTextTransform
+          : resolved.subtitleTextTransform,
+      lineHeight: resolveViewportOptionalString(
+        resolved.subtitleLineHeight,
+        resolved.subtitleMobileLineHeight,
+        viewport,
+      ),
+      letterSpacing: resolveViewportOptionalString(
+        resolved.subtitleLetterSpacing,
+        resolved.subtitleMobileLetterSpacing,
+        viewport,
+      ),
     } as const,
     bodyStyle: {
-      fontFamily: resolved.bodyFontFamily,
-      fontSize: resolved.bodyFontSize,
-      fontWeight: resolved.bodyFontWeight,
-      fontStyle: resolved.bodyFontStyle,
-      color: resolved.bodyColor,
-      textTransform: resolved.bodyTextTransform,
-      lineHeight: resolved.bodyLineHeight,
-      letterSpacing: resolved.bodyLetterSpacing,
+      fontFamily: resolveViewportString(
+        resolved.bodyFontFamily,
+        resolved.bodyMobileFontFamily,
+        resolved.bodyFontFamily,
+        viewport,
+      ),
+      fontSize: resolveViewportString(
+        resolved.bodyFontSize,
+        resolved.bodyMobileFontSize,
+        resolved.bodyFontSize,
+        viewport,
+      ),
+      fontWeight: resolveViewportNumber(
+        resolved.bodyFontWeight,
+        resolved.bodyMobileFontWeight,
+        resolved.bodyFontWeight,
+        viewport,
+      ),
+      fontStyle:
+        viewport === 'mobile'
+          ? resolved.bodyMobileFontStyle || resolved.bodyFontStyle
+          : resolved.bodyFontStyle,
+      color: resolveViewportString(
+        resolved.bodyColor,
+        resolved.bodyMobileColor,
+        resolved.bodyColor,
+        viewport,
+      ),
+      textTransform:
+        viewport === 'mobile'
+          ? resolved.bodyMobileTextTransform || resolved.bodyTextTransform
+          : resolved.bodyTextTransform,
+      lineHeight: resolveViewportOptionalString(
+        resolved.bodyLineHeight,
+        resolved.bodyMobileLineHeight,
+        viewport,
+      ),
+      letterSpacing: resolveViewportOptionalString(
+        resolved.bodyLetterSpacing,
+        resolved.bodyMobileLetterSpacing,
+        viewport,
+      ),
     } as const,
   };
 }

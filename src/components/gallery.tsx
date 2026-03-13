@@ -483,6 +483,7 @@ export default function Gallery({
     margin,
     color: textColor,
     '--gallery-accent': bodyStyle.color || textColor,
+    '--gallery-showcase-base': bgColor,
   } as CSSProperties;
 
   const sharedLayoutProps = {

@@ -2,7 +2,7 @@
  * Review Settings Form
  *
  * Enhanced interface for configuring review section settings:
- * - Layout selection (grid, masonry, slider, list)
+ * - Layout selection (three Google review presentation styles)
  * - Content configuration (title, subtitle, description)
  * - Display options (avatar, rating, date, source)
  * - Styling options (colors, typography)
@@ -16,11 +16,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Reviews from '@/components/reviews';
 import Toast from '@/components/ui/toast';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
+import { ImageGalleryModal } from '@/components/admin/image-gallery-modal';
 import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import type { ReviewConfig, Review } from '@/types/review.types';
 import { DEFAULT_REVIEW_CONFIG } from '@/types/review.types';
 
 type PreviewViewport = 'desktop' | 'mobile';
+type SupportedReviewLayout = 'grid' | 'slider' | 'list';
 
 interface ReviewSettingsFormProps {
   pageId?: string;
@@ -28,126 +30,204 @@ interface ReviewSettingsFormProps {
   isNewSection?: boolean;
 }
 
+const normalizeReviewLayout = (
+  layout: ReviewConfig['layout'],
+): SupportedReviewLayout => {
+  if (layout === 'slider') {
+    return 'slider';
+  }
+
+  if (layout === 'list' || layout === 'masonry') {
+    return 'list';
+  }
+
+  return 'grid';
+};
+
 const reviewLayoutOptions: Array<{
-  value: ReviewConfig['layout'];
+  value: SupportedReviewLayout;
   name: string;
   description: string;
   support: string;
+  accent: string;
 }> = [
   {
     value: 'grid',
-    name: 'Grid',
-    description: 'Balanced review cards',
-    support: 'Strong for broad social proof',
-  },
-  {
-    value: 'masonry',
-    name: 'Masonry',
-    description: 'Editorial staggered feed',
-    support: 'Works well for varied review length',
+    name: 'Editorial Strip',
+    description: 'Headline, CTA, and centered testimonials',
+    support: 'Matches the clean top-strip review reference',
+    accent: 'Top carousel',
   },
   {
     value: 'slider',
-    name: 'Slider',
-    description: 'Focused carousel storytelling',
-    support: 'Best for guided browsing',
+    name: 'Split Spotlight',
+    description: 'Large image with one featured review story',
+    support: 'Best for premium restaurant-style presentation',
+    accent: 'Image split',
   },
   {
     value: 'list',
-    name: 'List',
-    description: 'Premium stacked testimonials',
-    support: 'Highlights reviewer identity clearly',
+    name: 'Review Cards',
+    description: 'Card carousel with stronger social proof density',
+    support: 'Closest to the framed card slider reference',
+    accent: 'Card rail',
   },
 ];
 
-function renderReviewLayoutPreview(layout: ReviewConfig['layout'], active: boolean) {
+const reviewAnimationStyles: Array<{
+  value: NonNullable<ReviewConfig['animationStyle']>;
+  name: string;
+  description: string;
+}> = [
+  {
+    value: 'fade-up',
+    name: 'Fade Up',
+    description: 'Soft upward entrance for cards and spotlight content',
+  },
+  {
+    value: 'soft-scale',
+    name: 'Soft Scale',
+    description: 'Gentle zoom-in with a premium polished feel',
+  },
+  {
+    value: 'slide-up',
+    name: 'Slide Across',
+    description: 'A slightly stronger slide for more visible motion',
+  },
+];
+
+const reviewAnimationSpeeds: Array<{
+  value: NonNullable<ReviewConfig['animationSpeed']>;
+  label: string;
+}> = [
+  { value: 'fast', label: 'Fast' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'slow', label: 'Slow' },
+];
+
+const reviewCountOptions = [3, 4, 6];
+
+function renderReviewLayoutPreview(layout: SupportedReviewLayout, active: boolean) {
   const boardTone = active
-    ? 'border-purple-200 bg-gradient-to-b from-white to-purple-50/80'
-    : 'border-slate-200 bg-gradient-to-b from-white to-slate-50';
-  const accentTone = active ? 'bg-purple-500/90' : 'bg-slate-400';
+    ? 'border-purple-200 bg-[linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(250,245,255,1)_100%)]'
+    : 'border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(248,250,252,1)_100%)]';
+  const cardTone = active
+    ? 'border-purple-100/90 bg-white shadow-[0_14px_30px_rgba(168,85,247,0.12)]'
+    : 'border-slate-200/90 bg-white shadow-[0_14px_30px_rgba(15,23,42,0.06)]';
   const softTone = active ? 'bg-purple-200/80' : 'bg-slate-200';
   const paleTone = active ? 'bg-purple-100/90' : 'bg-slate-100';
+  const titleTone = active ? 'bg-slate-900' : 'bg-slate-700';
+  const buttonTone = active
+    ? 'border-purple-300 bg-purple-50 text-purple-700'
+    : 'border-purple-200 bg-white text-purple-600';
 
   return (
     <div className={`overflow-hidden rounded-2xl border ${boardTone}`}>
       <div className="flex items-center justify-between border-b border-slate-200/80 bg-white/90 px-3 py-2">
         <div className="flex gap-1">
-          <span className="h-2 w-2 rounded-full bg-rose-300" />
+          <span className="h-2 w-2 rounded-full bg-purple-300" />
           <span className="h-2 w-2 rounded-full bg-amber-300" />
           <span className="h-2 w-2 rounded-full bg-emerald-300" />
         </div>
-        <div className={`h-2 rounded-full ${softTone} w-20`} />
+        <div className={`h-2 w-20 rounded-full ${softTone}`} />
       </div>
-      <div className="h-28 p-3">
+      <div className="h-36 p-3">
         {layout === 'grid' ? (
-          <div className="grid h-full grid-cols-2 gap-2">
-            {[0, 1, 2, 3].map((index) => (
-              <div key={index} className="rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
-                <div className="mb-2 flex items-center justify-between">
-                  <div className={`h-3 w-10 rounded-full ${accentTone}`} />
-                  <div className={`h-2 w-6 rounded-full ${softTone}`} />
-                </div>
-                <div className={`mb-1.5 h-2.5 rounded-full ${active ? 'bg-slate-700' : 'bg-slate-500'} ${index % 2 === 0 ? 'w-4/5' : 'w-3/5'}`} />
-                <div className={`h-2 rounded-full ${softTone} ${index % 2 === 0 ? 'w-full' : 'w-4/5'}`} />
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        {layout === 'masonry' ? (
-          <div className="grid h-full grid-cols-3 gap-2">
-            {[0, 1, 2].map((index) => (
-              <div key={index} className="rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
-                <div className={`mb-2 h-2.5 rounded-full ${accentTone} ${index === 1 ? 'w-1/2' : 'w-3/4'}`} />
-                <div
-                  className={`mb-1.5 rounded-2xl ${paleTone}`}
-                  style={{ height: index === 0 ? '1.75rem' : index === 1 ? '1rem' : '2.25rem' }}
-                />
-                <div className={`h-2 rounded-full ${softTone} ${index === 1 ? 'w-full' : 'w-4/5'}`} />
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        {layout === 'slider' ? (
-          <div className="relative flex h-full gap-2">
-            {[0, 1].map((index) => (
-              <div
-                key={index}
-                className={`flex-1 rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm ${index === 1 ? 'opacity-70' : ''}`}
-              >
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="flex gap-0.5">
-                    {[0, 1, 2, 3, 4].map((star) => (
-                      <span key={star} className={`h-2 w-2 rounded-full ${star < 4 ? accentTone : softTone}`} />
+          <div className="flex h-full flex-col gap-2">
+            <div className={`h-3 w-40 rounded-full ${titleTone}`} />
+            <div className={`inline-flex w-fit items-center gap-2 rounded-xl border px-2.5 py-1.5 text-[10px] font-semibold ${buttonTone}`}>
+              <span className="h-3 w-3 rounded-full bg-[conic-gradient(from_210deg,#4285f4_0deg,#34a853_140deg,#fbbc05_220deg,#ea4335_320deg,#4285f4_360deg)]" />
+              Rate Us
+            </div>
+            <div className="mt-1 grid flex-1 grid-cols-3 gap-2">
+              {[0, 1, 2].map((index) => (
+                <div key={index} className={`rounded-2xl border px-2 py-2.5 text-center ${cardTone}`}>
+                  <div className={`mx-auto mb-2 h-6 w-6 rounded-full ${paleTone}`} />
+                  <div className="mb-2 flex justify-center gap-1">
+                    {Array.from({ length: 5 }).map((_, star) => (
+                      <span
+                        key={star}
+                        className={`h-1.5 w-1.5 rounded-full ${star < 4 ? 'bg-amber-400' : softTone}`}
+                      />
                     ))}
                   </div>
-                  <div className={`h-2 w-7 rounded-full ${softTone}`} />
+                  <div className={`mx-auto mb-1.5 h-2 rounded-full ${softTone} ${index === 1 ? 'w-full' : 'w-5/6'}`} />
+                  <div className={`mx-auto h-2 rounded-full ${softTone} ${index === 0 ? 'w-3/4' : 'w-2/3'}`} />
                 </div>
-                <div className={`mb-1.5 h-2.5 rounded-full ${active ? 'bg-slate-700' : 'bg-slate-500'} w-11/12`} />
-                <div className={`h-2 rounded-full ${softTone} w-4/5`} />
-              </div>
-            ))}
-            <div className="absolute inset-x-0 bottom-0 flex justify-center gap-1">
-              {[0, 1, 2].map((dot) => (
-                <span key={dot} className={`h-1.5 rounded-full ${dot === 0 ? `${accentTone} w-5` : `${softTone} w-1.5`}`} />
               ))}
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] text-slate-500 shadow-sm">
+                ←
+              </span>
+              <span className="h-1.5 w-10 rounded-full bg-purple-500" />
+              <span className="h-1.5 w-1.5 rounded-full bg-slate-200" />
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] text-slate-500 shadow-sm">
+                →
+              </span>
             </div>
           </div>
         ) : null}
 
-        {layout === 'list' ? (
-          <div className="space-y-2">
-            {[0, 1, 2].map((index) => (
-              <div key={index} className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/90 px-2.5 py-2 shadow-sm">
-                <div className={`h-8 w-8 rounded-full ${paleTone}`} />
-                <div className="min-w-0 flex-1">
-                  <div className={`mb-1.5 h-2.5 rounded-full ${active ? 'bg-slate-700' : 'bg-slate-500'} ${index === 0 ? 'w-1/2' : index === 1 ? 'w-3/5' : 'w-2/5'}`} />
-                  <div className={`h-2 rounded-full ${softTone} ${index === 0 ? 'w-full' : 'w-5/6'}`} />
-                </div>
-                <div className={`h-6 w-14 rounded-full ${paleTone}`} />
+        {layout === 'slider' ? (
+          <div className="grid h-full grid-cols-[1.05fr_0.95fr] gap-2">
+            <div className={`rounded-[1.35rem] border px-3 py-3 ${cardTone}`}>
+              <div className={`mx-auto mb-2 h-5 w-5 rounded-full ${paleTone}`} />
+              <div className="mb-2 flex justify-center gap-1">
+                {Array.from({ length: 5 }).map((_, star) => (
+                  <span
+                    key={star}
+                    className={`h-1.5 w-1.5 rounded-full ${star < 5 ? 'bg-amber-400' : softTone}`}
+                  />
+                ))}
               </div>
-            ))}
+              <div className={`mx-auto mb-1.5 h-2 w-full rounded-full ${softTone}`} />
+              <div className={`mx-auto mb-1.5 h-2 w-11/12 rounded-full ${softTone}`} />
+              <div className={`mx-auto h-2 w-2/3 rounded-full ${softTone}`} />
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-[10px] text-slate-400">←</span>
+                <span className={`h-2 w-14 rounded-full ${softTone}`} />
+                <span className="text-[10px] text-slate-400">→</span>
+              </div>
+              <div className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border px-2.5 py-2 text-[10px] font-semibold ${active ? 'border-purple-300 bg-purple-600 text-white' : 'border-purple-200 bg-purple-500 text-white'}`}>
+                <span className="h-3 w-3 rounded-full bg-white/70" />
+                Review On Google
+              </div>
+            </div>
+            <div className="rounded-[1.5rem] bg-[linear-gradient(135deg,#0f172a,#6d28d9_52%,#a855f7)]" />
+          </div>
+        ) : null}
+
+        {layout === 'list' ? (
+          <div className="flex h-full flex-col gap-2">
+            <div className={`h-3 w-44 rounded-full ${titleTone}`} />
+            <div className={`inline-flex w-fit items-center gap-2 rounded-xl border px-2.5 py-1.5 text-[10px] font-semibold ${buttonTone}`}>
+              <span className="h-3 w-3 rounded-full bg-[conic-gradient(from_210deg,#4285f4_0deg,#34a853_140deg,#fbbc05_220deg,#ea4335_320deg,#4285f4_360deg)]" />
+              Google CTA
+            </div>
+            <div className="relative mt-1 flex flex-1 items-center gap-2">
+              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] text-slate-500 shadow-sm">
+                ←
+              </span>
+              {[0, 1, 2].map((index) => (
+                <div key={index} className={`min-w-0 flex-1 rounded-2xl border px-2 py-2 ${cardTone}`}>
+                  <div className={`mx-auto mb-2 h-6 w-6 rounded-full ${paleTone}`} />
+                  <div className="mb-2 flex justify-center gap-1">
+                    {Array.from({ length: 5 }).map((_, star) => (
+                      <span
+                        key={star}
+                        className={`h-1.5 w-1.5 rounded-full ${star < 3 ? 'bg-amber-400' : softTone}`}
+                      />
+                    ))}
+                  </div>
+                  <div className={`mx-auto mb-1.5 h-2 rounded-full ${softTone} ${index === 0 ? 'w-4/5' : 'w-full'}`} />
+                  <div className={`mx-auto h-2 rounded-full ${softTone} ${index === 1 ? 'w-3/4' : 'w-2/3'}`} />
+                </div>
+              ))}
+              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] text-slate-500 shadow-sm">
+                →
+              </span>
+            </div>
           </div>
         ) : null}
       </div>
@@ -249,6 +329,8 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showHighlightGallery, setShowHighlightGallery] = useState(false);
+  const [uploadingHighlightImage, setUploadingHighlightImage] = useState(false);
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop');
   const [responsiveEditorViewport, setResponsiveEditorViewport] =
     useState<PreviewViewport>('desktop');
@@ -309,6 +391,7 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
           ...DEFAULT_REVIEW_CONFIG,
           ...sectionStyleDefaults,
           ...data.data,
+          layout: normalizeReviewLayout(data.data.layout),
         });
       }
     } catch (error) {
@@ -331,6 +414,44 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
       }
     } catch (error) {
       console.error('Error fetching reviews:', error);
+    }
+  };
+
+  const handleHighlightImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !restaurantId) return;
+
+    setUploadingHighlightImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('restaurant_id', restaurantId);
+
+      const response = await fetch('/api/media/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.data?.file?.url) {
+        updateConfig({ highlightImageUrl: data.data.file.url });
+        setToastMessage('Spotlight image uploaded successfully!');
+        setToastType('success');
+        setShowToast(true);
+      } else {
+        setToastMessage(`Failed to upload image: ${data.error || 'Unknown error'}`);
+        setToastType('error');
+        setShowToast(true);
+      }
+    } catch (error) {
+      console.error('Error uploading spotlight image:', error);
+      setToastMessage('Error uploading spotlight image');
+      setToastType('error');
+      setShowToast(true);
+    } finally {
+      setUploadingHighlightImage(false);
+      event.target.value = '';
     }
   };
 
@@ -381,10 +502,29 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
   };
 
   const updateConfig = (updates: Partial<ReviewConfig>) => {
-    setConfig(prev => ({ ...prev, ...updates }));
+    setConfig((prev) => ({
+      ...prev,
+      ...updates,
+      layout:
+        updates.layout !== undefined
+          ? normalizeReviewLayout(updates.layout)
+          : prev.layout,
+    }));
   };
 
   const previewReviews = reviews.length > 0 ? reviews : buildSampleReviews(restaurantId);
+  const activeLayout = normalizeReviewLayout(config.layout);
+  const activeLayoutOption =
+    reviewLayoutOptions.find((option) => option.value === activeLayout) ||
+    reviewLayoutOptions[0];
+  const selectedAnimationStyle =
+    reviewAnimationStyles.find((option) => option.value === config.animationStyle) ||
+    reviewAnimationStyles[0];
+  const maxReviewValue = config.maxReviews || 3;
+  const motionStatusLabel =
+    config.enableAnimations === false
+      ? 'Disabled'
+      : `${selectedAnimationStyle.name} • ${(config.animationSpeed || 'normal').charAt(0).toUpperCase()}${(config.animationSpeed || 'normal').slice(1)}`;
 
   const renderResponsiveEditorTabs = (scope: string) => (
     <div className="inline-flex rounded-full bg-slate-100 p-1">
@@ -478,25 +618,49 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
         </div>
 
         {/* Layout Settings Section */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
-              </svg>
+        <div className="overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top_left,rgba(250,245,255,0.82),rgba(255,255,255,1)_44%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-6 shadow-[0_28px_70px_rgba(15,23,42,0.07)] sm:p-7">
+          <div className="mb-7 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-[0_16px_32px_rgba(168,85,247,0.28)]">
+                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Layout Configuration</h2>
+                <p className="mt-1 text-sm text-slate-600">Choose the review presentation, density, media, and motion system.</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Layout Configuration</h2>
-              <p className="text-sm text-gray-600">Choose display style and configuration</p>
+
+            <div className="flex w-full flex-col gap-3 rounded-[24px] border border-slate-200/80 bg-white/80 px-4 py-3 shadow-[0_18px_40px_rgba(15,23,42,0.05)] sm:max-w-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Active Layout
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{activeLayoutOption.name}</p>
+                </div>
+                <span className="inline-flex rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 ring-1 ring-purple-100">
+                  {activeLayoutOption.accent}
+                </span>
+              </div>
+              <p className="text-xs leading-5 text-slate-500">
+                Live preview, desktop density, and motion controls below stay synced with this layout selection.
+              </p>
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label className="mb-3 text-sm font-medium text-gray-700">Layout Type</label>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <label className="text-sm font-medium text-slate-700">Layout Type</label>
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
+                  Pick the closest reference layout first
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
                 {reviewLayoutOptions.map((option) => {
-                  const isActive = config.layout === option.value;
+                  const isActive = activeLayout === option.value;
 
                   return (
                     <button
@@ -504,13 +668,13 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
                       key={option.value}
                       onClick={() => updateConfig({ layout: option.value })}
                       aria-pressed={isActive}
-                      className={`group w-full rounded-2xl border p-3 text-left transition-all ${
+                      className={`group w-full rounded-[26px] border p-4 text-left transition-all ${
                         isActive
-                          ? 'border-purple-500 bg-purple-50 shadow-[0_20px_45px_rgba(124,58,237,0.12)]'
-                          : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-[0_18px_35px_rgba(15,23,42,0.08)]'
+                          ? 'border-purple-400 bg-[linear-gradient(180deg,rgba(250,245,255,1)_0%,rgba(255,255,255,1)_100%)] shadow-[0_22px_48px_rgba(124,58,237,0.14)]'
+                          : 'border-slate-200/90 bg-white/90 hover:-translate-y-0.5 hover:border-purple-200 hover:bg-white hover:shadow-[0_20px_40px_rgba(15,23,42,0.08)]'
                       }`}
                     >
-                      <div className="mb-4">
+                      <div className="mb-4 rounded-[24px] border border-white/70 bg-white/70 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
                         {renderReviewLayoutPreview(option.value, isActive)}
                       </div>
                       <div className="flex items-start justify-between gap-3">
@@ -529,10 +693,10 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
                               : 'bg-slate-100 text-slate-500'
                           }`}
                         >
-                          {isActive ? 'Selected' : 'Layout'}
+                          {isActive ? option.accent : 'Layout'}
                         </span>
                       </div>
-                      <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white/75 px-3 py-2 text-xs text-slate-500">
+                      <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white/80 px-3 py-2 text-xs text-slate-500">
                         {option.support}
                       </div>
                     </button>
@@ -541,35 +705,399 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
               </div>
             </div>
 
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Columns</span>
-                <span className="text-xs font-normal text-gray-500">Number of columns</span>
-              </label>
-              <select
-                value={config.columns}
-                onChange={(e) => updateConfig({ columns: Number(e.target.value) as ReviewConfig['columns'] })}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-              >
-                <option value="2">2 Columns</option>
-                <option value="3">3 Columns</option>
-                <option value="4">4 Columns</option>
-              </select>
-            </div>
+            <div className="grid grid-cols-1 items-start gap-6">
+              <div className="space-y-5">
+                <div className="overflow-hidden rounded-[30px] border border-slate-200/90 bg-[radial-gradient(circle_at_top_left,rgba(248,243,255,0.96),rgba(255,255,255,1)_55%)] shadow-[0_28px_65px_rgba(15,23,42,0.08)]">
+                  <div className="flex flex-col gap-4 border-b border-slate-200/80 px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        Selected Layout
+                      </p>
+                      <h3 className="mt-2 text-xl font-semibold text-slate-900">
+                        {activeLayoutOption.name}
+                      </h3>
+                      <p className="mt-2 max-w-md text-sm text-slate-600">
+                        {activeLayoutOption.description}
+                      </p>
+                    </div>
+                    <span className="inline-flex w-fit rounded-full bg-white/90 px-3.5 py-1.5 text-xs font-semibold text-purple-700 shadow-sm ring-1 ring-purple-100">
+                      {activeLayoutOption.accent}
+                    </span>
+                  </div>
 
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Max Reviews</span>
-                <span className="text-xs font-normal text-gray-500">Maximum number to display</span>
-              </label>
-              <input
-                type="number"
-                value={config.maxReviews || 6}
-                onChange={(e) => updateConfig({ maxReviews: parseInt(e.target.value) || 6 })}
-                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                min="1"
-                max="50"
-              />
+                  <div className="space-y-5 px-5 py-5">
+                    <div className="rounded-[26px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(248,250,252,0.92)_100%)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_18px_45px_rgba(15,23,42,0.06)]">
+                      {renderReviewLayoutPreview(activeLayout, true)}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <span className="inline-flex rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+                        Desktop first
+                      </span>
+                      <span className="inline-flex rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+                        Live preview synced
+                      </span>
+                      <span className="inline-flex rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+                        Motion ready
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div className="rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 shadow-sm">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                          Density
+                        </p>
+                        <p className="mt-2 text-lg font-semibold text-slate-900">
+                          {maxReviewValue} reviews
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Balanced desktop composition
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 shadow-sm">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                          Motion
+                        </p>
+                        <p className="mt-2 text-lg font-semibold text-slate-900">
+                          {config.enableAnimations === false ? 'Off' : 'On'}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {motionStatusLabel}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 shadow-sm">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                          Best For
+                        </p>
+                        <p className="mt-2 text-sm font-semibold text-slate-900">
+                          {activeLayoutOption.support}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-[22px] border border-purple-100 bg-white/85 px-4 py-3 text-sm text-slate-600">
+                      Layout preview, density, and motion settings all update the floating live preview immediately.
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`overflow-hidden rounded-[30px] border shadow-[0_24px_55px_rgba(15,23,42,0.06)] ${
+                  activeLayout === 'slider'
+                    ? 'border-slate-200 bg-white'
+                    : 'border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.95)_0%,rgba(255,255,255,0.92)_100%)]'
+                }`}>
+                  <div className="px-5 py-5">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="max-w-xl">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                          Spotlight Media
+                        </p>
+                        <h4 className="mt-2 text-lg font-semibold text-slate-900">
+                          Split Spotlight Image
+                        </h4>
+                        <p className="mt-3 text-sm leading-6 text-slate-600">
+                          Add a restaurant exterior or signature ambience image to give the split layout a premium, editorial feel.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                          activeLayout === 'slider'
+                            ? 'bg-purple-50 text-purple-700 ring-1 ring-purple-100'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {activeLayout === 'slider' ? 'Active in preview' : 'Available for Split Spotlight'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowHighlightGallery(true)}
+                          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-purple-200 hover:text-purple-700"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25v13.5A2.25 2.25 0 0118.75 21H8.25M3 16.5l3.879-3.879a1.5 1.5 0 012.121 0L12 15.621m-9 0V18.75A2.25 2.25 0 005.25 21H18.75" />
+                          </svg>
+                          Choose from library
+                        </button>
+                        <label className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                          uploadingHighlightImage
+                            ? 'cursor-wait border border-purple-200 bg-purple-50 text-purple-700'
+                            : 'border border-purple-200 bg-purple-600 text-white hover:bg-purple-700'
+                        }`}>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleHighlightImageUpload}
+                            disabled={uploadingHighlightImage}
+                          />
+                          {uploadingHighlightImage ? (
+                            <>
+                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4m5 8v1.5A2.5 2.5 0 0118.5 20h-13A2.5 2.5 0 013 17.5V16" />
+                              </svg>
+                              Upload image
+                            </>
+                          )}
+                        </label>
+                        {config.highlightImageUrl ? (
+                          <button
+                            type="button"
+                            onClick={() => updateConfig({ highlightImageUrl: '' })}
+                            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-500 transition-colors hover:border-purple-200 hover:text-purple-700"
+                          >
+                            Remove
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.28fr)_minmax(340px,0.72fr)]">
+                      <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                        {config.highlightImageUrl ? (
+                          <img
+                            src={config.highlightImageUrl}
+                            alt="Split spotlight preview"
+                            className="h-72 w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-72 w-full items-end bg-[linear-gradient(135deg,#0f172a_0%,#6d28d9_48%,#a855f7_100%)] p-5">
+                            <div className="rounded-2xl bg-black/20 px-4 py-2.5 text-sm font-semibold text-white/90 backdrop-blur-sm">
+                              Split Spotlight placeholder
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex flex-col gap-2 border-t border-slate-200 bg-white/90 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">
+                              {config.highlightImageUrl ? 'Spotlight image ready' : 'No spotlight image selected'}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {config.highlightImageUrl
+                                ? 'The split spotlight preview and storefront will use this image.'
+                                : 'Upload an image or choose one from the media library to replace the placeholder artwork.'}
+                            </p>
+                          </div>
+                          <span className="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                            {config.highlightImageUrl ? 'Custom image' : 'Placeholder'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="rounded-[28px] border border-slate-200 bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
+                        <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 p-4">
+                          <label className="mb-2 block text-sm font-medium text-slate-700">
+                            Image URL
+                          </label>
+                          <input
+                            type="url"
+                            value={config.highlightImageUrl || ''}
+                            onChange={(e) => updateConfig({ highlightImageUrl: e.target.value })}
+                            className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                            placeholder="https://images.example.com/restaurant-exterior.jpg"
+                          />
+                          <p className="mt-2 text-xs text-slate-500">
+                            Paste an external image URL if you do not want to use the upload flow.
+                          </p>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                          <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                              Best result
+                            </p>
+                            <p className="mt-2 text-sm font-semibold text-slate-900">
+                              Wide restaurant or ambience image
+                            </p>
+                          </div>
+                          <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                              Fallback
+                            </p>
+                            <p className="mt-2 text-sm font-semibold text-slate-900">
+                              Built-in artwork stays visible until you add a custom image
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+                <div className="rounded-[30px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 shadow-[0_24px_60px_rgba(15,23,42,0.06)]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        Review Density
+                      </p>
+                      <h4 className="mt-2 text-lg font-semibold text-slate-900">
+                        Max Reviews
+                      </h4>
+                      <p className="mt-2 text-sm text-slate-600">
+                        Keep the desktop layouts tight and balanced. 3 reviews is the recommended default.
+                      </p>
+                    </div>
+                    <div className="rounded-[22px] bg-slate-950 px-4 py-3 text-center text-white shadow-[0_18px_35px_rgba(15,23,42,0.22)]">
+                      <div className="text-xs font-medium uppercase tracking-[0.16em] text-white/60">
+                        Current
+                      </div>
+                      <div className="mt-1 text-2xl font-semibold leading-none">
+                        {maxReviewValue}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    {reviewCountOptions.map((count) => {
+                      const activeCount = maxReviewValue === count;
+
+                      return (
+                        <button
+                          key={count}
+                          type="button"
+                          onClick={() => updateConfig({ maxReviews: count })}
+                          className={`rounded-[22px] border px-4 py-3 text-left transition-all ${
+                            activeCount
+                              ? 'border-purple-400 bg-[linear-gradient(180deg,rgba(250,245,255,1)_0%,rgba(255,255,255,1)_100%)] text-purple-700 shadow-[0_14px_30px_rgba(168,85,247,0.12)]'
+                              : 'border-slate-200 bg-white text-slate-700 hover:border-purple-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="text-sm font-semibold">{count} reviews</div>
+                          <div className="mt-1 text-xs text-slate-500">
+                            {count === 3 ? 'Recommended balance' : count === 4 ? 'A little more coverage' : 'Dense social proof'}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-5 flex flex-col gap-3 rounded-[24px] border border-slate-200 bg-slate-50/90 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">Custom count</p>
+                      <p className="mt-1 text-xs text-slate-500">Use step controls if you want something outside the presets.</p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => updateConfig({ maxReviews: Math.max(1, maxReviewValue - 1) })}
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-lg font-semibold text-slate-600 transition-colors hover:border-purple-200 hover:text-purple-700"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        value={maxReviewValue}
+                        onChange={(e) => updateConfig({ maxReviews: parseInt(e.target.value) || 3 })}
+                        className="h-11 w-24 rounded-full border border-slate-300 bg-white px-4 text-center text-sm font-semibold text-slate-900 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                        min="1"
+                        max="50"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateConfig({ maxReviews: Math.min(50, maxReviewValue + 1) })}
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-lg font-semibold text-slate-600 transition-colors hover:border-purple-200 hover:text-purple-700"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[30px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#faf5ff_100%)] p-5 shadow-[0_24px_60px_rgba(15,23,42,0.06)]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        Motion System
+                      </p>
+                      <h4 className="mt-2 text-lg font-semibold text-slate-900">
+                        Entrance Animation
+                      </h4>
+                      <p className="mt-2 text-sm text-slate-600">
+                        Use subtle motion to make the review section feel more polished without becoming distracting.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex cursor-pointer items-center rounded-full bg-white/80 p-1 ring-1 ring-purple-100">
+                      <input
+                        type="checkbox"
+                        checked={config.enableAnimations ?? true}
+                        onChange={(e) => updateConfig({ enableAnimations: e.target.checked })}
+                        className="peer sr-only"
+                      />
+                      <div className="peer h-7 w-12 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-6 after:w-6 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-5 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
+                    </label>
+                  </div>
+
+                  <div className={`mt-5 space-y-3 ${config.enableAnimations === false ? 'opacity-55' : ''}`}>
+                    {reviewAnimationStyles.map((option) => {
+                      const isActive = (config.animationStyle || 'fade-up') === option.value;
+
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => updateConfig({ animationStyle: option.value, enableAnimations: true })}
+                          className={`w-full rounded-[24px] border px-4 py-4 text-left transition-all ${
+                            isActive
+                              ? 'border-purple-300 bg-white shadow-[0_16px_36px_rgba(168,85,247,0.12)]'
+                              : 'border-slate-200 bg-white/85 hover:border-purple-200 hover:bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <div className={`text-sm font-semibold ${isActive ? 'text-purple-700' : 'text-slate-900'}`}>
+                                {option.name}
+                              </div>
+                              <p className="mt-1 text-xs text-slate-500">{option.description}</p>
+                            </div>
+                            <div className="flex min-w-[74px] items-end justify-end gap-1">
+                              <span className={`w-2 rounded-full ${isActive ? 'bg-purple-300' : 'bg-slate-200'}`} style={{ height: option.value === 'fade-up' ? '12px' : option.value === 'soft-scale' ? '10px' : '14px' }} />
+                              <span className={`w-2 rounded-full ${isActive ? 'bg-purple-400' : 'bg-slate-300'}`} style={{ height: option.value === 'fade-up' ? '18px' : option.value === 'soft-scale' ? '14px' : '22px' }} />
+                              <span className={`w-2 rounded-full ${isActive ? 'bg-purple-500' : 'bg-slate-400'}`} style={{ height: option.value === 'fade-up' ? '24px' : option.value === 'soft-scale' ? '18px' : '30px' }} />
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-5 rounded-full bg-white/90 p-1 shadow-inner ring-1 ring-slate-200">
+                    <div className="grid grid-cols-3 gap-1">
+                      {reviewAnimationSpeeds.map((option) => {
+                        const isActive = (config.animationSpeed || 'normal') === option.value;
+
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => updateConfig({ animationSpeed: option.value, enableAnimations: true })}
+                            className={`rounded-full px-4 py-2.5 text-xs font-semibold transition-colors ${
+                              isActive
+                                ? 'bg-slate-900 text-white shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-[22px] border border-white/70 bg-white/90 px-4 py-3 text-sm text-slate-600 shadow-sm">
+                    Current motion: <span className="font-semibold text-slate-900">{motionStatusLabel}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -822,6 +1350,21 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
         </div>
       </form>
 
+      <ImageGalleryModal
+        isOpen={showHighlightGallery}
+        onClose={() => setShowHighlightGallery(false)}
+        onSelect={(imageUrl) => {
+          updateConfig({ highlightImageUrl: imageUrl });
+          setShowHighlightGallery(false);
+          setToastMessage('Spotlight image selected successfully!');
+          setToastType('success');
+          setShowToast(true);
+        }}
+        restaurantId={restaurantId}
+        title="Select Spotlight Image"
+        description="Choose an image from your media library or upload a new one for the Split Spotlight layout."
+      />
+
       {!showPreview ? (
         <button
           type="button"
@@ -841,7 +1384,9 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
           <span className="flex flex-col items-start leading-tight">
             <span>Live Preview</span>
             <span className="text-xs font-medium text-purple-500">
-              {responsiveEditorViewport === 'mobile' ? 'Open mobile preview' : 'Open desktop preview'}
+              {responsiveEditorViewport === 'mobile'
+                ? `Open mobile ${activeLayoutOption.name.toLowerCase()}`
+                : `Open desktop ${activeLayoutOption.name.toLowerCase()}`}
             </span>
           </span>
         </button>
@@ -855,7 +1400,7 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Live Preview</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Switch between desktop and mobile to verify every review layout.
+                  Switch between desktop and mobile to verify the {activeLayoutOption.name.toLowerCase()} layout.
                   {reviews.length === 0 ? (
                     <span className="ml-1 text-purple-600">(showing sample reviews)</span>
                   ) : null}
@@ -900,7 +1445,9 @@ export default function ReviewSettingsForm({ pageId, templateId, isNewSection }:
               >
                 <div className="flex items-center justify-between border-b border-white/10 bg-slate-950/90 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">
                   <span>{previewViewport === 'mobile' ? 'Phone Preview' : 'Desktop Preview'}</span>
-                  <span>{previewViewport === 'mobile' ? '390 x 780' : '1280 x 720'}</span>
+                  <span>
+                    {activeLayoutOption.name} • {previewViewport === 'mobile' ? '390 x 780' : '1280 x 720'}
+                  </span>
                 </div>
                 <div className="bg-white">
                   <Reviews

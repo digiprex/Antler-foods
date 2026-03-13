@@ -1722,8 +1722,6 @@ export default function MenuSettingsFormEnhanced({
             value={formConfig}
             onChange={updateConfig}
             viewport={editorViewport}
-            widthLabel="Section Max Width"
-            sectionLabel="menu section"
           />
         </div>
       </div>

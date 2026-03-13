@@ -382,9 +382,44 @@ async function createContactForm(restaurantId: string, restaurantName: string): 
       },
     ];
 
-    // Use a default email address (can be updated by restaurant owner later)
-    const cleanName = restaurantName.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const defaultEmail = `contact@${cleanName}.com`;
+    // Fetch restaurant POC email instead of generating a default email
+    let formEmail = '';
+    
+    try {
+      const restaurantQuery = `
+        query GetRestaurantEmails($restaurant_id: uuid!) {
+          restaurants_by_pk(restaurant_id: $restaurant_id) {
+            poc_email
+            email
+          }
+        }
+      `;
+      
+      const restaurantData = await adminGraphqlRequest<{
+        restaurants_by_pk: { poc_email?: string; email?: string } | null
+      }>(restaurantQuery, { restaurant_id: restaurantId });
+
+      const restaurant = restaurantData.restaurants_by_pk;
+      
+      if (restaurant?.poc_email) {
+        formEmail = restaurant.poc_email;
+        console.log(`✅ Using restaurant POC email for contact form: ${formEmail}`);
+      } else if (restaurant?.email) {
+        formEmail = restaurant.email;
+        console.log(`✅ Using restaurant email for contact form: ${formEmail}`);
+      } else {
+        // Fallback to generated email if no emails exist
+        const cleanName = restaurantName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        formEmail = `contact@${cleanName}.com`;
+        console.log(`⚠️ No POC email or restaurant email found, using generated email: ${formEmail}`);
+      }
+    } catch (error) {
+      console.error('Error fetching restaurant POC email:', error);
+      // Fallback to generated email
+      const cleanName = restaurantName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      formEmail = `contact@${cleanName}.com`;
+      console.log(`⚠️ Error fetching POC email, using generated email: ${formEmail}`);
+    }
 
     const mutation = `
       mutation CreateForm(
@@ -408,7 +443,7 @@ async function createContactForm(restaurantId: string, restaurantName: string): 
       insert_forms_one: { form_id: string } | null;
     }>(mutation, {
       title: 'Contact Form',
-      email: defaultEmail,
+      email: formEmail,
       fields: formFields,
       restaurant_id: restaurantId,
     });

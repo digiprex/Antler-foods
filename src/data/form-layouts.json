@@ -1,0 +1,123 @@
+{
+  "layouts": [
+    {
+      "id": "centered",
+      "name": "Centered",
+      "description": "Editorial header above a focused form card",
+      "mediaCapabilities": {
+        "showImage": false,
+        "showBackgroundImage": false
+      },
+      "features": [
+        "Centered content layout",
+        "Editorial header section",
+        "Focused form card design",
+        "Mobile responsive"
+      ],
+      "preview": {
+        "type": "flex",
+        "direction": "column",
+        "justify": "center",
+        "align": "center",
+        "elements": [
+          { "type": "header", "width": "10", "height": "3" },
+          { "type": "form-card", "width": "8", "height": "6" }
+        ]
+      }
+    },
+    {
+      "id": "split-right",
+      "name": "Split Right",
+      "description": "Form and copy on the left with media support on the right",
+      "mediaCapabilities": {
+        "showImage": true,
+        "showBackgroundImage": false
+      },
+      "features": [
+        "50/50 split layout",
+        "Form content on left",
+        "Media panel on right",
+        "Perfect for visual storytelling"
+      ],
+      "preview": {
+        "type": "grid",
+        "columns": 2,
+        "elements": [
+          { "type": "form-content", "span": 1, "align": "left" },
+          { "type": "media-panel", "span": 1 }
+        ]
+      }
+    },
+    {
+      "id": "split-left",
+      "name": "Split Left",
+      "description": "Media leads on the left while the form anchors the right column",
+      "mediaCapabilities": {
+        "showImage": true,
+        "showBackgroundImage": false
+      },
+      "features": [
+        "50/50 split layout",
+        "Media panel on left",
+        "Form content on right",
+        "Visual-first approach"
+      ],
+      "preview": {
+        "type": "grid",
+        "columns": 2,
+        "elements": [
+          { "type": "media-panel", "span": 1 },
+          { "type": "form-content", "span": 1, "align": "left" }
+        ]
+      }
+    },
+    {
+      "id": "image-top",
+      "name": "Image Top",
+      "description": "Hero media stacked above the form for campaign-style pages",
+      "mediaCapabilities": {
+        "showImage": true,
+        "showBackgroundImage": false
+      },
+      "features": [
+        "Hero media at top",
+        "Centered form below",
+        "Campaign-style layout",
+        "Strong visual impact"
+      ],
+      "preview": {
+        "type": "flex",
+        "direction": "column",
+        "elements": [
+          { "type": "media-panel", "width": "12", "height": "4" },
+          { "type": "form-content", "width": "8", "height": "6", "align": "center" }
+        ]
+      }
+    },
+    {
+      "id": "background-image",
+      "name": "Background Image",
+      "description": "Floating card over a media-rich background",
+      "mediaCapabilities": {
+        "showImage": true,
+        "showBackgroundImage": true
+      },
+      "features": [
+        "Full background image",
+        "Floating form card",
+        "Overlay effect",
+        "Premium visual design"
+      ],
+      "preview": {
+        "type": "flex",
+        "direction": "column",
+        "justify": "center",
+        "align": "center",
+        "background": true,
+        "elements": [
+          { "type": "floating-card", "width": "8", "height": "8", "overlay": true }
+        ]
+      }
+    }
+  ]
+}

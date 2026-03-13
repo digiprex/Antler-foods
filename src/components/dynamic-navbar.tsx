@@ -153,6 +153,7 @@ export default function DynamicNavbar({
       leftNavItems={config.leftNavItems}
       rightNavItems={config.rightNavItems}
       ctaButton={config.ctaButton}
+      showCtaButton={config.showCtaButton}
       layout={config.layout}
       position={config.position}
       zIndex={config.zIndex}
@@ -160,6 +161,7 @@ export default function DynamicNavbar({
       textColor={config.textColor}
       buttonBgColor={config.buttonBgColor}
       buttonTextColor={config.buttonTextColor}
+      buttonBorderRadius={config.buttonBorderRadius}
       borderColor={config.borderColor}
       borderWidth={config.borderWidth}
       bagCount={config.bagCount}

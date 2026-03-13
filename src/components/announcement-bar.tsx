@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import type { AnnouncementBarConfig } from '@/types/announcement-bar.types';
-import { SOCIAL_MEDIA_PLATFORMS } from '@/types/announcement-bar.types';
+import { SOCIAL_MEDIA_PLATFORMS } from '@/constants/social-media-platforms';
 import styles from './announcement-bar.module.css';
 
 interface AnnouncementBarProps {
@@ -283,7 +283,7 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
                 className={styles.socialIcon}
                 title={`Visit our ${SOCIAL_MEDIA_PLATFORMS[icon.platform]?.name || 'social media'}`}
               >
-                {SOCIAL_MEDIA_PLATFORMS[icon.platform]?.icon || '🔗'}
+                {SOCIAL_MEDIA_PLATFORMS[icon.platform]?.icon() || '🔗'}
               </a>
             ))}
         </div>

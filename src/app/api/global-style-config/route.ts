@@ -239,7 +239,7 @@ function getDefaultConfig(restaurantId: string): GlobalStyleConfig {
     id: `global-style-${restaurantId}`,
     restaurant_id: restaurantId,
     title: {
-      fontFamily: 'Inter, system-ui, sans-serif',
+      fontFamily: 'Poppins, sans-serif',
       fontSize: '2.25rem',
       fontWeight: 700,
       color: '#111827',
@@ -248,7 +248,7 @@ function getDefaultConfig(restaurantId: string): GlobalStyleConfig {
       textTransform: 'none',
     },
     subheading: {
-      fontFamily: 'Inter, system-ui, sans-serif',
+      fontFamily: 'Poppins, sans-serif',
       fontSize: '1.5rem',
       fontWeight: 600,
       color: '#374151',
@@ -257,7 +257,7 @@ function getDefaultConfig(restaurantId: string): GlobalStyleConfig {
       textTransform: 'none',
     },
     paragraph: {
-      fontFamily: 'Inter, system-ui, sans-serif',
+      fontFamily: 'Poppins, sans-serif',
       fontSize: '1rem',
       fontWeight: 400,
       color: '#6b7280',

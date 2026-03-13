@@ -163,6 +163,34 @@ export default function Footer(props: FooterProps) {
         <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
       </svg>
     ),
+    gmb: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+    ),
+    yelp: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 5-5v10zm2 0V7l5 5-5 5z"/>
+      </svg>
+    ),
+    doordash: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M23.071 8.409l-6.418 6.58c-.783.803-1.852 1.255-2.968 1.255H3.5l1.502-3.047h7.935c.41 0 .805-.166 1.095-.46l3.731-3.827-3.731-3.827c-.29-.294-.685-.46-1.095-.46H3.5L2 8.67h10.685c1.116 0 2.185.452 2.968 1.255l6.418 6.58z"/>
+      </svg>
+    ),
+    grubhub: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+      </svg>
+    ),
+    ubereats: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 5-5v10zm2 0V7l5 5-5 5z"/>
+      </svg>
+    ),
   };
 
   const renderDefaultLayout = () => (
@@ -205,7 +233,7 @@ export default function Footer(props: FooterProps) {
       {/* Center Section: Quick Links */}
       {columns.length > 0 && (
         <div className={styles.centerSection}>
-          <h4 className={styles.sectionTitle}>Quick Links</h4>
+          <h3 className={styles.sectionTitle}>Quick Links</h3>
           <div className={styles.quickLinks}>
             {columns.map((column, index) =>
               column.links.map((link, linkIndex) => (
@@ -222,7 +250,7 @@ export default function Footer(props: FooterProps) {
       <div className={styles.rightSection}>
         {showLocations && (email || phone || address) && (
           <div className={styles.contactDetails}>
-            <h4 className={styles.sectionTitle}>Contact</h4>
+            <h3 className={styles.sectionTitle}>Contact</h3>
             {address && (
               <div className={styles.contactItem}>
                 <span className={styles.contactIcon}>📍</span>
@@ -297,7 +325,7 @@ export default function Footer(props: FooterProps) {
         {/* Newsletter Section */}
         {showNewsletter && (
           <div className={styles.newsletterSectionCentered}>
-            <h4 className={styles.newsletterTitleCentered}>{newsletterTitle}</h4>
+            <h3 className={styles.newsletterTitleCentered}>{newsletterTitle}</h3>
             <form onSubmit={handleNewsletterSubmit} className={styles.newsletterFormCentered}>
               <input
                 type="email"
@@ -366,7 +394,7 @@ export default function Footer(props: FooterProps) {
       {/* Dynamic Columns */}
       {columns.map((column, index) => (
         <div key={index} className={styles.linkColumn}>
-          <h4 className={styles.columnTitle}>{column.title}</h4>
+          <h3 className={styles.columnTitle}>{column.title}</h3>
           <ul className={styles.linkList}>
             {column.links.map((link, linkIndex) => (
               <li key={linkIndex}>
@@ -382,7 +410,7 @@ export default function Footer(props: FooterProps) {
       {/* Contact Column */}
       {showLocations && (email || phone || address) && (
         <div className={styles.contactColumn}>
-          <h4 className={styles.columnTitle}>Contact</h4>
+          <h3 className={styles.columnTitle}>Contact</h3>
           <div className={styles.contactList}>
             {address && (
               <div className={styles.contactItem}>
@@ -409,7 +437,7 @@ export default function Footer(props: FooterProps) {
       {/* Newsletter Column - Compulsory for 4 Columns Layout */}
       {layout === 'columns-4' && (
         <div className={styles.newsletterColumn}>
-          <h4 className={styles.columnTitle}>{newsletterTitle}</h4>
+          <h3 className={styles.columnTitle}>{newsletterTitle}</h3>
           <form onSubmit={handleNewsletterSubmit} className={styles.newsletterForm}>
             <input
               type="email"
@@ -483,7 +511,7 @@ export default function Footer(props: FooterProps) {
         {/* Address Section */}
         {showLocations && address && (
           <div className={styles.restaurantAddress}>
-            <h4 className={styles.sectionTitleUpper}>ADDRESS</h4>
+            <h3 className={styles.sectionTitleUpper}>ADDRESS</h3>
             <div className={styles.addressText}>{address}</div>
           </div>
         )}
@@ -491,7 +519,7 @@ export default function Footer(props: FooterProps) {
         {/* Contact Section */}
         {showLocations && (email || phone) && (
           <div className={styles.restaurantContact}>
-            <h4 className={styles.sectionTitleUpper}>CONTACT</h4>
+            <h3 className={styles.sectionTitleUpper}>CONTACT</h3>
             <div className={styles.contactList}>
               {phone && <div className={styles.contactItem}>{phone}</div>}
               {email && <div className={styles.contactItem}>{email}</div>}
@@ -502,7 +530,7 @@ export default function Footer(props: FooterProps) {
         {/* Newsletter Section */}
         {showNewsletter && (
           <div className={styles.restaurantNewsletter}>
-            <h4 className={styles.sectionTitleUpper}>NEWSLETTER</h4>
+            <h3 className={styles.sectionTitleUpper}>NEWSLETTER</h3>
             <form onSubmit={handleNewsletterSubmit} className={styles.newsletterForm}>
               <input
                 type="email"
@@ -563,7 +591,7 @@ export default function Footer(props: FooterProps) {
   const footerStyle = {
     '--footer-bg-color': bgColor,
     '--footer-text-color': textColor,
-    '--footer-link-color': linkColor,
+    '--footer-link-color': textColor,
     '--copyright-bg-color': copyrightBgColor,
     '--copyright-text-color': copyrightTextColor,
     '--scroll-button-bg-color': copyrightBgColor,

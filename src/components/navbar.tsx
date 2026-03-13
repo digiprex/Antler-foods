@@ -21,12 +21,14 @@ export interface NavbarProps {
   rightNavItems?: NavItem[];
   bagCount?: number;
   ctaButton?: CTAButton;
+  showCtaButton?: boolean; // Show/hide CTA button
   position?: 'fixed' | 'sticky' | 'relative' | 'absolute' | 'static';
   zIndex?: number;
   bgColor?: string;
   textColor?: string;
   buttonBgColor?: string;
   buttonTextColor?: string;
+  buttonBorderRadius?: string; // Border radius for CTA button (e.g., '0.5rem', '8px', '9999px')
   layout?: 'default' | 'centered' | 'logo-center' | 'stacked' | 'split' | 'logo-left-items-left' | 'bordered-centered'; // default: logo left, items right | centered: logo left, items center, button right | logo-center: items left, logo center, button right | stacked: logo top center, items and button below | split: items left, logo center, text and button right | logo-left-items-left: logo and items left, button right | bordered-centered: logo left, items center, button right with border
   additionalText?: string; // For split layout - text to display before button (e.g., "STANDORT: 50 | 100")
   borderColor?: string; // For bordered layouts - border color
@@ -70,17 +72,19 @@ export default function Navbar({
   rightNavItems = DEFAULT_RIGHT_NAV_ITEMS,
   bagCount = 0,
   ctaButton,
+  showCtaButton = true,
   position = 'absolute',
   zIndex = 1000,
   bgColor = 'white',
   textColor = 'black',
   buttonBgColor = 'black',
   buttonTextColor = 'white',
+  buttonBorderRadius = '0.5rem',
   layout = 'bordered-centered',
   additionalText,
   borderColor = '#000000',
   borderWidth = '2px',
-  fontFamily = 'Inter, system-ui, sans-serif',
+  fontFamily = 'Poppins, system-ui, sans-serif',
   fontSize = '1rem',
   fontWeight = 400,
   textTransform = 'uppercase'
@@ -142,6 +146,7 @@ export default function Navbar({
     '--navbar-text-color': textColor,
     '--button-bg-color': buttonBgColor,
     '--button-text-color': buttonTextColor,
+    '--button-border-radius': buttonBorderRadius,
     '--border-color': borderColor,
     '--border-width': borderWidth,
     '--navbar-font-family': fontFamily,
@@ -209,7 +214,7 @@ export default function Navbar({
                   {item.label}
                 </a>
               ))}
-              {ctaButton && (
+              {showCtaButton && ctaButton && (
                 <a href={ctaButton.href} className={styles.ctaButton}>
                   {ctaButton.label}
                 </a>
@@ -224,9 +229,9 @@ export default function Navbar({
         </nav>
 
         {/* Mobile Sidebar */}
-        <div className={`${styles.sidebar} ${isSidebarOpen ? styles.open : styles.closed}`}>
+        <div className={`${styles.sidebar} ${isSidebarOpen ? styles.open : styles.closed}`} style={navbarStyle}>
           <div onClick={toggleSidebar} className={styles.sidebarOverlay}></div>
-          
+
           <div className={styles.sidebarContent}>
             <button onClick={toggleSidebar} className={styles.closeButton} aria-label="Close">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -234,7 +239,7 @@ export default function Navbar({
                 <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             </button>
-            
+
             {leftNavItems.map((item, index) => (
               <a key={index} href={item.href} className={styles.sidebarLink}>
                 {item.label}
@@ -245,8 +250,8 @@ export default function Navbar({
                 {item.label}
               </a>
             ))}
-            
-            {ctaButton && (
+
+            {showCtaButton && ctaButton && (
               <a href={ctaButton.href} className={styles.sidebarCta}>
                 {ctaButton.label}
               </a>
@@ -373,7 +378,7 @@ export default function Navbar({
           {layout === 'split' && additionalText && (
             <span className={styles.additionalText}>{additionalText}</span>
           )}
-          {ctaButton && (
+          {showCtaButton && ctaButton && (
             <a href={ctaButton.href} className={styles.ctaButton}>
               {ctaButton.label}
             </a>
@@ -382,9 +387,9 @@ export default function Navbar({
       </nav>
 
       {/* Mobile Sidebar */}
-      <div className={`${styles.sidebar} ${isSidebarOpen ? styles.open : styles.closed}`}>
+      <div className={`${styles.sidebar} ${isSidebarOpen ? styles.open : styles.closed}`} style={navbarStyle}>
         <div onClick={toggleSidebar} className={styles.sidebarOverlay}></div>
-        
+
         <div className={styles.sidebarContent}>
           <button onClick={toggleSidebar} className={styles.closeButton} aria-label="Close">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -392,7 +397,7 @@ export default function Navbar({
               <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </button>
-          
+
           {leftNavItems.map((item, index) => (
             <a key={index} href={item.href} className={styles.sidebarLink}>
               {item.label}
@@ -403,8 +408,8 @@ export default function Navbar({
               {item.label}
             </a>
           ))}
-          
-          {ctaButton && (
+
+          {showCtaButton && ctaButton && (
             <a href={ctaButton.href} className={styles.sidebarCta}>
               {ctaButton.label}
             </a>

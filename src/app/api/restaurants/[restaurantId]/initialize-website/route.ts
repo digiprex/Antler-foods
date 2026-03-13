@@ -313,29 +313,33 @@ async function createNavbarFromTheme(restaurantId: string, themeId: string) {
     href: `/${page.url_slug}`,
   }));
 
-  // Build config based on global styles
+  // Build config based on global styles with navbar section overrides
+  // Priority: globalStyles > navbarSection.style > defaults
   const config = {
     bgColor: (globalStyles as any)?.primaryColor || navbarSection.style?.bgColor || '#4a90e2',
-    textColor: (globalStyles as any)?.textColor || globalStyles?.title?.color || navbarSection.style?.textColor || '#2c3e50',
+    textColor: (globalStyles as any)?.navbarTextColor || globalStyles?.title?.color || navbarSection.style?.textColor || '#2c3e50',
     buttonBgColor: (globalStyles as any)?.accentColor || globalStyles?.primaryButton?.backgroundColor || navbarSection.style?.buttonBgColor || '#000000',
     buttonTextColor: globalStyles?.primaryButton?.color || navbarSection.style?.buttonTextColor || '#ffffff',
+    buttonBorderRadius: globalStyles?.primaryButton?.borderRadius || navbarSection.style?.buttonBorderRadius || '0.5rem',
     position: navbarSection.style?.position || 'fixed',
     logoSize: navbarSection.style?.logoSize || 40,
-    fontFamily: globalStyles?.title?.fontFamily || navbarSection.style?.fontFamily || 'Inter, system-ui, sans-serif',
-    fontSize: globalStyles?.title?.fontSize || navbarSection.style?.fontSize || '2.25rem',
-    fontWeight: globalStyles?.title?.fontWeight || navbarSection.style?.fontWeight || 700,
+    fontFamily: globalStyles?.title?.fontFamily || navbarSection.style?.fontFamily || 'Poppins, sans-serif',
+    fontSize: navbarSection.style?.fontSize || '0.875rem',
+    fontWeight: navbarSection.style?.fontWeight || 500,
     textTransform: navbarSection.style?.textTransform || 'uppercase',
     ctaButton: {
       label: 'Order Online',
       href: '/menu',
       style: 'primary'
-    }
+    },
+    showCtaButton: navbarSection.style?.showCtaButton !== undefined ? navbarSection.style.showCtaButton : true
   };
 
   // Create navbar template (without page_id - it's global)
+  // Use navbarSection.id as the name (contains layout ID like "bordered-centered")
   await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
     restaurant_id: restaurantId,
-    name: navbarSection.name || 'navbar',
+    name: navbarSection.id || navbarSection.name || 'default',
     category: 'Navbar',
     config: config,
     menu_items: menuItems,
@@ -376,49 +380,111 @@ async function createFooterFromTheme(restaurantId: string, themeId: string) {
     return;
   }
 
-  // Fetch restaurant's global_styles
+  // Fetch restaurant's global_styles and details for AI content generation
   const restaurantQuery = `
-    query GetRestaurantGlobalStyles($restaurant_id: uuid!) {
+    query GetRestaurantDetails($restaurant_id: uuid!) {
       restaurants_by_pk(restaurant_id: $restaurant_id) {
+        name
         global_styles
+        address
+        city
+        state
+        country
+        postal_code
       }
     }
   `;
 
-  const restaurantData = await adminGraphqlRequest<{ restaurants_by_pk: { global_styles: any } | null }>(
+  const restaurantData = await adminGraphqlRequest<{
+    restaurants_by_pk: {
+      name: string;
+      global_styles: any;
+      address?: string;
+      city?: string;
+      state?: string;
+      country?: string;
+      postal_code?: string;
+    } | null
+  }>(
     restaurantQuery,
     { restaurant_id: restaurantId }
   );
 
   const globalStyles = restaurantData.restaurants_by_pk?.global_styles || {};
+  const restaurantDetails = restaurantData.restaurants_by_pk;
 
-  // Build config based on global styles
+  // Generate AI-powered aboutContent
+  let generatedAboutContent = '';
+
+  if (restaurantDetails) {
+    try {
+      // Build location string from address components
+      const locationParts = [];
+      if (restaurantDetails.city) locationParts.push(restaurantDetails.city);
+      if (restaurantDetails.state) locationParts.push(restaurantDetails.state);
+      if (restaurantDetails.country) locationParts.push(restaurantDetails.country);
+      const location = locationParts.join(', ');
+
+      // Call the generate-footer-content API
+      const apiUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/generate-footer-content`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurantName: restaurantDetails.name || 'Restaurant',
+          location: location,
+          address: restaurantDetails.address,
+          city: restaurantDetails.city,
+          state: restaurantDetails.state,
+          country: restaurantDetails.country,
+          tone: 'professional',
+          maxLength: 200,
+        }),
+      });
+
+      const contentData = await response.json();
+
+      if (contentData.success && contentData.content) {
+        generatedAboutContent = contentData.content;
+        console.log('✅ AI-generated footer content created');
+      } else {
+        console.warn('Failed to generate AI content:', contentData.error);
+      }
+    } catch (error) {
+      console.error('Error generating AI content for footer:', error);
+      // Continue without AI-generated content
+    }
+  }
+
+  // Build config based on global styles with footer section overrides
+  // Priority: AI-generated content > globalStyles > footerSection.style > defaults
   const config = {
     bgColor: (globalStyles as any)?.primaryColor || footerSection.style?.bgColor || '#4a90e2',
-    textColor: (globalStyles as any)?.textColor || globalStyles?.paragraph?.color || footerSection.style?.textColor || '#ffffff',
+    textColor: globalStyles?.paragraph?.color || footerSection.style?.textColor || '#ffffff',
     linkColor: (globalStyles as any)?.textColor || footerSection.style?.linkColor || '#ffffff',
     copyrightBgColor: (globalStyles as any)?.accentColor || footerSection.style?.copyrightBgColor || '#ffca58',
     copyrightTextColor: footerSection.style?.copyrightTextColor || '#ffffff',
-    fontFamily: globalStyles?.paragraph?.fontFamily || footerSection.style?.fontFamily || 'Inter, system-ui, sans-serif',
+    fontFamily: globalStyles?.paragraph?.fontFamily || footerSection.style?.fontFamily || 'Poppins, sans-serif',
     fontSize: globalStyles?.paragraph?.fontSize || footerSection.style?.fontSize || '0.9375rem',
     fontWeight: globalStyles?.paragraph?.fontWeight || footerSection.style?.fontWeight || 400,
     textTransform: footerSection.style?.textTransform || 'none',
-    headingFontFamily: globalStyles?.subheading?.fontFamily || footerSection.style?.headingFontFamily || 'Inter, system-ui, sans-serif',
+    headingFontFamily: globalStyles?.subheading?.fontFamily || footerSection.style?.headingFontFamily || 'Poppins, sans-serif',
     headingFontSize: globalStyles?.subheading?.fontSize || footerSection.style?.headingFontSize || '1.125rem',
     headingFontWeight: globalStyles?.subheading?.fontWeight || footerSection.style?.headingFontWeight || 600,
     headingTextTransform: footerSection.style?.headingTextTransform || 'uppercase',
-    copyrightFontFamily: globalStyles?.paragraph?.fontFamily || footerSection.style?.copyrightFontFamily || 'Inter, system-ui, sans-serif',
+    copyrightFontFamily: globalStyles?.paragraph?.fontFamily || footerSection.style?.copyrightFontFamily || 'Poppins, sans-serif',
     copyrightFontSize: footerSection.style?.copyrightFontSize || '0.875rem',
     copyrightFontWeight: footerSection.style?.copyrightFontWeight || 400,
-    aboutContent: footerSection.style?.aboutContent || '',
+    aboutContent: generatedAboutContent || footerSection.style?.aboutContent || '',
     showNewsletter: footerSection.style?.showNewsletter !== undefined ? footerSection.style.showNewsletter : true,
     showSocialMedia: footerSection.style?.showSocialMedia !== undefined ? footerSection.style.showSocialMedia : true,
   };
 
   // Create footer template (without page_id - it's global)
+  // Use footerSection.id as the name (contains layout ID like "centered", "three-column", etc.)
   await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
     restaurant_id: restaurantId,
-    name: footerSection.name || 'footer',
+    name: footerSection.id || footerSection.name || 'default',
     category: 'Footer',
     config: config,
     menu_items: {},

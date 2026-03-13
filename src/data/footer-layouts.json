@@ -1,0 +1,67 @@
+{
+  "layouts": [
+    {
+      "id": "default",
+      "name": "Three Section",
+      "description": "3 sections - brand, location, contact info",
+      "columns": 3,
+      "preview": {
+        "type": "grid",
+        "columns": 3,
+        "sections": [
+          { "type": "logo-text", "span": 1 },
+          { "type": "contact", "span": 1 },
+          { "type": "social", "span": 1 }
+        ]
+      }
+    },
+    {
+      "id": "centered",
+      "name": "Centered",
+      "description": "All content centered with logo on top",
+      "columns": 1,
+      "preview": {
+        "type": "flex",
+        "direction": "column",
+        "justify": "center",
+        "sections": [
+          { "type": "logo-text", "span": 1 },
+          { "type": "links-horizontal", "span": 1 },
+          { "type": "social-horizontal", "span": 1 }
+        ]
+      }
+    },
+    {
+      "id": "restaurant",
+      "name": "Restaurant",
+      "description": "4 columns with newsletter signup",
+      "columns": 4,
+      "preview": {
+        "type": "grid",
+        "columns": 4,
+        "sections": [
+          { "type": "logo-text", "span": 1 },
+          { "type": "links", "span": 1 },
+          { "type": "contact", "span": 1 },
+          { "type": "newsletter", "span": 1 }
+        ]
+      }
+    },
+    {
+      "id": "columns-4",
+      "name": "4 Columns",
+      "description": "Wide layout with 4 columns and newsletter",
+      "columns": 4,
+      "preview": {
+        "type": "grid",
+        "columns": 4,
+        "sections": [
+          { "type": "logo-text", "span": 1 },
+          { "type": "links", "span": 1 },
+          { "type": "links", "span": 1 },
+          { "type": "newsletter", "span": 1 }
+        ]
+      }
+    }
+  ]
+}

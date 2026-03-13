@@ -787,46 +787,46 @@
 
 /* Restaurant Address Section */
 .restaurantAddress {
-  align-items: center;
-  text-align: center;
+  align-items: flex-start;
+  text-align: left;
 }
 
 .restaurantAddress .sectionTitleUpper {
-  text-align: center;
+  text-align: left;
 }
 
 .restaurantAddress .addressText {
-  text-align: center;
+  text-align: left;
 }
 
 /* Restaurant Contact Section */
 .restaurantContact {
-  align-items: center;
-  text-align: center;
+  align-items: flex-start;
+  text-align: left;
 }
 
 .restaurantContact .sectionTitleUpper {
-  text-align: center;
+  text-align: left;
 }
 
 .restaurantContact .contactList {
-  align-items: center;
-  text-align: center;
+  align-items: flex-start;
+  text-align: left;
 }
 
 .restaurantContact .contactItem {
-  justify-content: center;
-  text-align: center;
+  justify-content: flex-start;
+  text-align: left;
 }
 
 /* Restaurant Newsletter Section */
 .restaurantNewsletter {
-  align-items: flex-end;
-  text-align: right;
+  align-items: flex-start;
+  text-align: left;
 }
 
 .restaurantNewsletter .sectionTitleUpper {
-  text-align: right;
+  text-align: left;
 }
 
 .newsletterForm {

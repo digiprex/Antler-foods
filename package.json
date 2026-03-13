@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1008.0",
     "@hookform/resolvers": "^5.2.2",
     "@nhost/nextjs": "^2.3.1",
     "@nhost/nhost-js": "^3.3.1",

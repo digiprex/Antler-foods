@@ -99,55 +99,11 @@ export const DEFAULT_ANNOUNCEMENT_BAR_CONFIG: AnnouncementBarConfig = {
 };
 
 /**
- * Social media platform configurations
+ * Social media platform configuration type
  */
-export const SOCIAL_MEDIA_PLATFORMS = {
-  facebook: {
-    name: 'Facebook',
-    icon: '📘',
-    color: '#1877F2',
-    placeholder: 'https://facebook.com/yourpage'
-  },
-  twitter: {
-    name: 'Twitter',
-    icon: '🐦',
-    color: '#1DA1F2',
-    placeholder: 'https://twitter.com/youraccount'
-  },
-  instagram: {
-    name: 'Instagram',
-    icon: '📷',
-    color: '#E4405F',
-    placeholder: 'https://instagram.com/youraccount'
-  },
-  linkedin: {
-    name: 'LinkedIn',
-    icon: '💼',
-    color: '#0A66C2',
-    placeholder: 'https://linkedin.com/company/yourcompany'
-  },
-  youtube: {
-    name: 'YouTube',
-    icon: '📺',
-    color: '#FF0000',
-    placeholder: 'https://youtube.com/channel/yourchannel'
-  },
-  tiktok: {
-    name: 'TikTok',
-    icon: '🎵',
-    color: '#000000',
-    placeholder: 'https://tiktok.com/@youraccount'
-  },
-  whatsapp: {
-    name: 'WhatsApp',
-    icon: '💬',
-    color: '#25D366',
-    placeholder: 'https://wa.me/1234567890'
-  },
-  gmb: {
-    name: 'Google My Business',
-    icon: '🏢',
-    color: '#4285F4',
-    placeholder: 'https://g.page/yourbusiness'
-  }
-} as const;
+export interface SocialMediaPlatformConfig {
+  name: string;
+  icon: () => React.ReactNode;
+  color: string;
+  placeholder: string;
+}

@@ -71,7 +71,7 @@ export interface GlobalStyleConfigResponse {
  */
 export const DEFAULT_GLOBAL_STYLE_CONFIG: GlobalStyleConfig = {
   title: {
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'Poppins, sans-serif',
     fontSize: '2.25rem',
     fontWeight: 700,
     color: '#111827',
@@ -80,7 +80,7 @@ export const DEFAULT_GLOBAL_STYLE_CONFIG: GlobalStyleConfig = {
     textTransform: 'none',
   },
   subheading: {
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'Poppins, sans-serif',
     fontSize: '1.5rem',
     fontWeight: 600,
     color: '#374151',
@@ -89,7 +89,7 @@ export const DEFAULT_GLOBAL_STYLE_CONFIG: GlobalStyleConfig = {
     textTransform: 'none',
   },
   paragraph: {
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'Poppins, sans-serif',
     fontSize: '1rem',
     fontWeight: 400,
     color: '#6b7280',
@@ -107,7 +107,7 @@ export const DEFAULT_GLOBAL_STYLE_CONFIG: GlobalStyleConfig = {
     border: 'none',
     hoverBackgroundColor: '#1d4ed8',
     hoverColor: '#ffffff',
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'Poppins, sans-serif',
     textTransform: 'none',
   },
   secondaryButton: {
@@ -120,7 +120,7 @@ export const DEFAULT_GLOBAL_STYLE_CONFIG: GlobalStyleConfig = {
     border: '1px solid #d1d5db',
     hoverBackgroundColor: '#f9fafb',
     hoverColor: '#111827',
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'Poppins, sans-serif',
     textTransform: 'none',
   },
   primaryColor: '#2563eb',

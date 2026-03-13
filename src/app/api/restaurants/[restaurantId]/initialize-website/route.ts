@@ -339,6 +339,93 @@ async function getRestaurantDetails(restaurantId: string) {
 }
 
 /**
+ * Create a contact form for the restaurant
+ * @param restaurantId - Restaurant ID
+ * @param restaurantName - Restaurant name
+ * @returns The created form's ID
+ */
+async function createContactForm(restaurantId: string, restaurantName: string): Promise<string | null> {
+  try {
+    // Default contact form fields
+    const formFields = [
+      {
+        id: 'name',
+        type: 'text',
+        label: 'Full Name',
+        placeholder: 'John Doe',
+        required: true,
+        order: 1,
+      },
+      {
+        id: 'email',
+        type: 'email',
+        label: 'Email Address',
+        placeholder: 'john@example.com',
+        required: true,
+        order: 2,
+      },
+      {
+        id: 'phone',
+        type: 'tel',
+        label: 'Phone Number',
+        placeholder: '+1 (555) 123-4567',
+        required: false,
+        order: 3,
+      },
+      {
+        id: 'message',
+        type: 'textarea',
+        label: 'Message',
+        placeholder: 'How can we help you?',
+        required: true,
+        order: 4,
+      },
+    ];
+
+    // Use a default email address (can be updated by restaurant owner later)
+    const cleanName = restaurantName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const defaultEmail = `contact@${cleanName}.com`;
+
+    const mutation = `
+      mutation CreateForm(
+        $title: String!
+        $email: String!
+        $fields: jsonb!
+        $restaurant_id: uuid!
+      ) {
+        insert_forms_one(object: {
+          title: $title
+          email: $email
+          fields: $fields
+          restaurant_id: $restaurant_id
+        }) {
+          form_id
+        }
+      }
+    `;
+
+    const data = await adminGraphqlRequest<{
+      insert_forms_one: { form_id: string } | null;
+    }>(mutation, {
+      title: 'Contact Form',
+      email: defaultEmail,
+      fields: formFields,
+      restaurant_id: restaurantId,
+    });
+
+    if (data.insert_forms_one?.form_id) {
+      console.log(`✅ Created contact form with ID: ${data.insert_forms_one.form_id}`);
+      return data.insert_forms_one.form_id;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error creating contact form:', error);
+    return null;
+  }
+}
+
+/**
  * Generate custom section content using Amazon Bedrock AI
  * @param restaurantId - Restaurant ID
  * @param pageName - Page name (e.g., 'about', 'contact')
@@ -1012,6 +1099,29 @@ async function createOtherPageSectionsFromTheme(
         continue;
       }
 
+      // Create contact form if this is the contact page
+      let contactFormId: string | null = null;
+      if (pageName === 'contact') {
+        // Fetch restaurant name for creating the form
+        const restaurantQuery = `
+          query GetRestaurantName($restaurant_id: uuid!) {
+            restaurants_by_pk(restaurant_id: $restaurant_id) {
+              name
+            }
+          }
+        `;
+        const restaurantData = await adminGraphqlRequest<{
+          restaurants_by_pk: { name: string } | null
+        }>(restaurantQuery, { restaurant_id: restaurantId });
+
+        const restaurantName = restaurantData.restaurants_by_pk?.name || 'Restaurant';
+        contactFormId = await createContactForm(restaurantId, restaurantName);
+
+        if (contactFormId) {
+          console.log(`  ✓ Created contact form with ID: ${contactFormId}`);
+        }
+      }
+
       console.log(`Creating ${sections.length} section(s) for "${pageName}" page`);
 
       // Sort sections by order_index
@@ -1233,6 +1343,74 @@ async function createOtherPageSectionsFromTheme(
         });
 
         console.log(`  ✓ Created ${category} section "${section.name || section.id}" (layout: ${sectionConfig.layout}) for page_id: ${pageId}`);
+      }
+
+      // Add form section to contact page if form was created
+      if (pageName === 'contact' && contactFormId) {
+        const formSectionConfig = {
+          isEnabled: true,
+          form_id: contactFormId,
+          title: 'Get In Touch',
+          subtitle: 'We\'re here to help',
+          description: 'Fill out the form below and we\'ll get back to you as soon as possible.',
+          layout: 'centered',
+          backgroundColor: '#f8fafc',
+          mobileBackgroundColor: '',
+          textColor: '#0f172a',
+          mobileTextColor: '',
+          accentColor: globalStyles?.primaryColor || '#7c3aed',
+          mobileAccentColor: '',
+          buttonText: 'Send Message',
+          showImage: false,
+          imageUrl: '',
+
+          // Typography from global_styles
+          titleFontFamily: globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
+          titleFontSize: globalStyles?.title?.fontSize || '2.25rem',
+          titleMobileFontSize: '',
+          titleFontWeight: globalStyles?.title?.fontWeight || 700,
+          titleColor: globalStyles?.title?.color || '#111827',
+
+          subtitleFontFamily: globalStyles?.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
+          subtitleFontSize: globalStyles?.subheading?.fontSize || '1.5rem',
+          subtitleMobileFontSize: '',
+          subtitleFontWeight: globalStyles?.subheading?.fontWeight || 600,
+          subtitleColor: globalStyles?.subheading?.color || '#374151',
+
+          bodyFontFamily: globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
+          bodyFontSize: globalStyles?.paragraph?.fontSize || '1rem',
+          bodyMobileFontSize: '',
+          bodyFontWeight: globalStyles?.paragraph?.fontWeight || 400,
+          bodyColor: globalStyles?.paragraph?.color || '#6b7280',
+
+          // Section style settings
+          is_custom: false,
+          buttonStyleVariant: 'primary',
+          sectionTextAlign: 'center',
+          sectionMaxWidth: '1200px',
+          sectionPaddingY: '5rem',
+          sectionPaddingX: '1.5rem',
+          surfaceBorderRadius: '1.75rem',
+          surfaceShadow: 'soft',
+          enableScrollReveal: false,
+          scrollRevealAnimation: 'fade-up',
+        };
+
+        // Calculate the order_index (after all existing sections)
+        const maxOrderIndex = Math.max(...sortedSections.map(s => s.order_index ?? 0), 0);
+
+        await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
+          restaurant_id: restaurantId,
+          name: 'Contact Form',
+          category: 'form',
+          config: formSectionConfig,
+          menu_items: {},
+          page_id: pageId,
+          order_index: maxOrderIndex + 1,
+          ref_template_id: null,
+        });
+
+        console.log(`  ✓ Created form section with form_id: ${contactFormId} for page_id: ${pageId}`);
       }
 
       console.log(`✅ Created ${sortedSections.length} section(s) for "${pageName}" page`);

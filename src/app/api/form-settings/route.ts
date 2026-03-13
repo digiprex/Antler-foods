@@ -172,6 +172,7 @@ export async function GET(request: NextRequest) {
         mobileTextColor: config.mobileTextColor,
         mobileAccentColor: config.mobileAccentColor,
         isEnabled: config.enabled ?? config.isEnabled ?? true,
+        is_custom: config.is_custom ?? false,
         ...extractSectionStyleConfig(config),
       }
     });

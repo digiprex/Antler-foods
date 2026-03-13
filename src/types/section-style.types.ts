@@ -1,4 +1,11 @@
 export type SectionButtonStyleVariant = 'primary' | 'secondary';
+export type SectionSurfaceShadow = 'none' | 'soft' | 'medium' | 'large';
+export type SectionScrollRevealAnimation =
+  | 'fade'
+  | 'fade-up'
+  | 'slide-up'
+  | 'soft-reveal';
+export type SectionTextAlign = 'left' | 'center' | 'right';
 
 export interface SectionStyleConfig {
   is_custom?: boolean;
@@ -54,6 +61,21 @@ export interface SectionStyleConfig {
   bodyMobileLineHeight?: string;
   bodyLetterSpacing?: string;
   bodyMobileLetterSpacing?: string;
+
+  sectionTextAlign?: SectionTextAlign;
+  mobileSectionTextAlign?: SectionTextAlign;
+  sectionMaxWidth?: string;
+  mobileSectionMaxWidth?: string;
+  sectionPaddingY?: string;
+  mobileSectionPaddingY?: string;
+  sectionPaddingX?: string;
+  mobileSectionPaddingX?: string;
+  surfaceBorderRadius?: string;
+  mobileSurfaceBorderRadius?: string;
+  surfaceShadow?: SectionSurfaceShadow;
+  mobileSurfaceShadow?: SectionSurfaceShadow;
+  enableScrollReveal?: boolean;
+  scrollRevealAnimation?: SectionScrollRevealAnimation;
 }
 
 export const SECTION_STYLE_KEYS = [
@@ -107,6 +129,20 @@ export const SECTION_STYLE_KEYS = [
   'bodyMobileLineHeight',
   'bodyLetterSpacing',
   'bodyMobileLetterSpacing',
+  'sectionTextAlign',
+  'mobileSectionTextAlign',
+  'sectionMaxWidth',
+  'mobileSectionMaxWidth',
+  'sectionPaddingY',
+  'mobileSectionPaddingY',
+  'sectionPaddingX',
+  'mobileSectionPaddingX',
+  'surfaceBorderRadius',
+  'mobileSurfaceBorderRadius',
+  'surfaceShadow',
+  'mobileSurfaceShadow',
+  'enableScrollReveal',
+  'scrollRevealAnimation',
 ] as const;
 
 export type SectionStyleKey = (typeof SECTION_STYLE_KEYS)[number];

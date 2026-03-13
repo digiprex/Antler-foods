@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { extractSectionStyleConfig } from '@/lib/section-style-config';
 
 /**
  * GraphQL query to check restaurant's custom domain
@@ -110,47 +111,6 @@ async function graphqlRequest<T>(query: string, variables?: Record<string, unkno
   return adminGraphqlRequest<T>(query, variables);
 }
 
-function pickSectionStyleConfig(source: Record<string, unknown>) {
-  return {
-    is_custom: source.is_custom === true,
-    buttonStyleVariant: source.buttonStyleVariant === 'secondary' ? 'secondary' : 'primary',
-    titleFontFamily:
-      typeof source.titleFontFamily === 'string'
-        ? source.titleFontFamily
-        : 'Inter, system-ui, sans-serif',
-    titleFontSize:
-      typeof source.titleFontSize === 'string' ? source.titleFontSize : '2.25rem',
-    titleFontWeight:
-      typeof source.titleFontWeight === 'number'
-        ? source.titleFontWeight
-        : 700,
-    titleColor: typeof source.titleColor === 'string' ? source.titleColor : '#111827',
-    subtitleFontFamily:
-      typeof source.subtitleFontFamily === 'string'
-        ? source.subtitleFontFamily
-        : 'Inter, system-ui, sans-serif',
-    subtitleFontSize:
-      typeof source.subtitleFontSize === 'string'
-        ? source.subtitleFontSize
-        : '1.5rem',
-    subtitleFontWeight:
-      typeof source.subtitleFontWeight === 'number'
-        ? source.subtitleFontWeight
-        : 600,
-    subtitleColor:
-      typeof source.subtitleColor === 'string' ? source.subtitleColor : '#374151',
-    bodyFontFamily:
-      typeof source.bodyFontFamily === 'string'
-        ? source.bodyFontFamily
-        : 'Inter, system-ui, sans-serif',
-    bodyFontSize:
-      typeof source.bodyFontSize === 'string' ? source.bodyFontSize : '1rem',
-    bodyFontWeight:
-      typeof source.bodyFontWeight === 'number' ? source.bodyFontWeight : 400,
-    bodyColor: typeof source.bodyColor === 'string' ? source.bodyColor : '#6b7280',
-  } as const;
-}
-
 function getDefaultTimelineConfig(restaurant_id: string, page_id?: string | null) {
   return {
     restaurant_id,
@@ -164,7 +124,13 @@ function getDefaultTimelineConfig(restaurant_id: string, page_id?: string | null
     textColor: '#111827',
     accentColor: '#10b981',
     lineColor: '#d1d5db',
-    ...pickSectionStyleConfig({}),
+    cardBackgroundColor: '#ffffff',
+    mobileBackgroundColor: undefined,
+    mobileTextColor: undefined,
+    mobileAccentColor: undefined,
+    mobileLineColor: undefined,
+    mobileCardBackgroundColor: undefined,
+    ...extractSectionStyleConfig({}),
   };
 }
 
@@ -271,7 +237,13 @@ export async function GET(request: NextRequest) {
       textColor: config.textColor || '#111827',
       accentColor: config.accentColor || '#10b981',
       lineColor: config.lineColor || '#d1d5db',
-      ...pickSectionStyleConfig(config),
+      cardBackgroundColor: config.cardBackgroundColor || '#ffffff',
+      mobileBackgroundColor: config.mobileBackgroundColor,
+      mobileTextColor: config.mobileTextColor,
+      mobileAccentColor: config.mobileAccentColor,
+      mobileLineColor: config.mobileLineColor,
+      mobileCardBackgroundColor: config.mobileCardBackgroundColor,
+      ...extractSectionStyleConfig(config),
     };
 
     return NextResponse.json({ success: true, data: timelineConfig });
@@ -312,6 +284,12 @@ export async function POST(request: NextRequest) {
       textColor,
       accentColor,
       lineColor,
+      cardBackgroundColor,
+      mobileBackgroundColor,
+      mobileTextColor,
+      mobileAccentColor,
+      mobileLineColor,
+      mobileCardBackgroundColor,
     } = body;
     const isNewSection = body.new_section === true;
 
@@ -477,7 +455,13 @@ export async function POST(request: NextRequest) {
       textColor: textColor || '#111827',
       accentColor: accentColor || '#10b981',
       lineColor: lineColor || '#d1d5db',
-      ...pickSectionStyleConfig(body as Record<string, unknown>),
+      cardBackgroundColor: cardBackgroundColor || '#ffffff',
+      mobileBackgroundColor,
+      mobileTextColor,
+      mobileAccentColor,
+      mobileLineColor,
+      mobileCardBackgroundColor,
+      ...extractSectionStyleConfig(body as Record<string, unknown>),
     };
 
     // Insert new template
@@ -516,7 +500,13 @@ export async function POST(request: NextRequest) {
       textColor: savedConfig.textColor,
       accentColor: savedConfig.accentColor,
       lineColor: savedConfig.lineColor,
-      ...pickSectionStyleConfig(savedConfig as Record<string, unknown>),
+      cardBackgroundColor: savedConfig.cardBackgroundColor,
+      mobileBackgroundColor: savedConfig.mobileBackgroundColor,
+      mobileTextColor: savedConfig.mobileTextColor,
+      mobileAccentColor: savedConfig.mobileAccentColor,
+      mobileLineColor: savedConfig.mobileLineColor,
+      mobileCardBackgroundColor: savedConfig.mobileCardBackgroundColor,
+      ...extractSectionStyleConfig(savedConfig as Record<string, unknown>),
     };
 
     return NextResponse.json({ success: true, data: timelineConfig });

@@ -14,6 +14,7 @@ import { NextResponse } from 'next/server';
 import type { ScrollingTextConfig, ScrollingTextConfigResponse } from '@/types/scrolling-text.types';
 import { DEFAULT_SCROLLING_TEXT_CONFIG } from '@/types/scrolling-text.types';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { extractSectionStyleConfig } from '@/lib/section-style-config';
 
 /**
  * GraphQL query to fetch scrolling text configuration from templates
@@ -169,36 +170,6 @@ async function graphqlRequest<T>(query: string, variables?: Record<string, unkno
   return adminGraphqlRequest<T>(query, variables);
 }
 
-function pickSectionStyleConfig(source: Record<string, unknown>) {
-  const asString = (value: unknown, fallback: string) =>
-    typeof value === 'string' && value.trim() ? value : fallback;
-  const asNumber = (value: unknown, fallback: number) => {
-    if (typeof value === 'number' && Number.isFinite(value)) return value;
-    if (typeof value === 'string') {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) return parsed;
-    }
-    return fallback;
-  };
-
-  return {
-    is_custom: source.is_custom === true,
-    buttonStyleVariant: source.buttonStyleVariant === 'secondary' ? 'secondary' : 'primary',
-    titleFontFamily: asString(source.titleFontFamily, 'Inter, system-ui, sans-serif'),
-    titleFontSize: asString(source.titleFontSize, '2.25rem'),
-    titleFontWeight: asNumber(source.titleFontWeight, 700),
-    titleColor: asString(source.titleColor, '#111827'),
-    subtitleFontFamily: asString(source.subtitleFontFamily, 'Inter, system-ui, sans-serif'),
-    subtitleFontSize: asString(source.subtitleFontSize, '1.5rem'),
-    subtitleFontWeight: asNumber(source.subtitleFontWeight, 600),
-    subtitleColor: asString(source.subtitleColor, '#374151'),
-    bodyFontFamily: asString(source.bodyFontFamily, 'Inter, system-ui, sans-serif'),
-    bodyFontSize: asString(source.bodyFontSize, '1rem'),
-    bodyFontWeight: asNumber(source.bodyFontWeight, 400),
-    bodyColor: asString(source.bodyColor, '#6b7280'),
-  } as const;
-}
-
 /**
  * GET endpoint to fetch scrolling text configuration
  */
@@ -275,7 +246,29 @@ export async function GET(request: Request) {
         templateConfig.scrollSpeed === 'fast'
           ? templateConfig.scrollSpeed
           : 'medium',
-      ...pickSectionStyleConfig(templateConfig),
+      layout:
+        templateConfig.layout === 'vertical' ? 'vertical' : 'horizontal',
+      accentColor:
+        typeof templateConfig.accentColor === 'string'
+          ? templateConfig.accentColor
+          : DEFAULT_SCROLLING_TEXT_CONFIG.accentColor,
+      mobileBgColor:
+        typeof templateConfig.mobileBgColor === 'string'
+          ? templateConfig.mobileBgColor
+          : DEFAULT_SCROLLING_TEXT_CONFIG.mobileBgColor,
+      mobileTextColor:
+        typeof templateConfig.mobileTextColor === 'string'
+          ? templateConfig.mobileTextColor
+          : DEFAULT_SCROLLING_TEXT_CONFIG.mobileTextColor,
+      mobileAccentColor:
+        typeof templateConfig.mobileAccentColor === 'string'
+          ? templateConfig.mobileAccentColor
+          : DEFAULT_SCROLLING_TEXT_CONFIG.mobileAccentColor,
+      textGap:
+        typeof templateConfig.textGap === 'string'
+          ? templateConfig.textGap
+          : DEFAULT_SCROLLING_TEXT_CONFIG.textGap,
+      ...extractSectionStyleConfig(templateConfig),
     };
 
     return NextResponse.json({
@@ -450,7 +443,13 @@ export async function POST(request: Request) {
       textColor: body.textColor,
       fontSize: body.fontSize,
       scrollSpeed: body.scrollSpeed,
-      ...pickSectionStyleConfig(body as Record<string, unknown>),
+      layout: body.layout,
+      accentColor: body.accentColor,
+      mobileBgColor: body.mobileBgColor,
+      mobileTextColor: body.mobileTextColor,
+      mobileAccentColor: body.mobileAccentColor,
+      textGap: body.textGap,
+      ...extractSectionStyleConfig(body as Record<string, unknown>),
     };
 
     // Insert new template
@@ -498,7 +497,29 @@ export async function POST(request: Request) {
         insertedConfig.scrollSpeed === 'fast'
           ? insertedConfig.scrollSpeed
           : 'medium',
-      ...pickSectionStyleConfig(insertedConfig),
+      layout:
+        insertedConfig.layout === 'vertical' ? 'vertical' : 'horizontal',
+      accentColor:
+        typeof insertedConfig.accentColor === 'string'
+          ? insertedConfig.accentColor
+          : DEFAULT_SCROLLING_TEXT_CONFIG.accentColor,
+      mobileBgColor:
+        typeof insertedConfig.mobileBgColor === 'string'
+          ? insertedConfig.mobileBgColor
+          : DEFAULT_SCROLLING_TEXT_CONFIG.mobileBgColor,
+      mobileTextColor:
+        typeof insertedConfig.mobileTextColor === 'string'
+          ? insertedConfig.mobileTextColor
+          : DEFAULT_SCROLLING_TEXT_CONFIG.mobileTextColor,
+      mobileAccentColor:
+        typeof insertedConfig.mobileAccentColor === 'string'
+          ? insertedConfig.mobileAccentColor
+          : DEFAULT_SCROLLING_TEXT_CONFIG.mobileAccentColor,
+      textGap:
+        typeof insertedConfig.textGap === 'string'
+          ? insertedConfig.textGap
+          : DEFAULT_SCROLLING_TEXT_CONFIG.textGap,
+      ...extractSectionStyleConfig(insertedConfig),
     };
 
     return NextResponse.json({

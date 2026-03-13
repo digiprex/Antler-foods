@@ -6,6 +6,7 @@ interface GalleryLayoutPreviewProps {
   layout?: GalleryConfig['layout'];
   columns?: number;
   size?: 'card' | 'panel';
+  bgColor?: string;
 }
 
 const PHOTO_PALETTES = [
@@ -253,6 +254,7 @@ export function GalleryLayoutPreview({
   layout,
   columns = 3,
   size = 'card',
+  bgColor = '#ffffff',
 }: GalleryLayoutPreviewProps) {
   const normalizedLayout = normalizeGalleryLayout(layout);
   const isPanel = size === 'panel';
@@ -291,7 +293,7 @@ export function GalleryLayoutPreview({
         padding: isPanel ? '0.9rem 1rem 1.1rem' : '0.42rem 0.46rem 0.82rem',
         minHeight: baseHeight,
         background:
-          'radial-gradient(circle at center, rgba(255,245,182,0.75), transparent 34%), linear-gradient(135deg, #f6df2b 0%, #f3cd1d 46%, #ffd742 100%)',
+          `radial-gradient(circle at center, rgba(221, 214, 254, 0.6), transparent 34%), linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(241,245,249,0.82) 44%, rgba(245,243,255,0.94) 100%), ${bgColor}`,
       }}
     >
       <div
@@ -379,7 +381,7 @@ export function GalleryLayoutPreview({
             height: isPanel ? '2rem' : '0.88rem',
             borderRadius: 999,
             background: 'rgba(255,255,255,0.96)',
-            boxShadow: '0 10px 24px rgba(146, 96, 4, 0.18)',
+            boxShadow: '0 10px 24px rgba(91, 33, 182, 0.14)',
           }}
         />
         <span
@@ -392,7 +394,7 @@ export function GalleryLayoutPreview({
             height: isPanel ? '2rem' : '0.88rem',
             borderRadius: 999,
             background: 'rgba(255,255,255,0.96)',
-            boxShadow: '0 10px 24px rgba(146, 96, 4, 0.18)',
+            boxShadow: '0 10px 24px rgba(91, 33, 182, 0.14)',
           }}
         />
       </div>

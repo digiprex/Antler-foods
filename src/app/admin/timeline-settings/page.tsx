@@ -41,9 +41,9 @@ const TimelineSettingsForm = dynamic(
 function TimelineSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const restaurantId = searchParams.get('restaurant_id');
-  const restaurantName = searchParams.get('restaurant_name');
-  const pageId = searchParams.get('page_id');
+  const restaurantId = searchParams?.get('restaurant_id');
+  const restaurantName = searchParams?.get('restaurant_name');
+  const pageId = searchParams?.get('page_id');
 
   const handleBack = () => {
     const params = new URLSearchParams();

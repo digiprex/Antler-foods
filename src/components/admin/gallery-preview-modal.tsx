@@ -177,6 +177,7 @@ export function GalleryPreviewModal({
                     layout={config.layout}
                     columns={config.columns}
                     size="panel"
+                    bgColor={config.bgColor || '#ffffff'}
                   />
                 </div>
               )}

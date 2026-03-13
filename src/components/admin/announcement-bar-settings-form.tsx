@@ -18,8 +18,9 @@ import { useState, useEffect } from 'react';
 import { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAnnouncementBarConfig, useUpdateAnnouncementBarConfig } from '@/hooks/use-announcement-bar-config';
+import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
 import type { AnnouncementBarConfig, SocialMediaIcon } from '@/types/announcement-bar.types';
-import { SOCIAL_MEDIA_PLATFORMS } from '@/types/announcement-bar.types';
+import { SOCIAL_MEDIA_PLATFORMS } from '@/constants/social-media-platforms';
 import Toast from '@/components/ui/toast';
 
 export default function AnnouncementBarSettingsForm() {
@@ -58,10 +59,26 @@ export default function AnnouncementBarSettingsForm() {
     [restaurantId],
   );
 
+  const globalStyleApiEndpoint = useMemo(
+    () => `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`,
+    [restaurantId],
+  );
+
   const { config, loading, error: fetchError } = useAnnouncementBarConfig({
     apiEndpoint: configApiEndpoint,
   });
+  const { config: globalStyleConfig, loading: globalStyleLoading } = useGlobalStyleConfig({
+    apiEndpoint: globalStyleApiEndpoint,
+    fetchOnMount: !!restaurantId,
+  });
   const { updateAnnouncementBar, updating, error: updateError } = useUpdateAnnouncementBarConfig();
+
+  // Debug: Log global style config
+  useEffect(() => {
+    console.log('[AnnouncementBar] Global Style Config:', globalStyleConfig);
+    console.log('[AnnouncementBar] Accent Color:', globalStyleConfig?.accentColor);
+    console.log('[AnnouncementBar] Text Color:', globalStyleConfig?.textColor);
+  }, [globalStyleConfig]);
 
   // Form state
   const [isEnabled, setIsEnabled] = useState(false);
@@ -76,7 +93,6 @@ export default function AnnouncementBarSettingsForm() {
   const [layout, setLayout] = useState<AnnouncementBarConfig['layout']>('text-only');
   const [bgColor, setBgColor] = useState('#000000');
   const [textColor, setTextColor] = useState('#ffffff');
-  const [linkColor, setLinkColor] = useState('#ffffff');
   const [fontFamily, setFontFamily] = useState('Inter, system-ui, sans-serif');
   const [fontSize, setFontSize] = useState('14px');
   const [fontWeight, setFontWeight] = useState<number>(400);
@@ -93,7 +109,7 @@ export default function AnnouncementBarSettingsForm() {
   // Mobile carousel state for preview
   const [previewContactIndex, setPreviewContactIndex] = useState(0);
 
-  // Initialize form with fetched config
+  // Initialize form with fetched config and global styles
   useEffect(() => {
     if (config) {
       setIsEnabled(config.isEnabled ?? false);
@@ -106,15 +122,50 @@ export default function AnnouncementBarSettingsForm() {
       setShowEmail(config.showEmail ?? true);
       setSocialMediaIcons(config.socialMediaIcons || []);
       setLayout(config.layout || 'text-only');
-      setBgColor(config.bgColor || '#000000');
-      setTextColor(config.textColor || '#ffffff');
-      setLinkColor(config.linkColor || '#ffffff');
-      setFontFamily(config.fontFamily || 'Inter, system-ui, sans-serif');
-      setFontSize(config.fontSize || '14px');
-      setFontWeight(config.fontWeight || 400);
-      setTextTransform(config.textTransform || 'none');
+
+      // Load colors: prioritize global styles over defaults, but use custom saved values if they differ from defaults
+      const defaultBgColor = '#000000';
+      const defaultTextColor = '#ffffff';
+      const defaultFontFamily = 'Inter, system-ui, sans-serif';
+      const defaultFontSize = '14px';
+      const defaultFontWeight = 400;
+      const defaultTextTransform = 'none';
+
+      // Use saved config if it's not the default, otherwise use global styles, then default
+      setBgColor(
+        (config.bgColor && config.bgColor !== defaultBgColor)
+          ? config.bgColor
+          : (globalStyleConfig?.accentColor || config.bgColor || defaultBgColor)
+      );
+      setTextColor(
+        (config.textColor && config.textColor !== defaultTextColor)
+          ? config.textColor
+          : (globalStyleConfig?.textColor || config.textColor || defaultTextColor)
+      );
+
+      // Load typography: use saved config if not default, fallback to global styles paragraph, then defaults
+      setFontFamily(
+        (config.fontFamily && config.fontFamily !== defaultFontFamily)
+          ? config.fontFamily
+          : (globalStyleConfig?.paragraph?.fontFamily || config.fontFamily || defaultFontFamily)
+      );
+      setFontSize(
+        (config.fontSize && config.fontSize !== defaultFontSize)
+          ? config.fontSize
+          : (globalStyleConfig?.paragraph?.fontSize || config.fontSize || defaultFontSize)
+      );
+      setFontWeight(
+        (config.fontWeight && config.fontWeight !== defaultFontWeight)
+          ? config.fontWeight
+          : (globalStyleConfig?.paragraph?.fontWeight || config.fontWeight || defaultFontWeight)
+      );
+      setTextTransform(
+        (config.textTransform && config.textTransform !== defaultTextTransform)
+          ? config.textTransform
+          : (globalStyleConfig?.paragraph?.textTransform || config.textTransform || defaultTextTransform)
+      );
     }
-  }, [config]);
+  }, [config, globalStyleConfig]);
 
   // Prepare contact items for preview carousel
   const previewContactItems = useMemo(() => {
@@ -170,7 +221,6 @@ export default function AnnouncementBarSettingsForm() {
         position: 'top', // Always top position
         bgColor,
         textColor,
-        linkColor,
         fontFamily,
         fontSize,
         fontWeight,
@@ -191,93 +241,104 @@ export default function AnnouncementBarSettingsForm() {
 
   // Create preview component
   const AnnouncementBarPreview = () => {
-    if (!isEnabled) {
-      return (
-        <div style={{
-          padding: '1rem',
-          textAlign: 'center',
-          color: '#6b7280',
-          fontStyle: 'italic',
-          background: '#f9fafb',
-          borderRadius: '8px',
-          border: '2px dashed #e5e7eb'
-        }}>
-          Announcement bar is disabled
-        </div>
-      );
-    }
-
-    // Check for content based on visibility settings and layout
-    const hasVisibleContent =
-      (layout === 'text-only' && text) ||
-      (layout === 'full' && text) ||
-      (layout === 'contact-info' && (showAddress && address || showPhone && phone || showEmail && email)) ||
-      (layout === 'social-only' && socialMediaIcons.some(icon => icon.url)) ||
-      (layout === 'contact-social' && (showAddress && address || showPhone && phone || showEmail && email || socialMediaIcons.some(icon => icon.url)));
-
-    if (!hasVisibleContent) {
-      return (
-        <div style={{
-          padding: '1rem',
-          textAlign: 'center',
-          color: '#6b7280',
-          fontStyle: 'italic',
-          background: '#f9fafb',
-          borderRadius: '8px',
-          border: '2px dashed #e5e7eb'
-        }}>
-          Enable content options to see preview
-        </div>
-      );
-    }
-
     // Determine what to show based on layout
-    const showTextInPreview = (layout === 'text-only' || layout === 'full') && text;
-    const showContactInPreview = (layout === 'contact-info' || layout === 'contact-social' || layout === 'full');
-    const showSocialInPreview = (layout === 'social-only' || layout === 'contact-social' || layout === 'full');
+    const showTextInPreview = layout === 'text-only' || layout === 'full';
+    const showContactInPreview = layout === 'contact-info' || layout === 'contact-social' || layout === 'full';
+    const showSocialInPreview = layout === 'social-only' || layout === 'contact-social' || layout === 'full';
+
+    // Use actual text or placeholder
+    const displayText = text || 'Your announcement text will appear here...';
+
+    // Prepare contact items with placeholders
+    const displayContactItems = [];
+    if (showContactInPreview) {
+      if (showAddress) {
+        displayContactItems.push({
+          type: 'address',
+          content: address ? `📍 ${address}` : '📍 123 Main St, City, State'
+        });
+      }
+      if (showPhone) {
+        displayContactItems.push({
+          type: 'phone',
+          content: phone ? `📞 ${phone}` : '📞 (555) 123-4567'
+        });
+      }
+      if (showEmail) {
+        displayContactItems.push({
+          type: 'email',
+          content: email ? `✉️ ${email}` : '✉️ contact@restaurant.com'
+        });
+      }
+    }
+
+    // Use actual contact items or display items with placeholders
+    const itemsToShow = previewContactItems.length > 0 ? previewContactItems : displayContactItems;
+
+    // Check if we're showing placeholders
+    const hasActualText = showTextInPreview && text;
+    const hasActualContact = previewContactItems.length > 0;
+    const hasActualSocial = showSocialInPreview && socialMediaIcons.some(icon => icon.url);
+    const isPlaceholder = !hasActualText && !hasActualContact && !hasActualSocial;
 
     return (
-      <div style={{
-        backgroundColor: bgColor,
-        color: textColor,
-        fontFamily: fontFamily,
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        textTransform: textTransform,
-        padding: '8px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '1rem',
-        flexWrap: 'wrap',
-        minHeight: '40px',
-      }}>
-        {showTextInPreview && <span>{text}</span>}
-        {showContactInPreview && previewContactItems.length > 0 && (
-          <span
-            key={previewContactIndex}
-            style={{
-          animation: previewContactItems.length > 1 ? 'fadeIn 0.5s ease-in-out' : 'none'
-            }}
-          >
-            {previewContactItems[previewContactIndex]?.content}
-          </span>
-        )}
-        {showSocialInPreview && socialMediaIcons.filter(icon => icon.url).map((icon, index) => (
-          <a
-            key={index}
-            href={icon.url}
-            style={{
-          color: linkColor,
-          textDecoration: 'none',
-          fontSize: '1.2rem'
-            }}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {SOCIAL_MEDIA_PLATFORMS[icon.platform]?.icon || '🔗'}
-          </a>
-        ))}
+      <div>
+        <div style={{
+          backgroundColor: bgColor,
+          color: textColor,
+          fontFamily: fontFamily,
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          textTransform: textTransform,
+          padding: '8px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          minHeight: '40px',
+          opacity: isPlaceholder ? 0.6 : 1,
+        }}>
+          {showTextInPreview && (
+            <span style={{ fontStyle: text ? 'normal' : 'italic' }}>
+              {displayText}
+            </span>
+          )}
+          {showContactInPreview && itemsToShow.length > 0 && (
+            <span
+              key={previewContactIndex}
+              style={{
+                animation: itemsToShow.length > 1 ? 'fadeIn 0.5s ease-in-out' : 'none',
+                fontStyle: hasActualContact ? 'normal' : 'italic'
+              }}
+            >
+              {itemsToShow[previewContactIndex % itemsToShow.length]?.content}
+            </span>
+          )}
+          {showSocialInPreview && (
+            socialMediaIcons.length > 0 ? (
+              socialMediaIcons.filter(icon => icon.url).map((icon, index) => (
+                <a
+                  key={index}
+                  href={icon.url}
+                  style={{
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center'
+                  }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {SOCIAL_MEDIA_PLATFORMS[icon.platform]?.icon() || '🔗'}
+                </a>
+              ))
+            ) : (
+              <span style={{ fontStyle: 'italic', fontSize: '0.875rem' }}>
+                📱 Social icons will appear here
+              </span>
+            )
+          )}
+        </div>
       </div>
     );
   };
@@ -400,18 +461,149 @@ export default function AnnouncementBarSettingsForm() {
               <label className="block text-sm font-medium text-gray-900">
                 Layout Type
               </label>
-              <p className="mt-1 text-xs text-gray-600">Choose what content to display</p>
-              <select
-                value={layout}
-                onChange={(e) => setLayout(e.target.value as AnnouncementBarConfig['layout'])}
-                className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                <option value="text-only">Text Only</option>
-                <option value="contact-info">Contact Information Only</option>
-                <option value="social-only">Social Media Only</option>
-                <option value="contact-social">Contact + Social Media</option>
-                <option value="full">All (Text + Contact + Social)</option>
-              </select>
+              <p className="mt-1 text-xs text-gray-600 mb-3">Choose what content to display</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {/* Text Only */}
+                <button
+                  type="button"
+                  onClick={() => setLayout('text-only')}
+                  className={`relative flex flex-col items-start p-4 rounded-lg border-2 transition-all ${
+                    layout === 'text-only'
+                      ? 'border-purple-500 bg-purple-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-25'
+                  }`}
+                >
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg mb-2 ${
+                    layout === 'text-only' ? 'bg-purple-500' : 'bg-gray-100'
+                  }`}>
+                    <svg className={`h-5 w-5 ${layout === 'text-only' ? 'text-white' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900">Text Only</h3>
+                  <p className="text-xs text-gray-500 mt-1">Display custom text message</p>
+                  {layout === 'text-only' && (
+                    <div className="absolute top-3 right-3">
+                      <svg className="h-5 w-5 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+
+                {/* Contact Info Only */}
+                <button
+                  type="button"
+                  onClick={() => setLayout('contact-info')}
+                  className={`relative flex flex-col items-start p-4 rounded-lg border-2 transition-all ${
+                    layout === 'contact-info'
+                      ? 'border-purple-500 bg-purple-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-25'
+                  }`}
+                >
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg mb-2 ${
+                    layout === 'contact-info' ? 'bg-purple-500' : 'bg-gray-100'
+                  }`}>
+                    <svg className={`h-5 w-5 ${layout === 'contact-info' ? 'text-white' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900">Contact Info</h3>
+                  <p className="text-xs text-gray-500 mt-1">Show address & phone</p>
+                  {layout === 'contact-info' && (
+                    <div className="absolute top-3 right-3">
+                      <svg className="h-5 w-5 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+
+                {/* Social Only */}
+                <button
+                  type="button"
+                  onClick={() => setLayout('social-only')}
+                  className={`relative flex flex-col items-start p-4 rounded-lg border-2 transition-all ${
+                    layout === 'social-only'
+                      ? 'border-purple-500 bg-purple-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-25'
+                  }`}
+                >
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg mb-2 ${
+                    layout === 'social-only' ? 'bg-purple-500' : 'bg-gray-100'
+                  }`}>
+                    <svg className={`h-5 w-5 ${layout === 'social-only' ? 'text-white' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900">Social Media</h3>
+                  <p className="text-xs text-gray-500 mt-1">Display social media icons</p>
+                  {layout === 'social-only' && (
+                    <div className="absolute top-3 right-3">
+                      <svg className="h-5 w-5 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+
+                {/* Contact + Social */}
+                <button
+                  type="button"
+                  onClick={() => setLayout('contact-social')}
+                  className={`relative flex flex-col items-start p-4 rounded-lg border-2 transition-all ${
+                    layout === 'contact-social'
+                      ? 'border-purple-500 bg-purple-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-25'
+                  }`}
+                >
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg mb-2 ${
+                    layout === 'contact-social' ? 'bg-purple-500' : 'bg-gray-100'
+                  }`}>
+                    <svg className={`h-5 w-5 ${layout === 'contact-social' ? 'text-white' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900">Contact + Social</h3>
+                  <p className="text-xs text-gray-500 mt-1">Combine contact & social</p>
+                  {layout === 'contact-social' && (
+                    <div className="absolute top-3 right-3">
+                      <svg className="h-5 w-5 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+
+                {/* Full */}
+                <button
+                  type="button"
+                  onClick={() => setLayout('full')}
+                  className={`relative flex flex-col items-start p-4 rounded-lg border-2 transition-all ${
+                    layout === 'full'
+                      ? 'border-purple-500 bg-purple-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-25'
+                  }`}
+                >
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg mb-2 ${
+                    layout === 'full' ? 'bg-purple-500' : 'bg-gray-100'
+                  }`}>
+                    <svg className={`h-5 w-5 ${layout === 'full' ? 'text-white' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900">All Content</h3>
+                  <p className="text-xs text-gray-500 mt-1">Text + Contact + Social</p>
+                  {layout === 'full' && (
+                    <div className="absolute top-3 right-3">
+                      <svg className="h-5 w-5 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+              </div>
         </div>
           </div>
         </div>
@@ -437,7 +629,6 @@ export default function AnnouncementBarSettingsForm() {
                 <label className="block text-sm font-medium text-gray-900">
                   Announcement Text
                 </label>
-                <p className="mt-1 text-xs text-gray-600">Main message to display</p>
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
@@ -561,15 +752,16 @@ export default function AnnouncementBarSettingsForm() {
 
                 {/* Current Social Media Icons */}
                 {socialMediaIcons.length > 0 ? (
-                  <div className="flex flex-wrap items-center gap-2 border-t border-gray-200 pt-3">
+                  <div className="flex flex-wrap items-center gap-3 border-t border-gray-200 pt-3">
                     <strong className="text-sm text-gray-900">Available social medias:</strong>
                     {socialMediaIcons.map((icon, index) => (
                       <span
                         key={index}
-                        className="text-2xl"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 p-1.5 transition-colors hover:bg-gray-200"
                         title={SOCIAL_MEDIA_PLATFORMS[icon.platform]?.name}
+                        style={{ color: SOCIAL_MEDIA_PLATFORMS[icon.platform]?.color }}
                       >
-                        {SOCIAL_MEDIA_PLATFORMS[icon.platform]?.icon || '🔗'}
+                        {SOCIAL_MEDIA_PLATFORMS[icon.platform]?.icon() || '🔗'}
                       </span>
                     ))}
                   </div>
@@ -658,39 +850,6 @@ export default function AnnouncementBarSettingsForm() {
                 <button
                   type="button"
                   onClick={() => setTextColor('#ffffff')}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-              </div>
-        </div>
-
-        {/* Link Color */}
-            <div>
-              <label className="block text-sm font-medium text-gray-900">
-                Link Color
-              </label>
-              <p className="mt-1 text-xs text-gray-600">Social media link color</p>
-              <div className="mt-2 flex items-center gap-3">
-                <input
-                  type="color"
-                  value={linkColor}
-                  onChange={(e) => setLinkColor(e.target.value)}
-                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 shadow-sm"
-                />
-                <input
-                  type="text"
-                  value={linkColor}
-                  onChange={(e) => setLinkColor(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="#ffffff"
-                />
-                <button
-                  type="button"
-                  onClick={() => setLinkColor('#ffffff')}
                   className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                   title="Reset to default"
                 >
@@ -805,7 +964,7 @@ export default function AnnouncementBarSettingsForm() {
         <div className="flex justify-end">
         <button
             type="submit"
-            disabled={updating}
+            disabled={updating || !isEnabled}
             className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:from-purple-700 hover:to-purple-800 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
           >
             {updating ? (

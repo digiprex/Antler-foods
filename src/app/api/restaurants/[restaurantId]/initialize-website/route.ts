@@ -56,6 +56,7 @@ interface OtherPageSection {
   name: string;
   type: string;
   order_index: number;
+  content?: string; // Content context for AI generation (e.g., "about", "dining", "mission")
   config?: any; // Full configuration object for the section (e.g., hero config, custom section config)
 }
 
@@ -265,6 +266,27 @@ async function getPageIdBySlug(restaurantId: string, urlSlug: string): Promise<s
   return data.web_pages.length > 0 ? data.web_pages[0].page_id : null;
 }
 
+async function checkIfPageHasSections(restaurantId: string, pageId: string): Promise<boolean> {
+  const query = `
+    query CheckPageSections($restaurant_id: uuid!, $page_id: uuid!) {
+      templates(where: {
+        restaurant_id: { _eq: $restaurant_id },
+        page_id: { _eq: $page_id },
+        is_deleted: { _eq: false }
+      }) {
+        template_id
+      }
+    }
+  `;
+
+  const data = await adminGraphqlRequest<{ templates: Array<{ template_id: string }> }>(query, {
+    restaurant_id: restaurantId,
+    page_id: pageId,
+  });
+
+  return data.templates.length > 0;
+}
+
 /**
  * Fetch a media image for the restaurant
  */
@@ -319,6 +341,11 @@ async function getRestaurantDetails(restaurantId: string) {
         city
         state
         country
+        postal_code
+        phone_number
+        email
+        poc_email
+        poc_phone_number
       }
     }
   `;
@@ -332,6 +359,11 @@ async function getRestaurantDetails(restaurantId: string) {
       city?: string;
       state?: string;
       country?: string;
+      postal_code?: string;
+      phone_number?: string;
+      email?: string;
+      poc_email?: string;
+      poc_phone_number?: string;
     } | null
   }>(query, { restaurant_id: restaurantId });
 
@@ -382,9 +414,44 @@ async function createContactForm(restaurantId: string, restaurantName: string): 
       },
     ];
 
-    // Use a default email address (can be updated by restaurant owner later)
-    const cleanName = restaurantName.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const defaultEmail = `contact@${cleanName}.com`;
+    // Fetch restaurant POC email instead of generating a default email
+    let formEmail = '';
+    
+    try {
+      const restaurantQuery = `
+        query GetRestaurantEmails($restaurant_id: uuid!) {
+          restaurants_by_pk(restaurant_id: $restaurant_id) {
+            poc_email
+            email
+          }
+        }
+      `;
+      
+      const restaurantData = await adminGraphqlRequest<{
+        restaurants_by_pk: { poc_email?: string; email?: string } | null
+      }>(restaurantQuery, { restaurant_id: restaurantId });
+
+      const restaurant = restaurantData.restaurants_by_pk;
+      
+      if (restaurant?.poc_email) {
+        formEmail = restaurant.poc_email;
+        console.log(`✅ Using restaurant POC email for contact form: ${formEmail}`);
+      } else if (restaurant?.email) {
+        formEmail = restaurant.email;
+        console.log(`✅ Using restaurant email for contact form: ${formEmail}`);
+      } else {
+        // Fallback to generated email if no emails exist
+        const cleanName = restaurantName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        formEmail = `contact@${cleanName}.com`;
+        console.log(`⚠️ No POC email or restaurant email found, using generated email: ${formEmail}`);
+      }
+    } catch (error) {
+      console.error('Error fetching restaurant POC email:', error);
+      // Fallback to generated email
+      const cleanName = restaurantName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      formEmail = `contact@${cleanName}.com`;
+      console.log(`⚠️ Error fetching POC email, using generated email: ${formEmail}`);
+    }
 
     const mutation = `
       mutation CreateForm(
@@ -408,7 +475,7 @@ async function createContactForm(restaurantId: string, restaurantName: string): 
       insert_forms_one: { form_id: string } | null;
     }>(mutation, {
       title: 'Contact Form',
-      email: defaultEmail,
+      email: formEmail,
       fields: formFields,
       restaurant_id: restaurantId,
     });
@@ -426,15 +493,62 @@ async function createContactForm(restaurantId: string, restaurantName: string): 
 }
 
 /**
+ * Get content guidance based on content theme and page name
+ * @param contentTheme - Content theme (e.g., 'about', 'dining', 'mission')
+ * @param pageName - Page name (e.g., 'home', 'about', 'contact')
+ */
+function getContentGuidance(contentTheme: string, pageName: string) {
+  const contentMap: Record<string, { headlineHint?: string; specificInstructions: string }> = {
+    about: {
+      headlineHint: '(e.g., "Our Story", "About Us", "Our Journey")',
+      specificInstructions: 'Focus on the restaurant\'s history, founding story, or what makes them unique. Emphasize authenticity and personal connection.'
+    },
+    dining: {
+      headlineHint: '(e.g., "Fine Dining", "Dining Experience", "Our Atmosphere")',
+      specificInstructions: 'Highlight the dining experience, atmosphere, service quality, and what guests can expect when they visit. Focus on ambiance and hospitality.'
+    },
+    mission: {
+      headlineHint: '(e.g., "Our Mission", "Our Purpose", "Why We Exist")',
+      specificInstructions: 'Articulate the restaurant\'s core mission, values, and commitment to guests. Focus on their purpose and what drives them.'
+    },
+    values: {
+      headlineHint: '(e.g., "Core Values", "What We Believe", "Our Principles")',
+      specificInstructions: 'Describe the fundamental values and principles that guide the restaurant. Focus on integrity, quality, and service standards.'
+    },
+    team: {
+      headlineHint: '(e.g., "Our Team", "Meet The Crew", "The People")',
+      specificInstructions: 'Highlight the people behind the restaurant - chefs, staff, and their expertise. Focus on passion and dedication.'
+    },
+    quality: {
+      headlineHint: '(e.g., "Quality First", "Fresh Ingredients", "Excellence")',
+      specificInstructions: 'Emphasize commitment to quality ingredients, preparation methods, and standards. Focus on freshness and craftsmanship.'
+    },
+    experience: {
+      headlineHint: '(e.g., "The Experience", "Memorable Moments", "Your Visit")',
+      specificInstructions: 'Describe the overall guest experience from arrival to departure. Focus on creating lasting memories.'
+    }
+  };
+
+  // Default guidance for unknown content themes
+  const defaultGuidance = {
+    specificInstructions: 'Create content that reflects the restaurant\'s commitment to excellence and guest satisfaction. Make it relevant and engaging.'
+  };
+
+  return contentMap[contentTheme.toLowerCase()] || defaultGuidance;
+}
+
+/**
  * Generate custom section content using Amazon Bedrock AI
  * @param restaurantId - Restaurant ID
  * @param pageName - Page name (e.g., 'about', 'contact')
  * @param sectionName - Section name (e.g., 'Mission', 'Values', 'Team')
+ * @param contentContext - Content context from theme (e.g., 'about', 'dining', 'mission')
  */
 async function generateCustomSectionContent(
   restaurantId: string,
   pageName: string,
-  sectionName: string
+  sectionName: string,
+  contentContext?: string
 ) {
   try {
     // Check if Bedrock is configured
@@ -464,20 +578,28 @@ async function generateCustomSectionContent(
 
     const context = contextParts.length > 0 ? ` - ${contextParts.join(', ')}` : '';
 
-    // Create prompt for custom section on about page
-    const prompt = `Generate compelling custom section content for the "${sectionName}" section on the About page of a restaurant website.
+    // Determine the content theme based on contentContext or sectionName
+    const contentTheme = contentContext || sectionName;
+    
+    // Create content-specific guidance
+    const contentGuidance = getContentGuidance(contentTheme, pageName);
+
+    // Create prompt for custom section
+    const prompt = `Generate compelling custom section content for the "${sectionName}" section on the ${pageName} page of a restaurant website.
 
 Restaurant Details:
 - Name: ${restaurant.name}${context}
 
+Content Theme: ${contentTheme}
+${contentGuidance}
+
 Requirements:
-- Write a headline (1-3 words only) that captures the essence of "${sectionName}" (e.g., for "Mission": "Our Mission", "Our Purpose"; for "Values": "Core Values", "What We Believe")
-- Write a subheadline (4-6 words) that provides emotional context
-- Write a description (2-3 sentences, max 180 characters) that elaborates on the "${sectionName}" theme
-- Use professional but warm tone
-- Make it authentic and compelling
-- Focus on the restaurant's unique story and values
-- Create content based on the restaurant type, cuisine, and location provided above
+- Write a headline (1-2 words only) that captures "${contentTheme}" ${contentGuidance.headlineHint ? contentGuidance.headlineHint : ''}
+- Write a subheadline (2-4 words) that provides context
+- Write a description (1 sentence, max 60 characters) about the "${contentTheme}" theme
+- Keep it concise and distinct from hero sections
+- Avoid repetitive restaurant language
+- ${contentGuidance.specificInstructions ? contentGuidance.specificInstructions : 'Make it relevant to the restaurant industry'}
 
 Generate the content in JSON format:
 {
@@ -583,59 +705,66 @@ async function generateHeroContent(
 
     // Create page-specific prompt
     const pagePrompts: Record<string, string> = {
-      about: `Generate compelling hero section content for the About page of a restaurant website.
+      home: `Generate concise SEO-optimized hero content for the Home page.
 
-Restaurant Details:
-- Name: ${restaurant.name}${context}
+Restaurant: ${restaurant.name}${context}
 
 Requirements:
-- Write a headline (1-3 words only) that includes "About Us" or similar about-related phrase (e.g., "Our Story", "About Us", "Our Journey")
-- Write a subheadline (1-3 words only) that provides context or emotion (e.g., "Passion & Quality", "Family Tradition", "Culinary Excellence")
-- Write a description (2 sentences, max 120 characters) that tells the restaurant's story and values
-- Use professional but warm tone
-- Make it authentic and inviting
-- Focus on the restaurant's unique story, values, and what makes them special
-- Create the description based on the restaurant type, cuisine, and location provided above
+- Headline (2-4 words max): Include restaurant name (e.g., "Welcome to ${restaurant.name}", "${restaurant.name} Restaurant")
+- Subheadline (3-5 words max): Cuisine/location (e.g., "${restaurant.cuisine_types?.[0] || 'Fine'} Dining Experience")
+- Description (1 sentence, max 60 characters): Unique and inviting
+- Keep distinct from other sections
+- Avoid generic phrases
 
-Generate the content in JSON format:
+JSON format:
 {
   "headline": "...",
   "subheadline": "...",
   "description": "..."
 }`,
-      contact: `Generate compelling hero section content for the Contact page of a restaurant website.
+      about: `Generate concise hero content for the About page.
 
-Restaurant Details:
-- Name: ${restaurant.name}${context}
+Restaurant: ${restaurant.name}${context}
 
 Requirements:
-- Write a headline (1-3 words only) that includes "Contact" or similar contact-related phrase (e.g., "Get In Touch", "Contact Us", "Reach Out", "Connect")
-- Write a subheadline (1-3 words only) that provides context or emotion (e.g., "We're Here", "Let's Talk", "Always Available", "Visit Us")
-- Write a description (2 sentences, max 120 characters) that invites questions, reservations, or feedback
-- Use friendly and welcoming tone
-- Make it inviting and approachable
-- Focus on accessibility and making guests feel welcome to reach out
+- Headline (1-2 words): (e.g., "Our Story", "About Us")
+- Subheadline (2-3 words): (e.g., "Since [Year]", "Family Tradition")
+- Description (1 sentence, max 40 characters): About heritage/story
+- Keep brief and distinct
 
-Generate the content in JSON format:
+JSON format:
 {
   "headline": "...",
   "subheadline": "...",
   "description": "..."
 }`,
-      menu: `Generate compelling hero section content for the Menu page of a restaurant website.
+      contact: `Generate concise hero content for the Contact page.
 
-Restaurant Details:
-- Name: ${restaurant.name}${context}
+Restaurant: ${restaurant.name}${context}
 
 Requirements:
-- Write a headline (1-3 words only) that includes "Menu" or similar menu-related phrase (e.g., "Our Menu", "Explore Menu", "What We Serve", "Discover")
-- Write a subheadline (1-3 words only) that emphasizes quality or variety (e.g., "Fresh Daily", "Crafted Perfectly", "Flavors Await", "Pure Quality")
-- Write a description (2 sentences, max 120 characters) that invites guests to explore the menu
-- Use appetizing and inviting tone
-- Focus on food quality and variety
-- Create excitement about the culinary offerings
+- Headline (1-2 words): (e.g., "Contact Us", "Get In Touch")
+- Subheadline (2-3 words): (e.g., "We're Here", "Always Available")
+- Description (1 sentence, max 30 characters): About accessibility
+- Keep minimal and action-focused
 
-Generate the content in JSON format:
+JSON format:
+{
+  "headline": "...",
+  "subheadline": "...",
+  "description": "..."
+}`,
+      menu: `Generate concise hero content for the Menu page.
+
+Restaurant: ${restaurant.name}${context}
+
+Requirements:
+- Headline (1-2 words): (e.g., "Our Menu", "Discover")
+- Subheadline (2-3 words): (e.g., "Fresh Daily", "Crafted Perfectly")
+- Description (1 sentence, max 30 characters): About food quality
+- Keep appetizing but brief
+
+JSON format:
 {
   "headline": "...",
   "subheadline": "...",
@@ -643,7 +772,7 @@ Generate the content in JSON format:
 }`,
     };
 
-    const prompt = pagePrompts[pageName] || pagePrompts['about'];
+    const prompt = pagePrompts[pageName] || pagePrompts['home'];
 
     // Prepare the request for Claude 3 Haiku
     const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
@@ -985,6 +1114,22 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
     return;
   }
 
+  // Fetch restaurant's global_styles for consistent styling (same as other pages)
+  const restaurantQuery = `
+    query GetRestaurantGlobalStyles($restaurant_id: uuid!) {
+      restaurants_by_pk(restaurant_id: $restaurant_id) {
+        global_styles
+      }
+    }
+  `;
+
+  const restaurantData = await adminGraphqlRequest<{ restaurants_by_pk: { global_styles: any } | null }>(
+    restaurantQuery,
+    { restaurant_id: restaurantId }
+  );
+
+  const globalStyles = restaurantData.restaurants_by_pk?.global_styles || {};
+
   // List of supported section categories
   const SUPPORTED_CATEGORIES = [
     'hero',
@@ -1025,24 +1170,156 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
   // Create a template entry for each section
   for (const section of pageSections) {
     const orderIndex = section.order_index ?? section.order ?? 0;
+    
+    // Use section.style as base config, but enhance it with global styles (same as other pages)
+    let sectionConfig = section.style || {};
+    
+    // For Hero sections, generate AI content and merge with global styles (same as other pages)
+    const isHeroSection = section.type.toLowerCase() === 'hero';
+    if (isHeroSection) {
+      console.log(`  ⚡ Generating AI content for home page hero (layout: ${section.id})...`);
+      const aiContent = await generateHeroContent(restaurantId, 'home', section.id);
+
+      // Default fallback content for home page with SEO optimization
+      // Fetch restaurant details for SEO-optimized fallback content
+      const restaurant = await getRestaurantDetails(restaurantId);
+      const locationInfo = restaurant ? [restaurant.city, restaurant.state, restaurant.country].filter(Boolean).join(', ') : '';
+      const cuisineType = restaurant?.cuisine_types && Array.isArray(restaurant.cuisine_types) && restaurant.cuisine_types.length > 0
+        ? restaurant.cuisine_types[0]
+        : '';
+      
+      const defaultContent = {
+        headline: restaurant?.name ? `Welcome to ${restaurant.name}` : 'Welcome',
+        subheadline: cuisineType ? `${cuisineType} Dining` : 'Fine Dining',
+        description: `Fresh cuisine, warm atmosphere.`,
+      };
+
+      // Use AI content if available, otherwise use defaults
+      const content = aiContent || defaultContent;
+
+      // Check if layout requires an image and fetch from media table
+      const mediaImage = await getRestaurantMedia(restaurantId);
+
+      // Build enhanced config using global_styles for CSS/styling and AI/default content for dynamic text
+      sectionConfig = {
+        ...sectionConfig, // Keep any existing theme styles
+        layout: section.id, // Layout from theme
+
+        // Dynamic content from AI or defaults
+        headline: content.headline,
+        subheadline: content.subheadline,
+        description: content.description,
+
+        // Dynamic image from media table if layout supports it
+        ...(mediaImage && { backgroundImage: mediaImage.url }),
+
+        // CSS/Styling from global_styles (same as other pages)
+        bgColor: globalStyles?.backgroundColor || sectionConfig.bgColor || '#ffffff',
+        mobileBgColor: sectionConfig.mobileBgColor || '',
+        textColor: globalStyles?.textColor || sectionConfig.textColor || '#000000',
+        textAlign: sectionConfig.textAlign || 'center',
+        mobileTextAlign: sectionConfig.mobileTextAlign || 'center',
+
+        // Spacing
+        paddingTop: sectionConfig.paddingTop || '6rem',
+        paddingBottom: sectionConfig.paddingBottom || '6rem',
+        paddingInline: sectionConfig.paddingInline || '',
+        mobilePaddingInline: sectionConfig.mobilePaddingInline || '',
+        minHeight: sectionConfig.minHeight || '600px',
+
+        // Typography from global_styles (same as other pages)
+        titleFontFamily: globalStyles?.title?.fontFamily || sectionConfig.titleFontFamily || 'Inter, system-ui, sans-serif',
+        titleFontSize: globalStyles?.title?.fontSize || sectionConfig.titleFontSize || '2.25rem',
+        titleMobileFontSize: sectionConfig.titleMobileFontSize || '',
+        titleFontWeight: globalStyles?.title?.fontWeight || sectionConfig.titleFontWeight || 700,
+        titleColor: globalStyles?.title?.color || sectionConfig.titleColor || '#111827',
+
+        subtitleFontFamily: globalStyles?.subheading?.fontFamily || sectionConfig.subtitleFontFamily || 'Inter, system-ui, sans-serif',
+        subtitleFontSize: globalStyles?.subheading?.fontSize || sectionConfig.subtitleFontSize || '1.5rem',
+        subtitleMobileFontSize: sectionConfig.subtitleMobileFontSize || '',
+        subtitleFontWeight: globalStyles?.subheading?.fontWeight || sectionConfig.subtitleFontWeight || 600,
+        subtitleColor: globalStyles?.subheading?.color || sectionConfig.subtitleColor || '#374151',
+
+        bodyFontFamily: globalStyles?.paragraph?.fontFamily || sectionConfig.bodyFontFamily || 'Inter, system-ui, sans-serif',
+        bodyFontSize: globalStyles?.paragraph?.fontSize || sectionConfig.bodyFontSize || '1rem',
+        bodyMobileFontSize: sectionConfig.bodyMobileFontSize || '',
+        bodyFontWeight: globalStyles?.paragraph?.fontWeight || sectionConfig.bodyFontWeight || 400,
+        bodyColor: globalStyles?.paragraph?.color || sectionConfig.bodyColor || '#6b7280',
+
+        // Content panel
+        contentMaxWidth: sectionConfig.contentMaxWidth || '1200px',
+        contentAnimation: sectionConfig.contentAnimation || 'none',
+
+        // Buttons (use existing config or defaults)
+        primaryButton: sectionConfig.primaryButton || {
+          label: 'View Menu',
+          href: '#menu',
+          variant: 'primary',
+        },
+        secondaryButton: sectionConfig.secondaryButton || {
+          label: 'Book a Table',
+          href: '#reservations',
+          variant: 'outline',
+        },
+        primaryButtonEnabled: sectionConfig.primaryButtonEnabled !== undefined ? sectionConfig.primaryButtonEnabled : true,
+        secondaryButtonEnabled: sectionConfig.secondaryButtonEnabled !== undefined ? sectionConfig.secondaryButtonEnabled : false,
+
+        // Other defaults
+        showScrollIndicator: sectionConfig.showScrollIndicator !== undefined ? sectionConfig.showScrollIndicator : false,
+        imageBorderRadius: sectionConfig.imageBorderRadius || '',
+        imageObjectFit: sectionConfig.imageObjectFit || 'cover',
+        is_custom: sectionConfig.is_custom !== undefined ? sectionConfig.is_custom : false,
+        buttonStyleVariant: sectionConfig.buttonStyleVariant || 'primary',
+
+        // Content panels
+        defaultContentPanelEnabled: sectionConfig.defaultContentPanelEnabled !== undefined ? sectionConfig.defaultContentPanelEnabled : false,
+        defaultContentPanelBackgroundColor: sectionConfig.defaultContentPanelBackgroundColor || '#ffffff',
+        defaultContentPanelMobileBackgroundColor: sectionConfig.defaultContentPanelMobileBackgroundColor || '',
+        defaultContentPanelBorderRadius: sectionConfig.defaultContentPanelBorderRadius || '2rem',
+        defaultContentPanelMobileBorderRadius: sectionConfig.defaultContentPanelMobileBorderRadius || '',
+        defaultContentPanelMaxWidth: sectionConfig.defaultContentPanelMaxWidth || '960px',
+
+        videoContentPanelEnabled: sectionConfig.videoContentPanelEnabled !== undefined ? sectionConfig.videoContentPanelEnabled : false,
+        videoContentPanelBackgroundColor: sectionConfig.videoContentPanelBackgroundColor || 'rgba(15, 23, 42, 0.48)',
+        videoContentPanelMobileBackgroundColor: sectionConfig.videoContentPanelMobileBackgroundColor || '',
+        videoContentPanelBorderRadius: sectionConfig.videoContentPanelBorderRadius || '2rem',
+        videoContentPanelMobileBorderRadius: sectionConfig.videoContentPanelMobileBorderRadius || '',
+        videoContentPanelMaxWidth: sectionConfig.videoContentPanelMaxWidth || '640px',
+        videoContentPanelMinHeight: sectionConfig.videoContentPanelMinHeight || '',
+        videoContentPanelMarginTop: sectionConfig.videoContentPanelMarginTop || '',
+        videoContentPanelMarginBottom: sectionConfig.videoContentPanelMarginBottom || '',
+        videoContentPanelMobileMaxWidth: sectionConfig.videoContentPanelMobileMaxWidth || '',
+        videoContentPanelMobileMinHeight: sectionConfig.videoContentPanelMobileMinHeight || '',
+        videoContentPanelMobileMarginTop: sectionConfig.videoContentPanelMobileMarginTop || '',
+        videoContentPanelMobileMarginBottom: sectionConfig.videoContentPanelMobileMarginBottom || '',
+        videoContentPanelPosition: sectionConfig.videoContentPanelPosition || 'left',
+      };
+    }
+
+    // Ensure restaurant_id is set in config
+    if (!sectionConfig.restaurant_id) {
+      sectionConfig = { ...sectionConfig, restaurant_id: restaurantId };
+    }
 
     await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
       restaurant_id: restaurantId,
       name: section.name || section.type,
       category: section.type,
-      config: section.style || {},
+      config: sectionConfig, // Use enhanced config with global styles
       menu_items: {},
       page_id: pageId,
       order_index: orderIndex,
       ref_template_id: null,
     });
+
+    console.log(`  ✓ Created ${section.type} section "${section.name || section.id}" with global styles for home page`);
   }
 
-  console.log(`✅ Created ${pageSections.length} page section(s) from theme`);
+  console.log(`✅ Created ${pageSections.length} page section(s) from theme with global styles`);
 }
 
 /**
- * Creates sections for other pages (like About, Contact, etc.) from theme's other_page_sections
+ * Creates sections for all pages (including Home, About, Contact, etc.) from theme's other_page_sections
  * @param restaurantId - Restaurant ID
  * @param themeId - Theme ID to fetch other_page_sections from
  */
@@ -1137,15 +1414,82 @@ async function createOtherPageSectionsFromTheme(
         // Normalize category names to match expected format
         const isHeroSection = category.toLowerCase() === 'hero';
         const isCustomSection = category.toLowerCase() === 'customsection';
+        const isFormSection = category.toLowerCase() === 'form';
 
         if (isHeroSection) {
           category = 'Hero';
         } else if (isCustomSection) {
           category = 'CustomSection';
+        } else if (isFormSection) {
+          category = 'form';
         }
 
         // Use full config if provided, otherwise create minimal config with layout ID
         let sectionConfig = section.config || { layout: section.id };
+
+        // For Form sections on contact page, ensure they have the form_id regardless of existing config
+        if (isFormSection && pageName === 'contact' && contactFormId) {
+          // Build complete form configuration
+          const formConfig = {
+            // Essential form configuration
+            form_id: contactFormId,
+            isEnabled: true,
+            restaurant_id: restaurantId,
+            layout: sectionConfig.layout || section.id || 'centered',
+            
+            // Content configuration with fallbacks
+            title: sectionConfig.title || 'Get In Touch',
+            subtitle: sectionConfig.subtitle || 'We\'re here to help',
+            description: sectionConfig.description || 'Fill out the form below and we\'ll get back to you as soon as possible.',
+            
+            // Visual configuration
+            backgroundColor: sectionConfig.backgroundColor || '#f8fafc',
+            mobileBackgroundColor: sectionConfig.mobileBackgroundColor || '',
+            textColor: sectionConfig.textColor || '#0f172a',
+            mobileTextColor: sectionConfig.mobileTextColor || '',
+            accentColor: sectionConfig.accentColor || globalStyles?.primaryColor || '#7c3aed',
+            mobileAccentColor: sectionConfig.mobileAccentColor || '',
+            buttonText: sectionConfig.buttonText || 'Send Message',
+            showImage: sectionConfig.showImage !== undefined ? sectionConfig.showImage : false,
+            imageUrl: sectionConfig.imageUrl || '',
+            
+            // Typography from global_styles
+            titleFontFamily: sectionConfig.titleFontFamily || globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
+            titleFontSize: sectionConfig.titleFontSize || globalStyles?.title?.fontSize || '2.25rem',
+            titleMobileFontSize: sectionConfig.titleMobileFontSize || '',
+            titleFontWeight: sectionConfig.titleFontWeight || globalStyles?.title?.fontWeight || 700,
+            titleColor: sectionConfig.titleColor || globalStyles?.title?.color || '#111827',
+
+            subtitleFontFamily: sectionConfig.subtitleFontFamily || globalStyles?.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
+            subtitleFontSize: sectionConfig.subtitleFontSize || globalStyles?.subheading?.fontSize || '1.5rem',
+            subtitleMobileFontSize: sectionConfig.subtitleMobileFontSize || '',
+            subtitleFontWeight: sectionConfig.subtitleFontWeight || globalStyles?.subheading?.fontWeight || 600,
+            subtitleColor: sectionConfig.subtitleColor || globalStyles?.subheading?.color || '#374151',
+
+            bodyFontFamily: sectionConfig.bodyFontFamily || globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
+            bodyFontSize: sectionConfig.bodyFontSize || globalStyles?.paragraph?.fontSize || '1rem',
+            bodyMobileFontSize: sectionConfig.bodyMobileFontSize || '',
+            bodyFontWeight: sectionConfig.bodyFontWeight || globalStyles?.paragraph?.fontWeight || 400,
+            bodyColor: sectionConfig.bodyColor || globalStyles?.paragraph?.color || '#6b7280',
+
+            // Section style settings
+            is_custom: sectionConfig.is_custom !== undefined ? sectionConfig.is_custom : false,
+            buttonStyleVariant: sectionConfig.buttonStyleVariant || 'primary',
+            sectionTextAlign: sectionConfig.sectionTextAlign || 'center',
+            sectionMaxWidth: sectionConfig.sectionMaxWidth || '1200px',
+            sectionPaddingY: sectionConfig.sectionPaddingY || '5rem',
+            sectionPaddingX: sectionConfig.sectionPaddingX || '1.5rem',
+            surfaceBorderRadius: sectionConfig.surfaceBorderRadius || '1.75rem',
+            surfaceShadow: sectionConfig.surfaceShadow || 'soft',
+            enableScrollReveal: sectionConfig.enableScrollReveal !== undefined ? sectionConfig.enableScrollReveal : false,
+            scrollRevealAnimation: sectionConfig.scrollRevealAnimation || 'fade-up',
+          };
+          
+          // Merge with any additional properties from original config, but prioritize form config
+          sectionConfig = { ...sectionConfig, ...formConfig };
+          
+          console.log(`  ✓ Configured form section with form_id: ${contactFormId} and full config`);
+        }
 
         // For Hero sections without full config, generate AI content and merge with global styles
         if (isHeroSection && !section.config) {
@@ -1153,21 +1497,33 @@ async function createOtherPageSectionsFromTheme(
           const aiContent = await generateHeroContent(restaurantId, pageName, section.id);
 
           // Default fallback content if AI generation fails (page-specific)
+          // Fetch restaurant details for SEO-optimized fallback content
+          const restaurant = await getRestaurantDetails(restaurantId);
+          const locationInfo = restaurant ? [restaurant.city, restaurant.state, restaurant.country].filter(Boolean).join(', ') : '';
+          const cuisineType = restaurant?.cuisine_types && Array.isArray(restaurant.cuisine_types) && restaurant.cuisine_types.length > 0
+            ? restaurant.cuisine_types[0]
+            : '';
+          
           const defaultContentByPage: Record<string, { headline: string; subheadline: string; description: string }> = {
+            home: {
+              headline: restaurant?.name ? `Welcome to ${restaurant.name}` : 'Welcome',
+              subheadline: cuisineType ? `${cuisineType} Dining` : 'Fine Dining',
+              description: `Fresh cuisine, warm atmosphere.`,
+            },
             about: {
               headline: 'Our Story',
-              subheadline: 'Passion & Quality',
-              description: 'We craft memorable dining experiences. Fresh ingredients meet culinary excellence.',
+              subheadline: 'Since Day One',
+              description: 'Crafting memorable experiences.',
             },
             contact: {
-              headline: 'Get In Touch',
+              headline: 'Contact Us',
               subheadline: "We're Here",
-              description: 'Have questions or reservations? Contact us anytime. We love hearing from you!',
+              description: 'Questions? We love to help.',
             },
             menu: {
               headline: 'Our Menu',
               subheadline: 'Fresh Daily',
-              description: 'Explore our carefully crafted dishes. Every plate tells a delicious story.',
+              description: 'Crafted with passion.',
             },
           };
 
@@ -1180,6 +1536,9 @@ async function createOtherPageSectionsFromTheme(
           // Use AI content if available, otherwise use defaults
           const content = aiContent || defaultContent;
 
+          // Check if layout requires an image and fetch from media table
+          const mediaImage = await getRestaurantMedia(restaurantId);
+
           // Build config using global_styles for CSS/styling and AI/default content for dynamic text
           sectionConfig = {
             layout: section.id, // Layout from theme
@@ -1188,6 +1547,9 @@ async function createOtherPageSectionsFromTheme(
             headline: content.headline,
             subheadline: content.subheadline,
             description: content.description,
+
+            // Dynamic image from media table if layout supports it
+            ...(mediaImage && { backgroundImage: mediaImage.url }),
 
             // CSS/Styling from global_styles
             bgColor: globalStyles?.backgroundColor || '#ffffff',
@@ -1274,14 +1636,14 @@ async function createOtherPageSectionsFromTheme(
 
         // For Custom sections without full config, generate AI content and merge with global styles
         if (isCustomSection && !section.config) {
-          console.log(`  ⚡ Generating AI content for ${pageName} page custom section (name: ${section.name || section.id})...`);
-          const aiContent = await generateCustomSectionContent(restaurantId, pageName, section.name || section.id);
+          console.log(`  ⚡ Generating AI content for ${pageName} page custom section (name: ${section.name || section.id}, content: ${section.content || 'default'})...`);
+          const aiContent = await generateCustomSectionContent(restaurantId, pageName, section.name || section.id, section.content);
 
           // Default fallback content for custom sections
           const defaultCustomContent = {
             headline: section.name || 'Our Values',
-            subheadline: 'What Sets Us Apart',
-            description: 'We are committed to excellence in everything we do. Quality and service are our priorities.',
+            subheadline: 'What Matters',
+            description: 'Excellence in every detail.',
           };
 
           // Use AI content if available, otherwise use defaults
@@ -1345,72 +1707,81 @@ async function createOtherPageSectionsFromTheme(
         console.log(`  ✓ Created ${category} section "${section.name || section.id}" (layout: ${sectionConfig.layout}) for page_id: ${pageId}`);
       }
 
-      // Add form section to contact page if form was created
+      // Add form section to contact page if form was created and no form sections exist in theme
       if (pageName === 'contact' && contactFormId) {
-        const formSectionConfig = {
-          isEnabled: true,
-          form_id: contactFormId,
-          title: 'Get In Touch',
-          subtitle: 'We\'re here to help',
-          description: 'Fill out the form below and we\'ll get back to you as soon as possible.',
-          layout: 'centered',
-          backgroundColor: '#f8fafc',
-          mobileBackgroundColor: '',
-          textColor: '#0f172a',
-          mobileTextColor: '',
-          accentColor: globalStyles?.primaryColor || '#7c3aed',
-          mobileAccentColor: '',
-          buttonText: 'Send Message',
-          showImage: false,
-          imageUrl: '',
+        // Check if there are already form sections in the theme configuration
+        const hasFormSection = sortedSections.some(section =>
+          section.type.toLowerCase() === 'form'
+        );
 
-          // Typography from global_styles
-          titleFontFamily: globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
-          titleFontSize: globalStyles?.title?.fontSize || '2.25rem',
-          titleMobileFontSize: '',
-          titleFontWeight: globalStyles?.title?.fontWeight || 700,
-          titleColor: globalStyles?.title?.color || '#111827',
+        if (!hasFormSection) {
+          const formSectionConfig = {
+            isEnabled: true,
+            form_id: contactFormId,
+            title: 'Get In Touch',
+            subtitle: 'We\'re here to help',
+            description: 'Fill out the form below and we\'ll get back to you as soon as possible.',
+            layout: 'centered',
+            backgroundColor: '#f8fafc',
+            mobileBackgroundColor: '',
+            textColor: '#0f172a',
+            mobileTextColor: '',
+            accentColor: globalStyles?.primaryColor || '#7c3aed',
+            mobileAccentColor: '',
+            buttonText: 'Send Message',
+            showImage: false,
+            imageUrl: '',
 
-          subtitleFontFamily: globalStyles?.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
-          subtitleFontSize: globalStyles?.subheading?.fontSize || '1.5rem',
-          subtitleMobileFontSize: '',
-          subtitleFontWeight: globalStyles?.subheading?.fontWeight || 600,
-          subtitleColor: globalStyles?.subheading?.color || '#374151',
+            // Typography from global_styles
+            titleFontFamily: globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
+            titleFontSize: globalStyles?.title?.fontSize || '2.25rem',
+            titleMobileFontSize: '',
+            titleFontWeight: globalStyles?.title?.fontWeight || 700,
+            titleColor: globalStyles?.title?.color || '#111827',
 
-          bodyFontFamily: globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
-          bodyFontSize: globalStyles?.paragraph?.fontSize || '1rem',
-          bodyMobileFontSize: '',
-          bodyFontWeight: globalStyles?.paragraph?.fontWeight || 400,
-          bodyColor: globalStyles?.paragraph?.color || '#6b7280',
+            subtitleFontFamily: globalStyles?.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
+            subtitleFontSize: globalStyles?.subheading?.fontSize || '1.5rem',
+            subtitleMobileFontSize: '',
+            subtitleFontWeight: globalStyles?.subheading?.fontWeight || 600,
+            subtitleColor: globalStyles?.subheading?.color || '#374151',
 
-          // Section style settings
-          is_custom: false,
-          buttonStyleVariant: 'primary',
-          sectionTextAlign: 'center',
-          sectionMaxWidth: '1200px',
-          sectionPaddingY: '5rem',
-          sectionPaddingX: '1.5rem',
-          surfaceBorderRadius: '1.75rem',
-          surfaceShadow: 'soft',
-          enableScrollReveal: false,
-          scrollRevealAnimation: 'fade-up',
-        };
+            bodyFontFamily: globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
+            bodyFontSize: globalStyles?.paragraph?.fontSize || '1rem',
+            bodyMobileFontSize: '',
+            bodyFontWeight: globalStyles?.paragraph?.fontWeight || 400,
+            bodyColor: globalStyles?.paragraph?.color || '#6b7280',
 
-        // Calculate the order_index (after all existing sections)
-        const maxOrderIndex = Math.max(...sortedSections.map(s => s.order_index ?? 0), 0);
+            // Section style settings
+            is_custom: false,
+            buttonStyleVariant: 'primary',
+            sectionTextAlign: 'center',
+            sectionMaxWidth: '1200px',
+            sectionPaddingY: '5rem',
+            sectionPaddingX: '1.5rem',
+            surfaceBorderRadius: '1.75rem',
+            surfaceShadow: 'soft',
+            enableScrollReveal: false,
+            scrollRevealAnimation: 'fade-up',
+          };
 
-        await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
-          restaurant_id: restaurantId,
-          name: 'Contact Form',
-          category: 'form',
-          config: formSectionConfig,
-          menu_items: {},
-          page_id: pageId,
-          order_index: maxOrderIndex + 1,
-          ref_template_id: null,
-        });
+          // Calculate the order_index (after all existing sections)
+          const maxOrderIndex = Math.max(...sortedSections.map(s => s.order_index ?? 0), 0);
 
-        console.log(`  ✓ Created form section with form_id: ${contactFormId} for page_id: ${pageId}`);
+          await adminGraphqlRequest<InsertTemplateResponse>(INSERT_TEMPLATE, {
+            restaurant_id: restaurantId,
+            name: 'Contact Form',
+            category: 'form',
+            config: formSectionConfig,
+            menu_items: {},
+            page_id: pageId,
+            order_index: maxOrderIndex + 1,
+            ref_template_id: null,
+          });
+
+          console.log(`  ✓ Created form section with form_id: ${contactFormId} for page_id: ${pageId}`);
+        } else {
+          console.log(`  ⚠️ Skipping form section creation - form section already exists in theme for ${pageName} page`);
+        }
       }
 
       console.log(`✅ Created ${sortedSections.length} section(s) for "${pageName}" page`);
@@ -1463,17 +1834,19 @@ export async function POST(
       await createNavbarFromTheme(restaurantId, templateId);
       await createFooterFromTheme(restaurantId, templateId);
 
-      // Create page sections for home page
-      const homePageId = await getHomePageId(restaurantId);
-
-      if (homePageId) {
-        await createThemeSections(restaurantId, templateId, homePageId);
-      } else {
-        console.warn('Home page not found, skipping theme sections creation');
-      }
-
-      // Create sections for other pages (about, contact, etc.) from theme's other_page_sections
+      // Create sections for all pages (including home, about, contact, etc.) from theme's other_page_sections
       await createOtherPageSectionsFromTheme(restaurantId, templateId);
+
+      // Fallback: If home page sections weren't created from other_page_sections, use theme.sections for home page
+      const homePageId = await getHomePageId(restaurantId);
+      if (homePageId) {
+        // Check if home page already has sections from other_page_sections
+        const hasHomeSections = await checkIfPageHasSections(restaurantId, homePageId);
+        if (!hasHomeSections) {
+          console.log('No home page sections found in other_page_sections, falling back to theme.sections');
+          await createThemeSections(restaurantId, templateId, homePageId);
+        }
+      }
     }
 
     return NextResponse.json({

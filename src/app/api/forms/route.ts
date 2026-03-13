@@ -105,18 +105,55 @@ export async function POST(request: NextRequest) {
     const { title, email, fields, restaurant_id } = body;
 
     // Validate required fields
-    if (!title || !email || !restaurant_id) {
+    if (!title || !restaurant_id) {
       return NextResponse.json(
-        { success: false, error: 'Title, email, and restaurant_id are required' },
+        { success: false, error: 'Title and restaurant_id are required' },
         { status: 400 }
       );
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // Fetch restaurant POC email and regular email
+    let finalEmail = email; // Use provided email as fallback
+    
+    try {
+      const restaurantData = await adminGraphqlRequest(`
+        query GetRestaurantEmails($restaurant_id: uuid!) {
+          restaurants_by_pk(restaurant_id: $restaurant_id) {
+            poc_email
+            email
+          }
+        }
+      `, {
+        restaurant_id
+      });
+
+      const restaurant = (restaurantData as any).restaurants_by_pk;
+      if (restaurant?.poc_email) {
+        finalEmail = restaurant.poc_email;
+        console.log('[Forms API] Using restaurant POC email:', finalEmail);
+      } else if (restaurant?.email) {
+        finalEmail = restaurant.email;
+        console.log('[Forms API] Using restaurant email:', finalEmail);
+      } else {
+        console.log('[Forms API] No POC email or restaurant email found, using provided email:', finalEmail);
+      }
+    } catch (restaurantError) {
+      console.error('Error fetching restaurant emails:', restaurantError);
+      // Continue with provided email as fallback
+    }
+
+    // Validate final email format
+    if (finalEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(finalEmail)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid email format' },
+          { status: 400 }
+        );
+      }
+    } else {
       return NextResponse.json(
-        { success: false, error: 'Invalid email format' },
+        { success: false, error: 'No valid email found (POC email, restaurant email, or provided email)' },
         { status: 400 }
       );
     }
@@ -146,7 +183,7 @@ export async function POST(request: NextRequest) {
       }
     `, {
       title,
-      email,
+      email: finalEmail,
       fields: fields || [],
       restaurant_id
     });

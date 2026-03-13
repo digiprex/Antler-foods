@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import DynamicForm from '@/components/dynamic-form';
+import formLayoutsData from '@/data/form-layouts.json';
 import { ImageGalleryModal } from '@/components/admin/image-gallery-modal';
 import { SectionAppearanceControls } from '@/components/admin/section-appearance-controls';
 import {
@@ -94,13 +95,12 @@ const DEFAULT_FORM_CONFIG: FormSettingsConfig = {
   is_custom: false,
 };
 
-const FORM_LAYOUTS = [
-  { value: 'centered', title: 'Centered', description: 'Editorial header above a focused form card.' },
-  { value: 'split-right', title: 'Split Right', description: 'Form and copy on the left with media support on the right.' },
-  { value: 'split-left', title: 'Split Left', description: 'Media leads on the left while the form anchors the right column.' },
-  { value: 'image-top', title: 'Image Top', description: 'Hero media stacked above the form for campaign-style pages.' },
-  { value: 'background-image', title: 'Background Image', description: 'Floating card over a media-rich background.' },
-] as const;
+// Get form layouts from JSON data
+const FORM_LAYOUTS = formLayoutsData.layouts.map(layout => ({
+  value: layout.id,
+  title: layout.name,
+  description: layout.description
+}));
 
 function LayoutPreview({ layout }: { layout: string }) {
   if (layout === 'split-right' || layout === 'split-left') {

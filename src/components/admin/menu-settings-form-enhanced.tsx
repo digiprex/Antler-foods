@@ -1825,6 +1825,15 @@ export default function MenuSettingsFormEnhanced({
             Typography is inherited from the global theme. Disable the toggle above to edit section-specific title, subtitle, and paragraph typography for this menu.
           </div>
         )}
+        </div>
+
+        <div className="rounded-[26px] border border-slate-200 bg-slate-50/70 p-5">
+          <SectionAppearanceControls
+            value={formConfig}
+            onChange={updateConfig}
+            viewport={editorViewport}
+          />
+        </div>
       </div>
     </SettingsCard>
   );

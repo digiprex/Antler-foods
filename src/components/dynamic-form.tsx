@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import formLayoutsData from '@/data/form-layouts.json';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
 import { useSectionReveal } from '@/hooks/use-section-reveal';
 import { useSectionViewport } from '@/hooks/use-section-viewport';
@@ -136,14 +137,26 @@ function resolveViewportColor(
   return desktopColor || fallback;
 }
 
+// Get available form layouts from JSON
+const getFormLayouts = () => {
+  return formLayoutsData.layouts;
+};
+
+// Get valid layout IDs from JSON
+const getValidFormLayoutIds = () => {
+  return formLayoutsData.layouts.map(layout => layout.id);
+};
+
 function normalizeFormLayout(layout: string | undefined) {
+  const validLayouts = getValidFormLayoutIds();
+  
+  // If layout is valid, return it
+  if (layout && validLayouts.includes(layout)) {
+    return layout;
+  }
+  
+  // Legacy layout mappings for backward compatibility
   switch (layout) {
-    case 'split-right':
-    case 'split-left':
-    case 'background-image':
-    case 'image-top':
-    case 'centered':
-      return layout;
     case 'card':
     case 'two-column':
     case 'minimal':
@@ -765,7 +778,7 @@ function FieldRenderer({
 
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-medium" style={{ color: textColor }}>
+      <span className="mb-2 block text-sm font-medium text-left" style={{ color: textColor }}>
         {field.label}
         {field.required ? <span style={{ color: accentColor }}> *</span> : null}
       </span>

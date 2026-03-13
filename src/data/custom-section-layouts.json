@@ -2,7 +2,7 @@
   "layouts": [
     {
       "id": "layout-1",
-      "name": "Full Width Overlay",
+      "name": "Full-width Overlay",
       "description": "Full-width image with overlay text",
       "mediaSupport": {
         "image": false,
@@ -21,7 +21,7 @@
     },
     {
       "id": "layout-2",
-      "name": "Split Image Left",
+      "name": "Split Left",
       "description": "Split image left, content right",
       "mediaSupport": {
         "image": true,
@@ -60,7 +60,7 @@
     },
     {
       "id": "layout-4",
-      "name": "Curved Background",
+      "name": "Curved Green",
       "description": "Curved green background with image",
       "mediaSupport": {
         "image": true,
@@ -98,7 +98,7 @@
     },
     {
       "id": "layout-6",
-      "name": "Content Left Image Right",
+      "name": "Split Right",
       "description": "Image right, content left",
       "mediaSupport": {
         "image": true,
@@ -117,7 +117,7 @@
     },
     {
       "id": "layout-7",
-      "name": "Spaced Split",
+      "name": "Image Left",
       "description": "Image left, content right with spacing",
       "mediaSupport": {
         "image": true,
@@ -136,7 +136,7 @@
     },
     {
       "id": "layout-8",
-      "name": "Center with Side Images",
+      "name": "Centered Content",
       "description": "Centered content with side images",
       "mediaSupport": {
         "image": true,
@@ -155,7 +155,7 @@
     },
     {
       "id": "layout-9",
-      "name": "Image Top Content Bottom",
+      "name": "Large Image",
       "description": "Large image with bottom content",
       "mediaSupport": {
         "image": true,
@@ -174,7 +174,7 @@
     },
     {
       "id": "layout-10",
-      "name": "Content Top Image Bottom",
+      "name": "Centered Top Image",
       "description": "Centered content with top image",
       "mediaSupport": {
         "image": true,
@@ -193,7 +193,7 @@
     },
     {
       "id": "layout-11",
-      "name": "Two Column Images",
+      "name": "Two Column",
       "description": "Two column split with images",
       "mediaSupport": {
         "image": true,
@@ -229,7 +229,7 @@
     },
     {
       "id": "layout-13",
-      "name": "Image Grid Center",
+      "name": "Image Grid",
       "description": "Image grid with center content",
       "mediaSupport": {
         "image": true,
@@ -247,7 +247,7 @@
     },
     {
       "id": "layout-14",
-      "name": "Stacked Card",
+      "name": "Stacked Cards",
       "description": "Stacked cards layout",
       "mediaSupport": {
         "image": false,
@@ -283,7 +283,7 @@
     },
     {
       "id": "layout-16",
-      "name": "Featured with Sidebar",
+      "name": "Featured Sidebar",
       "description": "Featured image with sidebar",
       "mediaSupport": {
         "image": true,
@@ -373,7 +373,7 @@
     },
     {
       "id": "layout-21",
-      "name": "Hero with Bottom Content",
+      "name": "Hero Bottom Content",
       "description": "Hero style with bottom content",
       "mediaSupport": {
         "image": true,
@@ -409,7 +409,7 @@
     },
     {
       "id": "layout-23",
-      "name": "Center with Panels",
+      "name": "Centered Side Panels",
       "description": "Centered with side panels",
       "mediaSupport": {
         "image": false,

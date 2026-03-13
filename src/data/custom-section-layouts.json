@@ -1,0 +1,591 @@
+{
+  "layouts": [
+    {
+      "id": "layout-1",
+      "name": "Full Width Overlay",
+      "description": "Full-width image with overlay text",
+      "mediaSupport": {
+        "image": false,
+        "video": false,
+        "backgroundImage": true
+      },
+      "features": [
+        "Full-width background image",
+        "Text overlay with adjustable opacity",
+        "Centered content"
+      ],
+      "preview": {
+        "type": "overlay",
+        "content": "center"
+      }
+    },
+    {
+      "id": "layout-2",
+      "name": "Split Image Left",
+      "description": "Split image left, content right",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "50/50 split layout",
+        "Image on left side",
+        "Content aligned right"
+      ],
+      "preview": {
+        "type": "split",
+        "imagePosition": "left"
+      }
+    },
+    {
+      "id": "layout-3",
+      "name": "Video Background",
+      "description": "Video background with centered content",
+      "mediaSupport": {
+        "image": false,
+        "video": true,
+        "backgroundImage": false
+      },
+      "features": [
+        "Full-screen video background",
+        "Auto-play looping video",
+        "Centered content overlay",
+        "Adjustable video overlay"
+      ],
+      "preview": {
+        "type": "video-overlay",
+        "content": "center"
+      }
+    },
+    {
+      "id": "layout-4",
+      "name": "Curved Background",
+      "description": "Curved green background with image",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Curved background design",
+        "Split content and image",
+        "Modern aesthetic"
+      ],
+      "preview": {
+        "type": "curved-split",
+        "imagePosition": "right"
+      }
+    },
+    {
+      "id": "layout-5",
+      "name": "Circular Image",
+      "description": "Circular image with content on side",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Circular image frame",
+        "Side content area",
+        "Clean minimal design"
+      ],
+      "preview": {
+        "type": "circular-split",
+        "imagePosition": "left"
+      }
+    },
+    {
+      "id": "layout-6",
+      "name": "Content Left Image Right",
+      "description": "Image right, content left",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Content on left",
+        "Image on right",
+        "Balanced layout"
+      ],
+      "preview": {
+        "type": "split",
+        "imagePosition": "right"
+      }
+    },
+    {
+      "id": "layout-7",
+      "name": "Spaced Split",
+      "description": "Image left, content right with spacing",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Extra spacing between elements",
+        "Image on left",
+        "Content on right"
+      ],
+      "preview": {
+        "type": "split-spaced",
+        "imagePosition": "left"
+      }
+    },
+    {
+      "id": "layout-8",
+      "name": "Center with Side Images",
+      "description": "Centered content with side images",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Centered content",
+        "Side images on both sides",
+        "Symmetric design"
+      ],
+      "preview": {
+        "type": "three-column",
+        "content": "center"
+      }
+    },
+    {
+      "id": "layout-9",
+      "name": "Image Top Content Bottom",
+      "description": "Large image with bottom content",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Large top image",
+        "Content below",
+        "Vertical stacking"
+      ],
+      "preview": {
+        "type": "stacked",
+        "imagePosition": "top"
+      }
+    },
+    {
+      "id": "layout-10",
+      "name": "Content Top Image Bottom",
+      "description": "Centered content with top image",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Top image section",
+        "Centered content below",
+        "Clean vertical layout"
+      ],
+      "preview": {
+        "type": "stacked-center",
+        "imagePosition": "top"
+      }
+    },
+    {
+      "id": "layout-11",
+      "name": "Two Column Images",
+      "description": "Two column split with images",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Two equal columns",
+        "Image in each column",
+        "Gallery-style layout"
+      ],
+      "preview": {
+        "type": "two-column-images"
+      }
+    },
+    {
+      "id": "layout-12",
+      "name": "Boxed Content",
+      "description": "Boxed content with side image",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Boxed content area",
+        "Side image",
+        "Contained design"
+      ],
+      "preview": {
+        "type": "boxed-split"
+      }
+    },
+    {
+      "id": "layout-13",
+      "name": "Image Grid Center",
+      "description": "Image grid with center content",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Side images on both ends",
+        "Center content area",
+        "Grid-based design"
+      ],
+      "preview": {
+        "type": "image-grid-center"
+      }
+    },
+    {
+      "id": "layout-14",
+      "name": "Stacked Card",
+      "description": "Stacked cards layout",
+      "mediaSupport": {
+        "image": false,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Card-based design",
+        "Stacked appearance",
+        "Modern UI"
+      ],
+      "preview": {
+        "type": "card"
+      }
+    },
+    {
+      "id": "layout-15",
+      "name": "Asymmetric Split",
+      "description": "Asymmetric split layout",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Unequal column widths",
+        "Small content area",
+        "Large image area"
+      ],
+      "preview": {
+        "type": "asymmetric-split"
+      }
+    },
+    {
+      "id": "layout-16",
+      "name": "Featured with Sidebar",
+      "description": "Featured image with sidebar",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Large featured image",
+        "Sidebar content area",
+        "Blog-style layout"
+      ],
+      "preview": {
+        "type": "featured-sidebar"
+      }
+    },
+    {
+      "id": "layout-17",
+      "name": "Magazine Style",
+      "description": "Magazine style layout",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Editorial design",
+        "Image and text rows",
+        "Magazine aesthetic"
+      ],
+      "preview": {
+        "type": "magazine"
+      }
+    },
+    {
+      "id": "layout-18",
+      "name": "Overlapping Blocks",
+      "description": "Overlapping content blocks",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Overlapping elements",
+        "Image and text blocks",
+        "Layered design"
+      ],
+      "preview": {
+        "type": "overlapping"
+      }
+    },
+    {
+      "id": "layout-19",
+      "name": "Modern Card",
+      "description": "Modern card style",
+      "mediaSupport": {
+        "image": false,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Card-based design",
+        "Centered content",
+        "Clean modern look"
+      ],
+      "preview": {
+        "type": "modern-card"
+      }
+    },
+    {
+      "id": "layout-20",
+      "name": "Split with Accent",
+      "description": "Split with background accent",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": true
+      },
+      "features": [
+        "Accent background color",
+        "Split content and image",
+        "Bold design"
+      ],
+      "preview": {
+        "type": "accent-split"
+      }
+    },
+    {
+      "id": "layout-21",
+      "name": "Hero with Bottom Content",
+      "description": "Hero style with bottom content",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Hero-sized image",
+        "Bottom content area",
+        "Impactful design"
+      ],
+      "preview": {
+        "type": "hero-bottom"
+      }
+    },
+    {
+      "id": "layout-22",
+      "name": "Zigzag Pattern",
+      "description": "Zigzag pattern layout",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Alternating rows",
+        "Zigzag pattern",
+        "Multiple content blocks"
+      ],
+      "preview": {
+        "type": "zigzag"
+      }
+    },
+    {
+      "id": "layout-23",
+      "name": "Center with Panels",
+      "description": "Centered with side panels",
+      "mediaSupport": {
+        "image": false,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Centered content",
+        "Side decorative panels",
+        "Focused design"
+      ],
+      "preview": {
+        "type": "center-panels"
+      }
+    },
+    {
+      "id": "layout-24",
+      "name": "Full Screen Video",
+      "description": "Full screen video layout",
+      "mediaSupport": {
+        "image": false,
+        "video": true,
+        "backgroundImage": false
+      },
+      "features": [
+        "Full-screen video",
+        "Content overlay",
+        "Immersive experience"
+      ],
+      "preview": {
+        "type": "fullscreen-video"
+      }
+    },
+    {
+      "id": "layout-25",
+      "name": "Grid Showcase",
+      "description": "Grid showcase layout",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "4-column grid",
+        "Multiple images",
+        "Gallery showcase"
+      ],
+      "preview": {
+        "type": "grid-showcase"
+      }
+    },
+    {
+      "id": "layout-26",
+      "name": "Minimal Centered",
+      "description": "Minimal centered layout",
+      "mediaSupport": {
+        "image": false,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Minimal design",
+        "Centered content",
+        "Clean and simple"
+      ],
+      "preview": {
+        "type": "minimal-center"
+      }
+    },
+    {
+      "id": "layout-27",
+      "name": "Split Diagonal",
+      "description": "Split diagonal layout",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Diagonal split design",
+        "Dynamic angles",
+        "Modern aesthetic"
+      ],
+      "preview": {
+        "type": "diagonal-split"
+      }
+    },
+    {
+      "id": "layout-28",
+      "name": "Triple Section",
+      "description": "Triple section layout",
+      "mediaSupport": {
+        "image": false,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Three equal sections",
+        "Multiple content areas",
+        "Grid-based"
+      ],
+      "preview": {
+        "type": "triple-section"
+      }
+    },
+    {
+      "id": "layout-29",
+      "name": "Layered Content",
+      "description": "Layered content layout",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Layered design",
+        "Background image",
+        "Foreground content"
+      ],
+      "preview": {
+        "type": "layered"
+      }
+    },
+    {
+      "id": "layout-30",
+      "name": "Full Width Banner",
+      "description": "Full width banner style",
+      "mediaSupport": {
+        "image": false,
+        "video": false,
+        "backgroundImage": true
+      },
+      "features": [
+        "Full-width banner",
+        "Centered content",
+        "Banner-style design"
+      ],
+      "preview": {
+        "type": "banner"
+      }
+    },
+    {
+      "id": "layout-31",
+      "name": "Image Carousel",
+      "description": "Image carousel layout",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Carousel track",
+        "Scrolling images",
+        "Interactive design"
+      ],
+      "preview": {
+        "type": "carousel"
+      }
+    },
+    {
+      "id": "layout-32",
+      "name": "Interactive Hover",
+      "description": "Interactive hover layout",
+      "mediaSupport": {
+        "image": true,
+        "video": false,
+        "backgroundImage": false
+      },
+      "features": [
+        "Interactive elements",
+        "Hover effects",
+        "Engaging design"
+      ],
+      "preview": {
+        "type": "interactive"
+      }
+    }
+  ]
+}

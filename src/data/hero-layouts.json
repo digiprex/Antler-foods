@@ -1,0 +1,296 @@
+{
+  "layouts": [
+    {
+      "id": "default",
+      "name": "Default",
+      "description": "Centered content with optional content panel and background image",
+      "mediaCapabilities": {
+        "showHeroImage": false,
+        "showBackgroundVideo": false,
+        "showBackgroundImage": true
+      },
+      "features": [
+        "Content panel with customizable background",
+        "Background image support",
+        "Flexible text alignment",
+        "Mobile responsive"
+      ],
+      "preview": {
+        "type": "flex",
+        "direction": "column",
+        "justify": "center",
+        "elements": [
+          { "type": "content-panel", "width": "12", "height": "8" }
+        ]
+      }
+    },
+    {
+      "id": "split",
+      "name": "Split",
+      "description": "Text content on left, hero image on right",
+      "mediaCapabilities": {
+        "showHeroImage": true,
+        "showBackgroundVideo": false,
+        "showBackgroundImage": false
+      },
+      "features": [
+        "50/50 split layout",
+        "Left-aligned content",
+        "Right-side hero image",
+        "Perfect for product showcases"
+      ],
+      "preview": {
+        "type": "grid",
+        "columns": 2,
+        "elements": [
+          { "type": "content", "span": 1, "align": "left" },
+          { "type": "image", "span": 1 }
+        ]
+      }
+    },
+    {
+      "id": "split-reverse",
+      "name": "Split Reverse",
+      "description": "Hero image on left, text content on right",
+      "mediaCapabilities": {
+        "showHeroImage": true,
+        "showBackgroundVideo": false,
+        "showBackgroundImage": false
+      },
+      "features": [
+        "50/50 split layout",
+        "Left-side hero image",
+        "Right-aligned content",
+        "Reversed split orientation"
+      ],
+      "preview": {
+        "type": "grid",
+        "columns": 2,
+        "elements": [
+          { "type": "image", "span": 1 },
+          { "type": "content", "span": 1, "align": "left" }
+        ]
+      }
+    },
+    {
+      "id": "centered-large",
+      "name": "Centered Large",
+      "description": "Large centered content with background image",
+      "mediaCapabilities": {
+        "showHeroImage": false,
+        "showBackgroundVideo": false,
+        "showBackgroundImage": true
+      },
+      "features": [
+        "Centered text layout",
+        "Background image support",
+        "Large typography emphasis",
+        "Simple and clean design"
+      ],
+      "preview": {
+        "type": "flex",
+        "direction": "column",
+        "justify": "center",
+        "align": "center",
+        "elements": [
+          { "type": "headline", "width": "10", "height": "2" },
+          { "type": "subheadline", "width": "8", "height": "1" },
+          { "type": "button-group", "width": "6", "height": "1.5" }
+        ]
+      }
+    },
+    {
+      "id": "minimal",
+      "name": "Minimal",
+      "description": "Text content with elegant 3-image grid layout",
+      "mediaCapabilities": {
+        "showHeroImage": true,
+        "showBackgroundVideo": false,
+        "showBackgroundImage": false
+      },
+      "features": [
+        "Left-aligned content",
+        "3-image grid (1 large, 2 stacked)",
+        "Clean minimal aesthetic",
+        "Customizable padding"
+      ],
+      "preview": {
+        "type": "grid",
+        "columns": 2,
+        "elements": [
+          { "type": "content", "span": 1, "align": "left" },
+          {
+            "type": "image-grid",
+            "span": 1,
+            "layout": "minimal",
+            "images": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "video-background",
+      "name": "Video Background",
+      "description": "Full-screen background video with content overlay panel",
+      "mediaCapabilities": {
+        "showHeroImage": false,
+        "showBackgroundVideo": true,
+        "showBackgroundImage": false
+      },
+      "features": [
+        "Full-screen video background",
+        "Customizable content panel",
+        "Video overlay opacity control",
+        "Fallback to background image",
+        "Flexible panel positioning"
+      ],
+      "preview": {
+        "type": "flex",
+        "justify": "center",
+        "elements": [
+          { "type": "video-background", "width": "full", "height": "full" },
+          { "type": "content-panel", "width": "8", "height": "6", "overlay": true }
+        ]
+      }
+    },
+    {
+      "id": "side-by-side",
+      "name": "Side by Side",
+      "description": "Three images displayed in a horizontal row",
+      "mediaCapabilities": {
+        "showHeroImage": true,
+        "showBackgroundVideo": false,
+        "showBackgroundImage": false
+      },
+      "features": [
+        "Three-column image layout",
+        "Perfect for gallery showcase",
+        "Equal-width images",
+        "No text content displayed"
+      ],
+      "preview": {
+        "type": "grid",
+        "columns": 3,
+        "elements": [
+          { "type": "image", "span": 1 },
+          { "type": "image", "span": 1 },
+          { "type": "image", "span": 1 }
+        ]
+      }
+    },
+    {
+      "id": "offset",
+      "name": "Offset",
+      "description": "Image positioned at top with centered content below",
+      "mediaCapabilities": {
+        "showHeroImage": true,
+        "showBackgroundVideo": false,
+        "showBackgroundImage": false
+      },
+      "features": [
+        "Image at top",
+        "Centered content below",
+        "Offset positioning",
+        "Modern asymmetric design"
+      ],
+      "preview": {
+        "type": "flex",
+        "direction": "column",
+        "elements": [
+          { "type": "image", "width": "10", "height": "6", "offset": true },
+          { "type": "content", "width": "8", "height": "4", "align": "center" }
+        ]
+      }
+    },
+    {
+      "id": "full-height",
+      "name": "Full Height",
+      "description": "Full viewport height with centered content",
+      "mediaCapabilities": {
+        "showHeroImage": false,
+        "showBackgroundVideo": false,
+        "showBackgroundImage": true
+      },
+      "features": [
+        "100% viewport height",
+        "Centered content",
+        "Background image support",
+        "Immersive first impression"
+      ],
+      "preview": {
+        "type": "flex",
+        "direction": "column",
+        "justify": "center",
+        "align": "center",
+        "fullHeight": true,
+        "elements": [
+          { "type": "content", "width": "8", "height": "6", "align": "center" }
+        ]
+      }
+    },
+    {
+      "id": "with-features",
+      "name": "With Features",
+      "description": "Hero content with feature cards displayed below",
+      "mediaCapabilities": {
+        "showHeroImage": true,
+        "showBackgroundVideo": false,
+        "showBackgroundImage": false
+      },
+      "features": [
+        "Main hero content area",
+        "Feature cards grid below",
+        "Optional hero image",
+        "Great for highlighting benefits"
+      ],
+      "preview": {
+        "type": "flex",
+        "direction": "column",
+        "elements": [
+          {
+            "type": "grid",
+            "columns": 2,
+            "elements": [
+              { "type": "content", "span": 1, "align": "left" },
+              { "type": "image", "span": 1 }
+            ]
+          },
+          {
+            "type": "feature-grid",
+            "columns": 3,
+            "cards": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "image-collage",
+      "name": "Image Collage",
+      "description": "Text content with stacked and overlapping images",
+      "mediaCapabilities": {
+        "showHeroImage": true,
+        "showBackgroundVideo": false,
+        "showBackgroundImage": false
+      },
+      "features": [
+        "Left-aligned content",
+        "Artistic image arrangement",
+        "Overlapping image effect",
+        "Dynamic visual interest"
+      ],
+      "preview": {
+        "type": "grid",
+        "columns": 2,
+        "elements": [
+          { "type": "content", "span": 1, "align": "left" },
+          {
+            "type": "image-collage",
+            "span": 1,
+            "images": 2,
+            "overlapping": true
+          }
+        ]
+      }
+    }
+  ]
+}

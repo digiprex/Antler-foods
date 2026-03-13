@@ -1,0 +1,38 @@
+[
+    {
+        "about": [
+            {
+                "id": "default",
+                "name": "default",
+                "type": "Hero",
+                "order_index": 1
+            },
+            {
+                "id": "layout-2",
+                "name": "layout-2",
+                "type": "CustomSection",
+                "order_index": 2
+            }
+        ]
+    },
+    {
+        "contact": [
+            {
+                "id": "centered-large",
+                "name": "centered-large",
+                "type": "Hero",
+                "order_index": 1
+            }
+        ]
+    },
+    {
+        "menu": [
+            {
+                "id": "split",
+                "name": "split",
+                "type": "Hero",
+                "order_index": 1
+            }
+        ]
+    }
+]

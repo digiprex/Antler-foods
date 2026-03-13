@@ -18,6 +18,7 @@ import Toast from '@/components/ui/toast';
 import { ImageGalleryModal } from './image-gallery-modal';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import styles from './gallery-settings-form.module.css';
+import { getCustomSectionLayoutOptions } from '@/utils/custom-section-layout-utils';
 
 // Type definitions
 interface CustomSectionImage {
@@ -115,41 +116,8 @@ export default function CustomSectionSettingsForm({ pageId, templateId, isNewSec
     );
   }
 
-  // Layout options - 32 different layouts
-  const layoutOptions = [
-    { value: 'layout-1', name: 'Layout 1', description: 'Full-width image with overlay text' },
-    { value: 'layout-2', name: 'Layout 2', description: 'Split image left, content right' },
-    { value: 'layout-3', name: 'Layout 3', description: 'Video background with centered content' },
-    { value: 'layout-4', name: 'Layout 4', description: 'Curved green background with image' },
-    { value: 'layout-5', name: 'Layout 5', description: 'Circular image with green background' },
-    { value: 'layout-6', name: 'Layout 6', description: 'Image right, content left' },
-    { value: 'layout-7', name: 'Layout 7', description: 'Image left, content right with spacing' },
-    { value: 'layout-8', name: 'Layout 8', description: 'Centered content with side images' },
-    { value: 'layout-9', name: 'Layout 9', description: 'Large image with bottom content' },
-    { value: 'layout-10', name: 'Layout 10', description: 'Content left, image right' },
-    { value: 'layout-11', name: 'Layout 11', description: 'Two column split layout' },
-    { value: 'layout-12', name: 'Layout 12', description: 'Image top, content bottom' },
-    { value: 'layout-13', name: 'Layout 13', description: 'Content top, image bottom' },
-    { value: 'layout-14', name: 'Layout 14', description: 'Centered with background image' },
-    { value: 'layout-15', name: 'Layout 15', description: 'Side by side equal width' },
-    { value: 'layout-16', name: 'Layout 16', description: 'Stacked vertical layout' },
-    { value: 'layout-17', name: 'Layout 17', description: 'Asymmetric split layout' },
-    { value: 'layout-18', name: 'Layout 18', description: 'Image with text overlay' },
-    { value: 'layout-19', name: 'Layout 19', description: 'Grid style layout' },
-    { value: 'layout-20', name: 'Layout 20', description: 'Diagonal split design' },
-    { value: 'layout-21', name: 'Layout 21', description: 'Circular content frame' },
-    { value: 'layout-22', name: 'Layout 22', description: 'Offset content blocks' },
-    { value: 'layout-23', name: 'Layout 23', description: 'Wide content narrow image' },
-    { value: 'layout-24', name: 'Layout 24', description: 'Narrow content wide image' },
-    { value: 'layout-25', name: 'Layout 25', description: 'Triple column layout' },
-    { value: 'layout-26', name: 'Layout 26', description: 'Magazine style layout' },
-    { value: 'layout-27', name: 'Layout 27', description: 'Layered content design' },
-    { value: 'layout-28', name: 'Layout 28', description: 'Floating card layout' },
-    { value: 'layout-29', name: 'Layout 29', description: 'Banner style layout' },
-    { value: 'layout-30', name: 'Layout 30', description: 'Compact hero layout' },
-    { value: 'layout-31', name: 'Layout 31', description: 'Extended hero layout' },
-    { value: 'layout-32', name: 'Layout 32', description: 'Custom flexible layout' },
-  ];
+  // Layout options - dynamically loaded from custom-section-layouts.json
+  const layoutOptions = getCustomSectionLayoutOptions();
 
   // Fetch existing config when editing, or initialize for new sections
   useEffect(() => {

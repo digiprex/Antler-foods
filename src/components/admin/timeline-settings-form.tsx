@@ -392,7 +392,7 @@ export default function TimelineSettingsForm() {
         </div>
       </form>
 
-      {!showPreview ? <FloatingPreviewButton viewport={editorViewport} onClick={() => { setPreviewViewport(editorViewport); setShowPreview(true); }} /> : null}
+      {!showPreview ? <FloatingPreviewButton viewport="desktop" onClick={() => { setPreviewViewport('desktop'); setShowPreview(true); }} /> : null}
       {showPreview ? (
         <PreviewModal title="Live Preview" description="Switch between desktop and mobile to verify spacing, card hierarchy, and milestone readability." viewport={previewViewport} onViewportChange={setPreviewViewport} onClose={() => setShowPreview(false)} note={formConfig.items.length ? 'Preview reflects your live milestone content and styling changes instantly.' : 'Sample milestones are shown until you add your own timeline items.'}>
           <DynamicTimeline configData={previewConfig} isPreview previewViewport={previewViewport} restaurantId={restaurantId} />

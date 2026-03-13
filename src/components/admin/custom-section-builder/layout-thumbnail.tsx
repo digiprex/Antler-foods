@@ -3,13 +3,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { CustomSectionLayoutDefinition } from '@/lib/custom-section/layouts';
 
-function Frame({
-  active,
-  children,
-}: {
-  active: boolean;
-  children: ReactNode;
-}) {
+function Frame({ active, children }: { active: boolean; children: ReactNode }) {
   return (
     <div
       style={{
@@ -17,7 +11,9 @@ function Frame({
         height: 132,
         borderRadius: 18,
         overflow: 'hidden',
-        border: active ? '1px solid rgba(167, 139, 250, 0.55)' : '1px solid #dbe3ec',
+        border: active
+          ? '1px solid rgba(167, 139, 250, 0.55)'
+          : '1px solid #dbe3ec',
         background: active
           ? 'linear-gradient(180deg, #ffffff 0%, #faf5ff 100%)'
           : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
@@ -41,9 +37,30 @@ function Frame({
           gap: 4,
         }}
       >
-        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fb7185' }} />
-        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fbbf24' }} />
-        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399' }} />
+        <div
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: '#fb7185',
+          }}
+        />
+        <div
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: '#fbbf24',
+          }}
+        />
+        <div
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: '#34d399',
+          }}
+        />
       </div>
       <div
         style={{
@@ -68,7 +85,11 @@ const accentFill = (active: boolean, opacity = 1): CSSProperties => ({
   borderRadius: 999,
 });
 
-const inkFill = (active: boolean, width = '100%', height = 8): CSSProperties => ({
+const inkFill = (
+  active: boolean,
+  width = '100%',
+  height = 8,
+): CSSProperties => ({
   width,
   height,
   borderRadius: 999,
@@ -76,7 +97,11 @@ const inkFill = (active: boolean, width = '100%', height = 8): CSSProperties => 
   opacity: active ? 0.8 : 1,
 });
 
-const mutedFill = (active: boolean, width = '100%', height = 8): CSSProperties => ({
+const mutedFill = (
+  active: boolean,
+  width = '100%',
+  height = 8,
+): CSSProperties => ({
   width,
   height,
   borderRadius: 999,
@@ -107,7 +132,15 @@ function renderSplit(active: boolean, reverse = false, circular = false) {
   );
 
   const copy = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: reverse ? 1 : 0.95, justifyContent: 'center' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 7,
+        flex: reverse ? 1 : 0.95,
+        justifyContent: 'center',
+      }}
+    >
       <div style={inkFill(active, '78%', 9)} />
       <div style={mutedFill(active, '58%', 7)} />
       <div style={mutedFill(active, '88%', 7)} />
@@ -115,7 +148,14 @@ function renderSplit(active: boolean, reverse = false, circular = false) {
   );
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: reverse ? '1fr 1.05fr' : '1.05fr 1fr', gap: 10, height: '100%' }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: reverse ? '1fr 1.05fr' : '1.05fr 1fr',
+        gap: 10,
+        height: '100%',
+      }}
+    >
       {reverse ? copy : media}
       {reverse ? media : copy}
     </div>
@@ -150,10 +190,32 @@ export function CustomSectionLayoutThumbnail({
                 : 'linear-gradient(140deg, rgba(30,41,59,0.86), rgba(71,85,105,0.92))',
             }}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, width: '70%' }}>
-              <div style={{ ...mutedFill(true, '26%', 7), background: 'rgba(255,255,255,0.34)' }} />
-              <div style={{ ...mutedFill(true, '78%', 10), background: 'rgba(255,255,255,0.82)' }} />
-              <div style={{ ...mutedFill(true, '56%', 8), background: 'rgba(255,255,255,0.42)' }} />
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 7,
+                width: '70%',
+              }}
+            >
+              <div
+                style={{
+                  ...mutedFill(true, '26%', 7),
+                  background: 'rgba(255,255,255,0.34)',
+                }}
+              />
+              <div
+                style={{
+                  ...mutedFill(true, '78%', 10),
+                  background: 'rgba(255,255,255,0.82)',
+                }}
+              />
+              <div
+                style={{
+                  ...mutedFill(true, '56%', 8),
+                  background: 'rgba(255,255,255,0.42)',
+                }}
+              />
             </div>
           </div>
         );
@@ -189,9 +251,23 @@ export function CustomSectionLayoutThumbnail({
       case 'layout-8':
       case 'layout-13':
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: '0.8fr 1fr 0.8fr', gap: 8, height: '100%' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '0.8fr 1fr 0.8fr',
+              gap: 8,
+              height: '100%',
+            }}
+          >
             <div style={mediaSurface(active)} />
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 7 }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                gap: 7,
+              }}
+            >
               <div style={inkFill(active, '88%', 10)} />
               <div style={mutedFill(active, '64%', 7)} />
               <div style={accentFill(active, 0.8)} />
@@ -203,7 +279,14 @@ export function CustomSectionLayoutThumbnail({
       case 'layout-10':
       case 'layout-21':
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              height: '100%',
+            }}
+          >
             <div style={{ ...mediaSurface(active, true), minHeight: 58 }} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               <div style={inkFill(active, '74%', 9)} />
@@ -213,7 +296,14 @@ export function CustomSectionLayoutThumbnail({
         );
       case 'layout-11':
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, height: '100%' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 8,
+              height: '100%',
+            }}
+          >
             <div style={mediaSurface(active, true)} />
             <div style={mediaSurface(active, true)} />
           </div>
@@ -221,7 +311,14 @@ export function CustomSectionLayoutThumbnail({
       case 'layout-14':
       case 'layout-28':
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, height: '100%' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 8,
+              height: '100%',
+            }}
+          >
             {[0, 1, 2].map((index) => (
               <div
                 key={index}
@@ -245,7 +342,13 @@ export function CustomSectionLayoutThumbnail({
       case 'layout-18':
         return (
           <div style={{ position: 'relative', height: '100%' }}>
-            <div style={{ ...mediaSurface(active, true), position: 'absolute', inset: '0 18% 12px 0' }} />
+            <div
+              style={{
+                ...mediaSurface(active, true),
+                position: 'absolute',
+                inset: '0 18% 12px 0',
+              }}
+            />
             <div
               style={{
                 position: 'absolute',
@@ -272,7 +375,14 @@ export function CustomSectionLayoutThumbnail({
       case 'layout-23':
       case 'layout-26':
         return (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+            }}
+          >
             <div
               style={{
                 width: '74%',
@@ -294,13 +404,80 @@ export function CustomSectionLayoutThumbnail({
           </div>
         );
       case 'layout-22':
+        // Zigzag: alternating row image-left / image-right
+        return (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 7,
+              height: '100%',
+              justifyContent: 'space-between',
+            }}
+          >
+            {[false, true].map((reverse, i) => (
+              <div
+                key={i}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: reverse ? '1fr 1.1fr' : '1.1fr 1fr',
+                  gap: 7,
+                  flex: 1,
+                }}
+              >
+                {reverse ? (
+                  <>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 5,
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <div style={inkFill(active, '80%', 8)} />
+                      <div style={mutedFill(active, '60%', 6)} />
+                    </div>
+                    <div style={mediaSurface(active)} />
+                  </>
+                ) : (
+                  <>
+                    <div style={mediaSurface(active)} />
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 5,
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <div style={inkFill(active, '80%', 8)} />
+                      <div style={mutedFill(active, '60%', 6)} />
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        );
       case 'layout-25':
       case 'layout-31':
       case 'layout-32':
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: value === 'layout-25' ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8, height: '100%' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns:
+                value === 'layout-25' ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+              gap: 8,
+              height: '100%',
+            }}
+          >
             {(value === 'layout-25' ? [0, 1, 2, 3] : [0, 1, 2]).map((index) => (
-              <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div
+                key={index}
+                style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+              >
                 <div style={mediaSurface(active)} />
                 <div style={inkFill(active, '82%', 8)} />
               </div>
@@ -309,8 +486,22 @@ export function CustomSectionLayoutThumbnail({
         );
       default:
         return (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, width: '72%' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 7,
+                width: '72%',
+              }}
+            >
               <div style={inkFill(active, '84%', 10)} />
               <div style={mutedFill(active, '68%', 7)} />
               <div style={accentFill(active, 0.8)} />

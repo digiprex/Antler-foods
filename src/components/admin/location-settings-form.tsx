@@ -1040,7 +1040,7 @@ export default function LocationSettingsForm({ restaurantId, pageId, templateId,
           type="button"
           onClick={() => {
             if (!placeDetails) return;
-            setPreviewViewport(responsiveEditorViewport);
+            setPreviewViewport('desktop');
             setShowPreviewModal(true);
           }}
           disabled={!placeDetails}

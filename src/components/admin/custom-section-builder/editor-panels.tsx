@@ -1,6 +1,10 @@
 'use client';
 
-import type { ChangeEvent, InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import type {
+  ChangeEvent,
+  InputHTMLAttributes,
+  TextareaHTMLAttributes,
+} from 'react';
 import type { EditorViewport } from '@/components/admin/section-settings-primitives';
 import type {
   CustomSectionConfig,
@@ -20,17 +24,15 @@ export type CustomSectionMediaTarget =
   | { type: 'slot'; slot: CustomSectionMediaSlot; mediaKind: 'image' | 'video' }
   | { type: 'item'; itemId: string; mediaKind: 'image' };
 
-function Label({
-  title,
-  hint,
-}: {
-  title: string;
-  hint?: string;
-}) {
+function Label({ title, hint }: { title: string; hint?: string }) {
   return (
     <label className="mb-1.5 block text-sm font-medium text-slate-700">
       <span>{title}</span>
-      {hint ? <span className="mt-0.5 block text-xs font-normal text-slate-500">{hint}</span> : null}
+      {hint ? (
+        <span className="mt-0.5 block text-xs font-normal text-slate-500">
+          {hint}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -126,10 +128,18 @@ function MediaPreview({
   if (isVideo) {
     return (
       <div className="relative h-40 overflow-hidden rounded-[24px] border border-slate-200 bg-slate-950">
-        <video src={src} className="h-full w-full object-cover opacity-80" muted playsInline preload="metadata" />
+        <video
+          src={src}
+          className="h-full w-full object-cover opacity-80"
+          muted
+          playsInline
+          preload="metadata"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/10 to-transparent" />
         <div className="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-lg">
-          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-600 text-[10px] text-white">▶</span>
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-600 text-[10px] text-white">
+            ▶
+          </span>
           {label}
         </div>
       </div>
@@ -169,7 +179,10 @@ function ColorInput({
           onChange={(event) => onChange(event.target.value)}
           className="h-10 w-12 cursor-pointer rounded-xl border-0 bg-transparent p-0"
         />
-        <TextInput value={value} onChange={(event) => onChange(event.target.value)} />
+        <TextInput
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        />
       </div>
     </div>
   );
@@ -266,7 +279,10 @@ function slotHint(slot: CustomSectionMediaSlot) {
   }
 }
 
-function getSlotValue(config: CustomSectionConfig, slot: CustomSectionMediaSlot) {
+function getSlotValue(
+  config: CustomSectionConfig,
+  slot: CustomSectionMediaSlot,
+) {
   switch (slot) {
     case 'backgroundImage':
       return config.backgroundImage || '';
@@ -301,14 +317,6 @@ export function ContentEditorPanel({
               placeholder="Custom Section"
             />
           </div>
-          <div>
-            <Label title="Badge Text" hint="Optional label chip used in richer layouts" />
-            <TextInput
-              value={config.badgeText || ''}
-              onChange={(event) => onChange({ badgeText: event.target.value })}
-              placeholder="Featured"
-            />
-          </div>
         </div>
         <div>
           <Label title="Headline" hint="Primary section heading" />
@@ -329,7 +337,10 @@ export function ContentEditorPanel({
       </div>
 
       <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-        <Label title="Description" hint="Supportive body copy used across the layout" />
+        <Label
+          title="Description"
+          hint="Supportive body copy used across the layout"
+        />
         <TextArea
           rows={8}
           value={config.description || ''}
@@ -369,7 +380,10 @@ export function ButtonsEditorPanel({
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       {(['primaryButton', 'secondaryButton'] as const).map((key) => (
-        <div key={key} className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div
+          key={key}
+          className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm"
+        >
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold text-slate-900">
@@ -382,10 +396,16 @@ export function ButtonsEditorPanel({
               </p>
             </div>
             <SegmentedControl
-              value={(config[key]?.variant || (key === 'primaryButton' ? 'primary' : 'outline')) as string}
+              value={
+                (config[key]?.variant ||
+                  (key === 'primaryButton' ? 'primary' : 'outline')) as string
+              }
               onChange={(value) => updateButton(key, 'variant', value)}
               options={[
-                { value: key === 'primaryButton' ? 'primary' : 'secondary', label: 'Solid' },
+                {
+                  value: key === 'primaryButton' ? 'primary' : 'secondary',
+                  label: 'Solid',
+                },
                 { value: 'outline', label: 'Outline' },
                 { value: 'ghost', label: 'Ghost' },
               ]}
@@ -396,15 +416,24 @@ export function ButtonsEditorPanel({
               <Label title="Label" />
               <TextInput
                 value={config[key]?.label || ''}
-                onChange={(event) => updateButton(key, 'label', event.target.value)}
-                placeholder={key === 'primaryButton' ? 'Explore More' : 'Reserve Table'}
+                onChange={(event) =>
+                  updateButton(key, 'label', event.target.value)
+                }
+                placeholder={
+                  key === 'primaryButton' ? 'Explore More' : 'Reserve Table'
+                }
               />
             </div>
             <div>
-              <Label title="Link" hint="Use a full URL or internal path such as /menu" />
+              <Label
+                title="Link"
+                hint="Use a full URL or internal path such as /menu"
+              />
               <TextInput
                 value={config[key]?.href || ''}
-                onChange={(event) => updateButton(key, 'href', event.target.value)}
+                onChange={(event) =>
+                  updateButton(key, 'href', event.target.value)
+                }
                 placeholder={key === 'primaryButton' ? '/menu' : '/contact'}
               />
             </div>
@@ -438,7 +467,10 @@ export function MediaEditorPanel({
       case 'secondaryImage':
         onChange({
           secondaryImage: value
-            ? { url: value, alt: config.secondaryImage?.alt || 'Secondary image' }
+            ? {
+                url: value,
+                alt: config.secondaryImage?.alt || 'Secondary image',
+              }
             : undefined,
         });
         return;
@@ -455,7 +487,9 @@ export function MediaEditorPanel({
       case 'image':
       default:
         onChange({
-          image: value ? { url: value, alt: config.image?.alt || 'Section image' } : undefined,
+          image: value
+            ? { url: value, alt: config.image?.alt || 'Section image' }
+            : undefined,
         });
     }
   };
@@ -472,9 +506,14 @@ export function MediaEditorPanel({
         };
 
         return (
-          <div key={slot} className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div
+            key={slot}
+            className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm"
+          >
             <div className="mb-4">
-              <h3 className="text-sm font-semibold text-slate-900">{slotLabel(slot)}</h3>
+              <h3 className="text-sm font-semibold text-slate-900">
+                {slotLabel(slot)}
+              </h3>
               <p className="text-xs text-slate-500">{slotHint(slot)}</p>
             </div>
             <div className="space-y-4">
@@ -517,11 +556,18 @@ export function MediaEditorPanel({
                 </button>
               </div>
               <div>
-                <Label title={isVideo ? 'Video URL' : 'Image URL'} hint="You can also paste a direct media URL manually." />
+                <Label
+                  title={isVideo ? 'Video URL' : 'Image URL'}
+                  hint="You can also paste a direct media URL manually."
+                />
                 <TextInput
                   value={value}
                   onChange={(event) => updateSlot(slot, event.target.value)}
-                  placeholder={isVideo ? 'https://example.com/video.mp4' : 'https://images.example.com/feature.jpg'}
+                  placeholder={
+                    isVideo
+                      ? 'https://example.com/video.mp4'
+                      : 'https://images.example.com/feature.jpg'
+                  }
                 />
               </div>
             </div>
@@ -554,7 +600,9 @@ export function ItemsEditorPanel({
 
   const updateItem = (itemId: string, updates: Partial<CustomSectionItem>) => {
     onChange({
-      items: items.map((item) => (item.id === itemId ? { ...item, ...updates } : item)),
+      items: items.map((item) =>
+        item.id === itemId ? { ...item, ...updates } : item,
+      ),
     });
   };
 
@@ -582,7 +630,9 @@ export function ItemsEditorPanel({
     <div className="space-y-5">
       <div className="flex items-center justify-between rounded-[28px] border border-slate-200 bg-slate-50 px-5 py-4">
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">Repeated Content Blocks</h3>
+          <h3 className="text-sm font-semibold text-slate-900">
+            Repeated Content Blocks
+          </h3>
           <p className="text-xs text-slate-500">
             This layout uses repeated cards, slides, or story blocks.
           </p>
@@ -605,11 +655,18 @@ export function ItemsEditorPanel({
           };
 
           return (
-            <div key={item.id} className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+            <div
+              key={item.id}
+              className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm"
+            >
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-900">Item {index + 1}</h4>
-                  <p className="text-xs text-slate-500">Used by {definition.name.toLowerCase()}.</p>
+                  <h4 className="text-sm font-semibold text-slate-900">
+                    Item {index + 1}
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    Used by {definition.name.toLowerCase()}.
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -654,39 +711,88 @@ export function ItemsEditorPanel({
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label title="Badge" />
-                    <TextInput value={item.badge || ''} onChange={(event) => updateItem(item.id, { badge: event.target.value })} placeholder="Signature" />
+                    <TextInput
+                      value={item.badge || ''}
+                      onChange={(event) =>
+                        updateItem(item.id, { badge: event.target.value })
+                      }
+                      placeholder="Signature"
+                    />
                   </div>
                   <div>
                     <Label title="Eyebrow" />
-                    <TextInput value={item.eyebrow || ''} onChange={(event) => updateItem(item.id, { eyebrow: event.target.value })} placeholder="Chef's note" />
+                    <TextInput
+                      value={item.eyebrow || ''}
+                      onChange={(event) =>
+                        updateItem(item.id, { eyebrow: event.target.value })
+                      }
+                      placeholder="Chef's note"
+                    />
                   </div>
                 </div>
                 <div>
                   <Label title="Title" />
-                  <TextInput value={item.title} onChange={(event) => updateItem(item.id, { title: event.target.value })} placeholder="Seasonal tasting menu" />
+                  <TextInput
+                    value={item.title}
+                    onChange={(event) =>
+                      updateItem(item.id, { title: event.target.value })
+                    }
+                    placeholder="Seasonal tasting menu"
+                  />
                 </div>
                 <div>
                   <Label title="Description" />
-                  <TextArea rows={4} value={item.description || ''} onChange={(event) => updateItem(item.id, { description: event.target.value })} placeholder="Describe this item." />
+                  <TextArea
+                    rows={4}
+                    value={item.description || ''}
+                    onChange={(event) =>
+                      updateItem(item.id, { description: event.target.value })
+                    }
+                    placeholder="Describe this item."
+                  />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label title="Stat Value" />
-                    <TextInput value={item.statValue || ''} onChange={(event) => updateItem(item.id, { statValue: event.target.value })} placeholder="120+" />
+                    <TextInput
+                      value={item.statValue || ''}
+                      onChange={(event) =>
+                        updateItem(item.id, { statValue: event.target.value })
+                      }
+                      placeholder="120+"
+                    />
                   </div>
                   <div>
                     <Label title="Stat Label" />
-                    <TextInput value={item.statLabel || ''} onChange={(event) => updateItem(item.id, { statLabel: event.target.value })} placeholder="Guests" />
+                    <TextInput
+                      value={item.statLabel || ''}
+                      onChange={(event) =>
+                        updateItem(item.id, { statLabel: event.target.value })
+                      }
+                      placeholder="Guests"
+                    />
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label title="CTA Label" />
-                    <TextInput value={item.ctaLabel || ''} onChange={(event) => updateItem(item.id, { ctaLabel: event.target.value })} placeholder="Learn more" />
+                    <TextInput
+                      value={item.ctaLabel || ''}
+                      onChange={(event) =>
+                        updateItem(item.id, { ctaLabel: event.target.value })
+                      }
+                      placeholder="Learn more"
+                    />
                   </div>
                   <div>
                     <Label title="CTA Link" />
-                    <TextInput value={item.ctaHref || ''} onChange={(event) => updateItem(item.id, { ctaHref: event.target.value })} placeholder="/events" />
+                    <TextInput
+                      value={item.ctaHref || ''}
+                      onChange={(event) =>
+                        updateItem(item.id, { ctaHref: event.target.value })
+                      }
+                      placeholder="/events"
+                    />
                   </div>
                 </div>
               </div>
@@ -713,22 +819,31 @@ export function LayoutControlsPanel({
 
   const getAlignmentValue = () =>
     (isMobile
-      ? config.responsive?.mobileContentAlignment || config.layoutSettings?.contentAlignment || 'left'
-      : config.layoutSettings?.contentAlignment || 'left') as CustomSectionContentAlign;
+      ? config.responsive?.mobileContentAlignment ||
+        config.layoutSettings?.contentAlignment ||
+        'left'
+      : config.layoutSettings?.contentAlignment ||
+        'left') as CustomSectionContentAlign;
 
   const getTextValue = (field: CustomSectionFieldKey) => {
     switch (field) {
       case 'mediaRatio':
         return isMobile
-          ? config.responsive?.mobileMediaRatio || config.layoutSettings?.mediaRatio || '4 / 3'
+          ? config.responsive?.mobileMediaRatio ||
+              config.layoutSettings?.mediaRatio ||
+              '4 / 3'
           : config.layoutSettings?.mediaRatio || '4 / 3';
       case 'contentWidth':
         return isMobile
-          ? config.responsive?.mobileContentWidth || config.layoutSettings?.contentWidth || '100%'
+          ? config.responsive?.mobileContentWidth ||
+              config.layoutSettings?.contentWidth ||
+              '100%'
           : config.layoutSettings?.contentWidth || '560px';
       case 'contentGap':
         return isMobile
-          ? config.responsive?.mobileContentGap || config.layoutSettings?.contentGap || '1.25rem'
+          ? config.responsive?.mobileContentGap ||
+              config.layoutSettings?.contentGap ||
+              '1.25rem'
           : config.layoutSettings?.contentGap || '2rem';
       case 'cardSpacing':
         return config.layoutSettings?.cardSpacing || '1.25rem';
@@ -756,7 +871,11 @@ export function LayoutControlsPanel({
             : config.responsive,
           layoutSettings: isMobile
             ? config.layoutSettings
-            : updateLayoutSettings(config.layoutSettings, 'contentWidth', value),
+            : updateLayoutSettings(
+                config.layoutSettings,
+                'contentWidth',
+                value,
+              ),
         });
         return;
       case 'contentGap':
@@ -771,7 +890,11 @@ export function LayoutControlsPanel({
         return;
       case 'cardSpacing':
         onChange({
-          layoutSettings: updateLayoutSettings(config.layoutSettings, 'cardSpacing', value),
+          layoutSettings: updateLayoutSettings(
+            config.layoutSettings,
+            'cardSpacing',
+            value,
+          ),
         });
         return;
       default:
@@ -798,17 +921,28 @@ export function LayoutControlsPanel({
           if (field === 'contentAlignment') {
             return (
               <div key={field}>
-                <Label title={fieldTitle(field)} hint={isMobile ? 'Mobile override' : 'Desktop base value'} />
+                <Label
+                  title={fieldTitle(field)}
+                  hint={isMobile ? 'Mobile override' : 'Desktop base value'}
+                />
                 <SegmentedControl
                   value={getAlignmentValue()}
                   onChange={(value) =>
                     onChange({
                       responsive: isMobile
-                        ? updateResponsive(config.responsive, 'mobileContentAlignment', value)
+                        ? updateResponsive(
+                            config.responsive,
+                            'mobileContentAlignment',
+                            value,
+                          )
                         : config.responsive,
                       layoutSettings: isMobile
                         ? config.layoutSettings
-                        : updateLayoutSettings(config.layoutSettings, 'contentAlignment', value),
+                        : updateLayoutSettings(
+                            config.layoutSettings,
+                            'contentAlignment',
+                            value,
+                          ),
                     })
                   }
                   options={[
@@ -826,7 +960,10 @@ export function LayoutControlsPanel({
               <div key={field}>
                 <Label title={fieldTitle(field)} />
                 <SegmentedControl
-                  value={(config.layoutSettings?.verticalAlignment || 'center') as string}
+                  value={
+                    (config.layoutSettings?.verticalAlignment ||
+                      'center') as string
+                  }
                   onChange={(value) =>
                     onChange({
                       layoutSettings: updateLayoutSettings(
@@ -852,17 +989,28 @@ export function LayoutControlsPanel({
               : config.layoutSettings?.cardColumns || 3;
             return (
               <div key={field}>
-                <Label title={fieldTitle(field)} hint={isMobile ? 'Mobile columns' : 'Desktop columns'} />
+                <Label
+                  title={fieldTitle(field)}
+                  hint={isMobile ? 'Mobile columns' : 'Desktop columns'}
+                />
                 <SegmentedControl
                   value={value}
                   onChange={(next) =>
                     onChange({
                       responsive: isMobile
-                        ? updateResponsive(config.responsive, 'mobileCardColumns', next as number)
+                        ? updateResponsive(
+                            config.responsive,
+                            'mobileCardColumns',
+                            next as number,
+                          )
                         : config.responsive,
                       layoutSettings: isMobile
                         ? config.layoutSettings
-                        : updateLayoutSettings(config.layoutSettings, 'cardColumns', next as number),
+                        : updateLayoutSettings(
+                            config.layoutSettings,
+                            'cardColumns',
+                            next as number,
+                          ),
                     })
                   }
                   options={[
@@ -878,11 +1026,18 @@ export function LayoutControlsPanel({
 
           if (field === 'stackOnMobile') {
             return (
-              <div key={field} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div
+                key={field}
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+              >
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">{fieldTitle(field)}</p>
-                    <p className="text-xs text-slate-500">Stack media and content vertically on small screens.</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {fieldTitle(field)}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Stack media and content vertically on small screens.
+                    </p>
                   </div>
                   <label className="relative inline-flex cursor-pointer items-center">
                     <input
@@ -890,7 +1045,11 @@ export function LayoutControlsPanel({
                       checked={config.layoutSettings?.stackOnMobile !== false}
                       onChange={(event) =>
                         onChange({
-                          layoutSettings: updateLayoutSettings(config.layoutSettings, 'stackOnMobile', event.target.checked),
+                          layoutSettings: updateLayoutSettings(
+                            config.layoutSettings,
+                            'stackOnMobile',
+                            event.target.checked,
+                          ),
                         })
                       }
                       className="peer sr-only"
@@ -902,7 +1061,12 @@ export function LayoutControlsPanel({
             );
           }
 
-          if (field === 'mediaShape' || field === 'buttonStyle' || field === 'hoverEffect' || field === 'transitionStyle') {
+          if (
+            field === 'mediaShape' ||
+            field === 'buttonStyle' ||
+            field === 'hoverEffect' ||
+            field === 'transitionStyle'
+          ) {
             const value = (config.layoutSettings?.[field] ||
               (field === 'mediaShape'
                 ? 'soft'
@@ -945,7 +1109,11 @@ export function LayoutControlsPanel({
                   value={value}
                   onChange={(next) =>
                     onChange({
-                      layoutSettings: updateLayoutSettings(config.layoutSettings, field as keyof CustomSectionLayoutSettings, next as never),
+                      layoutSettings: updateLayoutSettings(
+                        config.layoutSettings,
+                        field as keyof CustomSectionLayoutSettings,
+                        next as never,
+                      ),
                     })
                   }
                   options={options}
@@ -956,11 +1124,18 @@ export function LayoutControlsPanel({
 
           if (field === 'autoplay') {
             return (
-              <div key={field} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div
+                key={field}
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+              >
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Autoplay Slides</p>
-                    <p className="text-xs text-slate-500">Automatically advance carousel-style layouts.</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      Autoplay Slides
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Automatically advance carousel-style layouts.
+                    </p>
                   </div>
                   <label className="relative inline-flex cursor-pointer items-center">
                     <input
@@ -968,7 +1143,11 @@ export function LayoutControlsPanel({
                       checked={config.layoutSettings?.autoplay !== false}
                       onChange={(event) =>
                         onChange({
-                          layoutSettings: updateLayoutSettings(config.layoutSettings, 'autoplay', event.target.checked),
+                          layoutSettings: updateLayoutSettings(
+                            config.layoutSettings,
+                            'autoplay',
+                            event.target.checked,
+                          ),
                         })
                       }
                       className="peer sr-only"
@@ -983,7 +1162,10 @@ export function LayoutControlsPanel({
           if (field === 'autoplayInterval') {
             return (
               <div key={field}>
-                <Label title={fieldTitle(field)} hint="Seconds between slide changes" />
+                <Label
+                  title={fieldTitle(field)}
+                  hint="Seconds between slide changes"
+                />
                 <TextInput
                   type="number"
                   min={2}
@@ -1006,13 +1188,20 @@ export function LayoutControlsPanel({
           if (field === 'overlayOpacity') {
             return (
               <div key={field}>
-                <Label title={fieldTitle(field)} hint="Use lower values for lighter overlays." />
+                <Label
+                  title={fieldTitle(field)}
+                  hint="Use lower values for lighter overlays."
+                />
                 <input
                   type="range"
                   min={0}
                   max={0.9}
                   step={0.05}
-                  value={config.styleConfig?.overlayOpacity ?? config.overlayOpacity ?? 0.48}
+                  value={
+                    config.styleConfig?.overlayOpacity ??
+                    config.overlayOpacity ??
+                    0.48
+                  }
                   onChange={(event) =>
                     onChange({
                       overlayOpacity: Number(event.target.value),
@@ -1030,7 +1219,10 @@ export function LayoutControlsPanel({
 
           return (
             <div key={field}>
-              <Label title={fieldTitle(field)} hint={isMobile ? 'Mobile override' : 'Desktop value'} />
+              <Label
+                title={fieldTitle(field)}
+                hint={isMobile ? 'Mobile override' : 'Desktop value'}
+              />
               <TextInput
                 value={getTextValue(field)}
                 onChange={(event) => setTextValue(field, event.target.value)}
@@ -1080,20 +1272,29 @@ export function ColorStylePanel({
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-slate-900">Section Palette</h3>
+        <h3 className="text-sm font-semibold text-slate-900">
+          Section Palette
+        </h3>
         <p className="mt-1 text-xs text-slate-500">
-          Tune the main surfaces, accent color, and overlay tone for the selected layout.
+          Tune the main surfaces, accent color, and overlay tone for the
+          selected layout.
         </p>
         <div className="mt-5 grid gap-4">
           <ColorInput
             label="Section Background"
-            value={styleConfig.sectionBackgroundColor || config.bgColor || '#ffffff'}
-            onChange={(value) => updateStyles({ sectionBackgroundColor: value })}
+            value={
+              styleConfig.sectionBackgroundColor || config.bgColor || '#ffffff'
+            }
+            onChange={(value) =>
+              updateStyles({ sectionBackgroundColor: value })
+            }
           />
           <ColorInput
             label="Content Surface"
             value={styleConfig.contentSurfaceBackground || '#ffffff'}
-            onChange={(value) => updateStyles({ contentSurfaceBackground: value })}
+            onChange={(value) =>
+              updateStyles({ contentSurfaceBackground: value })
+            }
           />
           <ColorInput
             label="Card Background"
@@ -1114,21 +1315,31 @@ export function ColorStylePanel({
           <ColorInput
             label="Muted Accent"
             value={styleConfig.mutedAccentColor || '#ede9fe'}
-            onChange={(value) => updateStyles({ mutedAccentColor: value, badgeBackgroundColor: value })}
+            onChange={(value) =>
+              updateStyles({
+                mutedAccentColor: value,
+                badgeBackgroundColor: value,
+              })
+            }
           />
         </div>
       </div>
 
       <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-slate-900">Buttons, Borders, and Overlay</h3>
+        <h3 className="text-sm font-semibold text-slate-900">
+          Buttons, Borders, and Overlay
+        </h3>
         <p className="mt-1 text-xs text-slate-500">
-          Keep button treatments and supporting chrome aligned with the chosen layout.
+          Keep button treatments and supporting chrome aligned with the chosen
+          layout.
         </p>
         <div className="mt-5 grid gap-4">
           <ColorInput
             label="Border Color"
             value={styleConfig.borderColor || '#e2e8f0'}
-            onChange={(value) => updateStyles({ borderColor: value, buttonBorderColor: value })}
+            onChange={(value) =>
+              updateStyles({ borderColor: value, buttonBorderColor: value })
+            }
           />
           <ColorInput
             label="Primary Button Background"
@@ -1143,12 +1354,16 @@ export function ColorStylePanel({
           <ColorInput
             label="Secondary Button Background"
             value={styleConfig.buttonSecondaryBackgroundColor || '#ffffff'}
-            onChange={(value) => updateStyles({ buttonSecondaryBackgroundColor: value })}
+            onChange={(value) =>
+              updateStyles({ buttonSecondaryBackgroundColor: value })
+            }
           />
           <ColorInput
             label="Secondary Button Text"
             value={styleConfig.buttonSecondaryTextColor || '#6d28d9'}
-            onChange={(value) => updateStyles({ buttonSecondaryTextColor: value })}
+            onChange={(value) =>
+              updateStyles({ buttonSecondaryTextColor: value })
+            }
           />
           <ColorInput
             label="Overlay Color"

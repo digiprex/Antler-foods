@@ -200,7 +200,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
   });
   const [showPreview, setShowPreview] = useState(false);
   const [previewViewport, setPreviewViewport] = useState<EditorViewport>('desktop');
-  const [editorViewport, setEditorViewport] = useState<EditorViewport>('desktop');
+  const [editorViewport, setEditorViewport] = useState<EditorViewport>('mobile');
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
@@ -400,7 +400,21 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
 
         {config.form_id && (
           <>
-            <SettingsCard icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.75 5.25h14.5A2.25 2.25 0 0121.5 7.5v9a2.25 2.25 0 01-2.25 2.25H4.75A2.25 2.25 0 012.5 16.5v-9A2.25 2.25 0 014.75 5.25z" /></svg>} title="Layout Options" description="Choose the presentation style that best fits the page content and conversion goal.">
+            <SettingsCard
+              icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.75 5.25h14.5A2.25 2.25 0 0121.5 7.5v9a2.25 2.25 0 01-2.25 2.25H4.75A2.25 2.25 0 012.5 16.5v-9A2.25 2.25 0 014.75 5.25z" /></svg>}
+              title="Layout Configuration"
+              description="Choose the presentation style that best fits the page content and conversion goal, then verify it in mobile and desktop."
+              action={
+                <ResponsiveViewportTabs
+                  value={editorViewport}
+                  onChange={(viewport) => {
+                    setEditorViewport(viewport);
+                    setPreviewViewport(viewport);
+                  }}
+                  scope="form-layout"
+                />
+              }
+            >
               <div className="grid gap-4 lg:grid-cols-3">
                 {FORM_LAYOUTS.map((layout) => (
                   <LayoutCard key={layout.value} title={layout.title} description={layout.description} preview={<LayoutPreview layout={layout.value} />} selected={config.layout === layout.value} onClick={() => updateConfig({ layout: layout.value })} badge={layout.value === 'centered' ? 'Recommended' : undefined} />
@@ -452,8 +466,18 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
 
             <SettingsCard
               icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>}
-              title="Custom Styling"
-              description="Configure typography and scroll animation settings."
+              title="Typography and Responsive Structure"
+              description="Typography inherits from the global theme by default. Disable the toggle below to apply section-specific overrides."
+              action={
+                <ResponsiveViewportTabs
+                  value={editorViewport}
+                  onChange={(viewport) => {
+                    setEditorViewport(viewport);
+                    setPreviewViewport(viewport);
+                  }}
+                  scope="form-typography"
+                />
+              }
             >
               <div className="space-y-4">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
@@ -502,12 +526,17 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
                     </div>
                   ) : null}
                 </div>
-                <ToggleRow title="Custom Typography" description="Override the global theme typography for this section." checked={config.is_custom || false} onChange={(checked) => updateConfig({ is_custom: checked })} />
+                <ToggleRow
+                  title="Use Global Styles"
+                  description="When enabled, typography inherits from the global theme. Disable to set section-specific type styles."
+                  checked={!(config.is_custom || false)}
+                  onChange={(checked) => updateConfig({ is_custom: !checked })}
+                />
                 {!config.is_custom ? (
-                  <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-800">Global theme typography is active. Enable custom typography to adjust section-specific type styling.</div>
+                  <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-800">Typography is inherited from the global theme. Disable the toggle above to edit section-specific font size, weight, and button styling for this form block.</div>
                 ) : (
                   <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <SectionTypographyControls value={config} onChange={updateConfig} showAdvancedControls />
+                    <SectionTypographyControls value={config} onChange={updateConfig} showAdvancedControls viewport={editorViewport} />
                   </div>
                 )}
               </div>
@@ -530,9 +559,9 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
         </div>
       </form>
 
-      {config.form_id && !showPreview ? <FloatingPreviewButton viewport={editorViewport} onClick={() => { setPreviewViewport(editorViewport); setShowPreview(true); }} disabled={!selectedForm} /> : null}
+      {config.form_id && !showPreview ? <FloatingPreviewButton viewport="desktop" onClick={() => { setPreviewViewport('desktop'); setShowPreview(true); }} disabled={!selectedForm} /> : null}
       {showPreview ? (
-        <PreviewModal title="Show Preview" description="Switch between desktop and mobile to check composition, readability, and field hierarchy." viewport={previewViewport} onViewportChange={setPreviewViewport} onClose={() => setShowPreview(false)} note={selectedForm ? 'Preview reflects your current form selection, layout, colors, and typography instantly.' : 'Select a form first to preview the section.'}>
+        <PreviewModal title="Live Preview" description="Switch between desktop and mobile to check composition, readability, and field hierarchy." viewport={previewViewport} onViewportChange={setPreviewViewport} onClose={() => setShowPreview(false)} note={selectedForm ? 'Preview reflects your current form selection, layout, colors, and typography instantly.' : 'Select a form first to preview the section.'}>
           <DynamicForm
             configData={previewConfig}
             previewForm={previewForm}

@@ -29,7 +29,7 @@ import dynamic from 'next/dynamic';
 
 // Dynamic import for faster initial load - form loads progressively
 const MenuSettingsForm = dynamic(
-  () => import('@/components/admin/menu-settings-form'),
+  () => import('@/components/admin/menu-settings-form-enhanced'),
   {
     loading: () => (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -47,12 +47,12 @@ import styles from '@/components/admin/gallery-settings-form.module.css';
 function MenuSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const restaurantId = searchParams.get('restaurant_id');
-  const restaurantName = searchParams.get('restaurant_name');
-  const pageId = searchParams.get('page_id');
-  const pageName = searchParams.get('page_name');
-  const templateId = searchParams.get('template_id') || undefined;
-  const isNewSection = searchParams.get('new_section') === 'true';
+  const restaurantId = searchParams?.get('restaurant_id') || null;
+  const restaurantName = searchParams?.get('restaurant_name') || null;
+  const pageId = searchParams?.get('page_id') || null;
+  const pageName = searchParams?.get('page_name') || null;
+  const templateId = searchParams?.get('template_id') || undefined;
+  const isNewSection = searchParams?.get('new_section') === 'true';
 
   const handleBack = () => {
     const params = new URLSearchParams();

@@ -800,187 +800,219 @@ function DirectLayoutItemEditor({
 }) {
   const definition = MENU_LAYOUT_DEFINITIONS[layout];
   const showImages = definition.usesImages || definition.imageOptional;
+  const [primaryButtonOpen, setPrimaryButtonOpen] = useState<
+    Record<number, boolean>
+  >({});
+  const [secondaryButtonOpen, setSecondaryButtonOpen] = useState<
+    Record<number, boolean>
+  >({});
+
+  useEffect(() => {
+    setPrimaryButtonOpen({});
+    setSecondaryButtonOpen({});
+  }, [layout]);
 
   return (
     <div className="space-y-4">
       <div className="grid gap-5 xl:grid-cols-2">
-        {items.map((item, itemIndex) => (
-          <div
-            key={`menu-layout-item-${itemIndex}`}
-            className="rounded-2xl border border-slate-200 bg-white p-4"
-          >
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-600">
-                  Item {itemIndex + 1}
+        {items.map((item, itemIndex) => {
+          const primaryEnabled =
+            primaryButtonOpen[itemIndex] ??
+            Boolean(item.ctaLabel?.trim() || item.ctaLink?.trim());
+          const secondaryEnabled =
+            secondaryButtonOpen[itemIndex] ??
+            Boolean(item.badge?.trim() || item.imageLink?.trim());
+
+          return (
+            <div
+              key={`menu-layout-item-${itemIndex}`}
+              className="rounded-2xl border border-slate-200 bg-white p-4"
+            >
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-600">
+                    Item {itemIndex + 1}
+                  </div>
+                  <h3 className="mt-1 text-base font-semibold text-slate-900">
+                    {definition.name} Item {itemIndex + 1}
+                  </h3>
                 </div>
-                <h3 className="mt-1 text-base font-semibold text-slate-900">
-                  {definition.name} Item {itemIndex + 1}
-                </h3>
-              </div>
-              {showImages ? (
-                <div className="flex flex-wrap justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onOpenImage(itemIndex)}
-                    className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-sm font-semibold text-violet-700 transition-colors hover:border-violet-300 hover:bg-violet-100"
-                  >
-                    {item.image ? 'Replace' : 'Choose Image'}
-                  </button>
-                  {item.image ? (
+                {showImages ? (
+                  <div className="flex flex-wrap justify-end gap-2">
                     <button
                       type="button"
-                      onClick={() => onUpdate(itemIndex, { image: '' })}
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 transition-colors hover:border-rose-200 hover:text-rose-600"
+                      onClick={() => onOpenImage(itemIndex)}
+                      className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-sm font-semibold text-violet-700 transition-colors hover:border-violet-300 hover:bg-violet-100"
                     >
-                      Remove
+                      {item.image ? 'Replace' : 'Choose Image'}
                     </button>
+                    {item.image ? (
+                      <button
+                        type="button"
+                        onClick={() => onUpdate(itemIndex, { image: '' })}
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 transition-colors hover:border-rose-200 hover:text-rose-600"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="space-y-4">
+                {showImages ? (
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={`Menu item ${itemIndex + 1}`}
+                        className="h-36 w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-36 items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.14),transparent_42%),linear-gradient(135deg,rgba(248,250,252,1),rgba(241,245,249,1))] text-sm font-medium text-slate-500">
+                        No image selected
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
+                <FieldShell label="Title">
+                  <input
+                    type="text"
+                    value={item.name || ''}
+                    onChange={(event) =>
+                      onUpdate(itemIndex, { name: event.target.value })
+                    }
+                    className={textInputClassName()}
+                    placeholder="Menu Item Title"
+                  />
+                </FieldShell>
+
+                <FieldShell label="Subtitle">
+                  <input
+                    type="text"
+                    value={item.description || ''}
+                    onChange={(event) =>
+                      onUpdate(itemIndex, { description: event.target.value })
+                    }
+                    className={textInputClassName()}
+                    placeholder="Short description"
+                  />
+                </FieldShell>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-slate-900">
+                      Primary Button
+                    </h4>
+                    <label className="relative inline-flex cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        checked={primaryEnabled}
+                        onChange={(event) => {
+                          const nextChecked = event.target.checked;
+                          setPrimaryButtonOpen((previous) => ({
+                            ...previous,
+                            [itemIndex]: nextChecked,
+                          }));
+
+                          if (!nextChecked) {
+                            onUpdate(itemIndex, { ctaLabel: '', ctaLink: '' });
+                          }
+                        }}
+                        className="peer sr-only"
+                      />
+                      <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
+                    </label>
+                  </div>
+                  {primaryEnabled ? (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <FieldShell label="Button Text">
+                        <input
+                          type="text"
+                          value={item.ctaLabel || ''}
+                          onChange={(event) =>
+                            onUpdate(itemIndex, {
+                              ctaLabel: event.target.value,
+                            })
+                          }
+                          className={textInputClassName()}
+                          placeholder="Order Now"
+                        />
+                      </FieldShell>
+                      <FieldShell label="Button Link">
+                        <input
+                          type="text"
+                          value={item.ctaLink || ''}
+                          onChange={(event) =>
+                            onUpdate(itemIndex, { ctaLink: event.target.value })
+                          }
+                          className={textInputClassName()}
+                          placeholder="#order"
+                        />
+                      </FieldShell>
+                    </div>
                   ) : null}
                 </div>
-              ) : null}
-            </div>
 
-            <div className="space-y-4">
-              {showImages ? (
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                  {item.image ? (
-                    <img
-                      src={item.image}
-                      alt={`Menu item ${itemIndex + 1}`}
-                      className="h-36 w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-36 items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.14),transparent_42%),linear-gradient(135deg,rgba(248,250,252,1),rgba(241,245,249,1))] text-sm font-medium text-slate-500">
-                      No image selected
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-slate-900">
+                      Secondary Button
+                    </h4>
+                    <label className="relative inline-flex cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        checked={secondaryEnabled}
+                        onChange={(event) => {
+                          const nextChecked = event.target.checked;
+                          setSecondaryButtonOpen((previous) => ({
+                            ...previous,
+                            [itemIndex]: nextChecked,
+                          }));
+
+                          if (!nextChecked) {
+                            onUpdate(itemIndex, { badge: '', imageLink: '' });
+                          }
+                        }}
+                        className="peer sr-only"
+                      />
+                      <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
+                    </label>
+                  </div>
+                  {secondaryEnabled ? (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <FieldShell label="Button Text">
+                        <input
+                          type="text"
+                          value={item.badge || ''}
+                          onChange={(event) =>
+                            onUpdate(itemIndex, { badge: event.target.value })
+                          }
+                          className={textInputClassName()}
+                          placeholder="Learn More"
+                        />
+                      </FieldShell>
+                      <FieldShell label="Button Link">
+                        <input
+                          type="text"
+                          value={item.imageLink || ''}
+                          onChange={(event) =>
+                            onUpdate(itemIndex, {
+                              imageLink: event.target.value,
+                            })
+                          }
+                          className={textInputClassName()}
+                          placeholder="#learn-more"
+                        />
+                      </FieldShell>
                     </div>
-                  )}
+                  ) : null}
                 </div>
-              ) : null}
-
-              <FieldShell label="Title">
-                <input
-                  type="text"
-                  value={item.name || ''}
-                  onChange={(event) =>
-                    onUpdate(itemIndex, { name: event.target.value })
-                  }
-                  className={textInputClassName()}
-                  placeholder="Menu Item Title"
-                />
-              </FieldShell>
-
-              <FieldShell label="Subtitle">
-                <input
-                  type="text"
-                  value={item.description || ''}
-                  onChange={(event) =>
-                    onUpdate(itemIndex, { description: event.target.value })
-                  }
-                  className={textInputClassName()}
-                  placeholder="Short description"
-                />
-              </FieldShell>
-
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-slate-900">
-                    Primary Button
-                  </h4>
-                  <label className="relative inline-flex cursor-pointer items-center">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(
-                        item.ctaLabel?.trim() || item.ctaLink?.trim(),
-                      )}
-                      onChange={(event) => {
-                        if (!event.target.checked) {
-                          onUpdate(itemIndex, { ctaLabel: '', ctaLink: '' });
-                        }
-                      }}
-                      className="peer sr-only"
-                    />
-                    <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
-                  </label>
-                </div>
-                {(item.ctaLabel?.trim() || item.ctaLink?.trim() || true) && (
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <FieldShell label="Button Text">
-                      <input
-                        type="text"
-                        value={item.ctaLabel || ''}
-                        onChange={(event) =>
-                          onUpdate(itemIndex, { ctaLabel: event.target.value })
-                        }
-                        className={textInputClassName()}
-                        placeholder="Order Now"
-                      />
-                    </FieldShell>
-                    <FieldShell label="Button Link">
-                      <input
-                        type="text"
-                        value={item.ctaLink || ''}
-                        onChange={(event) =>
-                          onUpdate(itemIndex, { ctaLink: event.target.value })
-                        }
-                        className={textInputClassName()}
-                        placeholder="#order"
-                      />
-                    </FieldShell>
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-slate-900">
-                    Secondary Button
-                  </h4>
-                  <label className="relative inline-flex cursor-pointer items-center">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(
-                        item.badge?.trim() || item.imageLink?.trim(),
-                      )}
-                      onChange={(event) => {
-                        if (!event.target.checked) {
-                          onUpdate(itemIndex, { badge: '', imageLink: '' });
-                        }
-                      }}
-                      className="peer sr-only"
-                    />
-                    <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
-                  </label>
-                </div>
-                {(item.badge?.trim() || item.imageLink?.trim() || true) && (
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <FieldShell label="Button Text">
-                      <input
-                        type="text"
-                        value={item.badge || ''}
-                        onChange={(event) =>
-                          onUpdate(itemIndex, { badge: event.target.value })
-                        }
-                        className={textInputClassName()}
-                        placeholder="Learn More"
-                      />
-                    </FieldShell>
-                    <FieldShell label="Button Link">
-                      <input
-                        type="text"
-                        value={item.imageLink || ''}
-                        onChange={(event) =>
-                          onUpdate(itemIndex, { imageLink: event.target.value })
-                        }
-                        className={textInputClassName()}
-                        placeholder="#learn-more"
-                      />
-                    </FieldShell>
-                  </div>
-                )}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -1837,6 +1869,7 @@ export default function MenuSettingsFormEnhanced({
       </div>
 
       <FloatingPreviewButton
+        compact
         viewport="desktop"
         onClick={() => {
           setPreviewViewport('desktop');

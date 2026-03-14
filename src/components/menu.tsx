@@ -18,7 +18,10 @@ import styles from './menu.module.css';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
 import { useSectionReveal } from '@/hooks/use-section-reveal';
 import { useSectionViewport } from '@/hooks/use-section-viewport';
-import { mergeMenuLayoutSettings } from '@/lib/menu-layout-schema';
+import {
+  getMenuLayoutDefinition,
+  mergeMenuLayoutSettings,
+} from '@/lib/menu-layout-schema';
 import {
   getSectionContainerStyles,
   getSectionTypographyStyles,
@@ -39,6 +42,56 @@ interface PreparedMenuItem extends MenuItem {
 }
 
 const PRESET_CATEGORY_SYMBOLS = ['M', 'S', 'F', 'D'];
+const PREVIEW_PLACEHOLDER_COPY = {
+  title: 'Title',
+  subtitle: 'Subtitle',
+  content: 'Content',
+  button: 'Button',
+};
+const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
+  {
+    name: PREVIEW_PLACEHOLDER_COPY.title,
+    description: PREVIEW_PLACEHOLDER_COPY.content,
+    category: PREVIEW_PLACEHOLDER_COPY.subtitle,
+    ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
+    ctaLink: '#menu',
+  },
+  {
+    name: PREVIEW_PLACEHOLDER_COPY.title,
+    description: PREVIEW_PLACEHOLDER_COPY.content,
+    category: PREVIEW_PLACEHOLDER_COPY.subtitle,
+    ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
+    ctaLink: '#menu',
+  },
+  {
+    name: PREVIEW_PLACEHOLDER_COPY.title,
+    description: PREVIEW_PLACEHOLDER_COPY.content,
+    category: PREVIEW_PLACEHOLDER_COPY.subtitle,
+    ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
+    ctaLink: '#menu',
+  },
+  {
+    name: PREVIEW_PLACEHOLDER_COPY.title,
+    description: PREVIEW_PLACEHOLDER_COPY.content,
+    category: PREVIEW_PLACEHOLDER_COPY.subtitle,
+    ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
+    ctaLink: '#menu',
+  },
+  {
+    name: PREVIEW_PLACEHOLDER_COPY.title,
+    description: PREVIEW_PLACEHOLDER_COPY.content,
+    category: PREVIEW_PLACEHOLDER_COPY.subtitle,
+    ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
+    ctaLink: '#menu',
+  },
+  {
+    name: PREVIEW_PLACEHOLDER_COPY.title,
+    description: PREVIEW_PLACEHOLDER_COPY.content,
+    category: PREVIEW_PLACEHOLDER_COPY.subtitle,
+    ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
+    ctaLink: '#menu',
+  },
+];
 
 function joinClasses(...classNames: Array<string | false | null | undefined>) {
   return classNames.filter(Boolean).join(' ');
@@ -167,19 +220,61 @@ function hasRenderableItemContent(item: MenuItem) {
   );
 }
 
+function getDirectLayoutSlotCount(layout: MenuLayout) {
+  return Math.max(0, getMenuLayoutDefinition(layout).itemSlots || 0);
+}
+
 function buildDirectLayoutItems(
   layoutItems: MenuItem[] | undefined,
   title: string,
+  layout: MenuLayout,
 ) {
-  return (layoutItems || []).filter(hasRenderableItemContent).map(
-    (item, index): PreparedMenuItem => ({
+  const slotCount = getDirectLayoutSlotCount(layout);
+
+  if (slotCount === 0) {
+    return [];
+  }
+
+  return (layoutItems || [])
+    .slice(0, slotCount)
+    .filter(hasRenderableItemContent)
+    .map((item, index): PreparedMenuItem => ({
       ...item,
       name: item.name?.trim() || `Menu ${index + 1}`,
       categoryName: item.category || title || 'Menu Highlights',
       categoryDescription: undefined,
       categoryIcon: undefined,
+    }));
+}
+
+function buildPreviewDirectItems(layout: MenuLayout, title: string) {
+  const slotCount = getDirectLayoutSlotCount(layout);
+
+  return PREVIEW_DIRECT_ITEM_LIBRARY.slice(0, slotCount).map(
+    (item): PreparedMenuItem => ({
+      ...item,
+      categoryName: item.category || title || 'Menu Preview',
+      categoryDescription: undefined,
+      categoryIcon: undefined,
     }),
   );
+}
+
+function buildPreviewCategories() {
+  return Array.from({ length: 3 }, (_, index) => ({
+    name: `${PREVIEW_PLACEHOLDER_COPY.title}${' '.repeat(index)}`,
+    description: PREVIEW_PLACEHOLDER_COPY.subtitle,
+    items: [
+      {
+        id: `preview-category-item-${index + 1}`,
+        name: PREVIEW_PLACEHOLDER_COPY.title,
+        description: PREVIEW_PLACEHOLDER_COPY.content,
+        category: PREVIEW_PLACEHOLDER_COPY.subtitle,
+        ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
+        ctaLink: '#menu',
+      },
+    ],
+  }));
 }
 
 function getFallbackSymbol(item: PreparedMenuItem, index: number) {
@@ -353,7 +448,7 @@ function getOverlayBodyStyle(
 
 export default function Menu({
   restaurant_id,
-  title = 'Our Menu',
+  title = '',
   subtitle,
   description,
   categories = [],
@@ -684,6 +779,10 @@ export default function Menu({
     viewport,
     '0.95rem',
   );
+  const resolvedHeaderAlign =
+    viewport === 'mobile'
+      ? mobileSectionTextAlign || textAlign || sectionTextAlign || 'center'
+      : textAlign || sectionTextAlign || 'center';
   const resolvedItemLineHeight = resolveResponsiveValue(
     itemLineHeight,
     mobileItemLineHeight,
@@ -721,12 +820,37 @@ export default function Menu({
   const preparedLayoutItems = buildDirectLayoutItems(
     layoutItems,
     title || 'Our Menu',
+    layout as MenuLayout,
   );
+  const previewEnabled = Boolean(previewMode);
+  const shouldUsePreviewCategories =
+    categoryDrivenLayout && preparedCategories.length === 0 && previewEnabled;
+  const displayCategories = shouldUsePreviewCategories
+    ? buildPreviewCategories()
+    : preparedCategories;
   const highlightedItems = spotlightItems.slice(0, 8);
+  const shouldUsePreviewDirectItems =
+    !categoryDrivenLayout &&
+    preparedLayoutItems.length === 0 &&
+    preparedItems.length === 0 &&
+    previewEnabled;
+  const previewDirectItems = shouldUsePreviewDirectItems
+    ? buildPreviewDirectItems(layout, title || 'Our Menu')
+    : [];
   const directItems =
-    preparedLayoutItems.length > 0 ? preparedLayoutItems : preparedItems;
+    preparedLayoutItems.length > 0
+      ? preparedLayoutItems
+      : shouldUsePreviewDirectItems
+        ? previewDirectItems
+        : preparedItems;
   const spotlightDirectItems =
-    preparedLayoutItems.length > 0 ? preparedLayoutItems : highlightedItems;
+    preparedLayoutItems.length > 0
+      ? preparedLayoutItems
+      : shouldUsePreviewDirectItems
+        ? previewDirectItems
+        : highlightedItems;
+  const useDirectLayoutCards =
+    preparedLayoutItems.length > 0 || shouldUsePreviewDirectItems;
   const resolvedPrimaryButton =
     primaryButtonEnabled === false
       ? undefined
@@ -741,16 +865,16 @@ export default function Menu({
   const carouselTrackRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (activeCategoryIndex >= preparedCategories.length) {
+    if (activeCategoryIndex >= displayCategories.length) {
       setActiveCategoryIndex(0);
     }
-  }, [activeCategoryIndex, preparedCategories.length]);
+  }, [activeCategoryIndex, displayCategories.length]);
 
   useEffect(() => {
-    if (expandedCategoryIndex >= preparedCategories.length) {
+    if (expandedCategoryIndex >= displayCategories.length) {
       setExpandedCategoryIndex(0);
     }
-  }, [expandedCategoryIndex, preparedCategories.length]);
+  }, [displayCategories.length, expandedCategoryIndex]);
 
   useEffect(() => {
     if (layout !== 'accordion') {
@@ -760,13 +884,13 @@ export default function Menu({
     const defaultExpanded = Number(
       currentLayoutSettings.defaultExpandedItem ?? 0,
     );
-    if (defaultExpanded >= 0 && defaultExpanded < preparedCategories.length) {
+    if (defaultExpanded >= 0 && defaultExpanded < displayCategories.length) {
       setExpandedCategoryIndex(defaultExpanded);
     }
   }, [
     currentLayoutSettings.defaultExpandedItem,
+    displayCategories.length,
     layout,
-    preparedCategories.length,
   ]);
 
   useEffect(() => {
@@ -807,7 +931,7 @@ export default function Menu({
   ]);
 
   const activeCategory =
-    preparedCategories[activeCategoryIndex] || preparedCategories[0] || null;
+    displayCategories[activeCategoryIndex] || displayCategories[0] || null;
 
   const containerStyle: CSSProperties = {
     ...sectionStyle,
@@ -1256,60 +1380,66 @@ export default function Menu({
     );
   };
 
-  const renderPromoCard = (item: PreparedMenuItem, index: number) => (
-    <article
-      key={`${item.categoryName}-${item.name}-${index}`}
-      className={styles.promoCard}
-      style={{
-        backgroundColor:
-          currentLayoutSettings.cardStyle === 'outlined'
-            ? resolvedCardBgColor
-            : resolvedButtonBgColor,
-        color:
-          currentLayoutSettings.cardStyle === 'outlined'
-            ? resolvedTextColor
-            : resolvedButtonTextColor,
-        textAlign: (currentLayoutSettings.contentAlignment ||
-          'center') as CSSProperties['textAlign'],
-        boxShadow: resolvedCardShadow,
-        borderRadius: resolvedCardRadius,
-      }}
-    >
-      <div
-        className={styles.cardEyebrow}
+  const renderPromoCard = (item: PreparedMenuItem, index: number) => {
+    const action = renderCardAction(item, 'solid');
+
+    return (
+      <article
+        key={`${item.categoryName}-${item.name}-${index}`}
+        className={styles.promoCard}
         style={{
+          backgroundColor:
+            currentLayoutSettings.cardStyle === 'outlined'
+              ? resolvedCardBgColor
+              : resolvedButtonBgColor,
           color:
             currentLayoutSettings.cardStyle === 'outlined'
-              ? resolvedAccentColor
-              : 'rgba(255,255,255,0.86)',
+              ? resolvedTextColor
+              : resolvedButtonTextColor,
+          textAlign: (currentLayoutSettings.contentAlignment ||
+            'center') as CSSProperties['textAlign'],
+          boxShadow: resolvedCardShadow,
+          borderRadius: resolvedCardRadius,
         }}
       >
-        {item.categoryName}
-      </div>
-      <h3 className={styles.promoTitle}>{item.name}</h3>
-      {showDescriptions && item.description ? (
-        <p
-          className={styles.promoDescription}
+        <div
+          className={styles.cardEyebrow}
           style={{
             color:
               currentLayoutSettings.cardStyle === 'outlined'
-                ? resolvedTextColor
-                : 'rgba(255,255,255,0.88)',
+                ? resolvedAccentColor
+                : 'rgba(255,255,255,0.86)',
           }}
         >
-          {item.description}
-        </p>
-      ) : null}
-      {renderCardAction(item, 'solid')}
-    </article>
-  );
+          {item.categoryName}
+        </div>
+        <h3 className={styles.promoTitle}>{item.name}</h3>
+        {showDescriptions && item.description ? (
+          <p
+            className={styles.promoDescription}
+            style={{
+              color:
+                currentLayoutSettings.cardStyle === 'outlined'
+                  ? resolvedTextColor
+                  : 'rgba(255,255,255,0.88)',
+            }}
+          >
+            {item.description}
+          </p>
+        ) : null}
+        {action ? (
+          <div className={styles.menuButtonGroupCenter}>{action}</div>
+        ) : null}
+      </article>
+    );
+  };
 
   const renderCategoryBlock = (
     category: MenuCategory,
     items: PreparedMenuItem[],
     itemsClassName: string,
     renderer: (item: PreparedMenuItem, index: number) => React.ReactNode,
-    showCategoryHeader = preparedCategories.length > 1,
+    showCategoryHeader = displayCategories.length > 1,
     itemsStyle?: CSSProperties,
   ) => (
     <section key={category.name} className={styles.menuCategory}>
@@ -1349,7 +1479,7 @@ export default function Menu({
     rendererOptions?: Parameters<typeof renderImageCard>[2],
     itemsStyle?: CSSProperties,
   ) =>
-    preparedCategories.map((category) =>
+    displayCategories.map((category) =>
       renderCategoryBlock(
         category,
         (category.items || []).map(
@@ -1362,7 +1492,7 @@ export default function Menu({
         ),
         itemsClassName,
         (item, index) => renderImageCard(item, index, rendererOptions),
-        preparedCategories.length > 1,
+        displayCategories.length > 1,
         itemsStyle,
       ),
     );
@@ -1370,7 +1500,7 @@ export default function Menu({
   const renderLayoutContent = () => {
     switch (layout) {
       case 'list':
-        if (preparedLayoutItems.length > 0) {
+        if (useDirectLayoutCards) {
           return (
             <div className={styles.layoutBody} style={{ gap: resolvedRowGap }}>
               <div
@@ -1387,7 +1517,7 @@ export default function Menu({
         }
         return (
           <div className={styles.layoutBody} style={{ gap: resolvedRowGap }}>
-            {preparedCategories.map((category) =>
+            {displayCategories.map((category) =>
               renderCategoryBlock(
                 category,
                 (category.items || []).map(
@@ -1400,7 +1530,7 @@ export default function Menu({
                 ),
                 styles.promoGrid,
                 renderPromoCard,
-                preparedCategories.length > 1,
+                displayCategories.length > 1,
                 {
                   gap: `${layoutNumber('cardGap', 'mobileCardGap', 20)}px`,
                   gridTemplateColumns: `repeat(${Math.max(1, layoutNumber('cardCount', 'mobileCardCount', 2))}, minmax(0, 1fr))`,
@@ -1411,7 +1541,7 @@ export default function Menu({
         );
 
       case 'masonry':
-        if (preparedLayoutItems.length > 0) {
+        if (useDirectLayoutCards) {
           return (
             <div className={styles.layoutBody} style={{ gap: resolvedRowGap }}>
               <div
@@ -1428,7 +1558,7 @@ export default function Menu({
         }
         return (
           <div className={styles.layoutBody} style={{ gap: resolvedRowGap }}>
-            {preparedCategories.map((category) =>
+            {displayCategories.map((category) =>
               renderCategoryBlock(
                 category,
                 (category.items || []).map(
@@ -1441,7 +1571,7 @@ export default function Menu({
                 ),
                 styles.masonryGrid,
                 (item, index) => renderImageCard(item, index),
-                preparedCategories.length > 1,
+                displayCategories.length > 1,
                 {
                   columnCount: layoutNumber('columns', 'mobileColumns', 2),
                   columnGap: `${layoutNumber('gap', 'mobileGap', 22)}px`,
@@ -1458,25 +1588,6 @@ export default function Menu({
               className={styles.carouselShell}
               style={{ gap: resolvedRowGap }}
             >
-              <div className={styles.carouselIntro}>
-                <div className={styles.cardEyebrow}>
-                  {subtitle || 'Curated picks'}
-                </div>
-                <h3
-                  className={styles.carouselTitle}
-                  style={{ color: resolvedTextColor }}
-                >
-                  {title || 'Best menu selections in town'}
-                </h3>
-                {description ? (
-                  <p
-                    className={styles.carouselDescription}
-                    style={{ color: resolvedTextColor }}
-                  >
-                    {description}
-                  </p>
-                ) : null}
-              </div>
               <div className={styles.carouselViewport}>
                 {currentLayoutSettings.showArrows !== false ? (
                   <button
@@ -1637,16 +1748,13 @@ export default function Menu({
                       }
                 }
               >
-                <div className={styles.tabEyebrow}>
-                  {subtitle || 'Order directly from our website'}
-                </div>
-                <h3 className={styles.tabIntroTitle}>
-                  {title || 'Best menu selections in town'}
-                </h3>
-                <p className={styles.tabIntroDescription}>
-                  {description ||
-                    'Use categories to highlight different collections and help guests scan faster.'}
-                </p>
+                {subtitle ? (
+                  <div className={styles.tabEyebrow}>{subtitle}</div>
+                ) : null}
+                {title ? <h3 className={styles.tabIntroTitle}>{title}</h3> : null}
+                {description ? (
+                  <p className={styles.tabIntroDescription}>{description}</p>
+                ) : null}
                 {renderSectionButtons(
                   styles.menuButtonGroupStart,
                   styles.itemButton,
@@ -1659,7 +1767,7 @@ export default function Menu({
                   gap: `${layoutNumber('tabSpacing', 'mobileTabSpacing', 14)}px`,
                 }}
               >
-                {preparedCategories.map((category, index) => (
+                {displayCategories.map((category, index) => (
                   <button
                     type="button"
                     key={category.name}
@@ -1755,7 +1863,7 @@ export default function Menu({
                 gap: `${layoutNumber('itemSpacing', 'mobileItemSpacing', 16)}px`,
               }}
             >
-              {preparedCategories.map((category, categoryIndex) => {
+              {displayCategories.map((category, categoryIndex) => {
                 const isOpen = categoryIndex === expandedCategoryIndex;
                 const accordionIcon =
                   currentLayoutSettings.iconStyle === 'chevron'
@@ -1895,7 +2003,7 @@ export default function Menu({
         );
 
       case 'two-column':
-        if (preparedLayoutItems.length > 0) {
+        if (useDirectLayoutCards) {
           return (
             <div className={styles.layoutBody} style={{ gap: resolvedRowGap }}>
               <div
@@ -1938,7 +2046,7 @@ export default function Menu({
         );
 
       case 'single-column':
-        if (preparedLayoutItems.length > 0) {
+        if (useDirectLayoutCards) {
           return (
             <div className={styles.layoutBody} style={{ gap: resolvedRowGap }}>
               <div
@@ -1963,7 +2071,7 @@ export default function Menu({
         }
         return (
           <div className={styles.layoutBody} style={{ gap: resolvedRowGap }}>
-            {preparedCategories.map((category) =>
+            {displayCategories.map((category) =>
               renderCategoryBlock(
                 category,
                 (category.items || []).map(
@@ -1977,7 +2085,7 @@ export default function Menu({
                 styles.singleColumnGrid,
                 (item, index) =>
                   renderImageCard(item, index, { centered: true }),
-                preparedCategories.length > 1,
+                displayCategories.length > 1,
                 {
                   gap: `${layoutNumber('cardSpacing', 'mobileCardSpacing', 20)}px`,
                   maxWidth:
@@ -1997,17 +2105,6 @@ export default function Menu({
       case 'featured-grid':
         return (
           <div className={styles.layoutBody} style={{ gap: resolvedRowGap }}>
-            <div className={styles.featuredIntro}>
-              <div className={styles.cardEyebrow}>
-                {subtitle || 'Featured favorites'}
-              </div>
-              <h3
-                className={styles.featuredTitle}
-                style={{ color: resolvedTextColor }}
-              >
-                {title || 'Best menu selections in town'}
-              </h3>
-            </div>
             <div
               className={styles.featureGrid}
               style={{
@@ -2087,7 +2184,7 @@ export default function Menu({
 
       case 'grid':
       default:
-        if (preparedLayoutItems.length > 0) {
+        if (useDirectLayoutCards) {
           return (
             <div className={styles.layoutBody} style={{ gap: resolvedRowGap }}>
               <div
@@ -2152,12 +2249,21 @@ export default function Menu({
         <div
           className={joinClasses(
             styles.menuHeader,
-            (sectionStyle.textAlign || textAlign) === 'left'
+            resolvedHeaderAlign === 'left'
               ? styles.alignLeft
-              : (sectionStyle.textAlign || textAlign) === 'right'
+              : resolvedHeaderAlign === 'right'
                 ? styles.alignRight
                 : styles.alignCenter,
           )}
+          style={{
+            textAlign: resolvedHeaderAlign as CSSProperties['textAlign'],
+            justifyItems:
+              resolvedHeaderAlign === 'left'
+                ? 'start'
+                : resolvedHeaderAlign === 'right'
+                  ? 'end'
+                  : 'center',
+          }}
         >
           {title ? (
             <h2 className={styles.menuTitle} style={titleStyle}>
@@ -2190,7 +2296,7 @@ export default function Menu({
 
         {(
           categoryDrivenLayout
-            ? preparedCategories.length > 0
+            ? displayCategories.length > 0
             : directItems.length > 0
         ) ? (
           renderLayoutContent()

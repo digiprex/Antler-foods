@@ -27,6 +27,14 @@
     gap: 1.5rem;
   }
 
+  .splitLayout {
+    padding: 2rem 1.25rem;
+  }
+
+  .splitImage {
+    height: 320px;
+  }
+
   .sideBySideLayout {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -50,15 +58,17 @@
     margin-inline: calc(
       var(--hero-mobile-padding-inline, var(--hero-padding-inline, 1rem)) * -1
     );
+    height: 240px;
+    overflow: hidden;
     max-width: none;
   }
 
   .offsetImage .heroImage {
-    min-height: clamp(280px, 68vw, 420px);
+    height: 100%;
+    min-height: 100%;
   }
 
   .splitImage .heroImage,
-  .offsetImage .heroImage,
   .mainContent .heroImage {
     min-height: clamp(280px, 68vw, 420px);
   }
@@ -70,6 +80,17 @@
   }
 
   .defaultContentPanel {
+    width: min(
+      100%,
+      min(
+        var(
+          --hero-default-panel-mobile-max-width,
+          var(--hero-default-panel-max-width, 860px)
+        ),
+        760px
+      )
+    );
+    margin-inline: auto;
     padding: 1.35rem;
     border-radius: var(
       --hero-default-panel-mobile-border-radius,
@@ -90,7 +111,7 @@
       100%,
       var(
         --hero-default-panel-mobile-max-width,
-        var(--hero-default-panel-max-width, 960px)
+        var(--hero-default-panel-max-width, 860px)
       )
     );
     margin-top: var(
@@ -143,23 +164,45 @@
   .minimalImages {
     position: relative;
     width: 100%;
-    height: 320px;
+    max-width: 14rem;
+    height: 190px;
+    margin-inline: auto;
     padding: 0;
   }
 
   .minimalContent {
     .content {
-      max-width: 100%;
+      max-width: min(100%, 19rem);
+      margin-inline: auto;
     }
 
     .subheadline {
       width: fit-content;
-      max-width: 100%;
+      max-width: 13rem;
+      margin-inline: auto;
     }
 
     .description {
-      max-width: 100%;
+      max-width: 15rem;
+      margin-inline: auto;
     }
+  }
+
+  .minimalContent .headline {
+    max-width: 12ch;
+    margin-inline: auto;
+    overflow-wrap: normal;
+    word-break: normal;
+    text-wrap: balance;
+  }
+
+  .minimalImageStack {
+    gap: 0.6rem;
+  }
+
+  .minimalContent .buttonGroup {
+    width: min(100%, 15rem);
+    margin-inline: auto;
   }
 
   .buttonGroup {
@@ -182,7 +225,13 @@
 
   .headline {
     font-family: var(--hero-title-mobile-font-family, var(--hero-title-font-family, inherit));
-    font-size: var(--hero-title-mobile-font-size, var(--hero-title-font-size, clamp(2rem, 9vw, 2.75rem)));
+    font-size: var(
+      --hero-title-mobile-font-size,
+      min(
+        var(--hero-title-font-size, clamp(2.5rem, 4vw, 4.25rem)),
+        clamp(2rem, 9vw, 2.75rem)
+      )
+    );
     font-weight: var(--hero-title-mobile-font-weight, var(--hero-title-font-weight, 800));
     font-style: var(--hero-title-mobile-font-style, var(--hero-title-font-style, normal));
     color: var(--hero-title-mobile-color, var(--hero-title-color, currentColor));
@@ -192,16 +241,34 @@
   }
 
   .centeredLargeLayout .headline {
-    font-size: var(--hero-title-mobile-font-size, var(--hero-title-font-size, clamp(2.35rem, 10vw, 3.25rem)));
+    font-size: var(
+      --hero-title-mobile-font-size,
+      min(
+        var(--hero-title-font-size, clamp(3rem, 5vw, 5.25rem)),
+        clamp(2.35rem, 10vw, 3.25rem)
+      )
+    );
   }
 
   .minimalLayout .headline {
-    font-size: var(--hero-title-mobile-font-size, var(--hero-title-font-size, clamp(2rem, 9vw, 2.8rem)));
+    font-size: var(
+      --hero-title-mobile-font-size,
+      min(
+        var(--hero-title-font-size, clamp(3.2rem, 5.2vw, 5.4rem)),
+        clamp(1.8rem, 8vw, 2.45rem)
+      )
+    );
   }
 
   .subheadline {
     font-family: var(--hero-subtitle-mobile-font-family, var(--hero-subtitle-font-family, inherit));
-    font-size: var(--hero-subtitle-mobile-font-size, var(--hero-subtitle-font-size, 0.78rem));
+    font-size: var(
+      --hero-subtitle-mobile-font-size,
+      min(
+        var(--hero-subtitle-font-size, 0.84rem),
+        clamp(0.78rem, 2.8vw, 0.95rem)
+      )
+    );
     font-weight: var(--hero-subtitle-mobile-font-weight, var(--hero-subtitle-font-weight, 700));
     font-style: var(--hero-subtitle-mobile-font-style, var(--hero-subtitle-font-style, normal));
     color: var(--hero-subtitle-mobile-color, var(--hero-subtitle-color, currentColor));
@@ -212,7 +279,13 @@
 
   .description {
     font-family: var(--hero-body-mobile-font-family, var(--hero-body-font-family, inherit));
-    font-size: var(--hero-body-mobile-font-size, var(--hero-body-font-size, 1rem));
+    font-size: var(
+      --hero-body-mobile-font-size,
+      min(
+        var(--hero-body-font-size, clamp(1rem, 1.5vw, 1.125rem)),
+        clamp(0.95rem, 3.2vw, 1rem)
+      )
+    );
     font-weight: var(--hero-body-mobile-font-weight, var(--hero-body-font-weight, 400));
     font-style: var(--hero-body-mobile-font-style, var(--hero-body-font-style, normal));
     color: var(--hero-body-mobile-color, var(--hero-body-color, currentColor));
@@ -675,7 +748,7 @@
 .defaultContentColumn {
   position: relative;
   z-index: 1;
-  width: min(100%, var(--hero-default-panel-max-width, 960px));
+  width: min(100%, var(--hero-default-panel-max-width, 860px));
   min-width: 0;
   margin-top: var(--hero-default-panel-margin-top, 0);
   margin-bottom: var(--hero-default-panel-margin-bottom, 0);
@@ -705,7 +778,9 @@
 
 .defaultContentPanel {
   position: relative;
+  width: min(100%, min(var(--hero-default-panel-max-width, 860px), 760px));
   overflow: hidden;
+  margin-inline: auto;
   padding: clamp(1.75rem, 4vw, 3rem);
   border-radius: var(--hero-default-panel-border-radius, 2rem);
   min-height: var(--hero-default-panel-min-height, auto);
@@ -882,7 +957,7 @@
   gap: clamp(0.9rem, 1.7vw, 1.15rem);
   width: 100%;
   max-width: none;
-  height: clamp(420px, 46vw, 620px);
+  height: clamp(360px, 40vw, 540px);
   padding: 0;
   border: none;
   border-radius: 0;
@@ -938,6 +1013,8 @@
   min-height: var(--hero-layout-min-height, inherit);
   grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
   gap: clamp(2rem, 5vw, 4.5rem);
+  padding: 5rem;
+  box-sizing: border-box;
 }
 
 .sideBySideLayout {
@@ -959,6 +1036,9 @@
   display: flex;
   align-items: stretch;
   min-width: 0;
+  height: 520px;
+  background: transparent;
+  box-shadow: none;
 }
 
 .sideBySideImage {
@@ -971,7 +1051,15 @@
 }
 
 .splitImage .heroImage {
-  min-height: clamp(340px, 40vw, 560px);
+  height: 100%;
+  min-height: 100%;
+  background: transparent;
+  box-shadow: none;
+}
+
+.splitImage .imageContainer {
+  background: transparent;
+  box-shadow: none;
 }
 
 .offsetLayout {
@@ -999,13 +1087,15 @@
   margin-inline: calc(
     var(--hero-padding-inline, clamp(1.25rem, 3vw, 2rem)) * -1
   );
+  height: clamp(260px, 26vw, 340px);
+  overflow: hidden;
   max-width: none;
 }
 
 .offsetImage .heroImage {
   width: 100%;
-  height: auto;
-  min-height: clamp(320px, 38vw, 500px);
+  height: 100%;
+  min-height: 100%;
   object-fit: var(--hero-image-object-fit, cover);
   border: none;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);

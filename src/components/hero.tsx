@@ -52,12 +52,11 @@ export default function Hero(props: HeroProps) {
     contentMaxWidth = '1200px',
     restaurant_id,
     contentAnimation = 'none',
-    defaultContentPanelEnabled = false,
     defaultContentPanelBackgroundColor = '#ffffff',
     defaultContentPanelMobileBackgroundColor,
     defaultContentPanelBorderRadius = '2rem',
     defaultContentPanelMobileBorderRadius,
-    defaultContentPanelMaxWidth = '960px',
+    defaultContentPanelMaxWidth = '860px',
     defaultContentPanelMinHeight,
     defaultContentPanelMarginTop,
     defaultContentPanelMarginBottom,
@@ -352,8 +351,20 @@ export default function Hero(props: HeroProps) {
   const isRenderableButton = (button?: HeroConfig['primaryButton']) =>
     Boolean(button && (button.label?.trim() || button.href?.trim()));
 
+  const resolvedDesktopTextAlign =
+    layout === 'video-background' &&
+    (!textAlign?.trim() || textAlign === DEFAULT_HERO_CONFIG.textAlign)
+      ? 'left'
+      : textAlign;
+  const resolvedMobileTextAlign =
+    layout === 'video-background' &&
+    (!mobileTextAlign?.trim() || mobileTextAlign === DEFAULT_HERO_CONFIG.mobileTextAlign)
+      ? resolvedDesktopTextAlign
+      : mobileTextAlign;
   const effectiveTextAlign =
-    isClientMobileViewport && mobileTextAlign ? mobileTextAlign : textAlign;
+    isClientMobileViewport && resolvedMobileTextAlign
+      ? resolvedMobileTextAlign
+      : resolvedDesktopTextAlign;
 
   const getAlignedContentClass = () => {
     if (effectiveTextAlign === 'left') return styles.contentLeft;
@@ -384,12 +395,14 @@ export default function Hero(props: HeroProps) {
 
   const mediaCapabilities = getHeroLayoutMediaCapabilities(layout);
   const activeImage = mediaCapabilities.showHeroImage ? image : undefined;
+  const resolvedDefaultContentPanelMaxWidth =
+    defaultContentPanelMaxWidth?.trim() === '960px' ||
+    defaultContentPanelMaxWidth?.trim() === '900px'
+      ? '860px'
+      : (defaultContentPanelMaxWidth || '860px');
   const activeVideoUrl = mediaCapabilities.showBackgroundVideo ? videoUrl : undefined;
   const showVideoBackground = Boolean(activeVideoUrl) && !videoLoadFailed;
-  const allowBackgroundFallback =
-    layout === 'video-background' && (!activeVideoUrl || videoLoadFailed);
-  const activeBackgroundImage =
-    mediaCapabilities.showBackgroundImage || allowBackgroundFallback ? backgroundImage : undefined;
+  const activeBackgroundImage = mediaCapabilities.showBackgroundImage ? backgroundImage : undefined;
   const resolvedPaddingTop =
     layout === 'minimal' && paddingTop === DEFAULT_HERO_CONFIG.paddingTop ? '5rem' : paddingTop;
   const resolvedPaddingBottom =
@@ -430,8 +443,8 @@ export default function Hero(props: HeroProps) {
     '--hero-min-height': minHeight,
     '--hero-mobile-min-height': mobileMinHeight,
     '--hero-content-max-width': resolvedContentMaxWidth,
-    '--hero-text-align': textAlign,
-    '--hero-mobile-text-align': mobileTextAlign,
+    '--hero-text-align': resolvedDesktopTextAlign,
+    '--hero-mobile-text-align': resolvedMobileTextAlign,
     '--hero-image-object-fit': imageObjectFit,
     '--hero-screen-height':
       previewMode === 'mobile' ? '780px' : previewMode === 'desktop' ? '720px' : '100svh',
@@ -579,7 +592,7 @@ export default function Hero(props: HeroProps) {
       <div
         className={styles.defaultContentColumn}
         style={{
-          ['--hero-default-panel-max-width' as string]: defaultContentPanelMaxWidth,
+          ['--hero-default-panel-max-width' as string]: resolvedDefaultContentPanelMaxWidth,
           ['--hero-default-panel-mobile-max-width' as string]: defaultContentPanelMobileMaxWidth,
           ['--hero-default-panel-margin-top' as string]: defaultContentPanelMarginTop,
           ['--hero-default-panel-margin-bottom' as string]: defaultContentPanelMarginBottom,
@@ -590,9 +603,7 @@ export default function Hero(props: HeroProps) {
         }}
       >
         <div
-          className={`${styles.defaultContentPanel} ${styles.motionDecor} ${
-            defaultContentPanelEnabled ? styles.defaultPanelEnabled : styles.defaultPanelDisabled
-          }`}
+          className={`${styles.defaultContentPanel} ${styles.motionDecor} ${styles.defaultPanelEnabled}`}
           style={{
             ...getMotionStyle(40),
             ['--hero-default-panel-bg' as string]: defaultContentPanelBackgroundColor,

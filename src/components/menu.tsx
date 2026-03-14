@@ -214,7 +214,7 @@ function buildCardAction(item: PreparedMenuItem, ctaButton?: MenuButton) {
 
 function resolveMenuButton(
   button: MenuButton | undefined,
-  fallbackVariant: MenuButton['variant'],
+  fixedVariant: MenuButton['variant'],
 ) {
   if (!button) {
     return undefined;
@@ -231,7 +231,7 @@ function resolveMenuButton(
     ...button,
     label,
     href,
-    variant: button.variant || fallbackVariant,
+    variant: fixedVariant,
   } satisfies MenuButton;
 }
 
@@ -728,7 +728,7 @@ export default function Menu({
   const resolvedSecondaryButton =
     secondaryButtonEnabled === false
       ? undefined
-      : resolveMenuButton(secondaryButton, 'outline');
+      : resolveMenuButton(secondaryButton, 'secondary');
 
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
   const [expandedCategoryIndex, setExpandedCategoryIndex] = useState(0);

@@ -52,21 +52,37 @@ const MENU_LAYOUT_OPTIONS: Array<{
   name: string;
   description: string;
 }> = [
-  { value: 'grid', name: 'Grid', description: 'Two cards with text overlay on images' },
+  {
+    value: 'grid',
+    name: 'Grid',
+    description: 'Two cards with text overlay on images',
+  },
   { value: 'list', name: 'List', description: 'Bold promo cards with buttons' },
-  { value: 'masonry', name: 'Masonry', description: 'Image top, details below - staggered' },
+  {
+    value: 'masonry',
+    name: 'Masonry',
+    description: 'Image top, details below - staggered',
+  },
   {
     value: 'carousel',
     name: 'Carousel',
     description: 'Scrollable image cards with overlay',
   },
-  { value: 'tabs', name: 'Tabs', description: 'Category selector with side tabs' },
+  {
+    value: 'tabs',
+    name: 'Tabs',
+    description: 'Category selector with side tabs',
+  },
   {
     value: 'accordion',
     name: 'Accordion',
     description: 'Expandable menu sections',
   },
-  { value: 'two-column', name: 'Two Column', description: 'Two side-by-side image cards' },
+  {
+    value: 'two-column',
+    name: 'Two Column',
+    description: 'Two side-by-side image cards',
+  },
   {
     value: 'single-column',
     name: 'Single Column',
@@ -159,7 +175,8 @@ const DIRECT_LAYOUT_EDITOR_CONFIG: Record<
   },
   'single-column': {
     title: 'Centered Showcase Cards',
-    description: 'Add cards with image on top and details below, stacked vertically in center.',
+    description:
+      'Add cards with image on top and details below, stacked vertically in center.',
     slotCount: 2,
     usesImages: true,
     usesImageLinks: true,
@@ -167,8 +184,9 @@ const DIRECT_LAYOUT_EDITOR_CONFIG: Record<
   },
   'featured-grid': {
     title: 'Feature Highlights',
-    description: 'Add three icon-based feature cards displayed in a grid. Images optional.',
-    slotCount: 3,
+    description:
+      'Add icon-based feature cards displayed in a grid. Images optional.',
+    slotCount: 2,
     usesImages: true,
     imageOptional: true,
     usesImageLinks: true,
@@ -176,8 +194,9 @@ const DIRECT_LAYOUT_EDITOR_CONFIG: Record<
   },
   minimal: {
     title: 'Minimal Highlights',
-    description: 'Add three text-focused highlights with optional icons. Clean and simple.',
-    slotCount: 3,
+    description:
+      'Add text-focused highlights with optional icons. Clean and simple.',
+    slotCount: 2,
     usesImages: true,
     imageOptional: true,
     usesImageLinks: true,
@@ -610,7 +629,9 @@ function MenuPreviewButton({
         borderRadius: isCard ? '3px' : '8px',
         border:
           variant === 'outline'
-            ? isCard ? '0.8px solid #ef4444' : '1.5px solid #ef4444'
+            ? isCard
+              ? '0.8px solid #ef4444'
+              : '1.5px solid #ef4444'
             : '1px solid transparent',
         background: variant === 'solid' ? '#ef1d12' : '#ffffff',
         color: variant === 'solid' ? '#ffffff' : '#111827',
@@ -845,7 +866,7 @@ function PreviewImageCard({
               textTransform: 'uppercase',
             }}
           >
-            OUR MENU
+            {/* Placeholder tag removed to avoid hardcoded text */}
           </div>
           <div
             style={{
@@ -1623,7 +1644,7 @@ function renderMenuLayoutArtwork(
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                 gap: isCard ? '8px' : '18px',
                 alignItems: 'stretch',
                 height: isCard ? '100%' : 'calc(100% - 68px)',
@@ -1632,20 +1653,14 @@ function renderMenuLayoutArtwork(
               <PreviewFeatureCard
                 mode={mode}
                 icon="burger"
-                title={previewThreeItems[0].title}
-                description={previewThreeItems[0].description}
+                title={previewTwoItems[0].title}
+                description={previewTwoItems[0].description}
               />
               <PreviewFeatureCard
                 mode={mode}
                 icon="cutlery"
-                title={previewThreeItems[1].title}
-                description={previewThreeItems[1].description}
-              />
-              <PreviewFeatureCard
-                mode={mode}
-                icon="open"
-                title={previewThreeItems[2].title}
-                description={previewThreeItems[2].description}
+                title={previewTwoItems[1].title}
+                description={previewTwoItems[1].description}
               />
             </div>
           </div>
@@ -1789,7 +1804,8 @@ export default function MenuSettingsForm({
 
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
-  const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop');
+  const [previewViewport, setPreviewViewport] =
+    useState<PreviewViewport>('desktop');
 
   // Gallery modal state
   const [showGalleryModal, setShowGalleryModal] = useState(false);
@@ -2134,7 +2150,8 @@ export default function MenuSettingsForm({
         ? previewLayoutItems.map((item, index) => ({
             id: `layout-item-${index}`,
             name: formConfig.layoutItems?.[index]?.name || item.title,
-            description: formConfig.layoutItems?.[index]?.description || item.description,
+            description:
+              formConfig.layoutItems?.[index]?.description || item.description,
             price: formConfig.layoutItems?.[index]?.price || '',
             image: formConfig.layoutItems?.[index]?.image || item.image,
             ctaLabel: formConfig.layoutItems?.[index]?.ctaLabel || 'Menu',
@@ -2143,40 +2160,46 @@ export default function MenuSettingsForm({
           }))
         : [],
       // For category-driven layouts, only use categories
-      categories: !usesDirectLayoutItems && formConfig.categories && formConfig.categories.length > 0
-        ? formConfig.categories
-        : !usesDirectLayoutItems
-        ? [
-            {
-              id: 'placeholder-1',
-              name: 'Menu Item One',
-              description: 'This is a description and this is a description',
-              items: [
+      categories:
+        !usesDirectLayoutItems &&
+        formConfig.categories &&
+        formConfig.categories.length > 0
+          ? formConfig.categories
+          : !usesDirectLayoutItems
+            ? [
                 {
-                  id: 'item-1',
+                  id: 'placeholder-1',
                   name: 'Menu Item One',
-                  description: 'Lorem ipsum dolor sit amet',
-                  price: '$12.99',
-                  image: 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Menu+Item'
-                }
-              ]
-            },
-            {
-              id: 'placeholder-2',
-              name: 'Menu Item Two',
-              description: 'This is a description',
-              items: [
+                  description:
+                    'This is a description and this is a description',
+                  items: [
+                    {
+                      id: 'item-1',
+                      name: 'Menu Item One',
+                      description: 'Lorem ipsum dolor sit amet',
+                      price: '$12.99',
+                      image:
+                        'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Menu+Item',
+                    },
+                  ],
+                },
                 {
-                  id: 'item-2',
+                  id: 'placeholder-2',
                   name: 'Menu Item Two',
-                  description: 'Lorem ipsum dolor sit amet',
-                  price: '$15.99',
-                  image: 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Menu+Item'
-                }
+                  description: 'This is a description',
+                  items: [
+                    {
+                      id: 'item-2',
+                      name: 'Menu Item Two',
+                      description: 'Lorem ipsum dolor sit amet',
+                      price: '$15.99',
+                      image:
+                        'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Menu+Item',
+                    },
+                  ],
+                },
               ]
-            }
-          ]
-        : []
+            : [],
     };
 
     return (
@@ -2404,27 +2427,31 @@ export default function MenuSettingsForm({
           <div className="relative z-10 flex h-[min(92vh,980px)] w-full max-w-7xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_35px_120px_rgba(15,23,42,0.35)]">
             <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Live Preview</h2>
+                <h2 className="text-xl font-bold text-slate-900">
+                  Live Preview
+                </h2>
                 <p className="mt-1 text-sm text-slate-600">
                   Switch between desktop and mobile to verify every menu layout.
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 <div className="inline-flex rounded-full bg-slate-100 p-1">
-                  {(['desktop', 'mobile'] as PreviewViewport[]).map((viewport) => (
-                    <button
-                      key={viewport}
-                      type="button"
-                      onClick={() => setPreviewViewport(viewport)}
-                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                        previewViewport === viewport
-                          ? 'bg-white text-slate-900 shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                    >
-                      {viewport === 'desktop' ? 'Desktop' : 'Mobile'}
-                    </button>
-                  ))}
+                  {(['desktop', 'mobile'] as PreviewViewport[]).map(
+                    (viewport) => (
+                      <button
+                        key={viewport}
+                        type="button"
+                        onClick={() => setPreviewViewport(viewport)}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                          previewViewport === viewport
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        {viewport === 'desktop' ? 'Desktop' : 'Mobile'}
+                      </button>
+                    ),
+                  )}
                 </div>
                 <button
                   type="button"
@@ -2457,12 +2484,16 @@ export default function MenuSettingsForm({
                 }`}
               >
                 <div className="flex items-center justify-between border-b border-white/10 bg-slate-950/90 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">
-                  <span>{previewViewport === 'mobile' ? 'Phone Preview' : 'Desktop Preview'}</span>
-                  <span>{previewViewport === 'mobile' ? '390 x 780' : '1280 x 720'}</span>
+                  <span>
+                    {previewViewport === 'mobile'
+                      ? 'Phone Preview'
+                      : 'Desktop Preview'}
+                  </span>
+                  <span>
+                    {previewViewport === 'mobile' ? '390 x 780' : '1280 x 720'}
+                  </span>
                 </div>
-                <div className="bg-white">
-                  {renderLayoutPreview()}
-                </div>
+                <div className="bg-white">{renderLayoutPreview()}</div>
               </div>
             </div>
             <div className="border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
@@ -2486,10 +2517,13 @@ export default function MenuSettingsForm({
                       d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                     />
                   </svg>
-                  Live preview reflects your current menu content and styling changes.
+                  Live preview reflects your current menu content and styling
+                  changes.
                 </div>
                 <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                  {previewViewport === 'mobile' ? 'Mobile responsiveness check' : 'Desktop composition check'}
+                  {previewViewport === 'mobile'
+                    ? 'Mobile responsiveness check'
+                    : 'Desktop composition check'}
                 </div>
               </div>
             </div>
@@ -2563,13 +2597,20 @@ export default function MenuSettingsForm({
                 aria-pressed={formConfig.layout === option.value}
               >
                 <div className="mb-3">
-                  {renderMenuLayoutArtwork(option.value, 'card', MENU_PREVIEW_COPY, formConfig)}
+                  {renderMenuLayoutArtwork(
+                    option.value,
+                    'card',
+                    MENU_PREVIEW_COPY,
+                    formConfig,
+                  )}
                 </div>
-                <div className={`text-sm font-medium ${
-                  formConfig.layout === option.value
-                    ? 'text-purple-700'
-                    : 'text-gray-900'
-                }`}>
+                <div
+                  className={`text-sm font-medium ${
+                    formConfig.layout === option.value
+                      ? 'text-purple-700'
+                      : 'text-gray-900'
+                  }`}
+                >
                   {option.name}
                 </div>
                 <div className="mt-0.5 text-xs text-gray-500">

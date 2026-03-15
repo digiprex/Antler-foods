@@ -324,9 +324,9 @@ export interface MenuConfigResponse {
  * Default configuration values
  */
 export const DEFAULT_MENU_CONFIG: MenuConfig = {
-  title: 'Our Menu',
-  subtitle: 'Discover our delicious offerings',
-  description: 'Explore our carefully curated selection of dishes',
+  title: '',
+  subtitle: '',
+  description: '',
   layout: 'grid',
   layoutSettings: {
     grid: {

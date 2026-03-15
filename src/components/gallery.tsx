@@ -111,7 +111,10 @@ export default function Gallery({
       return;
     }
 
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    ) {
       return;
     }
 

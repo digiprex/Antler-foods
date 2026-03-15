@@ -78,7 +78,7 @@ export function mergeHeroConfig(
     defaultContentPanelMaxWidth:
       source.defaultContentPanelMaxWidth ??
       DEFAULT_HERO_CONFIG.defaultContentPanelMaxWidth ??
-      '960px',
+      '860px',
   };
 }
 

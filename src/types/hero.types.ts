@@ -199,7 +199,7 @@ export const DEFAULT_HERO_CONFIG: HeroConfig = {
   defaultContentPanelMobileBackgroundColor: '',
   defaultContentPanelBorderRadius: '2rem',
   defaultContentPanelMobileBorderRadius: '',
-  defaultContentPanelMaxWidth: '960px',
+  defaultContentPanelMaxWidth: '860px',
   videoContentPanelEnabled: false,
   videoContentPanelBackgroundColor: 'rgba(15, 23, 42, 0.48)',
   videoContentPanelMobileBackgroundColor: '',

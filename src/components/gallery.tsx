@@ -286,7 +286,7 @@ export default function Gallery({
       : { padding }),
     '--gallery-accent': bodyStyle.color || textColor,
     '--gallery-showcase-base': bgColor,
-  } as CSSProperties;
+  } as CSSProperties & Record<string, any>;
 
   const sharedLayoutProps = {
     images,

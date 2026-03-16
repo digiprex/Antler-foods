@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import type { YouTubeConfig } from '@/types/youtube.types';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
+import { useSectionReveal } from '@/hooks/use-section-reveal';
 import { getSectionTypographyStyles } from '@/lib/section-style';
 
 type PreviewViewport = 'desktop' | 'mobile';
@@ -13,6 +14,7 @@ interface YouTubeSectionProps {
   templateId?: string;
   configData?: Partial<YouTubeConfig>;
   previewViewport?: PreviewViewport;
+  isPreview?: boolean;
 }
 
 export default function YouTubeSection({
@@ -21,6 +23,7 @@ export default function YouTubeSection({
   templateId,
   configData,
   previewViewport = 'desktop',
+  isPreview = false,
 }: YouTubeSectionProps): JSX.Element | null {
   const [config, setConfig] = useState<YouTubeConfig | null>((configData as YouTubeConfig) || null);
 
@@ -28,6 +31,11 @@ export default function YouTubeSection({
   const { config: globalStyles } = useGlobalStyleConfig({
     apiEndpoint: `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurantId)}`,
     fetchOnMount: Boolean(restaurantId),
+  });
+  const { ref, style: revealStyle } = useSectionReveal({
+    enabled: config?.enableScrollReveal,
+    animation: config?.scrollRevealAnimation,
+    isPreview,
   });
 
   useEffect(() => {
@@ -72,12 +80,7 @@ export default function YouTubeSection({
       const response = await fetch(apiEndpoint);
       const data = await response.json();
 
-      if (
-        data.success &&
-        data.data &&
-        data.data.enabled &&
-        data.data.videoUrl
-      ) {
+      if (data.success && data.data && data.data.videoUrl) {
         setConfig(data.data);
       }
     } catch (error) {
@@ -125,7 +128,7 @@ export default function YouTubeSection({
     return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
   };
 
-  const renderVideoEmbed = () => {
+  const renderVideoEmbed = (variant: 'featured' | 'tile' = 'featured') => {
     if (!config?.videoUrl) return null;
 
     const aspectRatios = {
@@ -136,10 +139,55 @@ export default function YouTubeSection({
 
     const paddingBottom = aspectRatios[config.aspectRatio || '16:9'];
 
+    const isTile = variant === 'tile';
+    const outerRadius = previewViewport === 'mobile' ? (isTile ? '18px' : '22px') : isTile ? '20px' : '28px';
+    const innerRadius = previewViewport === 'mobile' ? (isTile ? '14px' : '18px') : isTile ? '16px' : '22px';
+
+    if (isTile) {
+      return (
+        <div
+          style={{
+            borderRadius: outerRadius,
+            border: '1px solid rgba(148, 163, 184, 0.2)',
+            background: 'rgba(15, 23, 42, 0.92)',
+            padding: previewViewport === 'mobile' ? '0.45rem' : '0.6rem',
+            boxShadow: '0 18px 35px rgba(15, 23, 42, 0.18)',
+          }}
+        >
+          <div
+            style={{
+              position: 'relative',
+              paddingBottom,
+              height: 0,
+              overflow: 'hidden',
+              borderRadius: innerRadius,
+              backgroundColor: '#020617',
+            }}
+          >
+            <iframe
+              src={getEmbedUrl(config.videoUrl)}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                borderRadius: innerRadius,
+              }}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={config.title || 'Video'}
+            />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         style={{
-          borderRadius: previewViewport === 'mobile' ? '22px' : '28px',
+          borderRadius: outerRadius,
           border: '1px solid rgba(148, 163, 184, 0.18)',
           background:
             'linear-gradient(180deg, rgba(255,255,255,0.42), rgba(248,250,252,0.92))',
@@ -153,7 +201,7 @@ export default function YouTubeSection({
             paddingBottom,
             height: 0,
             overflow: 'hidden',
-            borderRadius: previewViewport === 'mobile' ? '18px' : '22px',
+            borderRadius: innerRadius,
             backgroundColor: '#020617',
           }}
         >
@@ -166,7 +214,7 @@ export default function YouTubeSection({
               width: '100%',
               height: '100%',
               border: 'none',
-              borderRadius: previewViewport === 'mobile' ? '18px' : '22px',
+              borderRadius: innerRadius,
             }}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
@@ -251,10 +299,32 @@ export default function YouTubeSection({
     if (layout === 'default') {
       return (
         <div style={{ maxWidth, margin: '0 auto', padding: contentPadding }}>
-          <div style={{ marginBottom: isPreviewMobile ? '1.5rem' : '2.25rem' }}>
+          <div style={{ marginBottom: isPreviewMobile ? '1.25rem' : '1.75rem' }}>
             {renderTextBlock({ centered: true })}
           </div>
-          {renderVideoEmbed()}
+          <div
+            style={{
+              borderRadius: isPreviewMobile ? '20px' : '26px',
+              border: '1px solid rgba(148, 163, 184, 0.18)',
+              background:
+                'linear-gradient(180deg, rgba(248,250,252,0.96), rgba(241,245,249,0.96))',
+              padding: isPreviewMobile ? '1rem' : '1.5rem',
+              boxShadow: '0 24px 50px rgba(15, 23, 42, 0.12)',
+            }}
+          >
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: isPreviewMobile
+                  ? '1fr'
+                  : 'repeat(2, minmax(0, 1fr))',
+                gap: isPreviewMobile ? '1rem' : '1.5rem',
+              }}
+            >
+              {renderVideoEmbed('tile')}
+              {renderVideoEmbed('tile')}
+            </div>
+          </div>
         </div>
       );
     }
@@ -442,11 +512,16 @@ export default function YouTubeSection({
     return null;
   }
 
+  const backgroundColor =
+    globalStyles?.backgroundColor || config.bgColor || '#000000';
+
   return (
     <section
+      ref={ref}
       style={{
-        backgroundColor: config.bgColor || '#000000',
+        backgroundColor,
         width: '100%',
+        ...revealStyle,
       }}
     >
       {renderContent()}

@@ -40,10 +40,10 @@ export interface YouTubeConfigResponse {
 }
 
 export const DEFAULT_YOUTUBE_CONFIG: YouTubeConfig = {
-  title: 'Watch Our Story',
+  title: 'YOUTUBE VIDEOS',
   description: 'Discover what makes us special',
   videoUrl: '',
-  enabled: false,
+  enabled: true,
   layout: 'default',
   autoplay: false,
   mute: false,

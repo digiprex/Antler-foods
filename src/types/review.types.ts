@@ -55,6 +55,8 @@ export interface ReviewConfig {
   maxWidth?: string;
   is_custom?: boolean;
   buttonStyleVariant?: 'primary' | 'secondary';
+  enableScrollReveal?: boolean;
+  scrollRevealAnimation?: 'fade' | 'fade-up' | 'slide-up' | 'soft-reveal';
   titleFontFamily?: string;
   titleFontSize?: string;
   titleFontWeight?: number;
@@ -102,6 +104,8 @@ export const DEFAULT_REVIEW_CONFIG: ReviewConfig = {
   maxWidth: '1200px',
   is_custom: false,
   buttonStyleVariant: 'primary',
+  enableScrollReveal: false,
+  scrollRevealAnimation: 'fade-up',
   titleFontFamily: 'Inter, system-ui, sans-serif',
   titleFontSize: '2.25rem',
   titleFontWeight: 700,

@@ -208,36 +208,53 @@ export default function DynamicTimeline({
     isPreview,
   });
 
-  const backgroundColor = resolveViewportColor(
-    displayConfig?.backgroundColor,
-    displayConfig?.mobileBackgroundColor,
-    viewport,
-    '#f8fafc',
-  );
-  const textColor = resolveViewportColor(
-    displayConfig?.textColor,
-    displayConfig?.mobileTextColor,
-    viewport,
-    '#0f172a',
-  );
-  const accentColor = resolveViewportColor(
-    displayConfig?.accentColor,
-    displayConfig?.mobileAccentColor,
-    viewport,
-    '#7c3aed',
-  );
-  const lineColor = resolveViewportColor(
-    displayConfig?.lineColor,
-    displayConfig?.mobileLineColor,
-    viewport,
-    '#cbd5e1',
-  );
-  const cardBackgroundColor = resolveViewportColor(
-    displayConfig?.cardBackgroundColor,
-    displayConfig?.mobileCardBackgroundColor,
-    viewport,
-    '#ffffff',
-  );
+  const globalBackground = globalStyles?.backgroundColor;
+  const globalText = globalStyles?.textColor;
+  const globalAccent =
+    globalStyles?.accentColor || globalStyles?.primaryColor;
+  const globalLine = globalStyles?.secondaryColor;
+  const globalCard = globalStyles?.secondaryColor || globalBackground;
+
+  const backgroundColor =
+    globalBackground
+    || resolveViewportColor(
+      displayConfig?.backgroundColor,
+      displayConfig?.mobileBackgroundColor,
+      viewport,
+      '#f8fafc',
+    );
+  const textColor =
+    globalText
+    || resolveViewportColor(
+      displayConfig?.textColor,
+      displayConfig?.mobileTextColor,
+      viewport,
+      '#0f172a',
+    );
+  const accentColor =
+    globalAccent
+    || resolveViewportColor(
+      displayConfig?.accentColor,
+      displayConfig?.mobileAccentColor,
+      viewport,
+      '#7c3aed',
+    );
+  const lineColor =
+    globalLine
+    || resolveViewportColor(
+      displayConfig?.lineColor,
+      displayConfig?.mobileLineColor,
+      viewport,
+      '#cbd5e1',
+    );
+  const cardBackgroundColor =
+    globalCard
+    || resolveViewportColor(
+      displayConfig?.cardBackgroundColor,
+      displayConfig?.mobileCardBackgroundColor,
+      viewport,
+      '#ffffff',
+    );
 
   if (loading && showLoading) {
     return (

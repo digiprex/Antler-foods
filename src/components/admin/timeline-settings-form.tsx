@@ -84,7 +84,7 @@ const buildGlobalTypographyConfig = (
   const nextConfig: Partial<TimelineConfig> = {};
 
   for (const key of GLOBAL_TYPOGRAPHY_KEYS) {
-    nextConfig[key] = defaults[key];
+    (nextConfig as any)[key] = defaults[key];
   }
 
   return nextConfig;

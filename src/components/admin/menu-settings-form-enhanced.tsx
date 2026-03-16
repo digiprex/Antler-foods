@@ -1014,7 +1014,7 @@ function DirectLayoutItemEditor({
                             onUpdate(itemIndex, {
                               badge:
                                 item.badge?.trim() ||
-                                DEFAULT_SECONDARY_SECTION_BUTTON_LABEL,
+                                DEFAULT_SECONDARY_MENU_BUTTON.label,
                               imageLink:
                                 item.imageLink?.trim() || DEFAULT_BUTTON_HREF,
                             });

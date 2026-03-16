@@ -132,7 +132,7 @@ function buildGlobalTypographyConfig(
   const nextConfig: Partial<ReviewConfig> = {};
 
   for (const key of REVIEW_GLOBAL_TYPOGRAPHY_KEYS) {
-    nextConfig[key] = defaults[key] ?? DEFAULT_REVIEW_CONFIG[key];
+    (nextConfig as any)[key] = defaults[key] ?? DEFAULT_REVIEW_CONFIG[key];
   }
 
   return nextConfig;

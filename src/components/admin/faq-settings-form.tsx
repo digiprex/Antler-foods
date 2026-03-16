@@ -87,13 +87,13 @@ const GLOBAL_TYPOGRAPHY_KEYS = [
 const buildGlobalTypographyConfig = (
   defaults: SectionStyleConfig,
 ): SectionStyleConfig => {
-  const nextConfig: SectionStyleConfig = {};
+  const nextConfig: Partial<SectionStyleConfig> = {};
 
   for (const key of GLOBAL_TYPOGRAPHY_KEYS) {
-    nextConfig[key] = defaults[key];
+    (nextConfig as any)[key] = defaults[key];
   }
 
-  return nextConfig;
+  return nextConfig as SectionStyleConfig;
 };
 
 function pickSectionStyleConfig(

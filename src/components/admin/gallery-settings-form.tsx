@@ -45,7 +45,7 @@ interface GallerySettingsFormProps {
   pageName?: string;
 }
 
-const NON_TYPOGRAPHY_SECTION_KEYS = new Set([
+const NON_TYPOGRAPHY_SECTION_KEYS: Set<keyof SectionStyleConfig> = new Set([
   'is_custom',
   'buttonStyleVariant',
   'sectionTextAlign',

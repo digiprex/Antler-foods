@@ -52,6 +52,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
     description: PREVIEW_PLACEHOLDER_COPY.content,
+    price: '$0.00',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
     ctaLink: '#menu',
@@ -59,6 +60,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
     description: PREVIEW_PLACEHOLDER_COPY.content,
+    price: '$0.00',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
     ctaLink: '#menu',
@@ -66,6 +68,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
     description: PREVIEW_PLACEHOLDER_COPY.content,
+    price: '$0.00',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
     ctaLink: '#menu',
@@ -73,6 +76,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
     description: PREVIEW_PLACEHOLDER_COPY.content,
+    price: '$0.00',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
     ctaLink: '#menu',
@@ -80,6 +84,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
     description: PREVIEW_PLACEHOLDER_COPY.content,
+    price: '$0.00',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
     ctaLink: '#menu',
@@ -87,6 +92,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
     description: PREVIEW_PLACEHOLDER_COPY.content,
+    price: '$0.00',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
     ctaLink: '#menu',
@@ -260,15 +266,17 @@ function buildPreviewDirectItems(layout: MenuLayout, title: string) {
   );
 }
 
-function buildPreviewCategories() {
+function buildPreviewCategories(): MenuCategory[] {
   return Array.from({ length: 3 }, (_, index) => ({
     name: `${PREVIEW_PLACEHOLDER_COPY.title}${' '.repeat(index)}`,
     description: PREVIEW_PLACEHOLDER_COPY.subtitle,
+    icon: PRESET_CATEGORY_SYMBOLS[index],
     items: [
       {
         id: `preview-category-item-${index + 1}`,
         name: PREVIEW_PLACEHOLDER_COPY.title,
         description: PREVIEW_PLACEHOLDER_COPY.content,
+        price: '$0.00',
         category: PREVIEW_PLACEHOLDER_COPY.subtitle,
         ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
         ctaLink: '#menu',

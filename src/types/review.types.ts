@@ -91,7 +91,7 @@ export const DEFAULT_REVIEW_CONFIG: ReviewConfig = {
   showRating: true,
   showDate: true,
   showSource: true,
-  maxReviews: 3,
+  maxReviews: undefined,
   highlightImageUrl: '',
   enableAnimations: true,
   animationStyle: 'fade-up',

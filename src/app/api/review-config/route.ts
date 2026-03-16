@@ -253,6 +253,23 @@ function getTypographyDefaults(globalStyles: GlobalStyleConfig | null) {
   };
 }
 
+function getReviewBackgroundDefault(globalStyles: GlobalStyleConfig | null): string {
+  return (
+    globalStyles?.backgroundColor ||
+    DEFAULT_GLOBAL_STYLE_CONFIG.backgroundColor ||
+    DEFAULT_REVIEW_CONFIG.bgColor ||
+    '#f9fafb'
+  );
+}
+
+function resolveReviewBackgroundColor(value: unknown, globalDefault: string): string {
+  if (typeof value !== 'string' || !value.trim()) {
+    return globalDefault;
+  }
+
+  return value === DEFAULT_REVIEW_CONFIG.bgColor ? globalDefault : value;
+}
+
 function buildTypographyConfig(
   sourceConfig: Record<string, unknown>,
   typographyDefaults: ReturnType<typeof getTypographyDefaults>,
@@ -411,12 +428,15 @@ export async function GET(request: NextRequest) {
       data = await graphqlRequest(GET_REVIEW_CONFIG, { restaurant_id: restaurantId });
     }
 
+    const backgroundDefault = getReviewBackgroundDefault(globalStyles);
+
     if (isNewSection && !templateId) {
       const response: ReviewConfigResponse = {
         success: true,
         data: {
           ...DEFAULT_REVIEW_CONFIG,
           ...typographyDefaults,
+          bgColor: backgroundDefault,
           is_custom: false,
           restaurant_id: restaurantId,
           page_id: pageId || null,
@@ -431,6 +451,7 @@ export async function GET(request: NextRequest) {
         data: {
           ...DEFAULT_REVIEW_CONFIG,
           ...typographyDefaults,
+          bgColor: backgroundDefault,
           is_custom: false,
           restaurant_id: restaurantId,
           page_id: pageId || null,
@@ -448,6 +469,7 @@ export async function GET(request: NextRequest) {
       ...DEFAULT_REVIEW_CONFIG,
       ...(templateConfig as Partial<ReviewConfig>),
       ...typographyConfig,
+      bgColor: resolveReviewBackgroundColor(templateConfig.bgColor, backgroundDefault),
       is_custom: isCustom,
       layout: template.name as any,
       restaurant_id: restaurantId,
@@ -600,6 +622,7 @@ export async function POST(request: NextRequest) {
     }>(GET_RESTAURANT_GLOBAL_STYLES, { restaurant_id: restaurantId });
     const globalStyles = parseGlobalStyles(globalStylesResult?.restaurants_by_pk?.global_styles);
     const typographyDefaults = getTypographyDefaults(globalStyles);
+    const backgroundDefault = getReviewBackgroundDefault(globalStyles);
 
     // Prepare review configuration
     const payload = body as Record<string, unknown>;
@@ -616,6 +639,7 @@ export async function POST(request: NextRequest) {
     const config = {
       ...configData,
       ...typographyConfig,
+      bgColor: resolveReviewBackgroundColor(configData.bgColor, backgroundDefault),
       is_custom: isCustom,
       restaurant_id: restaurantId,
     };
@@ -699,6 +723,7 @@ export async function POST(request: NextRequest) {
       ...DEFAULT_REVIEW_CONFIG,
       ...(insertedTemplateConfig as Partial<ReviewConfig>),
       ...insertedTypographyConfig,
+      bgColor: resolveReviewBackgroundColor(insertedTemplateConfig.bgColor, backgroundDefault),
       is_custom: insertedIsCustom,
       layout: template.name as any,
       restaurant_id: restaurantId,

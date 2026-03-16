@@ -12,7 +12,9 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { ReviewConfig, Review } from '@/types/review.types';
+import { DEFAULT_REVIEW_CONFIG } from '@/types/review.types';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
+import { useSectionReveal } from '@/hooks/use-section-reveal';
 import {
   getSectionTypographyStyles,
   getSelectedGlobalButtonStyle,
@@ -25,6 +27,7 @@ interface ReviewsProps extends Partial<ReviewConfig> {
   reviews?: Review[];
   restaurantId?: string;
   previewViewport?: PreviewViewport;
+  isPreview?: boolean;
 }
 
 interface ReviewIntentGetResponse {
@@ -137,6 +140,9 @@ export default function Reviews({
   bodyFontWeight,
   bodyColor,
   previewViewport = 'desktop',
+  enableScrollReveal = false,
+  scrollRevealAnimation = 'fade-up',
+  isPreview = false,
 }: ReviewsProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -164,6 +170,13 @@ export default function Reviews({
   });
 
   const displayReviews = maxReviews ? liveReviews.slice(0, maxReviews) : liveReviews;
+  const resolvedBgColor =
+    bgColor && bgColor !== DEFAULT_REVIEW_CONFIG.bgColor
+      ? bgColor
+      : globalStyles?.backgroundColor ||
+        bgColor ||
+        DEFAULT_REVIEW_CONFIG.bgColor ||
+        '#f9fafb';
   const effectiveBodyColor = bodyColor || textColor;
   const sectionStyleConfig = {
     is_custom,
@@ -188,6 +201,11 @@ export default function Reviews({
   const selectedButtonStyle = getButtonInlineStyle(
     getSelectedGlobalButtonStyle(sectionStyleConfig, globalStyles),
   );
+  const reveal = useSectionReveal({
+    enabled: enableScrollReveal,
+    animation: scrollRevealAnimation,
+    isPreview,
+  });
   const isPreviewMobile = previewViewport === 'mobile';
   const effectiveLayout = normalizeReviewLayout(layout);
   const sectionPadding = isPreviewMobile ? '2.75rem 1rem' : padding;
@@ -1085,7 +1103,10 @@ export default function Reviews({
   const canGoNext = safeCurrentSlide < layoutMaxStart;
 
   return (
-    <section style={{ backgroundColor: bgColor, padding: sectionPadding, ...bodyStyle }}>
+    <section
+      ref={reveal.ref}
+      style={{ backgroundColor: resolvedBgColor, padding: sectionPadding, ...bodyStyle, ...reveal.style }}
+    >
       <div style={{ maxWidth: sectionMaxWidth, margin: '0 auto' }}>
         {displayReviews.length === 0 ? (
           <div

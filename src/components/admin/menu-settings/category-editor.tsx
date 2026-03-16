@@ -66,6 +66,28 @@ function getItemSummary(item: MenuItem) {
   return 'Add a short description, price, and image for a stronger preview.';
 }
 
+function getCategoryEditorKey(category: MenuCategory, index: number) {
+  return category.id?.trim() || `category-${index}`;
+}
+
+function getItemEditorKey(item: MenuItem, index: number) {
+  return item.id?.trim() || `item-${index}`;
+}
+
+function shallowRecordEqual(
+  left: Record<number, number | null>,
+  right: Record<number, number | null>,
+) {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+
+  return leftKeys.every((key) => left[Number(key)] === right[Number(key)]);
+}
+
 export function CategoryDrivenLayoutEditor({
   currentLayout,
   activeLayoutName,
@@ -88,6 +110,12 @@ export function CategoryDrivenLayoutEditor({
     Record<number, number | null>
   >({});
   const previousCategoryCount = useRef(categories.length);
+  const itemCountSignature = categories
+    .map((category, categoryIndex) => {
+      const itemCount = (category.items || []).length;
+      return `${getCategoryEditorKey(category, categoryIndex)}:${itemCount}`;
+    })
+    .join('|');
 
   useEffect(() => {
     if (categories.length > previousCategoryCount.current) {
@@ -130,9 +158,9 @@ export function CategoryDrivenLayoutEditor({
           openCategoryIndex === categoryIndex || itemCount === 1 ? 0 : null;
       });
 
-      return next;
+      return shallowRecordEqual(previous, next) ? previous : next;
     });
-  }, [categories, openCategoryIndex]);
+  }, [categories, itemCountSignature, openCategoryIndex]);
 
   const toggleCategory = (categoryIndex: number) => {
     setOpenCategoryIndex((previous) =>
@@ -246,7 +274,7 @@ export function CategoryDrivenLayoutEditor({
 
             return (
               <div
-                key={`${category.name}-${categoryIndex}`}
+                key={getCategoryEditorKey(category, categoryIndex)}
                 className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm"
               >
                 <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white px-4 py-4 sm:px-5">
@@ -400,7 +428,7 @@ export function CategoryDrivenLayoutEditor({
 
                           return (
                             <div
-                              key={`${item.name}-${itemIndex}`}
+                              key={getItemEditorKey(item, itemIndex)}
                               className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-50/70"
                             >
                               <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -540,6 +568,38 @@ export function CategoryDrivenLayoutEditor({
                                         onChange={(event) =>
                                           onUpdateItem(categoryIndex, itemIndex, {
                                             ctaLink: event.target.value,
+                                          })
+                                        }
+                                        className="w-full rounded-xl border border-gray-300 px-3.5 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                                        placeholder="#menu"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                                        Secondary Button Label
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={item.badge || ''}
+                                        onChange={(event) =>
+                                          onUpdateItem(categoryIndex, itemIndex, {
+                                            badge: event.target.value,
+                                          })
+                                        }
+                                        className="w-full rounded-xl border border-gray-300 px-3.5 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                                        placeholder="Learn More"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                                        Secondary Button Link
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={item.imageLink || ''}
+                                        onChange={(event) =>
+                                          onUpdateItem(categoryIndex, itemIndex, {
+                                            imageLink: event.target.value,
                                           })
                                         }
                                         className="w-full rounded-xl border border-gray-300 px-3.5 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"

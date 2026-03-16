@@ -14,6 +14,7 @@ import type {
   MenuItem,
   MenuLayout,
 } from '@/types/menu.types';
+import { DEFAULT_MENU_CONFIG } from '@/types/menu.types';
 import styles from './menu.module.css';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
 import { useSectionReveal } from '@/hooks/use-section-reveal';
@@ -42,6 +43,12 @@ interface PreparedMenuItem extends MenuItem {
 }
 
 const PRESET_CATEGORY_SYMBOLS = ['M', 'S', 'F', 'D'];
+const GRID_IMAGE_HEIGHT_LAYOUTS = new Set<MenuLayout>([
+  'masonry',
+  'carousel',
+  'two-column',
+  'single-column',
+]);
 const PREVIEW_PLACEHOLDER_COPY = {
   title: 'Title',
   subtitle: 'Subtitle',
@@ -222,7 +229,9 @@ function hasRenderableItemContent(item: MenuItem) {
     item.description?.trim() ||
     item.image ||
     item.ctaLabel?.trim() ||
-    item.ctaLink?.trim(),
+    item.ctaLink?.trim() ||
+    item.badge?.trim() ||
+    item.imageLink?.trim(),
   );
 }
 
@@ -316,6 +325,17 @@ function buildCardAction(item: PreparedMenuItem, ctaButton?: MenuButton) {
   return { label, href };
 }
 
+function buildSecondaryCardAction(item: PreparedMenuItem) {
+  const label = item.badge?.trim() || '';
+  const href = item.imageLink?.trim() || '#menu';
+
+  if (!label) {
+    return null;
+  }
+
+  return { label, href };
+}
+
 function resolveMenuButton(
   button: MenuButton | undefined,
   fixedVariant: MenuButton['variant'],
@@ -364,6 +384,15 @@ function getAspectRatioValue(value?: string) {
     default:
       return '4 / 3';
   }
+}
+
+function getGridAlignedImageAspectRatio(
+  layout: MenuLayout,
+  configuredValue?: string,
+) {
+  return GRID_IMAGE_HEIGHT_LAYOUTS.has(layout)
+    ? 'landscape'
+    : configuredValue || 'landscape';
 }
 
 function getColumnRatioValue(value?: string) {
@@ -610,7 +639,7 @@ export default function Menu({
     globalStyles,
     viewport,
   );
-  const { sectionStyle, contentStyle, surfaceStyle } =
+  const { sectionStyle, contentStyle } =
     getSectionContainerStyles(sectionStyleConfig, viewport);
   const reveal = useSectionReveal({
     enabled: enableScrollReveal,
@@ -620,6 +649,12 @@ export default function Menu({
 
   const ctaButtonStyle = getButtonInlineStyle(
     getSelectedGlobalButtonStyle(sectionStyleConfig, globalStyles),
+  );
+  const secondaryCtaButtonStyle = getButtonInlineStyle(
+    getSelectedGlobalButtonStyle(
+      { ...sectionStyleConfig, buttonStyleVariant: 'secondary' },
+      globalStyles,
+    ),
   );
   const currentLayoutSettings = getLayoutRecord(
     layoutSettings,
@@ -706,6 +741,14 @@ export default function Menu({
     viewport,
     '#ffffff',
   );
+  const resolvedPrimaryButtonBg =
+    ctaButtonStyle.backgroundColor || resolvedButtonBgColor;
+  const resolvedPrimaryButtonText =
+    ctaButtonStyle.color || resolvedButtonTextColor;
+  const resolvedSecondaryButtonBg =
+    secondaryCtaButtonStyle.backgroundColor || resolvedCardBgColor;
+  const resolvedSecondaryButtonText =
+    secondaryCtaButtonStyle.color || resolvedAccentColor;
   const resolvedPriceColor = resolveResponsiveValue(
     priceColor,
     mobilePriceColor,
@@ -724,11 +767,17 @@ export default function Menu({
     viewport,
     'rgba(237, 233, 254, 1)',
   );
+  const defaultCardRadius =
+    viewport === 'mobile'
+      ? DEFAULT_MENU_CONFIG.mobileCardRadius ||
+        DEFAULT_MENU_CONFIG.cardRadius ||
+        '0.875rem'
+      : DEFAULT_MENU_CONFIG.cardRadius || '1rem';
   const resolvedCardRadius = resolveResponsiveValue(
     cardRadius,
     mobileCardRadius,
     viewport,
-    (surfaceStyle.borderRadius as string) || '1.4rem',
+    defaultCardRadius,
   );
   const resolvedCardShadow = getSurfaceShadowValue(
     resolveResponsiveValue(cardShadow, mobileCardShadow, viewport, 'soft'),
@@ -958,6 +1007,12 @@ export default function Menu({
     ['--menu-card-shadow' as string]: resolvedCardShadow,
     ['--menu-card-gap' as string]: resolvedCardGap,
     ['--menu-grid-gap' as string]: resolvedGridGap,
+    ['--menu-primary-button-bg' as string]: resolvedPrimaryButtonBg,
+    ['--menu-primary-button-text' as string]: resolvedPrimaryButtonText,
+    ['--menu-secondary-button-bg' as string]: resolvedSecondaryButtonBg,
+    ['--menu-secondary-button-text' as string]: resolvedSecondaryButtonText,
+    ['--menu-placeholder-start' as string]: resolvedCardBgColor,
+    ['--menu-placeholder-end' as string]: resolvedPrimaryButtonBg,
     ['--menu-row-gap' as string]: resolvedRowGap,
     ['--menu-item-padding' as string]: resolvedItemPadding,
     ['--menu-column-gap' as string]: resolvedColumnSpacing,
@@ -975,40 +1030,66 @@ export default function Menu({
     fallbackVariant: MenuButton['variant'],
   ): CSSProperties => {
     const variant = button?.variant || fallbackVariant;
+    const baseButtonStyle =
+      variant === 'secondary' || variant === 'outline'
+        ? secondaryCtaButtonStyle
+        : ctaButtonStyle;
 
     if (variant === 'outline') {
       return {
+        ...baseButtonStyle,
         backgroundColor: 'transparent',
-        color: button?.textColor || button?.borderColor || resolvedAccentColor,
+        color:
+          button?.textColor ||
+          baseButtonStyle.color ||
+          button?.borderColor ||
+          resolvedAccentColor,
+        border:
+          baseButtonStyle.border ||
+          `1.5px solid ${button?.borderColor || button?.bgColor || resolvedAccentColor}`,
         borderColor:
           button?.borderColor || button?.bgColor || resolvedAccentColor,
-        borderRadius: resolvedCardRadius,
+        borderRadius: baseButtonStyle.borderRadius || resolvedCardRadius,
       };
     }
 
     if (variant === 'secondary') {
       return {
-        backgroundColor: button?.bgColor || '#ffffff',
-        color: button?.textColor || button?.borderColor || resolvedAccentColor,
+        ...baseButtonStyle,
+        backgroundColor:
+          button?.bgColor || baseButtonStyle.backgroundColor || '#ffffff',
+        color:
+          button?.textColor ||
+          baseButtonStyle.color ||
+          button?.borderColor ||
+          resolvedAccentColor,
+        border:
+          baseButtonStyle.border ||
+          `1.5px solid ${button?.borderColor || button?.bgColor || resolvedAccentColor}`,
         borderColor:
           button?.borderColor || button?.bgColor || resolvedAccentColor,
-        borderRadius: resolvedCardRadius,
+        borderRadius: baseButtonStyle.borderRadius || resolvedCardRadius,
       };
     }
 
     return {
-      ...ctaButtonStyle,
+      ...baseButtonStyle,
       backgroundColor:
-        ctaButtonStyle.backgroundColor ||
         button?.bgColor ||
+        baseButtonStyle.backgroundColor ||
         resolvedButtonBgColor,
       color:
-        ctaButtonStyle.color || button?.textColor || resolvedButtonTextColor,
+        button?.textColor ||
+        baseButtonStyle.color ||
+        resolvedButtonTextColor,
+      border:
+        baseButtonStyle.border ||
+        `1.5px solid ${button?.borderColor || button?.bgColor || resolvedButtonBgColor}`,
       borderColor:
-        ctaButtonStyle.borderColor ||
         button?.borderColor ||
+        button?.bgColor ||
         resolvedButtonBgColor,
-      borderRadius: resolvedCardRadius,
+      borderRadius: baseButtonStyle.borderRadius || resolvedCardRadius,
     };
   };
 
@@ -1018,15 +1099,8 @@ export default function Menu({
   );
   const secondaryButtonInlineStyle = getSectionButtonInlineStyle(
     resolvedSecondaryButton,
-    'outline',
+    'secondary',
   );
-
-  const cardButtonInlineStyle: CSSProperties = {
-    color: resolvedAccentColor,
-    borderColor: resolvedAccentColor,
-    backgroundColor: '#ffffff',
-    borderRadius: '999px',
-  };
 
   const backdropOverlayOpacity = backgroundImage
     ? Math.max(0.16, Math.min(overlayOpacity ?? 0.52, 0.85))
@@ -1081,28 +1155,55 @@ export default function Menu({
     );
   };
 
-  const renderCardAction = (
+  const getButtonGroupClassName = (alignment?: string) =>
+    alignment === 'center'
+      ? styles.menuButtonGroupCenter
+      : styles.menuButtonGroupStart;
+
+  const renderItemActions = (
     item: PreparedMenuItem,
-    variant: 'outline' | 'solid' = 'outline',
+    options?: {
+      className?: string;
+      primaryClassName?: string;
+      secondaryClassName?: string;
+    },
   ) => {
-    const action = buildCardAction(item, resolvedPrimaryButton);
-    if (!action) return null;
+    const primaryAction = buildCardAction(item, resolvedPrimaryButton);
+    const secondaryAction = buildSecondaryCardAction(item);
+
+    if (!primaryAction && !secondaryAction) {
+      return null;
+    }
 
     return (
-      <a
-        href={action.href}
-        className={joinClasses(
-          styles.itemButton,
-          variant === 'solid'
-            ? styles.itemButtonSolid
-            : styles.itemButtonOutline,
-        )}
-        style={
-          variant === 'solid' ? primaryButtonInlineStyle : cardButtonInlineStyle
-        }
-      >
-        {action.label}
-      </a>
+      <div className={options?.className || styles.menuButtonGroupStart}>
+        {primaryAction ? (
+          <a
+            href={primaryAction.href}
+            className={joinClasses(
+              styles.itemButton,
+              styles.itemButtonSolid,
+              options?.primaryClassName,
+            )}
+            style={primaryButtonInlineStyle}
+          >
+            {primaryAction.label}
+          </a>
+        ) : null}
+        {secondaryAction ? (
+          <a
+            href={secondaryAction.href}
+            className={joinClasses(
+              styles.itemButton,
+              styles.itemButtonOutline,
+              options?.secondaryClassName,
+            )}
+            style={secondaryButtonInlineStyle}
+          >
+            {secondaryAction.label}
+          </a>
+        ) : null}
+      </div>
     );
   };
 
@@ -1177,7 +1278,10 @@ export default function Menu({
     options?: { overlay?: boolean; compact?: boolean; centered?: boolean },
   ) => {
     const imageAspectRatio = getAspectRatioValue(
-      layoutString('imageAspectRatio', 'mobileImageAspectRatio', 'landscape'),
+      getGridAlignedImageAspectRatio(
+        layout as MenuLayout,
+        layoutString('imageAspectRatio', 'mobileImageAspectRatio', 'landscape'),
+      ),
     );
     const overlayPosition = layoutString(
       'overlayTextPosition',
@@ -1270,30 +1374,9 @@ export default function Menu({
             </p>
           ) : null}
           {renderDietary(item)}
-          {item.ctaLabel?.trim() || item.badge?.trim() ? (
-            <div className="flex flex-wrap items-center gap-2 mt-4">
-              {item.ctaLabel?.trim() && (
-                <a
-                  href={item.ctaLink || '#menu'}
-                  className={styles.itemButton}
-                  style={primaryButtonInlineStyle}
-                >
-                  {item.ctaLabel}
-                </a>
-              )}
-              {item.badge?.trim() && (
-                <a
-                  href={item.imageLink || '#menu'}
-                  className={styles.itemButton}
-                  style={secondaryButtonInlineStyle}
-                >
-                  {item.badge}
-                </a>
-              )}
-            </div>
-          ) : (
-            renderCardAction(item)
-          )}
+          {renderItemActions(item, {
+            className: getButtonGroupClassName(resolvedItemTextAlign),
+          })}
         </div>
       </article>
     );
@@ -1308,7 +1391,10 @@ export default function Menu({
       ? resolveItemMedia(item, headerImage, backgroundImage)
       : undefined;
     const imageAspectRatio = getAspectRatioValue(
-      layoutString('imageAspectRatio', 'mobileImageAspectRatio', 'landscape'),
+      getGridAlignedImageAspectRatio(
+        layout as MenuLayout,
+        layoutString('imageAspectRatio', 'mobileImageAspectRatio', 'landscape'),
+      ),
     );
 
     return (
@@ -1371,25 +1457,21 @@ export default function Menu({
               {item.description}
             </p>
           ) : null}
-          {item.badge ? (
-            <span
-              className={styles.dietaryBadge}
-              style={{
-                borderColor: resolvedBadgeColor,
-                color: resolvedBadgeColor,
-              }}
-            >
-              {item.badge}
-            </span>
-          ) : null}
-          {renderCardAction(item)}
+          {renderItemActions(item, {
+            className: getButtonGroupClassName(
+              String(currentLayoutSettings.contentAlignment || resolvedItemTextAlign),
+            ),
+          })}
         </div>
       </article>
     );
   };
 
   const renderPromoCard = (item: PreparedMenuItem, index: number) => {
-    const action = renderCardAction(item, 'solid');
+    const actions = renderItemActions(item, {
+      className: styles.menuButtonGroupCenter,
+    });
+    const promoCardStyle = String(currentLayoutSettings.cardStyle || 'soft');
 
     return (
       <article
@@ -1397,13 +1479,12 @@ export default function Menu({
         className={styles.promoCard}
         style={{
           backgroundColor:
-            currentLayoutSettings.cardStyle === 'outlined'
-              ? resolvedCardBgColor
-              : resolvedButtonBgColor,
-          color:
-            currentLayoutSettings.cardStyle === 'outlined'
-              ? resolvedTextColor
-              : resolvedButtonTextColor,
+            promoCardStyle === 'minimal'
+              ? 'transparent'
+              : promoCardStyle === 'glass'
+                ? 'rgba(255,255,255,0.72)'
+                : resolvedCardBgColor,
+          color: resolvedTextColor,
           textAlign: (currentLayoutSettings.contentAlignment ||
             'center') as CSSProperties['textAlign'],
           boxShadow: resolvedCardShadow,
@@ -1413,31 +1494,23 @@ export default function Menu({
         <div
           className={styles.cardEyebrow}
           style={{
-            color:
-              currentLayoutSettings.cardStyle === 'outlined'
-                ? resolvedAccentColor
-                : 'rgba(255,255,255,0.86)',
+            color: resolvedAccentColor,
           }}
         >
           {item.categoryName}
         </div>
-        <h3 className={styles.promoTitle}>{item.name}</h3>
+        <h3 className={styles.promoTitle} style={{ color: resolvedTextColor }}>
+          {item.name}
+        </h3>
         {showDescriptions && item.description ? (
           <p
             className={styles.promoDescription}
-            style={{
-              color:
-                currentLayoutSettings.cardStyle === 'outlined'
-                  ? resolvedTextColor
-                  : 'rgba(255,255,255,0.88)',
-            }}
+            style={{ color: resolvedTextColor }}
           >
             {item.description}
           </p>
         ) : null}
-        {action ? (
-          <div className={styles.menuButtonGroupCenter}>{action}</div>
-        ) : null}
+        {actions}
       </article>
     );
   };
@@ -1589,7 +1662,26 @@ export default function Menu({
           </div>
         );
 
-      case 'carousel':
+      case 'carousel': {
+        const carouselGap = layoutNumber(
+          'slideSpacing',
+          'mobileSlideSpacing',
+          16,
+        );
+        const carouselVisibleCards = Math.max(
+          1,
+          layoutNumber('cardCount', 'mobileCardCount', 3),
+        );
+        const carouselAspectRatio = getAspectRatioValue(
+          getGridAlignedImageAspectRatio(
+            'carousel',
+            layoutString(
+              'imageAspectRatio',
+              'mobileImageAspectRatio',
+              'landscape',
+            ),
+          ),
+        );
         return (
           <div className={styles.layoutBody} style={{ gap: resolvedRowGap }}>
             <div
@@ -1614,15 +1706,12 @@ export default function Menu({
                   ref={carouselTrackRef}
                   className={styles.carouselTrack}
                   style={{
-                    gap: `${layoutNumber('slideSpacing', 'mobileSlideSpacing', 16)}px`,
-                    gridAutoColumns: `minmax(calc((100% - ${
-                      layoutNumber('slideSpacing', 'mobileSlideSpacing', 16) *
-                      (Math.max(
-                        1,
-                        layoutNumber('cardCount', 'mobileCardCount', 3),
-                      ) -
-                        1)
-                    }px) / ${Math.max(1, layoutNumber('cardCount', 'mobileCardCount', 3))}, 1fr)`,
+                    gap: `${carouselGap}px`,
+                    gridAutoColumns: `clamp(${viewport === 'mobile' ? 250 : 280}px, calc((100% - ${
+                      carouselGap * (carouselVisibleCards - 1)
+                    }px) / ${carouselVisibleCards}), ${
+                      viewport === 'mobile' ? 320 : 380
+                    }px)`,
                     scrollSnapType: `x ${currentLayoutSettings.snapBehavior || 'proximity'}`,
                   }}
                 >
@@ -1638,6 +1727,8 @@ export default function Menu({
                         style={{
                           borderRadius: resolvedCardRadius,
                           boxShadow: resolvedCardShadow,
+                          aspectRatio: carouselAspectRatio,
+                          minHeight: viewport === 'mobile' ? '210px' : '260px',
                           transform:
                             currentLayoutSettings.cardAnimation === 'lift'
                               ? 'translateY(-2px)'
@@ -1660,16 +1751,19 @@ export default function Menu({
                         </div>
                         <div
                           className={styles.carouselCardBody}
-                          style={getOverlayBodyStyle(
-                            String(
-                              layoutString(
-                                'overlayTextPosition',
-                                'mobileOverlayTextPosition',
-                                'bottom-left',
+                          style={{
+                            ...getOverlayBodyStyle(
+                              String(
+                                layoutString(
+                                  'overlayTextPosition',
+                                  'mobileOverlayTextPosition',
+                                  'bottom-left',
+                                ),
                               ),
+                              resolvedItemTextAlign,
                             ),
-                            resolvedItemTextAlign,
-                          )}
+                            minHeight: '100%',
+                          }}
                         >
                           <div className={styles.cardEyebrow}>
                             {item.categoryName}
@@ -1685,7 +1779,15 @@ export default function Menu({
                               {item.description}
                             </p>
                           ) : null}
-                          {renderCardAction(item)}
+                          {renderItemActions(item, {
+                            className: getButtonGroupClassName(
+                              currentLayoutSettings.overlayTextPosition === 'center' ||
+                                currentLayoutSettings.overlayTextPosition ===
+                                  'bottom-center'
+                                ? 'center'
+                                : resolvedItemTextAlign,
+                            ),
+                          })}
                         </div>
                       </article>
                     );
@@ -1724,6 +1826,7 @@ export default function Menu({
             </div>
           </div>
         );
+      }
 
       case 'tabs':
         return (
@@ -1843,7 +1946,14 @@ export default function Menu({
                 </div>
                 <div
                   className={styles.tabItemsGrid}
-                  style={{ gap: resolvedGridGap }}
+                  style={{
+                    gap: resolvedGridGap,
+                    gridTemplateColumns:
+                      viewport === 'mobile'
+                        ? '1fr'
+                        : 'repeat(auto-fit, minmax(min(100%, 280px), 360px))',
+                    justifyContent: 'start',
+                  }}
                 >
                   {(activeCategory.items || []).map((item, index) =>
                     renderImageCard(
@@ -1854,6 +1964,7 @@ export default function Menu({
                         categoryIcon: activeCategory.icon,
                       },
                       index,
+                      { compact: true },
                     ),
                   )}
                 </div>
@@ -1996,7 +2107,7 @@ export default function Menu({
                               </div>
                               <div className={styles.accordionItemMeta}>
                                 {renderPrice(preparedItem)}
-                                {renderCardAction(preparedItem)}
+                                {renderItemActions(preparedItem)}
                               </div>
                             </div>
                           );

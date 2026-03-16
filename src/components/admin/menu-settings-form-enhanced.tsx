@@ -1,6 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import Menu from '@/components/menu';
 import Toast from '@/components/ui/toast';
@@ -59,6 +65,12 @@ type MenuMediaField =
 
 type LayoutSettingsMap = NonNullable<MenuConfig['layoutSettings']>;
 type LayoutSettingsValue = string | number | boolean | undefined;
+const GRID_IMAGE_HEIGHT_LAYOUTS = [
+  'masonry',
+  'carousel',
+  'two-column',
+  'single-column',
+] as const;
 
 const NON_TYPOGRAPHY_SECTION_KEYS: Set<keyof SectionStyleConfig> = new Set([
   'is_custom',
@@ -94,6 +106,7 @@ const DEFAULT_SECONDARY_MENU_BUTTON: MenuButton = {
   href: '',
   variant: 'outline',
 };
+const DEFAULT_BUTTON_HREF = '#menu';
 
 function getSearchParams() {
   return typeof window === 'undefined'
@@ -154,7 +167,7 @@ function ensureLayoutItems(config: MenuConfig): MenuConfig {
   }
 
   const slotCount = getMenuLayoutDefinition(layout).itemSlots;
-  const layoutItems = [...(config.layoutItems || [])];
+  const layoutItems = [...(config.layoutItems || [])].slice(0, slotCount);
 
   while (layoutItems.length < slotCount) {
     layoutItems.push(createEmptyLayoutItem(layoutItems.length));
@@ -188,15 +201,34 @@ function normalizeMenuButtons(config: MenuConfig): MenuConfig {
   };
 }
 
+function normalizeMenuImageHeights(config: MenuConfig): MenuConfig {
+  const layoutSettings = mergeMenuLayoutSettings(config.layoutSettings);
+
+  GRID_IMAGE_HEIGHT_LAYOUTS.forEach((layout) => {
+    layoutSettings[layout] = {
+      ...(layoutSettings[layout] || {}),
+      imageAspectRatio: 'landscape',
+      mobileImageAspectRatio: 'landscape',
+    } as LayoutSettingsMap[(typeof GRID_IMAGE_HEIGHT_LAYOUTS)[number]];
+  });
+
+  return {
+    ...config,
+    layoutSettings,
+  };
+}
+
 function normalizeMenuConfig(config: Partial<MenuConfig>): MenuConfig {
   return ensureLayoutItems(
     hydrateFeaturedItems(
-      withMenuLayoutDefaults({
-        ...normalizeMenuButtons({
-          ...DEFAULT_MENU_CONFIG,
-          ...config,
-        } as MenuConfig),
-      }),
+      normalizeMenuImageHeights(
+        withMenuLayoutDefaults({
+          ...normalizeMenuButtons({
+            ...DEFAULT_MENU_CONFIG,
+            ...config,
+          } as MenuConfig),
+        }),
+      ),
     ),
   );
 }
@@ -916,7 +948,14 @@ function DirectLayoutItemEditor({
                             [itemIndex]: nextChecked,
                           }));
 
-                          if (!nextChecked) {
+                          if (nextChecked) {
+                            onUpdate(itemIndex, {
+                              ctaLabel:
+                                item.ctaLabel?.trim() || 'Order Now',
+                              ctaLink:
+                                item.ctaLink?.trim() || DEFAULT_BUTTON_HREF,
+                            });
+                          } else {
                             onUpdate(itemIndex, { ctaLabel: '', ctaLink: '' });
                           }
                         }}
@@ -971,7 +1010,15 @@ function DirectLayoutItemEditor({
                             [itemIndex]: nextChecked,
                           }));
 
-                          if (!nextChecked) {
+                          if (nextChecked) {
+                            onUpdate(itemIndex, {
+                              badge:
+                                item.badge?.trim() ||
+                                DEFAULT_SECONDARY_SECTION_BUTTON_LABEL,
+                              imageLink:
+                                item.imageLink?.trim() || DEFAULT_BUTTON_HREF,
+                            });
+                          } else {
                             onUpdate(itemIndex, { badge: '', imageLink: '' });
                           }
                         }}
@@ -1053,6 +1100,7 @@ export default function MenuSettingsFormEnhanced({
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const deferredPreviewConfig = useDeferredValue(formConfig);
 
   useEffect(() => {
     if (formConfig) {
@@ -1203,43 +1251,6 @@ export default function MenuSettingsFormEnhanced({
         layoutItems,
       });
     });
-  };
-
-  const updatePrimaryButton = (updates: Partial<MenuButton>) => {
-    setFormConfig((previous) =>
-      previous
-        ? normalizeMenuConfig({
-            ...previous,
-            primaryButtonEnabled: true,
-            primaryButton: {
-              ...DEFAULT_PRIMARY_MENU_BUTTON,
-              ...(previous.primaryButton || previous.ctaButton || {}),
-              ...updates,
-            },
-            ctaButton: {
-              ...DEFAULT_PRIMARY_MENU_BUTTON,
-              ...(previous.primaryButton || previous.ctaButton || {}),
-              ...updates,
-            },
-          })
-        : previous,
-    );
-  };
-
-  const updateSecondaryButton = (updates: Partial<MenuButton>) => {
-    setFormConfig((previous) =>
-      previous
-        ? normalizeMenuConfig({
-            ...previous,
-            secondaryButtonEnabled: true,
-            secondaryButton: {
-              ...DEFAULT_SECONDARY_MENU_BUTTON,
-              ...(previous.secondaryButton || {}),
-              ...updates,
-            },
-          })
-        : previous,
-    );
   };
 
   const addCategory = () => {
@@ -1490,20 +1501,6 @@ export default function MenuSettingsFormEnhanced({
     currentLayoutDefinition.itemSlots,
   );
   const galleryCopy = getGalleryModalCopy(currentMediaField);
-  const primaryButtonEnabled = formConfig.primaryButtonEnabled !== false;
-  const secondaryButtonEnabled =
-    formConfig.secondaryButtonEnabled === true ||
-    Boolean(
-      formConfig.secondaryButton?.label?.trim() ||
-      formConfig.secondaryButton?.href?.trim(),
-    );
-  const editablePrimaryButton =
-    formConfig.primaryButton ||
-    formConfig.ctaButton ||
-    DEFAULT_PRIMARY_MENU_BUTTON;
-  const editableSecondaryButton =
-    formConfig.secondaryButton || DEFAULT_SECONDARY_MENU_BUTTON;
-
   const layoutSection = (
     <SettingsCard
       icon={
@@ -1868,6 +1865,38 @@ export default function MenuSettingsFormEnhanced({
         {typographySection}
       </div>
 
+      <div className="mt-8 flex justify-end">
+        <button
+          type="submit"
+          disabled={updating}
+          className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {updating ? (
+            <>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+              Saving...
+            </>
+          ) : (
+            <>
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
+                />
+              </svg>
+              Save Menu Settings
+            </>
+          )}
+        </button>
+      </div>
+
       <FloatingPreviewButton
         compact
         viewport="desktop"
@@ -1886,7 +1915,10 @@ export default function MenuSettingsFormEnhanced({
           onClose={() => setShowPreview(false)}
           note="Live preview reflects the selected layout, responsive overrides, media, typography, and motion settings."
         >
-          <Menu {...formConfig} previewMode={previewViewport} />
+          <Menu
+            {...(deferredPreviewConfig || formConfig)}
+            previewMode={previewViewport}
+          />
         </PreviewModal>
       ) : null}
 

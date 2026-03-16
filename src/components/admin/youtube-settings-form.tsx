@@ -16,6 +16,7 @@ import { useSearchParams } from "next/navigation";
 import type { YouTubeConfig } from "@/types/youtube.types";
 import { DEFAULT_YOUTUBE_CONFIG } from "@/types/youtube.types";
 import { useSectionStyleDefaults } from "@/hooks/use-section-style-defaults";
+import type { SectionStyleConfig } from "@/types/section-style.types";
 import { SectionTypographyControls } from "@/components/admin/section-typography-controls";
 import YouTubeSection from "@/components/youtube-section";
 import Toast from "@/components/ui/toast";
@@ -37,7 +38,7 @@ const youtubeLayoutOptions: Array<{
   {
     value: "default",
     name: "Default",
-    description: "Centered feature video",
+    description: "Two-up featured videos",
     support: "Clean and familiar for most pages",
   },
   {
@@ -72,6 +73,70 @@ const youtubeLayoutOptions: Array<{
   },
 ];
 
+const GLOBAL_TYPOGRAPHY_KEYS = [
+  "buttonStyleVariant",
+  "titleFontFamily",
+  "titleFontSize",
+  "titleMobileFontSize",
+  "titleMobileFontFamily",
+  "titleFontWeight",
+  "titleMobileFontWeight",
+  "titleFontStyle",
+  "titleMobileFontStyle",
+  "titleColor",
+  "titleMobileColor",
+  "titleTextTransform",
+  "titleMobileTextTransform",
+  "titleLineHeight",
+  "titleMobileLineHeight",
+  "titleLetterSpacing",
+  "titleMobileLetterSpacing",
+  "subtitleFontFamily",
+  "subtitleFontSize",
+  "subtitleMobileFontSize",
+  "subtitleMobileFontFamily",
+  "subtitleFontWeight",
+  "subtitleMobileFontWeight",
+  "subtitleFontStyle",
+  "subtitleMobileFontStyle",
+  "subtitleColor",
+  "subtitleMobileColor",
+  "subtitleTextTransform",
+  "subtitleMobileTextTransform",
+  "subtitleLineHeight",
+  "subtitleMobileLineHeight",
+  "subtitleLetterSpacing",
+  "subtitleMobileLetterSpacing",
+  "bodyFontFamily",
+  "bodyFontSize",
+  "bodyMobileFontSize",
+  "bodyMobileFontFamily",
+  "bodyFontWeight",
+  "bodyMobileFontWeight",
+  "bodyFontStyle",
+  "bodyMobileFontStyle",
+  "bodyColor",
+  "bodyMobileColor",
+  "bodyTextTransform",
+  "bodyMobileTextTransform",
+  "bodyLineHeight",
+  "bodyMobileLineHeight",
+  "bodyLetterSpacing",
+  "bodyMobileLetterSpacing",
+] as const satisfies ReadonlyArray<keyof SectionStyleConfig>;
+
+const buildGlobalTypographyConfig = (
+  defaults: SectionStyleConfig,
+): SectionStyleConfig => {
+  const nextConfig: SectionStyleConfig = {};
+
+  for (const key of GLOBAL_TYPOGRAPHY_KEYS) {
+    nextConfig[key] = defaults[key];
+  }
+
+  return nextConfig;
+};
+
 function renderYouTubeLayoutPreview(
   layout: NonNullable<YouTubeConfig["layout"]>,
   active: boolean,
@@ -95,13 +160,20 @@ function renderYouTubeLayoutPreview(
       </div>
       <div className="h-28 p-3">
         {layout === "default" ? (
-          <div className="flex h-full items-center justify-center rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
-            <div className="w-full rounded-[18px] bg-slate-900 p-2">
-              <div className="relative flex aspect-video items-center justify-center rounded-[14px] bg-slate-800">
-                <div className={`h-10 w-10 rounded-full ${accentTone} flex items-center justify-center`}>
-                  <div className="ml-0.5 h-0 w-0 border-y-[7px] border-y-transparent border-l-[12px] border-l-white" />
+          <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-2 shadow-sm">
+            <div className="grid grid-cols-2 gap-2">
+              {[0, 1].map((item) => (
+                <div
+                  key={item}
+                  className="rounded-[16px] border border-slate-200/80 bg-slate-900 p-2"
+                >
+                  <div className="relative flex aspect-video items-center justify-center rounded-[12px] bg-slate-800">
+                    <div className={`h-8 w-8 rounded-full ${accentTone} flex items-center justify-center`}>
+                      <div className="ml-0.5 h-0 w-0 border-y-[5px] border-y-transparent border-l-[9px] border-l-white" />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         ) : null}
@@ -216,11 +288,12 @@ export default function YouTubeSettingsForm({
   const [showPreview, setShowPreview] = useState(false);
   const [previewViewport, setPreviewViewport] =
     useState<PreviewViewport>("desktop");
-  const [responsiveEditorViewport, setResponsiveEditorViewport] =
-    useState<PreviewViewport>("desktop");
 
   // Gallery popup state
   const [showGallery, setShowGallery] = useState(false);
+  const [galleryTarget, setGalleryTarget] = useState<"primary" | "secondary">(
+    "primary",
+  );
   const [mediaFiles, setMediaFiles] = useState<any[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -243,27 +316,25 @@ export default function YouTubeSettingsForm({
       ...DEFAULT_YOUTUBE_CONFIG,
       ...sectionStyleDefaults,
       ...prev,
+      enabled: true,
     }));
   }, [isNewSection, sectionStyleDefaults]);
 
-  const renderResponsiveEditorTabs = (scope: string) => (
-    <div className="inline-flex rounded-full bg-slate-100 p-1">
-      {(["desktop", "mobile"] as PreviewViewport[]).map((viewport) => (
-        <button
-          key={`${scope}-${viewport}`}
-          type="button"
-          onClick={() => setResponsiveEditorViewport(viewport)}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-            responsiveEditorViewport === viewport
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-500 hover:text-slate-700"
-          }`}
-        >
-          {viewport === "desktop" ? "Desktop" : "Mobile"}
-        </button>
-      ))}
-    </div>
-  );
+  const handleCustomTypographyToggle = (enabled: boolean) => {
+    if (!enabled) {
+      setConfig((prev) => ({
+        ...prev,
+        is_custom: false,
+      }));
+      return;
+    }
+
+    setConfig((prev) => ({
+      ...prev,
+      ...buildGlobalTypographyConfig(sectionStyleDefaults),
+      is_custom: true,
+    }));
+  };
 
   const fetchYouTubeConfig = async () => {
     // Don't fetch existing config if this is a new section
@@ -285,6 +356,7 @@ export default function YouTubeSettingsForm({
           ...DEFAULT_YOUTUBE_CONFIG,
           ...sectionStyleDefaults,
           ...data.data,
+          enabled: true,
         });
       }
     } catch (error) {
@@ -314,6 +386,7 @@ export default function YouTubeSettingsForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...config,
+          enabled: true,
           restaurant_id: finalRestaurantId,
           page_id: pageId || null,
           template_id: templateId || null,
@@ -439,7 +512,8 @@ export default function YouTubeSettingsForm({
     }
   };
 
-  const openGallery = () => {
+  const openGallery = (target: "primary" | "secondary") => {
+    setGalleryTarget(target);
     setShowGallery(true);
     fetchMediaFiles();
   };
@@ -448,12 +522,25 @@ export default function YouTubeSettingsForm({
     setShowGallery(false);
   };
 
+  const updateVideoUrl = (
+    target: "primary" | "secondary",
+    videoUrl: string,
+  ) => {
+    setConfig((prev) => ({
+      ...prev,
+      [target === "primary" ? "videoUrl" : "secondaryVideoUrl"]: videoUrl,
+    }));
+  };
+
   const selectVideo = (videoUrl: string) => {
-    setConfig({ ...config, videoUrl });
+    updateVideoUrl(galleryTarget, videoUrl);
     closeGallery();
   };
 
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = async (
+    file: File,
+    target: "primary" | "secondary" = galleryTarget,
+  ) => {
     if (!finalRestaurantId) return;
 
     setUploading(true);
@@ -471,7 +558,7 @@ export default function YouTubeSettingsForm({
 
       if (data.success && data.data?.file?.url) {
         // Add the uploaded video to the config and close modal
-        setConfig({ ...config, videoUrl: data.data.file.url });
+        updateVideoUrl(target, data.data.file.url);
         closeGallery();
 
         // Show success toast
@@ -500,14 +587,14 @@ export default function YouTubeSettingsForm({
     const files = Array.from(e.dataTransfer.files);
     const videoFile = files.find((file) => file.type.startsWith("video/"));
     if (videoFile) {
-      handleFileUpload(videoFile);
+      handleFileUpload(videoFile, galleryTarget);
     }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith("video/")) {
-      handleFileUpload(file);
+      handleFileUpload(file, galleryTarget);
     }
   };
 
@@ -568,28 +655,6 @@ export default function YouTubeSettingsForm({
       </div>
 
       <form onSubmit={handleSave} className="space-y-6 pb-40">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-500">
-                Preview Experience
-              </p>
-              <h2 className="mt-2 text-lg font-semibold text-slate-900">
-                Shape the video section for desktop and mobile from one consistent workspace.
-              </h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Layout cards, responsive editing tabs, and the live preview now follow the same interaction pattern used in Hero Settings.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Editing Viewport
-              </p>
-              {renderResponsiveEditorTabs("youtube-preview-workspace")}
-            </div>
-          </div>
-        </div>
-
         {/* Display Settings */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-center gap-3">
@@ -618,31 +683,12 @@ export default function YouTubeSettingsForm({
                 Display Settings
               </h2>
               <p className="text-sm text-gray-600">
-                Control video visibility and layout
+                Control video layout and playback
               </p>
             </div>
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Enable YouTube Section</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Show YouTube video on website
-                </span>
-              </label>
-              <select
-                value={config.enabled ? "true" : "false"}
-                onChange={(e) =>
-                  setConfig({ ...config, enabled: e.target.value === "true" })
-                }
-                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-              >
-                <option value="true">Enabled</option>
-                <option value="false">Disabled</option>
-              </select>
-            </div>
-
             <div>
               <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
                 <span>Layout</span>
@@ -736,7 +782,7 @@ export default function YouTubeSettingsForm({
           <div className="space-y-4">
             <div>
               <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>YouTube URL or Video ID</span>
+                <span>Primary Video URL or ID</span>
                 <span className="text-xs font-normal text-gray-500">
                   Enter URL manually or select from gallery
                 </span>
@@ -753,9 +799,54 @@ export default function YouTubeSettingsForm({
                 />
                 <button
                   type="button"
-                  onClick={openGallery}
+                  onClick={() => openGallery("primary")}
                   className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
                   title="Select from gallery or upload new video"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25z"
+                    />
+                  </svg>
+                  Gallery
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                Default layout shows two videos. Add a secondary video below to
+                replace the duplicate.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                <span>Secondary Video URL or ID</span>
+                <span className="text-xs font-normal text-gray-500">
+                  Used in the default layout
+                </span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={config.secondaryVideoUrl || ""}
+                  onChange={(e) =>
+                    setConfig({ ...config, secondaryVideoUrl: e.target.value })
+                  }
+                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                  placeholder="Optional second video URL or ID"
+                />
+                <button
+                  type="button"
+                  onClick={() => openGallery("secondary")}
+                  className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
+                  title="Select from gallery or upload secondary video"
                 >
                   <svg
                     className="h-4 w-4"
@@ -963,104 +1054,7 @@ export default function YouTubeSettingsForm({
           </div>
         </div>
 
-        {/* Colors & Styling */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-              <svg
-                className="h-5 w-5 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42"
-                />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Colors & Styling
-              </h2>
-              <p className="text-sm text-gray-600">
-                Customize colors and appearance
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Background Color</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Section background
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={config.bgColor || "#000000"}
-                  onChange={(e) =>
-                    setConfig({ ...config, bgColor: e.target.value })
-                  }
-                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white"
-                />
-                <input
-                  type="text"
-                  value={config.bgColor || "#000000"}
-                  onChange={(e) =>
-                    setConfig({ ...config, bgColor: e.target.value })
-                  }
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="#000000"
-                />
-                <button
-                  type="button"
-                  onClick={() => setConfig({ ...config, bgColor: "#000000" })}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Max Width</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Maximum container width
-                </span>
-              </label>
-              <input
-                type="text"
-                value={config.maxWidth || "1200px"}
-                onChange={(e) =>
-                  setConfig({ ...config, maxWidth: e.target.value })
-                }
-                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                placeholder="1200px"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Typography & Buttons */}
+        {/* Typography */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
@@ -1080,10 +1074,10 @@ export default function YouTubeSettingsForm({
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">
-                Typography & Buttons
+                Typography
               </h2>
               <p className="text-sm text-gray-600">
-                Customize text styles and button appearance
+                Customize text styles across the YouTube section
               </p>
             </div>
           </div>
@@ -1102,28 +1096,11 @@ export default function YouTubeSettingsForm({
                 <input
                   type="checkbox"
                   checked={config.is_custom || false}
-                  onChange={(e) =>
-                    setConfig((prev) => ({
-                      ...prev,
-                      is_custom: e.target.checked,
-                    }))
-                  }
+                  onChange={(e) => handleCustomTypographyToggle(e.target.checked)}
                   className="peer sr-only"
                 />
                 <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
               </label>
-            </div>
-
-            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-900">
-                  Responsive Typography Workspace
-                </p>
-                <p className="text-xs text-slate-500">
-                  Preview desktop and mobile overrides before opening the live preview.
-                </p>
-              </div>
-              {renderResponsiveEditorTabs("youtube-typography")}
             </div>
 
             {!config.is_custom ? (
@@ -1157,15 +1134,47 @@ export default function YouTubeSettingsForm({
               </div>
             ) : (
               <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <div className="mb-4 rounded-lg border border-purple-100 bg-purple-50 px-4 py-3 text-xs text-purple-800">
+                  Custom typography starts from your current global styles. Mobile view automatically scales down oversized desktop font sizes for smaller screens.
+                </div>
                 <SectionTypographyControls
                   value={config}
                   onChange={(updates) =>
                     setConfig((prev) => ({ ...prev, ...updates }))
                   }
-                  viewport={responsiveEditorViewport}
+                  showAdvancedControls
                 />
               </div>
             )}
+
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  Page Scroll Animation
+                </label>
+                <p className="text-xs text-gray-500">
+                  Reveal the section when it enters the viewport.
+                </p>
+              </div>
+              <label className="relative inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  checked={config.enableScrollReveal === true}
+                  onChange={(e) =>
+                    setConfig((prev) => ({
+                      ...prev,
+                      enableScrollReveal: e.target.checked,
+                      scrollRevealAnimation:
+                        e.target.checked && !prev.scrollRevealAnimation
+                          ? "fade-up"
+                          : prev.scrollRevealAnimation,
+                    }))
+                  }
+                  className="peer sr-only"
+                />
+                <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -1238,9 +1247,7 @@ export default function YouTubeSettingsForm({
           <span className="flex flex-col items-start leading-tight">
             <span>Live Preview</span>
             <span className="text-xs font-medium text-purple-500">
-              {responsiveEditorViewport === "mobile"
-                ? "Open mobile preview"
-                : "Open desktop preview"}
+              Open live preview
             </span>
           </span>
         </button>
@@ -1260,7 +1267,7 @@ export default function YouTubeSettingsForm({
                 </h2>
                 <p className="mt-1 text-sm text-slate-600">
                   Switch between desktop and mobile to verify every video layout.
-                  {!config.videoUrl ? (
+                  {!config.videoUrl && !config.secondaryVideoUrl ? (
                     <span className="ml-1 text-purple-600">
                       (showing sample video)
                     </span>
@@ -1331,11 +1338,14 @@ export default function YouTubeSettingsForm({
                     key={`preview-${previewViewport}-${config.layout || "default"}-${config.videoUrl || "sample"}`}
                     restaurantId={finalRestaurantId}
                     previewViewport={previewViewport}
+                    isPreview
                     configData={{
                       ...config,
                       enabled: true,
                       showTitle: true,
                       videoUrl: config.videoUrl || "dQw4w9WgXcQ",
+                      secondaryVideoUrl:
+                        config.secondaryVideoUrl || config.videoUrl || "dQw4w9WgXcQ",
                       title: config.title || "Your Video Title",
                       description:
                         config.description ||
@@ -1366,7 +1376,7 @@ export default function YouTubeSettingsForm({
                       d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                     />
                   </svg>
-                  {!config.videoUrl
+                  {!config.videoUrl && !config.secondaryVideoUrl
                     ? "A sample YouTube video is used so you can evaluate layout spacing and hierarchy before linking your own video."
                     : "Live preview reflects your current video content, layout, and styling changes."}
                 </div>
@@ -1392,10 +1402,11 @@ export default function YouTubeSettingsForm({
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 flex-shrink-0">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
-                  Select Video from Media Library
+                  Select {galleryTarget === "secondary" ? "Secondary" : "Primary"} Video
                 </h2>
                 <p className="mt-0.5 text-sm text-gray-600">
-                  Choose a video for your YouTube section
+                  Choose a video for the{" "}
+                  {galleryTarget === "secondary" ? "secondary" : "primary"} slot.
                 </p>
               </div>
               <button

@@ -598,8 +598,21 @@ export default function DynamicFAQ({
     '1.7',
   );
 
-  const accentColor = mergedConfig.accentColor || DEFAULT_CONFIG.accentColor!;
-  const textColor = mergedConfig.textColor || DEFAULT_CONFIG.textColor;
+  const globalBackground = globalStyles?.backgroundColor;
+  const globalText = globalStyles?.textColor;
+  const globalAccent =
+    globalStyles?.accentColor || globalStyles?.primaryColor;
+  const globalCard = globalStyles?.secondaryColor || globalBackground;
+  const accentColor =
+    globalAccent || mergedConfig.accentColor || DEFAULT_CONFIG.accentColor!;
+  const textColor =
+    globalText || mergedConfig.textColor || DEFAULT_CONFIG.textColor;
+  const backgroundColor =
+    globalBackground || mergedConfig.bgColor || DEFAULT_CONFIG.bgColor;
+  const cardBackground =
+    globalCard || mergedConfig.faqCardBgColor || DEFAULT_CONFIG.faqCardBgColor;
+  const hoverColor =
+    globalCard || mergedConfig.hoverColor || DEFAULT_CONFIG.hoverColor;
   const shadowLevel = normalizeShadowLevel(
     typeof mergedConfig.cardShadow === 'string'
       ? mergedConfig.cardShadow
@@ -607,22 +620,29 @@ export default function DynamicFAQ({
   );
   const questionStyle: CSSProperties = {
     ...subtitleStyle,
-    color: mergedConfig.questionTextColor || subtitleStyle.color,
+    color:
+      globalStyles?.subheading?.color
+      || mergedConfig.questionTextColor
+      || subtitleStyle.color,
   };
   const answerStyle: CSSProperties = {
     ...bodyStyle,
-    color: mergedConfig.answerTextColor || bodyStyle.color,
+    color:
+      globalStyles?.paragraph?.color
+      || mergedConfig.answerTextColor
+      || bodyStyle.color,
   };
   const sectionTheme = {
-    backgroundColor: mergedConfig.bgColor,
+    backgroundColor,
     color: textColor,
-    '--faq-bg': mergedConfig.bgColor,
+    '--faq-bg': backgroundColor,
     '--faq-shell-bg': withAlpha(textColor, previewMode ? 0.02 : 0.018),
     '--faq-shell-border': withAlpha(textColor, 0.06),
-    '--faq-card-bg': mergedConfig.faqCardBgColor || DEFAULT_CONFIG.faqCardBgColor,
-    '--faq-card-hover': mergedConfig.hoverColor || DEFAULT_CONFIG.hoverColor,
-    '--faq-question': mergedConfig.questionTextColor || DEFAULT_CONFIG.questionTextColor,
-    '--faq-answer': mergedConfig.answerTextColor || DEFAULT_CONFIG.answerTextColor,
+    '--faq-card-bg': cardBackground,
+    '--faq-card-hover': hoverColor,
+    '--faq-question':
+      questionStyle.color || DEFAULT_CONFIG.questionTextColor,
+    '--faq-answer': answerStyle.color || DEFAULT_CONFIG.answerTextColor,
     '--faq-border': withAlpha(textColor, previewMode ? 0.12 : 0.1),
     '--faq-divider': withAlpha(textColor, 0.08),
     '--faq-accent': accentColor,

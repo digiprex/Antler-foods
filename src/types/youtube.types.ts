@@ -10,6 +10,7 @@ export interface YouTubeConfig extends SectionStyleConfig {
 
   // Video content
   videoUrl?: string; // Full YouTube URL or video ID
+  secondaryVideoUrl?: string;
   title?: string;
   description?: string;
 
@@ -43,6 +44,7 @@ export const DEFAULT_YOUTUBE_CONFIG: YouTubeConfig = {
   title: 'YOUTUBE VIDEOS',
   description: 'Discover what makes us special',
   videoUrl: '',
+  secondaryVideoUrl: '',
   enabled: true,
   layout: 'default',
   autoplay: false,

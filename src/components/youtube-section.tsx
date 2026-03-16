@@ -80,7 +80,11 @@ export default function YouTubeSection({
       const response = await fetch(apiEndpoint);
       const data = await response.json();
 
-      if (data.success && data.data && data.data.videoUrl) {
+      if (
+        data.success &&
+        data.data &&
+        (data.data.videoUrl || data.data.secondaryVideoUrl)
+      ) {
         setConfig(data.data);
       }
     } catch (error) {
@@ -128,8 +132,12 @@ export default function YouTubeSection({
     return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
   };
 
-  const renderVideoEmbed = (variant: 'featured' | 'tile' = 'featured') => {
-    if (!config?.videoUrl) return null;
+  const renderVideoEmbed = (
+    variant: 'featured' | 'tile' = 'featured',
+    videoUrlOverride?: string,
+  ) => {
+    const sourceUrl = videoUrlOverride || config?.videoUrl;
+    if (!sourceUrl) return null;
 
     const aspectRatios = {
       '16:9': '56.25%',
@@ -165,7 +173,7 @@ export default function YouTubeSection({
             }}
           >
             <iframe
-              src={getEmbedUrl(config.videoUrl)}
+              src={getEmbedUrl(sourceUrl)}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -206,7 +214,7 @@ export default function YouTubeSection({
           }}
         >
           <iframe
-            src={getEmbedUrl(config.videoUrl)}
+            src={getEmbedUrl(sourceUrl)}
             style={{
               position: 'absolute',
               top: 0,
@@ -232,6 +240,8 @@ export default function YouTubeSection({
       globalStyles,
     );
     const isPreviewMobile = previewViewport === 'mobile';
+    const primaryVideoUrl = config.videoUrl || config.secondaryVideoUrl || '';
+    const secondaryVideoUrl = config.secondaryVideoUrl || config.videoUrl || '';
     const maxWidth = config.maxWidth || '1200px';
     const theaterMaxWidth = config.maxWidth || '1400px';
     const contentPadding = isPreviewMobile ? '2.75rem 1rem' : '4rem 1.5rem';
@@ -321,8 +331,17 @@ export default function YouTubeSection({
                 gap: isPreviewMobile ? '1rem' : '1.5rem',
               }}
             >
-              {renderVideoEmbed('tile')}
-              {renderVideoEmbed('tile')}
+              {(primaryVideoUrl || secondaryVideoUrl
+                ? [
+                    primaryVideoUrl || secondaryVideoUrl,
+                    secondaryVideoUrl || primaryVideoUrl,
+                  ]
+                : []
+              ).map((videoUrl, index) => (
+                <div key={`${videoUrl}-${index}`}>
+                  {renderVideoEmbed('tile', videoUrl)}
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -336,7 +355,7 @@ export default function YouTubeSection({
           <div style={{ marginBottom: isPreviewMobile ? '1.5rem' : '2.25rem' }}>
             {renderTextBlock({ centered: true })}
           </div>
-          {renderVideoEmbed()}
+          {renderVideoEmbed('featured', primaryVideoUrl)}
         </div>
       );
     }
@@ -359,7 +378,7 @@ export default function YouTubeSection({
               alignItems: 'center',
             }}
           >
-            <div>{renderVideoEmbed()}</div>
+            <div>{renderVideoEmbed('featured', primaryVideoUrl)}</div>
             {renderTextBlock({ panel: true })}
           </div>
         </div>
@@ -372,7 +391,7 @@ export default function YouTubeSection({
         <div style={{ maxWidth, margin: '0 auto', padding: contentPadding }}>
           <div style={{ display: 'grid', gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(320px, 0.9fr) minmax(0, 1.1fr)', gap: isPreviewMobile ? '1.5rem' : '2.5rem', alignItems: 'center' }}>
             {renderTextBlock({ panel: true })}
-            <div>{renderVideoEmbed()}</div>
+            <div>{renderVideoEmbed('featured', primaryVideoUrl)}</div>
           </div>
         </div>
       );
@@ -402,7 +421,7 @@ export default function YouTubeSection({
               opacity: 0.28,
             }}
           >
-            {renderVideoEmbed()}
+            {renderVideoEmbed('featured', primaryVideoUrl)}
           </div>
           {config.showTitle !== false && (config.title || config.description) && (
             <div
@@ -455,7 +474,7 @@ export default function YouTubeSection({
               alignItems: 'start',
             }}
           >
-            <div>{renderVideoEmbed()}</div>
+            <div>{renderVideoEmbed('featured', primaryVideoUrl)}</div>
             <div style={{ display: 'grid', gap: '1rem' }}>
               {renderTextBlock({ panel: true })}
               <div style={textPanelStyle}>

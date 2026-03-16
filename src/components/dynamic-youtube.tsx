@@ -126,7 +126,7 @@ export default function DynamicYouTube({
   }
 
   // Show error state or empty state
-  if (error || !config || !config.videoUrl) {
+  if (error || !config || (!config.videoUrl && !config.secondaryVideoUrl)) {
     return (
       <div style={{
         padding: '3rem 1.5rem',

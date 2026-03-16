@@ -38,7 +38,7 @@ const youtubeLayoutOptions: Array<{
   {
     value: "default",
     name: "Default",
-    description: "Centered feature video",
+    description: "Two-up featured videos",
     support: "Clean and familiar for most pages",
   },
   {
@@ -291,6 +291,9 @@ export default function YouTubeSettingsForm({
 
   // Gallery popup state
   const [showGallery, setShowGallery] = useState(false);
+  const [galleryTarget, setGalleryTarget] = useState<"primary" | "secondary">(
+    "primary",
+  );
   const [mediaFiles, setMediaFiles] = useState<any[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -509,7 +512,8 @@ export default function YouTubeSettingsForm({
     }
   };
 
-  const openGallery = () => {
+  const openGallery = (target: "primary" | "secondary") => {
+    setGalleryTarget(target);
     setShowGallery(true);
     fetchMediaFiles();
   };
@@ -518,12 +522,25 @@ export default function YouTubeSettingsForm({
     setShowGallery(false);
   };
 
+  const updateVideoUrl = (
+    target: "primary" | "secondary",
+    videoUrl: string,
+  ) => {
+    setConfig((prev) => ({
+      ...prev,
+      [target === "primary" ? "videoUrl" : "secondaryVideoUrl"]: videoUrl,
+    }));
+  };
+
   const selectVideo = (videoUrl: string) => {
-    setConfig({ ...config, videoUrl });
+    updateVideoUrl(galleryTarget, videoUrl);
     closeGallery();
   };
 
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = async (
+    file: File,
+    target: "primary" | "secondary" = galleryTarget,
+  ) => {
     if (!finalRestaurantId) return;
 
     setUploading(true);
@@ -541,7 +558,7 @@ export default function YouTubeSettingsForm({
 
       if (data.success && data.data?.file?.url) {
         // Add the uploaded video to the config and close modal
-        setConfig({ ...config, videoUrl: data.data.file.url });
+        updateVideoUrl(target, data.data.file.url);
         closeGallery();
 
         // Show success toast
@@ -570,14 +587,14 @@ export default function YouTubeSettingsForm({
     const files = Array.from(e.dataTransfer.files);
     const videoFile = files.find((file) => file.type.startsWith("video/"));
     if (videoFile) {
-      handleFileUpload(videoFile);
+      handleFileUpload(videoFile, galleryTarget);
     }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith("video/")) {
-      handleFileUpload(file);
+      handleFileUpload(file, galleryTarget);
     }
   };
 
@@ -765,7 +782,7 @@ export default function YouTubeSettingsForm({
           <div className="space-y-4">
             <div>
               <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>YouTube URL or Video ID</span>
+                <span>Primary Video URL or ID</span>
                 <span className="text-xs font-normal text-gray-500">
                   Enter URL manually or select from gallery
                 </span>
@@ -782,9 +799,54 @@ export default function YouTubeSettingsForm({
                 />
                 <button
                   type="button"
-                  onClick={openGallery}
+                  onClick={() => openGallery("primary")}
                   className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
                   title="Select from gallery or upload new video"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25z"
+                    />
+                  </svg>
+                  Gallery
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                Default layout shows two videos. Add a secondary video below to
+                replace the duplicate.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                <span>Secondary Video URL or ID</span>
+                <span className="text-xs font-normal text-gray-500">
+                  Used in the default layout
+                </span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={config.secondaryVideoUrl || ""}
+                  onChange={(e) =>
+                    setConfig({ ...config, secondaryVideoUrl: e.target.value })
+                  }
+                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                  placeholder="Optional second video URL or ID"
+                />
+                <button
+                  type="button"
+                  onClick={() => openGallery("secondary")}
+                  className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
+                  title="Select from gallery or upload secondary video"
                 >
                   <svg
                     className="h-4 w-4"
@@ -1205,7 +1267,7 @@ export default function YouTubeSettingsForm({
                 </h2>
                 <p className="mt-1 text-sm text-slate-600">
                   Switch between desktop and mobile to verify every video layout.
-                  {!config.videoUrl ? (
+                  {!config.videoUrl && !config.secondaryVideoUrl ? (
                     <span className="ml-1 text-purple-600">
                       (showing sample video)
                     </span>
@@ -1282,6 +1344,8 @@ export default function YouTubeSettingsForm({
                       enabled: true,
                       showTitle: true,
                       videoUrl: config.videoUrl || "dQw4w9WgXcQ",
+                      secondaryVideoUrl:
+                        config.secondaryVideoUrl || config.videoUrl || "dQw4w9WgXcQ",
                       title: config.title || "Your Video Title",
                       description:
                         config.description ||
@@ -1312,7 +1376,7 @@ export default function YouTubeSettingsForm({
                       d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                     />
                   </svg>
-                  {!config.videoUrl
+                  {!config.videoUrl && !config.secondaryVideoUrl
                     ? "A sample YouTube video is used so you can evaluate layout spacing and hierarchy before linking your own video."
                     : "Live preview reflects your current video content, layout, and styling changes."}
                 </div>
@@ -1338,10 +1402,11 @@ export default function YouTubeSettingsForm({
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 flex-shrink-0">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
-                  Select Video from Media Library
+                  Select {galleryTarget === "secondary" ? "Secondary" : "Primary"} Video
                 </h2>
                 <p className="mt-0.5 text-sm text-gray-600">
-                  Choose a video for your YouTube section
+                  Choose a video for the{" "}
+                  {galleryTarget === "secondary" ? "secondary" : "primary"} slot.
                 </p>
               </div>
               <button

@@ -106,7 +106,7 @@ const DEFAULT_SECONDARY_MENU_BUTTON: MenuButton = {
   href: '',
   variant: 'outline',
 };
-const DEFAULT_BUTTON_HREF = '#menu';
+const DEFAULT_BUTTON_HREF = '/menu';
 
 function getSearchParams() {
   return typeof window === 'undefined'

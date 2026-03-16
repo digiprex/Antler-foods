@@ -680,7 +680,7 @@ function PopupSettingsContent() {
                           value={config.buttonUrl || ''}
                           onChange={(e) => setConfig({ ...config, buttonUrl: e.target.value })}
                           className={styles.textInput}
-                          placeholder="#menu"
+                          placeholder="/menu"
                         />
                       </div>
                     </>

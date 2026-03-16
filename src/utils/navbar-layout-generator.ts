@@ -126,7 +126,7 @@ export function generateCompleteNavbarProps(options: GenerateNavbarOptions): Nav
 
   // Default navigation items
   const defaultLeftNavItems = [
-    { label: 'Menu', href: '#menu' },
+    { label: 'Menu', href: '/menu' },
     { label: 'About', href: '#about' },
     { label: 'Contact', href: '#contact' },
   ];
@@ -207,7 +207,7 @@ export function generateNavbarPropsFromConfig(
     logoUrl: dbConfig?.logoUrl || overrides?.logoUrl,
     logoSize: dbConfig?.logoSize || overrides?.logoSize || 40,
     leftNavItems: dbConfig?.leftNavItems || overrides?.leftNavItems || [
-      { label: 'Menu', href: '#menu' },
+      { label: 'Menu', href: '/menu' },
       { label: 'About', href: '#about' },
       { label: 'Contact', href: '#contact' },
     ],

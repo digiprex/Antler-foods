@@ -1214,7 +1214,7 @@ export default function CustomSectionSettingsForm({
                       onChange={(event) =>
                         updatePrimaryButton({ href: event.target.value })
                       }
-                      placeholder="#menu"
+                      placeholder="/menu"
                     />
                   </div>
                 </div>

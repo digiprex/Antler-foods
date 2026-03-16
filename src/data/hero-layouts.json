@@ -4,6 +4,15 @@
       "id": "default",
       "name": "Default",
       "description": "Centered content with optional content panel and background image",
+      "defaults": {
+        "minHeight": "560px",
+        "textColor": null,
+        "overlayOpacity": 0.18,
+        "textAlign": null,
+        "mobileTextAlign": null,
+        "useWhiteTextWithBackground": true
+      },
+      "imageHandling": "standard",
       "mediaCapabilities": {
         "showHeroImage": false,
         "showBackgroundVideo": false,
@@ -28,6 +37,15 @@
       "id": "split",
       "name": "Split",
       "description": "Text content on left, hero image on right",
+      "defaults": {
+        "minHeight": "560px",
+        "textColor": null,
+        "overlayOpacity": 0.18,
+        "textAlign": null,
+        "mobileTextAlign": null,
+        "useWhiteTextWithBackground": false
+      },
+      "imageHandling": "standard",
       "mediaCapabilities": {
         "showHeroImage": true,
         "showBackgroundVideo": false,
@@ -52,6 +70,15 @@
       "id": "split-reverse",
       "name": "Split Reverse",
       "description": "Hero image on left, text content on right",
+      "defaults": {
+        "minHeight": "560px",
+        "textColor": null,
+        "overlayOpacity": 0.18,
+        "textAlign": null,
+        "mobileTextAlign": null,
+        "useWhiteTextWithBackground": false
+      },
+      "imageHandling": "standard",
       "mediaCapabilities": {
         "showHeroImage": true,
         "showBackgroundVideo": false,
@@ -76,6 +103,15 @@
       "id": "centered-large",
       "name": "Centered Large",
       "description": "Large centered content with background image",
+      "defaults": {
+        "minHeight": "560px",
+        "textColor": null,
+        "overlayOpacity": 0.48,
+        "textAlign": null,
+        "mobileTextAlign": null,
+        "useWhiteTextWithBackground": true
+      },
+      "imageHandling": "standard",
       "mediaCapabilities": {
         "showHeroImage": false,
         "showBackgroundVideo": false,
@@ -103,6 +139,15 @@
       "id": "minimal",
       "name": "Minimal",
       "description": "Text content with elegant 3-image grid layout",
+      "defaults": {
+        "minHeight": "420px",
+        "textColor": null,
+        "overlayOpacity": 0.18,
+        "textAlign": null,
+        "mobileTextAlign": null,
+        "useWhiteTextWithBackground": false
+      },
+      "imageHandling": "minimal",
       "mediaCapabilities": {
         "showHeroImage": true,
         "showBackgroundVideo": false,
@@ -132,6 +177,15 @@
       "id": "video-background",
       "name": "Video Background",
       "description": "Full-screen background video with content overlay panel",
+      "defaults": {
+        "minHeight": "680px",
+        "textColor": "#ffffff",
+        "overlayOpacity": 0.48,
+        "textAlign": "left",
+        "mobileTextAlign": "left",
+        "useWhiteTextWithBackground": true
+      },
+      "imageHandling": "standard",
       "mediaCapabilities": {
         "showHeroImage": false,
         "showBackgroundVideo": true,
@@ -157,6 +211,15 @@
       "id": "side-by-side",
       "name": "Side by Side",
       "description": "Three images displayed in a horizontal row",
+      "defaults": {
+        "minHeight": "560px",
+        "textColor": null,
+        "overlayOpacity": 0.18,
+        "textAlign": null,
+        "mobileTextAlign": null,
+        "useWhiteTextWithBackground": false
+      },
+      "imageHandling": "sideBySide",
       "mediaCapabilities": {
         "showHeroImage": true,
         "showBackgroundVideo": false,
@@ -182,6 +245,15 @@
       "id": "offset",
       "name": "Offset",
       "description": "Image positioned at top with centered content below",
+      "defaults": {
+        "minHeight": "560px",
+        "textColor": null,
+        "overlayOpacity": 0.18,
+        "textAlign": null,
+        "mobileTextAlign": null,
+        "useWhiteTextWithBackground": false
+      },
+      "imageHandling": "standard",
       "mediaCapabilities": {
         "showHeroImage": true,
         "showBackgroundVideo": false,
@@ -206,6 +278,15 @@
       "id": "full-height",
       "name": "Full Height",
       "description": "Full viewport height with centered content",
+      "defaults": {
+        "minHeight": "680px",
+        "textColor": "#ffffff",
+        "overlayOpacity": 0.48,
+        "textAlign": null,
+        "mobileTextAlign": null,
+        "useWhiteTextWithBackground": true
+      },
+      "imageHandling": "standard",
       "mediaCapabilities": {
         "showHeroImage": false,
         "showBackgroundVideo": false,
@@ -232,6 +313,16 @@
       "id": "with-features",
       "name": "With Features",
       "description": "Hero content with feature cards displayed below",
+      "defaults": {
+        "minHeight": "560px",
+        "textColor": null,
+        "overlayOpacity": 0.18,
+        "textAlign": null,
+        "mobileTextAlign": null,
+        "useWhiteTextWithBackground": false
+      },
+      "imageHandling": "standard",
+      "requiresFeatures": true,
       "mediaCapabilities": {
         "showHeroImage": true,
         "showBackgroundVideo": false,
@@ -267,6 +358,15 @@
       "id": "image-collage",
       "name": "Image Collage",
       "description": "Text content with stacked and overlapping images",
+      "defaults": {
+        "minHeight": "560px",
+        "textColor": null,
+        "overlayOpacity": 0.18,
+        "textAlign": null,
+        "mobileTextAlign": null,
+        "useWhiteTextWithBackground": false
+      },
+      "imageHandling": "standard",
       "mediaCapabilities": {
         "showHeroImage": true,
         "showBackgroundVideo": false,

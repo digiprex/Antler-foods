@@ -571,7 +571,7 @@ export function CategoryDrivenLayoutEditor({
                                           })
                                         }
                                         className="w-full rounded-xl border border-gray-300 px-3.5 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                                        placeholder="#menu"
+                                        placeholder="/menu"
                                       />
                                     </div>
                                     <div>
@@ -603,7 +603,7 @@ export function CategoryDrivenLayoutEditor({
                                           })
                                         }
                                         className="w-full rounded-xl border border-gray-300 px-3.5 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                                        placeholder="#menu"
+                                        placeholder="/menu"
                                       />
                                     </div>
                                   </div>

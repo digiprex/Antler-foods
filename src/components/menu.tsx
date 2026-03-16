@@ -62,7 +62,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
     price: '$0.00',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
-    ctaLink: '#menu',
+    ctaLink: '/menu',
   },
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
@@ -70,7 +70,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
     price: '$0.00',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
-    ctaLink: '#menu',
+    ctaLink: '/menu',
   },
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
@@ -78,7 +78,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
     price: '$0.00',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
-    ctaLink: '#menu',
+    ctaLink: '/menu',
   },
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
@@ -86,7 +86,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
     price: '$0.00',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
-    ctaLink: '#menu',
+    ctaLink: '/menu',
   },
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
@@ -94,7 +94,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
     price: '$0.00',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
-    ctaLink: '#menu',
+    ctaLink: '/menu',
   },
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
@@ -102,7 +102,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
     price: '$0.00',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
-    ctaLink: '#menu',
+    ctaLink: '/menu',
   },
 ];
 
@@ -288,7 +288,7 @@ function buildPreviewCategories(): MenuCategory[] {
         price: '$0.00',
         category: PREVIEW_PLACEHOLDER_COPY.subtitle,
         ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
-        ctaLink: '#menu',
+        ctaLink: '/menu',
       },
     ],
   }));
@@ -316,7 +316,7 @@ function resolveItemMedia(
 
 function buildCardAction(item: PreparedMenuItem, ctaButton?: MenuButton) {
   const label = item.ctaLabel || ctaButton?.label || '';
-  const href = item.ctaLink || ctaButton?.href || '#menu';
+  const href = item.ctaLink || ctaButton?.href || '/menu';
 
   if (!label) {
     return null;
@@ -327,7 +327,7 @@ function buildCardAction(item: PreparedMenuItem, ctaButton?: MenuButton) {
 
 function buildSecondaryCardAction(item: PreparedMenuItem) {
   const label = item.badge?.trim() || '';
-  const href = item.imageLink?.trim() || '#menu';
+  const href = item.imageLink?.trim() || '/menu';
 
   if (!label) {
     return null;
@@ -345,7 +345,7 @@ function resolveMenuButton(
   }
 
   const label = button.label?.trim() || '';
-  const href = button.href?.trim() || '#menu';
+  const href = button.href?.trim() || '/menu';
 
   if (!label) {
     return undefined;

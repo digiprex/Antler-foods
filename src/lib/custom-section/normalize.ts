@@ -7,7 +7,6 @@ import type {
 } from '@/types/custom-section.types';
 import { DEFAULT_CUSTOM_SECTION_CONFIG } from '@/types/custom-section.types';
 import { createLayoutItems, getCustomSectionLayoutDefinition } from './layouts';
-import { applyCustomSectionSharedSpacingDefaults } from './spacing';
 
 function mergeStyleConfig(
   base?: CustomSectionStyleSettings,
@@ -36,6 +35,7 @@ export function getDefaultCustomSectionConfig(
   return normalizeCustomSectionConfig(
     {
       ...DEFAULT_CUSTOM_SECTION_CONFIG,
+      ...(sectionStyleDefaults || {}),
       layout,
     },
     sectionStyleDefaults,
@@ -101,24 +101,12 @@ export function normalizeCustomSectionConfig(
   const isCustom = merged.is_custom === true;
 
   merged.layout = layout;
-  merged.sectionMaxWidth =
-    merged.sectionMaxWidth ||
-    merged.contentMaxWidth ||
-    DEFAULT_CUSTOM_SECTION_CONFIG.sectionMaxWidth;
-  merged.sectionTextAlign =
-    merged.sectionTextAlign ||
-    merged.textAlign ||
-    DEFAULT_CUSTOM_SECTION_CONFIG.sectionTextAlign;
+  merged.sectionMaxWidth = merged.sectionMaxWidth || merged.contentMaxWidth || DEFAULT_CUSTOM_SECTION_CONFIG.sectionMaxWidth;
+  merged.sectionPaddingY = merged.sectionPaddingY || DEFAULT_CUSTOM_SECTION_CONFIG.sectionPaddingY;
+  merged.sectionTextAlign = merged.sectionTextAlign || merged.textAlign || DEFAULT_CUSTOM_SECTION_CONFIG.sectionTextAlign;
   merged.textAlign = merged.textAlign || merged.sectionTextAlign || 'left';
   merged.overlayColor = overlayColor;
   merged.overlayOpacity = overlayOpacity;
-  const spacingAdjusted = applyCustomSectionSharedSpacingDefaults(merged);
-  merged.sectionPaddingY = spacingAdjusted.sectionPaddingY;
-  merged.mobileSectionPaddingY = spacingAdjusted.mobileSectionPaddingY;
-  merged.sectionPaddingX = spacingAdjusted.sectionPaddingX;
-  merged.mobileSectionPaddingX = spacingAdjusted.mobileSectionPaddingX;
-  merged.layoutSettings = spacingAdjusted.layoutSettings;
-  merged.responsive = spacingAdjusted.responsive;
 
   // When Use Global Styles is ON (is_custom === false), do NOT inject hardcoded color
   // fallbacks into styleConfig — the renderer will use globalStyles from the API instead.

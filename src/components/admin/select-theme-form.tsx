@@ -121,6 +121,17 @@ export default function SelectThemeForm() {
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [stepStatus, setStepStatus] = useState<('pending' | 'loading' | 'completed' | 'error')[]>([]);
+
+  const initializationSteps = [
+    { title: 'Applying Theme', description: 'Setting up your selected theme and global styles' },
+    { title: 'Creating Domain', description: 'Generating staging domain for your website' },
+    { title: 'Setting Up Pages', description: 'Creating default pages (Home, About, Menu, Contact)' },
+    { title: 'Building Navigation', description: 'Configuring navbar and footer from theme' },
+    { title: 'Adding Content', description: 'Generating AI-powered content for sections' },
+    { title: 'Finalizing Setup', description: 'Completing website initialization' },
+  ];
 
   // Fetch themes from API on mount
   useEffect(() => {
@@ -256,6 +267,13 @@ export default function SelectThemeForm() {
 
     setIsCreating(true);
     setErrorMessage(null);
+    setCurrentStep(0);
+    setStepStatus(initializationSteps.map(() => 'pending'));
+
+    const updateStepStatus = (stepIndex: number, status: 'loading' | 'completed' | 'error') => {
+      setCurrentStep(stepIndex);
+      setStepStatus(prev => prev.map((s, i) => i === stepIndex ? status : s));
+    };
 
     try {
       // Find the selected theme
@@ -264,10 +282,10 @@ export default function SelectThemeForm() {
         throw new Error('Selected theme not found');
       }
 
-      // Generate global_styles from theme
+      // Step 1: Apply the selected theme to the restaurant
+      updateStepStatus(0, 'loading');
       const globalStyles = generateGlobalStyles(selectedTheme, restaurantId);
 
-      // Step 1: Apply the selected theme to the restaurant
       const applyThemeResponse = await fetch('/api/themes/apply', {
         method: 'POST',
         headers: {
@@ -283,10 +301,14 @@ export default function SelectThemeForm() {
       const applyThemeData = await applyThemeResponse.json();
 
       if (!applyThemeData.success) {
+        updateStepStatus(0, 'error');
         throw new Error(applyThemeData.error || 'Failed to apply theme');
       }
+      updateStepStatus(0, 'completed');
 
-      // Step 2: Initialize website: create staging domain and system pages
+      // Step 2-6: Initialize website with detailed progress tracking
+      updateStepStatus(1, 'loading');
+      
       const response = await fetch(`/api/restaurants/${encodeURIComponent(restaurantId)}/initialize-website`, {
         method: 'POST',
         headers: {
@@ -301,15 +323,33 @@ export default function SelectThemeForm() {
       const data = await response.json();
 
       if (!response.ok) {
+        updateStepStatus(1, 'error');
         throw new Error(data.error || 'Failed to initialize website');
       }
 
-      // Navigate to restaurant list page
-      window.location.href = `/dashboard/admin/restaurants`;
+      // Simulate step progression for better UX
+      for (let i = 1; i < initializationSteps.length; i++) {
+        updateStepStatus(i, 'completed');
+        if (i < initializationSteps.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 800)); // Brief delay between steps
+        }
+      }
+
+      // Small delay before navigation to show completion
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Navigate to restaurant list page with the newly created restaurant auto-selected
+      const params = new URLSearchParams({
+        restaurant_id: restaurantId,
+        restaurant_name: restaurantName,
+      });
+      window.location.href = `/dashboard/admin/restaurants?${params.toString()}`;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to initialize website';
       setErrorMessage(message);
       setIsCreating(false);
+      setCurrentStep(0);
+      setStepStatus([]);
     }
   };
 
@@ -339,15 +379,102 @@ export default function SelectThemeForm() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white px-6 py-5">
-          <h2 className="text-xl font-bold text-gray-900">Available Themes</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Choose from our professionally designed themes - each one is fully customizable
-          </p>
+      {/* Step-by-step loader - Show only when creating */}
+      {isCreating ? (
+        <div className="rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 shadow-sm">
+          <div className="border-b border-purple-200 bg-gradient-to-r from-purple-100 to-indigo-100 px-6 py-5">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-gray-900">Creating Your Website</h2>
+              <p className="text-sm text-gray-600 mt-2">Please wait while we set up your restaurant website...</p>
+            </div>
+          </div>
+          
+          <div className="p-8">
+            <div className="space-y-4 max-w-2xl mx-auto">
+              {initializationSteps.map((step, index) => {
+                const status = stepStatus[index] || 'pending';
+                const isActive = currentStep === index;
+                
+                return (
+                  <div key={index} className={`flex items-center gap-4 p-4 rounded-lg transition-all ${
+                    status === 'completed' ? 'bg-green-50 border border-green-200' :
+                    status === 'loading' ? 'bg-purple-50 border border-purple-200 shadow-md' :
+                    status === 'error' ? 'bg-red-50 border border-red-200' :
+                    'bg-gray-50 border border-gray-200'
+                  }`}>
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                      status === 'completed' ? 'bg-green-500' :
+                      status === 'loading' ? 'bg-purple-500' :
+                      status === 'error' ? 'bg-red-500' :
+                      'bg-gray-300'
+                    }`}>
+                      {status === 'completed' ? (
+                        <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : status === 'loading' ? (
+                        <svg className="h-6 w-6 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : status === 'error' ? (
+                        <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      ) : (
+                        <span className="text-sm font-bold text-white">{index + 1}</span>
+                      )}
+                    </div>
+                    
+                    <div className="flex-1">
+                      <h4 className={`font-semibold ${
+                        status === 'completed' ? 'text-green-900' :
+                        status === 'loading' ? 'text-purple-900' :
+                        status === 'error' ? 'text-red-900' :
+                        'text-gray-600'
+                      }`}>
+                        {step.title}
+                      </h4>
+                      <p className={`text-sm ${
+                        status === 'completed' ? 'text-green-700' :
+                        status === 'loading' ? 'text-purple-700' :
+                        status === 'error' ? 'text-red-700' :
+                        'text-gray-500'
+                      }`}>
+                        {step.description}
+                      </p>
+                    </div>
+                    
+                    {status === 'loading' && (
+                      <div className="flex items-center gap-1">
+                        <div className="h-2 w-2 bg-purple-500 rounded-full animate-bounce"></div>
+                        <div className="h-2 w-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="h-2 w-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="mt-8 text-center">
+              <p className="text-sm text-gray-600">
+                This process may take a few moments. Please don't close this window.
+              </p>
+            </div>
+          </div>
         </div>
+      ) : (
+        /* Theme selection section - Hide when creating */
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white px-6 py-5">
+            <h2 className="text-xl font-bold text-gray-900">Available Themes</h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Choose from our professionally designed themes - each one is fully customizable
+            </p>
+          </div>
 
-        {loading ? (
+          {loading ? (
           <div className="flex items-center justify-center p-12">
             <div className="text-center">
               <svg className="mx-auto h-12 w-12 animate-spin text-purple-600" fill="none" viewBox="0 0 24 24">
@@ -793,7 +920,90 @@ export default function SelectThemeForm() {
           </div>
         )}
 
-        <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-4">
+        {/* Step-by-step loader */}
+        {isCreating && (
+          <div className="mx-6 my-6 rounded-xl border border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 p-6">
+            <div className="mb-6 text-center">
+              <h3 className="text-lg font-bold text-gray-900">Creating Your Website</h3>
+              <p className="text-sm text-gray-600 mt-1">Please wait while we set up your restaurant website...</p>
+            </div>
+            
+            <div className="space-y-4">
+              {initializationSteps.map((step, index) => {
+                const status = stepStatus[index] || 'pending';
+                const isActive = currentStep === index;
+                
+                return (
+                  <div key={index} className={`flex items-center gap-4 p-4 rounded-lg transition-all ${
+                    status === 'completed' ? 'bg-green-50 border border-green-200' :
+                    status === 'loading' ? 'bg-purple-50 border border-purple-200' :
+                    status === 'error' ? 'bg-red-50 border border-red-200' :
+                    'bg-gray-50 border border-gray-200'
+                  }`}>
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                      status === 'completed' ? 'bg-green-500' :
+                      status === 'loading' ? 'bg-purple-500' :
+                      status === 'error' ? 'bg-red-500' :
+                      'bg-gray-300'
+                    }`}>
+                      {status === 'completed' ? (
+                        <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : status === 'loading' ? (
+                        <svg className="h-5 w-5 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : status === 'error' ? (
+                        <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      ) : (
+                        <span className="text-sm font-bold text-white">{index + 1}</span>
+                      )}
+                    </div>
+                    
+                    <div className="flex-1">
+                      <h4 className={`font-semibold ${
+                        status === 'completed' ? 'text-green-900' :
+                        status === 'loading' ? 'text-purple-900' :
+                        status === 'error' ? 'text-red-900' :
+                        'text-gray-600'
+                      }`}>
+                        {step.title}
+                      </h4>
+                      <p className={`text-sm ${
+                        status === 'completed' ? 'text-green-700' :
+                        status === 'loading' ? 'text-purple-700' :
+                        status === 'error' ? 'text-red-700' :
+                        'text-gray-500'
+                      }`}>
+                        {step.description}
+                      </p>
+                    </div>
+                    
+                    {status === 'loading' && (
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 bg-purple-500 rounded-full animate-bounce"></div>
+                        <div className="h-2 w-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="h-2 w-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                This process may take a few moments. Please don't close this window.
+              </p>
+            </div>
+          </div>
+        )}
+
+          <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-4">
           <button
             type="button"
             onClick={() => window.history.back()}
@@ -829,8 +1039,9 @@ export default function SelectThemeForm() {
               </>
             )}
           </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Theme Preview Modal */}
       {previewTheme && (

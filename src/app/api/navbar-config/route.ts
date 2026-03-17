@@ -70,6 +70,29 @@ const GET_NAVBAR_CONFIG = `
 `;
 
 /**
+ * Lightweight query for update flow (POST)
+ * Fetches only the latest navbar template record.
+ */
+const GET_NAVBAR_TEMPLATE_ONLY = `
+  query GetNavbarTemplateOnly($restaurant_id: uuid!) {
+    templates(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        category: {_eq: "Navbar"},
+        is_deleted: {_eq: false}
+      },
+      order_by: {created_at: desc},
+      limit: 1
+    ) {
+      template_id
+      name
+      config
+      menu_items
+    }
+  }
+`;
+
+/**
  * GraphQL mutation to mark current template as deleted
  * Uses template_id as primary key
  */
@@ -332,7 +355,7 @@ export async function POST(request: Request) {
     }
     
     // Step 1: Get current template to mark as deleted and preserve menu_items and config
-    const currentData = await graphqlRequest(GET_NAVBAR_CONFIG, {
+    const currentData = await graphqlRequest(GET_NAVBAR_TEMPLATE_ONLY, {
       restaurant_id: restaurantId,
     });
 

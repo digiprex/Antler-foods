@@ -259,9 +259,6 @@ export function RestaurantsListPage() {
                             <p className="font-semibold text-gray-900">
                               {restaurant.name}
                             </p>
-                            <p className="text-xs text-gray-500">
-                              ID: {restaurant.id.slice(0, 8)}...
-                            </p>
                           </div>
                         </div>
                       </td>

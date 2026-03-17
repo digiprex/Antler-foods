@@ -9,6 +9,10 @@ import {
   getSectionTypographyStyles,
   type SectionViewport,
 } from '@/lib/section-style';
+import {
+  removeSectionContentWidth,
+  resolveSharedSectionSpacing,
+} from '@/lib/shared-section-spacing';
 import type { ScrollingTextConfig } from '@/types/scrolling-text.types';
 import { DEFAULT_SCROLLING_TEXT_CONFIG } from '@/types/scrolling-text.types';
 
@@ -144,6 +148,8 @@ export default function DynamicScrollingText({
   );
   const { sectionStyle, contentStyle, surfaceStyle, layoutConfig } =
     getSectionContainerStyles(displayConfig, viewport);
+  const sharedSpacing = resolveSharedSectionSpacing(viewport);
+  const fullWidthContentStyle = removeSectionContentWidth(contentStyle);
   const { ref, style: revealStyle } = useSectionReveal({
     enabled: displayConfig?.enableScrollReveal,
     animation: displayConfig?.scrollRevealAnimation,
@@ -212,10 +218,15 @@ export default function DynamicScrollingText({
     return (
       <section
         ref={ref}
-        style={{ ...sectionStyle, ...revealStyle }}
+        style={{
+          ...sectionStyle,
+          ...revealStyle,
+          paddingBlock: sharedSpacing.sectionPadding,
+          paddingInline: sharedSpacing.sectionPadding,
+        }}
         className="bg-[linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)]"
       >
-        <div style={contentStyle}>
+        <div style={fullWidthContentStyle}>
           <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/90 px-6 py-10 text-center shadow-inner">
             <p className="text-sm font-semibold text-slate-700">Scrolling text is currently disabled</p>
             <p className="mt-2 text-sm text-slate-500">
@@ -235,13 +246,15 @@ export default function DynamicScrollingText({
       style={{
         ...sectionStyle,
         ...revealStyle,
+        paddingBlock: sharedSpacing.sectionPadding,
+        paddingInline: sharedSpacing.sectionPadding,
         background:
           viewport === 'mobile'
             ? 'linear-gradient(180deg, rgba(248,250,252,0.98), rgba(255,255,255,0.98))'
             : 'linear-gradient(180deg, rgba(248,250,252,0.94), rgba(255,255,255,0.98))',
       }}
     >
-      <div style={contentStyle}>
+      <div style={fullWidthContentStyle}>
         <div
           className="relative overflow-hidden border border-white/50"
           style={{
@@ -265,7 +278,7 @@ export default function DynamicScrollingText({
           </div>
 
           {isVertical ? (
-            <div className="relative mx-auto flex h-[168px] max-w-3xl items-center justify-center overflow-hidden px-4 py-6 sm:h-[184px] sm:px-8">
+            <div className="relative flex h-[168px] items-center justify-center overflow-hidden px-4 py-6 sm:h-[184px] sm:px-8">
               <div
                 className="flex flex-col items-center"
                 style={{

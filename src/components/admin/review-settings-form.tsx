@@ -1088,7 +1088,7 @@ export default function ReviewSettingsForm({
         </div>
 
         {/* Basic Information Section */}
-        {/* <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
               <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -1144,7 +1144,7 @@ export default function ReviewSettingsForm({
               />
             </div>
           </div>
-        </div> */}
+        </div>
 
         {/* Display Options Section */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">

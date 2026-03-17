@@ -839,7 +839,7 @@ export function LayoutControlsPanel({
           ? config.responsive?.mobileContentWidth ||
               config.layoutSettings?.contentWidth ||
               '100%'
-          : config.layoutSettings?.contentWidth || '560px';
+          : config.layoutSettings?.contentWidth || '100%';
       case 'contentGap':
         return isMobile
           ? config.responsive?.mobileContentGap ||
@@ -1232,7 +1232,7 @@ export function LayoutControlsPanel({
                   field === 'mediaRatio'
                     ? '4 / 3'
                     : field === 'contentWidth'
-                      ? '560px'
+                      ? '100%'
                       : field === 'contentGap'
                         ? getCustomSectionGapPlaceholder(
                             isMobile ? 'mobile' : 'desktop',

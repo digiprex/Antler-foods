@@ -1,7 +1,7 @@
 .menuSection {
   position: relative;
   overflow: hidden;
-  padding: 4.5rem 1.5rem;
+  padding: 5rem;
   width: 100%;
   isolation: isolate;
 }
@@ -23,14 +23,13 @@
 .menuContainer {
   position: relative;
   z-index: 1;
-  max-width: 1200px;
-  margin: 0 auto;
+  display: grid;
+  gap: var(--menu-section-gap, 5rem);
 }
 
 .menuHeader {
   display: grid;
   gap: 0.85rem;
-  margin-bottom: 3rem;
 }
 
 .alignLeft {
@@ -54,13 +53,21 @@
   font-weight: 700;
   line-height: 1.04;
   letter-spacing: -0.04em;
+  color: var(--menu-title-color, var(--menu-text, inherit));
+  font-family: var(--menu-title-font-family, inherit);
+  font-style: var(--menu-title-font-style, normal);
+  text-transform: var(--menu-title-text-transform, none);
 }
 
 .menuSubtitle {
   margin: 0;
   font-size: clamp(1rem, 2vw, 1.2rem);
   font-weight: 600;
+  color: var(--menu-subtitle-color, var(--menu-title-color, var(--menu-text, inherit)));
   opacity: 0.78;
+  font-family: var(--menu-subtitle-font-family, inherit);
+  font-style: var(--menu-subtitle-font-style, normal);
+  text-transform: var(--menu-subtitle-text-transform, none);
 }
 
 .menuDescription {
@@ -68,12 +75,16 @@
   max-width: 52rem;
   font-size: 1rem;
   line-height: 1.7;
+  color: var(--menu-body-color, var(--menu-body, var(--menu-text, inherit)));
   opacity: 0.78;
+  font-family: var(--menu-body-font-family, inherit);
+  font-style: var(--menu-body-font-style, normal);
+  text-transform: var(--menu-body-text-transform, none);
 }
 
 .layoutBody {
   display: grid;
-  gap: var(--menu-row-gap, 2.4rem);
+  gap: var(--menu-row-gap, 5rem);
 }
 
 .menuCategory {
@@ -93,6 +104,10 @@
   font-size: clamp(1.35rem, 2.2vw, 1.85rem);
   font-weight: 700;
   line-height: 1.1;
+  color: var(--menu-title-color, var(--menu-text, inherit));
+  font-family: var(--menu-title-font-family, inherit);
+  font-style: var(--menu-title-font-style, normal);
+  text-transform: var(--menu-title-text-transform, none);
 }
 
 .categoryDescription {
@@ -100,14 +115,18 @@
   max-width: 44rem;
   font-size: 0.98rem;
   line-height: 1.65;
+  color: var(--menu-body-color, var(--menu-body, var(--menu-text, inherit)));
   opacity: 0.76;
+  font-family: var(--menu-body-font-family, inherit);
+  font-style: var(--menu-body-font-style, normal);
+  text-transform: var(--menu-body-text-transform, none);
 }
 
 .gridLayout,
 .twoColumnGrid,
 .tabItemsGrid {
   display: grid;
-  gap: var(--menu-grid-gap, 1.4rem);
+  gap: var(--menu-grid-gap, 5rem);
 }
 
 .tabItemsGrid {
@@ -124,7 +143,7 @@
 
 .singleColumnGrid {
   display: grid;
-  gap: var(--menu-card-gap, 1.5rem);
+  gap: var(--menu-card-gap, 5rem);
   justify-content: center;
 }
 
@@ -135,7 +154,7 @@
 
 .masonryGrid {
   column-count: 2;
-  column-gap: var(--menu-grid-gap, 1.35rem);
+  column-gap: var(--menu-grid-gap, 5rem);
 }
 
 .imageCard,
@@ -179,6 +198,7 @@
 .cardMedia {
   position: relative;
   min-height: 250px;
+  border-radius: 0;
   background: linear-gradient(135deg, rgba(15, 23, 42, 0.08), rgba(59, 130, 246, 0.12));
 }
 
@@ -188,6 +208,7 @@
   min-height: inherit;
   color: inherit;
   text-decoration: none;
+  border-radius: 0;
 }
 
 .cardMedia img,
@@ -199,6 +220,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  border-radius: 0;
 }
 
 .cardPlaceholder {
@@ -254,13 +276,10 @@
   font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(15, 23, 42, 0.6);
-}
-
-.cardBodyOverlay .cardEyebrow,
-.carouselCardBody .cardEyebrow {
-  color: rgba(255, 255, 255, 0.84);
+  text-transform: var(--menu-subtitle-text-transform, uppercase);
+  color: var(--menu-subtitle-color, var(--menu-title-color, var(--menu-text, inherit)));
+  font-family: var(--menu-subtitle-font-family, inherit);
+  font-style: var(--menu-subtitle-font-style, normal);
 }
 
 .cardTitleRow {
@@ -276,6 +295,10 @@
   font-weight: var(--menu-item-title-weight, 800);
   line-height: 1.15;
   letter-spacing: var(--menu-item-letter-spacing, -0.02em);
+  color: var(--menu-title-color, var(--menu-text, inherit));
+  font-family: var(--menu-title-font-family, inherit);
+  font-style: var(--menu-title-font-style, normal);
+  text-transform: var(--menu-title-text-transform, none);
 }
 
 .cardPrice {
@@ -288,12 +311,11 @@
   margin: 0;
   font-size: var(--menu-item-description-size, 0.96rem);
   line-height: var(--menu-item-line-height, 1.7);
+  color: var(--menu-body-color, var(--menu-body, var(--menu-text, inherit)));
   opacity: 0.78;
-}
-
-.cardBodyOverlay .cardDescription {
-  color: rgba(255, 255, 255, 0.9) !important;
-  opacity: 1;
+  font-family: var(--menu-body-font-family, inherit);
+  font-style: var(--menu-body-font-style, normal);
+  text-transform: var(--menu-body-text-transform, none);
 }
 
 .cardDietary {
@@ -361,7 +383,7 @@
 .promoGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--menu-card-gap, 1.4rem);
+  gap: var(--menu-card-gap, 5rem);
 }
 
 .promoCard {
@@ -373,7 +395,7 @@
   padding: 1.5rem;
   border-radius: 1.25rem;
   text-align: center;
-  color: #ffffff;
+  color: var(--menu-body-color, var(--menu-body, var(--menu-text, inherit)));
 }
 
 .promoTitle {
@@ -381,6 +403,10 @@
   font-size: 1.45rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  color: var(--menu-title-color, var(--menu-text, inherit));
+  font-family: var(--menu-title-font-family, inherit);
+  font-style: var(--menu-title-font-style, normal);
+  text-transform: var(--menu-title-text-transform, none);
 }
 
 .promoDescription {
@@ -388,13 +414,16 @@
   max-width: 26ch;
   font-size: 0.97rem;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--menu-body-color, var(--menu-body, var(--menu-text, inherit)));
+  font-family: var(--menu-body-font-family, inherit);
+  font-style: var(--menu-body-font-style, normal);
+  text-transform: var(--menu-body-text-transform, none);
 }
 
 .tabShell {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
-  gap: var(--menu-column-gap, 1.5rem);
+  gap: var(--menu-column-gap, 5rem);
 }
 
 .tabIntro {
@@ -414,8 +443,10 @@
   font-size: 0.77rem;
   font-weight: 800;
   letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(15, 23, 42, 0.62);
+  text-transform: var(--menu-subtitle-text-transform, uppercase);
+  color: var(--menu-subtitle-color, var(--menu-title-color, var(--menu-text, inherit)));
+  font-family: var(--menu-subtitle-font-family, inherit);
+  font-style: var(--menu-subtitle-font-style, normal);
 }
 
 .tabIntroTitle,
@@ -426,6 +457,10 @@
   font-weight: 800;
   line-height: 1.08;
   letter-spacing: -0.035em;
+  color: var(--menu-title-color, var(--menu-text, inherit));
+  font-family: var(--menu-title-font-family, inherit);
+  font-style: var(--menu-title-font-style, normal);
+  text-transform: var(--menu-title-text-transform, none);
 }
 
 .tabIntroDescription,
@@ -434,12 +469,16 @@
   max-width: 34rem;
   font-size: 1rem;
   line-height: 1.75;
+  color: var(--menu-body-color, var(--menu-body, var(--menu-text, inherit)));
   opacity: 0.8;
+  font-family: var(--menu-body-font-family, inherit);
+  font-style: var(--menu-body-font-style, normal);
+  text-transform: var(--menu-body-text-transform, none);
 }
 
 .tabSelectors {
   display: grid;
-  gap: var(--menu-card-gap, 0.85rem);
+  gap: 0.85rem;
 }
 
 .tabButton,
@@ -472,13 +511,19 @@
 .tabButtonTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--menu-title-color, var(--menu-text, inherit));
+  font-family: var(--menu-title-font-family, inherit);
+  font-style: var(--menu-title-font-style, normal);
+  text-transform: var(--menu-title-text-transform, none);
 }
 
 .tabButtonDescription {
   font-size: 0.9rem;
   line-height: 1.55;
-  color: #6b7280;
+  color: var(--menu-body-color, var(--menu-body, var(--menu-text, inherit)));
+  font-family: var(--menu-body-font-family, inherit);
+  font-style: var(--menu-body-font-style, normal);
+  text-transform: var(--menu-body-text-transform, none);
 }
 
 .tabButtonArrow,
@@ -508,7 +553,7 @@
 
 .accordionStack {
   display: grid;
-  gap: var(--menu-card-gap, 0.95rem);
+  gap: 0.95rem;
 }
 
 .accordionPanel {
@@ -542,7 +587,7 @@
 .accordionThumb {
   width: 84px;
   height: 84px;
-  border-radius: 1rem;
+  border-radius: 0;
   overflow: hidden;
   flex-shrink: 0;
   background: rgba(15, 23, 42, 0.08);
@@ -552,13 +597,21 @@
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
+  color: var(--menu-title-color, var(--menu-text, inherit));
+  font-family: var(--menu-title-font-family, inherit);
+  font-style: var(--menu-title-font-style, normal);
+  text-transform: var(--menu-title-text-transform, none);
 }
 
 .accordionItemDescription {
   margin: 0.3rem 0 0;
   font-size: 0.92rem;
   line-height: 1.6;
+  color: var(--menu-body-color, var(--menu-body, var(--menu-text, inherit)));
   opacity: 0.76;
+  font-family: var(--menu-body-font-family, inherit);
+  font-style: var(--menu-body-font-style, normal);
+  text-transform: var(--menu-body-text-transform, none);
 }
 
 .accordionItemMeta {
@@ -599,7 +652,7 @@
   position: relative;
   overflow: hidden;
   min-height: 260px;
-  border-radius: 1.4rem;
+  border-radius: 0;
   background: var(--menu-card-bg, #0f172a);
   scroll-snap-align: start;
 }
@@ -624,7 +677,10 @@
   margin: 0;
   font-size: 0.94rem;
   line-height: 1.65;
-  color: rgba(255, 255, 255, 0.86);
+  color: var(--menu-body-color, var(--menu-body, var(--menu-text, inherit)));
+  font-family: var(--menu-body-font-family, inherit);
+  font-style: var(--menu-body-font-style, normal);
+  text-transform: var(--menu-body-text-transform, none);
 }
 
 .carouselNav {
@@ -655,7 +711,7 @@
 .featureGrid,
 .minimalGrid {
   display: grid;
-  gap: var(--menu-card-gap, 1.35rem);
+  gap: var(--menu-card-gap, 5rem);
 }
 
 .featureGrid {
@@ -676,8 +732,15 @@
 .featureIcon {
   width: 74px;
   height: 74px;
-  border-radius: 1.1rem;
   overflow: hidden;
+}
+
+.featureThumb {
+  border-radius: 0;
+}
+
+.featureIcon {
+  border-radius: 1.1rem;
 }
 
 .featureIcon {
@@ -702,6 +765,10 @@
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
+  color: var(--menu-title-color, var(--menu-text, inherit));
+  font-family: var(--menu-title-font-family, inherit);
+  font-style: var(--menu-title-font-style, normal);
+  text-transform: var(--menu-title-text-transform, none);
 }
 
 .featureDescription,
@@ -709,7 +776,11 @@
   margin: 0;
   font-size: 0.92rem;
   line-height: 1.65;
+  color: var(--menu-body-color, var(--menu-body, var(--menu-text, inherit)));
   opacity: 0.76;
+  font-family: var(--menu-body-font-family, inherit);
+  font-style: var(--menu-body-font-style, normal);
+  text-transform: var(--menu-body-text-transform, none);
 }
 
 .minimalGrid {
@@ -745,7 +816,6 @@
 .menuCta {
   display: flex;
   justify-content: center;
-  margin-top: 2.6rem;
 }
 
 .menuButtonGroupStart,
@@ -761,10 +831,6 @@
 
 .menuButtonGroupCenter {
   justify-content: center;
-}
-
-.mobileViewport .menuHeader {
-  margin-bottom: 2.35rem;
 }
 
 .mobileViewport .gridLayout,
@@ -806,7 +872,7 @@
 
 @media (max-width: 1024px) {
   .menuSection {
-    padding: 4rem 1.25rem;
+    padding: 3rem;
   }
 
   .tabShell,
@@ -820,10 +886,6 @@
 }
 
 @media (max-width: 768px) {
-  .menuHeader {
-    margin-bottom: 2.35rem;
-  }
-
   .gridLayout,
   .promoGrid,
   .tabItemsGrid,
@@ -851,7 +913,7 @@
 
 @media (max-width: 560px) {
   .menuSection {
-    padding: 3.25rem 1rem;
+    padding: 2rem;
   }
 
   .twoColumnGrid {

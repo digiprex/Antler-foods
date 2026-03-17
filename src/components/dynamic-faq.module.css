@@ -1,7 +1,7 @@
 .section {
   position: relative;
   overflow: hidden;
-  padding: clamp(3.5rem, 7vw, 5.5rem) clamp(1rem, 4vw, 2rem);
+  padding: 5rem;
   background: var(--faq-bg);
 }
 
@@ -12,20 +12,16 @@
 .shell {
   position: relative;
   z-index: 1;
-  margin: 0 auto;
-  max-width: 74rem;
 }
 
 .shellPreview {
-  max-width: 64rem;
+  max-width: none;
 }
 
 .frame {
   border: 1px solid var(--faq-shell-border);
   border-radius: clamp(1.5rem, 4vw, 2rem);
-  background:
-    linear-gradient(180deg, var(--faq-shell-bg), transparent 42%),
-    var(--faq-bg);
+  background: transparent;
   padding: clamp(1.25rem, 3vw, 2.25rem);
 }
 
@@ -34,8 +30,7 @@
 }
 
 .header {
-  margin: 0 auto clamp(1.5rem, 4vw, 2.5rem);
-  max-width: 44rem;
+  margin: 0 0 2rem;
   text-align: center;
 }
 
@@ -64,21 +59,21 @@
 .listLayout,
 .accordionLayout {
   display: grid;
-  gap: 1rem;
+  gap: 2rem;
 }
 
 .gridLayout {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 2rem;
 }
 
 .card {
   position: relative;
   border: 1px solid var(--faq-border);
   border-radius: var(--faq-radius);
-  background: var(--faq-card-bg);
-  box-shadow: var(--faq-shadow);
+  background: transparent;
+  box-shadow: none;
   transition:
     transform 180ms ease,
     border-color 180ms ease,
@@ -90,8 +85,8 @@
 .card:hover {
   transform: translateY(-2px);
   border-color: var(--faq-accent-border);
-  background: var(--faq-card-hover);
-  box-shadow: var(--faq-shadow-hover);
+  background: transparent;
+  box-shadow: none;
 }
 
 .cardAnimated {
@@ -175,7 +170,7 @@
 
 .accordionCardOpen {
   border-color: var(--faq-accent-border);
-  box-shadow: var(--faq-shadow-hover);
+  box-shadow: none;
 }
 
 .accordionTrigger {
@@ -193,9 +188,7 @@
 }
 
 .accordionTriggerOpen {
-  background:
-    linear-gradient(180deg, var(--faq-accent-soft), transparent 100%),
-    var(--faq-card-bg);
+  background: transparent;
 }
 
 .accordionLeading {
@@ -334,8 +327,18 @@
 }
 
 @media (max-width: 768px) {
+  .section {
+    padding: 2rem;
+  }
+
   .frame {
     padding: 1rem;
+  }
+
+  .listLayout,
+  .accordionLayout,
+  .gridLayout {
+    gap: 1rem;
   }
 
   .listCard,

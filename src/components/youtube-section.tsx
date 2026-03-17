@@ -5,6 +5,7 @@ import type { YouTubeConfig } from '@/types/youtube.types';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
 import { useSectionReveal } from '@/hooks/use-section-reveal';
 import { getSectionTypographyStyles } from '@/lib/section-style';
+import { resolveSharedSectionSpacing } from '@/lib/shared-section-spacing';
 
 type PreviewViewport = 'desktop' | 'mobile';
 
@@ -240,11 +241,10 @@ export default function YouTubeSection({
       globalStyles,
     );
     const isPreviewMobile = previewViewport === 'mobile';
+    const sharedSpacing = resolveSharedSectionSpacing(previewViewport);
     const primaryVideoUrl = config.videoUrl || config.secondaryVideoUrl || '';
     const secondaryVideoUrl = config.secondaryVideoUrl || config.videoUrl || '';
-    const maxWidth = config.maxWidth || '1200px';
-    const theaterMaxWidth = config.maxWidth || '1400px';
-    const contentPadding = isPreviewMobile ? '2.75rem 1rem' : '4rem 1.5rem';
+    const contentPadding = sharedSpacing.sectionPadding;
     const surfaceRadius = isPreviewMobile ? '22px' : '28px';
     const surfacePadding = isPreviewMobile ? '1.35rem' : '1.9rem';
     const textPanelStyle: React.CSSProperties = {
@@ -272,8 +272,6 @@ export default function YouTubeSection({
           style={{
             ...(panel ? textPanelStyle : {}),
             textAlign: centered ? 'center' : 'left',
-            maxWidth: centered ? '780px' : undefined,
-            margin: centered ? '0 auto' : undefined,
           }}
         >
           {config.title ? (
@@ -308,8 +306,8 @@ export default function YouTubeSection({
     // Default Layout - Centered video with title above
     if (layout === 'default') {
       return (
-        <div style={{ maxWidth, margin: '0 auto', padding: contentPadding }}>
-          <div style={{ marginBottom: isPreviewMobile ? '1.25rem' : '1.75rem' }}>
+        <div style={{ padding: contentPadding, display: 'grid', gap: sharedSpacing.sectionGap }}>
+          <div>
             {renderTextBlock({ centered: true })}
           </div>
           <div
@@ -351,8 +349,8 @@ export default function YouTubeSection({
     // Theater Mode - Extra wide video
     if (layout === 'theater') {
       return (
-        <div style={{ maxWidth: theaterMaxWidth, margin: '0 auto', padding: contentPadding }}>
-          <div style={{ marginBottom: isPreviewMobile ? '1.5rem' : '2.25rem' }}>
+        <div style={{ padding: contentPadding, display: 'grid', gap: sharedSpacing.sectionGap }}>
+          <div>
             {renderTextBlock({ centered: true })}
           </div>
           {renderVideoEmbed('featured', primaryVideoUrl)}
@@ -365,16 +363,16 @@ export default function YouTubeSection({
       return (
         <div
           style={{
-            maxWidth,
-            margin: '0 auto',
             padding: contentPadding,
+            display: 'grid',
+            gap: sharedSpacing.sectionGap,
           }}
         >
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(0, 1.1fr) minmax(320px, 0.9fr)',
-              gap: isPreviewMobile ? '1.5rem' : '2.5rem',
+              gap: sharedSpacing.sectionGap,
               alignItems: 'center',
             }}
           >
@@ -388,8 +386,8 @@ export default function YouTubeSection({
     // Split Right - Content on left, video on right
     if (layout === 'split-right') {
       return (
-        <div style={{ maxWidth, margin: '0 auto', padding: contentPadding }}>
-          <div style={{ display: 'grid', gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(320px, 0.9fr) minmax(0, 1.1fr)', gap: isPreviewMobile ? '1.5rem' : '2.5rem', alignItems: 'center' }}>
+        <div style={{ padding: contentPadding, display: 'grid', gap: sharedSpacing.sectionGap }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(320px, 0.9fr) minmax(0, 1.1fr)', gap: sharedSpacing.sectionGap, alignItems: 'center' }}>
             {renderTextBlock({ panel: true })}
             <div>{renderVideoEmbed('featured', primaryVideoUrl)}</div>
           </div>
@@ -408,7 +406,7 @@ export default function YouTubeSection({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: isPreviewMobile ? '1.75rem 1rem' : '3rem 1.5rem',
+            padding: contentPadding,
           }}
         >
           <div
@@ -428,8 +426,6 @@ export default function YouTubeSection({
               style={{
                 position: 'relative',
                 zIndex: 1,
-                width: '100%',
-                maxWidth: isPreviewMobile ? '100%' : '760px',
                 ...textPanelStyle,
               }}
             >
@@ -465,12 +461,12 @@ export default function YouTubeSection({
     // Grid - Multiple videos (for future enhancement)
     if (layout === 'grid') {
       return (
-        <div style={{ maxWidth, margin: '0 auto', padding: contentPadding }}>
+        <div style={{ padding: contentPadding }}>
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(0, 1.25fr) minmax(320px, 0.75fr)',
-              gap: isPreviewMobile ? '1.25rem' : '1.75rem',
+              gap: sharedSpacing.sectionGap,
               alignItems: 'start',
             }}
           >
@@ -539,7 +535,6 @@ export default function YouTubeSection({
       ref={ref}
       style={{
         backgroundColor,
-        width: '100%',
         ...revealStyle,
       }}
     >

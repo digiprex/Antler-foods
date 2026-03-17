@@ -298,12 +298,15 @@ export default function Gallery({
     layoutViewport,
     onImageClick: openLightbox,
   };
+  const showShowcaseBottomDescription =
+    normalizedLayout === 'showcase' && Boolean(description);
 
   return (
     <section
       ref={sectionRef}
       className={styles.gallerySection}
       data-gallery-motion="disabled"
+      data-gallery-layout={normalizedLayout}
       data-gallery-layout-viewport={layoutViewport}
       data-gallery-preview-mode={previewMode}
       style={{ ...sectionStyle, ...bodyStyle }}
@@ -317,7 +320,7 @@ export default function Gallery({
             className={styles.sectionReveal}
             title={title}
             subtitle={subtitle}
-            description={description}
+            description={showShowcaseBottomDescription ? undefined : description}
             titleStyle={titleStyle}
             subtitleStyle={subtitleStyle}
             bodyStyle={bodyStyle}
@@ -366,6 +369,15 @@ export default function Gallery({
               <GridGalleryLayout {...sharedLayoutProps} />
             )}
           </div>
+
+          {showShowcaseBottomDescription ? (
+            <p
+              className={`${styles.galleryDescription} ${styles.galleryDescriptionBottom} ${styles.sectionReveal}`}
+              style={bodyStyle}
+            >
+              {description}
+            </p>
+          ) : null}
 
           {enableLightbox && (
             <GalleryLightbox

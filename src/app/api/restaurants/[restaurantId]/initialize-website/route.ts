@@ -329,7 +329,7 @@ async function createSystemPage(
 
 async function ensureDefaultSystemPagesForRestaurant(restaurantId: string, restaurantName: string) {
   const existingSlugs = new Set(await getExistingPages(restaurantId));
-  
+
   console.log(`📋 Existing pages for restaurant ${restaurantId}:`, Array.from(existingSlugs));
   console.log(`📋 Default pages to create:`, DEFAULT_SYSTEM_PAGES.map(p => p.urlSlug));
 
@@ -342,7 +342,7 @@ async function ensureDefaultSystemPagesForRestaurant(restaurantId: string, resta
     console.log(`🔨 Creating page: ${page.name} (/${page.urlSlug})`);
     await createSystemPage(restaurantId, page.urlSlug, page.name, restaurantName);
   }
-  
+
   console.log(`✅ Finished ensuring default system pages for restaurant ${restaurantId}`);
 }
 
@@ -699,7 +699,7 @@ async function createContactForm(restaurantId: string, restaurantName: string): 
 
     // Fetch restaurant POC email instead of generating a default email
     let formEmail = '';
-    
+
     try {
       const restaurantQuery = `
         query GetRestaurantEmails($restaurant_id: uuid!) {
@@ -709,13 +709,13 @@ async function createContactForm(restaurantId: string, restaurantName: string): 
           }
         }
       `;
-      
+
       const restaurantData = await adminGraphqlRequest<{
         restaurants_by_pk: { poc_email?: string; email?: string } | null
       }>(restaurantQuery, { restaurant_id: restaurantId });
 
       const restaurant = restaurantData.restaurants_by_pk;
-      
+
       if (restaurant?.poc_email) {
         formEmail = restaurant.poc_email;
         console.log(`✅ Using restaurant POC email for contact form: ${formEmail}`);
@@ -863,7 +863,7 @@ async function generateCustomSectionContent(
 
     // Determine the content theme based on contentContext or sectionName
     const contentTheme = contentContext || sectionName;
-    
+
     // Create content-specific guidance
     const contentGuidance = getContentGuidance(contentTheme, pageName);
 
@@ -966,11 +966,11 @@ Generate the content in JSON format:
 
     } catch (error) {
       console.error('Error generating custom section content with Bedrock:', error);
-      
+
       // Try OpenAI as fallback
       console.log('Attempting OpenAI fallback for custom section content generation...');
       const openaiResult = await generateContentWithOpenAI(prompt, 300);
-      
+
       if (openaiResult) {
         return {
           headline: openaiResult.headline || sectionName,
@@ -978,7 +978,7 @@ Generate the content in JSON format:
           description: openaiResult.description || '',
         };
       }
-      
+
       return null;
     }
 
@@ -1173,11 +1173,11 @@ JSON format:
 
     } catch (error) {
       console.error('Error generating hero content with Bedrock:', error);
-      
+
       // Try OpenAI as fallback
       console.log(`Attempting OpenAI fallback for hero content generation on ${pageName} page...`);
       const openaiResult = await generateContentWithOpenAI(prompt, 300);
-      
+
       if (openaiResult) {
         return {
           headline: openaiResult.headline || `Welcome to ${restaurant.name}`,
@@ -1185,7 +1185,7 @@ JSON format:
           description: openaiResult.description || '',
         };
       }
-      
+
       return null;
     }
 
@@ -1539,10 +1539,10 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
   // Create a template entry for each section
   for (const section of pageSections) {
     const orderIndex = section.order_index ?? section.order ?? 0;
-    
+
     // Use section.style as base config, but enhance it with global styles (same as other pages)
     let sectionConfig = section.style || {};
-    
+
     // For Hero sections, generate AI content and merge with global styles (same as other pages)
     const isHeroSection = section.type.toLowerCase() === 'hero';
     const isCustomSection = section.type.toLowerCase() === 'customsection';
@@ -1557,7 +1557,7 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
       const cuisineType = restaurant?.cuisine_types && Array.isArray(restaurant.cuisine_types) && restaurant.cuisine_types.length > 0
         ? restaurant.cuisine_types[0]
         : '';
-      
+
       const defaultContent = {
         headline: restaurant?.name ? `Welcome to ${restaurant.name}` : 'Welcome',
         subheadline: cuisineType ? `${cuisineType} Dining` : 'Fine Dining',
@@ -1894,11 +1894,11 @@ JSON format (return only valid JSON, no markdown):
 
     } catch (error) {
       console.error(`Error generating ${sectionType} content with Bedrock:`, error);
-      
+
       // Try OpenAI as fallback
       console.log(`Attempting OpenAI fallback for ${sectionType} content generation...`);
       const openaiResult = await generateContentWithOpenAI(prompt, 1000);
-      
+
       if (openaiResult) {
         return {
           title: openaiResult.title || `Our ${sectionType}`,
@@ -1906,7 +1906,7 @@ JSON format (return only valid JSON, no markdown):
           description: openaiResult.description || '',
         };
       }
-      
+
       return null;
     }
 
@@ -2058,11 +2058,11 @@ JSON format (return only valid JSON, no markdown):
 
     } catch (error) {
       console.error('Error generating FAQ content with Bedrock:', error);
-      
+
       // Try OpenAI as fallback
       console.log(`Attempting OpenAI fallback for FAQ content generation on ${pageName} page...`);
       const openaiResult = await generateContentWithOpenAI(prompt, 2000);
-      
+
       if (openaiResult && openaiResult.faqs) {
         // Add unique IDs to each FAQ from OpenAI
         const faqsWithIds = openaiResult.faqs.map((faq: any, index: number) => ({
@@ -2070,11 +2070,11 @@ JSON format (return only valid JSON, no markdown):
           question: faq.question || '',
           answer: faq.answer || '',
         }));
-        
+
         console.log(`✅ Generated ${faqsWithIds.length} FAQs using OpenAI fallback for ${pageName} page`);
         return faqsWithIds;
       }
-      
+
       return null;
     }
 
@@ -2585,7 +2585,7 @@ async function createOtherPageSectionsFromTheme(
           const cuisineType = restaurant?.cuisine_types && Array.isArray(restaurant.cuisine_types) && restaurant.cuisine_types.length > 0
             ? restaurant.cuisine_types[0]
             : '';
-          
+
           const defaultContentByPage: Record<string, { headline: string; subheadline: string; description: string }> = {
             home: {
               headline: restaurant?.name ? `Welcome to ${restaurant.name}` : 'Welcome',
@@ -2603,7 +2603,7 @@ async function createOtherPageSectionsFromTheme(
               description: 'Questions? We love to help.',
             },
             menu: {
-              headline: 'Our Menu',
+              headline: '',
               subheadline: 'Fresh Daily',
               description: 'Crafted with passion.',
             },
@@ -2846,8 +2846,8 @@ async function createOtherPageSectionsFromTheme(
         // Only generate if section doesn't have config and isn't one of the special types handled above
         const specialHandledTypes = ['hero', 'customsection', 'faq', 'reviews', 'gallery', 'form'];
         const shouldGenerateGenericContent = !section.config &&
-                                              !specialHandledTypes.includes(category.toLowerCase()) &&
-                                              !sectionConfig.title; // Only if title hasn't been set yet
+          !specialHandledTypes.includes(category.toLowerCase()) &&
+          !sectionConfig.title; // Only if title hasn't been set yet
 
         if (shouldGenerateGenericContent) {
           console.log(`  ⚡ Generating AI content for ${category} section on ${pageName} page (layout: ${section.id})...`);
@@ -3017,7 +3017,7 @@ export async function POST(
 
     console.log('🚀 Initialize Website Route Called');
     console.log('📍 Route: /api/restaurants/[restaurantId]/initialize-website');
-    
+
     const restaurantId = params.restaurantId;
     const body = await request.json();
     const { restaurantName, templateId } = body;
@@ -3073,7 +3073,7 @@ export async function POST(
     // Create theme sections if templateId is provided
     if (templateId) {
       console.log(`🎨 Step 5: Creating theme sections with templateId: ${templateId}`);
-      
+
       // Create navbar and footer from theme (global templates)
       console.log('🧭 Step 5a/5b: Creating navbar and footer from theme...');
       await Promise.all([
@@ -3081,6 +3081,7 @@ export async function POST(
         createFooterFromTheme(restaurantId, templateId),
       ]);
       console.log('✅ Navbar and footer creation completed');
+
 
       // Create sections for all pages (including home, about, contact, etc.) from theme's other_page_sections
       console.log('📑 Step 5c: Creating other page sections from theme...');

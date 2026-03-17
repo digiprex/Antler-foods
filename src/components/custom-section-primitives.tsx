@@ -177,7 +177,6 @@ export function CustomSectionIntro({
   subtitleStyle,
   bodyStyle,
   buttonStyles,
-  maxWidth,
   hideEyebrow = false,
   hideBadge = false,
   order = 'default',
@@ -193,7 +192,6 @@ export function CustomSectionIntro({
     primary: { backgroundColor: string; color: string; borderColor: string };
     secondary: { backgroundColor: string; color: string; borderColor: string };
   };
-  maxWidth?: string;
   hideEyebrow?: boolean;
   hideBadge?: boolean;
   order?: 'default' | 'subheadline-first';
@@ -220,16 +218,13 @@ export function CustomSectionIntro({
     </p>
   ) : null;
   const renderDescription = config.description ? (
-    <p className="mt-4 max-w-2xl text-pretty" style={bodyStyle}>
+    <p className="mt-4 text-pretty" style={bodyStyle}>
       {config.description}
     </p>
   ) : null;
 
   return (
-    <div
-      className={`flex flex-col ${alignment}`}
-      style={{ maxWidth: maxWidth || '100%' }}
-    >
+    <div className={`flex flex-col ${alignment}`}>
       {showBadge ? (
         <span
           className="mb-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]"

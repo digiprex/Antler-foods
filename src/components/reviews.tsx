@@ -20,6 +20,7 @@ import {
   getSelectedGlobalButtonStyle,
   getButtonInlineStyle,
 } from '@/lib/section-style';
+import { resolveSharedSectionSpacing } from '@/lib/shared-section-spacing';
 
 type PreviewViewport = 'desktop' | 'mobile';
 
@@ -123,8 +124,6 @@ export default function Reviews({
   textColor = '#000000',
   cardBgColor = '#ffffff',
   starColor = '#fbbf24',
-  padding = '4rem 2rem',
-  maxWidth = '1200px',
   is_custom = false,
   buttonStyleVariant,
   titleFontFamily,
@@ -207,11 +206,12 @@ export default function Reviews({
     isPreview,
   });
   const isPreviewMobile = previewViewport === 'mobile';
+  const sharedSpacing = resolveSharedSectionSpacing(previewViewport);
   const effectiveLayout = normalizeReviewLayout(layout);
-  const sectionPadding = isPreviewMobile ? '2.75rem 1rem' : padding;
-  const sectionMaxWidth = isPreviewMobile ? '100%' : maxWidth;
+  const sectionPadding = sharedSpacing.sectionPadding;
+  const sectionGap = sharedSpacing.sectionGap;
   const cardBorder = '1px solid rgba(148, 163, 184, 0.18)';
-  const cardShadow = '0 20px 50px rgba(15, 23, 42, 0.08)';
+  const cardShadow = 'none';
   const cardRadius = isPreviewMobile ? '20px' : '28px';
   const cardPadding = isPreviewMobile ? '1.15rem' : '1.45rem';
   const stripTargetCount = isPreviewMobile ? 1 : 3;
@@ -263,9 +263,9 @@ export default function Reviews({
   };
   const layoutFrameStyle: CSSProperties = {
     borderRadius: isPreviewMobile ? '26px' : '32px',
-    border: '1px solid rgba(226, 232, 240, 0.82)',
-    background: 'rgba(255, 255, 255, 0.5)',
-    boxShadow: '0 24px 60px rgba(15, 23, 42, 0.06)',
+    border: 'none',
+    background: 'transparent',
+    boxShadow: 'none',
     padding: isPreviewMobile ? '1.35rem 1rem' : '2rem 2rem 1.8rem',
   };
   const reviewTextStyle: CSSProperties = {
@@ -607,9 +607,9 @@ export default function Reviews({
         height: isPreviewMobile ? '44px' : '52px',
         borderRadius: '999px',
         border: `1px solid ${reviewAccent.navBorder}`,
-        background: '#ffffff',
+        background: 'transparent',
         color: disabled ? reviewAccent.navDisabled : reviewAccent.textSoft,
-        boxShadow: `0 12px 24px ${reviewAccent.shadowSoft}`,
+        boxShadow: 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
         fontSize: isPreviewMobile ? '1rem' : '1.15rem',
         transition: 'transform 180ms ease, box-shadow 180ms ease',
@@ -626,8 +626,8 @@ export default function Reviews({
         width: '100%',
         borderRadius: isPreviewMobile ? '24px' : '28px',
         border: '1px solid rgba(226, 232, 240, 0.9)',
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)',
-        boxShadow: '0 18px 44px rgba(15, 23, 42, 0.08)',
+        background: 'transparent',
+        boxShadow: 'none',
         padding: isPreviewMobile ? '1.25rem 1rem' : '1.65rem 1.3rem',
         display: 'flex',
       }}
@@ -674,16 +674,16 @@ export default function Reviews({
         gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(0, 0.98fr) minmax(0, 1.02fr)',
         borderRadius: isPreviewMobile ? '28px' : '34px',
         overflow: 'hidden',
-        border: '1px solid rgba(226, 232, 240, 0.85)',
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(248,250,252,0.98) 100%)',
-        boxShadow: '0 28px 80px rgba(15, 23, 42, 0.12)',
+        border: 'none',
+        background: 'transparent',
+        boxShadow: 'none',
       }}
     >
       <div
         style={{
           order: isPreviewMobile ? 2 : 1,
           padding: isPreviewMobile ? '1.6rem 1.25rem' : '2.8rem 3rem',
-          background: 'rgba(248, 250, 252, 0.88)',
+          background: 'transparent',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
@@ -750,7 +750,6 @@ export default function Reviews({
               ...reviewTextStyle,
               fontSize: isPreviewMobile ? '1rem' : '1.06rem',
               color: '#374151',
-              maxWidth: isPreviewMobile ? '100%' : '32rem',
             }}
           >
             {truncateReviewText(review.review_text, isPreviewMobile ? 190 : 235)}
@@ -805,7 +804,7 @@ export default function Reviews({
               )}
             </div>
           ) : null}
-          <div style={{ width: '100%', maxWidth: isPreviewMobile ? '100%' : '34rem', marginTop: '0.45rem' }}>
+          <div style={{ width: '100%', marginTop: '0.45rem' }}>
             {renderGoogleCta({
               label: 'Rate Us On Google',
               variant: 'solid',
@@ -846,14 +845,11 @@ export default function Reviews({
     >
       <div
         style={{
-          background:
-            cardBgColor === '#ffffff'
-              ? 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)'
-              : cardBgColor || subtleSurface,
+          background: 'transparent',
           borderRadius: cardRadius,
           padding: isPreviewMobile ? '1.3rem 1.1rem' : '1.75rem 1.45rem',
           border: '1px solid rgba(226, 232, 240, 0.9)',
-          boxShadow: '0 20px 50px rgba(15, 23, 42, 0.08)',
+          boxShadow: 'none',
           minHeight: isPreviewMobile ? '100%' : '25rem',
           display: 'flex',
           flexDirection: 'column',
@@ -1107,13 +1103,13 @@ export default function Reviews({
       ref={reveal.ref}
       style={{ backgroundColor: resolvedBgColor, padding: sectionPadding, ...bodyStyle, ...reveal.style }}
     >
-      <div style={{ maxWidth: sectionMaxWidth, margin: '0 auto' }}>
+      <div style={{ display: 'grid', gap: sectionGap }}>
         {displayReviews.length === 0 ? (
           <div
             style={{
               borderRadius: cardRadius,
               border: cardBorder,
-              background: cardBgColor,
+              background: 'transparent',
               padding: cardPadding,
               textAlign: 'center',
               opacity: 0.86,
@@ -1129,7 +1125,7 @@ export default function Reviews({
             style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: isPreviewMobile ? '1.5rem' : '2.2rem',
+              gap: sectionGap,
             }}
           >
             <div
@@ -1138,7 +1134,6 @@ export default function Reviews({
                 flexDirection: 'column',
                 alignItems: 'flex-start',
                 gap: '1rem',
-                maxWidth: '32rem',
                 ...getEntranceStyle(0),
               }}
             >
@@ -1181,7 +1176,7 @@ export default function Reviews({
                   ...layoutFrameStyle,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: isPreviewMobile ? '1.25rem' : '1.6rem',
+                  gap: sectionGap,
                   ...getEntranceStyle(1),
                 }}
               >
@@ -1266,7 +1261,7 @@ export default function Reviews({
             style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: isPreviewMobile ? '1.5rem' : '2rem',
+              gap: sectionGap,
             }}
           >
             <div
@@ -1275,7 +1270,6 @@ export default function Reviews({
                 flexDirection: 'column',
                 alignItems: 'flex-start',
                 gap: '1rem',
-                maxWidth: '34rem',
                 ...getEntranceStyle(0),
               }}
             >
@@ -1402,7 +1396,6 @@ export default function Reviews({
           <div
             style={{
               width: '100%',
-              maxWidth: '560px',
               borderRadius: '16px',
               background: '#ffffff',
               padding: '1.25rem',

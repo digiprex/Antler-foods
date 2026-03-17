@@ -24,6 +24,13 @@ import {
   mergeMenuLayoutSettings,
 } from '@/lib/menu-layout-schema';
 import {
+  applyMenuSharedSpacingDefaults,
+  resolveMenuInternalGap,
+  resolveMenuSectionPadding,
+  resolveMenuSpacingTier,
+  spacingValueToPixels,
+} from '@/lib/menu-spacing';
+import {
   getSectionContainerStyles,
   getSectionTypographyStyles,
   getSelectedGlobalButtonStyle,
@@ -59,7 +66,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
     description: PREVIEW_PLACEHOLDER_COPY.content,
-    price: '$0.00',
+    price: '',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
     ctaLink: '/menu',
@@ -67,7 +74,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
     description: PREVIEW_PLACEHOLDER_COPY.content,
-    price: '$0.00',
+    price: '',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
     ctaLink: '/menu',
@@ -75,7 +82,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
     description: PREVIEW_PLACEHOLDER_COPY.content,
-    price: '$0.00',
+    price: '',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
     ctaLink: '/menu',
@@ -83,7 +90,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
     description: PREVIEW_PLACEHOLDER_COPY.content,
-    price: '$0.00',
+    price: '',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
     ctaLink: '/menu',
@@ -91,7 +98,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
     description: PREVIEW_PLACEHOLDER_COPY.content,
-    price: '$0.00',
+    price: '',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
     ctaLink: '/menu',
@@ -99,7 +106,7 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
   {
     name: PREVIEW_PLACEHOLDER_COPY.title,
     description: PREVIEW_PLACEHOLDER_COPY.content,
-    price: '$0.00',
+    price: '',
     category: PREVIEW_PLACEHOLDER_COPY.subtitle,
     ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
     ctaLink: '/menu',
@@ -108,19 +115,6 @@ const PREVIEW_DIRECT_ITEM_LIBRARY: MenuItem[] = [
 
 function joinClasses(...classNames: Array<string | false | null | undefined>) {
   return classNames.filter(Boolean).join(' ');
-}
-
-function formatPrice(value?: string) {
-  if (!value) return null;
-
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  if (/^[\d.,]+$/.test(trimmed)) {
-    return `$${trimmed}`;
-  }
-
-  return trimmed;
 }
 
 function getItemIdentifier(item: MenuItem) {
@@ -256,7 +250,7 @@ function buildDirectLayoutItems(
     .map((item, index): PreparedMenuItem => ({
       ...item,
       name: item.name?.trim() || `Menu ${index + 1}`,
-      categoryName: item.category || title || 'Menu Highlights',
+      categoryName: item.category?.trim() || title || '',
       categoryDescription: undefined,
       categoryIcon: undefined,
     }));
@@ -285,7 +279,7 @@ function buildPreviewCategories(): MenuCategory[] {
         id: `preview-category-item-${index + 1}`,
         name: PREVIEW_PLACEHOLDER_COPY.title,
         description: PREVIEW_PLACEHOLDER_COPY.content,
-        price: '$0.00',
+        price: '',
         category: PREVIEW_PLACEHOLDER_COPY.subtitle,
         ctaLabel: PREVIEW_PLACEHOLDER_COPY.button,
         ctaLink: '/menu',
@@ -483,127 +477,109 @@ function getOverlayBodyStyle(
   }
 }
 
-export default function Menu({
-  restaurant_id,
-  title = '',
-  subtitle,
-  description,
-  categories = [],
-  featuredItems = [],
-  layoutItems = [],
-  ctaButton,
-  primaryButtonEnabled,
-  secondaryButtonEnabled,
-  primaryButton,
-  secondaryButton,
-  headerImage,
-  backgroundImage,
-  layout = 'grid',
-  bgColor = '#ffffff',
-  mobileBgColor,
-  textColor = '#000000',
-  mobileTextColor,
-  accentColor = '#3b82f6',
-  mobileAccentColor,
-  cardBgColor = '#f9fafb',
-  mobileCardBgColor,
-  cardBorderColor,
-  mobileCardBorderColor,
-  dividerColor,
-  mobileDividerColor,
-  badgeColor,
-  mobileBadgeColor,
-  buttonBgColor,
-  mobileButtonBgColor,
-  buttonTextColor,
-  mobileButtonTextColor,
-  priceColor,
-  mobilePriceColor,
-  activeTabColor,
-  mobileActiveTabColor,
-  accordionActiveColor,
-  mobileAccordionActiveColor,
-  cardRadius,
-  mobileCardRadius,
-  cardShadow,
-  mobileCardShadow,
-  overlayColor = '#0f172a',
-  overlayOpacity = 0.52,
-  showPrices = true,
-  showImages = true,
-  showDescriptions = true,
-  showDietaryInfo = false,
-  showCategoryIcons = false,
-  textAlign = 'center',
-  itemTextAlign = 'left',
-  mobileItemTextAlign,
-  cardGap,
-  mobileCardGap,
-  gridGap,
-  mobileGridGap,
-  rowSpacing,
-  mobileRowSpacing,
-  itemPadding,
-  mobileItemPadding,
-  columnSpacing,
-  mobileColumnSpacing,
-  contentMaxWidth,
-  mobileContentMaxWidth,
-  itemTitleSize,
-  mobileItemTitleSize,
-  itemTitleWeight,
-  mobileItemTitleWeight,
-  itemDescriptionSize,
-  mobileItemDescriptionSize,
-  itemLineHeight,
-  mobileItemLineHeight,
-  itemLetterSpacing,
-  mobileItemLetterSpacing,
-  priceTextSize,
-  mobilePriceTextSize,
-  layoutSettings,
-  className,
-  previewMode,
-  is_custom,
-  buttonStyleVariant,
-  titleFontFamily,
-  titleFontSize,
-  titleFontWeight,
-  titleColor,
-  subtitleFontFamily,
-  subtitleFontSize,
-  subtitleFontWeight,
-  subtitleColor,
-  bodyFontFamily,
-  bodyFontSize,
-  bodyFontWeight,
-  bodyColor,
-  enableScrollReveal,
-  scrollRevealAnimation,
-  sectionTextAlign,
-  mobileSectionTextAlign,
-  sectionMaxWidth,
-  mobileSectionMaxWidth,
-  sectionPaddingY,
-  mobileSectionPaddingY,
-  sectionPaddingX,
-  mobileSectionPaddingX,
-  surfaceBorderRadius,
-  mobileSurfaceBorderRadius,
-  surfaceShadow,
-  mobileSurfaceShadow,
-}: MenuProps) {
-  const globalStyleEndpoint = restaurant_id
-    ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurant_id)}`
-    : '/api/global-style-config';
+function getTitleRowStyle(textAlign: string): CSSProperties {
+  return {
+    justifyContent:
+      textAlign === 'center'
+        ? 'center'
+        : textAlign === 'right'
+          ? 'flex-end'
+          : 'flex-start',
+  };
+}
 
-  const { config: globalStyles } = useGlobalStyleConfig({
-    apiEndpoint: globalStyleEndpoint,
-    fetchOnMount: Boolean(restaurant_id),
-  });
-  const viewport = useSectionViewport(previewMode);
+function getItemEyebrowLabel(
+  item: PreparedMenuItem,
+  showCategoryIcons: boolean,
+) {
+  if (!item.categoryName?.trim()) {
+    return null;
+  }
 
-  const sectionStyleConfig = {
+  return showCategoryIcons && item.categoryIcon
+    ? `${item.categoryIcon} ${item.categoryName}`
+    : item.categoryName;
+}
+
+export default function Menu(rawProps: MenuProps) {
+  const {
+    restaurant_id,
+    title = '',
+    subtitle,
+    description,
+    categories = [],
+    featuredItems = [],
+    layoutItems = [],
+    ctaButton,
+    primaryButtonEnabled,
+    secondaryButtonEnabled,
+    primaryButton,
+    secondaryButton,
+    headerImage,
+    backgroundImage,
+    layout = 'grid',
+    bgColor = '#ffffff',
+    mobileBgColor,
+    textColor = '#000000',
+    mobileTextColor,
+    accentColor = '#3b82f6',
+    mobileAccentColor,
+    cardBgColor = '#f9fafb',
+    mobileCardBgColor,
+    cardBorderColor,
+    mobileCardBorderColor,
+    dividerColor,
+    mobileDividerColor,
+    badgeColor,
+    mobileBadgeColor,
+    buttonBgColor,
+    mobileButtonBgColor,
+    buttonTextColor,
+    mobileButtonTextColor,
+    priceColor,
+    mobilePriceColor,
+    activeTabColor,
+    mobileActiveTabColor,
+    accordionActiveColor,
+    mobileAccordionActiveColor,
+    cardRadius,
+    mobileCardRadius,
+    cardShadow,
+    mobileCardShadow,
+    overlayColor = '#0f172a',
+    overlayOpacity = 0.52,
+    showImages = true,
+    showDescriptions = true,
+    showDietaryInfo = false,
+    showCategoryIcons = false,
+    textAlign = 'center',
+    itemTextAlign = 'left',
+    mobileItemTextAlign,
+    cardGap,
+    mobileCardGap,
+    gridGap,
+    mobileGridGap,
+    rowSpacing,
+    mobileRowSpacing,
+    itemPadding,
+    mobileItemPadding,
+    columnSpacing,
+    mobileColumnSpacing,
+    itemTitleSize,
+    mobileItemTitleSize,
+    itemTitleWeight,
+    mobileItemTitleWeight,
+    itemDescriptionSize,
+    mobileItemDescriptionSize,
+    itemLineHeight,
+    mobileItemLineHeight,
+    itemLetterSpacing,
+    mobileItemLetterSpacing,
+    priceTextSize,
+    mobilePriceTextSize,
+    layoutSettings,
+    className,
+    previewMode,
     is_custom,
     buttonStyleVariant,
     titleFontFamily,
@@ -632,6 +608,89 @@ export default function Menu({
     mobileSurfaceBorderRadius,
     surfaceShadow,
     mobileSurfaceShadow,
+  } = applyMenuSharedSpacingDefaults(rawProps);
+  const normalizedTitle = title.trim();
+  const normalizedSubtitle = subtitle?.trim() || '';
+  const normalizedDescription = description?.trim() || '';
+  const hasHeaderContent = Boolean(
+    normalizedTitle || normalizedSubtitle || normalizedDescription,
+  );
+
+  const globalStyleEndpoint = restaurant_id
+    ? `/api/global-style-config?restaurant_id=${encodeURIComponent(restaurant_id)}`
+    : '/api/global-style-config';
+
+  const { config: globalStyles } = useGlobalStyleConfig({
+    apiEndpoint: globalStyleEndpoint,
+    fetchOnMount: Boolean(restaurant_id),
+  });
+  const viewport = useSectionViewport(previewMode);
+  const [windowWidth, setWindowWidth] = useState(() =>
+    typeof window === 'undefined' ? 1440 : window.innerWidth,
+  );
+
+  useEffect(() => {
+    if (previewMode) {
+      setWindowWidth(previewMode === 'mobile' ? 390 : 1440);
+      return;
+    }
+
+    const updateWindowWidth = () => setWindowWidth(window.innerWidth);
+    updateWindowWidth();
+    window.addEventListener('resize', updateWindowWidth);
+
+    return () => window.removeEventListener('resize', updateWindowWidth);
+  }, [previewMode]);
+
+  const spacingTier = resolveMenuSpacingTier({
+    viewport,
+    previewMode,
+    windowWidth,
+  });
+  const resolvedSectionPaddingY = resolveMenuSectionPadding({
+    desktopValue: sectionPaddingY,
+    mobileValue: mobileSectionPaddingY,
+    viewport,
+    tier: spacingTier,
+    axis: 'y',
+  });
+  const resolvedSectionPaddingX = resolveMenuSectionPadding({
+    desktopValue: sectionPaddingX,
+    mobileValue: mobileSectionPaddingX,
+    viewport,
+    tier: spacingTier,
+    axis: 'x',
+  });
+
+  const sectionStyleConfig = {
+    is_custom,
+    buttonStyleVariant,
+    titleFontFamily,
+    titleFontSize,
+    titleFontWeight,
+    titleColor,
+    subtitleFontFamily,
+    subtitleFontSize,
+    subtitleFontWeight,
+    subtitleColor,
+    bodyFontFamily,
+    bodyFontSize,
+    bodyFontWeight,
+    bodyColor,
+    enableScrollReveal,
+    scrollRevealAnimation,
+    sectionTextAlign,
+    mobileSectionTextAlign,
+    sectionMaxWidth,
+    mobileSectionMaxWidth,
+    sectionPaddingY: resolvedSectionPaddingY,
+    mobileSectionPaddingY: resolvedSectionPaddingY,
+    sectionPaddingX: resolvedSectionPaddingX,
+    mobileSectionPaddingX: resolvedSectionPaddingX,
+    surfaceBorderRadius,
+    mobileSurfaceBorderRadius,
+    surfaceShadow,
+    mobileSurfaceShadow,
   };
 
   const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
@@ -639,8 +698,10 @@ export default function Menu({
     globalStyles,
     viewport,
   );
-  const { sectionStyle, contentStyle } =
-    getSectionContainerStyles(sectionStyleConfig, viewport);
+  const { sectionStyle } = getSectionContainerStyles(
+    sectionStyleConfig,
+    viewport,
+  );
   const reveal = useSectionReveal({
     enabled: enableScrollReveal,
     animation: scrollRevealAnimation,
@@ -686,6 +747,35 @@ export default function Menu({
         fallback,
       ),
     );
+  const layoutGap = (
+    desktopKey: string,
+    mobileKey: string,
+    desktopFallback: number,
+    mobileFallback: number,
+    sharedValue: string,
+    sharedValuePx: number,
+  ) => {
+    const desktopValue = currentLayoutSettings[desktopKey] as
+      | number
+      | undefined;
+    const mobileValue = currentLayoutSettings[mobileKey] as number | undefined;
+    const resolvedValue =
+      viewport === 'mobile' ? mobileValue ?? desktopValue : desktopValue;
+    const fallbackValue =
+      viewport === 'mobile' ? mobileFallback : desktopFallback;
+
+    if (resolvedValue === undefined || resolvedValue === fallbackValue) {
+      return {
+        css: sharedValue,
+        px: sharedValuePx,
+      };
+    }
+
+    return {
+      css: `${resolvedValue}px`,
+      px: resolvedValue,
+    };
+  };
 
   const resolvedBgColor = resolveResponsiveValue(
     bgColor,
@@ -782,42 +872,38 @@ export default function Menu({
   const resolvedCardShadow = getSurfaceShadowValue(
     resolveResponsiveValue(cardShadow, mobileCardShadow, viewport, 'soft'),
   );
-  const resolvedCardGap = resolveResponsiveValue(
-    cardGap,
-    mobileCardGap,
+  const resolvedCardGap = resolveMenuInternalGap({
+    desktopValue: cardGap,
+    mobileValue: mobileCardGap,
     viewport,
-    '1.25rem',
-  );
-  const resolvedGridGap = resolveResponsiveValue(
-    gridGap,
-    mobileGridGap,
+    tier: spacingTier,
+  });
+  const resolvedGridGap = resolveMenuInternalGap({
+    desktopValue: gridGap,
+    mobileValue: mobileGridGap,
     viewport,
-    '1.4rem',
-  );
-  const resolvedRowGap = resolveResponsiveValue(
-    rowSpacing,
-    mobileRowSpacing,
+    tier: spacingTier,
+  });
+  const resolvedRowGap = resolveMenuInternalGap({
+    desktopValue: rowSpacing,
+    mobileValue: mobileRowSpacing,
     viewport,
-    '1.5rem',
-  );
+    tier: spacingTier,
+  });
   const resolvedItemPadding = resolveResponsiveValue(
     itemPadding,
     mobileItemPadding,
     viewport,
     '1.25rem',
   );
-  const resolvedColumnSpacing = resolveResponsiveValue(
-    columnSpacing,
-    mobileColumnSpacing,
+  const resolvedColumnSpacing = resolveMenuInternalGap({
+    desktopValue: columnSpacing,
+    mobileValue: mobileColumnSpacing,
     viewport,
-    '1.5rem',
-  );
-  const resolvedContainerWidth = resolveResponsiveValue(
-    contentMaxWidth,
-    mobileContentMaxWidth,
-    viewport,
-    (contentStyle.maxWidth as string) || '1200px',
-  );
+    tier: spacingTier,
+  });
+  const resolvedCardGapPx = spacingValueToPixels(resolvedCardGap);
+  const resolvedGridGapPx = spacingValueToPixels(resolvedGridGap);
   const resolvedItemTitleSize = resolveResponsiveValue(
     itemTitleSize,
     mobileItemTitleSize,
@@ -858,25 +944,194 @@ export default function Menu({
     viewport,
     '1rem',
   );
-  const resolvedItemTextAlign = resolveResponsiveValue(
-    itemTextAlign,
-    mobileItemTextAlign,
-    viewport,
-    'left',
+  const defaultDesktopItemTextAlign =
+    layout === 'grid' &&
+    (!itemTextAlign || itemTextAlign === DEFAULT_MENU_CONFIG.itemTextAlign)
+      ? 'center'
+      : itemTextAlign || 'left';
+  const defaultMobileItemTextAlign =
+    layout === 'grid' &&
+    (!mobileItemTextAlign ||
+      mobileItemTextAlign === DEFAULT_MENU_CONFIG.mobileItemTextAlign)
+      ? 'center'
+      : mobileItemTextAlign || defaultDesktopItemTextAlign;
+  const resolvedItemTextAlign =
+    viewport === 'mobile'
+      ? defaultMobileItemTextAlign
+      : defaultDesktopItemTextAlign;
+  const resolvedListGap = layoutGap(
+    'cardGap',
+    'mobileCardGap',
+    20,
+    16,
+    resolvedCardGap,
+    resolvedCardGapPx,
   );
+  const resolvedMasonryGap = layoutGap(
+    'gap',
+    'mobileGap',
+    22,
+    16,
+    resolvedGridGap,
+    resolvedGridGapPx,
+  );
+  const resolvedCarouselGap = layoutGap(
+    'slideSpacing',
+    'mobileSlideSpacing',
+    16,
+    12,
+    resolvedCardGap,
+    resolvedCardGapPx,
+  );
+  const resolvedTwoColumnGap = layoutGap(
+    'cardGap',
+    'mobileCardGap',
+    22,
+    16,
+    resolvedCardGap,
+    resolvedCardGapPx,
+  );
+  const resolvedSingleColumnGap = layoutGap(
+    'cardSpacing',
+    'mobileCardSpacing',
+    20,
+    16,
+    resolvedCardGap,
+    resolvedCardGapPx,
+  );
+  const resolvedFeatureGap = layoutGap(
+    'cardGap',
+    'mobileCardGap',
+    20,
+    14,
+    resolvedCardGap,
+    resolvedCardGapPx,
+  );
+  const resolvedGridLayoutGap = layoutGap(
+    'gap',
+    'mobileGap',
+    24,
+    16,
+    resolvedGridGap,
+    resolvedGridGapPx,
+  );
+  const resolvedTitleTextColor =
+    (typeof titleStyle.color === 'string' && titleStyle.color.trim()
+      ? titleStyle.color
+      : undefined) || resolvedTextColor;
+  const resolvedSubtitleTextColor =
+    (typeof subtitleStyle.color === 'string' && subtitleStyle.color.trim()
+      ? subtitleStyle.color
+      : undefined) || resolvedTitleTextColor;
+  const resolvedBodyTextColor =
+    (typeof bodyStyle.color === 'string' && bodyStyle.color.trim()
+      ? bodyStyle.color
+      : undefined) || resolvedTextColor;
+  const sharedTitleTextStyle: CSSProperties = {
+    ...(titleStyle.fontFamily ? { fontFamily: titleStyle.fontFamily } : {}),
+    ...(titleStyle.fontStyle
+      ? {
+          fontStyle: titleStyle.fontStyle as CSSProperties['fontStyle'],
+        }
+      : {}),
+    ...(titleStyle.textTransform
+      ? {
+          textTransform:
+            titleStyle.textTransform as CSSProperties['textTransform'],
+        }
+      : {}),
+    color: resolvedTitleTextColor,
+  };
+  const sharedSubtitleTextStyle: CSSProperties = {
+    ...(subtitleStyle.fontFamily
+      ? { fontFamily: subtitleStyle.fontFamily }
+      : {}),
+    ...(subtitleStyle.fontStyle
+      ? {
+          fontStyle: subtitleStyle.fontStyle as CSSProperties['fontStyle'],
+        }
+      : {}),
+    ...(subtitleStyle.textTransform
+      ? {
+          textTransform:
+            subtitleStyle.textTransform as CSSProperties['textTransform'],
+        }
+      : {}),
+    color: resolvedSubtitleTextColor,
+  };
+  const sharedBodyTextStyle: CSSProperties = {
+    ...(bodyStyle.fontFamily ? { fontFamily: bodyStyle.fontFamily } : {}),
+    ...(bodyStyle.fontStyle
+      ? {
+          fontStyle: bodyStyle.fontStyle as CSSProperties['fontStyle'],
+        }
+      : {}),
+    ...(bodyStyle.textTransform
+      ? {
+          textTransform:
+            bodyStyle.textTransform as CSSProperties['textTransform'],
+        }
+      : {}),
+    color: resolvedBodyTextColor,
+  };
+  const titleTypographyVariables: CSSProperties = {
+    ...(titleStyle.fontFamily
+      ? { ['--menu-title-font-family' as string]: titleStyle.fontFamily }
+      : {}),
+    ...(titleStyle.fontStyle
+      ? { ['--menu-title-font-style' as string]: titleStyle.fontStyle }
+      : {}),
+    ...(titleStyle.textTransform
+      ? {
+          ['--menu-title-text-transform' as string]:
+            titleStyle.textTransform,
+        }
+      : {}),
+  };
+  const subtitleTypographyVariables: CSSProperties = {
+    ...(subtitleStyle.fontFamily
+      ? {
+          ['--menu-subtitle-font-family' as string]:
+            subtitleStyle.fontFamily,
+        }
+      : {}),
+    ...(subtitleStyle.fontStyle
+      ? {
+          ['--menu-subtitle-font-style' as string]:
+            subtitleStyle.fontStyle,
+        }
+      : {}),
+    ...(subtitleStyle.textTransform
+      ? {
+          ['--menu-subtitle-text-transform' as string]:
+            subtitleStyle.textTransform,
+        }
+      : {}),
+  };
+  const bodyTypographyVariables: CSSProperties = {
+    ...(bodyStyle.fontFamily
+      ? { ['--menu-body-font-family' as string]: bodyStyle.fontFamily }
+      : {}),
+    ...(bodyStyle.fontStyle
+      ? { ['--menu-body-font-style' as string]: bodyStyle.fontStyle }
+      : {}),
+    ...(bodyStyle.textTransform
+      ? { ['--menu-body-text-transform' as string]: bodyStyle.textTransform }
+      : {}),
+  };
 
   const categoryDrivenLayout = layout === 'tabs' || layout === 'accordion';
   const preparedCategories = buildPreparedCategories(
     categories,
     featuredItems,
-    title || 'Our Menu',
+    normalizedTitle,
     { preserveEmptyCategories: categoryDrivenLayout },
   );
   const preparedItems = prepareItems(preparedCategories);
   const spotlightItems = buildFeaturedItems(featuredItems, preparedItems);
   const preparedLayoutItems = buildDirectLayoutItems(
     layoutItems,
-    title || 'Our Menu',
+    normalizedTitle,
     layout as MenuLayout,
   );
   const previewEnabled = Boolean(previewMode);
@@ -892,7 +1147,7 @@ export default function Menu({
     preparedItems.length === 0 &&
     previewEnabled;
   const previewDirectItems = shouldUsePreviewDirectItems
-    ? buildPreviewDirectItems(layout, title || 'Our Menu')
+    ? buildPreviewDirectItems(layout, normalizedTitle)
     : [];
   const directItems =
     preparedLayoutItems.length > 0
@@ -963,7 +1218,7 @@ export default function Menu({
     const stepWidth =
       track.firstElementChild instanceof HTMLElement
         ? track.firstElementChild.getBoundingClientRect().width +
-          layoutNumber('slideSpacing', 'mobileSlideSpacing', 16)
+          resolvedCarouselGap.px
         : 320;
 
     const interval = window.setInterval(() => {
@@ -982,8 +1237,8 @@ export default function Menu({
     return () => window.clearInterval(interval);
   }, [
     currentLayoutSettings.autoplay,
-    currentLayoutSettings.slideSpacing,
     layout,
+    resolvedCarouselGap.px,
     spotlightDirectItems.length,
   ]);
 
@@ -995,16 +1250,23 @@ export default function Menu({
     ...reveal.style,
     backgroundColor: resolvedBgColor,
     ...bodyStyle,
+    ...titleTypographyVariables,
+    ...subtitleTypographyVariables,
+    ...bodyTypographyVariables,
     ['--menu-accent' as string]: resolvedAccentColor,
     ['--menu-card-bg' as string]: resolvedCardBgColor,
     ['--menu-text' as string]: resolvedTextColor,
+    ['--menu-title-color' as string]: resolvedTitleTextColor,
+    ['--menu-subtitle-color' as string]: resolvedSubtitleTextColor,
     ['--menu-body' as string]: bodyStyle.color || resolvedTextColor,
+    ['--menu-body-color' as string]: resolvedBodyTextColor,
     ['--menu-card-border' as string]: resolvedCardBorderColor,
     ['--menu-divider' as string]: resolvedDividerColor,
     ['--menu-price' as string]: resolvedPriceColor,
     ['--menu-badge' as string]: resolvedBadgeColor,
     ['--menu-card-radius' as string]: resolvedCardRadius,
     ['--menu-card-shadow' as string]: resolvedCardShadow,
+    ['--menu-section-gap' as string]: resolvedRowGap,
     ['--menu-card-gap' as string]: resolvedCardGap,
     ['--menu-grid-gap' as string]: resolvedGridGap,
     ['--menu-primary-button-bg' as string]: resolvedPrimaryButtonBg,
@@ -1112,7 +1374,7 @@ export default function Menu({
     const stepWidth =
       carouselTrackRef.current.firstElementChild instanceof HTMLElement
         ? carouselTrackRef.current.firstElementChild.getBoundingClientRect()
-            .width + layoutNumber('slideSpacing', 'mobileSlideSpacing', 16)
+            .width + resolvedCarouselGap.px
         : 340;
 
     carouselTrackRef.current.scrollBy({
@@ -1122,16 +1384,8 @@ export default function Menu({
   };
 
   const renderPrice = (item: PreparedMenuItem) => {
-    if (!showPrices) return null;
-
-    const price = formatPrice(item.price);
-    if (!price) return null;
-
-    return (
-      <span className={styles.cardPrice} style={{ color: resolvedPriceColor }}>
-        {price}
-      </span>
-    );
+    void item;
+    return null;
   };
 
   const renderDietary = (item: PreparedMenuItem) => {
@@ -1291,6 +1545,7 @@ export default function Menu({
     const media = showImages
       ? resolveItemMedia(item, headerImage, backgroundImage)
       : undefined;
+    const itemEyebrow = getItemEyebrowLabel(item, showCategoryIcons);
     const mediaHref = item.imageLink?.trim();
     const mediaContent = media ? (
       <img src={media} alt={item.name} />
@@ -1311,7 +1566,7 @@ export default function Menu({
         )}
         style={{
           backgroundColor: resolvedCardBgColor,
-          borderRadius: resolvedCardRadius,
+          borderRadius: 0,
           boxShadow: resolvedCardShadow,
           textAlign: resolvedItemTextAlign as CSSProperties['textAlign'],
         }}
@@ -1351,25 +1606,22 @@ export default function Menu({
                 }
           }
         >
-          <div className={styles.cardEyebrow}>
-            {showCategoryIcons && item.categoryIcon
-              ? `${item.categoryIcon} ${item.categoryName}`
-              : item.categoryName}
-          </div>
-          <div className={styles.cardTitleRow}>
-            <h3
-              className={styles.cardTitle}
-              style={{ color: resolvedTextColor }}
-            >
+          {itemEyebrow ? (
+            <div className={styles.cardEyebrow} style={sharedSubtitleTextStyle}>
+              {itemEyebrow}
+            </div>
+          ) : null}
+          <div
+            className={styles.cardTitleRow}
+            style={getTitleRowStyle(resolvedItemTextAlign)}
+          >
+            <h3 className={styles.cardTitle} style={sharedTitleTextStyle}>
               {item.name}
             </h3>
             {renderPrice(item)}
           </div>
           {showDescriptions && item.description ? (
-            <p
-              className={styles.cardDescription}
-              style={{ color: resolvedTextColor }}
-            >
+            <p className={styles.cardDescription} style={sharedBodyTextStyle}>
               {item.description}
             </p>
           ) : null}
@@ -1390,6 +1642,10 @@ export default function Menu({
     const media = showImages
       ? resolveItemMedia(item, headerImage, backgroundImage)
       : undefined;
+    const splitCardTextAlign = String(
+      currentLayoutSettings.contentAlignment || resolvedItemTextAlign,
+    );
+    const itemEyebrow = getItemEyebrowLabel(item, showCategoryIcons);
     const imageAspectRatio = getAspectRatioValue(
       getGridAlignedImageAspectRatio(
         layout as MenuLayout,
@@ -1403,7 +1659,7 @@ export default function Menu({
         className={styles.imageCard}
         style={{
           backgroundColor: resolvedCardBgColor,
-          borderRadius: resolvedCardRadius,
+          borderRadius: 0,
           boxShadow: resolvedCardShadow,
           display: 'grid',
           gridTemplateColumns:
@@ -1435,32 +1691,30 @@ export default function Menu({
           style={{
             padding: resolvedItemPadding,
             order: reverse ? 1 : 2,
-            textAlign: (currentLayoutSettings.contentAlignment ||
-              resolvedItemTextAlign) as CSSProperties['textAlign'],
+            textAlign: splitCardTextAlign as CSSProperties['textAlign'],
           }}
         >
-          <div className={styles.cardEyebrow}>{item.categoryName}</div>
-          <div className={styles.cardTitleRow}>
-            <h3
-              className={styles.cardTitle}
-              style={{ color: resolvedTextColor }}
-            >
+          {itemEyebrow ? (
+            <div className={styles.cardEyebrow} style={sharedSubtitleTextStyle}>
+              {itemEyebrow}
+            </div>
+          ) : null}
+          <div
+            className={styles.cardTitleRow}
+            style={getTitleRowStyle(splitCardTextAlign)}
+          >
+            <h3 className={styles.cardTitle} style={sharedTitleTextStyle}>
               {item.name}
             </h3>
             {renderPrice(item)}
           </div>
           {showDescriptions && item.description ? (
-            <p
-              className={styles.cardDescription}
-              style={{ color: resolvedTextColor }}
-            >
+            <p className={styles.cardDescription} style={sharedBodyTextStyle}>
               {item.description}
             </p>
           ) : null}
           {renderItemActions(item, {
-            className: getButtonGroupClassName(
-              String(currentLayoutSettings.contentAlignment || resolvedItemTextAlign),
-            ),
+            className: getButtonGroupClassName(splitCardTextAlign),
           })}
         </div>
       </article>
@@ -1472,6 +1726,7 @@ export default function Menu({
       className: styles.menuButtonGroupCenter,
     });
     const promoCardStyle = String(currentLayoutSettings.cardStyle || 'soft');
+    const itemEyebrow = getItemEyebrowLabel(item, showCategoryIcons);
 
     return (
       <article
@@ -1484,29 +1739,29 @@ export default function Menu({
               : promoCardStyle === 'glass'
                 ? 'rgba(255,255,255,0.72)'
                 : resolvedCardBgColor,
-          color: resolvedTextColor,
+          color: resolvedBodyTextColor,
           textAlign: (currentLayoutSettings.contentAlignment ||
             'center') as CSSProperties['textAlign'],
           boxShadow: resolvedCardShadow,
           borderRadius: resolvedCardRadius,
         }}
       >
-        <div
-          className={styles.cardEyebrow}
-          style={{
-            color: resolvedAccentColor,
-          }}
-        >
-          {item.categoryName}
-        </div>
-        <h3 className={styles.promoTitle} style={{ color: resolvedTextColor }}>
+        {itemEyebrow ? (
+          <div
+            className={styles.cardEyebrow}
+            style={{
+              ...sharedSubtitleTextStyle,
+              color: resolvedAccentColor,
+            }}
+          >
+            {itemEyebrow}
+          </div>
+        ) : null}
+        <h3 className={styles.promoTitle} style={sharedTitleTextStyle}>
           {item.name}
         </h3>
         {showDescriptions && item.description ? (
-          <p
-            className={styles.promoDescription}
-            style={{ color: resolvedTextColor }}
-          >
+          <p className={styles.promoDescription} style={sharedBodyTextStyle}>
             {item.description}
           </p>
         ) : null}
@@ -1527,21 +1782,18 @@ export default function Menu({
       {showCategoryHeader ? (
         <div className={styles.categoryHeader}>
           <div>
-            <div className={styles.cardEyebrow}>
+            <div className={styles.cardEyebrow} style={sharedSubtitleTextStyle}>
               {showCategoryIcons && category.icon
                 ? `${category.icon} Menu Category`
                 : 'Menu Category'}
             </div>
-            <h3
-              className={styles.categoryName}
-              style={{ color: resolvedTextColor }}
-            >
+            <h3 className={styles.categoryName} style={sharedTitleTextStyle}>
               {category.name}
             </h3>
             {category.description ? (
               <p
                 className={styles.categoryDescription}
-                style={{ color: resolvedTextColor }}
+                style={sharedBodyTextStyle}
               >
                 {category.description}
               </p>
@@ -1587,7 +1839,7 @@ export default function Menu({
               <div
                 className={styles.promoGrid}
                 style={{
-                  gap: `${layoutNumber('cardGap', 'mobileCardGap', 20)}px`,
+                  gap: resolvedListGap.css,
                   gridTemplateColumns: `repeat(${Math.max(1, layoutNumber('cardCount', 'mobileCardCount', 2))}, minmax(0, 1fr))`,
                 }}
               >
@@ -1613,7 +1865,7 @@ export default function Menu({
                 renderPromoCard,
                 displayCategories.length > 1,
                 {
-                  gap: `${layoutNumber('cardGap', 'mobileCardGap', 20)}px`,
+                  gap: resolvedListGap.css,
                   gridTemplateColumns: `repeat(${Math.max(1, layoutNumber('cardCount', 'mobileCardCount', 2))}, minmax(0, 1fr))`,
                 },
               ),
@@ -1629,7 +1881,7 @@ export default function Menu({
                 className={styles.masonryGrid}
                 style={{
                   columnCount: layoutNumber('columns', 'mobileColumns', 2),
-                  columnGap: `${layoutNumber('gap', 'mobileGap', 22)}px`,
+                  columnGap: resolvedMasonryGap.css,
                 }}
               >
                 {directItems.map((item, index) => renderImageCard(item, index))}
@@ -1655,7 +1907,7 @@ export default function Menu({
                 displayCategories.length > 1,
                 {
                   columnCount: layoutNumber('columns', 'mobileColumns', 2),
-                  columnGap: `${layoutNumber('gap', 'mobileGap', 22)}px`,
+                  columnGap: resolvedMasonryGap.css,
                 },
               ),
             )}
@@ -1663,11 +1915,7 @@ export default function Menu({
         );
 
       case 'carousel': {
-        const carouselGap = layoutNumber(
-          'slideSpacing',
-          'mobileSlideSpacing',
-          16,
-        );
+        const carouselGap = resolvedCarouselGap.px;
         const carouselVisibleCards = Math.max(
           1,
           layoutNumber('cardCount', 'mobileCardCount', 3),
@@ -1725,7 +1973,7 @@ export default function Menu({
                         key={`${item.categoryName}-${item.name}-${index}`}
                         className={styles.carouselCard}
                         style={{
-                          borderRadius: resolvedCardRadius,
+                          borderRadius: 0,
                           boxShadow: resolvedCardShadow,
                           aspectRatio: carouselAspectRatio,
                           minHeight: viewport === 'mobile' ? '210px' : '260px',
@@ -1765,17 +2013,25 @@ export default function Menu({
                             minHeight: '100%',
                           }}
                         >
-                          <div className={styles.cardEyebrow}>
-                            {item.categoryName}
-                          </div>
+                          {getItemEyebrowLabel(item, showCategoryIcons) ? (
+                            <div
+                              className={styles.cardEyebrow}
+                              style={sharedSubtitleTextStyle}
+                            >
+                              {getItemEyebrowLabel(item, showCategoryIcons)}
+                            </div>
+                          ) : null}
                           <h3
                             className={styles.cardTitle}
-                            style={{ color: '#ffffff' }}
+                            style={sharedTitleTextStyle}
                           >
                             {item.name}
                           </h3>
                           {showDescriptions && item.description ? (
-                            <p className={styles.carouselCardDescription}>
+                            <p
+                              className={styles.carouselCardDescription}
+                              style={sharedBodyTextStyle}
+                            >
                               {item.description}
                             </p>
                           ) : null}
@@ -1850,7 +2106,7 @@ export default function Menu({
                   headerImage
                     ? {
                         backgroundImage: `linear-gradient(180deg, rgba(15,23,42,0.32) 0%, rgba(15,23,42,0.78) 100%), url(${headerImage})`,
-                        borderRadius: resolvedCardRadius,
+                        borderRadius: 0,
                         boxShadow: resolvedCardShadow,
                       }
                     : {
@@ -1859,12 +2115,20 @@ export default function Menu({
                       }
                 }
               >
-                {subtitle ? (
-                  <div className={styles.tabEyebrow}>{subtitle}</div>
+                {normalizedSubtitle ? (
+                  <div className={styles.tabEyebrow} style={sharedSubtitleTextStyle}>
+                    {normalizedSubtitle}
+                  </div>
                 ) : null}
-                {title ? <h3 className={styles.tabIntroTitle}>{title}</h3> : null}
-                {description ? (
-                  <p className={styles.tabIntroDescription}>{description}</p>
+                {normalizedTitle ? (
+                  <h3 className={styles.tabIntroTitle} style={sharedTitleTextStyle}>
+                    {normalizedTitle}
+                  </h3>
+                ) : null}
+                {normalizedDescription ? (
+                  <p className={styles.tabIntroDescription} style={sharedBodyTextStyle}>
+                    {normalizedDescription}
+                  </p>
                 ) : null}
                 {renderSectionButtons(
                   styles.menuButtonGroupStart,
@@ -1911,11 +2175,14 @@ export default function Menu({
                     <div className={styles.tabButtonCopy}>
                       <span
                         className={styles.tabButtonTitle}
-                        style={{ color: resolvedTextColor }}
+                        style={sharedTitleTextStyle}
                       >
                         {category.name}
                       </span>
-                      <span className={styles.tabButtonDescription}>
+                      <span
+                        className={styles.tabButtonDescription}
+                        style={sharedBodyTextStyle}
+                      >
                         {category.description ||
                           `${(category.items || []).length} item${(category.items || []).length === 1 ? '' : 's'} available`}
                       </span>
@@ -1928,17 +2195,16 @@ export default function Menu({
             {activeCategory ? (
               <div className={styles.tabContent}>
                 <div className={styles.tabContentHeader}>
-                  <div className={styles.cardEyebrow}>Active Category</div>
-                  <h3
-                    className={styles.categoryName}
-                    style={{ color: resolvedTextColor }}
-                  >
+                  <div className={styles.cardEyebrow} style={sharedSubtitleTextStyle}>
+                    Active Category
+                  </div>
+                  <h3 className={styles.categoryName} style={sharedTitleTextStyle}>
                     {activeCategory.name}
                   </h3>
                   {activeCategory.description ? (
                     <p
                       className={styles.categoryDescription}
-                      style={{ color: resolvedTextColor }}
+                      style={sharedBodyTextStyle}
                     >
                       {activeCategory.description}
                     </p>
@@ -2035,11 +2301,14 @@ export default function Menu({
                       <div className={styles.accordionTriggerCopy}>
                         <span
                           className={styles.tabButtonTitle}
-                          style={{ color: resolvedTextColor }}
+                          style={sharedTitleTextStyle}
                         >
                           {category.name}
                         </span>
-                        <span className={styles.tabButtonDescription}>
+                        <span
+                          className={styles.tabButtonDescription}
+                          style={sharedBodyTextStyle}
+                        >
                           {category.description ||
                             `${(category.items || []).length} item${(category.items || []).length === 1 ? '' : 's'} in this group`}
                         </span>
@@ -2089,7 +2358,7 @@ export default function Menu({
                                 <div>
                                   <h4
                                     className={styles.accordionItemTitle}
-                                    style={{ color: resolvedTextColor }}
+                                    style={sharedTitleTextStyle}
                                   >
                                     {item.name}
                                   </h4>
@@ -2098,7 +2367,7 @@ export default function Menu({
                                       className={
                                         styles.accordionItemDescription
                                       }
-                                      style={{ color: resolvedTextColor }}
+                                      style={sharedBodyTextStyle}
                                     >
                                       {item.description}
                                     </p>
@@ -2128,7 +2397,7 @@ export default function Menu({
               <div
                 className={styles.twoColumnGrid}
                 style={{
-                  gap: `${layoutNumber('cardGap', 'mobileCardGap', 22)}px`,
+                  gap: resolvedTwoColumnGap.css,
                   gridTemplateColumns:
                     viewport === 'mobile' &&
                     currentLayoutSettings.stackOnMobile !== false
@@ -2152,7 +2421,7 @@ export default function Menu({
         return (
           <div className={styles.layoutBody} style={{ gap: resolvedRowGap }}>
             {renderGridLayouts(styles.twoColumnGrid, undefined, {
-              gap: `${layoutNumber('cardGap', 'mobileCardGap', 22)}px`,
+              gap: resolvedTwoColumnGap.css,
               gridTemplateColumns:
                 viewport === 'mobile' &&
                 currentLayoutSettings.stackOnMobile !== false
@@ -2171,7 +2440,7 @@ export default function Menu({
               <div
                 className={styles.singleColumnGrid}
                 style={{
-                  gap: `${layoutNumber('cardSpacing', 'mobileCardSpacing', 20)}px`,
+                  gap: resolvedSingleColumnGap.css,
                   maxWidth: getContentWidthValue(
                     String(currentLayoutSettings.contentWidth || 'medium'),
                   ),
@@ -2206,7 +2475,7 @@ export default function Menu({
                   renderImageCard(item, index, { centered: true }),
                 displayCategories.length > 1,
                 {
-                  gap: `${layoutNumber('cardSpacing', 'mobileCardSpacing', 20)}px`,
+                  gap: resolvedSingleColumnGap.css,
                   maxWidth:
                     currentLayoutSettings.contentWidth === 'narrow'
                       ? getContentWidthValue('narrow')
@@ -2227,7 +2496,7 @@ export default function Menu({
             <div
               className={styles.featureGrid}
               style={{
-                gap: `${layoutNumber('cardGap', 'mobileCardGap', 20)}px`,
+                gap: resolvedFeatureGap.css,
                 gridTemplateColumns: `repeat(${Math.max(1, layoutNumber('columns', 'mobileColumns', 3))}, minmax(0, 1fr))`,
               }}
             >
@@ -2242,16 +2511,13 @@ export default function Menu({
                   }}
                 >
                   {renderSymbol(item, index)}
-                  <h3
-                    className={styles.featureTitle}
-                    style={{ color: resolvedTextColor }}
-                  >
+                  <h3 className={styles.featureTitle} style={sharedTitleTextStyle}>
                     {item.name}
                   </h3>
                   {showDescriptions && item.description ? (
                     <p
                       className={styles.featureDescription}
-                      style={{ color: resolvedTextColor }}
+                      style={sharedBodyTextStyle}
                     >
                       {item.description}
                     </p>
@@ -2268,7 +2534,7 @@ export default function Menu({
             <div
               className={styles.minimalGrid}
               style={{
-                gap: `${layoutNumber('cardGap', 'mobileCardGap', 20)}px`,
+                gap: resolvedFeatureGap.css,
                 gridTemplateColumns: `repeat(${Math.max(1, layoutNumber('columns', 'mobileColumns', 3))}, minmax(0, 1fr))`,
               }}
             >
@@ -2278,16 +2544,13 @@ export default function Menu({
                   className={styles.minimalCard}
                 >
                   {renderSymbol(item, index)}
-                  <h3
-                    className={styles.minimalTitle}
-                    style={{ color: resolvedTextColor }}
-                  >
+                  <h3 className={styles.minimalTitle} style={sharedTitleTextStyle}>
                     {item.name}
                   </h3>
                   {showDescriptions && item.description ? (
                     <p
                       className={styles.minimalDescription}
-                      style={{ color: resolvedTextColor }}
+                      style={sharedBodyTextStyle}
                     >
                       {item.description}
                     </p>
@@ -2309,7 +2572,7 @@ export default function Menu({
               <div
                 className={styles.twoColumnGrid}
                 style={{
-                  gap: `${layoutNumber('gap', 'mobileGap', 24)}px`,
+                  gap: resolvedGridLayoutGap.css,
                   gridTemplateColumns: `repeat(${Math.max(1, layoutNumber('columns', 'mobileColumns', 2))}, minmax(0, 1fr))`,
                 }}
               >
@@ -2326,7 +2589,7 @@ export default function Menu({
               styles.twoColumnGrid,
               { overlay: true },
               {
-                gap: `${layoutNumber('gap', 'mobileGap', 24)}px`,
+                gap: resolvedGridLayoutGap.css,
                 gridTemplateColumns: `repeat(${Math.max(1, layoutNumber('columns', 'mobileColumns', 2))}, minmax(0, 1fr))`,
               },
             )}
@@ -2361,57 +2624,56 @@ export default function Menu({
         </>
       ) : null}
 
-      <div
-        className={styles.menuContainer}
-        style={{ ...contentStyle, maxWidth: resolvedContainerWidth }}
-      >
-        <div
-          className={joinClasses(
-            styles.menuHeader,
-            resolvedHeaderAlign === 'left'
-              ? styles.alignLeft
-              : resolvedHeaderAlign === 'right'
-                ? styles.alignRight
-                : styles.alignCenter,
-          )}
-          style={{
-            textAlign: resolvedHeaderAlign as CSSProperties['textAlign'],
-            justifyItems:
+      <div className={styles.menuContainer}>
+        {hasHeaderContent ? (
+          <div
+            className={joinClasses(
+              styles.menuHeader,
               resolvedHeaderAlign === 'left'
-                ? 'start'
+                ? styles.alignLeft
                 : resolvedHeaderAlign === 'right'
-                  ? 'end'
-                  : 'center',
-          }}
-        >
-          {title ? (
-            <h2 className={styles.menuTitle} style={titleStyle}>
-              {title}
-            </h2>
-          ) : null}
-          {subtitle ? (
-            <p
-              className={styles.menuSubtitle}
-              style={{
-                ...subtitleStyle,
-                color: subtitleStyle.color || resolvedTextColor,
-              }}
-            >
-              {subtitle}
-            </p>
-          ) : null}
-          {description ? (
-            <p
-              className={styles.menuDescription}
-              style={{
-                ...bodyStyle,
-                color: bodyStyle.color || resolvedTextColor,
-              }}
-            >
-              {description}
-            </p>
-          ) : null}
-        </div>
+                  ? styles.alignRight
+                  : styles.alignCenter,
+            )}
+            style={{
+              textAlign: resolvedHeaderAlign as CSSProperties['textAlign'],
+              justifyItems:
+                resolvedHeaderAlign === 'left'
+                  ? 'start'
+                  : resolvedHeaderAlign === 'right'
+                    ? 'end'
+                    : 'center',
+            }}
+          >
+            {normalizedTitle ? (
+              <h2 className={styles.menuTitle} style={titleStyle}>
+                {normalizedTitle}
+              </h2>
+            ) : null}
+            {normalizedSubtitle ? (
+              <p
+                className={styles.menuSubtitle}
+                style={{
+                  ...subtitleStyle,
+                  color: resolvedSubtitleTextColor,
+                }}
+              >
+                {normalizedSubtitle}
+              </p>
+            ) : null}
+            {normalizedDescription ? (
+              <p
+                className={styles.menuDescription}
+                style={{
+                  ...bodyStyle,
+                  color: resolvedBodyTextColor,
+                }}
+              >
+                {normalizedDescription}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         {(
           categoryDrivenLayout
@@ -2421,7 +2683,7 @@ export default function Menu({
           renderLayoutContent()
         ) : (
           <div className={styles.emptyState}>
-            <p style={{ color: resolvedTextColor }}>No menu items available.</p>
+            <p style={sharedBodyTextStyle}>No menu items available.</p>
           </div>
         )}
 

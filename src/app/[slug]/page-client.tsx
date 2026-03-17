@@ -79,44 +79,9 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
         const domain = window.location.host;
         console.log('[Page Client] 🌐 Resolving restaurant from domain:', domain);
         console.log('[Page Client] 📄 Page slug:', slug);
-
-        // Resolve restaurant ID from domain
-        const heroResponse = await fetch(`/api/hero-config?domain=${domain}&url_slug=${slug}`);
-        console.log('[Page Client] 🔍 Hero API response status:', heroResponse.status);
-
-        if (!heroResponse.ok) {
-          throw new Error('Failed to resolve restaurant from domain');
-        }
-
-        const heroData = await heroResponse.json();
-        console.log('[Page Client] 📦 Hero API data:', heroData);
-
-        if (!heroData.success) {
-          throw new Error(heroData.error || 'Failed to get restaurant configuration');
-        }
-
-        let resolvedRestaurantId = heroData.data?.restaurant_id;
-        console.log('[Page Client] 🏪 Resolved restaurant_id:', resolvedRestaurantId);
-
-        // Development fallback for localhost
-        if (!resolvedRestaurantId && domain.includes('localhost')) {
-          console.warn('[Page Client] ⚠️ No restaurant found for localhost');
-          console.warn('[Page Client] 💡 Tip: Set staging_domain to "' + domain + '" in Location Settings');
-          // Add your restaurant ID here for local development
-          const FALLBACK_RESTAURANT_ID = ''; // TODO: Add restaurant ID from database
-          if (FALLBACK_RESTAURANT_ID) {
-            resolvedRestaurantId = FALLBACK_RESTAURANT_ID;
-          }
-        }
-
-        if (!resolvedRestaurantId) {
-          throw new Error('No restaurant found for this domain');
-        }
-        setRestaurantId(resolvedRestaurantId);
-
-        // Fetch page details
+        // Fetch page details directly by domain + slug (single request path)
         const pageResponse = await fetch(
-          `/api/page-details?restaurant_id=${resolvedRestaurantId}&url_slug=${slug}`
+          `/api/page-details?domain=${encodeURIComponent(domain)}&url_slug=${encodeURIComponent(slug)}`
         );
 
         if (pageResponse.status === 404) {
@@ -134,6 +99,12 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           notFound();
           return;
         }
+
+        const resolvedRestaurantId = pageResponseData.data?.page?.restaurant_id;
+        if (!resolvedRestaurantId) {
+          throw new Error('No restaurant found for this domain');
+        }
+        setRestaurantId(resolvedRestaurantId);
 
         // Check if page is published
         const page = pageResponseData.data?.page;
@@ -513,3 +484,4 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
     </div>
   );
 }
+

@@ -5,7 +5,7 @@
  * then fetches associated template configurations from templates table
  * 
  * Query Parameters:
- * - restaurant_id: UUID of the restaurant (required)
+ * - restaurant_id: UUID of the restaurant (optional if domain is provided)
  * - url_slug: URL slug of the page (required)
  * - domain: Domain name (optional, for future multi-domain support)
  */
@@ -33,6 +33,26 @@ const GET_RESTAURANT_DOMAINS = `
       restaurant_id
       staging_domain
       custom_domain
+    }
+  }
+`;
+
+/**
+ * GraphQL query to resolve restaurant_id directly by domain
+ */
+const GET_RESTAURANT_ID_BY_DOMAIN = `
+  query GetRestaurantByDomain($domain: String!) {
+    restaurants(
+      where: {
+        _or: [
+          { custom_domain: { _eq: $domain } },
+          { staging_domain: { _eq: $domain } }
+        ],
+        is_deleted: { _eq: false }
+      },
+      limit: 1
+    ) {
+      restaurant_id
     }
   }
 `;
@@ -170,13 +190,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     let restaurantId = searchParams.get('restaurant_id');
-    
-    if (!restaurantId) {
-      return NextResponse.json(
-        { success: false, error: 'restaurant_id is required as a query parameter' },
-        { status: 400 }
-      );
-    }
     const urlSlug = searchParams.get('url_slug');
     const domain = searchParams.get('domain') || request.headers.get('host');
 
@@ -191,19 +204,39 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (!restaurantId && !domain) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Either restaurant_id or domain is required',
+          data: null,
+        },
+        { status: 400 }
+      );
+    }
+
     // If domain is provided but no restaurantId, fetch restaurantId from domain
-    if (domain && !searchParams.get('restaurant_id')) {
+    if (domain && !restaurantId) {
       try {
-        // Import the function dynamically to avoid circular dependencies
-        const { getRestaurantIdByDomain } = await import('@/lib/graphql/queries');
-        const domainRestaurantId = await getRestaurantIdByDomain(domain);
-        if (domainRestaurantId) {
-          restaurantId = domainRestaurantId;
-        }
+        const domainData = await graphqlRequest(GET_RESTAURANT_ID_BY_DOMAIN, {
+          domain,
+        });
+        const domainRestaurantId = (domainData as any)?.restaurants?.[0]?.restaurant_id;
+        restaurantId = domainRestaurantId || null;
       } catch (error) {
         console.error('Error fetching restaurant ID by domain:', error);
-        // Continue with default restaurant ID
       }
+    }
+
+    if (!restaurantId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'No restaurant found for this domain',
+          data: null,
+        },
+        { status: 404 }
+      );
     }
 
     // Step 1: Determine if we're on staging or production domain first

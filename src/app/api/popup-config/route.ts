@@ -27,6 +27,12 @@ interface GetPopupConfigResponse {
   templates: PopupTemplate[];
 }
 
+interface GetPopupTemplateOnlyResponse {
+  templates: Array<{
+    template_id: string;
+  }>;
+}
+
 interface GetRestaurantByDomainResponse {
   restaurants: Array<{
     restaurant_id: string;
@@ -77,6 +83,26 @@ const GET_POPUP_CONFIG = `
       template_id
       updated_at
       page_id
+    }
+  }
+`;
+
+/**
+ * Lightweight query for update flow (POST)
+ * Fetches only current popup template id for soft-delete.
+ */
+const GET_POPUP_TEMPLATE_ONLY = `
+  query GetPopupTemplateOnly($restaurant_id: uuid!) {
+    templates(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        category: {_eq: "Popup"},
+        is_deleted: {_eq: false}
+      },
+      order_by: {created_at: desc},
+      limit: 1
+    ) {
+      template_id
     }
   }
 `;
@@ -227,7 +253,9 @@ export async function POST(request: Request) {
     }
 
     // Get current template to mark as deleted
-    const currentData = await graphqlRequest<GetPopupConfigResponse>(GET_POPUP_CONFIG, { restaurant_id: restaurantId });
+    const currentData = await graphqlRequest<GetPopupTemplateOnlyResponse>(GET_POPUP_TEMPLATE_ONLY, {
+      restaurant_id: restaurantId,
+    });
 
     // Mark current template as deleted (if exists)
     if (currentData.templates && currentData.templates.length > 0) {

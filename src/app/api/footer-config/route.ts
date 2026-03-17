@@ -85,6 +85,29 @@ const GET_FOOTER_CONFIG = `
 `;
 
 /**
+ * Lightweight query for update flow (POST)
+ * Fetches only the latest footer template record.
+ */
+const GET_FOOTER_TEMPLATE_ONLY = `
+  query GetFooterTemplateOnly($restaurant_id: uuid!) {
+    templates(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        category: {_eq: "Footer"},
+        is_deleted: {_eq: false}
+      },
+      order_by: {created_at: desc},
+      limit: 1
+    ) {
+      template_id
+      name
+      config
+      menu_items
+    }
+  }
+`;
+
+/**
  * GraphQL mutation to mark current template as deleted
  * Uses template_id as primary key
  */
@@ -425,7 +448,7 @@ export async function POST(request: Request) {
     }
 
     // Step 1: Get current template to mark as deleted
-    const currentData = await graphqlRequest(GET_FOOTER_CONFIG, {
+    const currentData = await graphqlRequest(GET_FOOTER_TEMPLATE_ONLY, {
       restaurant_id: restaurantId,
     });
 

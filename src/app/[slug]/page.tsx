@@ -6,7 +6,6 @@
  * Now includes dynamic SEO metadata generation
  */
 
-import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { generateDynamicSEO, generateMetadata as generateSEOMetadata } from '@/lib/seo';
 import DynamicPageClient from './page-client';
@@ -25,38 +24,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     // Get current domain (this will be available in the request headers)
     const domain = process.env.VERCEL_URL || 'localhost:3000';
 
-    // First, resolve restaurant ID from domain
-    const heroResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/hero-config?domain=${domain}&url_slug=${slug}`, {
-      cache: 'no-store'
-    });
-
-    if (!heroResponse.ok) {
-      return generateSEOMetadata();
-    }
-
-    const heroData = await heroResponse.json();
-    if (!heroData.success) {
-      return generateSEOMetadata();
-    }
-
-    let resolvedRestaurantId = heroData.data?.restaurant_id;
-
-    // Development fallback for localhost
-    if (!resolvedRestaurantId && domain.includes('localhost')) {
-      // Add your restaurant ID here for local development
-      const FALLBACK_RESTAURANT_ID = ''; // TODO: Add restaurant ID from database
-      if (FALLBACK_RESTAURANT_ID) {
-        resolvedRestaurantId = FALLBACK_RESTAURANT_ID;
-      }
-    }
-
-    if (!resolvedRestaurantId) {
-      return generateSEOMetadata();
-    }
-
     // Fetch page details
     const pageResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/page-details?restaurant_id=${resolvedRestaurantId}&url_slug=${slug}`,
+      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/page-details?domain=${encodeURIComponent(domain)}&url_slug=${encodeURIComponent(slug)}`,
       { cache: 'no-store' }
     );
 
@@ -67,6 +37,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const pageResponseData = await pageResponse.json();
 
     if (!pageResponseData.success || !pageResponseData.data) {
+      return generateSEOMetadata();
+    }
+
+    const resolvedRestaurantId = pageResponseData.data?.page?.restaurant_id;
+    if (!resolvedRestaurantId) {
       return generateSEOMetadata();
     }
 

@@ -70,21 +70,24 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       return generateSEOMetadata();
     }
 
-    // Generate dynamic SEO
-    const seoConfig = generateDynamicSEO(pageResponseData);
-    const metadata = generateSEOMetadata(seoConfig);
-
-    // Fetch favicon from restaurants table
+    // Get restaurant name and favicon for SEO
+    let restaurantName = '';
     try {
       const restaurantResponse = await fetch(
         `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/restaurant-info?restaurant_id=${resolvedRestaurantId}`,
         { cache: 'no-store' }
       );
-
+      
       if (restaurantResponse.ok) {
         const restaurantData = await restaurantResponse.json();
+        restaurantName = restaurantData.data?.name || '';
         const faviconUrl = restaurantData.data?.favicon_url;
 
+        // Generate dynamic SEO with restaurant name
+        const seoConfig = generateDynamicSEO(pageResponseData, restaurantName);
+        const metadata = generateSEOMetadata(seoConfig);
+
+        // Add favicon if available
         if (faviconUrl) {
           metadata.icons = {
             icon: faviconUrl,
@@ -92,11 +95,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
             apple: faviconUrl,
           };
         }
+
+        return metadata;
       }
     } catch (error) {
-      console.error('Error fetching favicon:', error);
-      // Continue without favicon if fetch fails
+      console.error('Error fetching restaurant info for SEO:', error);
     }
+
+    // Fallback: Generate SEO without restaurant name if API call fails
+    const seoConfig = generateDynamicSEO(pageResponseData, restaurantName);
+    const metadata = generateSEOMetadata(seoConfig);
 
     return metadata;
 

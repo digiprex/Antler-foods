@@ -5,13 +5,14 @@
  * then fetches associated template configurations from templates table
  * 
  * Query Parameters:
- * - restaurant_id: UUID of the restaurant (required)
+ * - restaurant_id: UUID of the restaurant (optional if domain is provided)
  * - url_slug: URL slug of the page (required)
  * - domain: Domain name (optional, for future multi-domain support)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { resolveRestaurantIdByDomain } from '@/lib/server/domain-resolver';
 // Restaurant ID should be provided dynamically via query parameters - no static fallback
 
 /**
@@ -170,13 +171,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     let restaurantId = searchParams.get('restaurant_id');
-    
-    if (!restaurantId) {
-      return NextResponse.json(
-        { success: false, error: 'restaurant_id is required as a query parameter' },
-        { status: 400 }
-      );
-    }
     const urlSlug = searchParams.get('url_slug');
     const domain = searchParams.get('domain') || request.headers.get('host');
 
@@ -191,19 +185,35 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (!restaurantId && !domain) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Either restaurant_id or domain is required',
+          data: null,
+        },
+        { status: 400 }
+      );
+    }
+
     // If domain is provided but no restaurantId, fetch restaurantId from domain
-    if (domain && !searchParams.get('restaurant_id')) {
+    if (domain && !restaurantId) {
       try {
-        // Import the function dynamically to avoid circular dependencies
-        const { getRestaurantIdByDomain } = await import('@/lib/graphql/queries');
-        const domainRestaurantId = await getRestaurantIdByDomain(domain);
-        if (domainRestaurantId) {
-          restaurantId = domainRestaurantId;
-        }
+        restaurantId = await resolveRestaurantIdByDomain(domain);
       } catch (error) {
         console.error('Error fetching restaurant ID by domain:', error);
-        // Continue with default restaurant ID
       }
+    }
+
+    if (!restaurantId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'No restaurant found for this domain',
+          data: null,
+        },
+        { status: 404 }
+      );
     }
 
     // Step 1: Determine if we're on staging or production domain first
@@ -319,7 +329,11 @@ export async function GET(request: NextRequest) {
       error: null,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'public, max-age=5, stale-while-revalidate=60',
+      },
+    });
   } catch (error: any) {
     console.error('Page details API error:', error);
     return NextResponse.json(

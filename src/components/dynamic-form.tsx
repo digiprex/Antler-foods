@@ -12,6 +12,9 @@ import {
   getSelectedGlobalButtonStyle,
   type SectionViewport,
 } from '@/lib/section-style';
+import {
+  resolveSharedSectionSpacing,
+} from '@/lib/shared-section-spacing';
 import type { SectionStyleConfig } from '@/types/section-style.types';
 
 interface FormField {
@@ -404,6 +407,21 @@ export default function DynamicForm({
   );
   const { sectionStyle, contentStyle, surfaceStyle, layoutConfig } =
     getSectionContainerStyles(displayConfig, viewport);
+  const sharedSpacing = resolveSharedSectionSpacing(viewport);
+  const constrainedContentStyle: CSSProperties = useMemo(() => {
+    if (
+      layout === 'centered' ||
+      layout === 'image-top' ||
+      layout === 'background-image'
+    ) {
+      return {
+        ...contentStyle,
+        maxWidth: '960px',
+      };
+    }
+
+    return contentStyle;
+  }, [contentStyle, layout]);
   const { ref, style: revealStyle } = useSectionReveal({
     enabled: displayConfig?.enableScrollReveal,
     animation: displayConfig?.scrollRevealAnimation,
@@ -616,7 +634,7 @@ export default function DynamicForm({
         </p>
       ) : null}
       {displayConfig.description ? (
-        <p className="mt-4 max-w-2xl text-sm leading-7 mx-auto text-center" style={{ ...bodyStyle, color: bodyColor, opacity: 0.78 }}>
+        <p className="mt-4 text-sm leading-7 text-center" style={{ ...bodyStyle, color: bodyColor, opacity: 0.78 }}>
           {displayConfig.description}
         </p>
       ) : null}
@@ -669,25 +687,28 @@ export default function DynamicForm({
   );
 
   const centeredLayout = (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div style={{ display: 'grid', gap: sharedSpacing.sectionGap }}>
       {headingBlock}
       {formCard}
     </div>
   );
 
   const splitContent = (
-    <div className={`grid gap-6 ${viewport === 'mobile' ? 'grid-cols-1' : 'lg:grid-cols-[1.05fr_0.95fr]'}`}>
+    <div
+      className={`grid ${viewport === 'mobile' ? 'grid-cols-1' : 'lg:grid-cols-[1.05fr_0.95fr]'}`}
+      style={{ gap: sharedSpacing.sectionGap }}
+    >
       {layout === 'split-left' ? (
         <>
           {mediaPanel}
-          <div className="space-y-8">
+          <div style={{ display: 'grid', gap: sharedSpacing.sectionGap }}>
             {headingBlock}
             {formCard}
           </div>
         </>
       ) : (
         <>
-          <div className="space-y-8">
+          <div style={{ display: 'grid', gap: sharedSpacing.sectionGap }}>
             {headingBlock}
             {formCard}
           </div>
@@ -698,9 +719,9 @@ export default function DynamicForm({
   );
 
   const imageTopLayout = (
-    <div className="space-y-8">
+    <div style={{ display: 'grid', gap: sharedSpacing.sectionGap }}>
       {mediaPanel}
-      <div className="mx-auto max-w-3xl space-y-8">
+      <div style={{ display: 'grid', gap: sharedSpacing.sectionGap }}>
         {headingBlock}
         {formCard}
       </div>
@@ -718,8 +739,8 @@ export default function DynamicForm({
             : `${accentColor}`,
       }}
     >
-      <div className="mx-auto max-w-3xl rounded-[28px] bg-white/92 p-6 shadow-[0_32px_90px_rgba(15,23,42,0.24)] backdrop-blur sm:p-8">
-        <div className="space-y-8">
+      <div className="rounded-[28px] bg-white/92 p-6 shadow-[0_32px_90px_rgba(15,23,42,0.24)] backdrop-blur sm:p-8">
+        <div style={{ display: 'grid', gap: sharedSpacing.sectionGap }}>
           {headingBlock}
           {formCard}
         </div>
@@ -733,10 +754,12 @@ export default function DynamicForm({
       style={{
         ...sectionStyle,
         ...revealStyle,
+        paddingBlock: sharedSpacing.sectionPadding,
+        paddingInline: sharedSpacing.sectionPadding,
         background: `radial-gradient(circle at top left, ${accentColor}16, transparent 34%), ${backgroundColor}`,
       }}
     >
-      <div style={contentStyle}>
+      <div style={constrainedContentStyle}>
         {isPreview && isDisabled ? (
           <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/90 px-6 py-12 text-center shadow-inner">
             <p className="text-sm font-semibold text-slate-700">Form display is currently disabled</p>

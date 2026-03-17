@@ -14,6 +14,7 @@
 import { NextResponse } from 'next/server';
 import type { NavbarConfig, NavbarConfigResponse } from '@/types/navbar.types';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { resolveRestaurantIdByDomain } from '@/lib/server/domain-resolver';
 
 // Restaurant ID must be provided dynamically via query parameters or domain lookup
 
@@ -65,6 +66,29 @@ const GET_NAVBAR_CONFIG = `
       page_id
       name
       url_slug
+    }
+  }
+`;
+
+/**
+ * Lightweight query for update flow (POST)
+ * Fetches only the latest navbar template record.
+ */
+const GET_NAVBAR_TEMPLATE_ONLY = `
+  query GetNavbarTemplateOnly($restaurant_id: uuid!) {
+    templates(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        category: {_eq: "Navbar"},
+        is_deleted: {_eq: false}
+      },
+      order_by: {created_at: desc},
+      limit: 1
+    ) {
+      template_id
+      name
+      config
+      menu_items
     }
   }
 `;
@@ -128,45 +152,10 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     let restaurantId = searchParams.get('restaurant_id');
     const domain = searchParams.get('domain') || request.headers.get('host');
-    const urlSlug = searchParams.get('url_slug');
-    let pageId = searchParams.get('page_id');
-
     // If domain is provided but no restaurantId, fetch restaurantId from domain
     if (domain && !searchParams.get('restaurant_id')) {
       try {
-        console.log('[Navbar Config] Looking up domain:', domain);
-
-        const GET_RESTAURANT_BY_DOMAIN = `
-          query GetRestaurantByDomain($domain: String!) {
-            restaurants(
-              where: {
-                _or: [
-                  { custom_domain: { _eq: $domain } },
-                  { staging_domain: { _eq: $domain } }
-                ],
-                is_deleted: { _eq: false }
-              },
-              limit: 1
-            ) {
-              restaurant_id
-              custom_domain
-              staging_domain
-              is_deleted
-            }
-          }
-        `;
-
-        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, {
-          domain: domain,
-        });
-
-        if ((domainData as any).restaurants && (domainData as any).restaurants.length > 0) {
-          const restaurant = (domainData as any).restaurants[0];
-          if (!restaurant.is_deleted) {
-            restaurantId = restaurant.restaurant_id;
-            console.log('[Navbar Config] Found restaurant for domain:', domain, '->', restaurantId);
-          }
-        }
+        restaurantId = await resolveRestaurantIdByDomain(domain);
       } catch (error) {
         console.error('Error fetching restaurant ID by domain:', error);
         // Continue without restaurant ID - will be validated below
@@ -192,26 +181,15 @@ export async function GET(request: Request) {
     }
 
     // Navbar is global for the restaurant - always use general template (no page_id)
-    console.log('[Navbar Config] Using restaurant_id:', restaurantId);
-
     const data = await graphqlRequest(GET_NAVBAR_CONFIG, {
       restaurant_id: restaurantId,
     });
-
-    console.log('[Navbar Config] Template query result (restaurant-wide):', JSON.stringify(data, null, 2));
 
     // Get restaurant data from database
     const restaurantData = (data as any).restaurants?.[0];
     const restaurantName = restaurantData?.name || 'Restaurant';
     const logoUrl = restaurantData?.logo || undefined;
     const globalStyles = restaurantData?.global_styles || null;
-
-    console.log('[Navbar Config] 🏪 Restaurant data:', {
-      name: restaurantName,
-      logo: logoUrl,
-      hasLogo: !!logoUrl,
-      hasGlobalStyles: !!globalStyles,
-    });
 
     // Transform web_pages to nav items
     const navItems = ((data as any).web_pages || []).map((page: any) => ({
@@ -246,14 +224,15 @@ export async function GET(request: Request) {
         textTransform: 'uppercase',
       };
 
-      console.log('[Navbar Config] ✅ Returning default config for new restaurant with global styles');
-
       const response: NavbarConfigResponse = {
         success: true,
         data: defaultConfig,
       };
-
-      return NextResponse.json(response);
+      return NextResponse.json(response, {
+        headers: {
+          'Cache-Control': 'public, max-age=10, stale-while-revalidate=120',
+        },
+      });
     }
 
     const template = (data as any).templates[0]; // Get most recent non-deleted template
@@ -281,19 +260,15 @@ export async function GET(request: Request) {
       textTransform: template.config?.textTransform || 'uppercase',
     };
 
-    console.log('[Navbar Config] ✅ Final config being sent:', {
-      restaurantName: config.restaurantName,
-      logoUrl: config.logoUrl,
-      hasLogo: !!config.logoUrl,
-      leftNavItems: config.leftNavItems?.length,
-    });
-
     const response: NavbarConfigResponse = {
       success: true,
       data: config,
     };
-
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'public, max-age=10, stale-while-revalidate=120',
+      },
+    });
   } catch (error) {
     console.error('Error fetching navbar config:', error);
 
@@ -332,7 +307,7 @@ export async function POST(request: Request) {
     }
     
     // Step 1: Get current template to mark as deleted and preserve menu_items and config
-    const currentData = await graphqlRequest(GET_NAVBAR_CONFIG, {
+    const currentData = await graphqlRequest(GET_NAVBAR_TEMPLATE_ONLY, {
       restaurant_id: restaurantId,
     });
 

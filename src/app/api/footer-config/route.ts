@@ -14,6 +14,7 @@
 import { NextResponse } from 'next/server';
 import type { FooterConfig, FooterConfigResponse } from '@/types/footer.types';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { resolveRestaurantIdByDomain } from '@/lib/server/domain-resolver';
 
 // Restaurant ID must be provided dynamically via query parameters or domain lookup
 
@@ -85,6 +86,29 @@ const GET_FOOTER_CONFIG = `
 `;
 
 /**
+ * Lightweight query for update flow (POST)
+ * Fetches only the latest footer template record.
+ */
+const GET_FOOTER_TEMPLATE_ONLY = `
+  query GetFooterTemplateOnly($restaurant_id: uuid!) {
+    templates(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        category: {_eq: "Footer"},
+        is_deleted: {_eq: false}
+      },
+      order_by: {created_at: desc},
+      limit: 1
+    ) {
+      template_id
+      name
+      config
+      menu_items
+    }
+  }
+`;
+
+/**
  * GraphQL mutation to mark current template as deleted
  * Uses template_id as primary key
  */
@@ -143,45 +167,10 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     let restaurantId = searchParams.get('restaurant_id');
     const domain = searchParams.get('domain') || request.headers.get('host');
-    const urlSlug = searchParams.get('url_slug');
-    let pageId = searchParams.get('page_id');
-
     // If domain is provided but no restaurantId, fetch restaurantId from domain
     if (domain && !searchParams.get('restaurant_id')) {
       try {
-        console.log('[Footer Config] Looking up domain:', domain);
-
-        const GET_RESTAURANT_BY_DOMAIN = `
-          query GetRestaurantByDomain($domain: String!) {
-            restaurants(
-              where: {
-                _or: [
-                  { custom_domain: { _eq: $domain } },
-                  { staging_domain: { _eq: $domain } }
-                ],
-                is_deleted: { _eq: false }
-              },
-              limit: 1
-            ) {
-              restaurant_id
-              custom_domain
-              staging_domain
-              is_deleted
-            }
-          }
-        `;
-
-        const domainData = await graphqlRequest(GET_RESTAURANT_BY_DOMAIN, {
-          domain: domain,
-        });
-
-        if ((domainData as any).restaurants && (domainData as any).restaurants.length > 0) {
-          const restaurant = (domainData as any).restaurants[0];
-          if (!restaurant.is_deleted) {
-            restaurantId = restaurant.restaurant_id;
-            console.log('[Footer Config] Found restaurant for domain:', domain, '->', restaurantId);
-          }
-        }
+        restaurantId = await resolveRestaurantIdByDomain(domain);
       } catch (error) {
         console.error('Error fetching restaurant ID by domain:', error);
         // Continue without restaurant ID - will be validated below
@@ -203,13 +192,9 @@ export async function GET(request: Request) {
     }
 
     // Footer is global for the restaurant - always use general template (no page_id)
-    console.log('[Footer Config] Using restaurant_id:', restaurantId);
-
     const data = await graphqlRequest(GET_FOOTER_CONFIG, {
       restaurant_id: restaurantId,
     });
-
-    console.log('[Footer Config] Template query result (restaurant-wide):', JSON.stringify(data, null, 2));
 
     // Extract name, email, phone, address and social links from restaurant table
     const restaurantData = (data as any).restaurants?.[0];
@@ -391,7 +376,11 @@ export async function GET(request: Request) {
       data: config,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'public, max-age=10, stale-while-revalidate=120',
+      },
+    });
   } catch (error) {
     console.error('Error fetching footer config:', error);
 
@@ -425,7 +414,7 @@ export async function POST(request: Request) {
     }
 
     // Step 1: Get current template to mark as deleted
-    const currentData = await graphqlRequest(GET_FOOTER_CONFIG, {
+    const currentData = await graphqlRequest(GET_FOOTER_TEMPLATE_ONLY, {
       restaurant_id: restaurantId,
     });
 

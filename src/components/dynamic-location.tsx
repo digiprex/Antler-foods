@@ -15,6 +15,7 @@ import {
   getSelectedGlobalButtonStyle,
   getButtonInlineStyle,
 } from '@/lib/section-style';
+import { resolveSharedSectionSpacing } from '@/lib/shared-section-spacing';
 
 interface PlaceDetails {
   name: string;
@@ -402,6 +403,9 @@ export default function DynamicLocation({
     };
     const directionsUrl = buildGoogleMapsDirectionsUrl(mapTarget);
     const isPreviewMobile = previewViewport === 'mobile';
+    const sharedSpacing = resolveSharedSectionSpacing(previewViewport);
+    const sectionPadding = sharedSpacing.sectionPadding;
+    const sectionGap = sharedSpacing.sectionGap;
     const sectionStyleInput = {
       ...config,
       subtitleFontFamily:
@@ -425,10 +429,10 @@ export default function DynamicLocation({
       return (
         <div
           style={{
-            maxWidth: config.maxWidth || '800px',
-            margin: '0 auto',
-            padding: '4rem 1.5rem',
+            padding: sectionPadding,
             textAlign: 'center',
+            display: 'grid',
+            gap: sectionGap,
           }}
         >
           <h2
@@ -445,7 +449,6 @@ export default function DynamicLocation({
             style={{
               ...descriptionTypography,
               fontSize: '1.125rem',
-              marginBottom: '2rem',
               opacity: 0.8,
             }}
           >
@@ -569,14 +572,14 @@ export default function DynamicLocation({
     // Grid Layout
     if (layout === 'grid') {
       return (
-        <div style={{ maxWidth: config.maxWidth || '1200px', margin: '0 auto', padding: '4rem 1.5rem' }}>
+        <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
           <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center' }}>
             {config.title}
           </h2>
-          <p style={{ ...descriptionTypography, fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8 }}>
+          <p style={{ ...descriptionTypography, fontSize: '1.125rem', textAlign: 'center', opacity: 0.8 }}>
             {config.description}
           </p>
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2" style={{ alignItems: 'start' }}>
+          <div className="grid grid-cols-1 lg:grid-cols-2" style={{ alignItems: 'start', gap: sectionGap }}>
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -648,7 +651,7 @@ export default function DynamicLocation({
     // List Layout
     if (layout === 'list') {
       return (
-        <div style={{ maxWidth: config.maxWidth || '900px', margin: '0 auto', padding: '4rem 1.5rem' }}>
+        <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
           <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem' }}>
             {config.title}
           </h2>
@@ -705,7 +708,7 @@ export default function DynamicLocation({
     // Map Layout
     if (layout === 'map') {
       return (
-        <div style={{ maxWidth: config.maxWidth || '1400px', margin: '0 auto', padding: '4rem 1.5rem' }}>
+        <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
           <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center' }}>
             {config.title}
           </h2>
@@ -715,7 +718,7 @@ export default function DynamicLocation({
           <div
             style={{
               display: 'grid',
-              gap: isPreviewMobile ? '1.5rem' : '2rem',
+              gap: sectionGap,
               gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(0,1fr) minmax(0,2fr)',
             }}
           >
@@ -780,14 +783,14 @@ export default function DynamicLocation({
     // Compact Layout - matches the layout from location settings form
     if (layout === 'compact') {
       return (
-        <div style={{ maxWidth: config.maxWidth || '1100px', margin: '0 auto', padding: '4rem 1.5rem' }}>
+        <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
           <h2 style={{ ...titleTypography, fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'center' }}>
             {config.title}
           </h2>
           <div
             style={{
               display: 'grid',
-              gap: isPreviewMobile ? '1.5rem' : '1.5rem',
+              gap: sectionGap,
               gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(0,1fr) minmax(0,1.2fr)',
               alignItems: 'stretch',
             }}
@@ -872,7 +875,7 @@ export default function DynamicLocation({
     // Cards Layout
     if (layout === 'cards') {
       return (
-        <div style={{ maxWidth: config.maxWidth || '1200px', margin: '0 auto', padding: '4rem 1.5rem' }}>
+        <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
           <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center' }}>
             {config.title}
           </h2>
@@ -969,7 +972,7 @@ export default function DynamicLocation({
     // Sidebar Layout
     if (layout === 'sidebar') {
       return (
-        <div style={{ maxWidth: config.maxWidth || '1400px', margin: '0 auto', padding: '4rem 1.5rem' }}>
+        <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
           <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem', textAlign: 'center' }}>
             {config.title}
           </h2>
@@ -1075,7 +1078,7 @@ export default function DynamicLocation({
     if (layout === 'fullscreen') {
       return (
         <div style={{
-          margin: isPreviewMobile ? '-2.75rem -1rem' : '-4rem -1.5rem',
+          margin: `-${sectionPadding}`,
           minHeight: isPreviewMobile ? '760px' : '100vh',
           position: 'relative',
           backgroundColor: config.bgColor || '#1a2332',
@@ -1103,7 +1106,7 @@ export default function DynamicLocation({
           {/* Floating location card */}
           <div style={{
             position: 'relative',
-            padding: isPreviewMobile ? '2rem 1.25rem' : '3rem 2rem',
+            padding: sectionPadding,
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
@@ -1114,7 +1117,6 @@ export default function DynamicLocation({
               backdropFilter: 'blur(10px)',
               borderRadius: '16px',
               padding: isPreviewMobile ? '1.75rem 1.25rem' : '2.5rem',
-              maxWidth: isPreviewMobile ? '100%' : '500px',
               boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
               border: '1px solid rgba(255, 255, 255, 0.2)',
             }}>
@@ -1191,7 +1193,12 @@ export default function DynamicLocation({
 
   if (isLoading && showLoading) {
     return (
-      <div style={{ padding: '4rem 1.5rem', textAlign: 'center' }}>
+      <div
+        style={{
+          padding: resolveSharedSectionSpacing(previewViewport).sectionPadding,
+          textAlign: 'center',
+        }}
+      >
         <div style={{ fontSize: '1.125rem', color: '#6b7280' }}>Loading location...</div>
       </div>
     );
@@ -1218,7 +1225,6 @@ export default function DynamicLocation({
     <section
       style={{
         backgroundColor: config.bgColor || '#ffffff',
-        width: '100%',
         ...bodyStyle,
       }}
     >

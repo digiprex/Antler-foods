@@ -273,22 +273,19 @@ export async function POST(request: NextRequest) {
       try {
         optimizedFile = await optimizeVideo(file);
       } catch (caughtError) {
-        const fallbackBuffer = Buffer.from(await file.arrayBuffer());
-        const extension = fileInfo.extension || 'mp4';
-        const fallbackMimeType = EXTENSION_TO_MIME[extension] || 'video/mp4';
-
-        optimizedFile = {
-          buffer: fallbackBuffer,
-          filename: ensureExtensionInFileName(file.name || `video.${extension}`, extension),
-          mimeType: fallbackMimeType,
-        };
-
-        optimizationWarning =
-          'Video optimization is unavailable on server right now. Uploaded original video file.';
         console.warn(
-          '[Upload Optimized Media] Video optimization failed, fallback to original upload:',
+          '[Upload Optimized Media] Video optimization unavailable. Falling back to original upload:',
           caughtError,
         );
+
+        const fallbackBuffer = Buffer.from(await file.arrayBuffer());
+        optimizedFile = {
+          buffer: fallbackBuffer,
+          filename: file.name || `video.${fileInfo.extension || 'mp4'}`,
+          mimeType: fileInfo.mimeType || 'video/mp4',
+        };
+        optimizationWarning =
+          'Video optimization is unavailable on this server. Uploaded original video file.';
       }
     } else {
       return NextResponse.json(
@@ -378,6 +375,7 @@ export async function POST(request: NextRequest) {
 
     // Return proxy URL for reliable access
     const publicUrl = `/api/image-proxy?fileId=${fileMetadata.id}`;
+    const directUrl = `${storageApiUrl}/files/${fileMetadata.id}`;
 
     return NextResponse.json({
       success: true,
@@ -385,6 +383,14 @@ export async function POST(request: NextRequest) {
         id: media.id,
         file_id: media.file_id,
         url: publicUrl,
+        file: {
+          id: fileMetadata.id,
+          name: optimizedFile.filename,
+          mimeType: optimizedFile.mimeType,
+          url: publicUrl,
+          directUrl,
+          size: optimizedFile.buffer.length,
+        },
         name: optimizedFile.filename,
         type: optimizedFile.mimeType,
         size: optimizedFile.buffer.length,
@@ -469,17 +475,3 @@ function getFileExtension(fileName: string) {
   return extension || null;
 }
 
-function ensureExtensionInFileName(fileName: string, extension: string) {
-  const trimmed = fileName.trim();
-  if (!trimmed) {
-    return `media.${extension}`;
-  }
-
-  const lower = trimmed.toLowerCase();
-  if (lower.endsWith(`.${extension.toLowerCase()}`)) {
-    return trimmed;
-  }
-
-  const base = trimmed.replace(/\.[^/.]+$/, '');
-  return `${base || 'media'}.${extension}`;
-}

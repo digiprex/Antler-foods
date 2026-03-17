@@ -8,6 +8,7 @@ import type {
   CustomSectionItem,
   CustomSectionMediaShape,
 } from '@/types/custom-section.types';
+import type { ButtonStyle } from '@/types/global-style.types';
 
 export function getShapeRadius(
   shape: CustomSectionMediaShape | undefined,
@@ -91,9 +92,13 @@ function Button({
     backgroundColor: string;
     color: string;
     borderColor: string;
+    border?: string;
+    baseStyle?: CSSProperties;
+    globalStyle?: ButtonStyle;
   };
 }) {
   const variant = button.variant || 'primary';
+  const baseStyle = fallbackStyle.baseStyle || {};
   const backgroundColor =
     button.bgColor ||
     (variant === 'outline' || variant === 'ghost'
@@ -105,22 +110,30 @@ function Button({
       ? fallbackStyle.borderColor
       : fallbackStyle.color);
   const borderColor = button.borderColor || fallbackStyle.borderColor;
+  const resolvedBorder =
+    button.borderColor
+      ? `1px solid ${button.borderColor}`
+      : variant === 'ghost'
+        ? '1px solid transparent'
+        : variant === 'outline'
+          ? fallbackStyle.border && fallbackStyle.border !== 'none'
+            ? fallbackStyle.border
+            : `1px solid ${borderColor}`
+          : baseStyle.border || fallbackStyle.border || `1px solid ${borderColor}`;
 
   return (
     <a
       href={button.href || '#'}
-      className={`inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition-all ${
+      className={`inline-flex items-center justify-center px-5 py-3 text-sm font-semibold transition-all ${
         variant === 'ghost'
           ? 'hover:bg-slate-900/[0.06]'
           : 'hover:-translate-y-0.5 hover:shadow-lg'
       }`}
       style={{
+        ...baseStyle,
         backgroundColor,
         color,
-        border:
-          variant === 'ghost'
-            ? '1px solid transparent'
-            : `1px solid ${borderColor}`,
+        border: resolvedBorder,
       }}
     >
       {button.label}
@@ -137,8 +150,22 @@ export function CustomSectionButtons({
   primaryButton?: CustomSectionButton;
   secondaryButton?: CustomSectionButton;
   buttonStyles: {
-    primary: { backgroundColor: string; color: string; borderColor: string };
-    secondary: { backgroundColor: string; color: string; borderColor: string };
+    primary: {
+      backgroundColor: string;
+      color: string;
+      borderColor: string;
+      border?: string;
+      baseStyle?: CSSProperties;
+      globalStyle?: ButtonStyle;
+    };
+    secondary: {
+      backgroundColor: string;
+      color: string;
+      borderColor: string;
+      border?: string;
+      baseStyle?: CSSProperties;
+      globalStyle?: ButtonStyle;
+    };
   };
   align?: 'left' | 'center' | 'right';
 }) {
@@ -177,7 +204,6 @@ export function CustomSectionIntro({
   subtitleStyle,
   bodyStyle,
   buttonStyles,
-  maxWidth,
   hideEyebrow = false,
   hideBadge = false,
   order = 'default',
@@ -190,10 +216,23 @@ export function CustomSectionIntro({
   subtitleStyle: CSSProperties;
   bodyStyle: CSSProperties;
   buttonStyles: {
-    primary: { backgroundColor: string; color: string; borderColor: string };
-    secondary: { backgroundColor: string; color: string; borderColor: string };
+    primary: {
+      backgroundColor: string;
+      color: string;
+      borderColor: string;
+      border?: string;
+      baseStyle?: CSSProperties;
+      globalStyle?: ButtonStyle;
+    };
+    secondary: {
+      backgroundColor: string;
+      color: string;
+      borderColor: string;
+      border?: string;
+      baseStyle?: CSSProperties;
+      globalStyle?: ButtonStyle;
+    };
   };
-  maxWidth?: string;
   hideEyebrow?: boolean;
   hideBadge?: boolean;
   order?: 'default' | 'subheadline-first';
@@ -220,16 +259,13 @@ export function CustomSectionIntro({
     </p>
   ) : null;
   const renderDescription = config.description ? (
-    <p className="mt-4 max-w-2xl text-pretty" style={bodyStyle}>
+    <p className="mt-4 text-pretty" style={bodyStyle}>
       {config.description}
     </p>
   ) : null;
 
   return (
-    <div
-      className={`flex flex-col ${alignment}`}
-      style={{ maxWidth: maxWidth || '100%' }}
-    >
+    <div className={`flex flex-col ${alignment}`}>
       {showBadge ? (
         <span
           className="mb-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]"

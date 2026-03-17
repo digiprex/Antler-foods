@@ -17,6 +17,7 @@ import {
   resolveCustomSectionSpacingTier,
 } from '@/lib/custom-section/spacing';
 import {
+  getButtonInlineStyle,
   getSectionContainerStyles,
   getSectionTypographyStyles,
   getSurfaceShadowValue,
@@ -322,11 +323,6 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
   ) as 'left' | 'center' | 'right';
 
   const contentGap = spacing.internalGap;
-  const contentWidth = isMobile
-    ? config.responsive?.mobileContentWidth ||
-      config.layoutSettings?.contentWidth ||
-      '100%'
-    : config.layoutSettings?.contentWidth || '560px';
   const mediaRatio = isMobile
     ? config.responsive?.mobileMediaRatio ||
       config.layoutSettings?.mediaRatio ||
@@ -423,11 +419,16 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
     config.styleConfig?.cardShadow || layoutConfig.surfaceShadow,
   );
   const items = config.items || [];
+  const globalPrimaryButtonInlineStyle = getButtonInlineStyle(
+    globalStyles.primaryButton,
+  );
+  const globalSecondaryButtonInlineStyle = getButtonInlineStyle(
+    globalStyles.secondaryButton,
+  );
   const intro = (
     <CustomSectionIntro
       config={config}
       align={align}
-      maxWidth={contentWidth}
       order={introOrder}
       hideEyebrow={hideIntroEyebrow}
       badgeStyle={{
@@ -463,11 +464,17 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
           backgroundColor: palette.buttonPrimary,
           color: palette.buttonPrimaryText,
           borderColor: palette.buttonPrimary,
+          border: globalStyles.primaryButton?.border,
+          baseStyle: globalPrimaryButtonInlineStyle,
+          globalStyle: globalStyles.primaryButton,
         },
         secondary: {
           backgroundColor: palette.buttonSecondary,
           color: palette.buttonSecondaryText,
           borderColor: palette.buttonBorder,
+          border: globalStyles.secondaryButton?.border,
+          baseStyle: globalSecondaryButtonInlineStyle,
+          globalStyle: globalStyles.secondaryButton,
         },
       }}
     />
@@ -529,7 +536,6 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
     const reverse = options?.reverse === true;
     const edgeToEdge = options?.edgeToEdge === true && useEdgeToEdge;
     const edgeGap = contentGap;
-    const splitColumnWidth = edgeToEdge && !shouldStack ? '50%' : undefined;
     const mediaFlex = edgeToEdge ? 1 : options?.wideMedia ? 1.15 : 1;
     const media = (
       <div
@@ -537,7 +543,6 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
         style={{
           flex: mediaFlex,
           flexBasis: edgeToEdge ? 0 : undefined,
-          maxWidth: splitColumnWidth,
           marginTop: options?.overlap && !shouldStack ? surfacePadding : 0,
         }}
       >
@@ -560,8 +565,6 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
         style={{
           flex: 1,
           flexBasis: edgeToEdge ? 0 : undefined,
-          maxWidth: shouldStack ? '100%' : contentWidth,
-          ...(splitColumnWidth ? { maxWidth: splitColumnWidth } : {}),
           boxSizing: 'border-box',
           ...(options?.boxed
             ? {
@@ -681,7 +684,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
           className="relative z-10 flex h-full w-full items-center"
           style={{ padding: surfacePaddingLarge }}
         >
-          <div style={{ width: '100%' }}>{intro}</div>
+          {intro}
         </div>
       </div>
     );
@@ -808,7 +811,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       case 'layout-14':
         return (
           <div style={verticalStackStyle}>
-            <div style={{ maxWidth: contentWidth }}>{intro}</div>
+            {intro}
             {renderGridItems(1)}
           </div>
         );
@@ -823,7 +826,6 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       case 'layout-19':
         return (
           <div
-            className="mx-auto max-w-4xl"
             style={{
               ...baseSurfaceStyle,
               padding: surfacePaddingLarge,
@@ -933,13 +935,13 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       case 'layout-25':
         return (
           <div style={verticalStackStyle}>
-            <div style={{ maxWidth: contentWidth }}>{intro}</div>
+            {intro}
             {renderGridItems(cardColumns)}
           </div>
         );
       case 'layout-26':
         return (
-          <div className="mx-auto max-w-4xl text-center">
+          <div>
             <div
               style={{
                 ...baseSurfaceStyle,
@@ -955,7 +957,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       case 'layout-28':
         return (
           <div style={verticalStackStyle}>
-            <div style={{ maxWidth: contentWidth }}>{intro}</div>
+            {intro}
             {renderGridItems(shouldStack ? 1 : 3)}
           </div>
         );
@@ -1053,7 +1055,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       case 'layout-32':
         return (
           <div style={verticalStackStyle}>
-            <div style={{ maxWidth: contentWidth }}>{intro}</div>
+            {intro}
             <div
               className="grid"
               style={{

@@ -77,8 +77,8 @@ export const MENU_LAYOUT_DEFINITIONS: Record<MenuLayout, MenuLayoutDefinition> =
       mobileGap: 16,
       imageAspectRatio: 'landscape',
       mobileImageAspectRatio: 'landscape',
-      overlayTextPosition: 'bottom-left',
-      mobileOverlayTextPosition: 'bottom-left',
+      overlayTextPosition: 'center',
+      mobileOverlayTextPosition: 'center',
     },
     controlGroups: [
       {
@@ -876,6 +876,25 @@ export function mergeMenuLayoutSettings(
       ...MENU_LAYOUT_DEFINITIONS[layout].defaults,
       ...(settings?.[layout] || {}),
     } as MenuLayoutSettings[typeof layout];
+
+    if (layout === 'grid') {
+      const gridSettings = merged.grid as Record<string, unknown>;
+      if (
+        gridSettings.overlayTextPosition === undefined ||
+        gridSettings.overlayTextPosition === 'bottom-left' ||
+        gridSettings.overlayTextPosition === 'bottom-center'
+      ) {
+        gridSettings.overlayTextPosition = 'center';
+      }
+
+      if (
+        gridSettings.mobileOverlayTextPosition === undefined ||
+        gridSettings.mobileOverlayTextPosition === 'bottom-left' ||
+        gridSettings.mobileOverlayTextPosition === 'bottom-center'
+      ) {
+        gridSettings.mobileOverlayTextPosition = 'center';
+      }
+    }
   }
 
   return merged;

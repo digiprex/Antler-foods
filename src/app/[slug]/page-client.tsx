@@ -22,6 +22,7 @@ import DynamicForm from '@/components/dynamic-form';
 import Popup from '@/components/popup';
 import YouTubeSection from '@/components/youtube-section';
 import CustomSection from '@/components/custom-section';
+import { CUSTOM_SECTION_LAYOUT_VALUES } from '@/types/custom-section.types';
 
 interface DynamicPageClientProps {
   slug: string;
@@ -76,46 +77,12 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
 
         // Get current domain (includes port for localhost, e.g., localhost:3000)
         const domain = window.location.host;
+        const encodedDomain = encodeURIComponent(domain);
         console.log('[Page Client] 🌐 Resolving restaurant from domain:', domain);
         console.log('[Page Client] 📄 Page slug:', slug);
-
-        // Resolve restaurant ID from domain
-        const heroResponse = await fetch(`/api/hero-config?domain=${domain}&url_slug=${slug}`);
-        console.log('[Page Client] 🔍 Hero API response status:', heroResponse.status);
-
-        if (!heroResponse.ok) {
-          throw new Error('Failed to resolve restaurant from domain');
-        }
-
-        const heroData = await heroResponse.json();
-        console.log('[Page Client] 📦 Hero API data:', heroData);
-
-        if (!heroData.success) {
-          throw new Error(heroData.error || 'Failed to get restaurant configuration');
-        }
-
-        let resolvedRestaurantId = heroData.data?.restaurant_id;
-        console.log('[Page Client] 🏪 Resolved restaurant_id:', resolvedRestaurantId);
-
-        // Development fallback for localhost
-        if (!resolvedRestaurantId && domain.includes('localhost')) {
-          console.warn('[Page Client] ⚠️ No restaurant found for localhost');
-          console.warn('[Page Client] 💡 Tip: Set staging_domain to "' + domain + '" in Location Settings');
-          // Add your restaurant ID here for local development
-          const FALLBACK_RESTAURANT_ID = ''; // TODO: Add restaurant ID from database
-          if (FALLBACK_RESTAURANT_ID) {
-            resolvedRestaurantId = FALLBACK_RESTAURANT_ID;
-          }
-        }
-
-        if (!resolvedRestaurantId) {
-          throw new Error('No restaurant found for this domain');
-        }
-        setRestaurantId(resolvedRestaurantId);
-
-        // Fetch page details
+        // Fetch page details directly by domain + slug (single request path)
         const pageResponse = await fetch(
-          `/api/page-details?restaurant_id=${resolvedRestaurantId}&url_slug=${slug}`
+          `/api/page-details?domain=${encodedDomain}&url_slug=${encodeURIComponent(slug)}`
         );
 
         if (pageResponse.status === 404) {
@@ -133,6 +100,12 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           notFound();
           return;
         }
+
+        const resolvedRestaurantId = pageResponseData.data?.page?.restaurant_id;
+        if (!resolvedRestaurantId) {
+          throw new Error('No restaurant found for this domain');
+        }
+        setRestaurantId(resolvedRestaurantId);
 
         // Check if page is published
         const page = pageResponseData.data?.page;
@@ -160,13 +133,41 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
     return (
       <div style={{
         minHeight: '100vh',
-        backgroundColor: '#f9fafb',
+        background: '#ffffff',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        padding: '24px',
       }}>
-        <div style={{ textAlign: 'center' }}>
-          <h2>Loading...</h2>
+        <style>{`
+          @keyframes basicSpinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          .basic-loader {
+            text-align: center;
+          }
+          .basic-loader-spinner {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 12px;
+            border-radius: 999px;
+            border: 3px solid #d1d5db;
+            border-top-color: #111827;
+            animation: basicSpinner 0.8s linear infinite;
+          }
+          .basic-loader-text {
+            color: #374151;
+            font-size: 14px;
+            font-weight: 500;
+          }
+        `}</style>
+
+        <div className="basic-loader">
+          <div className="basic-loader-spinner" />
+          <div className="basic-loader-text">
+            Loading your restaurant site...
+          </div>
         </div>
       </div>
     );
@@ -427,10 +428,19 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           isPreview={false}
         />;
       case 'customsection':
+        // Resolve layout safely: prefer config.layout, then template.name only if valid.
+        const customSectionLayoutCandidate = [
+          template?.config?.layout,
+          template?.name,
+        ].find((value) =>
+          typeof value === 'string' &&
+          CUSTOM_SECTION_LAYOUT_VALUES.includes(value as any),
+        ) as string | undefined;
+
         // Transform template data to match CustomSection config format
         const customSectionConfigData = template.config ? {
           ...template.config,
-          layout: template.name || 'layout-1'
+          layout: customSectionLayoutCandidate || 'layout-1'
         } : undefined;
 
         return <CustomSection
@@ -503,3 +513,4 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
     </div>
   );
 }
+

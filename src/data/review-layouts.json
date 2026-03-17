@@ -1,0 +1,45 @@
+{
+  "layouts": [
+    {
+      "id": "grid",
+      "name": "Editorial Strip",
+      "description": "Headline, CTA, and centered testimonials",
+      "support": "Matches the clean top-strip review reference",
+      "accent": "Top carousel",
+      "preview": "/previews/review/grid.png"
+    },
+    {
+      "id": "slider",
+      "name": "Split Spotlight",
+      "description": "Large image with one featured review story",
+      "support": "Best for premium restaurant-style presentation",
+      "accent": "Image split",
+      "preview": "/previews/review/slider.png"
+    },
+    {
+      "id": "list",
+      "name": "Review Cards",
+      "description": "Card carousel with stronger social proof density",
+      "support": "Closest to the framed card slider reference",
+      "accent": "Card rail",
+      "preview": "/previews/review/list.png"
+    }
+  ],
+  "animations": [
+    {
+      "id": "fade-up",
+      "name": "Fade Up",
+      "description": "Soft upward entrance for cards and spotlight content"
+    },
+    {
+      "id": "soft-scale",
+      "name": "Soft Scale",
+      "description": "Gentle zoom-in with a premium polished feel"
+    },
+    {
+      "id": "slide-up",
+      "name": "Slide Across",
+      "description": "A slightly stronger slide for more visible motion"
+    }
+  ]
+}

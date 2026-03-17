@@ -18,6 +18,7 @@ import { SectionTypographyControls } from '@/components/admin/section-typography
 import DynamicFAQ from '@/components/dynamic-faq';
 import Toast from '@/components/ui/toast';
 import styles from './faq-settings-form.module.css';
+import { getFaqLayoutOptions, type FaqLayoutValue } from '@/utils/faq-layout-utils';
 
 interface FAQFormProps {
   pageId?: string;
@@ -197,7 +198,7 @@ export default function FAQSettingsForm({
 
   // Form state
   const [faqs, setFaqs] = useState<FAQ[]>([]);
-  const [layout, setLayout] = useState<'list' | 'accordion' | 'grid'>(
+  const [layout, setLayout] = useState<FaqLayoutValue>(
     'accordion',
   );
   const [title, setTitle] = useState<string>('Frequently Asked Questions');
@@ -428,7 +429,7 @@ export default function FAQSettingsForm({
   const removeFAQ = (id: string) =>
     setFaqs((s) => s.filter((f) => f.id !== id));
 
-  const handleLayoutSelect = (nextLayout: 'list' | 'accordion' | 'grid') => {
+  const handleLayoutSelect = (nextLayout: FaqLayoutValue) => {
     setLayout(nextLayout);
   };
 
@@ -660,27 +661,11 @@ export default function FAQSettingsForm({
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {[
-              {
-                value: 'list',
-                name: 'List',
-                description: 'Simple list layout',
-              },
-              {
-                value: 'accordion',
-                name: 'Accordion',
-                description: 'Collapsible sections',
-              },
-              { value: 'grid', name: 'Grid', description: 'Grid card layout' },
-            ].map((option) => (
+            {getFaqLayoutOptions().map((option) => (
               <button
                 type="button"
                 key={option.value}
-                onClick={() =>
-                  handleLayoutSelect(
-                    option.value as 'list' | 'accordion' | 'grid',
-                  )
-                }
+                onClick={() => handleLayoutSelect(option.value)}
                 aria-pressed={layout === option.value}
                 className={`group w-full cursor-pointer rounded-xl border-2 p-3 text-left transition-all ${
                   layout === option.value

@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import DynamicForm from '@/components/dynamic-form';
-import formLayoutsData from '@/data/form-layouts.json';
 import { ImageGalleryModal } from '@/components/admin/image-gallery-modal';
+import { getFormLayoutOptions, formLayoutSupportsImage } from '@/utils/form-layout-utils';
 import { SectionAppearanceControls } from '@/components/admin/section-appearance-controls';
 import {
   FloatingPreviewButton,
@@ -94,13 +94,6 @@ const DEFAULT_FORM_CONFIG: FormSettingsConfig = {
   isEnabled: true,
   is_custom: false,
 };
-
-// Get form layouts from JSON data
-const FORM_LAYOUTS = formLayoutsData.layouts.map(layout => ({
-  value: layout.id,
-  title: layout.name,
-  description: layout.description
-}));
 
 function LayoutPreview({ layout }: { layout: string }) {
   if (layout === 'split-right' || layout === 'split-left') {
@@ -416,8 +409,8 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
               }
             >
               <div className="grid gap-4 lg:grid-cols-3">
-                {FORM_LAYOUTS.map((layout) => (
-                  <LayoutCard key={layout.value} title={layout.title} description={layout.description} preview={<LayoutPreview layout={layout.value} />} selected={config.layout === layout.value} onClick={() => updateConfig({ layout: layout.value })} badge={layout.value === 'centered' ? 'Recommended' : undefined} />
+                {getFormLayoutOptions().map((layout) => (
+                  <LayoutCard key={layout.value} title={layout.title} description={layout.description} preview={<LayoutPreview layout={layout.value} />} selected={config.layout === layout.value} onClick={() => updateConfig({ layout: layout.value })} badge={layout.badge} />
                 ))}
               </div>
             </SettingsCard>
@@ -439,7 +432,7 @@ export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsF
               </div>
             </SettingsCard>
 
-            {['split-right', 'split-left', 'image-top', 'background-image'].includes(config.layout) && (
+            {formLayoutSupportsImage(config.layout) && (
               <SettingsCard
                 icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" /></svg>}
                 title="Supporting Media"

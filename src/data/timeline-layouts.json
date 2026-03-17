@@ -1,0 +1,29 @@
+{
+  "layouts": [
+    {
+      "id": "alternating",
+      "name": "Alternating",
+      "description": "Items alternate between the left and right sides of the timeline.",
+      "badge": "Recommended",
+      "preview": "/previews/timeline/alternating.png"
+    },
+    {
+      "id": "left",
+      "name": "Left Aligned",
+      "description": "All items stay on the left side of the timeline.",
+      "preview": "/previews/timeline/left.png"
+    },
+    {
+      "id": "right",
+      "name": "Right Aligned",
+      "description": "All items stay on the right side of the timeline.",
+      "preview": "/previews/timeline/right.png"
+    },
+    {
+      "id": "center",
+      "name": "Center",
+      "description": "Items stay centered with the timeline in the middle.",
+      "preview": "/previews/timeline/center.png"
+    }
+  ]
+}

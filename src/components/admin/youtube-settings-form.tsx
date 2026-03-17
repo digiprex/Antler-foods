@@ -21,6 +21,7 @@ import { SectionTypographyControls } from "@/components/admin/section-typography
 import YouTubeSection from "@/components/youtube-section";
 import Toast from "@/components/ui/toast";
 import styles from "./youtube-settings-form.module.css";
+import { getYouTubeLayoutOptions } from "@/utils/youtube-layout-utils";
 
 interface YouTubeFormProps {
   pageId?: string;
@@ -29,49 +30,8 @@ interface YouTubeFormProps {
 
 type PreviewViewport = "desktop" | "mobile";
 
-const youtubeLayoutOptions: Array<{
-  value: NonNullable<YouTubeConfig["layout"]>;
-  name: string;
-  description: string;
-  support: string;
-}> = [
-  {
-    value: "default",
-    name: "Default",
-    description: "Two-up featured videos",
-    support: "Clean and familiar for most pages",
-  },
-  {
-    value: "theater",
-    name: "Theater",
-    description: "Wide cinematic framing",
-    support: "Best for immersive storytelling",
-  },
-  {
-    value: "split-left",
-    name: "Split Left",
-    description: "Video first, content second",
-    support: "Strong visual-first composition",
-  },
-  {
-    value: "split-right",
-    name: "Split Right",
-    description: "Content first, video second",
-    support: "Good when copy needs more emphasis",
-  },
-  {
-    value: "background",
-    name: "Background",
-    description: "Overlay content on motion",
-    support: "Best for bold promotional moments",
-  },
-  {
-    value: "grid",
-    name: "Grid",
-    description: "Video with supporting panels",
-    support: "Balanced for richer content groupings",
-  },
-];
+// Get YouTube layout options from JSON
+const youtubeLayoutOptions = getYouTubeLayoutOptions();
 
 const GLOBAL_TYPOGRAPHY_KEYS = [
   "buttonStyleVariant",

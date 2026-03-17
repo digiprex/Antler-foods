@@ -23,9 +23,10 @@ import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
 import type { ReviewConfig, Review } from '@/types/review.types';
 import { DEFAULT_REVIEW_CONFIG } from '@/types/review.types';
 import { DEFAULT_GLOBAL_STYLE_CONFIG } from '@/types/global-style.types';
+import { getReviewLayoutOptions, getReviewAnimationOptions, type ReviewLayoutValue } from '@/utils/review-layout-utils';
 
 type PreviewViewport = 'desktop' | 'mobile';
-type SupportedReviewLayout = 'grid' | 'slider' | 'list';
+type SupportedReviewLayout = ReviewLayoutValue;
 
 interface ReviewSettingsFormProps {
   pageId?: string;
@@ -47,57 +48,9 @@ const normalizeReviewLayout = (
   return 'grid';
 };
 
-const reviewLayoutOptions: Array<{
-  value: SupportedReviewLayout;
-  name: string;
-  description: string;
-  support: string;
-  accent: string;
-}> = [
-    {
-      value: 'grid',
-      name: 'Editorial Strip',
-      description: 'Headline, CTA, and centered testimonials',
-      support: 'Matches the clean top-strip review reference',
-      accent: 'Top carousel',
-    },
-    {
-      value: 'slider',
-      name: 'Split Spotlight',
-      description: 'Large image with one featured review story',
-      support: 'Best for premium restaurant-style presentation',
-      accent: 'Image split',
-    },
-    {
-      value: 'list',
-      name: 'Review Cards',
-      description: 'Card carousel with stronger social proof density',
-      support: 'Closest to the framed card slider reference',
-      accent: 'Card rail',
-    },
-  ];
-
-const reviewAnimationStyles: Array<{
-  value: NonNullable<ReviewConfig['animationStyle']>;
-  name: string;
-  description: string;
-}> = [
-    {
-      value: 'fade-up',
-      name: 'Fade Up',
-      description: 'Soft upward entrance for cards and spotlight content',
-    },
-    {
-      value: 'soft-scale',
-      name: 'Soft Scale',
-      description: 'Gentle zoom-in with a premium polished feel',
-    },
-    {
-      value: 'slide-up',
-      name: 'Slide Across',
-      description: 'A slightly stronger slide for more visible motion',
-    },
-  ];
+// Get review layout and animation options from JSON
+const reviewLayoutOptions = getReviewLayoutOptions();
+const reviewAnimationStyles = getReviewAnimationOptions();
 
 const reviewAnimationSpeeds: Array<{
   value: NonNullable<ReviewConfig['animationSpeed']>;

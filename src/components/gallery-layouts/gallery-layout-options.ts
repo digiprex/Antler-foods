@@ -1,4 +1,5 @@
 import type { GalleryConfig } from '@/types/gallery.types';
+import { getGalleryLayoutOptions } from '@/utils/gallery-layout-utils';
 
 export type GalleryLayoutValue =
   | 'showcase'
@@ -16,48 +17,8 @@ export interface GalleryLayoutOption {
   description: string;
 }
 
-export const GALLERY_LAYOUT_OPTIONS: GalleryLayoutOption[] = [
-  {
-    value: 'showcase',
-    name: 'Showcase',
-    description: 'Center hero with side previews',
-  },
-  {
-    value: 'spotlight',
-    name: 'Spotlight',
-    description: 'Center-stage layered showcase',
-  },
-  {
-    value: 'mosaic',
-    name: 'Mosaic',
-    description: 'Editorial collage layout',
-  },
-  {
-    value: 'editorial',
-    name: 'Editorial',
-    description: 'Hero frame with supporting tiles',
-  },
-  {
-    value: 'filmstrip',
-    name: 'Filmstrip',
-    description: 'Horizontal reel with depth',
-  },
-  {
-    value: 'grid',
-    name: 'Grid',
-    description: 'Uniform layout',
-  },
-  {
-    value: 'masonry',
-    name: 'Masonry',
-    description: 'Pinterest style',
-  },
-  {
-    value: 'carousel',
-    name: 'Carousel',
-    description: 'Sliding gallery',
-  },
-];
+// Get gallery layout options from JSON
+export const GALLERY_LAYOUT_OPTIONS = getGalleryLayoutOptions();
 
 export function normalizeGalleryLayout(
   layout?: GalleryConfig['layout'],

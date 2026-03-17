@@ -70,29 +70,32 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       return generateSEOMetadata();
     }
 
-    // Get restaurant name and favicon for better SEO
-    const restaurantResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/website-info?restaurant_id=${resolvedRestaurantId}`,
-      { cache: 'no-store' }
-    );
-
-    let faviconUrl = null;
-    if (restaurantResponse.ok) {
-      const restaurantData = await restaurantResponse.json();
-      faviconUrl = restaurantData.data?.favicon_url || null;
-    }
-
     // Generate dynamic SEO
     const seoConfig = generateDynamicSEO(pageResponseData);
     const metadata = generateSEOMetadata(seoConfig);
 
-    // Add custom favicon if available
-    if (faviconUrl) {
-      metadata.icons = {
-        icon: faviconUrl,
-        shortcut: faviconUrl,
-        apple: faviconUrl,
-      };
+    // Fetch favicon from restaurants table
+    try {
+      const restaurantResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/restaurant-info?restaurant_id=${resolvedRestaurantId}`,
+        { cache: 'no-store' }
+      );
+
+      if (restaurantResponse.ok) {
+        const restaurantData = await restaurantResponse.json();
+        const faviconUrl = restaurantData.data?.favicon_url;
+
+        if (faviconUrl) {
+          metadata.icons = {
+            icon: faviconUrl,
+            shortcut: faviconUrl,
+            apple: faviconUrl,
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching favicon:', error);
+      // Continue without favicon if fetch fails
     }
 
     return metadata;

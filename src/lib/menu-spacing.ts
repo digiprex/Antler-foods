@@ -214,13 +214,17 @@ export function resolveMenuSectionPadding({
     axis === 'x'
       ? LEGACY_DESKTOP_SECTION_PADDING_X
       : LEGACY_DESKTOP_SECTION_PADDING_Y;
-  const tierPadding = CUSTOM_SECTION_SPACING_SCALE[tier].sectionPadding;
+  const tierPadding = axis === 'x'
+    ? CUSTOM_SECTION_SPACING_SCALE[tier].sectionPaddingX
+    : CUSTOM_SECTION_SPACING_SCALE[tier].sectionPaddingY;
 
   return viewport === 'mobile'
     ? resolveResponsiveValue(
         mobileValue,
         mobileSharedDefault,
-        CUSTOM_SECTION_SPACING_SCALE.mobile.sectionPadding,
+        axis === 'x'
+          ? CUSTOM_SECTION_SPACING_SCALE.mobile.sectionPaddingX
+          : CUSTOM_SECTION_SPACING_SCALE.mobile.sectionPaddingY,
         LEGACY_MOBILE_SECTION_PADDING,
       )
     : resolveResponsiveValue(

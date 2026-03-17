@@ -273,15 +273,19 @@ export async function POST(request: NextRequest) {
       try {
         optimizedFile = await optimizeVideo(file);
       } catch (caughtError) {
-        console.error('[Upload Optimized Media] Video optimization failed:', caughtError);
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              'Video optimization failed on server. Upload was not completed. Please try again or use MP4/H.264 input.',
-          },
-          { status: 500 },
+        console.warn(
+          '[Upload Optimized Media] Video optimization unavailable. Falling back to original upload:',
+          caughtError,
         );
+
+        const fallbackBuffer = Buffer.from(await file.arrayBuffer());
+        optimizedFile = {
+          buffer: fallbackBuffer,
+          filename: file.name || `video.${fileInfo.extension || 'mp4'}`,
+          mimeType: fileInfo.mimeType || 'video/mp4',
+        };
+        optimizationWarning =
+          'Video optimization is unavailable on this server. Uploaded original video file.';
       }
     } else {
       return NextResponse.json(

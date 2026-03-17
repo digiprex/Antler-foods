@@ -37,6 +37,7 @@ interface FAQConfig extends SectionStyleConfig {
   accentColor?: string;
   hoverColor?: string;
   enableScrollAnimation?: boolean;
+  isEnabled?: boolean;
 }
 
 interface DynamicFAQProps {
@@ -65,6 +66,7 @@ const DEFAULT_CONFIG: FAQConfig = {
   accentColor: '#8b5cf6',
   hoverColor: '#f8fafc',
   enableScrollAnimation: false,
+  isEnabled: true,
 };
 
 const SAMPLE_FAQS: FAQ[] = [
@@ -241,6 +243,7 @@ function normalizeConfig(
         ? source.hoverColor
         : DEFAULT_CONFIG.hoverColor,
     enableScrollAnimation: source.enableScrollAnimation === true,
+    isEnabled: source.isEnabled !== false, // Default to true unless explicitly false
     faqs: normalizeFaqs(source.faqs),
   };
 }
@@ -501,6 +504,11 @@ export default function DynamicFAQ({
   }
 
   if (!resolvedConfig || displayFaqs.length === 0) {
+    return null;
+  }
+
+  // Check if FAQ section is disabled
+  if (resolvedConfig.isEnabled === false && !previewMode) {
     return null;
   }
 

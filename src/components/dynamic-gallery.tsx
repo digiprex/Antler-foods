@@ -46,22 +46,75 @@ export default function DynamicGallery({
   showLoading = true
 }: DynamicGalleryProps) {
   const [config, setConfig] = useState<GalleryConfig | null>(configData as GalleryConfig || null);
-  const [loading, setLoading] = useState(!configData);
+  const hasInitialImages = Boolean(
+    configData &&
+      Array.isArray((configData as any).images) &&
+      (configData as any).images.length > 0,
+  );
+  const [loading, setLoading] = useState(!configData || !hasInitialImages);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // If configData is provided, use it directly
-    if (configData) {
-      setConfig(configData as GalleryConfig);
-      setLoading(false);
-      return;
-    }
-
     const fetchConfig = async () => {
       setLoading(true);
       setError(null);
 
       try {
+        const hasImagesInConfigData = Boolean(
+          configData &&
+            Array.isArray((configData as any).images) &&
+            (configData as any).images.length > 0,
+        );
+
+        // If configData already has images, use it directly
+        if (configData && hasImagesInConfigData) {
+          setConfig(configData as GalleryConfig);
+          setLoading(false);
+          return;
+        }
+
+        // If configData is present but has no images, try to hydrate from media API first
+        if (configData && restaurantId) {
+          const mediaResponse = await fetch(
+            `/api/media?restaurant_id=${encodeURIComponent(restaurantId)}&type=image`,
+          );
+          if (mediaResponse.ok) {
+            const mediaData = await mediaResponse.json();
+            const mediaImages = Array.isArray(mediaData?.data)
+              ? mediaData.data
+                  .slice(0, 12)
+                  .map((item: any, index: number) => {
+                    const imageUrl =
+                      item?.file?.url ||
+                      (item?.file_id
+                        ? `/api/image-proxy?fileId=${item.file_id}`
+                        : null);
+                    if (!imageUrl) {
+                      return null;
+                    }
+                    const alt = item?.file?.name || `Gallery image ${index + 1}`;
+                    return {
+                      id: item?.id || item?.file_id || `media-${index}`,
+                      url: imageUrl,
+                      alt,
+                      title: alt,
+                      order: index,
+                    };
+                  })
+                  .filter(Boolean)
+              : [];
+
+            if (mediaImages.length > 0) {
+              setConfig({
+                ...(configData as GalleryConfig),
+                images: mediaImages,
+              });
+              setLoading(false);
+              return;
+            }
+          }
+        }
+
         // Build URL with restaurant_id if provided
         const url = new URL('/api/gallery-config', window.location.origin);
         if (restaurantId) {

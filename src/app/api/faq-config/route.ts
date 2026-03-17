@@ -437,6 +437,7 @@ export async function GET(request: Request) {
       textColor: template.config?.textColor || '#111827',
       title: template.config?.title || 'Frequently Asked Questions',
       subtitle: template.config?.subtitle || 'Find answers to common questions',
+      isEnabled: template.config?.isEnabled !== false, // Default to true unless explicitly false
       faqs: template.menu_items || [], // FAQ items stored in menu_items
       ...pickSectionStyleConfig((template.config || {}) as Record<string, unknown>),
       ...pickFaqStyleConfig((template.config || {}) as Record<string, unknown>),
@@ -649,6 +650,7 @@ export async function POST(request: Request) {
       textColor: body.textColor,
       title: body.title,
       subtitle: body.subtitle,
+      isEnabled: body.isEnabled !== false, // Default to true unless explicitly false
       ...pickSectionStyleConfig(body as Record<string, unknown>),
       ...pickFaqStyleConfig(body as Record<string, unknown>),
     };
@@ -684,6 +686,7 @@ export async function POST(request: Request) {
       textColor: template.config?.textColor,
       title: template.config?.title,
       subtitle: template.config?.subtitle,
+      isEnabled: template.config?.isEnabled !== false, // Default to true unless explicitly false
       faqs: template.menu_items,
       ...pickSectionStyleConfig((template.config || {}) as Record<string, unknown>),
       ...pickFaqStyleConfig((template.config || {}) as Record<string, unknown>),

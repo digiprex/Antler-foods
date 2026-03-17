@@ -45,7 +45,7 @@ interface GallerySettingsFormProps {
   pageName?: string;
 }
 
-const NON_TYPOGRAPHY_SECTION_KEYS = new Set([
+const NON_TYPOGRAPHY_SECTION_KEYS: Set<keyof SectionStyleConfig> = new Set([
   'is_custom',
   'buttonStyleVariant',
   'sectionTextAlign',
@@ -255,7 +255,9 @@ export default function GallerySettingsForm({
     setSaving(true);
     try {
       const enableScrollReveal =
-        formConfig.enableScrollReveal ?? formConfig.enableScrollAnimation ?? false;
+        formConfig.enableScrollReveal ??
+        formConfig.enableScrollAnimation ??
+        false;
       const payload = {
         ...formConfig,
         enableScrollReveal,
@@ -451,9 +453,7 @@ export default function GallerySettingsForm({
   }
 
   const selectedLayout = normalizeGalleryLayout(formConfig.layout);
-  const handleResponsiveEditorViewportChange = (
-    viewport: PreviewViewport,
-  ) => {
+  const handleResponsiveEditorViewportChange = (viewport: PreviewViewport) => {
     setResponsiveEditorViewport(viewport);
     setPreviewViewport(viewport);
   };
@@ -807,38 +807,52 @@ export default function GallerySettingsForm({
           </div>
         </div>
 
-        <SettingsCard
-          icon={
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M7.5 6h9M6.75 10.5h10.5M9 15h6m-6.75 4.5h7.5A2.25 2.25 0 0018 17.25V6.75A2.25 2.25 0 0015.75 4.5h-7.5A2.25 2.25 0 006 6.75v10.5A2.25 2.25 0 008.25 19.5z"
-              />
-            </svg>
-          }
-          title="Typography and Responsive Structure"
-          action={
+        {/* Typography & Responsive Structure */}
+        <div className="rounded-2xl border border-gray-200/80 bg-white p-8 shadow-lg shadow-gray-900/5 transition-all duration-300 hover:shadow-xl hover:shadow-gray-900/8">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg shadow-purple-500/30">
+                <svg
+                  className="h-6 w-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Typography & Responsive Structure
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Customize text styles and layout across devices
+                </p>
+              </div>
+            </div>
             <ResponsiveViewportTabs
               value={responsiveEditorViewport}
               onChange={handleResponsiveEditorViewportChange}
               scope="gallery-typography"
             />
-          }
-        >
+          </div>
+
           <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+            {/* Scroll Animation */}
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-900">
+                  <h3 className="text-sm font-semibold text-gray-900">
                     Page Scroll Animation
                   </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Animate gallery as users scroll down the page
+                  </p>
                 </div>
                 <label className="relative inline-flex cursor-pointer items-center">
                   <input
@@ -852,24 +866,23 @@ export default function GallerySettingsForm({
                     }
                     className="peer sr-only"
                   />
-                  <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
+                  <div className="h-6 w-11 rounded-full bg-gray-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2" />
                 </label>
               </div>
-              {formConfig.enableScrollReveal ? (
+              {formConfig.enableScrollReveal && (
                 <div className="mt-4">
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
                     Reveal Animation Style
                   </label>
                   <select
                     value={formConfig.scrollRevealAnimation || 'fade-up'}
                     onChange={(event) =>
                       updateConfig({
-                        scrollRevealAnimation:
-                          event.target
-                            .value as SectionStyleConfig['scrollRevealAnimation'],
+                        scrollRevealAnimation: event.target
+                          .value as SectionStyleConfig['scrollRevealAnimation'],
                       })
                     }
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
                   >
                     <option value="fade">Fade</option>
                     <option value="fade-up">Fade Up</option>
@@ -877,17 +890,69 @@ export default function GallerySettingsForm({
                     <option value="soft-reveal">Soft Reveal</option>
                   </select>
                 </div>
-              ) : null}
+              )}
             </div>
 
-            <ToggleRow
-              title="Use Global Styles"
-              checked={formConfig.is_custom !== true}
-              onChange={handleGlobalStylesToggle}
-            />
+            {/* Custom Typography Toggle */}
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <label className="text-sm font-semibold text-gray-900">
+                    Custom Typography & Styles
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Override global CSS with custom styling options
+                  </p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={formConfig.is_custom === true}
+                    onChange={(e) =>
+                      handleGlobalStylesToggle(!e.target.checked)
+                    }
+                    className="peer sr-only"
+                  />
+                  <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
+                </label>
+              </div>
+            </div>
 
-            {formConfig.is_custom ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            {!formConfig.is_custom ? (
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                <div className="flex items-start gap-3">
+                  <svg
+                    className="mt-0.5 h-5 w-5 shrink-0 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+                    />
+                  </svg>
+                  <div>
+                    <h4 className="text-sm font-semibold text-blue-900">
+                      Using Global Styles
+                    </h4>
+                    <p className="mt-1 text-xs text-blue-700">
+                      This section is currently using the global styles from
+                      your theme settings. Enable custom typography above when
+                      you want gallery-specific overrides.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-gray-200 bg-white p-4">
+                <div className="mb-4 rounded-lg border border-purple-100 bg-purple-50 px-4 py-3 text-xs text-purple-800">
+                  Custom typography starts from your current global styles.
+                  Mobile view automatically scales down oversized desktop font
+                  sizes for smaller screens.
+                </div>
                 <SectionTypographyControls
                   value={formConfig}
                   onChange={(updates) => updateConfig(updates)}
@@ -895,9 +960,9 @@ export default function GallerySettingsForm({
                   viewport={responsiveEditorViewport}
                 />
               </div>
-            ) : null}
+            )}
           </div>
-        </SettingsCard>
+        </div>
 
         {/* Save Button */}
         <div className="flex justify-end">

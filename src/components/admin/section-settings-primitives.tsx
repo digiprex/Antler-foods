@@ -267,25 +267,43 @@ export function FloatingPreviewButton({
   viewport,
   onClick,
   disabled,
+  compact = false,
 }: {
   viewport: EditorViewport;
   onClick: () => void;
   disabled?: boolean;
+  compact?: boolean;
 }) {
+  const label =
+    viewport === 'mobile' ? 'Open mobile preview' : 'Open desktop preview';
+
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`fixed bottom-24 right-6 z-40 inline-flex items-center gap-3 rounded-full border px-5 py-3 text-sm font-semibold shadow-[0_18px_45px_rgba(15,23,42,0.18)] backdrop-blur transition-all ${
-        disabled
-          ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
-          : 'border-violet-200 bg-white/95 text-violet-700 hover:-translate-y-0.5 hover:border-violet-300 hover:bg-white'
+      className={`fixed right-6 z-40 shadow-[0_18px_45px_rgba(15,23,42,0.18)] backdrop-blur transition-all ${
+        compact
+          ? `bottom-6 inline-flex h-14 w-14 items-center justify-center rounded-full border ${
+              disabled
+                ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+                : 'border-violet-200 bg-white/95 text-violet-700 hover:-translate-y-0.5 hover:border-violet-300 hover:bg-white'
+            }`
+          : `bottom-24 inline-flex items-center gap-3 rounded-full border px-5 py-3 text-sm font-semibold ${
+              disabled
+                ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+                : 'border-violet-200 bg-white/95 text-violet-700 hover:-translate-y-0.5 hover:border-violet-300 hover:bg-white'
+            }`
       }`}
       aria-label="Open live preview"
+      title={label}
     >
       <span
-        className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${disabled ? 'bg-slate-200 text-slate-500' : 'bg-gradient-to-br from-violet-600 to-purple-700 text-white'}`}
+        className={`inline-flex items-center justify-center rounded-full ${
+          compact
+            ? 'h-11 w-11'
+            : 'h-10 w-10'
+        } ${disabled ? 'bg-slate-200 text-slate-500' : 'bg-gradient-to-br from-violet-600 to-purple-700 text-white'}`}
       >
         <svg
           className="h-5 w-5"
@@ -306,14 +324,14 @@ export function FloatingPreviewButton({
           />
         </svg>
       </span>
-      <span className="flex flex-col items-start leading-tight">
-        <span>Live Preview</span>
-        <span className="text-xs font-medium text-violet-500">
-          {viewport === 'mobile'
-            ? 'Open mobile preview'
-            : 'Open desktop preview'}
+      {compact ? null : (
+        <span className="flex flex-col items-start leading-tight">
+          <span>Live Preview</span>
+          <span className="text-xs font-medium text-violet-500">
+            {label}
+          </span>
         </span>
-      </span>
+      )}
     </button>
   );
 }

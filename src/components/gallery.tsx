@@ -111,7 +111,10 @@ export default function Gallery({
       return;
     }
 
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    ) {
       return;
     }
 
@@ -283,7 +286,7 @@ export default function Gallery({
       : { padding }),
     '--gallery-accent': bodyStyle.color || textColor,
     '--gallery-showcase-base': bgColor,
-  } as CSSProperties;
+  } as CSSProperties & Record<string, any>;
 
   const sharedLayoutProps = {
     images,

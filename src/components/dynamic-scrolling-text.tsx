@@ -150,24 +150,34 @@ export default function DynamicScrollingText({
     isPreview,
   });
 
-  const backgroundColor = resolveViewportColor(
-    displayConfig?.bgColor,
-    displayConfig?.mobileBgColor,
-    viewport,
-    '#0f172a',
-  );
-  const textColor = resolveViewportColor(
-    displayConfig?.textColor,
-    displayConfig?.mobileTextColor,
-    viewport,
-    '#ffffff',
-  );
-  const accentColor = resolveViewportColor(
-    displayConfig?.accentColor,
-    displayConfig?.mobileAccentColor,
-    viewport,
-    '#f59e0b',
-  );
+  const globalBackground = globalStyles?.backgroundColor;
+  const globalText = globalStyles?.textColor;
+  const globalAccent =
+    globalStyles?.accentColor || globalStyles?.primaryColor;
+  const backgroundColor =
+    globalBackground
+    || resolveViewportColor(
+      displayConfig?.bgColor,
+      displayConfig?.mobileBgColor,
+      viewport,
+      '#0f172a',
+    );
+  const textColor =
+    globalText
+    || resolveViewportColor(
+      displayConfig?.textColor,
+      displayConfig?.mobileTextColor,
+      viewport,
+      '#ffffff',
+    );
+  const accentColor =
+    globalAccent
+    || resolveViewportColor(
+      displayConfig?.accentColor,
+      displayConfig?.mobileAccentColor,
+      viewport,
+      '#f59e0b',
+    );
   const trackText = displayConfig?.text?.trim() || PREVIEW_MESSAGES.join('  •  ');
   const trackItems = [trackText, trackText, trackText, trackText];
   const textGap = displayConfig?.textGap || '3rem';

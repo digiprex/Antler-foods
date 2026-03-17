@@ -1,11 +1,18 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import Menu from '@/components/menu';
 import Toast from '@/components/ui/toast';
 import { ImageGalleryModal } from '@/components/admin/image-gallery-modal';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
+import { SectionAppearanceControls } from '@/components/admin/section-appearance-controls';
 import {
   FloatingPreviewButton,
   LayoutCard,
@@ -58,8 +65,14 @@ type MenuMediaField =
 
 type LayoutSettingsMap = NonNullable<MenuConfig['layoutSettings']>;
 type LayoutSettingsValue = string | number | boolean | undefined;
+const GRID_IMAGE_HEIGHT_LAYOUTS = [
+  'masonry',
+  'carousel',
+  'two-column',
+  'single-column',
+] as const;
 
-const NON_TYPOGRAPHY_SECTION_KEYS = new Set([
+const NON_TYPOGRAPHY_SECTION_KEYS: Set<keyof SectionStyleConfig> = new Set([
   'is_custom',
   'buttonStyleVariant',
   'sectionTextAlign',
@@ -93,6 +106,7 @@ const DEFAULT_SECONDARY_MENU_BUTTON: MenuButton = {
   href: '',
   variant: 'outline',
 };
+const DEFAULT_BUTTON_HREF = '/menu';
 
 function getSearchParams() {
   return typeof window === 'undefined'
@@ -105,7 +119,9 @@ function getMenuItemKey(item: MenuItem) {
 }
 
 function hydrateFeaturedItems(config: MenuConfig): MenuConfig {
-  const featuredKeys = new Set((config.featuredItems || []).map(getMenuItemKey));
+  const featuredKeys = new Set(
+    (config.featuredItems || []).map(getMenuItemKey),
+  );
   const categories = (config.categories || []).map((category) => ({
     ...category,
     items: (category.items || []).map((item) => ({
@@ -135,7 +151,7 @@ function createEmptyLayoutItem(index: number): MenuItem {
     name: '',
     description: '',
     price: '',
-    category: `Highlight ${index + 1}`,
+    category: '',
     ctaLabel: '',
     ctaLink: '',
     image: '',
@@ -151,7 +167,7 @@ function ensureLayoutItems(config: MenuConfig): MenuConfig {
   }
 
   const slotCount = getMenuLayoutDefinition(layout).itemSlots;
-  const layoutItems = [...(config.layoutItems || [])];
+  const layoutItems = [...(config.layoutItems || [])].slice(0, slotCount);
 
   while (layoutItems.length < slotCount) {
     layoutItems.push(createEmptyLayoutItem(layoutItems.length));
@@ -185,15 +201,34 @@ function normalizeMenuButtons(config: MenuConfig): MenuConfig {
   };
 }
 
+function normalizeMenuImageHeights(config: MenuConfig): MenuConfig {
+  const layoutSettings = mergeMenuLayoutSettings(config.layoutSettings);
+
+  GRID_IMAGE_HEIGHT_LAYOUTS.forEach((layout) => {
+    layoutSettings[layout] = {
+      ...(layoutSettings[layout] || {}),
+      imageAspectRatio: 'landscape',
+      mobileImageAspectRatio: 'landscape',
+    } as LayoutSettingsMap[(typeof GRID_IMAGE_HEIGHT_LAYOUTS)[number]];
+  });
+
+  return {
+    ...config,
+    layoutSettings,
+  };
+}
+
 function normalizeMenuConfig(config: Partial<MenuConfig>): MenuConfig {
   return ensureLayoutItems(
     hydrateFeaturedItems(
-      withMenuLayoutDefaults({
-        ...normalizeMenuButtons({
-          ...DEFAULT_MENU_CONFIG,
-          ...config,
-        } as MenuConfig),
-      }),
+      normalizeMenuImageHeights(
+        withMenuLayoutDefaults({
+          ...normalizeMenuButtons({
+            ...DEFAULT_MENU_CONFIG,
+            ...config,
+          } as MenuConfig),
+        }),
+      ),
     ),
   );
 }
@@ -231,7 +266,8 @@ function getMenuItemCount(categories?: MenuCategory[]) {
 function getMenuImageCount(categories?: MenuCategory[]) {
   return (categories || []).reduce(
     (total, category) =>
-      total + (category.items || []).filter((item) => Boolean(item.image)).length,
+      total +
+      (category.items || []).filter((item) => Boolean(item.image)).length,
     0,
   );
 }
@@ -240,7 +276,8 @@ function getGalleryModalCopy(field: MenuMediaField | null) {
   if (!field) {
     return {
       title: 'Select Image',
-      description: 'Choose an image from your media library or upload a new one.',
+      description:
+        'Choose an image from your media library or upload a new one.',
     };
   }
 
@@ -248,12 +285,14 @@ function getGalleryModalCopy(field: MenuMediaField | null) {
     case 'header_image':
       return {
         title: 'Select Header Image',
-        description: 'Use a section-level visual for intro cards, tabs, and fallback media.',
+        description:
+          'Use a section-level visual for intro cards, tabs, and fallback media.',
       };
     case 'background_image':
       return {
         title: 'Select Background Image',
-        description: 'Use a background image for ambience behind the menu section.',
+        description:
+          'Use a background image for ambience behind the menu section.',
       };
     case 'layout_item_image':
       return {
@@ -263,12 +302,14 @@ function getGalleryModalCopy(field: MenuMediaField | null) {
     case 'category_item_image':
       return {
         title: 'Select Item Image',
-        description: 'Choose the image shown inside the selected category item.',
+        description:
+          'Choose the image shown inside the selected category item.',
       };
     default:
       return {
         title: 'Select Image',
-        description: 'Choose an image from your media library or upload a new one.',
+        description:
+          'Choose an image from your media library or upload a new one.',
       };
   }
 }
@@ -301,7 +342,8 @@ function getCategoryEditorCopy(layout: MenuLayout): CategoryEditorCopy {
       categoryIconLabel: 'Group Icon',
       categoryIconPlaceholder: 'DS',
       categoryDescriptionLabel: 'Group Description',
-      categoryDescriptionPlaceholder: 'Describe what guests will find in this group.',
+      categoryDescriptionPlaceholder:
+        'Describe what guests will find in this group.',
       emptyTitle: 'No accordion groups yet',
       emptyDescription:
         'Add the first accordion group to structure a longer menu into cleaner expandable sections.',
@@ -321,7 +363,8 @@ function getCategoryEditorCopy(layout: MenuLayout): CategoryEditorCopy {
     categoryIconLabel: 'Category Icon',
     categoryIconPlaceholder: 'LS',
     categoryDescriptionLabel: 'Category Description',
-    categoryDescriptionPlaceholder: 'Short context shown in the tab selector and panel.',
+    categoryDescriptionPlaceholder:
+      'Short context shown in the tab selector and panel.',
     emptyTitle: 'No categories yet',
     emptyDescription:
       'Add category tabs to create a stronger multi-group menu experience with focused panels.',
@@ -344,7 +387,11 @@ function FieldShell({
     <label className="block">
       <span className="mb-1.5 flex items-baseline justify-between gap-3 text-sm font-medium text-slate-700">
         <span>{label}</span>
-        {action ? <span>{action}</span> : hint ? <span className="text-xs font-normal text-slate-500">{hint}</span> : null}
+        {action ? (
+          <span>{action}</span>
+        ) : hint ? (
+          <span className="text-xs font-normal text-slate-500">{hint}</span>
+        ) : null}
       </span>
       {children}
     </label>
@@ -415,8 +462,10 @@ function MenuLayoutThumbnail({ layout }: { layout: MenuLayout }) {
       <div className="h-1.5 w-10 rounded-full bg-slate-200" />
     </div>
   );
-  const lightCard = 'rounded-2xl border border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.05)]';
-  const media = 'rounded-xl bg-[linear-gradient(135deg,rgba(237,233,254,1),rgba(224,231,255,0.7))]';
+  const lightCard =
+    'rounded-2xl border border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.05)]';
+  const media =
+    'rounded-xl bg-[linear-gradient(135deg,rgba(237,233,254,1),rgba(224,231,255,0.7))]';
 
   switch (layout) {
     case 'grid':
@@ -442,7 +491,10 @@ function MenuLayoutThumbnail({ layout }: { layout: MenuLayout }) {
           {chrome}
           <div className="grid h-[120px] gap-3 md:grid-cols-2">
             {[0, 1].map((card) => (
-              <div key={card} className={`${lightCard} grid place-items-center p-4 text-center`}>
+              <div
+                key={card}
+                className={`${lightCard} grid place-items-center p-4 text-center`}
+              >
                 <div className="space-y-2">
                   <div className="mx-auto h-2.5 w-20 rounded-full bg-violet-500/70" />
                   <div className="mx-auto h-2 w-24 rounded-full bg-slate-300" />
@@ -499,7 +551,10 @@ function MenuLayoutThumbnail({ layout }: { layout: MenuLayout }) {
             </div>
             <div className="grid gap-2">
               {[0, 1, 2].map((row) => (
-                <div key={row} className={`${lightCard} flex items-center justify-between px-3 py-2`}>
+                <div
+                  key={row}
+                  className={`${lightCard} flex items-center justify-between px-3 py-2`}
+                >
                   <div className="space-y-1">
                     <div className="h-2.5 w-16 rounded-full bg-slate-700/80" />
                     <div className="h-2 w-20 rounded-full bg-slate-300" />
@@ -517,7 +572,10 @@ function MenuLayoutThumbnail({ layout }: { layout: MenuLayout }) {
           {chrome}
           <div className="grid h-[120px] gap-2">
             {[0, 1, 2].map((row) => (
-              <div key={row} className={`${lightCard} flex items-center justify-between px-3 py-3`}>
+              <div
+                key={row}
+                className={`${lightCard} flex items-center justify-between px-3 py-3`}
+              >
                 <div className="space-y-1">
                   <div className="h-2.5 w-20 rounded-full bg-slate-700/80" />
                   <div className="h-2 w-24 rounded-full bg-slate-300" />
@@ -568,7 +626,10 @@ function MenuLayoutThumbnail({ layout }: { layout: MenuLayout }) {
           {chrome}
           <div className="grid h-[120px] grid-cols-3 gap-3">
             {[0, 1, 2].map((card) => (
-              <div key={card} className={`${lightCard} grid place-items-center p-3 text-center`}>
+              <div
+                key={card}
+                className={`${lightCard} grid place-items-center p-3 text-center`}
+              >
                 <div className="h-10 w-10 rounded-2xl bg-violet-100" />
                 <div className="mt-2 h-2.5 w-12 rounded-full bg-slate-700/80" />
                 <div className="mt-1 h-2 w-14 rounded-full bg-slate-300" />
@@ -616,12 +677,15 @@ function LayoutControl({
     control.field,
     control.mobileField,
     viewport,
-    control.kind === 'toggle' ? false : control.min ?? '',
+    control.kind === 'toggle' ? false : (control.min ?? ''),
   );
 
   const reset =
     isMobile && control.mobileField
-      ? resetButton(() => onChange(control.mobileField as string, undefined), `Use desktop ${control.label.toLowerCase()}`)
+      ? resetButton(
+          () => onChange(control.mobileField as string, undefined),
+          `Use desktop ${control.label.toLowerCase()}`,
+        )
       : null;
 
   if (control.kind === 'toggle') {
@@ -630,7 +694,12 @@ function LayoutControl({
         title={control.label}
         checked={Boolean(value)}
         onChange={(checked) =>
-          onChange(isMobile && control.mobileField ? control.mobileField : control.field, checked)
+          onChange(
+            isMobile && control.mobileField
+              ? control.mobileField
+              : control.field,
+            checked,
+          )
         }
       />
     );
@@ -643,14 +712,19 @@ function LayoutControl({
           value={String(value)}
           onChange={(event) =>
             onChange(
-              isMobile && control.mobileField ? control.mobileField : control.field,
+              isMobile && control.mobileField
+                ? control.mobileField
+                : control.field,
               event.target.value,
             )
           }
           className={selectClassName()}
         >
           {(control.options || []).map((option) => (
-            <option key={`${control.field}-${option.value}`} value={option.value}>
+            <option
+              key={`${control.field}-${option.value}`}
+              value={option.value}
+            >
               {option.label}
             </option>
           ))}
@@ -664,7 +738,11 @@ function LayoutControl({
       label={control.label}
       action={
         <span className="flex items-center gap-2 text-xs text-slate-500">
-          <span>{typeof value === 'number' ? `${value}${control.unit || ''}` : value}</span>
+          <span>
+            {typeof value === 'number'
+              ? `${value}${control.unit || ''}`
+              : value}
+          </span>
           {reset}
         </span>
       }
@@ -677,7 +755,9 @@ function LayoutControl({
         value={Number(value)}
         onChange={(event) =>
           onChange(
-            isMobile && control.mobileField ? control.mobileField : control.field,
+            isMobile && control.mobileField
+              ? control.mobileField
+              : control.field,
             Number(event.target.value),
           )
         }
@@ -752,144 +832,234 @@ function DirectLayoutItemEditor({
 }) {
   const definition = MENU_LAYOUT_DEFINITIONS[layout];
   const showImages = definition.usesImages || definition.imageOptional;
+  const [primaryButtonOpen, setPrimaryButtonOpen] = useState<
+    Record<number, boolean>
+  >({});
+  const [secondaryButtonOpen, setSecondaryButtonOpen] = useState<
+    Record<number, boolean>
+  >({});
+
+  useEffect(() => {
+    setPrimaryButtonOpen({});
+    setSecondaryButtonOpen({});
+  }, [layout]);
 
   return (
     <div className="space-y-4">
       <div className="grid gap-5 xl:grid-cols-2">
-        {items.map((item, itemIndex) => (
-          <div
-            key={`menu-layout-item-${itemIndex}`}
-            className="rounded-2xl border border-slate-200 bg-white p-4"
-          >
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-600">
-                  Item {itemIndex + 1}
+        {items.map((item, itemIndex) => {
+          const primaryEnabled =
+            primaryButtonOpen[itemIndex] ??
+            Boolean(item.ctaLabel?.trim() || item.ctaLink?.trim());
+          const secondaryEnabled =
+            secondaryButtonOpen[itemIndex] ??
+            Boolean(item.badge?.trim() || item.imageLink?.trim());
+
+          return (
+            <div
+              key={`menu-layout-item-${itemIndex}`}
+              className="rounded-2xl border border-slate-200 bg-white p-4"
+            >
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-600">
+                    Item {itemIndex + 1}
+                  </div>
+                  <h3 className="mt-1 text-base font-semibold text-slate-900">
+                    {definition.name} Item {itemIndex + 1}
+                  </h3>
                 </div>
-                <h3 className="mt-1 text-base font-semibold text-slate-900">
-                  {item.name?.trim() || `${definition.name} Item ${itemIndex + 1}`}
-                </h3>
-              </div>
-              {showImages ? (
-                <div className="flex flex-wrap justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onOpenImage(itemIndex)}
-                    className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-sm font-semibold text-violet-700 transition-colors hover:border-violet-300 hover:bg-violet-100"
-                  >
-                    {item.image ? 'Replace' : 'Choose Image'}
-                  </button>
-                  {item.image ? (
+                {showImages ? (
+                  <div className="flex flex-wrap justify-end gap-2">
                     <button
                       type="button"
-                      onClick={() => onUpdate(itemIndex, { image: '' })}
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 transition-colors hover:border-rose-200 hover:text-rose-600"
+                      onClick={() => onOpenImage(itemIndex)}
+                      className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-sm font-semibold text-violet-700 transition-colors hover:border-violet-300 hover:bg-violet-100"
                     >
-                      Remove
+                      {item.image ? 'Replace' : 'Choose Image'}
                     </button>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
+                    {item.image ? (
+                      <button
+                        type="button"
+                        onClick={() => onUpdate(itemIndex, { image: '' })}
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 transition-colors hover:border-rose-200 hover:text-rose-600"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
 
-            <div className="space-y-4">
-              {showImages ? (
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                  {item.image ? (
-                    <img src={item.image} alt={item.name || `Menu item ${itemIndex + 1}`} className="h-36 w-full object-cover" />
-                  ) : (
-                    <div className="flex h-36 items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.14),transparent_42%),linear-gradient(135deg,rgba(248,250,252,1),rgba(241,245,249,1))] text-sm font-medium text-slate-500">
-                      No image selected
-                    </div>
-                  )}
-                </div>
-              ) : null}
+              <div className="space-y-4">
+                {showImages ? (
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={`Menu item ${itemIndex + 1}`}
+                        className="h-36 w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-36 items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.14),transparent_42%),linear-gradient(135deg,rgba(248,250,252,1),rgba(241,245,249,1))] text-sm font-medium text-slate-500">
+                        No image selected
+                      </div>
+                    )}
+                  </div>
+                ) : null}
 
-              <div className="grid gap-4 md:grid-cols-2">
                 <FieldShell label="Title">
                   <input
                     type="text"
                     value={item.name || ''}
-                    onChange={(event) => onUpdate(itemIndex, { name: event.target.value })}
+                    onChange={(event) =>
+                      onUpdate(itemIndex, { name: event.target.value })
+                    }
                     className={textInputClassName()}
-                    placeholder="Signature Pasta"
+                    placeholder="Menu Item Title"
                   />
                 </FieldShell>
-                <FieldShell label="Label">
-                  <input
-                    type="text"
-                    value={item.category || ''}
-                    onChange={(event) => onUpdate(itemIndex, { category: event.target.value })}
-                    className={textInputClassName()}
-                    placeholder="Chef Pick"
-                  />
-                </FieldShell>
-                <FieldShell label="Price">
-                  <input
-                    type="text"
-                    value={item.price || ''}
-                    onChange={(event) => onUpdate(itemIndex, { price: event.target.value })}
-                    className={textInputClassName()}
-                    placeholder="24"
-                  />
-                </FieldShell>
-                <FieldShell label="Badge">
-                  <input
-                    type="text"
-                    value={item.badge || ''}
-                    onChange={(event) => onUpdate(itemIndex, { badge: event.target.value })}
-                    className={textInputClassName()}
-                    placeholder="Best Seller"
-                  />
-                </FieldShell>
-              </div>
 
-              <FieldShell label="Description">
-                <textarea
-                  value={item.description || ''}
-                  onChange={(event) => onUpdate(itemIndex, { description: event.target.value })}
-                  className={textareaClassName()}
-                  placeholder="Short supporting copy about this menu item or promotion."
-                />
-              </FieldShell>
+                <FieldShell label="Subtitle">
+                  <input
+                    type="text"
+                    value={item.description || ''}
+                    onChange={(event) =>
+                      onUpdate(itemIndex, { description: event.target.value })
+                    }
+                    className={textInputClassName()}
+                    placeholder="Short description"
+                  />
+                </FieldShell>
 
-              {definition.usesButtons ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <FieldShell label="Button Text">
-                    <input
-                      type="text"
-                      value={item.ctaLabel || ''}
-                      onChange={(event) => onUpdate(itemIndex, { ctaLabel: event.target.value })}
-                      className={textInputClassName()}
-                      placeholder="Order Now"
-                    />
-                  </FieldShell>
-                  <FieldShell label="Button Link">
-                    <input
-                      type="text"
-                      value={item.ctaLink || ''}
-                      onChange={(event) => onUpdate(itemIndex, { ctaLink: event.target.value })}
-                      className={textInputClassName()}
-                      placeholder="#order"
-                    />
-                  </FieldShell>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-slate-900">
+                      Primary Button
+                    </h4>
+                    <label className="relative inline-flex cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        checked={primaryEnabled}
+                        onChange={(event) => {
+                          const nextChecked = event.target.checked;
+                          setPrimaryButtonOpen((previous) => ({
+                            ...previous,
+                            [itemIndex]: nextChecked,
+                          }));
+
+                          if (nextChecked) {
+                            onUpdate(itemIndex, {
+                              ctaLabel:
+                                item.ctaLabel?.trim() || 'Order Now',
+                              ctaLink:
+                                item.ctaLink?.trim() || DEFAULT_BUTTON_HREF,
+                            });
+                          } else {
+                            onUpdate(itemIndex, { ctaLabel: '', ctaLink: '' });
+                          }
+                        }}
+                        className="peer sr-only"
+                      />
+                      <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
+                    </label>
+                  </div>
+                  {primaryEnabled ? (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <FieldShell label="Button Text">
+                        <input
+                          type="text"
+                          value={item.ctaLabel || ''}
+                          onChange={(event) =>
+                            onUpdate(itemIndex, {
+                              ctaLabel: event.target.value,
+                            })
+                          }
+                          className={textInputClassName()}
+                          placeholder="Order Now"
+                        />
+                      </FieldShell>
+                      <FieldShell label="Button Link">
+                        <input
+                          type="text"
+                          value={item.ctaLink || ''}
+                          onChange={(event) =>
+                            onUpdate(itemIndex, { ctaLink: event.target.value })
+                          }
+                          className={textInputClassName()}
+                          placeholder="#order"
+                        />
+                      </FieldShell>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
 
-              {showImages ? (
-                <FieldShell label="Image Link">
-                  <input
-                    type="text"
-                    value={item.imageLink || ''}
-                    onChange={(event) => onUpdate(itemIndex, { imageLink: event.target.value })}
-                    className={textInputClassName()}
-                    placeholder="https://example.com/menu"
-                  />
-                </FieldShell>
-              ) : null}
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-slate-900">
+                      Secondary Button
+                    </h4>
+                    <label className="relative inline-flex cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        checked={secondaryEnabled}
+                        onChange={(event) => {
+                          const nextChecked = event.target.checked;
+                          setSecondaryButtonOpen((previous) => ({
+                            ...previous,
+                            [itemIndex]: nextChecked,
+                          }));
+
+                          if (nextChecked) {
+                            onUpdate(itemIndex, {
+                              badge:
+                                item.badge?.trim() ||
+                                DEFAULT_SECONDARY_MENU_BUTTON.label,
+                              imageLink:
+                                item.imageLink?.trim() || DEFAULT_BUTTON_HREF,
+                            });
+                          } else {
+                            onUpdate(itemIndex, { badge: '', imageLink: '' });
+                          }
+                        }}
+                        className="peer sr-only"
+                      />
+                      <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
+                    </label>
+                  </div>
+                  {secondaryEnabled ? (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <FieldShell label="Button Text">
+                        <input
+                          type="text"
+                          value={item.badge || ''}
+                          onChange={(event) =>
+                            onUpdate(itemIndex, { badge: event.target.value })
+                          }
+                          className={textInputClassName()}
+                          placeholder="Learn More"
+                        />
+                      </FieldShell>
+                      <FieldShell label="Button Link">
+                        <input
+                          type="text"
+                          value={item.imageLink || ''}
+                          onChange={(event) =>
+                            onUpdate(itemIndex, {
+                              imageLink: event.target.value,
+                            })
+                          }
+                          className={textInputClassName()}
+                          placeholder="#learn-more"
+                        />
+                      </FieldShell>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -921,13 +1091,16 @@ export default function MenuSettingsFormEnhanced({
 
   const [formConfig, setFormConfig] = useState<MenuConfig | null>(null);
   const editorViewport: EditorViewport = 'desktop';
-  const [previewViewport, setPreviewViewport] = useState<EditorViewport>('desktop');
+  const [previewViewport, setPreviewViewport] =
+    useState<EditorViewport>('desktop');
   const [showPreview, setShowPreview] = useState(false);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
-  const [currentMediaField, setCurrentMediaField] = useState<MenuMediaField | null>(null);
+  const [currentMediaField, setCurrentMediaField] =
+    useState<MenuMediaField | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const deferredPreviewConfig = useDeferredValue(formConfig);
 
   useEffect(() => {
     if (formConfig) {
@@ -1027,9 +1200,16 @@ export default function MenuSettingsFormEnhanced({
   const currentLayoutDefinition = getMenuLayoutDefinition(currentLayout);
   const currentLayoutSettings = useMemo(
     () =>
-      ((mergeMenuLayoutSettings(formConfig?.layoutSettings)?.[currentLayout] ||
-        currentLayoutDefinition.defaults) as Record<string, LayoutSettingsValue>),
-    [currentLayout, currentLayoutDefinition.defaults, formConfig?.layoutSettings],
+      (mergeMenuLayoutSettings(formConfig?.layoutSettings)?.[currentLayout] ||
+        currentLayoutDefinition.defaults) as Record<
+        string,
+        LayoutSettingsValue
+      >,
+    [
+      currentLayout,
+      currentLayoutDefinition.defaults,
+      formConfig?.layoutSettings,
+    ],
   );
 
   const updateLayoutSettings = (field: string, value: LayoutSettingsValue) => {
@@ -1073,43 +1253,6 @@ export default function MenuSettingsFormEnhanced({
     });
   };
 
-  const updatePrimaryButton = (updates: Partial<MenuButton>) => {
-    setFormConfig((previous) =>
-      previous
-        ? normalizeMenuConfig({
-            ...previous,
-            primaryButtonEnabled: true,
-            primaryButton: {
-              ...DEFAULT_PRIMARY_MENU_BUTTON,
-              ...(previous.primaryButton || previous.ctaButton || {}),
-              ...updates,
-            },
-            ctaButton: {
-              ...DEFAULT_PRIMARY_MENU_BUTTON,
-              ...(previous.primaryButton || previous.ctaButton || {}),
-              ...updates,
-            },
-          })
-        : previous,
-    );
-  };
-
-  const updateSecondaryButton = (updates: Partial<MenuButton>) => {
-    setFormConfig((previous) =>
-      previous
-        ? normalizeMenuConfig({
-            ...previous,
-            secondaryButtonEnabled: true,
-            secondaryButton: {
-              ...DEFAULT_SECONDARY_MENU_BUTTON,
-              ...(previous.secondaryButton || {}),
-              ...updates,
-            },
-          })
-        : previous,
-    );
-  };
-
   const addCategory = () => {
     setFormConfig((previous) => {
       if (!previous) {
@@ -1126,7 +1269,10 @@ export default function MenuSettingsFormEnhanced({
     });
   };
 
-  const updateCategory = (categoryIndex: number, updates: Partial<MenuCategory>) => {
+  const updateCategory = (
+    categoryIndex: number,
+    updates: Partial<MenuCategory>,
+  ) => {
     setFormConfig((previous) => {
       if (!previous) {
         return previous;
@@ -1153,7 +1299,9 @@ export default function MenuSettingsFormEnhanced({
 
       return normalizeMenuConfig({
         ...previous,
-        categories: (previous.categories || []).filter((_, index) => index !== categoryIndex),
+        categories: (previous.categories || []).filter(
+          (_, index) => index !== categoryIndex,
+        ),
       });
     });
   };
@@ -1265,9 +1413,13 @@ export default function MenuSettingsFormEnhanced({
     } else if (currentMediaField.type === 'layout_item_image') {
       updateLayoutItem(currentMediaField.itemIndex, { image: imageUrl });
     } else {
-      updateCategoryItem(currentMediaField.categoryIndex, currentMediaField.itemIndex, {
-        image: imageUrl,
-      });
+      updateCategoryItem(
+        currentMediaField.categoryIndex,
+        currentMediaField.itemIndex,
+        {
+          image: imageUrl,
+        },
+      );
     }
   };
 
@@ -1344,24 +1496,26 @@ export default function MenuSettingsFormEnhanced({
   const menuItemCount = getMenuItemCount(formConfig.categories);
   const menuImageCount = getMenuImageCount(formConfig.categories);
   const categoryEditorCopy = getCategoryEditorCopy(currentLayout);
-  const layoutItems = (formConfig.layoutItems || []).slice(0, currentLayoutDefinition.itemSlots);
+  const layoutItems = (formConfig.layoutItems || []).slice(
+    0,
+    currentLayoutDefinition.itemSlots,
+  );
   const galleryCopy = getGalleryModalCopy(currentMediaField);
-  const primaryButtonEnabled = formConfig.primaryButtonEnabled !== false;
-  const secondaryButtonEnabled =
-    formConfig.secondaryButtonEnabled === true ||
-    Boolean(formConfig.secondaryButton?.label?.trim() || formConfig.secondaryButton?.href?.trim());
-  const editablePrimaryButton =
-    formConfig.primaryButton ||
-    formConfig.ctaButton ||
-    DEFAULT_PRIMARY_MENU_BUTTON;
-  const editableSecondaryButton =
-    formConfig.secondaryButton || DEFAULT_SECONDARY_MENU_BUTTON;
-
   const layoutSection = (
     <SettingsCard
       icon={
-        <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4.75 6.75h14.5M4.75 12h14.5M4.75 17.25h14.5" />
+        <svg
+          className="h-5 w-5 text-white"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4.75 6.75h14.5M4.75 12h14.5M4.75 17.25h14.5"
+          />
         </svg>
       }
       title="Layout Configuration"
@@ -1391,7 +1545,9 @@ export default function MenuSettingsFormEnhanced({
             className="rounded-2xl border border-slate-200 bg-white px-4 py-4"
           >
             {currentLayoutDefinition.controlGroups.length > 1 ? (
-              <h3 className="mb-3 text-sm font-semibold text-slate-900">{group.title}</h3>
+              <h3 className="mb-3 text-sm font-semibold text-slate-900">
+                {group.title}
+              </h3>
             ) : null}
             <div className="grid gap-3 md:grid-cols-2">
               {group.controls.map((control) => (
@@ -1413,211 +1569,52 @@ export default function MenuSettingsFormEnhanced({
   const contentSection = (
     <SettingsCard
       icon={
-        <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.75H7.5a3 3 0 00-3 3v10.5a3 3 0 003 3h9a3 3 0 003-3V6.75a3 3 0 00-3-3zM8.25 8.25h7.5m-7.5 4.5h7.5m-7.5 4.5h3.75" />
+        <svg
+          className="h-5 w-5 text-white"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M16.5 3.75H7.5a3 3 0 00-3 3v10.5a3 3 0 003 3h9a3 3 0 003-3V6.75a3 3 0 00-3-3zM8.25 8.25h7.5m-7.5 4.5h7.5m-7.5 4.5h3.75"
+          />
         </svg>
       }
       title="Content Configuration"
-      description="Edit section copy, CTA content, and the structured items or categories used by the selected layout."
+      description="Edit section copy and the structured items or categories used by the selected layout."
     >
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-        <div className="space-y-4">
-          <FieldShell label="Section Title">
-            <input
-              type="text"
-              value={formConfig.title || ''}
-              onChange={(event) => updateConfig({ title: event.target.value })}
-              className={textInputClassName()}
-              placeholder="Our Menu"
-            />
-          </FieldShell>
-          <FieldShell label="Subtitle">
-            <input
-              type="text"
-              value={formConfig.subtitle || ''}
-              onChange={(event) => updateConfig({ subtitle: event.target.value })}
-              className={textInputClassName()}
-              placeholder="Seasonal dishes and house favorites"
-            />
-          </FieldShell>
-          <FieldShell label="Description">
-            <textarea
-              value={formConfig.description || ''}
-              onChange={(event) => updateConfig({ description: event.target.value })}
-              className={textareaClassName()}
-              placeholder="Give guests a quick introduction to the menu, categories, or featured offerings."
-            />
-          </FieldShell>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-          <div className="border-b border-slate-100 pb-4">
-            <h3 className="text-base font-semibold text-slate-900">Section Actions</h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Primary button is used as the shared CTA for this section.
-            </p>
-          </div>
-
-          <div className="mt-4 space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <label className="text-sm font-semibold text-slate-800">
-                    Primary Button
-                  </label>
-                  <p className="text-xs text-slate-500">Shared CTA</p>
-                </div>
-                <label className="relative inline-flex cursor-pointer items-center">
-                  <input
-                    type="checkbox"
-                    checked={primaryButtonEnabled}
-                    onChange={(event) => {
-                      if (event.target.checked) {
-                        updateConfig({
-                          primaryButtonEnabled: true,
-                          primaryButton:
-                            formConfig.primaryButton ||
-                            formConfig.ctaButton || {
-                              ...DEFAULT_PRIMARY_MENU_BUTTON,
-                            },
-                        });
-                      } else {
-                        updateConfig({ primaryButtonEnabled: false });
-                      }
-                    }}
-                    className="peer sr-only"
-                  />
-                  <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
-                </label>
-              </div>
-
-              {primaryButtonEnabled ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  <FieldShell label="Text">
-                    <input
-                      type="text"
-                      value={editablePrimaryButton.label}
-                      onChange={(event) =>
-                        updatePrimaryButton({ label: event.target.value })
-                      }
-                      className={textInputClassName()}
-                      placeholder="Order Online"
-                    />
-                  </FieldShell>
-                  <FieldShell label="Link">
-                    <input
-                      type="text"
-                      value={editablePrimaryButton.href}
-                      onChange={(event) =>
-                        updatePrimaryButton({ href: event.target.value })
-                      }
-                      className={textInputClassName()}
-                      placeholder="#order"
-                    />
-                  </FieldShell>
-                  <div className="md:col-span-2">
-                    <FieldShell label="Style">
-                      <select
-                        value={editablePrimaryButton.variant || 'primary'}
-                        onChange={(event) =>
-                          updatePrimaryButton({
-                            variant: event.target.value as
-                              | 'primary'
-                              | 'secondary'
-                              | 'outline',
-                          })
-                        }
-                        className={selectClassName()}
-                      >
-                        <option value="primary">Primary</option>
-                        <option value="secondary">Secondary</option>
-                        <option value="outline">Outline</option>
-                      </select>
-                    </FieldShell>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <label className="text-sm font-semibold text-slate-800">
-                    Secondary Button
-                  </label>
-                  <p className="text-xs text-slate-500">Optional action</p>
-                </div>
-                <label className="relative inline-flex cursor-pointer items-center">
-                  <input
-                    type="checkbox"
-                    checked={secondaryButtonEnabled}
-                    onChange={(event) => {
-                      if (event.target.checked) {
-                        updateConfig({
-                          secondaryButtonEnabled: true,
-                          secondaryButton: formConfig.secondaryButton || {
-                            ...DEFAULT_SECONDARY_MENU_BUTTON,
-                          },
-                        });
-                      } else {
-                        updateConfig({ secondaryButtonEnabled: false });
-                      }
-                    }}
-                    className="peer sr-only"
-                  />
-                  <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
-                </label>
-              </div>
-
-              {secondaryButtonEnabled ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  <FieldShell label="Text">
-                    <input
-                      type="text"
-                      value={editableSecondaryButton.label}
-                      onChange={(event) =>
-                        updateSecondaryButton({ label: event.target.value })
-                      }
-                      className={textInputClassName()}
-                      placeholder="Book a Table"
-                    />
-                  </FieldShell>
-                  <FieldShell label="Link">
-                    <input
-                      type="text"
-                      value={editableSecondaryButton.href}
-                      onChange={(event) =>
-                        updateSecondaryButton({ href: event.target.value })
-                      }
-                      className={textInputClassName()}
-                      placeholder="#reservations"
-                    />
-                  </FieldShell>
-                  <div className="md:col-span-2">
-                    <FieldShell label="Style">
-                      <select
-                        value={editableSecondaryButton.variant || 'outline'}
-                        onChange={(event) =>
-                          updateSecondaryButton({
-                            variant: event.target.value as
-                              | 'primary'
-                              | 'secondary'
-                              | 'outline',
-                          })
-                        }
-                        className={selectClassName()}
-                      >
-                        <option value="primary">Primary</option>
-                        <option value="secondary">Secondary</option>
-                        <option value="outline">Outline</option>
-                      </select>
-                    </FieldShell>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
+      <div className="space-y-4">
+        <FieldShell label="Section Title">
+          <input
+            type="text"
+            value={formConfig.title || ''}
+            onChange={(event) => updateConfig({ title: event.target.value })}
+            className={textInputClassName()}
+            placeholder="Our Menu"
+          />
+        </FieldShell>
+        <FieldShell label="Subtitle">
+          <input
+            type="text"
+            value={formConfig.subtitle || ''}
+            onChange={(event) => updateConfig({ subtitle: event.target.value })}
+            className={textInputClassName()}
+            placeholder="Seasonal dishes and house favorites"
+          />
+        </FieldShell>
+        <FieldShell label="Description">
+          <textarea
+            value={formConfig.description || ''}
+            onChange={(event) =>
+              updateConfig({ description: event.target.value })
+            }
+            className={textareaClassName()}
+            placeholder="Give guests a quick introduction to the menu, categories, or featured offerings."
+          />
+        </FieldShell>
       </div>
 
       <div className="mt-6">
@@ -1660,9 +1657,23 @@ export default function MenuSettingsFormEnhanced({
   const mediaSection = (
     <SettingsCard
       icon={
-        <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 7.5A2.25 2.25 0 016.75 5.25h10.5A2.25 2.25 0 0119.5 7.5v9a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 16.5v-9z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 15l2.25-2.25a1.5 1.5 0 012.122 0L15 15m-5.25-5.25h.008v.008H9.75V9.75z" />
+        <svg
+          className="h-5 w-5 text-white"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4.5 7.5A2.25 2.25 0 016.75 5.25h10.5A2.25 2.25 0 0119.5 7.5v9a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 16.5v-9z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M7.5 15l2.25-2.25a1.5 1.5 0 012.122 0L15 15m-5.25-5.25h.008v.008H9.75V9.75z"
+          />
         </svg>
       }
       title="Media and Display"
@@ -1698,14 +1709,19 @@ export default function MenuSettingsFormEnhanced({
               value={formConfig.overlayColor || '#0f172a'}
               onChange={(value) => updateConfig({ overlayColor: value })}
             />
-            <FieldShell label="Overlay Opacity" hint={`${Math.round((formConfig.overlayOpacity || 0.52) * 100)}%`}>
+            <FieldShell
+              label="Overlay Opacity"
+              hint={`${Math.round((formConfig.overlayOpacity || 0.52) * 100)}%`}
+            >
               <input
                 type="range"
                 min="0"
                 max="0.9"
                 step="0.02"
                 value={formConfig.overlayOpacity || 0.52}
-                onChange={(event) => updateConfig({ overlayOpacity: Number(event.target.value) })}
+                onChange={(event) =>
+                  updateConfig({ overlayOpacity: Number(event.target.value) })
+                }
                 className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-violet-600"
               />
             </FieldShell>
@@ -1720,31 +1736,31 @@ export default function MenuSettingsFormEnhanced({
           </h3>
         </div>
         <div className="grid gap-3 lg:grid-cols-2">
-        <ToggleRow
-          title="Show Item Images"
-          checked={Boolean(formConfig.showImages)}
-          onChange={(checked) => updateConfig({ showImages: checked })}
-        />
-        <ToggleRow
-          title="Show Prices"
-          checked={Boolean(formConfig.showPrices)}
-          onChange={(checked) => updateConfig({ showPrices: checked })}
-        />
-        <ToggleRow
-          title="Show Descriptions"
-          checked={Boolean(formConfig.showDescriptions)}
-          onChange={(checked) => updateConfig({ showDescriptions: checked })}
-        />
-        <ToggleRow
-          title="Show Dietary Badges"
-          checked={Boolean(formConfig.showDietaryInfo)}
-          onChange={(checked) => updateConfig({ showDietaryInfo: checked })}
-        />
-        <ToggleRow
-          title="Show Category Icons"
-          checked={Boolean(formConfig.showCategoryIcons)}
-          onChange={(checked) => updateConfig({ showCategoryIcons: checked })}
-        />
+          <ToggleRow
+            title="Show Item Images"
+            checked={Boolean(formConfig.showImages)}
+            onChange={(checked) => updateConfig({ showImages: checked })}
+          />
+          <ToggleRow
+            title="Show Prices"
+            checked={Boolean(formConfig.showPrices)}
+            onChange={(checked) => updateConfig({ showPrices: checked })}
+          />
+          <ToggleRow
+            title="Show Descriptions"
+            checked={Boolean(formConfig.showDescriptions)}
+            onChange={(checked) => updateConfig({ showDescriptions: checked })}
+          />
+          <ToggleRow
+            title="Show Dietary Badges"
+            checked={Boolean(formConfig.showDietaryInfo)}
+            onChange={(checked) => updateConfig({ showDietaryInfo: checked })}
+          />
+          <ToggleRow
+            title="Show Category Icons"
+            checked={Boolean(formConfig.showCategoryIcons)}
+            onChange={(checked) => updateConfig({ showCategoryIcons: checked })}
+          />
         </div>
       </div>
     </SettingsCard>
@@ -1753,64 +1769,24 @@ export default function MenuSettingsFormEnhanced({
   const typographySection = (
     <SettingsCard
       icon={
-        <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 7.5h15M7.5 4.5v6m9-6v6M4.5 13.5h9m-9 4.5h15" />
+        <svg
+          className="h-5 w-5 text-white"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4.5 7.5h15M7.5 4.5v6m9-6v6M4.5 13.5h9m-9 4.5h15"
+          />
         </svg>
       }
-      title="Typography and Responsive Structure"
+      title="Typography and Responsive"
       description="Keep menu typography aligned with the global theme by default, then opt into section-specific overrides only when needed."
     >
       <div className="space-y-5">
-        <div className="rounded-[26px] border border-slate-200 bg-slate-50/70 p-5">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h3 className="text-base font-semibold text-slate-900">Page Scroll Animation</h3>
-              <p className="mt-1 text-sm text-slate-600">
-                Reveal the entire menu section when it enters the viewport.
-              </p>
-            </div>
-            <label className="relative inline-flex cursor-pointer items-center">
-              <input
-                type="checkbox"
-                checked={formConfig.enableScrollReveal === true}
-                onChange={(event) =>
-                  updateConfig({ enableScrollReveal: event.target.checked })
-                }
-                className="peer sr-only"
-              />
-              <div className="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-violet-500/30" />
-            </label>
-          </div>
-          {formConfig.enableScrollReveal ? (
-            <div className="mt-4">
-              <FieldShell label="Reveal Animation Style">
-                <select
-                  value={formConfig.scrollRevealAnimation || 'fade-up'}
-                  onChange={(event) =>
-                    updateConfig({
-                      scrollRevealAnimation:
-                        event.target.value as SectionStyleConfig['scrollRevealAnimation'],
-                    })
-                  }
-                  className={selectClassName()}
-                >
-                  <option value="fade">Fade</option>
-                  <option value="fade-up">Fade Up</option>
-                  <option value="slide-up">Slide Up</option>
-                  <option value="soft-reveal">Soft Reveal</option>
-                </select>
-              </FieldShell>
-            </div>
-          ) : null}
-        </div>
-
-        <ToggleRow
-          title="Use Global Styles"
-          description="When enabled, title, subtitle, and paragraph typography inherit from the global theme."
-          checked={formConfig.is_custom !== true}
-          onChange={(checked) => handleCustomTypographyToggle(!checked)}
-        />
-
         {formConfig.is_custom ? (
           <div className="rounded-[26px] border border-slate-200 bg-slate-50/70 p-5">
             <SectionTypographyControls
@@ -1820,12 +1796,7 @@ export default function MenuSettingsFormEnhanced({
               viewport={editorViewport}
             />
           </div>
-        ) : (
-          <div className="rounded-[26px] border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-800">
-            Typography is inherited from the global theme. Disable the toggle above to edit section-specific title, subtitle, and paragraph typography for this menu.
-          </div>
-        )}
-        </div>
+        ) : null}
 
         <div className="rounded-[26px] border border-slate-200 bg-slate-50/70 p-5">
           <SectionAppearanceControls
@@ -1834,6 +1805,21 @@ export default function MenuSettingsFormEnhanced({
             viewport={editorViewport}
           />
         </div>
+
+        <ToggleRow
+          title="Use Global Styles"
+          description="When enabled, title, subtitle, and paragraph typography inherit from the global theme."
+          checked={formConfig.is_custom !== true}
+          onChange={(checked) => handleCustomTypographyToggle(!checked)}
+        />
+
+        {formConfig.is_custom !== true ? (
+          <div className="rounded-[26px] border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-800">
+            Typography is inherited from the global theme. Disable the toggle
+            above to edit section-specific title, subtitle, and paragraph
+            typography for this menu.
+          </div>
+        ) : null}
       </div>
     </SettingsCard>
   );
@@ -1842,8 +1828,18 @@ export default function MenuSettingsFormEnhanced({
     <form onSubmit={handleSubmit} className="pb-40">
       <SettingsHeader
         icon={
-          <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v10.5A2.5 2.5 0 007.5 20h9a2.5 2.5 0 002.5-2.5V7A2 2 0 0017 5h-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 5a2 2 0 002 2h2a2 2 0 002-2m-8 6h8m-8 4h5" />
+          <svg
+            className="h-7 w-7 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 5H7a2 2 0 00-2 2v10.5A2.5 2.5 0 007.5 20h9a2.5 2.5 0 002.5-2.5V7A2 2 0 0017 5h-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 5a2 2 0 002 2h2a2 2 0 002-2m-8 6h8m-8 4h5"
+            />
           </svg>
         }
         title={isNewSection ? 'Add Menu Section' : 'Menu Settings'}
@@ -1871,7 +1867,40 @@ export default function MenuSettingsFormEnhanced({
         {typographySection}
       </div>
 
+      <div className="mt-8 flex justify-end">
+        <button
+          type="submit"
+          disabled={updating}
+          className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {updating ? (
+            <>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+              Saving...
+            </>
+          ) : (
+            <>
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
+                />
+              </svg>
+              Save Menu Settings
+            </>
+          )}
+        </button>
+      </div>
+
       <FloatingPreviewButton
+        compact
         viewport="desktop"
         onClick={() => {
           setPreviewViewport('desktop');
@@ -1888,7 +1917,10 @@ export default function MenuSettingsFormEnhanced({
           onClose={() => setShowPreview(false)}
           note="Live preview reflects the selected layout, responsive overrides, media, typography, and motion settings."
         >
-          <Menu {...formConfig} previewMode={previewViewport} />
+          <Menu
+            {...(deferredPreviewConfig || formConfig)}
+            previewMode={previewViewport}
+          />
         </PreviewModal>
       ) : null}
 

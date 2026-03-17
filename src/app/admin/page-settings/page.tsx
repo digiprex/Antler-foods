@@ -379,9 +379,45 @@ function PageSettingsSelector() {
           </div>
         );
       case 'location':
+        const locationTemplate = sectionTemplates.get(templateId || '');
+        const finalLocationLayout = (
+          locationTemplate?.name ||
+          config?.layout ||
+          'default'
+        ).toLowerCase();
+        const locationPreviewHeights: Record<string, string> = {
+          default: '460px',
+          grid: '480px',
+          list: '500px',
+          map: '500px',
+          cards: '470px',
+          compact: '440px',
+          sidebar: '500px',
+          fullscreen: '560px',
+        };
+        const locationPreviewScales: Record<string, number> = {
+          default: 0.52,
+          grid: 0.56,
+          list: 0.5,
+          map: 0.54,
+          cards: 0.56,
+          compact: 0.58,
+          sidebar: 0.52,
+          fullscreen: 0.42,
+        };
+        const locationPreviewStyle = {
+          ...previewStyle,
+          maxHeight: locationPreviewHeights[finalLocationLayout] || '480px',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+        } as React.CSSProperties;
+        const locationZoomContainerStyle = createScaledPreviewStyle(
+          locationPreviewScales[finalLocationLayout] || 0.56,
+        );
+
         return (
-          <div style={previewStyle}>
-            <div style={zoomContainerStyle}>
+          <div style={locationPreviewStyle}>
+            <div style={locationZoomContainerStyle}>
               <DynamicLocation
                 restaurantId={restaurantId}
                 pageId={pageId}
@@ -694,26 +730,18 @@ function PageSettingsSelector() {
               console.log(`Found matching section: ${section.name} for category: ${template.category}`);
 
               // Check both 'enabled' and 'isEnabled' fields (different sections use different field names)
-              // If neither field exists, or if either is not explicitly false, consider it added
+              // Keep every configured template visible in the admin builder.
+              // Frontend visibility still depends on enabled/isEnabled, but hiding it here
+              // makes disabled sections impossible to find and re-enable.
               const enabled = template.config?.enabled;
               const isEnabled = template.config?.isEnabled;
+              existing.add(section.name);
+              templates.push({ ...template, section });
+              console.log(`✓ Added section: ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
 
-              // Show section as added if:
-              // 1. No enabled field exists (template exists but no enable/disable functionality)
-              // 2. enabled or isEnabled is explicitly true
-              // 3. enabled or isEnabled is undefined (not set yet, but template exists)
-              // Only hide if explicitly set to false
-              if (enabled !== false && isEnabled !== false) {
-                existing.add(section.name);
-                templates.push({ ...template, section });
-                console.log(`✓ Added section: ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
-
-                // Store the template config and full template data
-                setSectionConfigs(prev => new Map(prev.set(`${template.template_id}`, template.config)));
-                setSectionTemplates(prev => new Map(prev.set(`${template.template_id}`, template)));
-              } else {
-                console.log(`✗ Skipped section (disabled): ${section.name} (enabled: ${enabled}, isEnabled: ${isEnabled})`);
-              }
+              // Store the template config and full template data
+              setSectionConfigs(prev => new Map(prev.set(`${template.template_id}`, template.config)));
+              setSectionTemplates(prev => new Map(prev.set(`${template.template_id}`, template)));
             } else {
               console.log(`✗ No matching section found for category: "${template.category}"`);
               console.log('Available categories:', sectionsData.map(s => `"${s.category}"`));
@@ -1335,151 +1363,173 @@ function PageSettingsSelector() {
             </div>
           </div>
           <div className="space-y-6">
-            {existingSectionsData.map((section, idx) => (
-              <div
-                key={section.template_id}
-                className="stagger-item bg-gray-50 border-2 border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-purple-300 transition-all duration-300 group overflow-hidden hover-lift animate-fade-in"
-                style={{ animationDelay: `${idx * 0.1}s` }}
-              >
-                {/* Section Header */}
-                <div className="p-4 lg:p-6 border-b-2 border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-3 mb-2">
-                        <div className="font-bold text-base lg:text-lg text-gray-900">{section.name}</div>
-                        <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 rounded-full font-semibold flex-shrink-0 border border-purple-200 flex items-center gap-1">
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                          Active
-                        </span>
-                        {(() => {
-                          // Count instances of this section type
-                          const instanceCount = existingSectionsData.filter(s => s.category === section.category).length;
-                          if (instanceCount > 1) {
-                            const instanceNumber = existingSectionsData.filter(s => s.category === section.category).findIndex(s => s.template_id === section.template_id) + 1;
-                            return (
-                              <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 rounded-full font-semibold flex-shrink-0 border border-purple-200">
-                                Instance #{instanceNumber}
-                              </span>
-                            );
-                          }
-                          return null;
-                        })()}
-                      </div>
-                      <div className="text-sm text-gray-600 mb-3">{section.description}</div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Layout:</span>
-                        {(() => {
-                          // Layout is stored in template.name (section.layout)
-                          // Fallback to config fields for backwards compatibility
-                          const selectedLayout =
-                            section.layout ||
-                            section.config?.layout ||
-                            section.config?.layoutType ||
-                            section.config?.selectedLayout ||
-                            section.config?.layoutStyle ||
-                            section.config?.displayLayout ||
-                            'Default';
+            {existingSectionsData.map((section, idx) => {
+              return (() => {
+                const isVisibleOnPage =
+                  section.config?.enabled !== false &&
+                  section.config?.isEnabled !== false;
 
-                          return (
-                            <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 rounded-full font-semibold border border-purple-200">
-                              {selectedLayout}
+                return (
+                  <div
+                    key={section.template_id}
+                    className="stagger-item bg-gray-50 border-2 border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-purple-300 transition-all duration-300 group overflow-hidden hover-lift animate-fade-in"
+                    style={{ animationDelay: `${idx * 0.1}s` }}
+                  >
+                    {/* Section Header */}
+                    <div className="p-4 lg:p-6 border-b-2 border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex flex-wrap items-center gap-3 mb-2">
+                            <div className="font-bold text-base lg:text-lg text-gray-900">{section.name}</div>
+                            <span
+                              className={`text-xs px-3 py-1.5 rounded-full font-semibold flex-shrink-0 border flex items-center gap-1 ${
+                                isVisibleOnPage
+                                  ? 'bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 border-purple-200'
+                                  : 'bg-gradient-to-r from-amber-50 to-orange-100 text-orange-700 border-orange-200'
+                              }`}
+                            >
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                {isVisibleOnPage ? (
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                ) : (
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.78-10.72a.75.75 0 10-1.06-1.06L10 8.94 7.28 6.22a.75.75 0 10-1.06 1.06L8.94 10l-2.72 2.72a.75.75 0 101.06 1.06L10 11.06l2.72 2.72a.75.75 0 001.06-1.06L11.06 10l2.72-2.72z" clipRule="evenodd" />
+                                )}
+                              </svg>
+                              {isVisibleOnPage ? 'Active' : 'Hidden on page'}
                             </span>
-                          );
-                        })()}
+                            {(() => {
+                              // Count instances of this section type
+                              const instanceCount = existingSectionsData.filter(s => s.category === section.category).length;
+                              if (instanceCount > 1) {
+                                const instanceNumber = existingSectionsData.filter(s => s.category === section.category).findIndex(s => s.template_id === section.template_id) + 1;
+                                return (
+                                  <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 rounded-full font-semibold flex-shrink-0 border border-purple-200">
+                                    Instance #{instanceNumber}
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
+                          <div className="text-sm text-gray-600 mb-3">{section.description}</div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Layout:</span>
+                            {(() => {
+                              // Layout is stored in template.name (section.layout)
+                              // Fallback to config fields for backwards compatibility
+                              const selectedLayout =
+                                section.layout ||
+                                section.config?.layout ||
+                                section.config?.layoutType ||
+                                section.config?.selectedLayout ||
+                                section.config?.layoutStyle ||
+                                section.config?.displayLayout ||
+                                'Default';
+
+                              return (
+                                <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 rounded-full font-semibold border border-purple-200">
+                                  {selectedLayout}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          {/* Order Controls */}
+                          <div className="flex flex-col gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveSectionUp(idx);
+                              }}
+                              disabled={idx === 0}
+                              className="px-2 py-1 text-xs bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg hover:from-gray-200 hover:to-gray-300 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 font-medium shadow-sm min-w-[60px]"
+                              title="Move up"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                              </svg>
+                              <span className="hidden sm:inline">Up</span>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveSectionDown(idx);
+                              }}
+                              disabled={idx === existingSectionsData.length - 1}
+                              className="px-2 py-1 text-xs bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg hover:from-gray-200 hover:to-gray-300 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 font-medium shadow-sm min-w-[60px]"
+                              title="Move down"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                              </svg>
+                              <span className="hidden sm:inline">Down</span>
+                            </button>
+                          </div>
+
+                          {/* Order Index Display */}
+                          <div className="text-xs text-gray-700 px-3 py-2 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg font-bold border border-purple-200 text-center min-w-[50px]">
+                            #{idx + 1}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const editParams = new URLSearchParams(paramsString);
+                                editParams.set('template_id', section.template_id);
+                                router.push(`${section.route}?${editParams.toString()}`);
+                              }}
+                              className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 flex items-center gap-2 font-semibold shadow-md hover:shadow-lg hover-lift"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Edit
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(section.name, section.template_id);
+                              }}
+                              className="px-4 py-2 text-sm bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 flex items-center gap-2 font-semibold shadow-md hover:shadow-lg hover-lift"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      {/* Order Controls */}
-                      <div className="flex flex-col gap-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            moveSectionUp(idx);
-                          }}
-                          disabled={idx === 0}
-                          className="px-2 py-1 text-xs bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg hover:from-gray-200 hover:to-gray-300 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 font-medium shadow-sm min-w-[60px]"
-                          title="Move up"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                    {/* Live Preview */}
+                    <div className="p-6 bg-gray-50">
+                      <div className="mb-4">
+                        <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2 uppercase tracking-wide">
+                          <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                            <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                           </svg>
-                          <span className="hidden sm:inline">Up</span>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            moveSectionDown(idx);
-                          }}
-                          disabled={idx === existingSectionsData.length - 1}
-                          className="px-2 py-1 text-xs bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg hover:from-gray-200 hover:to-gray-300 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 font-medium shadow-sm min-w-[60px]"
-                          title="Move down"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                          </svg>
-                          <span className="hidden sm:inline">Down</span>
-                        </button>
+                          Show Preview
+                        </h4>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {isVisibleOnPage
+                            ? 'How it appears to your customers'
+                            : 'Stored in the page builder, but currently hidden on the live page'}
+                        </p>
                       </div>
-
-                      {/* Order Index Display */}
-                      <div className="text-xs text-gray-700 px-3 py-2 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg font-bold border border-purple-200 text-center min-w-[50px]">
-                        #{idx + 1}
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const editParams = new URLSearchParams(paramsString);
-                            editParams.set('template_id', section.template_id);
-                            router.push(`${section.route}?${editParams.toString()}`);
-                          }}
-                          className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 flex items-center gap-2 font-semibold shadow-md hover:shadow-lg hover-lift"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          Edit
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteClick(section.name, section.template_id);
-                          }}
-                          className="px-4 py-2 text-sm bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 flex items-center gap-2 font-semibold shadow-md hover:shadow-lg hover-lift"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Delete
-                        </button>
+                      <div className="border-2 border-gray-300 rounded-xl overflow-hidden bg-white shadow-inner">
+                        {renderSectionPreview(section.category, section.config, section.template_id)}
                       </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Live Preview */}
-                <div className="p-6 bg-gray-50">
-                  <div className="mb-4">
-                    <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2 uppercase tracking-wide">
-                      <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                        <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                      </svg>
-                      Show Preview
-                    </h4>
-                    <p className="text-xs text-gray-600 mt-1">How it appears to your customers</p>
-                  </div>
-                  <div className="border-2 border-gray-300 rounded-xl overflow-hidden bg-white shadow-inner">
-                    {renderSectionPreview(section.category, section.config, section.template_id)}
-                  </div>
-                </div>
-              </div>
-            ))}
+                );
+              })();
+            })}
           </div>
         </div>
       ) : (

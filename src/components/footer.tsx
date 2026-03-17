@@ -39,7 +39,7 @@ export default function Footer(props: FooterProps) {
     copyrightTextColor = '#ffffff',
     logoUrl,
     restaurant_id,
-    fontFamily = 'Inter, system-ui, sans-serif',
+    fontFamily = 'Poppins, sans-serif',
     fontSize = '0.9375rem',
     fontWeight = 400,
     textTransform = 'none',

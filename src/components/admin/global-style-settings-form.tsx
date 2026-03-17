@@ -20,14 +20,14 @@ import { loadGoogleFonts, preloadGoogleFonts } from '@/utils/google-fonts';
 
 // Font options - Popular Google Fonts
 const FONT_OPTIONS = [
-  { value: 'Inter, system-ui, sans-serif', label: 'Inter (Default)' },
+  { value: 'Poppins, sans-serif', label: 'Poppins (Default)' },
 
   // Sans-serif fonts
+  { value: 'Inter, system-ui, sans-serif', label: 'Inter' },
   { value: 'Roboto, sans-serif', label: 'Roboto' },
   { value: 'Open Sans, sans-serif', label: 'Open Sans' },
   { value: 'Lato, sans-serif', label: 'Lato' },
   { value: 'Montserrat, sans-serif', label: 'Montserrat' },
-  { value: 'Poppins, sans-serif', label: 'Poppins' },
   { value: 'Source Sans Pro, sans-serif', label: 'Source Sans Pro' },
   { value: 'Nunito, sans-serif', label: 'Nunito' },
   { value: 'Raleway, sans-serif', label: 'Raleway' },

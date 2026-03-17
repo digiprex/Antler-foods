@@ -421,40 +421,146 @@ export default function DynamicLocation({
     );
     const titleTypography = titleStyle;
     const descriptionTypography = subtitleStyle;
-    // Default Layout
     if (layout === 'default') {
       return (
-        <div style={{ maxWidth: config.maxWidth || '800px', margin: '0 auto', padding: '4rem 1.5rem', textAlign: 'center' }}>
-          <h2 style={{ ...titleTypography, fontSize: '2rem', fontWeight: '700', marginBottom: '1rem' }}>
+        <div
+          style={{
+            maxWidth: config.maxWidth || '800px',
+            margin: '0 auto',
+            padding: '4rem 1.5rem',
+            textAlign: 'center',
+          }}
+        >
+          <h2
+            style={{
+              ...titleTypography,
+              fontSize: '2rem',
+              fontWeight: '700',
+              marginBottom: '1rem',
+            }}
+          >
             {config.title}
           </h2>
-          <p style={{ ...descriptionTypography, fontSize: '1.125rem', marginBottom: '2rem', opacity: 0.8 }}>
+          <p
+            style={{
+              ...descriptionTypography,
+              fontSize: '1.125rem',
+              marginBottom: '2rem',
+              opacity: 0.8,
+            }}
+          >
             {config.description}
           </p>
-          <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            borderRadius: '12px',
-            padding: '2rem',
-            textAlign: 'left',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-          }}>
-            <h3 style={{ ...titleTypography, fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem' }}>
+          <div
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              borderRadius: '12px',
+              padding: '2rem',
+              textAlign: 'left',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+            }}
+          >
+            <h3
+              style={{
+                ...titleTypography,
+                fontSize: '1.5rem',
+                fontWeight: '600',
+                marginBottom: '1rem',
+              }}
+            >
               {placeDetails.name}
             </h3>
-            <p style={{ marginBottom: '0.5rem', opacity: 0.9, color: config.textColor || '#666666' }}>
-              📍 {placeDetails.formatted_address}
-            </p>
-            {placeDetails.formatted_phone_number && (
-              <p style={{ marginBottom: '0.5rem', opacity: 0.9, color: config.textColor || '#666666' }}>
-                📞 {placeDetails.formatted_phone_number}
+            {config.showAddress !== false ? (
+              <p
+                style={{
+                  marginBottom: '0.5rem',
+                  opacity: 0.9,
+                  color: config.textColor || '#666666',
+                }}
+              >
+                {'ðŸ“'} {placeDetails.formatted_address}
               </p>
-            )}
-            {placeDetails.website && (
+            ) : null}
+            {placeDetails.formatted_phone_number ? (
+              <p
+                style={{
+                  marginBottom: '0.5rem',
+                  opacity: 0.9,
+                  color: config.textColor || '#666666',
+                }}
+              >
+                {'ðŸ“ž'} {placeDetails.formatted_phone_number}
+              </p>
+            ) : null}
+            {placeDetails.website ? (
               <p style={{ marginBottom: '0.5rem', opacity: 0.9 }}>
-                🌐 <a href={placeDetails.website} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6' }}>Visit Website</a>
+                {'ðŸŒ'}{' '}
+                <a
+                  href={placeDetails.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: '#3b82f6' }}
+                >
+                  Visit Website
+                </a>
               </p>
-            )}
+            ) : null}
+            {config.showHours !== false &&
+            placeDetails.opening_hours?.weekday_text ? (
+              <div
+                style={{
+                  marginTop: '1rem',
+                  paddingTop: '1rem',
+                  borderTop: '1px solid rgba(0, 0, 0, 0.1)',
+                }}
+              >
+                <p
+                  style={{
+                    fontWeight: '600',
+                    marginBottom: '0.5rem',
+                    display: 'flex',
+                    gap: '0.5rem',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: '1.25rem' }}>{'ðŸ•’'}</span>
+                  <span>Opening Hours:</span>
+                </p>
+                <div
+                  style={{
+                    fontSize: '0.875rem',
+                    lineHeight: '1.6',
+                    paddingLeft: '1.75rem',
+                    color: config.textColor || '#666666',
+                  }}
+                >
+                  {placeDetails.opening_hours.weekday_text.map((text, i) => (
+                    <div key={i}>{text}</div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {config.showMap !== false ? (
+              <div
+                style={{
+                  marginTop: '1.5rem',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  minHeight: isPreviewMobile ? '220px' : '280px',
+                  backgroundColor: '#e8e8e8',
+                }}
+              >
+                <SimpleMapPreview
+                  lat={lat}
+                  lng={lng}
+                  name={placeDetails.name}
+                  address={placeDetails.formatted_address}
+                  placeId={config.google_place_id}
+                  directionsUrl={directionsUrl}
+                />
+              </div>
+            ) : null}
           </div>
         </div>
       );
@@ -777,13 +883,21 @@ export default function DynamicLocation({
             backgroundColor: 'rgba(255, 255, 255, 0.95)',
             border: '1px solid rgba(0, 0, 0, 0.1)',
             borderRadius: '16px',
-            padding: '3rem',
+            padding: isPreviewMobile ? '2rem 1.25rem' : '3rem',
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.08)',
           }}>
             <h3 style={{ ...titleTypography, fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'center' }}>
               {placeDetails.name}
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: isPreviewMobile
+                  ? '1fr'
+                  : 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: '1.5rem',
+              }}
+            >
               <div style={{
                 backgroundColor: 'rgba(0, 0, 0, 0.03)',
                 border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -830,7 +944,7 @@ export default function DynamicLocation({
                   borderRadius: '12px',
                   padding: '1.5rem',
                   textAlign: 'center',
-                  gridColumn: 'span 2',
+                  gridColumn: isPreviewMobile ? 'auto' : 'span 2',
                 }}>
                   <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🕒</div>
                   <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: config.textColor || '#000000' }}>Hours</div>

@@ -1,0 +1,22 @@
+{
+  "layouts": [
+    {
+      "id": "list",
+      "name": "List",
+      "description": "Simple list layout",
+      "preview": "/previews/faq/list.png"
+    },
+    {
+      "id": "accordion",
+      "name": "Accordion",
+      "description": "Collapsible sections",
+      "preview": "/previews/faq/accordion.png"
+    },
+    {
+      "id": "grid",
+      "name": "Grid",
+      "description": "Grid card layout",
+      "preview": "/previews/faq/grid.png"
+    }
+  ]
+}

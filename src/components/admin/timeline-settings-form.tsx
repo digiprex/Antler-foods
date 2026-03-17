@@ -3,12 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import DynamicTimeline from '@/components/dynamic-timeline';
-import { SectionAppearanceControls } from '@/components/admin/section-appearance-controls';
 import {
   FloatingPreviewButton,
   LayoutCard,
   PreviewModal,
-  ResponsiveViewportTabs,
   SettingsCard,
   SettingsHeader,
   ToggleRow,
@@ -19,14 +17,80 @@ import Toast from '@/components/ui/toast';
 import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import { useTimelineConfig, useUpdateTimelineConfig } from '@/hooks/use-timeline-config';
 import {
-  TIMELINE_LAYOUTS,
   type TimelineConfig,
   type TimelineItem,
   type TimelineLayout,
 } from '@/types/timeline.types';
+import {
+  getTimelineLayoutOptions,
+  type TimelineEditorLayoutValue,
+} from '@/utils/timeline-layout-utils';
 
-const TIMELINE_EDITOR_LAYOUTS = ['alternating', 'left', 'right', 'center'] as const;
-type EditorTimelineLayout = (typeof TIMELINE_EDITOR_LAYOUTS)[number];
+type EditorTimelineLayout = TimelineEditorLayoutValue;
+
+const GLOBAL_TYPOGRAPHY_KEYS = [
+  'buttonStyleVariant',
+  'titleFontFamily',
+  'titleFontSize',
+  'titleMobileFontSize',
+  'titleMobileFontFamily',
+  'titleFontWeight',
+  'titleMobileFontWeight',
+  'titleFontStyle',
+  'titleMobileFontStyle',
+  'titleColor',
+  'titleMobileColor',
+  'titleTextTransform',
+  'titleMobileTextTransform',
+  'titleLineHeight',
+  'titleMobileLineHeight',
+  'titleLetterSpacing',
+  'titleMobileLetterSpacing',
+  'subtitleFontFamily',
+  'subtitleFontSize',
+  'subtitleMobileFontSize',
+  'subtitleMobileFontFamily',
+  'subtitleFontWeight',
+  'subtitleMobileFontWeight',
+  'subtitleFontStyle',
+  'subtitleMobileFontStyle',
+  'subtitleColor',
+  'subtitleMobileColor',
+  'subtitleTextTransform',
+  'subtitleMobileTextTransform',
+  'subtitleLineHeight',
+  'subtitleMobileLineHeight',
+  'subtitleLetterSpacing',
+  'subtitleMobileLetterSpacing',
+  'bodyFontFamily',
+  'bodyFontSize',
+  'bodyMobileFontSize',
+  'bodyMobileFontFamily',
+  'bodyFontWeight',
+  'bodyMobileFontWeight',
+  'bodyFontStyle',
+  'bodyMobileFontStyle',
+  'bodyColor',
+  'bodyMobileColor',
+  'bodyTextTransform',
+  'bodyMobileTextTransform',
+  'bodyLineHeight',
+  'bodyMobileLineHeight',
+  'bodyLetterSpacing',
+  'bodyMobileLetterSpacing',
+] as const satisfies ReadonlyArray<keyof TimelineConfig>;
+
+const buildGlobalTypographyConfig = (
+  defaults: Partial<TimelineConfig>,
+): Partial<TimelineConfig> => {
+  const nextConfig: Partial<TimelineConfig> = {};
+
+  for (const key of GLOBAL_TYPOGRAPHY_KEYS) {
+    (nextConfig as any)[key] = defaults[key];
+  }
+
+  return nextConfig;
+};
 
 const DEFAULT_TIMELINE: Omit<TimelineConfig, 'restaurant_id' | 'page_id'> = {
   isEnabled: true,
@@ -130,42 +194,6 @@ function LayoutPreview({ layout }: { layout: EditorTimelineLayout }) {
   );
 }
 
-function ColorField({
-  label,
-  hint,
-  value,
-  onChange,
-  onReset,
-  placeholder,
-}: {
-  label: string;
-  hint: string;
-  value: string;
-  onChange: (value: string) => void;
-  onReset?: () => void;
-  placeholder: string;
-}) {
-  return (
-    <div>
-      <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
-        <span>{label}</span>
-        <span className="text-xs font-normal text-slate-500">{hint}</span>
-      </label>
-      <div className="flex gap-2">
-        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="h-11 w-16 cursor-pointer rounded-xl border border-slate-300 bg-white" />
-        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="flex-1 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20" placeholder={placeholder} />
-        {onReset ? (
-          <button type="button" onClick={onReset} className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-            </svg>
-          </button>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
 export default function TimelineSettingsForm() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams?.get('restaurant_id')?.trim() || '';
@@ -191,7 +219,6 @@ export default function TimelineSettingsForm() {
   });
   const [showPreview, setShowPreview] = useState(false);
   const [previewViewport, setPreviewViewport] = useState<EditorViewport>('desktop');
-  const [editorViewport, setEditorViewport] = useState<EditorViewport>('desktop');
   const [editingItem, setEditingItem] = useState<TimelineItem | null>(null);
   const [showItemModal, setShowItemModal] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -214,14 +241,26 @@ export default function TimelineSettingsForm() {
     });
   }, [config, isNewSection, pageId, restaurantId, sectionStyleDefaults]);
 
-  const isMobileEditor = editorViewport === 'mobile';
   const selectedLayout = normalizeEditorTimelineLayout(formConfig.layout);
   const sortedItems = useMemo(
     () => [...formConfig.items].sort((a, b) => a.order - b.order),
     [formConfig.items],
   );
   const previewConfig = useMemo(() => ({ ...formConfig, items: formConfig.items.length ? formConfig.items : PREVIEW_ITEMS }), [formConfig]);
-  const updateConfig = (updates: Partial<TimelineConfig>) => setFormConfig((current) => ({ ...current, ...updates }));
+  const updateConfig = (updates: Partial<TimelineConfig>) =>
+    setFormConfig((current) => ({ ...current, ...updates }));
+
+  const handleCustomTypographyToggle = (enabled: boolean) => {
+    if (!enabled) {
+      updateConfig({ is_custom: false });
+      return;
+    }
+
+    updateConfig({
+      ...buildGlobalTypographyConfig(sectionStyleDefaults),
+      is_custom: true,
+    });
+  };
 
   const saveItem = (item: TimelineItem) => {
     const next = [...sortedItems];
@@ -293,15 +332,15 @@ export default function TimelineSettingsForm() {
           <div className="space-y-5">
             <ToggleRow title="Enable Timeline" description="Show or hide the timeline section on the page." checked={formConfig.isEnabled} onChange={(checked) => updateConfig({ isEnabled: checked })} />
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {TIMELINE_EDITOR_LAYOUTS.map((layout) => (
+              {getTimelineLayoutOptions().map((layoutOption) => (
                 <LayoutCard
-                  key={layout}
-                  title={TIMELINE_LAYOUTS[layout].name}
-                  description={TIMELINE_LAYOUTS[layout].description}
-                  preview={<LayoutPreview layout={layout} />}
-                  selected={selectedLayout === layout}
-                  onClick={() => updateConfig({ layout })}
-                  badge={layout === 'alternating' ? 'Recommended' : undefined}
+                  key={layoutOption.id}
+                  title={layoutOption.name}
+                  description={layoutOption.description}
+                  preview={<LayoutPreview layout={layoutOption.id} />}
+                  selected={selectedLayout === layoutOption.id}
+                  onClick={() => updateConfig({ layout: layoutOption.id })}
+                  badge={layoutOption.badge}
                 />
               ))}
             </div>
@@ -350,38 +389,43 @@ export default function TimelineSettingsForm() {
         </SettingsCard>
 
         <SettingsCard
-          icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" /></svg>}
-          title="Colors, Surface & Reveal"
-          description="Adjust the palette, card finish, spacing, and enter animation."
-          action={<ResponsiveViewportTabs value={editorViewport} onChange={setEditorViewport} scope="timeline-style" />}
-        >
-          <div className="space-y-5">
-            <div className="grid gap-5 lg:grid-cols-2">
-              <ColorField label="Background Color" hint={isMobileEditor ? 'Mobile section background' : 'Desktop section background'} value={isMobileEditor ? formConfig.mobileBackgroundColor || formConfig.backgroundColor || '#f8fafc' : formConfig.backgroundColor || '#f8fafc'} onChange={(value) => updateConfig(isMobileEditor ? { mobileBackgroundColor: value } : { backgroundColor: value })} onReset={isMobileEditor ? () => updateConfig({ mobileBackgroundColor: undefined }) : () => updateConfig({ backgroundColor: '#f8fafc' })} placeholder="#f8fafc" />
-              <ColorField label="Text Color" hint={isMobileEditor ? 'Mobile text override' : 'Primary text color'} value={isMobileEditor ? formConfig.mobileTextColor || formConfig.textColor || '#0f172a' : formConfig.textColor || '#0f172a'} onChange={(value) => updateConfig(isMobileEditor ? { mobileTextColor: value } : { textColor: value })} onReset={isMobileEditor ? () => updateConfig({ mobileTextColor: undefined }) : () => updateConfig({ textColor: '#0f172a' })} placeholder="#0f172a" />
-              <ColorField label="Accent Color" hint={isMobileEditor ? 'Mobile highlight color' : 'Markers, dates, and highlights'} value={isMobileEditor ? formConfig.mobileAccentColor || formConfig.accentColor || '#7c3aed' : formConfig.accentColor || '#7c3aed'} onChange={(value) => updateConfig(isMobileEditor ? { mobileAccentColor: value } : { accentColor: value })} onReset={isMobileEditor ? () => updateConfig({ mobileAccentColor: undefined }) : () => updateConfig({ accentColor: '#7c3aed' })} placeholder="#7c3aed" />
-              <ColorField label="Line Color" hint={isMobileEditor ? 'Mobile connector color' : 'Connector line color'} value={isMobileEditor ? formConfig.mobileLineColor || formConfig.lineColor || '#cbd5e1' : formConfig.lineColor || '#cbd5e1'} onChange={(value) => updateConfig(isMobileEditor ? { mobileLineColor: value } : { lineColor: value })} onReset={isMobileEditor ? () => updateConfig({ mobileLineColor: undefined }) : () => updateConfig({ lineColor: '#cbd5e1' })} placeholder="#cbd5e1" />
-              <ColorField label="Card Background" hint={isMobileEditor ? 'Mobile milestone cards' : 'Milestone card surface'} value={isMobileEditor ? formConfig.mobileCardBackgroundColor || formConfig.cardBackgroundColor || '#ffffff' : formConfig.cardBackgroundColor || '#ffffff'} onChange={(value) => updateConfig(isMobileEditor ? { mobileCardBackgroundColor: value } : { cardBackgroundColor: value })} onReset={isMobileEditor ? () => updateConfig({ mobileCardBackgroundColor: undefined }) : () => updateConfig({ cardBackgroundColor: '#ffffff' })} placeholder="#ffffff" />
-            </div>
-            <SectionAppearanceControls value={formConfig} onChange={updateConfig} viewport={editorViewport} />
-          </div>
-        </SettingsCard>
-
-        <SettingsCard
           icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>}
           title="Typography"
-          description="Use the Hero Settings desktop/mobile typography flow for titles and body text."
-          action={<ResponsiveViewportTabs value={editorViewport} onChange={setEditorViewport} scope="timeline-typography" />}
+          description="Customize text styles across the timeline."
         >
           <div className="space-y-4">
-            <ToggleRow title="Custom Typography" description="Override the global theme typography for this timeline." checked={formConfig.is_custom || false} onChange={(checked) => updateConfig({ is_custom: checked })} />
+            <ToggleRow
+              title="Custom Typography"
+              description="Override the global theme typography for this timeline."
+              checked={formConfig.is_custom || false}
+              onChange={handleCustomTypographyToggle}
+            />
             {!formConfig.is_custom ? (
-              <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-800">Global theme typography is active. Enable custom typography to edit section-level type styling.</div>
+              <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-800">
+                This section and its preview are currently using the global styles from your theme settings. Enable custom typography when you want section-specific overrides.
+              </div>
             ) : (
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <SectionTypographyControls value={formConfig} onChange={updateConfig} showAdvancedControls viewport={editorViewport} />
+                <div className="mb-4 rounded-lg border border-violet-100 bg-violet-50 px-4 py-3 text-xs text-violet-800">
+                  Custom typography starts from your current global styles. Mobile view automatically scales down oversized desktop font sizes for smaller screens.
+                </div>
+                <SectionTypographyControls value={formConfig} onChange={updateConfig} showAdvancedControls />
               </div>
             )}
+            <ToggleRow
+              title="Page Scroll Animation"
+              description="Reveal the timeline when it enters the viewport."
+              checked={formConfig.enableScrollReveal === true}
+              onChange={(checked) =>
+                updateConfig({
+                  enableScrollReveal: checked,
+                  scrollRevealAnimation:
+                    checked && !formConfig.scrollRevealAnimation
+                      ? 'fade-up'
+                      : formConfig.scrollRevealAnimation,
+                })
+              }
+            />
           </div>
         </SettingsCard>
 

@@ -940,7 +940,7 @@ export default function PopupSettingsForm() {
                         value={config.buttonUrl || ''}
                         onChange={(e) => setConfig({ ...config, buttonUrl: e.target.value })}
                         className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="#menu"
+                        placeholder="/menu"
                       />
                     </div>
                   </>

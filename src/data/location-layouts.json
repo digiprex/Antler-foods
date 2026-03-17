@@ -1,0 +1,68 @@
+{
+  "layouts": [
+    {
+      "id": "default",
+      "name": "Default",
+      "description": "Simple location display",
+      "icon": "📄",
+      "preview": "/previews/location/default.png",
+      "supportText": "Balanced address-first presentation"
+    },
+    {
+      "id": "grid",
+      "name": "Grid",
+      "description": "Grid layout with details",
+      "icon": "⊞",
+      "preview": "/previews/location/grid.png",
+      "supportText": "Best for clean map and info balance"
+    },
+    {
+      "id": "list",
+      "name": "List",
+      "description": "Detailed list view",
+      "icon": "☰",
+      "preview": "/previews/location/list.png",
+      "supportText": "Great for long-form location details"
+    },
+    {
+      "id": "cards",
+      "name": "Cards",
+      "description": "Card-based layout",
+      "icon": "🗃️",
+      "preview": "/previews/location/cards.png",
+      "supportText": "Modular highlights with more breathing room"
+    },
+    {
+      "id": "map",
+      "name": "Map View",
+      "description": "Interactive map",
+      "icon": "🗺️",
+      "preview": "/previews/location/map.png",
+      "supportText": "Map-first experience with supporting info"
+    },
+    {
+      "id": "compact",
+      "name": "Compact",
+      "description": "Minimal card view",
+      "icon": "📋",
+      "preview": "/previews/location/compact.png",
+      "supportText": "Tight footprint for denser pages"
+    },
+    {
+      "id": "sidebar",
+      "name": "Sidebar",
+      "description": "Sidebar with map focus",
+      "icon": "⊟",
+      "preview": "/previews/location/sidebar.png",
+      "supportText": "Strong for multi-column page composition"
+    },
+    {
+      "id": "fullscreen",
+      "name": "Fullscreen",
+      "description": "Full-width immersive",
+      "icon": "🖼️",
+      "preview": "/previews/location/fullscreen.png",
+      "supportText": "Best for bold destination-style sections"
+    }
+  ]
+}

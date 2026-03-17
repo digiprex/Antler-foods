@@ -41,7 +41,7 @@ type MediaSlot =
   | 'fallbackImage'
   | 'videoUrl';
 
-const NON_TYPOGRAPHY_SECTION_KEYS = new Set([
+const NON_TYPOGRAPHY_SECTION_KEYS: Set<keyof SectionStyleConfig> = new Set([
   'is_custom',
   'buttonStyleVariant',
   'sectionTextAlign',
@@ -99,19 +99,14 @@ function clearEditorContentDefaults(
       ...(config.primaryButton || {}),
       label: source?.primaryButton?.label ?? '',
       href: source?.primaryButton?.href ?? '',
-      variant:
-        source?.primaryButton?.variant ||
-        config.primaryButton?.variant ||
-        'primary',
+      // Section buttons no longer expose per-button style selection in the editor.
+      variant: 'primary',
     },
     secondaryButton: {
       ...(config.secondaryButton || {}),
       label: source?.secondaryButton?.label ?? '',
       href: source?.secondaryButton?.href ?? '',
-      variant:
-        source?.secondaryButton?.variant ||
-        config.secondaryButton?.variant ||
-        'outline',
+      variant: 'outline',
     },
     items: (config.items || []).map((item, index) => {
       const sourceItem = sourceItems[index];
@@ -1219,32 +1214,8 @@ export default function CustomSectionSettingsForm({
                       onChange={(event) =>
                         updatePrimaryButton({ href: event.target.value })
                       }
-                      placeholder="#menu"
+                      placeholder="/menu"
                     />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
-                      <span>Button Style</span>
-                      <span className="text-xs font-normal text-slate-500">
-                        Visual style
-                      </span>
-                    </label>
-                    <select
-                      value={editablePrimaryButton.variant || 'primary'}
-                      onChange={(event) =>
-                        updatePrimaryButton({
-                          variant: event.target.value as
-                            | 'primary'
-                            | 'secondary'
-                            | 'outline',
-                        })
-                      }
-                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
-                    >
-                      <option value="primary">Primary</option>
-                      <option value="secondary">Secondary</option>
-                      <option value="outline">Outline</option>
-                    </select>
                   </div>
                 </div>
               ) : null}
@@ -1315,30 +1286,6 @@ export default function CustomSectionSettingsForm({
                       }
                       placeholder="#reservations"
                     />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
-                      <span>Button Style</span>
-                      <span className="text-xs font-normal text-slate-500">
-                        Visual style
-                      </span>
-                    </label>
-                    <select
-                      value={editableSecondaryButton.variant || 'outline'}
-                      onChange={(event) =>
-                        updateSecondaryButton({
-                          variant: event.target.value as
-                            | 'primary'
-                            | 'secondary'
-                            | 'outline',
-                        })
-                      }
-                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
-                    >
-                      <option value="primary">Primary</option>
-                      <option value="secondary">Secondary</option>
-                      <option value="outline">Outline</option>
-                    </select>
                   </div>
                 </div>
               ) : null}

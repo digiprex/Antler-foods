@@ -147,7 +147,7 @@ export const MENU_LAYOUT_DEFINITIONS: Record<MenuLayout, MenuLayoutDefinition> =
     name: 'List',
     description: 'Bold promotional cards for highlighted dishes, deals, or callouts.',
     contentMode: 'direct',
-    itemSlots: 3,
+    itemSlots: 2,
     usesImages: false,
     usesButtons: true,
     defaults: {
@@ -170,7 +170,7 @@ export const MENU_LAYOUT_DEFINITIONS: Record<MenuLayout, MenuLayoutDefinition> =
             label: 'Cards Per Row',
             description: 'Maximum promo cards shown side by side.',
             min: 1,
-            max: 3,
+            max: 2,
             step: 1,
           },
           {
@@ -224,7 +224,7 @@ export const MENU_LAYOUT_DEFINITIONS: Record<MenuLayout, MenuLayoutDefinition> =
       mobileColumns: 1,
       gap: 22,
       mobileGap: 16,
-      imageAspectRatio: 'portrait',
+      imageAspectRatio: 'landscape',
       mobileImageAspectRatio: 'landscape',
     },
     controlGroups: [
@@ -255,25 +255,6 @@ export const MENU_LAYOUT_DEFINITIONS: Record<MenuLayout, MenuLayoutDefinition> =
           },
         ],
       },
-      {
-        title: 'Images',
-        description: 'Shape the editorial rhythm of each tile.',
-        controls: [
-          {
-            kind: 'select',
-            field: 'imageAspectRatio',
-            mobileField: 'mobileImageAspectRatio',
-            label: 'Image Ratio',
-            description: 'Choose a consistent media shape for masonry cards.',
-            options: [
-              { value: 'square', label: 'Square' },
-              { value: 'portrait', label: 'Portrait' },
-              { value: 'landscape', label: 'Landscape' },
-              { value: 'wide', label: 'Wide' },
-            ],
-          },
-        ],
-      },
     ],
   },
   carousel: {
@@ -292,7 +273,7 @@ export const MENU_LAYOUT_DEFINITIONS: Record<MenuLayout, MenuLayoutDefinition> =
       mobileSlideSpacing: 12,
       autoplay: false,
       snapBehavior: 'proximity',
-      imageAspectRatio: 'portrait',
+      imageAspectRatio: 'landscape',
       mobileImageAspectRatio: 'landscape',
       overlayTextPosition: 'bottom-left',
       mobileOverlayTextPosition: 'bottom-left',
@@ -348,19 +329,6 @@ export const MENU_LAYOUT_DEFINITIONS: Record<MenuLayout, MenuLayoutDefinition> =
         title: 'Card Presentation',
         description: 'Tune the visuals of each spotlight card.',
         controls: [
-          {
-            kind: 'select',
-            field: 'imageAspectRatio',
-            mobileField: 'mobileImageAspectRatio',
-            label: 'Image Ratio',
-            description: 'Shape of each carousel card.',
-            options: [
-              { value: 'square', label: 'Square' },
-              { value: 'portrait', label: 'Portrait' },
-              { value: 'landscape', label: 'Landscape' },
-              { value: 'wide', label: 'Wide' },
-            ],
-          },
           {
             kind: 'select',
             field: 'overlayTextPosition',
@@ -654,25 +622,6 @@ export const MENU_LAYOUT_DEFINITIONS: Record<MenuLayout, MenuLayoutDefinition> =
           },
         ],
       },
-      {
-        title: 'Media',
-        description: 'Shape the card media for both desktop and mobile.',
-        controls: [
-          {
-            kind: 'select',
-            field: 'imageAspectRatio',
-            mobileField: 'mobileImageAspectRatio',
-            label: 'Image Ratio',
-            description: 'Aspect ratio of the image area.',
-            options: [
-              { value: 'square', label: 'Square' },
-              { value: 'portrait', label: 'Portrait' },
-              { value: 'landscape', label: 'Landscape' },
-              { value: 'wide', label: 'Wide' },
-            ],
-          },
-        ],
-      },
     ],
   },
   'single-column': {
@@ -689,7 +638,7 @@ export const MENU_LAYOUT_DEFINITIONS: Record<MenuLayout, MenuLayoutDefinition> =
       cardSpacing: 20,
       mobileCardSpacing: 16,
       stackStyle: 'stacked',
-      imageAspectRatio: 'wide',
+      imageAspectRatio: 'landscape',
       mobileImageAspectRatio: 'landscape',
     },
     controlGroups: [
@@ -733,25 +682,6 @@ export const MENU_LAYOUT_DEFINITIONS: Record<MenuLayout, MenuLayoutDefinition> =
             options: [
               { value: 'stacked', label: 'Stacked' },
               { value: 'offset', label: 'Offset' },
-            ],
-          },
-        ],
-      },
-      {
-        title: 'Media',
-        description: 'Adjust the proportions of the media area.',
-        controls: [
-          {
-            kind: 'select',
-            field: 'imageAspectRatio',
-            mobileField: 'mobileImageAspectRatio',
-            label: 'Image Ratio',
-            description: 'Aspect ratio of the single-column card image.',
-            options: [
-              { value: 'square', label: 'Square' },
-              { value: 'portrait', label: 'Portrait' },
-              { value: 'landscape', label: 'Landscape' },
-              { value: 'wide', label: 'Wide' },
             ],
           },
         ],

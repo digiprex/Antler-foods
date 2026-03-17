@@ -82,7 +82,7 @@ export const DEFAULT_LOCATION_CONFIG: LocationConfig = {
   title: 'Our Locations',
   subtitle: '',
   description: 'Visit us at any of our convenient locations',
-  enabled: false,
+  enabled: true,
   layout: 'default',
   showTitle: true,
   showDescription: true,

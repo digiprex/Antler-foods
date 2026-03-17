@@ -15,6 +15,12 @@ export interface GalleryImage {
   order?: number;
 }
 
+export interface GalleryButton {
+  label: string;
+  href: string;
+  variant: 'primary' | 'secondary' | 'outline';
+}
+
 export interface GalleryConfig extends SectionStyleConfig {
   id?: string;
   restaurant_id?: string; // Restaurant ID for database operations
@@ -24,20 +30,26 @@ export interface GalleryConfig extends SectionStyleConfig {
   subtitle?: string;
   description?: string;
 
+  // Buttons
+  primaryButton?: GalleryButton;
+  secondaryButton?: GalleryButton;
+  primaryButtonEnabled?: boolean;
+  secondaryButtonEnabled?: boolean;
+
   // Images
   images: GalleryImage[];
 
   // Layout options
   layout?:
-    | 'showcase'
-    | 'spotlight'
-    | 'mosaic'
-    | 'editorial'
-    | 'filmstrip'
-    | 'grid'
-    | 'masonry'
-    | 'carousel'
-    | 'slider';
+  | 'showcase'
+  | 'spotlight'
+  | 'mosaic'
+  | 'editorial'
+  | 'filmstrip'
+  | 'grid'
+  | 'masonry'
+  | 'carousel'
+  | 'slider';
   columns?: 2 | 3 | 4 | 5 | 6;
   gap?: string;
   aspectRatio?: 'square' | '16:9' | '4:3' | 'auto';
@@ -88,6 +100,18 @@ export const DEFAULT_GALLERY_CONFIG: GalleryConfig = {
   enableScrollAnimation: false,
   autoplay: false,
   autoplaySpeed: 3000,
+  primaryButton: {
+    label: 'View Gallery',
+    href: '#gallery',
+    variant: 'primary',
+  },
+  secondaryButton: {
+    label: 'Learn More',
+    href: '#about',
+    variant: 'outline',
+  },
+  primaryButtonEnabled: false,
+  secondaryButtonEnabled: false,
   is_custom: false,
   buttonStyleVariant: 'primary',
   titleFontFamily: 'Inter, system-ui, sans-serif',

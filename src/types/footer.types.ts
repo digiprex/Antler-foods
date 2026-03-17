@@ -113,7 +113,7 @@ export const DEFAULT_FOOTER_CONFIG: FooterConfig = {
     {
       title: "Quick Links",
       links: [
-        { label: "Menu", href: "#menu", order: 1 },
+        { label: "Menu", href: "/menu", order: 1 },
         { label: "Reservations", href: "#reservations", order: 2 },
         { label: "About Us", href: "#about", order: 3 },
       ],

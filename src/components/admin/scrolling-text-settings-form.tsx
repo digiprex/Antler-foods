@@ -3,12 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import DynamicScrollingText from '@/components/dynamic-scrolling-text';
-import { SectionAppearanceControls } from '@/components/admin/section-appearance-controls';
 import {
   FloatingPreviewButton,
   LayoutCard,
   PreviewModal,
-  ResponsiveViewportTabs,
   SettingsCard,
   SettingsHeader,
   ToggleRow,
@@ -26,6 +24,7 @@ import {
   DEFAULT_SCROLLING_TEXT_CONFIG,
   SCROLL_SPEEDS,
 } from '@/types/scrolling-text.types';
+import { getScrollingTextLayoutOptions } from '@/utils/scrolling-text-layout-utils';
 
 function LayoutPreview({ layout }: { layout: NonNullable<ScrollingTextConfig['layout']> }) {
   if (layout === 'vertical') {
@@ -61,57 +60,69 @@ function LayoutPreview({ layout }: { layout: NonNullable<ScrollingTextConfig['la
   );
 }
 
-function ResponsiveColorField({
-  label,
-  description,
-  value,
-  onChange,
-  onReset,
-  placeholder,
-}: {
-  label: string;
-  description: string;
-  value: string;
-  onChange: (value: string) => void;
-  onReset?: () => void;
-  placeholder: string;
-}) {
-  return (
-    <div>
-      <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
-        <span>{label}</span>
-        <span className="text-xs font-normal text-slate-500">{description}</span>
-      </label>
-      <div className="flex gap-2">
-        <input
-          type="color"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-11 w-16 cursor-pointer rounded-xl border border-slate-300 bg-white"
-        />
-        <input
-          type="text"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="flex-1 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
-          placeholder={placeholder}
-        />
-        {onReset ? (
-          <button
-            type="button"
-            onClick={onReset}
-            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-            title="Reset"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-            </svg>
-          </button>
-        ) : null}
-      </div>
-    </div>
-  );
-}
+const GLOBAL_TYPOGRAPHY_KEYS = [
+  'buttonStyleVariant',
+  'titleFontFamily',
+  'titleFontSize',
+  'titleMobileFontSize',
+  'titleMobileFontFamily',
+  'titleFontWeight',
+  'titleMobileFontWeight',
+  'titleFontStyle',
+  'titleMobileFontStyle',
+  'titleColor',
+  'titleMobileColor',
+  'titleTextTransform',
+  'titleMobileTextTransform',
+  'titleLineHeight',
+  'titleMobileLineHeight',
+  'titleLetterSpacing',
+  'titleMobileLetterSpacing',
+  'subtitleFontFamily',
+  'subtitleFontSize',
+  'subtitleMobileFontSize',
+  'subtitleMobileFontFamily',
+  'subtitleFontWeight',
+  'subtitleMobileFontWeight',
+  'subtitleFontStyle',
+  'subtitleMobileFontStyle',
+  'subtitleColor',
+  'subtitleMobileColor',
+  'subtitleTextTransform',
+  'subtitleMobileTextTransform',
+  'subtitleLineHeight',
+  'subtitleMobileLineHeight',
+  'subtitleLetterSpacing',
+  'subtitleMobileLetterSpacing',
+  'bodyFontFamily',
+  'bodyFontSize',
+  'bodyMobileFontSize',
+  'bodyMobileFontFamily',
+  'bodyFontWeight',
+  'bodyMobileFontWeight',
+  'bodyFontStyle',
+  'bodyMobileFontStyle',
+  'bodyColor',
+  'bodyMobileColor',
+  'bodyTextTransform',
+  'bodyMobileTextTransform',
+  'bodyLineHeight',
+  'bodyMobileLineHeight',
+  'bodyLetterSpacing',
+  'bodyMobileLetterSpacing',
+] as const satisfies ReadonlyArray<keyof ScrollingTextConfig>;
+
+const buildGlobalTypographyConfig = (
+  defaults: Partial<ScrollingTextConfig>,
+): Partial<ScrollingTextConfig> => {
+  const nextConfig: Partial<ScrollingTextConfig> = {};
+
+  for (const key of GLOBAL_TYPOGRAPHY_KEYS) {
+    (nextConfig as any)[key] = defaults[key];
+  }
+
+  return nextConfig;
+};
 
 export default function ScrollingTextSettingsForm() {
   const searchParams = useSearchParams();
@@ -152,8 +163,6 @@ export default function ScrollingTextSettingsForm() {
   const [showPreview, setShowPreview] = useState(false);
   const [previewViewport, setPreviewViewport] =
     useState<EditorViewport>('desktop');
-  const [responsiveEditorViewport, setResponsiveEditorViewport] =
-    useState<EditorViewport>('desktop');
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
@@ -177,13 +186,23 @@ export default function ScrollingTextSettingsForm() {
     });
   }, [config, isNewSection, sectionStyleDefaults]);
 
-  const isMobileEditor = responsiveEditorViewport === 'mobile';
-
   const updateConfig = (updates: Partial<ScrollingTextConfig>) => {
     setFormConfig((current) => ({
       ...current,
       ...updates,
     }));
+  };
+
+  const handleCustomTypographyToggle = (enabled: boolean) => {
+    if (!enabled) {
+      updateConfig({ is_custom: false });
+      return;
+    }
+
+    updateConfig({
+      ...buildGlobalTypographyConfig(sectionStyleDefaults),
+      is_custom: true,
+    });
   };
 
   const previewConfig = useMemo(
@@ -210,6 +229,7 @@ export default function ScrollingTextSettingsForm() {
     try {
       await updateScrollingText({
         ...formConfig,
+        textGap: '3rem',
         restaurant_id: restaurantId,
         page_id: pageId,
         template_id: templateId,
@@ -309,21 +329,17 @@ export default function ScrollingTextSettingsForm() {
             />
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <LayoutCard
-                title="Horizontal Scroll"
-                description="A continuous marquee strip with strong motion and premium separators."
-                preview={<LayoutPreview layout="horizontal" />}
-                selected={(formConfig.layout || 'horizontal') === 'horizontal'}
-                onClick={() => updateConfig({ layout: 'horizontal' })}
-                badge="Recommended"
-              />
-              <LayoutCard
-                title="Vertical Scroll"
-                description="A stacked ticker feel that works well for short promotional statements."
-                preview={<LayoutPreview layout="vertical" />}
-                selected={formConfig.layout === 'vertical'}
-                onClick={() => updateConfig({ layout: 'vertical' })}
-              />
+              {getScrollingTextLayoutOptions().map((layoutOption) => (
+                <LayoutCard
+                  key={layoutOption.id}
+                  title={layoutOption.name}
+                  description={layoutOption.description}
+                  preview={<LayoutPreview layout={layoutOption.id} />}
+                  selected={(formConfig.layout || 'horizontal') === layoutOption.id}
+                  onClick={() => updateConfig({ layout: layoutOption.id })}
+                  badge={layoutOption.badge}
+                />
+              ))}
             </div>
           </div>
         </SettingsCard>
@@ -335,10 +351,10 @@ export default function ScrollingTextSettingsForm() {
             </svg>
           }
           title="Content & Motion"
-          description="Write the message, tune speed, and control spacing between repeats."
+          description="Write the message and tune the marquee speed."
         >
-          <div className="grid gap-5 lg:grid-cols-2">
-            <div className="lg:col-span-2">
+          <div className="space-y-5">
+            <div>
               <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
                 <span>Scrolling Copy</span>
                 <span className="text-xs font-normal text-slate-500">Text that repeats inside the marquee</span>
@@ -370,121 +386,9 @@ export default function ScrollingTextSettingsForm() {
                 <option value="medium">Medium</option>
                 <option value="fast">Fast</option>
               </select>
-              <p className="mt-2 text-xs text-slate-500">
-                Approx. {SCROLL_SPEEDS[formConfig.scrollSpeed]}px per second.
-              </p>
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
-                <span>Repeat Gap</span>
-                <span className="text-xs font-normal text-slate-500">Space between repeated messages</span>
-              </label>
-              <input
-                type="text"
-                value={formConfig.textGap || '3rem'}
-                onChange={(event) => updateConfig({ textGap: event.target.value || '3rem' })}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
-                placeholder="3rem"
-              />
             </div>
           </div>
         </SettingsCard>
-
-        <SettingsCard
-          icon={
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
-            </svg>
-          }
-          title="Colors, Spacing & Reveal"
-          description="Tune the section surface, responsive spacing, and on-scroll animation."
-          action={
-            <ResponsiveViewportTabs
-              value={responsiveEditorViewport}
-              onChange={setResponsiveEditorViewport}
-              scope="scrolling-style"
-            />
-          }
-        >
-          <div className="space-y-5">
-            <div className="grid gap-5 lg:grid-cols-2">
-              <ResponsiveColorField
-                label="Background Color"
-                description={isMobileEditor ? 'Mobile banner color' : 'Desktop banner color'}
-                value={
-                  isMobileEditor
-                    ? formConfig.mobileBgColor || formConfig.bgColor
-                    : formConfig.bgColor
-                }
-                onChange={(value) =>
-                  updateConfig(
-                    isMobileEditor
-                      ? { mobileBgColor: value }
-                      : { bgColor: value },
-                  )
-                }
-                onReset={
-                  isMobileEditor
-                    ? () => updateConfig({ mobileBgColor: undefined })
-                    : () => updateConfig({ bgColor: '#000000' })
-                }
-                placeholder="#000000"
-              />
-              <ResponsiveColorField
-                label="Text Color"
-                description={isMobileEditor ? 'Mobile text override' : 'Desktop text color'}
-                value={
-                  isMobileEditor
-                    ? formConfig.mobileTextColor || formConfig.textColor
-                    : formConfig.textColor
-                }
-                onChange={(value) =>
-                  updateConfig(
-                    isMobileEditor
-                      ? { mobileTextColor: value }
-                      : { textColor: value },
-                  )
-                }
-                onReset={
-                  isMobileEditor
-                    ? () => updateConfig({ mobileTextColor: undefined })
-                    : () => updateConfig({ textColor: '#ffffff' })
-                }
-                placeholder="#ffffff"
-              />
-              <ResponsiveColorField
-                label="Accent Color"
-                description={isMobileEditor ? 'Mobile separator accent' : 'Accent dots and highlights'}
-                value={
-                  isMobileEditor
-                    ? formConfig.mobileAccentColor || formConfig.accentColor || '#f59e0b'
-                    : formConfig.accentColor || '#f59e0b'
-                }
-                onChange={(value) =>
-                  updateConfig(
-                    isMobileEditor
-                      ? { mobileAccentColor: value }
-                      : { accentColor: value },
-                  )
-                }
-                onReset={
-                  isMobileEditor
-                    ? () => updateConfig({ mobileAccentColor: undefined })
-                    : () => updateConfig({ accentColor: '#f59e0b' })
-                }
-                placeholder="#f59e0b"
-              />
-            </div>
-
-            <SectionAppearanceControls
-              value={formConfig}
-              onChange={updateConfig}
-              viewport={responsiveEditorViewport}
-            />
-          </div>
-        </SettingsCard>
-
         <SettingsCard
           icon={
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -492,37 +396,47 @@ export default function ScrollingTextSettingsForm() {
             </svg>
           }
           title="Typography"
-          description="Use the same desktop/mobile typography workflow as Hero Settings."
-          action={
-            <ResponsiveViewportTabs
-              value={responsiveEditorViewport}
-              onChange={setResponsiveEditorViewport}
-              scope="scrolling-typography"
-            />
-          }
+          description="Customize text styles across the scrolling text."
         >
           <div className="space-y-4">
             <ToggleRow
               title="Custom Typography"
               description="Override the global theme typography for this section."
               checked={formConfig.is_custom || false}
-              onChange={(checked) => updateConfig({ is_custom: checked })}
+              onChange={handleCustomTypographyToggle}
             />
 
             {!formConfig.is_custom ? (
               <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-800">
-                Global theme typography is active. Enable custom typography to edit section-level font sizes, weights, line heights, and spacing.
+                This section and its preview are currently using the global styles from your theme settings. Enable custom typography when you want section-specific overrides.
               </div>
             ) : (
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="mb-4 rounded-lg border border-violet-100 bg-violet-50 px-4 py-3 text-xs text-violet-800">
+                  Custom typography starts from your current global styles. Mobile view automatically scales down oversized desktop font sizes for smaller screens.
+                </div>
                 <SectionTypographyControls
                   value={formConfig}
                   onChange={updateConfig}
                   showAdvancedControls
-                  viewport={responsiveEditorViewport}
                 />
               </div>
             )}
+
+            <ToggleRow
+              title="Page Scroll Animation"
+              description="Reveal the marquee when it enters the viewport."
+              checked={formConfig.enableScrollReveal === true}
+              onChange={(checked) =>
+                updateConfig({
+                  enableScrollReveal: checked,
+                  scrollRevealAnimation:
+                    checked && !formConfig.scrollRevealAnimation
+                      ? 'fade-up'
+                      : formConfig.scrollRevealAnimation,
+                })
+              }
+            />
           </div>
         </SettingsCard>
 
@@ -568,7 +482,7 @@ export default function ScrollingTextSettingsForm() {
           onClose={() => setShowPreview(false)}
           note={
             formConfig.isEnabled
-              ? 'Preview updates instantly as you change copy, colors, spacing, and reveal animation.'
+              ? 'Preview updates instantly as you change copy, speed, typography, and reveal animation.'
               : 'The disabled state is shown so you can verify how the section behaves before publishing.'
           }
         >

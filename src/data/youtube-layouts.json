@@ -1,0 +1,46 @@
+{
+  "layouts": [
+    {
+      "id": "default",
+      "name": "Default",
+      "description": "Two-up featured videos",
+      "support": "Clean and familiar for most pages",
+      "preview": "/previews/youtube/default.png"
+    },
+    {
+      "id": "theater",
+      "name": "Theater",
+      "description": "Wide cinematic framing",
+      "support": "Best for immersive storytelling",
+      "preview": "/previews/youtube/theater.png"
+    },
+    {
+      "id": "split-left",
+      "name": "Split Left",
+      "description": "Video first, content second",
+      "support": "Strong visual-first composition",
+      "preview": "/previews/youtube/split-left.png"
+    },
+    {
+      "id": "split-right",
+      "name": "Split Right",
+      "description": "Content first, video second",
+      "support": "Good when copy needs more emphasis",
+      "preview": "/previews/youtube/split-right.png"
+    },
+    {
+      "id": "background",
+      "name": "Background",
+      "description": "Overlay content on motion",
+      "support": "Best for bold promotional moments",
+      "preview": "/previews/youtube/background.png"
+    },
+    {
+      "id": "grid",
+      "name": "Grid",
+      "description": "Video with supporting panels",
+      "support": "Balanced for richer content groupings",
+      "preview": "/previews/youtube/grid.png"
+    }
+  ]
+}

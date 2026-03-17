@@ -93,7 +93,7 @@ export default function AnnouncementBarSettingsForm() {
   const [layout, setLayout] = useState<AnnouncementBarConfig['layout']>('text-only');
   const [bgColor, setBgColor] = useState('#000000');
   const [textColor, setTextColor] = useState('#ffffff');
-  const [fontFamily, setFontFamily] = useState('Inter, system-ui, sans-serif');
+  const [fontFamily, setFontFamily] = useState('Poppins, sans-serif');
   const [fontSize, setFontSize] = useState('14px');
   const [fontWeight, setFontWeight] = useState<number>(400);
   const [textTransform, setTextTransform] = useState<'none' | 'uppercase' | 'lowercase' | 'capitalize'>('none');
@@ -147,7 +147,7 @@ export default function AnnouncementBarSettingsForm() {
       setFontFamily(
         (config.fontFamily && config.fontFamily !== defaultFontFamily)
           ? config.fontFamily
-          : (globalStyleConfig?.paragraph?.fontFamily || config.fontFamily || defaultFontFamily)
+          : (globalStyleConfig?.paragraph?.fontFamily || config.fontFamily || 'Poppins, sans-serif')
       );
       setFontSize(
         (config.fontSize && config.fontSize !== defaultFontSize)
@@ -889,7 +889,8 @@ export default function AnnouncementBarSettingsForm() {
                 className="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 style={{ fontFamily: fontFamily }}
               >
-                <option value="Inter, system-ui, sans-serif" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Inter (Default)</option>
+                <option value="Poppins, sans-serif" style={{ fontFamily: 'Poppins, sans-serif' }}>Poppins (Default)</option>
+                <option value="Inter, system-ui, sans-serif" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Inter</option>
                 <option value="Roboto, sans-serif" style={{ fontFamily: 'Roboto, sans-serif' }}>Roboto</option>
                 <option value="Open Sans, sans-serif" style={{ fontFamily: 'Open Sans, sans-serif' }}>Open Sans</option>
                 <option value="Lato, sans-serif" style={{ fontFamily: 'Lato, sans-serif' }}>Lato</option>

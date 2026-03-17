@@ -47,7 +47,7 @@ export interface ScrollingTextConfigResponse {
  * Default configuration values
  */
 export const DEFAULT_SCROLLING_TEXT_CONFIG: ScrollingTextConfig = {
-  isEnabled: false,
+  isEnabled: true,
   text: 'Welcome to our restaurant!',
   bgColor: '#000000',
   mobileBgColor: undefined,

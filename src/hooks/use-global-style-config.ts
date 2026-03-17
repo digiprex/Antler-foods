@@ -106,7 +106,9 @@ export function useGlobalStyleConfig(
     setError(null);
 
     try {
-      const response = await fetch(apiEndpoint);
+      const requestUrl = new URL(apiEndpoint, window.location.origin);
+      requestUrl.searchParams.set('_ts', Date.now().toString());
+      const response = await fetch(requestUrl.toString(), { cache: 'no-store' });
 
       if (!response.ok) {
         throw new Error(`API returned ${response.status}: ${response.statusText}`);

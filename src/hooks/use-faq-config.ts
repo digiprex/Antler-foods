@@ -17,8 +17,8 @@ interface FAQConfig extends SectionStyleConfig {
   template_id?: string;
   page_id?: string;
   layout: 'list' | 'accordion' | 'grid';
-  bgColor: string;
-  textColor: string;
+  bgColor?: string;
+  textColor?: string;
   title: string;
   subtitle: string;
   faqs: FAQ[];
@@ -124,8 +124,8 @@ interface UpdateFAQConfigData {
   page_id?: string;
   template_id?: string;
   layout: 'list' | 'accordion' | 'grid';
-  bgColor: string;
-  textColor: string;
+  bgColor?: string;
+  textColor?: string;
   title: string;
   subtitle: string;
   faqs: FAQ[];

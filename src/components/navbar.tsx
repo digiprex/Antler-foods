@@ -84,13 +84,14 @@ export default function Navbar({
   additionalText,
   borderColor = '#000000',
   borderWidth = '2px',
-  fontFamily = 'Poppins, system-ui, sans-serif',
+  fontFamily = 'Poppins, sans-serif',
   fontSize = '1rem',
   fontWeight = 400,
   textTransform = 'uppercase'
 }: NavbarProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -106,15 +107,6 @@ export default function Navbar({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Determine what to display for the brand
-  useEffect(() => {
-    console.log('[Navbar] 🎨 Logo props:', {
-      logoUrl,
-      hasLogoUrl: !!logoUrl,
-      restaurantName,
-      logoSize,
-    });
-  }, [logoUrl, restaurantName, logoSize]);
 
   const brandDisplay = logoUrl ? (
     <img

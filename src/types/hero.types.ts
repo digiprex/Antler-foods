@@ -170,7 +170,7 @@ export const DEFAULT_HERO_CONFIG: HeroConfig = {
   description: 'Discover exceptional dining with fresh ingredients and innovative flavors',
   primaryButton: {
     label: 'View Menu',
-    href: '#menu',
+    href: '/menu',
     variant: 'primary',
   },
   primaryButtonEnabled: true,
@@ -199,7 +199,7 @@ export const DEFAULT_HERO_CONFIG: HeroConfig = {
   defaultContentPanelMobileBackgroundColor: '',
   defaultContentPanelBorderRadius: '2rem',
   defaultContentPanelMobileBorderRadius: '',
-  defaultContentPanelMaxWidth: '960px',
+  defaultContentPanelMaxWidth: '860px',
   videoContentPanelEnabled: false,
   videoContentPanelBackgroundColor: 'rgba(15, 23, 42, 0.48)',
   videoContentPanelMobileBackgroundColor: '',

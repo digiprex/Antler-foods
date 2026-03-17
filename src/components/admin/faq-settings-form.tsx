@@ -4,7 +4,6 @@
  * Enhanced interface for configuring FAQ settings:
  * - Layout selection (list, accordion, grid)
  * - FAQ management (add, edit, delete)
- * - Color customization
  * - Live preview modal
  */
 
@@ -19,6 +18,7 @@ import { SectionTypographyControls } from '@/components/admin/section-typography
 import DynamicFAQ from '@/components/dynamic-faq';
 import Toast from '@/components/ui/toast';
 import styles from './faq-settings-form.module.css';
+import { getFaqLayoutOptions, type FaqLayoutValue } from '@/utils/faq-layout-utils';
 
 interface FAQFormProps {
   pageId?: string;
@@ -32,6 +32,70 @@ interface FAQ {
 }
 
 type PreviewViewport = 'desktop' | 'mobile';
+
+const GLOBAL_TYPOGRAPHY_KEYS = [
+  'buttonStyleVariant',
+  'titleFontFamily',
+  'titleFontSize',
+  'titleMobileFontSize',
+  'titleMobileFontFamily',
+  'titleFontWeight',
+  'titleMobileFontWeight',
+  'titleFontStyle',
+  'titleMobileFontStyle',
+  'titleColor',
+  'titleMobileColor',
+  'titleTextTransform',
+  'titleMobileTextTransform',
+  'titleLineHeight',
+  'titleMobileLineHeight',
+  'titleLetterSpacing',
+  'titleMobileLetterSpacing',
+  'subtitleFontFamily',
+  'subtitleFontSize',
+  'subtitleMobileFontSize',
+  'subtitleMobileFontFamily',
+  'subtitleFontWeight',
+  'subtitleMobileFontWeight',
+  'subtitleFontStyle',
+  'subtitleMobileFontStyle',
+  'subtitleColor',
+  'subtitleMobileColor',
+  'subtitleTextTransform',
+  'subtitleMobileTextTransform',
+  'subtitleLineHeight',
+  'subtitleMobileLineHeight',
+  'subtitleLetterSpacing',
+  'subtitleMobileLetterSpacing',
+  'bodyFontFamily',
+  'bodyFontSize',
+  'bodyMobileFontSize',
+  'bodyMobileFontFamily',
+  'bodyFontWeight',
+  'bodyMobileFontWeight',
+  'bodyFontStyle',
+  'bodyMobileFontStyle',
+  'bodyColor',
+  'bodyMobileColor',
+  'bodyTextTransform',
+  'bodyMobileTextTransform',
+  'bodyLineHeight',
+  'bodyMobileLineHeight',
+  'bodyLetterSpacing',
+  'bodyMobileLetterSpacing',
+] as const satisfies ReadonlyArray<keyof SectionStyleConfig>;
+
+const buildGlobalTypographyConfig = (
+  defaults: SectionStyleConfig,
+): SectionStyleConfig => {
+  const nextConfig: Partial<SectionStyleConfig> = {};
+
+  for (const key of GLOBAL_TYPOGRAPHY_KEYS) {
+    (nextConfig as any)[key] = defaults[key];
+  }
+
+  return nextConfig as SectionStyleConfig;
+};
 
 function pickSectionStyleConfig(
   source?: Partial<SectionStyleConfig> | null,
@@ -134,26 +198,15 @@ export default function FAQSettingsForm({
 
   // Form state
   const [faqs, setFaqs] = useState<FAQ[]>([]);
-  const [layout, setLayout] = useState<'list' | 'accordion' | 'grid'>(
+  const [layout, setLayout] = useState<FaqLayoutValue>(
     'accordion',
   );
-  const [bgColor, setBgColor] = useState<string>('#ffffff');
-  const [textColor, setTextColor] = useState<string>('#111827');
   const [title, setTitle] = useState<string>('Frequently Asked Questions');
   const [subtitle, setSubtitle] = useState<string>(
     'Find answers to common questions',
   );
   const [sectionStyle, setSectionStyle] =
     useState<SectionStyleConfig>(sectionStyleDefaults);
-
-  // New Color & Styling options
-  const [faqCardBgColor, setFaqCardBgColor] = useState<string>('#ffffff');
-  const [questionTextColor, setQuestionTextColor] = useState<string>('#1f2937');
-  const [answerTextColor, setAnswerTextColor] = useState<string>('#6b7280');
-  const [cardBorderRadius, setCardBorderRadius] = useState<string>('18px');
-  const [cardShadow, setCardShadow] = useState<string>('sm');
-  const [accentColor, setAccentColor] = useState<string>('#8b5cf6');
-  const [hoverColor, setHoverColor] = useState<string>('#f8fafc');
 
   // Animation toggle
   const [enableScrollAnimation, setEnableScrollAnimation] =
@@ -167,8 +220,6 @@ export default function FAQSettingsForm({
   // Preview visibility state
   const [showPreview, setShowPreview] = useState(false);
   const [previewViewport, setPreviewViewport] =
-    useState<PreviewViewport>('desktop');
-  const [responsiveEditorViewport, setResponsiveEditorViewport] =
     useState<PreviewViewport>('desktop');
 
   const configApiEndpoint = useMemo(() => {
@@ -196,35 +247,17 @@ export default function FAQSettingsForm({
     () => ({
       ...pickSectionStyleConfig(sectionStyle),
       layout,
-      bgColor,
-      textColor,
       title,
       subtitle,
       faqs,
-      faqCardBgColor,
-      questionTextColor,
-      answerTextColor,
-      cardBorderRadius,
-      cardShadow,
-      accentColor,
-      hoverColor,
       enableScrollAnimation,
     }),
     [
-      bgColor,
       faqs,
       layout,
       sectionStyle,
       subtitle,
-      textColor,
       title,
-      faqCardBgColor,
-      questionTextColor,
-      answerTextColor,
-      cardBorderRadius,
-      cardShadow,
-      accentColor,
-      hoverColor,
       enableScrollAnimation,
     ],
   );
@@ -283,21 +316,14 @@ export default function FAQSettingsForm({
         setActiveTemplateId(fetchedTemplateId);
       }
       setLayout(config.layout || 'accordion');
-      setBgColor(config.bgColor || '#ffffff');
-      setTextColor(config.textColor || '#111827');
       setTitle(config.title || 'Frequently Asked Questions');
       setSubtitle(config.subtitle || 'Find answers to common questions');
       setFaqs(config.faqs || []);
-
-      // Load new styling options if they exist
-      setFaqCardBgColor(config.faqCardBgColor || '#ffffff');
-      setQuestionTextColor(config.questionTextColor || '#1f2937');
-      setAnswerTextColor(config.answerTextColor || '#6b7280');
-      setCardBorderRadius(config.cardBorderRadius || '18px');
-      setCardShadow(config.cardShadow || 'sm');
-      setAccentColor(config.accentColor || '#8b5cf6');
-      setHoverColor(config.hoverColor || '#f8fafc');
-      setEnableScrollAnimation(config.enableScrollAnimation ?? false);
+      setEnableScrollAnimation(
+        config.enableScrollAnimation ??
+          sectionStyleDefaults.enableScrollReveal ??
+          false,
+      );
 
       setSectionStyle((prev) => ({
         ...sectionStyleDefaults,
@@ -320,6 +346,14 @@ export default function FAQSettingsForm({
       ...prev,
     }));
   }, [sectionStyleDefaults]);
+
+  useEffect(() => {
+    if (!config && isNewSection) {
+      setEnableScrollAnimation(
+        sectionStyleDefaults.enableScrollReveal ?? false,
+      );
+    }
+  }, [config, isNewSection, sectionStyleDefaults.enableScrollReveal]);
 
   const addFAQ = () => {
     setFaqs((s) => [
@@ -395,32 +429,25 @@ export default function FAQSettingsForm({
   const removeFAQ = (id: string) =>
     setFaqs((s) => s.filter((f) => f.id !== id));
 
-  const handleLayoutSelect = (nextLayout: 'list' | 'accordion' | 'grid') => {
+  const handleLayoutSelect = (nextLayout: FaqLayoutValue) => {
     setLayout(nextLayout);
   };
 
-  const handleResponsiveEditorViewportChange = (viewport: PreviewViewport) => {
-    setResponsiveEditorViewport(viewport);
-  };
+  const handleCustomTypographyToggle = (enabled: boolean) => {
+    if (!enabled) {
+      setSectionStyle((prev) => ({
+        ...prev,
+        is_custom: false,
+      }));
+      return;
+    }
 
-  const renderResponsiveEditorTabs = (scope: string) => (
-    <div className="inline-flex rounded-full bg-slate-100 p-1">
-      {(['desktop', 'mobile'] as PreviewViewport[]).map((viewport) => (
-        <button
-          key={`${scope}-${viewport}`}
-          type="button"
-          onClick={() => handleResponsiveEditorViewportChange(viewport)}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-            responsiveEditorViewport === viewport
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          {viewport === 'desktop' ? 'Desktop' : 'Mobile'}
-        </button>
-      ))}
-    </div>
-  );
+    setSectionStyle((prev) => ({
+      ...prev,
+      ...buildGlobalTypographyConfig(sectionStyleDefaults),
+      is_custom: true,
+    }));
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -437,18 +464,9 @@ export default function FAQSettingsForm({
         restaurant_id: finalRestaurantId,
         ...pickSectionStyleConfig(sectionStyle),
         layout,
-        bgColor,
-        textColor,
         title,
         subtitle,
         faqs,
-        faqCardBgColor,
-        questionTextColor,
-        answerTextColor,
-        cardBorderRadius,
-        cardShadow,
-        accentColor,
-        hoverColor,
         enableScrollAnimation,
       };
 
@@ -473,18 +491,9 @@ export default function FAQSettingsForm({
       // Keep the current UI aligned with the just-saved template instead of
       // briefly snapping back to previously fetched values.
       setLayout(savedConfig.layout || layout);
-      setBgColor(savedConfig.bgColor || bgColor);
-      setTextColor(savedConfig.textColor || textColor);
       setTitle(savedConfig.title || title);
       setSubtitle(savedConfig.subtitle || subtitle);
       setFaqs(savedConfig.faqs || faqs);
-      setFaqCardBgColor(savedConfig.faqCardBgColor || faqCardBgColor);
-      setQuestionTextColor(savedConfig.questionTextColor || questionTextColor);
-      setAnswerTextColor(savedConfig.answerTextColor || answerTextColor);
-      setCardBorderRadius(savedConfig.cardBorderRadius || cardBorderRadius);
-      setCardShadow(savedConfig.cardShadow || cardShadow);
-      setAccentColor(savedConfig.accentColor || accentColor);
-      setHoverColor(savedConfig.hoverColor || hoverColor);
       setEnableScrollAnimation(
         savedConfig.enableScrollAnimation ?? enableScrollAnimation,
       );
@@ -652,27 +661,11 @@ export default function FAQSettingsForm({
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {[
-              {
-                value: 'list',
-                name: 'List',
-                description: 'Simple list layout',
-              },
-              {
-                value: 'accordion',
-                name: 'Accordion',
-                description: 'Collapsible sections',
-              },
-              { value: 'grid', name: 'Grid', description: 'Grid card layout' },
-            ].map((option) => (
+            {getFaqLayoutOptions().map((option) => (
               <button
                 type="button"
                 key={option.value}
-                onClick={() =>
-                  handleLayoutSelect(
-                    option.value as 'list' | 'accordion' | 'grid',
-                  )
-                }
+                onClick={() => handleLayoutSelect(option.value)}
                 aria-pressed={layout === option.value}
                 className={`group w-full cursor-pointer rounded-xl border-2 p-3 text-left transition-all ${
                   layout === option.value
@@ -997,434 +990,7 @@ export default function FAQSettingsForm({
           </div>
         </div>
 
-        {/* Color & Styling */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-              <svg
-                className="h-5 w-5 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42"
-                />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Color & Styling
-              </h2>
-              <p className="text-sm text-gray-600">
-                Define the section surface, text palette, and base visual tone
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Background Color</span>
-                <span className="text-xs font-normal text-gray-500">
-                  FAQ section background
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={bgColor}
-                  onChange={(e) => setBgColor(e.target.value)}
-                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white"
-                />
-                <input
-                  type="text"
-                  value={bgColor}
-                  onChange={(e) => setBgColor(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="#ffffff"
-                />
-                <button
-                  type="button"
-                  onClick={() => setBgColor('#ffffff')}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Text Color</span>
-                <span className="text-xs font-normal text-gray-500">
-                  FAQ text color
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={textColor}
-                  onChange={(e) => setTextColor(e.target.value)}
-                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white"
-                />
-                <input
-                  type="text"
-                  value={textColor}
-                  onChange={(e) => setTextColor(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="#111827"
-                />
-                <button
-                  type="button"
-                  onClick={() => setTextColor('#111827')}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Card Appearance */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-              <svg
-                className="h-5 w-5 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"
-                />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Card Appearance
-              </h2>
-              <p className="text-sm text-gray-600">
-                Fine tune the FAQ cards, hover states, and open-state accents
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>FAQ Card Background</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Background color for FAQ cards
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={faqCardBgColor}
-                  onChange={(e) => setFaqCardBgColor(e.target.value)}
-                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white"
-                />
-                <input
-                  type="text"
-                  value={faqCardBgColor}
-                  onChange={(e) => setFaqCardBgColor(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="#ffffff"
-                />
-                <button
-                  type="button"
-                  onClick={() => setFaqCardBgColor('#ffffff')}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Question Text Color</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Color for question text
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={questionTextColor}
-                  onChange={(e) => setQuestionTextColor(e.target.value)}
-                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white"
-                />
-                <input
-                  type="text"
-                  value={questionTextColor}
-                  onChange={(e) => setQuestionTextColor(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="#1f2937"
-                />
-                <button
-                  type="button"
-                  onClick={() => setQuestionTextColor('#1f2937')}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Answer Text Color</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Color for answer text
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={answerTextColor}
-                  onChange={(e) => setAnswerTextColor(e.target.value)}
-                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white"
-                />
-                <input
-                  type="text"
-                  value={answerTextColor}
-                  onChange={(e) => setAnswerTextColor(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="#6b7280"
-                />
-                <button
-                  type="button"
-                  onClick={() => setAnswerTextColor('#6b7280')}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                  <span>Border Radius</span>
-                  <span className="text-xs font-normal text-gray-500">
-                    Card corner roundness
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  value={cardBorderRadius}
-                  onChange={(e) => setCardBorderRadius(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="18px"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                  <span>Card Shadow</span>
-                  <span className="text-xs font-normal text-gray-500">
-                    Shadow intensity
-                  </span>
-                </label>
-                <select
-                  value={cardShadow}
-                  onChange={(e) => setCardShadow(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                >
-                  <option value="none">None</option>
-                  <option value="sm">Small</option>
-                  <option value="md">Medium</option>
-                  <option value="lg">Large</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Accent Color</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Color for active/open FAQ indicator
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white"
-                />
-                <input
-                  type="text"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="#8b5cf6"
-                />
-                <button
-                  type="button"
-                  onClick={() => setAccentColor('#8b5cf6')}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Hover Color</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Background color on hover
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={hoverColor}
-                  onChange={(e) => setHoverColor(e.target.value)}
-                  className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white"
-                />
-                <input
-                  type="text"
-                  value={hoverColor}
-                  onChange={(e) => setHoverColor(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="#f8fafc"
-                />
-                <button
-                  type="button"
-                  onClick={() => setHoverColor('#f8fafc')}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  title="Reset to default"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border border-purple-200 bg-purple-50 p-4">
-              <div>
-                <label className="text-sm font-medium text-purple-900">
-                  Enable Page Scroll Animation
-                </label>
-                <p className="text-xs text-purple-700">
-                  Animate FAQ items when they enter the viewport
-                </p>
-              </div>
-              <label className="relative inline-flex cursor-pointer items-center">
-                <input
-                  type="checkbox"
-                  checked={enableScrollAnimation}
-                  onChange={(e) => setEnableScrollAnimation(e.target.checked)}
-                  className="peer sr-only"
-                />
-                <div className="peer h-6 w-11 rounded-full bg-purple-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-purple-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Typography & Buttons */}
+        {/* Typography */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
@@ -1444,50 +1010,37 @@ export default function FAQSettingsForm({
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">
-                Typography & Buttons
+                Typography
               </h2>
               <p className="text-sm text-gray-600">
-                Customize text styles and button appearance
+                Customize text styles across the FAQ
               </p>
             </div>
-          </div>
-
-          <div className="mb-4 flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">
-                Typography Viewport
-              </h3>
-              <p className="mt-1 text-xs text-slate-600">
-                Switch between desktop and mobile overrides for FAQ headings and body text.
-              </p>
-            </div>
-            {renderResponsiveEditorTabs('faq-typography')}
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Custom Typography & Styles
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Custom Typography & Styles
+                  </label>
+                  <p className="text-xs text-gray-500">
+                    Override global CSS with custom styling options
+                  </p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={sectionStyle.is_custom || false}
+                    onChange={(e) =>
+                      handleCustomTypographyToggle(e.target.checked)
+                    }
+                    className="peer sr-only"
+                  />
+                  <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
                 </label>
-                <p className="text-xs text-gray-500">
-                  Override global CSS with custom styling options
-                </p>
               </div>
-              <label className="relative inline-flex cursor-pointer items-center">
-                <input
-                  type="checkbox"
-                  checked={sectionStyle.is_custom || false}
-                  onChange={(e) =>
-                    setSectionStyle((prev) => ({
-                      ...prev,
-                      is_custom: e.target.checked,
-                    }))
-                  }
-                  className="peer sr-only"
-                />
-                <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
-              </label>
             </div>
 
             {!sectionStyle.is_custom ? (
@@ -1511,25 +1064,49 @@ export default function FAQSettingsForm({
                       Using Global Styles
                     </h4>
                     <p className="mt-1 text-xs text-blue-700">
-                      This section is currently using the global CSS styles
-                      defined in your theme settings. Enable custom typography
-                      above to override these styles with section-specific
-                      options.
+                      This section and its preview are currently using the
+                      global styles from your theme settings. Enable custom
+                      typography above when you want FAQ-specific overrides.
                     </p>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <div className="mb-4 rounded-lg border border-purple-100 bg-purple-50 px-4 py-3 text-xs text-purple-800">
+                  Custom typography starts from your current global styles.
+                  Mobile view automatically scales down oversized desktop font
+                  sizes for smaller screens.
+                </div>
                 <SectionTypographyControls
                   value={sectionStyle}
-                  viewport={responsiveEditorViewport}
                   onChange={(updates) =>
                     setSectionStyle((prev) => ({ ...prev, ...updates }))
                   }
+                  showAdvancedControls
                 />
               </div>
             )}
+
+            <div className="flex items-center justify-between rounded-lg border border-purple-200 bg-purple-50 p-4">
+              <div>
+                <label className="text-sm font-medium text-purple-900">
+                  Enable Page Scroll Animation
+                </label>
+                <p className="text-xs text-purple-700">
+                  Animate FAQ items when they enter the viewport
+                </p>
+              </div>
+              <label className="relative inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  checked={enableScrollAnimation}
+                  onChange={(e) => setEnableScrollAnimation(e.target.checked)}
+                  className="peer sr-only"
+                />
+                <div className="peer h-6 w-11 rounded-full bg-purple-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-purple-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2"></div>
+              </label>
+            </div>
           </div>
         </div>
 

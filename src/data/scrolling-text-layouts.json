@@ -1,0 +1,17 @@
+{
+  "layouts": [
+    {
+      "id": "horizontal",
+      "name": "Horizontal Scroll",
+      "description": "A continuous marquee strip with strong motion and premium separators.",
+      "badge": "Recommended",
+      "preview": "/previews/scrolling-text/horizontal.png"
+    },
+    {
+      "id": "vertical",
+      "name": "Vertical Scroll",
+      "description": "A stacked ticker feel that works well for short promotional statements.",
+      "preview": "/previews/scrolling-text/vertical.png"
+    }
+  ]
+}

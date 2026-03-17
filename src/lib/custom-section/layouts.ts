@@ -55,7 +55,6 @@ export interface CustomSectionLayoutDefinition {
 const HERO_FIELDS: CustomSectionFieldKey[] = [
   'contentAlignment',
   'verticalAlignment',
-  'contentWidth',
   'mediaRatio',
   'overlayOpacity',
   'buttonStyle',
@@ -65,7 +64,6 @@ const SPLIT_FIELDS: CustomSectionFieldKey[] = [
   'contentAlignment',
   'verticalAlignment',
   'mediaRatio',
-  'contentWidth',
   'contentGap',
   'stackOnMobile',
   'buttonStyle',
@@ -82,7 +80,6 @@ const GALLERY_FIELDS: CustomSectionFieldKey[] = [
 
 const CARD_FIELDS: CustomSectionFieldKey[] = [
   'contentAlignment',
-  'contentWidth',
   'cardSpacing',
   'cardColumns',
   'buttonStyle',
@@ -146,7 +143,7 @@ export const CUSTOM_SECTION_LAYOUT_DEFINITIONS: CustomSectionLayoutDefinition[] 
     family: 'split',
     summary: 'Ideal for chef portraits, founder messages, or spotlight content.',
     mediaSlots: ['image'],
-    layoutFields: ['contentAlignment', 'contentWidth', 'mediaShape', 'buttonStyle'],
+    layoutFields: ['contentAlignment', 'mediaShape', 'buttonStyle'],
   },
   {
     value: 'layout-6',
@@ -176,7 +173,7 @@ export const CUSTOM_SECTION_LAYOUT_DEFINITIONS: CustomSectionLayoutDefinition[] 
     family: 'gallery',
     summary: 'Strong for social proof, press quotes, or centered callouts.',
     mediaSlots: ['image', 'secondaryImage'],
-    layoutFields: ['contentAlignment', 'contentWidth', 'contentGap', 'mediaShape', 'stackOnMobile'],
+    layoutFields: ['contentAlignment', 'contentGap', 'mediaShape', 'stackOnMobile'],
   },
   {
     value: 'layout-9',
@@ -186,7 +183,7 @@ export const CUSTOM_SECTION_LAYOUT_DEFINITIONS: CustomSectionLayoutDefinition[] 
     family: 'stack',
     summary: 'Use a wide hero visual followed by focused explanatory copy.',
     mediaSlots: ['image'],
-    layoutFields: ['contentAlignment', 'contentWidth', 'mediaRatio', 'contentGap', 'buttonStyle'],
+    layoutFields: ['contentAlignment', 'mediaRatio', 'contentGap', 'buttonStyle'],
   },
   {
     value: 'layout-10',
@@ -196,7 +193,7 @@ export const CUSTOM_SECTION_LAYOUT_DEFINITIONS: CustomSectionLayoutDefinition[] 
     family: 'stack',
     summary: 'A classic top-image presentation with balanced centered content.',
     mediaSlots: ['image'],
-    layoutFields: ['contentAlignment', 'contentWidth', 'mediaRatio', 'contentGap', 'buttonStyle'],
+    layoutFields: ['contentAlignment', 'mediaRatio', 'contentGap', 'buttonStyle'],
   },
   {
     value: 'layout-11',
@@ -278,7 +275,7 @@ export const CUSTOM_SECTION_LAYOUT_DEFINITIONS: CustomSectionLayoutDefinition[] 
     family: 'split',
     summary: 'Creates depth by partially overlapping the content card with media.',
     mediaSlots: ['image'],
-    layoutFields: ['contentAlignment', 'contentWidth', 'mediaRatio', 'overlayOpacity', 'buttonStyle'],
+    layoutFields: ['contentAlignment', 'mediaRatio', 'overlayOpacity', 'buttonStyle'],
   },
   {
     value: 'layout-19',
@@ -288,7 +285,7 @@ export const CUSTOM_SECTION_LAYOUT_DEFINITIONS: CustomSectionLayoutDefinition[] 
     family: 'cards',
     summary: 'Good for concise promotional sections or restaurant updates.',
     mediaSlots: [],
-    layoutFields: ['contentAlignment', 'contentWidth', 'buttonStyle'],
+    layoutFields: ['contentAlignment', 'buttonStyle'],
   },
   {
     value: 'layout-20',
@@ -308,7 +305,7 @@ export const CUSTOM_SECTION_LAYOUT_DEFINITIONS: CustomSectionLayoutDefinition[] 
     family: 'stack',
     summary: 'A strong launch section with an immersive image followed by details.',
     mediaSlots: ['image'],
-    layoutFields: ['contentAlignment', 'contentWidth', 'mediaRatio', 'contentGap', 'buttonStyle'],
+    layoutFields: ['contentAlignment', 'mediaRatio', 'contentGap', 'buttonStyle'],
   },
   {
     value: 'layout-22',
@@ -330,7 +327,7 @@ export const CUSTOM_SECTION_LAYOUT_DEFINITIONS: CustomSectionLayoutDefinition[] 
     family: 'cards',
     summary: 'Keeps the main message in the middle with decorative side framing.',
     mediaSlots: [],
-    layoutFields: ['contentAlignment', 'contentWidth', 'cardSpacing'],
+    layoutFields: ['contentAlignment', 'cardSpacing'],
   },
   {
     value: 'layout-24',
@@ -362,7 +359,7 @@ export const CUSTOM_SECTION_LAYOUT_DEFINITIONS: CustomSectionLayoutDefinition[] 
     family: 'banner',
     summary: 'Ideal for concise service announcements with minimal visual noise.',
     mediaSlots: [],
-    layoutFields: ['contentAlignment', 'contentWidth', 'buttonStyle'],
+    layoutFields: ['contentAlignment', 'buttonStyle'],
   },
   {
     value: 'layout-27',
@@ -394,7 +391,7 @@ export const CUSTOM_SECTION_LAYOUT_DEFINITIONS: CustomSectionLayoutDefinition[] 
     family: 'split',
     summary: 'Combines image atmosphere with a more anchored content surface.',
     mediaSlots: ['image'],
-    layoutFields: ['contentAlignment', 'contentWidth', 'mediaRatio', 'overlayOpacity', 'buttonStyle'],
+    layoutFields: ['contentAlignment', 'mediaRatio', 'overlayOpacity', 'buttonStyle'],
   },
   {
     value: 'layout-30',
@@ -404,7 +401,7 @@ export const CUSTOM_SECTION_LAYOUT_DEFINITIONS: CustomSectionLayoutDefinition[] 
     family: 'banner',
     summary: 'Best for direct calls to action or promotional announcements.',
     mediaSlots: ['backgroundImage'],
-    layoutFields: ['contentAlignment', 'contentWidth', 'buttonStyle', 'overlayOpacity'],
+    layoutFields: ['contentAlignment', 'buttonStyle', 'overlayOpacity'],
   },
   {
     value: 'layout-31',

@@ -5,21 +5,15 @@ import Gallery from '@/components/gallery';
 import { GalleryLayoutPreview } from '@/components/gallery-layouts/gallery-layout-preview';
 import type { GalleryConfig } from '@/types/gallery.types';
 
-type PreviewViewport = 'desktop' | 'mobile';
-
 interface GalleryPreviewModalProps {
   open: boolean;
   config: GalleryConfig | null;
-  previewViewport: PreviewViewport;
-  onPreviewViewportChange: (viewport: PreviewViewport) => void;
   onClose: () => void;
 }
 
 export function GalleryPreviewModal({
   open,
   config,
-  previewViewport,
-  onPreviewViewportChange,
   onClose,
 }: GalleryPreviewModalProps) {
   const bodyRef = useRef<HTMLDivElement | null>(null);
@@ -28,7 +22,7 @@ export function GalleryPreviewModal({
     if (open && bodyRef.current) {
       bodyRef.current.scrollTop = 0;
     }
-  }, [open, previewViewport, config?.layout, config?.images.length]);
+  }, [open, config?.layout, config?.images.length]);
 
   if (!open || !config) {
     return null;
@@ -49,26 +43,10 @@ export function GalleryPreviewModal({
           <div>
             <h2 className="text-xl font-bold text-slate-900">Live Preview</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Switch between desktop and mobile to verify every gallery layout.
+              Preview the gallery layout with your current content and styling.
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="inline-flex rounded-full bg-slate-100 p-1">
-              {(['desktop', 'mobile'] as PreviewViewport[]).map((viewport) => (
-                <button
-                  key={viewport}
-                  type="button"
-                  onClick={() => onPreviewViewportChange(viewport)}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    previewViewport === viewport
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  {viewport === 'desktop' ? 'Desktop' : 'Mobile'}
-                </button>
-              ))}
-            </div>
             <button
               type="button"
               onClick={onClose}
@@ -96,22 +74,10 @@ export function GalleryPreviewModal({
           ref={bodyRef}
           className="flex-1 overflow-y-auto bg-slate-950 p-4 sm:p-6"
         >
-          <div
-            className={`mx-auto overflow-hidden border border-white/10 bg-slate-900 shadow-[0_24px_80px_rgba(15,23,42,0.35)] ${
-              previewViewport === 'mobile'
-                ? 'max-w-[430px] rounded-[32px]'
-                : 'max-w-[1240px] rounded-[32px]'
-            }`}
-          >
+          <div className="mx-auto max-w-[1240px] overflow-hidden rounded-[32px] border border-white/10 bg-slate-900 shadow-[0_24px_80px_rgba(15,23,42,0.35)]">
             <div className="flex items-center justify-between border-b border-white/10 bg-slate-950/90 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">
-              <span>
-                {previewViewport === 'mobile'
-                  ? 'Phone Preview'
-                  : 'Desktop Preview'}
-              </span>
-              <span>
-                {previewViewport === 'mobile' ? '390 x 780' : '1280 x 720'}
-              </span>
+              <span>Desktop Preview</span>
+              <span>1280 x 720</span>
             </div>
 
             <div className="bg-white">
@@ -119,7 +85,7 @@ export function GalleryPreviewModal({
                 <Gallery
                   {...config}
                   enableLightbox={false}
-                  previewMode={previewViewport}
+                  previewMode="desktop"
                 />
               ) : (
                 <div
@@ -217,9 +183,7 @@ export function GalleryPreviewModal({
               </span>
             </div>
             <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
-              {previewViewport === 'mobile'
-                ? 'Mobile responsiveness check'
-                : 'Desktop composition check'}
+              Desktop preview
             </div>
           </div>
         </div>

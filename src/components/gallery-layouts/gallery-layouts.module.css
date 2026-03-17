@@ -54,6 +54,25 @@
   font-size: clamp(0.98rem, 1vw, 1.08rem);
 }
 
+.galleryDescriptionBottom {
+  margin-top: clamp(0.35rem, 0.9vw, 0.7rem);
+  max-width: none;
+  width: 100%;
+  text-align: center;
+}
+
+.gallerySection[data-gallery-layout='showcase'] .galleryShell {
+  gap: 0;
+}
+
+.gallerySection[data-gallery-layout='showcase'] .galleryHeader {
+  margin-bottom: clamp(0.75rem, 1.8vw, 1.25rem);
+}
+
+.gallerySection[data-gallery-layout='showcase'] .galleryDescriptionBottom {
+  margin-top: 1rem;
+}
+
 .galleryContent {
   position: relative;
   z-index: 1;
@@ -207,6 +226,11 @@
   isolation: isolate;
 }
 
+.gallerySection[data-gallery-layout='showcase'] .showcaseViewport {
+  background: transparent;
+  padding: clamp(0.35rem, 0.8vw, 0.6rem) clamp(1.5rem, 3vw, 2.4rem);
+}
+
 .showcaseViewport::before {
   content: '';
   position: absolute;
@@ -215,6 +239,12 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 22%),
     radial-gradient(circle at center, rgba(255, 255, 255, 0.18), transparent 56%);
   pointer-events: none;
+}
+
+.gallerySection[data-gallery-layout='showcase'] .showcaseViewport::before,
+.gallerySection[data-gallery-layout='showcase'] .showcaseGlow,
+.gallerySection[data-gallery-layout='showcase'] .showcasePattern {
+  display: none;
 }
 
 .showcaseGlow {
@@ -1413,4 +1443,35 @@
     animation: none !important;
     transition: none !important;
   }
+}
+
+.gallerySection :is(
+  .mosaicLayout,
+  .editorialLayout,
+  .carouselViewport,
+  .spotlightViewport,
+  .filmstripViewport,
+  .showcaseViewport,
+  .showcaseHeroSurface,
+  .showcaseSideSurface,
+  .spotlightSurface,
+  .spotlightSurfaceActive,
+  .spotlightHeroSurface,
+  .spotlightSideSurfacePrimary,
+  .spotlightSideSurfaceSecondary,
+  .filmstripSurface,
+  .cardSurface,
+  .cardSurfaceSoft,
+  .navButton,
+  .showcaseArrow,
+  .editorialLeadSurface
+) {
+  box-shadow: none;
+}
+
+.gallerySection .cardButton:hover .cardSurface,
+.gallerySection .tiledCardButton:hover .cardSurface,
+.gallerySection .navButton:hover:not(:disabled),
+.gallerySection .showcaseArrow:hover {
+  box-shadow: none;
 }

@@ -24,7 +24,6 @@ import { SectionTypographyControls } from '@/components/admin/section-typography
 import { GalleryPreviewModal } from '@/components/admin/gallery-preview-modal';
 import {
   FloatingPreviewButton,
-  ResponsiveViewportTabs,
   SettingsCard,
   ToggleRow,
 } from '@/components/admin/section-settings-primitives';
@@ -33,8 +32,6 @@ import {
   normalizeGalleryLayout,
 } from '@/components/gallery-layouts/gallery-layout-options';
 import { GalleryLayoutPreview } from '@/components/gallery-layouts/gallery-layout-preview';
-
-type PreviewViewport = 'desktop' | 'mobile';
 
 interface GallerySettingsFormProps {
   pageId?: string;
@@ -140,10 +137,6 @@ export default function GallerySettingsForm({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [previewViewport, setPreviewViewport] =
-    useState<PreviewViewport>('desktop');
-  const [responsiveEditorViewport, setResponsiveEditorViewport] =
-    useState<PreviewViewport>('desktop');
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<any[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
@@ -453,10 +446,6 @@ export default function GallerySettingsForm({
   }
 
   const selectedLayout = normalizeGalleryLayout(formConfig.layout);
-  const handleResponsiveEditorViewportChange = (viewport: PreviewViewport) => {
-    setResponsiveEditorViewport(viewport);
-    setPreviewViewport(viewport);
-  };
 
   return (
     <>
@@ -835,11 +824,6 @@ export default function GallerySettingsForm({
                 </p>
               </div>
             </div>
-            <ResponsiveViewportTabs
-              value={responsiveEditorViewport}
-              onChange={handleResponsiveEditorViewportChange}
-              scope="gallery-typography"
-            />
           </div>
 
           <div className="space-y-6">
@@ -957,7 +941,7 @@ export default function GallerySettingsForm({
                   value={formConfig}
                   onChange={(updates) => updateConfig(updates)}
                   showAdvancedControls
-                  viewport={responsiveEditorViewport}
+                  viewport="desktop"
                 />
               </div>
             )}
@@ -1132,18 +1116,13 @@ export default function GallerySettingsForm({
       {!showPreview ? (
         <FloatingPreviewButton
           viewport="desktop"
-          onClick={() => {
-            setPreviewViewport('desktop');
-            setShowPreview(true);
-          }}
+          onClick={() => setShowPreview(true)}
         />
       ) : null}
 
       <GalleryPreviewModal
         open={showPreview}
         config={formConfig}
-        previewViewport={previewViewport}
-        onPreviewViewportChange={setPreviewViewport}
         onClose={() => setShowPreview(false)}
       />
 

@@ -27,6 +27,7 @@ import type {
 } from '@/types/menu.types';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import Menu from '@/components/menu';
+import { applyMenuSharedSpacingDefaults } from '@/lib/menu-spacing';
 import { getMenuLayoutOptions } from '@/utils/menu-layout-utils';
 import {
   CategoryDrivenLayoutEditor,
@@ -500,7 +501,9 @@ function ensureLayoutItems(config: MenuConfig): MenuConfig {
 }
 
 function normalizeMenuConfig(config: MenuConfig): MenuConfig {
-  return ensureLayoutItems(hydrateFeaturedItems(config));
+  return ensureLayoutItems(
+    hydrateFeaturedItems(applyMenuSharedSpacingDefaults(config)),
+  );
 }
 
 const getMenuItemCount = (categories?: MenuCategory[]) =>
@@ -2093,7 +2096,7 @@ export default function MenuSettingsForm({
     // Create preview config with placeholder data for empty fields
     const previewConfig = {
       ...formConfig,
-      title: formConfig.title || 'Our Menu',
+      title: formConfig.title || '',
       subtitle: formConfig.subtitle || 'This is a description',
       description: formConfig.description || 'Lorem ipsum dolor sit amet',
       // For direct layouts, use layoutItems with placeholders
@@ -2616,7 +2619,7 @@ export default function MenuSettingsForm({
                 value={formConfig.title || ''}
                 onChange={(e) => updateConfig({ title: e.target.value })}
                 className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                placeholder="Our Menu"
+                placeholder="Optional section title"
               />
             </div>
 

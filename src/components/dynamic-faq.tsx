@@ -1,16 +1,11 @@
-"use client";
+'use client';
 
-import {
-  CSSProperties,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { useFAQConfig } from '@/hooks/use-faq-config';
 import type { SectionStyleConfig } from '@/types/section-style.types';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
 import { getSectionTypographyStyles } from '@/lib/section-style';
+import { resolveSharedSectionSpacing } from '@/lib/shared-section-spacing';
 import styles from './dynamic-faq.module.css';
 
 interface FAQ {
@@ -58,13 +53,11 @@ const DEFAULT_CONFIG: FAQConfig = {
   textColor: '#111827',
   title: 'Frequently Asked Questions',
   subtitle: 'Find answers to common questions about our restaurant',
-  faqCardBgColor: '#ffffff',
-  questionTextColor: '#1f2937',
-  answerTextColor: '#6b7280',
+  faqCardBgColor: 'transparent',
   cardBorderRadius: '18px',
-  cardShadow: 'sm',
+  cardShadow: 'none',
   accentColor: '#8b5cf6',
-  hoverColor: '#f8fafc',
+  hoverColor: 'transparent',
   enableScrollAnimation: false,
   isEnabled: true,
 };
@@ -152,35 +145,7 @@ function normalizeFaqs(faqs: unknown): FAQ[] {
 function normalizeShadowLevel(value: string | undefined): FAQShadowLevel {
   return value === 'none' || value === 'sm' || value === 'md' || value === 'lg'
     ? value
-    : 'sm';
-}
-
-function getCardShadow(level: FAQShadowLevel, color: string) {
-  switch (level) {
-    case 'none':
-      return 'none';
-    case 'md':
-      return `0 18px 44px ${withAlpha(color, 0.14)}`;
-    case 'lg':
-      return `0 28px 68px ${withAlpha(color, 0.18)}`;
-    case 'sm':
-    default:
-      return `0 12px 32px ${withAlpha(color, 0.1)}`;
-  }
-}
-
-function getHoverShadow(level: FAQShadowLevel, color: string) {
-  switch (level) {
-    case 'none':
-      return `0 10px 24px ${withAlpha(color, 0.08)}`;
-    case 'sm':
-      return `0 18px 40px ${withAlpha(color, 0.13)}`;
-    case 'md':
-      return `0 26px 54px ${withAlpha(color, 0.16)}`;
-    case 'lg':
-    default:
-      return `0 34px 72px ${withAlpha(color, 0.2)}`;
-  }
+    : 'none';
 }
 
 function normalizeConfig(
@@ -198,9 +163,9 @@ function normalizeConfig(
     ...DEFAULT_CONFIG,
     ...source,
     layout:
-      source.layout === 'grid'
-      || source.layout === 'list'
-      || source.layout === 'accordion'
+      source.layout === 'grid' ||
+      source.layout === 'list' ||
+      source.layout === 'accordion'
         ? source.layout
         : DEFAULT_CONFIG.layout,
     bgColor:
@@ -224,11 +189,11 @@ function normalizeConfig(
     questionTextColor:
       typeof source.questionTextColor === 'string'
         ? source.questionTextColor
-        : DEFAULT_CONFIG.questionTextColor,
+        : undefined,
     answerTextColor:
       typeof source.answerTextColor === 'string'
         ? source.answerTextColor
-        : DEFAULT_CONFIG.answerTextColor,
+        : undefined,
     cardBorderRadius:
       typeof source.cardBorderRadius === 'string'
         ? source.cardBorderRadius
@@ -343,7 +308,11 @@ export default function DynamicFAQ({
       : `/api/faq-config?restaurant_id=${restaurantId}`;
   }, [restaurantId, pageId, configData]);
 
-  const { config: fetchedConfig, loading, error } = useFAQConfig({
+  const {
+    config: fetchedConfig,
+    loading,
+    error,
+  } = useFAQConfig({
     apiEndpoint,
     overrideConfig: configData,
   });
@@ -358,9 +327,9 @@ export default function DynamicFAQ({
 
   const resolvedConfig = useMemo(() => {
     const source =
-      normalizeConfig(fetchedConfig)
-      || normalizeConfig(fallbackConfig)
-      || (showPlaceholderWhenEmpty || previewMode ? DEFAULT_CONFIG : null);
+      normalizeConfig(fetchedConfig) ||
+      normalizeConfig(fallbackConfig) ||
+      (showPlaceholderWhenEmpty || previewMode ? DEFAULT_CONFIG : null);
 
     return source;
   }, [fallbackConfig, fetchedConfig, previewMode, showPlaceholderWhenEmpty]);
@@ -389,7 +358,10 @@ export default function DynamicFAQ({
       return;
     }
 
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    ) {
       return;
     }
 
@@ -482,19 +454,18 @@ export default function DynamicFAQ({
   }, [displayFaqs, hasResolvedConfig, hasScrollAnimation, previewMode]);
 
   if (loading && showLoading && !resolvedConfig) {
+    const sharedSpacing = resolveSharedSectionSpacing(
+      previewViewport === 'mobile' ? 'mobile' : 'desktop',
+    );
     return (
       <section
         style={{
-          padding: '80px 2rem',
+          padding: sharedSpacing.sectionPadding,
           backgroundColor: '#f9fafb',
           textAlign: 'center',
         }}
       >
-        <div
-          style={{ maxWidth: '800px', margin: '0 auto', color: '#6b7280' }}
-        >
-          Loading FAQ...
-        </div>
+        <div style={{ color: '#6b7280' }}>Loading FAQ...</div>
       </section>
     );
   }
@@ -517,10 +488,7 @@ export default function DynamicFAQ({
     faqs: displayFaqs,
   };
 
-  const { resolved } = getSectionTypographyStyles(
-    mergedConfig,
-    globalStyles,
-  );
+  const { resolved } = getSectionTypographyStyles(mergedConfig, globalStyles);
   const titleStyle = withMobileFontSizeFallback(
     buildResponsiveTypographyStyle(
       isMobileViewport,
@@ -608,62 +576,54 @@ export default function DynamicFAQ({
 
   const globalBackground = globalStyles?.backgroundColor;
   const globalText = globalStyles?.textColor;
-  const globalAccent =
-    globalStyles?.accentColor || globalStyles?.primaryColor;
-  const globalCard = globalStyles?.secondaryColor || globalBackground;
-  const accentColor =
-    globalAccent || mergedConfig.accentColor || DEFAULT_CONFIG.accentColor!;
-  const textColor =
-    globalText || mergedConfig.textColor || DEFAULT_CONFIG.textColor;
-  const backgroundColor =
-    globalBackground || mergedConfig.bgColor || DEFAULT_CONFIG.bgColor;
-  const cardBackground =
-    globalCard || mergedConfig.faqCardBgColor || DEFAULT_CONFIG.faqCardBgColor;
-  const hoverColor =
-    globalCard || mergedConfig.hoverColor || DEFAULT_CONFIG.hoverColor;
-  const shadowLevel = normalizeShadowLevel(
-    typeof mergedConfig.cardShadow === 'string'
-      ? mergedConfig.cardShadow
-      : DEFAULT_CONFIG.cardShadow,
-  );
+  const globalAccent = globalStyles?.accentColor || globalStyles?.primaryColor;
+  const useCustomStyles = mergedConfig.is_custom === true;
+  const accentColor = useCustomStyles
+    ? mergedConfig.accentColor || globalAccent || DEFAULT_CONFIG.accentColor!
+    : globalAccent || mergedConfig.accentColor || DEFAULT_CONFIG.accentColor!;
+  const textColor = useCustomStyles
+    ? mergedConfig.textColor || globalText || DEFAULT_CONFIG.textColor
+    : globalText || mergedConfig.textColor || DEFAULT_CONFIG.textColor;
+  const backgroundColor = useCustomStyles
+    ? mergedConfig.bgColor || globalBackground || DEFAULT_CONFIG.bgColor
+    : globalBackground || mergedConfig.bgColor || DEFAULT_CONFIG.bgColor;
   const questionStyle: CSSProperties = {
     ...subtitleStyle,
     color:
-      globalStyles?.subheading?.color
-      || mergedConfig.questionTextColor
-      || subtitleStyle.color,
+      (useCustomStyles ? mergedConfig.questionTextColor : undefined) ||
+      subtitleStyle.color,
   };
   const answerStyle: CSSProperties = {
     ...bodyStyle,
     color:
-      globalStyles?.paragraph?.color
-      || mergedConfig.answerTextColor
-      || bodyStyle.color,
+      (useCustomStyles ? mergedConfig.answerTextColor : undefined) ||
+      bodyStyle.color,
   };
   const sectionTheme = {
     backgroundColor,
     color: textColor,
     '--faq-bg': backgroundColor,
-    '--faq-shell-bg': withAlpha(textColor, previewMode ? 0.02 : 0.018),
+    '--faq-shell-bg': 'transparent',
     '--faq-shell-border': withAlpha(textColor, 0.06),
-    '--faq-card-bg': cardBackground,
-    '--faq-card-hover': hoverColor,
-    '--faq-question':
-      questionStyle.color || DEFAULT_CONFIG.questionTextColor,
-    '--faq-answer': answerStyle.color || DEFAULT_CONFIG.answerTextColor,
+    '--faq-card-bg': 'transparent',
+    '--faq-card-hover': 'transparent',
+    '--faq-question': questionStyle.color || subtitleStyle.color || textColor,
+    '--faq-answer': answerStyle.color || bodyStyle.color || textColor,
     '--faq-border': withAlpha(textColor, previewMode ? 0.12 : 0.1),
     '--faq-divider': withAlpha(textColor, 0.08),
     '--faq-accent': accentColor,
     '--faq-accent-soft': withAlpha(accentColor, 0.12),
     '--faq-accent-border': withAlpha(accentColor, 0.22),
     '--faq-muted': withAlpha(textColor, 0.58),
-    '--faq-shadow': getCardShadow(shadowLevel, textColor),
-    '--faq-shadow-hover': getHoverShadow(shadowLevel, textColor),
-    '--faq-radius': mergedConfig.cardBorderRadius || DEFAULT_CONFIG.cardBorderRadius,
+    '--faq-shadow': 'none',
+    '--faq-shadow-hover': 'none',
+    '--faq-radius':
+      mergedConfig.cardBorderRadius || DEFAULT_CONFIG.cardBorderRadius,
   } as CSSProperties;
 
   const emptyPreview =
-    resolvedConfig.faqs.length === 0 && (showPlaceholderWhenEmpty || previewMode);
+    resolvedConfig.faqs.length === 0 &&
+    (showPlaceholderWhenEmpty || previewMode);
 
   const getMotionClassName = (faqId: string) =>
     mergedConfig.enableScrollAnimation
@@ -755,7 +715,7 @@ export default function DynamicFAQ({
                 <span className={styles.itemBadge}>{getItemLabel(index)}</span>
                 <div className={styles.accordionHeading}>
                   {!emptyPreview ? (
-                    <span className={styles.itemKicker}>Tap to expand</span>
+                    <span className={styles.itemKicker}></span>
                   ) : null}
                   <h3 className={styles.question} style={questionStyle}>
                     {faq.question || 'Question'}

@@ -38,6 +38,7 @@ import {
   withMenuLayoutDefaults,
   type MenuLayoutControlDefinition,
 } from '@/lib/menu-layout-schema';
+import { applyMenuSharedSpacingDefaults } from '@/lib/menu-spacing';
 import {
   DEFAULT_MENU_CONFIG,
   type MenuButton,
@@ -221,13 +222,15 @@ function normalizeMenuImageHeights(config: MenuConfig): MenuConfig {
 function normalizeMenuConfig(config: Partial<MenuConfig>): MenuConfig {
   return ensureLayoutItems(
     hydrateFeaturedItems(
-      normalizeMenuImageHeights(
-        withMenuLayoutDefaults({
-          ...normalizeMenuButtons({
-            ...DEFAULT_MENU_CONFIG,
-            ...config,
-          } as MenuConfig),
-        }),
+      applyMenuSharedSpacingDefaults(
+        normalizeMenuImageHeights(
+          withMenuLayoutDefaults({
+            ...normalizeMenuButtons({
+              ...DEFAULT_MENU_CONFIG,
+              ...config,
+            } as MenuConfig),
+          }),
+        ),
       ),
     ),
   );
@@ -1593,7 +1596,7 @@ export default function MenuSettingsFormEnhanced({
             value={formConfig.title || ''}
             onChange={(event) => updateConfig({ title: event.target.value })}
             className={textInputClassName()}
-            placeholder="Our Menu"
+            placeholder="Optional section title"
           />
         </FieldShell>
         <FieldShell label="Subtitle">
@@ -1742,11 +1745,6 @@ export default function MenuSettingsFormEnhanced({
             onChange={(checked) => updateConfig({ showImages: checked })}
           />
           <ToggleRow
-            title="Show Prices"
-            checked={Boolean(formConfig.showPrices)}
-            onChange={(checked) => updateConfig({ showPrices: checked })}
-          />
-          <ToggleRow
             title="Show Descriptions"
             checked={Boolean(formConfig.showDescriptions)}
             onChange={(checked) => updateConfig({ showDescriptions: checked })}
@@ -1783,12 +1781,32 @@ export default function MenuSettingsFormEnhanced({
           />
         </svg>
       }
-      title="Typography and Responsive"
-      description="Keep menu typography aligned with the global theme by default, then opt into section-specific overrides only when needed."
+      title="Typography and Responsive Structure"
+      description="Use the same shared typography and responsive controls as Hero and Custom Sections, with global styles on by default."
     >
       <div className="space-y-5">
+        <ToggleRow
+          title="Use Global Styles"
+          description="When enabled, menu title, subtitle, and body text inherit from the global theme."
+          checked={formConfig.is_custom !== true}
+          onChange={(checked) => handleCustomTypographyToggle(!checked)}
+        />
+
+        {formConfig.is_custom !== true ? (
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-800">
+            Typography is inherited from the global theme, matching the Hero
+            and Custom Section editors. Disable the toggle above to apply
+            menu-specific typography overrides.
+          </div>
+        ) : null}
+
         {formConfig.is_custom ? (
-          <div className="rounded-[26px] border border-slate-200 bg-slate-50/70 p-5">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="mb-4 rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-xs text-violet-800">
+              Custom typography starts from the current global styles, then
+              lets this Menu section override title, subtitle, and body text
+              just like Hero and Custom Sections.
+            </div>
             <SectionTypographyControls
               value={formConfig}
               onChange={updateConfig}
@@ -1798,28 +1816,22 @@ export default function MenuSettingsFormEnhanced({
           </div>
         ) : null}
 
-        <div className="rounded-[26px] border border-slate-200 bg-slate-50/70 p-5">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-slate-900">
+              Responsive Structure
+            </h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Control alignment, spacing, width, and surface treatment with the
+              same shared appearance controls used across section editors.
+            </p>
+          </div>
           <SectionAppearanceControls
             value={formConfig}
             onChange={updateConfig}
             viewport={editorViewport}
           />
         </div>
-
-        <ToggleRow
-          title="Use Global Styles"
-          description="When enabled, title, subtitle, and paragraph typography inherit from the global theme."
-          checked={formConfig.is_custom !== true}
-          onChange={(checked) => handleCustomTypographyToggle(!checked)}
-        />
-
-        {formConfig.is_custom !== true ? (
-          <div className="rounded-[26px] border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-800">
-            Typography is inherited from the global theme. Disable the toggle
-            above to edit section-specific title, subtitle, and paragraph
-            typography for this menu.
-          </div>
-        ) : null}
       </div>
     </SettingsCard>
   );

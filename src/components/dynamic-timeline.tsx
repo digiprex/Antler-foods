@@ -9,6 +9,10 @@ import {
   getSectionTypographyStyles,
   type SectionViewport,
 } from '@/lib/section-style';
+import {
+  removeSectionContentWidth,
+  resolveSharedSectionSpacing,
+} from '@/lib/shared-section-spacing';
 import type { TimelineConfig, TimelineItem, TimelineLayout } from '@/types/timeline.types';
 
 interface DynamicTimelineProps {
@@ -202,6 +206,8 @@ export default function DynamicTimeline({
   );
   const { sectionStyle, contentStyle, surfaceStyle, layoutConfig } =
     getSectionContainerStyles(displayConfig, viewport);
+  const sharedSpacing = resolveSharedSectionSpacing(viewport);
+  const fullWidthContentStyle = removeSectionContentWidth(contentStyle);
   const { ref, style: revealStyle } = useSectionReveal({
     enabled: displayConfig?.enableScrollReveal,
     animation: displayConfig?.scrollRevealAnimation,
@@ -280,10 +286,15 @@ export default function DynamicTimeline({
     return (
       <section
         ref={ref}
-        style={{ ...sectionStyle, ...revealStyle }}
+        style={{
+          ...sectionStyle,
+          ...revealStyle,
+          paddingBlock: sharedSpacing.sectionPadding,
+          paddingInline: sharedSpacing.sectionPadding,
+        }}
         className="bg-[linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)]"
       >
-        <div style={contentStyle}>
+        <div style={fullWidthContentStyle}>
           <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/90 px-6 py-12 text-center shadow-inner">
             <p className="text-sm font-semibold text-slate-700">Timeline is currently disabled</p>
             <p className="mt-2 text-sm text-slate-500">
@@ -301,18 +312,25 @@ export default function DynamicTimeline({
       style={{
         ...sectionStyle,
         ...revealStyle,
+        paddingBlock: sharedSpacing.sectionPadding,
+        paddingInline: sharedSpacing.sectionPadding,
         background: `radial-gradient(circle at top left, ${accentColor}18, transparent 34%), ${backgroundColor}`,
       }}
     >
-      <div style={contentStyle}>
-        <div className="mb-10" style={{ textAlign: layoutConfig.sectionTextAlign }}>
+      <div style={fullWidthContentStyle}>
+        <div
+          style={{
+            textAlign: layoutConfig.sectionTextAlign,
+            marginBottom: sharedSpacing.sectionGap,
+          }}
+        >
           {displayConfig.title ? (
             <h2 className="text-balance" style={{ ...titleStyle, color: textColor }}>
               {displayConfig.title}
             </h2>
           ) : null}
           {displayConfig.subtitle ? (
-            <p className="mt-3 max-w-3xl" style={{ ...subtitleStyle, color: textColor, opacity: 0.74 }}>
+            <p className="mt-3" style={{ ...subtitleStyle, color: textColor, opacity: 0.74 }}>
               {displayConfig.subtitle}
             </p>
           ) : null}
@@ -381,7 +399,7 @@ function StackedTimeline({
   const isMobile = viewport === 'mobile';
 
   return (
-    <div className="relative mx-auto max-w-6xl">
+    <div className="relative">
       {!isMobile ? (
         <div
           className="absolute bottom-0 left-1/2 top-0 -translate-x-1/2"
@@ -417,7 +435,7 @@ function StackedTimeline({
                 : 'justify-center';
           const widthClass =
             !isMobile && desktopPosition === 'center'
-              ? 'w-full max-w-2xl'
+              ? 'w-full'
               : 'w-full';
 
           return (

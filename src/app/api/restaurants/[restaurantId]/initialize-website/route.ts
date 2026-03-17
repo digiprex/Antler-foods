@@ -231,18 +231,27 @@ async function createSystemPage(
   if (!data.insert_web_pages_one) {
     throw new Error(`Failed to create page: ${name}`);
   }
+
+  console.log(`✅ Created page: ${name} (/${urlSlug}) with show_on_navbar: true`);
 }
 
 async function ensureDefaultSystemPagesForRestaurant(restaurantId: string, restaurantName: string) {
   const existingSlugs = new Set(await getExistingPages(restaurantId));
+  
+  console.log(`📋 Existing pages for restaurant ${restaurantId}:`, Array.from(existingSlugs));
+  console.log(`📋 Default pages to create:`, DEFAULT_SYSTEM_PAGES.map(p => p.urlSlug));
 
   for (const page of DEFAULT_SYSTEM_PAGES) {
     if (existingSlugs.has(page.urlSlug)) {
+      console.log(`⚠️ Page ${page.urlSlug} already exists, skipping creation`);
       continue;
     }
 
+    console.log(`🔨 Creating page: ${page.name} (/${page.urlSlug})`);
     await createSystemPage(restaurantId, page.urlSlug, page.name, restaurantName);
   }
+  
+  console.log(`✅ Finished ensuring default system pages for restaurant ${restaurantId}`);
 }
 
 async function getHomePageId(restaurantId: string): Promise<string | null> {
@@ -904,6 +913,10 @@ async function createNavbarFromTheme(restaurantId: string, themeId: string) {
     label: page.name,
     href: `/${page.url_slug}`,
   }));
+
+  console.log(`✅ Found ${pagesData.web_pages?.length || 0} pages for navbar menu items:`,
+    pagesData.web_pages?.map((p: any) => `${p.name} (/${p.url_slug})`) || []
+  );
 
   // Build config based on global styles with navbar section overrides
   // Priority: globalStyles > navbarSection.style > defaults
@@ -1794,25 +1807,41 @@ export async function POST(
   { params }: { params: { restaurantId: string } }
 ) {
   try {
+    console.log('🚀 Initialize Website Route Called');
+    console.log('📍 Route: /api/restaurants/[restaurantId]/initialize-website');
+    
     const restaurantId = params.restaurantId;
     const body = await request.json();
     const { restaurantName, templateId } = body;
 
+    console.log('📋 Request Parameters:', {
+      restaurantId,
+      restaurantName,
+      templateId,
+      timestamp: new Date().toISOString()
+    });
+
     if (!restaurantId || !restaurantName) {
+      console.error('❌ Missing required parameters:', { restaurantId, restaurantName });
       return NextResponse.json(
         { error: 'Restaurant ID and name are required' },
         { status: 400 }
       );
     }
 
+    console.log('✅ Starting website initialization process...');
+
     // Generate staging domain (Vercel subdomain)
+    console.log('🌐 Step 1: Generating staging domain...');
     const defaultStagingDomain = buildDefaultStagingDomain(restaurantName);
+    console.log(`✅ Generated staging domain: ${defaultStagingDomain}`);
 
     // Add domain to Vercel project via API
+    console.log('🔗 Step 2: Adding domain to Vercel...');
     const vercelResult = await addVercelDomain(defaultStagingDomain);
 
     if (!vercelResult.success) {
-      console.error('Failed to add domain to Vercel:', vercelResult.error);
+      console.error('❌ Failed to add domain to Vercel:', vercelResult.error);
       return NextResponse.json(
         {
           error: `Failed to create staging domain: ${vercelResult.error}`,
@@ -1821,33 +1850,57 @@ export async function POST(
         { status: 500 }
       );
     }
+    console.log('✅ Domain added to Vercel successfully');
 
     // Update restaurant with staging domain
+    console.log('🏪 Step 3: Updating restaurant data...');
     await updateRestaurantData(restaurantId, defaultStagingDomain);
+    console.log('✅ Restaurant data updated');
 
     // Create default system pages
+    console.log('📄 Step 4: Creating default system pages...');
     await ensureDefaultSystemPagesForRestaurant(restaurantId, restaurantName);
+    console.log('✅ Default system pages process completed');
 
     // Create theme sections if templateId is provided
     if (templateId) {
+      console.log(`🎨 Step 5: Creating theme sections with templateId: ${templateId}`);
+      
       // Create navbar and footer from theme (global templates)
+      console.log('🧭 Step 5a: Creating navbar from theme...');
       await createNavbarFromTheme(restaurantId, templateId);
+      console.log('✅ Navbar creation completed');
+      
+      console.log('🦶 Step 5b: Creating footer from theme...');
       await createFooterFromTheme(restaurantId, templateId);
+      console.log('✅ Footer creation completed');
 
       // Create sections for all pages (including home, about, contact, etc.) from theme's other_page_sections
+      console.log('📑 Step 5c: Creating other page sections from theme...');
       await createOtherPageSectionsFromTheme(restaurantId, templateId);
+      console.log('✅ Other page sections creation completed');
 
       // Fallback: If home page sections weren't created from other_page_sections, use theme.sections for home page
+      console.log('🏠 Step 5d: Checking home page sections fallback...');
       const homePageId = await getHomePageId(restaurantId);
       if (homePageId) {
         // Check if home page already has sections from other_page_sections
         const hasHomeSections = await checkIfPageHasSections(restaurantId, homePageId);
         if (!hasHomeSections) {
-          console.log('No home page sections found in other_page_sections, falling back to theme.sections');
+          console.log('⚠️ No home page sections found in other_page_sections, falling back to theme.sections');
           await createThemeSections(restaurantId, templateId, homePageId);
+          console.log('✅ Home page fallback sections created');
+        } else {
+          console.log('✅ Home page already has sections from other_page_sections');
         }
+      } else {
+        console.log('⚠️ Home page not found for fallback sections');
       }
+    } else {
+      console.log('⚠️ No templateId provided, skipping theme sections creation');
     }
+
+    console.log('🎉 Website initialization completed successfully');
 
     return NextResponse.json({
       success: true,

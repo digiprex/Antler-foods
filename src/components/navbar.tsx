@@ -92,6 +92,7 @@ export default function Navbar({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
+
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
@@ -106,15 +107,6 @@ export default function Navbar({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Determine what to display for the brand
-  useEffect(() => {
-    console.log('[Navbar] 🎨 Logo props:', {
-      logoUrl,
-      hasLogoUrl: !!logoUrl,
-      restaurantName,
-      logoSize,
-    });
-  }, [logoUrl, restaurantName, logoSize]);
 
   const brandDisplay = logoUrl ? (
     <img

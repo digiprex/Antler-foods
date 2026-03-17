@@ -84,12 +84,6 @@ export default function DynamicNavbar({
         if (navbarData.success && navbarData.data) {
           // Merge with defaults to ensure all required fields are present
           const mergedConfig = { ...DEFAULT_NAVBAR_CONFIG, ...navbarData.data };
-          console.log('[DynamicNavbar] 🎨 Navbar config loaded:', {
-            restaurantName: mergedConfig.restaurantName,
-            logoUrl: mergedConfig.logoUrl,
-            layout: mergedConfig.layout,
-            position: mergedConfig.position,
-          });
           setConfig(mergedConfig);
         } else {
           throw new Error(navbarData.error || 'Invalid API response structure');
@@ -145,6 +139,9 @@ export default function DynamicNavbar({
     return null;
   }
 
+  // Map layout names to ensure compatibility
+  const mappedLayout = config.layout?.startsWith('navbar-') ? 'bordered-centered' : config.layout;
+
   return (
     <Navbar
       logoUrl={config.logoUrl}
@@ -154,7 +151,7 @@ export default function DynamicNavbar({
       rightNavItems={config.rightNavItems}
       ctaButton={config.ctaButton}
       showCtaButton={config.showCtaButton}
-      layout={config.layout}
+      layout={mappedLayout}
       position={config.position}
       zIndex={config.zIndex}
       bgColor={config.bgColor}

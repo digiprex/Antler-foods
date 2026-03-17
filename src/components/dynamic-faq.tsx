@@ -4,7 +4,11 @@ import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { useFAQConfig } from '@/hooks/use-faq-config';
 import type { SectionStyleConfig } from '@/types/section-style.types';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
-import { getSectionTypographyStyles } from '@/lib/section-style';
+import {
+  getButtonInlineStyle,
+  getSectionTypographyStyles,
+  getSelectedGlobalButtonStyle,
+} from '@/lib/section-style';
 import { resolveSharedSectionSpacing } from '@/lib/shared-section-spacing';
 import styles from './dynamic-faq.module.css';
 
@@ -576,11 +580,20 @@ export default function DynamicFAQ({
 
   const globalBackground = globalStyles?.backgroundColor;
   const globalText = globalStyles?.textColor;
-  const globalAccent = globalStyles?.accentColor || globalStyles?.primaryColor;
+  const selectedButtonStyle = getButtonInlineStyle(
+    getSelectedGlobalButtonStyle(mergedConfig, globalStyles),
+  );
+  const globalButtonColor =
+    selectedButtonStyle.backgroundColor ||
+    globalStyles?.primaryButton?.backgroundColor;
+  const globalAccent =
+    globalButtonColor || globalStyles?.accentColor || globalStyles?.primaryColor;
   const useCustomStyles = mergedConfig.is_custom === true;
   const accentColor = useCustomStyles
     ? mergedConfig.accentColor || globalAccent || DEFAULT_CONFIG.accentColor!
     : globalAccent || mergedConfig.accentColor || DEFAULT_CONFIG.accentColor!;
+  const buttonAccentBackground = globalButtonColor || accentColor;
+  const buttonAccentText = selectedButtonStyle.color || '#ffffff';
   const textColor = useCustomStyles
     ? mergedConfig.textColor || globalText || DEFAULT_CONFIG.textColor
     : globalText || mergedConfig.textColor || DEFAULT_CONFIG.textColor;
@@ -600,20 +613,22 @@ export default function DynamicFAQ({
       bodyStyle.color,
   };
   const sectionTheme = {
-    backgroundColor,
+    backgroundColor: 'transparent',
     color: textColor,
-    '--faq-bg': backgroundColor,
+    '--faq-bg': 'transparent',
     '--faq-shell-bg': 'transparent',
-    '--faq-shell-border': withAlpha(textColor, 0.06),
+    '--faq-shell-border': 'transparent',
     '--faq-card-bg': 'transparent',
     '--faq-card-hover': 'transparent',
     '--faq-question': questionStyle.color || subtitleStyle.color || textColor,
     '--faq-answer': answerStyle.color || bodyStyle.color || textColor,
-    '--faq-border': withAlpha(textColor, previewMode ? 0.12 : 0.1),
-    '--faq-divider': withAlpha(textColor, 0.08),
+    '--faq-border': 'transparent',
+    '--faq-divider': 'transparent',
     '--faq-accent': accentColor,
     '--faq-accent-soft': withAlpha(accentColor, 0.12),
-    '--faq-accent-border': withAlpha(accentColor, 0.22),
+    '--faq-accent-border': 'transparent',
+    '--faq-button-bg': buttonAccentBackground,
+    '--faq-button-text': buttonAccentText,
     '--faq-muted': withAlpha(textColor, 0.58),
     '--faq-shadow': 'none',
     '--faq-shadow-hover': 'none',

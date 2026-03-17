@@ -337,8 +337,8 @@ export const DEFAULT_MENU_CONFIG: MenuConfig = {
       mobileGap: 16,
       imageAspectRatio: 'landscape',
       mobileImageAspectRatio: 'landscape',
-      overlayTextPosition: 'bottom-left',
-      mobileOverlayTextPosition: 'bottom-left',
+      overlayTextPosition: 'center',
+      mobileOverlayTextPosition: 'center',
     },
     list: {
       cardCount: 2,

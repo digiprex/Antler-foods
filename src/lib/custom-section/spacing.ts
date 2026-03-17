@@ -6,7 +6,8 @@ import type {
 export type CustomSectionSpacingTier = 'desktop' | 'tablet' | 'mobile';
 
 type CustomSectionSpacingScale = {
-  sectionPadding: string;
+  sectionPaddingY: string;
+  sectionPaddingX: string;
   internalGap: string;
   surfacePadding: string;
   surfacePaddingLarge: string;
@@ -20,7 +21,8 @@ export const CUSTOM_SECTION_SPACING_SCALE: Record<
   CustomSectionSpacingScale
 > = {
   desktop: {
-    sectionPadding: '5rem',
+    sectionPaddingY: '5rem',
+    sectionPaddingX: '5rem',
     internalGap: '5rem',
     surfacePadding: '2rem',
     surfacePaddingLarge: '2.5rem',
@@ -29,7 +31,8 @@ export const CUSTOM_SECTION_SPACING_SCALE: Record<
     overlapOffset: '4.5rem',
   },
   tablet: {
-    sectionPadding: '3rem',
+    sectionPaddingY: '3rem',
+    sectionPaddingX: '3rem',
     internalGap: '3rem',
     surfacePadding: '1.75rem',
     surfacePaddingLarge: '2rem',
@@ -38,7 +41,8 @@ export const CUSTOM_SECTION_SPACING_SCALE: Record<
     overlapOffset: '3rem',
   },
   mobile: {
-    sectionPadding: '2rem',
+    sectionPaddingY: '2rem',
+    sectionPaddingX: '1rem',
     internalGap: '1rem',
     surfacePadding: '1.5rem',
     surfacePaddingLarge: '1.5rem',
@@ -49,17 +53,17 @@ export const CUSTOM_SECTION_SPACING_SCALE: Record<
 };
 
 export const CUSTOM_SECTION_SHARED_SPACING_DEFAULTS = {
-  sectionPaddingY: CUSTOM_SECTION_SPACING_SCALE.desktop.sectionPadding,
-  sectionPaddingX: CUSTOM_SECTION_SPACING_SCALE.desktop.sectionPadding,
-  mobileSectionPaddingY: CUSTOM_SECTION_SPACING_SCALE.mobile.sectionPadding,
-  mobileSectionPaddingX: CUSTOM_SECTION_SPACING_SCALE.mobile.sectionPadding,
+  sectionPaddingY: CUSTOM_SECTION_SPACING_SCALE.desktop.sectionPaddingY,
+  sectionPaddingX: CUSTOM_SECTION_SPACING_SCALE.desktop.sectionPaddingX,
+  mobileSectionPaddingY: CUSTOM_SECTION_SPACING_SCALE.mobile.sectionPaddingY,
+  mobileSectionPaddingX: CUSTOM_SECTION_SPACING_SCALE.mobile.sectionPaddingX,
   contentGap: CUSTOM_SECTION_SPACING_SCALE.desktop.internalGap,
   mobileContentGap: CUSTOM_SECTION_SPACING_SCALE.mobile.internalGap,
 } as const;
 
 const LEGACY_DESKTOP_SECTION_PADDING_Y = new Set(['4rem']);
 const LEGACY_DESKTOP_SECTION_PADDING_X = new Set(['1.5rem']);
-const LEGACY_MOBILE_SECTION_PADDING = new Set(['1.5rem', '4rem', '5rem']);
+const LEGACY_MOBILE_SECTION_PADDING = new Set(['1.5rem', '2rem', '4rem', '5rem']);
 const LEGACY_DESKTOP_INTERNAL_GAP = new Set(['2rem']);
 const LEGACY_MOBILE_INTERNAL_GAP = new Set(['1.25rem', '2rem', '5rem']);
 
@@ -177,13 +181,13 @@ export function resolveCustomSectionSpacing({
         ? resolveResponsiveValue(
             config.mobileSectionPaddingY,
             CUSTOM_SECTION_SHARED_SPACING_DEFAULTS.mobileSectionPaddingY,
-            CUSTOM_SECTION_SPACING_SCALE.mobile.sectionPadding,
+            CUSTOM_SECTION_SPACING_SCALE.mobile.sectionPaddingY,
             LEGACY_MOBILE_SECTION_PADDING,
           )
         : resolveResponsiveValue(
             config.sectionPaddingY,
             CUSTOM_SECTION_SHARED_SPACING_DEFAULTS.sectionPaddingY,
-            scale.sectionPadding,
+            scale.sectionPaddingY,
             LEGACY_DESKTOP_SECTION_PADDING_Y,
           ),
     sectionPaddingX:
@@ -191,13 +195,13 @@ export function resolveCustomSectionSpacing({
         ? resolveResponsiveValue(
             config.mobileSectionPaddingX,
             CUSTOM_SECTION_SHARED_SPACING_DEFAULTS.mobileSectionPaddingX,
-            CUSTOM_SECTION_SPACING_SCALE.mobile.sectionPadding,
+            CUSTOM_SECTION_SPACING_SCALE.mobile.sectionPaddingX,
             LEGACY_MOBILE_SECTION_PADDING,
           )
         : resolveResponsiveValue(
             config.sectionPaddingX,
             CUSTOM_SECTION_SHARED_SPACING_DEFAULTS.sectionPaddingX,
-            scale.sectionPadding,
+            scale.sectionPaddingX,
             LEGACY_DESKTOP_SECTION_PADDING_X,
           ),
     internalGap:

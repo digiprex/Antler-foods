@@ -13,7 +13,6 @@ import {
   type SectionViewport,
 } from '@/lib/section-style';
 import {
-  removeSectionContentWidth,
   resolveSharedSectionSpacing,
 } from '@/lib/shared-section-spacing';
 import type { SectionStyleConfig } from '@/types/section-style.types';
@@ -409,7 +408,20 @@ export default function DynamicForm({
   const { sectionStyle, contentStyle, surfaceStyle, layoutConfig } =
     getSectionContainerStyles(displayConfig, viewport);
   const sharedSpacing = resolveSharedSectionSpacing(viewport);
-  const fullWidthContentStyle = removeSectionContentWidth(contentStyle);
+  const constrainedContentStyle: CSSProperties = useMemo(() => {
+    if (
+      layout === 'centered' ||
+      layout === 'image-top' ||
+      layout === 'background-image'
+    ) {
+      return {
+        ...contentStyle,
+        maxWidth: '960px',
+      };
+    }
+
+    return contentStyle;
+  }, [contentStyle, layout]);
   const { ref, style: revealStyle } = useSectionReveal({
     enabled: displayConfig?.enableScrollReveal,
     animation: displayConfig?.scrollRevealAnimation,
@@ -747,7 +759,7 @@ export default function DynamicForm({
         background: `radial-gradient(circle at top left, ${accentColor}16, transparent 34%), ${backgroundColor}`,
       }}
     >
-      <div style={fullWidthContentStyle}>
+      <div style={constrainedContentStyle}>
         {isPreview && isDisabled ? (
           <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/90 px-6 py-12 text-center shadow-inner">
             <p className="text-sm font-semibold text-slate-700">Form display is currently disabled</p>

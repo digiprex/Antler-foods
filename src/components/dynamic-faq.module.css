@@ -19,7 +19,7 @@
 }
 
 .frame {
-  border: 1px solid var(--faq-shell-border);
+  border: none;
   border-radius: clamp(1.5rem, 4vw, 2rem);
   background: transparent;
   padding: clamp(1.25rem, 3vw, 2.25rem);
@@ -70,7 +70,7 @@
 
 .card {
   position: relative;
-  border: 1px solid var(--faq-border);
+  border: none;
   border-radius: var(--faq-radius);
   background: transparent;
   box-shadow: none;
@@ -131,10 +131,10 @@
   min-width: 2.3rem;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--faq-accent-border);
+  border: none;
   border-radius: 999px;
-  background: var(--faq-accent-soft);
-  color: var(--faq-accent);
+  background: var(--faq-button-bg);
+  color: var(--faq-button-text);
   font-size: 0.76rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -209,10 +209,10 @@
   width: 2.4rem;
   height: 2.4rem;
   flex-shrink: 0;
-  border: 1px solid var(--faq-border);
+  border: none;
   border-radius: 999px;
-  color: var(--faq-accent);
-  background: var(--faq-accent-soft);
+  color: var(--faq-button-text);
+  background: var(--faq-button-bg);
   transition:
     background-color 180ms ease,
     border-color 180ms ease,
@@ -247,7 +247,7 @@
 
 .accordionBodyInner {
   overflow: hidden;
-  border-top: 1px solid var(--faq-divider);
+  border-top: none;
   padding: 0 1.25rem;
 }
 

@@ -6,18 +6,21 @@
 
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { DEFAULT_HERO_CONFIG, type HeroConfig } from '@/types/hero.types';
 import styles from './hero.module.scss';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
 import { getHeroLayoutMediaCapabilities } from '@/lib/hero-layout-media';
 import { getRenderableHeroButtons, mergeHeroConfig } from '@/lib/hero-config';
-import { getSectionTypographyStyles } from '@/lib/section-style';
+import { getButtonInlineStyle, getSectionTypographyStyles, mergeGlobalStyleConfig } from '@/lib/section-style';
+import type { ButtonStyle } from '@/types/global-style.types';
 
 interface HeroProps extends Partial<HeroConfig> {
   restaurant_id?: string;
   previewMode?: 'desktop' | 'mobile';
 }
+
+type HeroButtonVariant = NonNullable<HeroConfig['primaryButton']>['variant'];
 
 export default function Hero(props: HeroProps) {
   const { previewMode } = props;
@@ -134,7 +137,12 @@ export default function Hero(props: HeroProps) {
     apiEndpoint: globalStyleEndpoint,
     fetchOnMount: Boolean(restaurant_id),
   });
+  const mergedGlobalStyles = useMemo(
+    () => mergeGlobalStyleConfig(globalStyles),
+    [globalStyles],
+  );
   const { resolved: resolvedTypography } = getSectionTypographyStyles(resolvedConfig, globalStyles);
+  const useGlobalStyles = resolvedConfig.is_custom !== true;
   const buildResponsiveTypographyVars = (
     prefix: 'title' | 'subtitle' | 'body',
     desktop: {
@@ -403,6 +411,24 @@ export default function Hero(props: HeroProps) {
   const activeVideoUrl = mediaCapabilities.showBackgroundVideo ? videoUrl : undefined;
   const showVideoBackground = Boolean(activeVideoUrl) && !videoLoadFailed;
   const activeBackgroundImage = mediaCapabilities.showBackgroundImage ? backgroundImage : undefined;
+  const hasCustomBackgroundColor =
+    typeof bgColor === 'string' &&
+    bgColor.trim() !== '' &&
+    bgColor !== DEFAULT_HERO_CONFIG.bgColor;
+  const hasCustomTextColor =
+    typeof textColor === 'string' &&
+    textColor.trim() !== '' &&
+    textColor !== DEFAULT_HERO_CONFIG.textColor;
+  const resolvedBgColor =
+    useGlobalStyles && !hasCustomBackgroundColor
+      ? mergedGlobalStyles.backgroundColor || bgColor
+      : bgColor;
+  const resolvedTextColor =
+    useGlobalStyles && !hasCustomTextColor
+      ? activeBackgroundImage || showVideoBackground
+        ? '#ffffff'
+        : mergedGlobalStyles.textColor || textColor
+      : textColor;
   const resolvedPaddingTop =
     layout === 'minimal' && paddingTop === DEFAULT_HERO_CONFIG.paddingTop ? '5rem' : paddingTop;
   const resolvedPaddingBottom =
@@ -433,9 +459,9 @@ export default function Hero(props: HeroProps) {
       : null;
 
   const heroStyle: CSSProperties & Record<string, any> = {
-    '--hero-bg-color': bgColor,
+    '--hero-bg-color': resolvedBgColor,
     '--hero-mobile-bg-color': mobileBgColor,
-    '--hero-text-color': textColor,
+    '--hero-text-color': resolvedTextColor,
     '--hero-overlay-color': overlayColor,
     '--hero-overlay-opacity': overlayOpacity,
     '--hero-padding-top': resolvedPaddingTop,
@@ -470,6 +496,90 @@ export default function Hero(props: HeroProps) {
     setVideoLoadFailed(false);
   }, [activeVideoUrl]);
 
+  const resolveGlobalButtonStyle = (
+    variant: HeroButtonVariant,
+    fallbackVariant: 'primary' | 'secondary',
+  ): ButtonStyle | undefined => {
+    if (variant === 'secondary') {
+      return mergedGlobalStyles.secondaryButton;
+    }
+
+    if (variant === 'primary') {
+      return mergedGlobalStyles.primaryButton;
+    }
+
+    return fallbackVariant === 'secondary'
+      ? mergedGlobalStyles.secondaryButton
+      : mergedGlobalStyles.primaryButton;
+  };
+
+  const buildButtonStyle = (
+    button: HeroConfig['primaryButton'] | undefined,
+    fallbackVariant: 'primary' | 'secondary',
+  ) => {
+    const variant = button?.variant || fallbackVariant;
+    const globalStyle = resolveGlobalButtonStyle(variant, fallbackVariant);
+    const baseStyle = getButtonInlineStyle(globalStyle);
+    const accentColor =
+      button?.borderColor ||
+      button?.bgColor ||
+      globalStyle?.backgroundColor ||
+      globalStyle?.color ||
+      mergedGlobalStyles.accentColor ||
+      '#2563eb';
+
+    let backgroundColor = baseStyle.backgroundColor;
+    let color = baseStyle.color;
+    let border = baseStyle.border;
+
+    if (variant === 'outline') {
+      backgroundColor = 'transparent';
+      color = baseStyle.color || accentColor;
+      border =
+        globalStyle?.border && globalStyle.border !== 'none'
+          ? globalStyle.border
+          : `1px solid ${accentColor}`;
+    }
+
+    if (button?.bgColor) {
+      backgroundColor = button.bgColor;
+    }
+
+    if (button?.textColor) {
+      color = button.textColor;
+    }
+
+    if (button?.borderColor) {
+      border = `1px solid ${button.borderColor}`;
+    }
+
+    const style: CSSProperties & Record<string, any> = {
+      '--hero-button-bg': backgroundColor,
+      '--hero-button-color': color,
+      '--hero-button-border': border,
+      '--hero-button-hover-bg': globalStyle?.hoverBackgroundColor,
+      '--hero-button-hover-color': globalStyle?.hoverColor,
+    };
+
+    if (baseStyle.fontFamily) {
+      style.fontFamily = baseStyle.fontFamily;
+    }
+    if (baseStyle.fontSize) {
+      style.fontSize = baseStyle.fontSize;
+    }
+    if (baseStyle.fontWeight) {
+      style.fontWeight = baseStyle.fontWeight;
+    }
+    if (baseStyle.borderRadius) {
+      style.borderRadius = baseStyle.borderRadius;
+    }
+    if (baseStyle.textTransform) {
+      style.textTransform = baseStyle.textTransform;
+    }
+
+    return style;
+  };
+
   const renderButtons = () => {
     const visiblePrimaryButton = isRenderableButton(primaryButton) ? primaryButton : undefined;
     const visibleSecondaryButton = isRenderableButton(secondaryButton)
@@ -477,6 +587,13 @@ export default function Hero(props: HeroProps) {
       : undefined;
 
     if (!visiblePrimaryButton && !visibleSecondaryButton) return null;
+
+    const primaryButtonStyle = visiblePrimaryButton
+      ? buildButtonStyle(visiblePrimaryButton, 'primary')
+      : undefined;
+    const secondaryButtonStyle = visibleSecondaryButton
+      ? buildButtonStyle(visibleSecondaryButton, 'secondary')
+      : undefined;
 
     return (
       <div className={styles.buttonGroup}>
@@ -488,9 +605,7 @@ export default function Hero(props: HeroProps) {
             } ${visiblePrimaryButton.variant === 'secondary' ? styles.buttonSecondary : ''}`}
             style={{
               ...getMotionStyle(240),
-              backgroundColor: visiblePrimaryButton.bgColor,
-              color: visiblePrimaryButton.textColor,
-              borderColor: visiblePrimaryButton.borderColor,
+              ...(primaryButtonStyle || {}),
             }}
           >
             {visiblePrimaryButton.label}
@@ -504,9 +619,7 @@ export default function Hero(props: HeroProps) {
             }`}
             style={{
               ...getMotionStyle(320),
-              backgroundColor: visibleSecondaryButton.bgColor,
-              color: visibleSecondaryButton.textColor,
-              borderColor: visibleSecondaryButton.borderColor,
+              ...(secondaryButtonStyle || {}),
             }}
           >
             {visibleSecondaryButton.label}

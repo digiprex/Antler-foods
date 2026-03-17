@@ -14,10 +14,24 @@ export interface HeroLayoutMediaCapabilities {
   showBackgroundImage: boolean;
 }
 
+export interface HeroLayoutDefaults {
+  minHeight: string;
+  textColor: string | null;
+  overlayOpacity: number;
+  textAlign: string | null;
+  mobileTextAlign: string | null;
+  useWhiteTextWithBackground: boolean;
+}
+
+export type ImageHandlingType = 'standard' | 'minimal' | 'sideBySide';
+
 export interface HeroLayoutConfig {
   id: string;
   name: string;
   description: string;
+  defaults: HeroLayoutDefaults;
+  imageHandling: ImageHandlingType;
+  requiresFeatures?: boolean;
   mediaCapabilities: HeroLayoutMediaCapabilities;
   features: string[];
   preview: {
@@ -206,4 +220,94 @@ export function getLayoutsByMediaCapability() {
     withBackgroundVideo: getVideoSupportedLayouts(),
     withBackgroundImage: getBackgroundImageSupportedLayouts(),
   };
+}
+
+/**
+ * Get layout defaults by ID
+ * @param layoutId - The layout ID
+ * @returns Layout defaults object or null if not found
+ */
+export function getHeroLayoutDefaults(layoutId: string): HeroLayoutDefaults | null {
+  const layout = getHeroLayoutById(layoutId);
+  return layout ? layout.defaults : null;
+}
+
+/**
+ * Get default minimum height for a layout
+ * @param layoutId - The layout ID
+ * @returns Default minHeight string or '560px' as fallback
+ */
+export function getHeroLayoutDefaultMinHeight(layoutId: string): string {
+  const defaults = getHeroLayoutDefaults(layoutId);
+  return defaults?.minHeight || '560px';
+}
+
+/**
+ * Get default text color for a layout
+ * @param layoutId - The layout ID
+ * @returns Default text color or null if not set
+ */
+export function getHeroLayoutDefaultTextColor(layoutId: string): string | null {
+  const defaults = getHeroLayoutDefaults(layoutId);
+  return defaults?.textColor ?? null;
+}
+
+/**
+ * Get default overlay opacity for a layout
+ * @param layoutId - The layout ID
+ * @returns Default overlay opacity (0-1) or 0.18 as fallback
+ */
+export function getHeroLayoutDefaultOverlayOpacity(layoutId: string): number {
+  const defaults = getHeroLayoutDefaults(layoutId);
+  return defaults?.overlayOpacity ?? 0.18;
+}
+
+/**
+ * Get default text alignment for a layout
+ * @param layoutId - The layout ID
+ * @returns Default text alignment or null if not set
+ */
+export function getHeroLayoutDefaultTextAlign(layoutId: string): string | null {
+  const defaults = getHeroLayoutDefaults(layoutId);
+  return defaults?.textAlign ?? null;
+}
+
+/**
+ * Get default mobile text alignment for a layout
+ * @param layoutId - The layout ID
+ * @returns Default mobile text alignment or null if not set
+ */
+export function getHeroLayoutDefaultMobileTextAlign(layoutId: string): string | null {
+  const defaults = getHeroLayoutDefaults(layoutId);
+  return defaults?.mobileTextAlign ?? null;
+}
+
+/**
+ * Check if a layout should use white text with background
+ * @param layoutId - The layout ID
+ * @returns True if layout should default to white text with background images/videos
+ */
+export function getHeroLayoutUseWhiteTextWithBackground(layoutId: string): boolean {
+  const defaults = getHeroLayoutDefaults(layoutId);
+  return defaults?.useWhiteTextWithBackground ?? false;
+}
+
+/**
+ * Get image handling type for a layout
+ * @param layoutId - The layout ID
+ * @returns Image handling type or 'standard' as fallback
+ */
+export function getHeroLayoutImageHandling(layoutId: string): ImageHandlingType {
+  const layout = getHeroLayoutById(layoutId);
+  return layout?.imageHandling || 'standard';
+}
+
+/**
+ * Check if a layout requires features
+ * @param layoutId - The layout ID
+ * @returns True if layout requires feature cards
+ */
+export function layoutRequiresFeatures(layoutId: string): boolean {
+  const layout = getHeroLayoutById(layoutId);
+  return layout?.requiresFeatures || false;
 }

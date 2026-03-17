@@ -145,7 +145,7 @@ export default function YouTubeSection({
       '21:9': '42.85%',
     };
 
-    const paddingBottom = aspectRatios[config.aspectRatio || '16:9'];
+    const paddingBottom = aspectRatios[config?.aspectRatio || '16:9'];
 
     const isTile = variant === 'tile';
     const outerRadius = previewViewport === 'mobile' ? (isTile ? '18px' : '22px') : isTile ? '20px' : '28px';
@@ -185,7 +185,7 @@ export default function YouTubeSection({
               }}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              title={config.title || 'Video'}
+              title={config?.title || 'Video'}
             />
           </div>
         </div>
@@ -226,7 +226,7 @@ export default function YouTubeSection({
             }}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
-            title={config.title || 'Video'}
+            title={config?.title || 'Video'}
           />
         </div>
       </div>

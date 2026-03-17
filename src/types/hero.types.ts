@@ -170,7 +170,7 @@ export const DEFAULT_HERO_CONFIG: HeroConfig = {
   description: 'Discover exceptional dining with fresh ingredients and innovative flavors',
   primaryButton: {
     label: 'View Menu',
-    href: '#menu',
+    href: '/menu',
     variant: 'primary',
   },
   primaryButtonEnabled: true,

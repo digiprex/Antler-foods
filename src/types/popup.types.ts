@@ -44,7 +44,7 @@ export const DEFAULT_POPUP_CONFIG: PopupConfig = {
   title: 'Welcome!',
   description: 'Check out our latest offers and specials',
   buttonText: 'View Menu',
-  buttonUrl: '#menu',
+  buttonUrl: '/menu',
   enabled: false,
   showOnLoad: true,
   showButton: false,

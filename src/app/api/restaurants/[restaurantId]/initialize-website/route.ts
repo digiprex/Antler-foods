@@ -1253,7 +1253,7 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
         // Buttons (use existing config or defaults)
         primaryButton: sectionConfig.primaryButton || {
           label: 'View Menu',
-          href: '#menu',
+          href: '/menu',
           variant: 'primary',
         },
         secondaryButton: sectionConfig.secondaryButton || {
@@ -1591,7 +1591,7 @@ async function createOtherPageSectionsFromTheme(
             // Buttons (disabled by default for about/contact pages, but include config for easy enabling)
             primaryButton: {
               label: 'View Menu',
-              href: '#menu',
+              href: '/menu',
               variant: 'primary',
             },
             secondaryButton: {

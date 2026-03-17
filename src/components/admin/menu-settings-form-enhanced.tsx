@@ -106,7 +106,7 @@ const DEFAULT_SECONDARY_MENU_BUTTON: MenuButton = {
   href: '',
   variant: 'outline',
 };
-const DEFAULT_BUTTON_HREF = '#menu';
+const DEFAULT_BUTTON_HREF = '/menu';
 
 function getSearchParams() {
   return typeof window === 'undefined'
@@ -1014,7 +1014,7 @@ function DirectLayoutItemEditor({
                             onUpdate(itemIndex, {
                               badge:
                                 item.badge?.trim() ||
-                                DEFAULT_SECONDARY_SECTION_BUTTON_LABEL,
+                                DEFAULT_SECONDARY_MENU_BUTTON.label,
                               imageLink:
                                 item.imageLink?.trim() || DEFAULT_BUTTON_HREF,
                             });
@@ -1787,13 +1787,6 @@ export default function MenuSettingsFormEnhanced({
       description="Keep menu typography aligned with the global theme by default, then opt into section-specific overrides only when needed."
     >
       <div className="space-y-5">
-        <ToggleRow
-          title="Use Global Styles"
-          description="When enabled, title, subtitle, and paragraph typography inherit from the global theme."
-          checked={formConfig.is_custom !== true}
-          onChange={(checked) => handleCustomTypographyToggle(!checked)}
-        />
-
         {formConfig.is_custom ? (
           <div className="rounded-[26px] border border-slate-200 bg-slate-50/70 p-5">
             <SectionTypographyControls
@@ -1803,13 +1796,7 @@ export default function MenuSettingsFormEnhanced({
               viewport={editorViewport}
             />
           </div>
-        ) : (
-          <div className="rounded-[26px] border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-800">
-            Typography is inherited from the global theme. Disable the toggle
-            above to edit section-specific title, subtitle, and paragraph
-            typography for this menu.
-          </div>
-        )}
+        ) : null}
 
         <div className="rounded-[26px] border border-slate-200 bg-slate-50/70 p-5">
           <SectionAppearanceControls
@@ -1818,6 +1805,21 @@ export default function MenuSettingsFormEnhanced({
             viewport={editorViewport}
           />
         </div>
+
+        <ToggleRow
+          title="Use Global Styles"
+          description="When enabled, title, subtitle, and paragraph typography inherit from the global theme."
+          checked={formConfig.is_custom !== true}
+          onChange={(checked) => handleCustomTypographyToggle(!checked)}
+        />
+
+        {formConfig.is_custom !== true ? (
+          <div className="rounded-[26px] border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-800">
+            Typography is inherited from the global theme. Disable the toggle
+            above to edit section-specific title, subtitle, and paragraph
+            typography for this menu.
+          </div>
+        ) : null}
       </div>
     </SettingsCard>
   );

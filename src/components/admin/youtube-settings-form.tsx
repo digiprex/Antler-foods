@@ -131,7 +131,7 @@ const buildGlobalTypographyConfig = (
   const nextConfig: SectionStyleConfig = {};
 
   for (const key of GLOBAL_TYPOGRAPHY_KEYS) {
-    nextConfig[key] = defaults[key];
+    (nextConfig as any)[key] = defaults[key];
   }
 
   return nextConfig;
@@ -825,46 +825,48 @@ export default function YouTubeSettingsForm({
               </p>
             </div>
 
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
-                <span>Secondary Video URL or ID</span>
-                <span className="text-xs font-normal text-gray-500">
-                  Used in the default layout
-                </span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={config.secondaryVideoUrl || ""}
-                  onChange={(e) =>
-                    setConfig({ ...config, secondaryVideoUrl: e.target.value })
-                  }
-                  className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="Optional second video URL or ID"
-                />
-                <button
-                  type="button"
-                  onClick={() => openGallery("secondary")}
-                  className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
-                  title="Select from gallery or upload secondary video"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
+            {config.layout === "default" && (
+              <div>
+                <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                  <span>Secondary Video URL or ID</span>
+                  <span className="text-xs font-normal text-gray-500">
+                    Used in the default layout
+                  </span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={config.secondaryVideoUrl || ""}
+                    onChange={(e) =>
+                      setConfig({ ...config, secondaryVideoUrl: e.target.value })
+                    }
+                    className="flex-1 rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                    placeholder="Optional second video URL or ID"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openGallery("secondary")}
+                    className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-purple-700 shadow-sm transition-all hover:border-purple-300 hover:bg-purple-50"
+                    title="Select from gallery or upload secondary video"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25z"
-                    />
-                  </svg>
-                  Gallery
-                </button>
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25z"
+                      />
+                    </svg>
+                    Gallery
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">

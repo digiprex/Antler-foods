@@ -24,7 +24,7 @@
             "paddingBottom": "6rem",
             "paddingInline": "",
             "primaryButton": {
-              "href": "#menu",
+              "href": "/menu",
               "label": "View Menu",
               "variant": "primary"
             },
@@ -142,7 +142,7 @@
             "minHeight": "600px",
             "backgroundImage": "/api/image-proxy?fileId=menu-hero-bg",
             "primaryButton": {
-              "href": "#menu-items",
+              "href": "/menu-items",
               "label": "View Menu",
               "variant": "primary"
             }

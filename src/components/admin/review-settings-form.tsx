@@ -54,59 +54,59 @@ const reviewLayoutOptions: Array<{
   support: string;
   accent: string;
 }> = [
-  {
-    value: 'grid',
-    name: 'Editorial Strip',
-    description: 'Headline, CTA, and centered testimonials',
-    support: 'Matches the clean top-strip review reference',
-    accent: 'Top carousel',
-  },
-  {
-    value: 'slider',
-    name: 'Split Spotlight',
-    description: 'Large image with one featured review story',
-    support: 'Best for premium restaurant-style presentation',
-    accent: 'Image split',
-  },
-  {
-    value: 'list',
-    name: 'Review Cards',
-    description: 'Card carousel with stronger social proof density',
-    support: 'Closest to the framed card slider reference',
-    accent: 'Card rail',
-  },
-];
+    {
+      value: 'grid',
+      name: 'Editorial Strip',
+      description: 'Headline, CTA, and centered testimonials',
+      support: 'Matches the clean top-strip review reference',
+      accent: 'Top carousel',
+    },
+    {
+      value: 'slider',
+      name: 'Split Spotlight',
+      description: 'Large image with one featured review story',
+      support: 'Best for premium restaurant-style presentation',
+      accent: 'Image split',
+    },
+    {
+      value: 'list',
+      name: 'Review Cards',
+      description: 'Card carousel with stronger social proof density',
+      support: 'Closest to the framed card slider reference',
+      accent: 'Card rail',
+    },
+  ];
 
 const reviewAnimationStyles: Array<{
   value: NonNullable<ReviewConfig['animationStyle']>;
   name: string;
   description: string;
 }> = [
-  {
-    value: 'fade-up',
-    name: 'Fade Up',
-    description: 'Soft upward entrance for cards and spotlight content',
-  },
-  {
-    value: 'soft-scale',
-    name: 'Soft Scale',
-    description: 'Gentle zoom-in with a premium polished feel',
-  },
-  {
-    value: 'slide-up',
-    name: 'Slide Across',
-    description: 'A slightly stronger slide for more visible motion',
-  },
-];
+    {
+      value: 'fade-up',
+      name: 'Fade Up',
+      description: 'Soft upward entrance for cards and spotlight content',
+    },
+    {
+      value: 'soft-scale',
+      name: 'Soft Scale',
+      description: 'Gentle zoom-in with a premium polished feel',
+    },
+    {
+      value: 'slide-up',
+      name: 'Slide Across',
+      description: 'A slightly stronger slide for more visible motion',
+    },
+  ];
 
 const reviewAnimationSpeeds: Array<{
   value: NonNullable<ReviewConfig['animationSpeed']>;
   label: string;
 }> = [
-  { value: 'fast', label: 'Fast' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'slow', label: 'Slow' },
-];
+    { value: 'fast', label: 'Fast' },
+    { value: 'normal', label: 'Normal' },
+    { value: 'slow', label: 'Slow' },
+  ];
 
 const reviewCountOptions = [3, 4, 6] as const;
 type ReviewCountOption = (typeof reviewCountOptions)[number];
@@ -132,7 +132,7 @@ function buildGlobalTypographyConfig(
   const nextConfig: Partial<ReviewConfig> = {};
 
   for (const key of REVIEW_GLOBAL_TYPOGRAPHY_KEYS) {
-    nextConfig[key] = defaults[key] ?? DEFAULT_REVIEW_CONFIG[key];
+    (nextConfig as any)[key] = defaults[key] ?? DEFAULT_REVIEW_CONFIG[key];
   }
 
   return nextConfig;
@@ -579,7 +579,7 @@ export default function ReviewSettingsForm({
           ...sectionStyleDefaults,
           ...data.data,
           layout: normalizeReviewLayout(data.data.layout),
-          maxReviews: normalizeReviewCount(data.data.maxReviews),
+          maxReviews: undefined,
         });
       }
     } catch (error) {
@@ -657,7 +657,7 @@ export default function ReviewSettingsForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...config,
-          maxReviews: normalizeReviewCount(config.maxReviews),
+          maxReviews: undefined,
           restaurant_id: restaurantId,
           page_id: pageId || null,
           template_id: templateId || null,
@@ -706,10 +706,6 @@ export default function ReviewSettingsForm({
         updates.layout !== undefined
           ? normalizeReviewLayout(updates.layout)
           : prev.layout,
-      maxReviews:
-        updates.maxReviews !== undefined
-          ? normalizeReviewCount(updates.maxReviews)
-          : prev.maxReviews,
     }));
   };
 
@@ -737,18 +733,8 @@ export default function ReviewSettingsForm({
     reviewAnimationStyles.find(
       (option) => option.value === config.animationStyle,
     ) || reviewAnimationStyles[0];
-  const maxReviewValue = normalizeReviewCount(config.maxReviews);
   const sampleReviews = buildSampleReviews(restaurantId);
-  const previewReviews =
-    reviews.length >= maxReviewValue
-      ? reviews
-      : [
-          ...reviews,
-          ...sampleReviews.slice(
-            0,
-            Math.max(0, maxReviewValue - reviews.length),
-          ),
-        ];
+  const previewReviews = reviews.length > 0 ? reviews : sampleReviews;
   const motionStatusLabel =
     config.enableAnimations === false
       ? 'Disabled'
@@ -868,11 +854,10 @@ export default function ReviewSettingsForm({
                       key={option.value}
                       onClick={() => updateConfig({ layout: option.value })}
                       aria-pressed={isActive}
-                      className={`group w-full rounded-[26px] border p-4 text-left transition-all ${
-                        isActive
+                      className={`group w-full rounded-[26px] border p-4 text-left transition-all ${isActive
                           ? 'border-purple-400 bg-[linear-gradient(180deg,rgba(250,245,255,1)_0%,rgba(255,255,255,1)_100%)] shadow-[0_22px_48px_rgba(124,58,237,0.14)]'
                           : 'border-slate-200/90 bg-white/90 hover:-translate-y-0.5 hover:border-purple-200 hover:bg-white hover:shadow-[0_20px_40px_rgba(15,23,42,0.08)]'
-                      }`}
+                        }`}
                     >
                       <div className="mb-4 rounded-[24px] border border-white/70 bg-white/70 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
                         {renderReviewLayoutPreview(option.value, isActive)}
@@ -889,11 +874,10 @@ export default function ReviewSettingsForm({
                           </div>
                         </div>
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                            isActive
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${isActive
                               ? 'bg-purple-100 text-purple-700'
                               : 'bg-slate-100 text-slate-500'
-                          }`}
+                            }`}
                         >
                           {isActive ? option.accent : 'Layout'}
                         </span>
@@ -952,11 +936,10 @@ export default function ReviewSettingsForm({
                             Choose from library
                           </button>
                           <label
-                            className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                              uploadingHighlightImage
+                            className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${uploadingHighlightImage
                                 ? 'cursor-wait border border-purple-200 bg-purple-50 text-purple-700'
                                 : 'border border-purple-200 bg-purple-600 text-white hover:bg-purple-700'
-                            }`}
+                              }`}
                           >
                             <input
                               type="file"
@@ -1045,66 +1028,7 @@ export default function ReviewSettingsForm({
                 ) : null}
               </div>
 
-              <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-                <div className="rounded-[30px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 shadow-[0_24px_60px_rgba(15,23,42,0.06)]">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                        Review Density
-                      </p>
-                      <h4 className="mt-2 text-lg font-semibold text-slate-900">
-                        Max Reviews
-                      </h4>
-                      <p className="mt-2 text-sm text-slate-600">
-                        Keep the desktop layouts tight and balanced. 3 reviews
-                        is the recommended default.
-                      </p>
-                    </div>
-                    <div className="rounded-[22px] bg-slate-950 px-4 py-3 text-center text-white shadow-[0_18px_35px_rgba(15,23,42,0.22)]">
-                      <div className="text-xs font-medium uppercase tracking-[0.16em] text-white/60">
-                        Current
-                      </div>
-                      <div className="mt-1 text-2xl font-semibold leading-none">
-                        {maxReviewValue}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    {reviewCountOptions.map((count) => {
-                      const activeCount = maxReviewValue === count;
-
-                      return (
-                        <button
-                          key={count}
-                          type="button"
-                          onClick={() => updateConfig({ maxReviews: count })}
-                          className={`rounded-[22px] border px-4 py-3 text-left transition-all ${
-                            activeCount
-                              ? 'border-purple-400 bg-[linear-gradient(180deg,rgba(250,245,255,1)_0%,rgba(255,255,255,1)_100%)] text-purple-700 shadow-[0_14px_30px_rgba(168,85,247,0.12)]'
-                              : 'border-slate-200 bg-white text-slate-700 hover:border-purple-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="text-sm font-semibold">
-                            {count} reviews
-                          </div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {count === 3
-                              ? 'Recommended balance'
-                              : count === 4
-                                ? 'A little more coverage'
-                                : 'Dense social proof'}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50/90 px-4 py-4 text-sm text-slate-600">
-                    Review density now uses the preset counts only, so the
-                    editor and saved section stay in sync.
-                  </div>
-                </div>
-
+              <div>
                 <div className="rounded-[30px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#faf5ff_100%)] p-5 shadow-[0_24px_60px_rgba(15,23,42,0.06)]">
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -1375,32 +1299,6 @@ export default function ReviewSettingsForm({
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-              <div className="flex items-start gap-3">
-                <svg
-                  className="h-5 w-5 shrink-0 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
-                  />
-                </svg>
-                <div>
-                  <h4 className="text-sm font-medium text-blue-900">
-                    Global Theme Background
-                  </h4>
-                  <p className="mt-1 text-xs text-blue-700">
-                    This control starts from your global site background color so the review section stays visually consistent with the rest of the page.
-                  </p>
-                </div>
-              </div>
-            </div>
-
             <div>
               <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
                 <span>Background Color</span>
@@ -1707,11 +1605,10 @@ export default function ReviewSettingsForm({
                         key={viewport}
                         type="button"
                         onClick={() => setPreviewViewport(viewport)}
-                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                          previewViewport === viewport
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${previewViewport === viewport
                             ? 'bg-white text-slate-900 shadow-sm'
                             : 'text-slate-500 hover:text-slate-700'
-                        }`}
+                          }`}
                       >
                         {viewport === 'desktop' ? 'Desktop' : 'Mobile'}
                       </button>
@@ -1742,11 +1639,10 @@ export default function ReviewSettingsForm({
             </div>
             <div className="flex-1 overflow-y-auto bg-slate-950 p-4 sm:p-6">
               <div
-                className={`mx-auto overflow-hidden border border-white/10 bg-slate-900 shadow-[0_24px_80px_rgba(15,23,42,0.35)] ${
-                  previewViewport === 'mobile'
+                className={`mx-auto overflow-hidden border border-white/10 bg-slate-900 shadow-[0_24px_80px_rgba(15,23,42,0.35)] ${previewViewport === 'mobile'
                     ? 'max-w-[430px] rounded-[32px]'
                     : 'max-w-[1240px] rounded-[32px]'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between border-b border-white/10 bg-slate-950/90 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">
                   <span>

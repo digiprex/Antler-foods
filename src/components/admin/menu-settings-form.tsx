@@ -2155,7 +2155,7 @@ export default function MenuSettingsForm({
             price: formConfig.layoutItems?.[index]?.price || '',
             image: formConfig.layoutItems?.[index]?.image || item.image,
             ctaLabel: formConfig.layoutItems?.[index]?.ctaLabel || 'Menu',
-            ctaLink: formConfig.layoutItems?.[index]?.ctaLink || '#menu',
+            ctaLink: formConfig.layoutItems?.[index]?.ctaLink || '/menu',
             imageLink: formConfig.layoutItems?.[index]?.imageLink,
           }))
         : [],
@@ -3211,7 +3211,7 @@ export default function MenuSettingsForm({
                             })
                           }
                           className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                          placeholder="#menu"
+                          placeholder="/menu"
                         />
                       </div>
                     ) : null}
@@ -3496,7 +3496,7 @@ placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-non
                   value={formConfig.ctaButton?.href || ''}
                   onChange={(e) => updateCtaButton({ href: e.target.value })}
                   className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                  placeholder="#menu"
+                  placeholder="/menu"
                 />
               </div>
 

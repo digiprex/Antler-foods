@@ -565,44 +565,6 @@ export default function DynamicLocation({
         </div>
       );
     }
-    // Default Layout
-    if (layout === '__legacy_default__') {
-      return (
-        <div style={{ maxWidth: config.maxWidth || '800px', margin: '0 auto', padding: '4rem 1.5rem', textAlign: 'center' }}>
-          <h2 style={{ ...titleTypography, fontSize: '2rem', fontWeight: '700', marginBottom: '1rem' }}>
-            {config.title}
-          </h2>
-          <p style={{ ...descriptionTypography, fontSize: '1.125rem', marginBottom: '2rem', opacity: 0.8 }}>
-            {config.description}
-          </p>
-          <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            borderRadius: '12px',
-            padding: '2rem',
-            textAlign: 'left',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-          }}>
-            <h3 style={{ ...titleTypography, fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem' }}>
-              {placeDetails.name}
-            </h3>
-            <p style={{ marginBottom: '0.5rem', opacity: 0.9, color: config.textColor || '#666666' }}>
-              📍 {placeDetails.formatted_address}
-            </p>
-            {placeDetails.formatted_phone_number && (
-              <p style={{ marginBottom: '0.5rem', opacity: 0.9, color: config.textColor || '#666666' }}>
-                📞 {placeDetails.formatted_phone_number}
-              </p>
-            )}
-            {placeDetails.website && (
-              <p style={{ marginBottom: '0.5rem', opacity: 0.9 }}>
-                🌐 <a href={placeDetails.website} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6' }}>Visit Website</a>
-              </p>
-            )}
-          </div>
-        </div>
-      );
-    }
 
     // Grid Layout
     if (layout === 'grid') {

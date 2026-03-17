@@ -117,7 +117,7 @@ const buildGlobalTypographyConfig = (
   const nextConfig: Partial<ScrollingTextConfig> = {};
 
   for (const key of GLOBAL_TYPOGRAPHY_KEYS) {
-    nextConfig[key] = defaults[key];
+    (nextConfig as any)[key] = defaults[key];
   }
 
   return nextConfig;
@@ -228,6 +228,7 @@ export default function ScrollingTextSettingsForm() {
     try {
       await updateScrollingText({
         ...formConfig,
+        textGap: '3rem',
         restaurant_id: restaurantId,
         page_id: pageId,
         template_id: templateId,
@@ -353,10 +354,10 @@ export default function ScrollingTextSettingsForm() {
             </svg>
           }
           title="Content & Motion"
-          description="Write the message, tune speed, and control spacing between repeats."
+          description="Write the message and tune the marquee speed."
         >
-          <div className="grid gap-5 lg:grid-cols-2">
-            <div className="lg:col-span-2">
+          <div className="space-y-5">
+            <div>
               <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
                 <span>Scrolling Copy</span>
                 <span className="text-xs font-normal text-slate-500">Text that repeats inside the marquee</span>
@@ -388,23 +389,6 @@ export default function ScrollingTextSettingsForm() {
                 <option value="medium">Medium</option>
                 <option value="fast">Fast</option>
               </select>
-              <p className="mt-2 text-xs text-slate-500">
-                Approx. {SCROLL_SPEEDS[formConfig.scrollSpeed]}px per second.
-              </p>
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-slate-700">
-                <span>Repeat Gap</span>
-                <span className="text-xs font-normal text-slate-500">Space between repeated messages</span>
-              </label>
-              <input
-                type="text"
-                value={formConfig.textGap || '3rem'}
-                onChange={(event) => updateConfig({ textGap: event.target.value || '3rem' })}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
-                placeholder="3rem"
-              />
             </div>
           </div>
         </SettingsCard>

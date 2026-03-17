@@ -28,7 +28,17 @@ import { getHeroLayoutMediaCapabilities } from '@/lib/hero-layout-media';
 import { getRenderableHeroButtons, mergeHeroConfig } from '@/lib/hero-config';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import { getSectionStyleDefaults } from '@/lib/section-style';
-import { getAllHeroLayouts } from '@/utils/hero-layout-utils';
+import {
+  getAllHeroLayouts,
+  getHeroLayoutImageHandling,
+  getHeroLayoutDefaultMinHeight,
+  getHeroLayoutDefaultTextColor,
+  getHeroLayoutDefaultOverlayOpacity,
+  getHeroLayoutDefaultTextAlign,
+  getHeroLayoutDefaultMobileTextAlign,
+  getHeroLayoutUseWhiteTextWithBackground,
+  layoutRequiresFeatures
+} from '@/utils/hero-layout-utils';
 
 type MinimalImageSlotKey = keyof NonNullable<HeroConfig['minimalImages']>;
 type SideBySideImageSlotKey = keyof NonNullable<HeroConfig['sideBySideImages']>;
@@ -79,7 +89,7 @@ const HERO_IMAGE_OBJECT_FIT_OPTIONS: Array<{
 
 const DEFAULT_PRIMARY_BUTTON = DEFAULT_HERO_CONFIG.primaryButton
   ? { ...DEFAULT_HERO_CONFIG.primaryButton }
-  : { label: 'View Menu', href: '#menu', variant: 'primary' as const };
+  : { label: 'View Menu', href: '/menu', variant: 'primary' as const };
 const DEFAULT_SECONDARY_BUTTON = DEFAULT_HERO_CONFIG.secondaryButton
   ? { ...DEFAULT_HERO_CONFIG.secondaryButton }
   : { label: 'Book a Table', href: '#reservations', variant: 'outline' as const };
@@ -506,18 +516,19 @@ const getPreviewHeroConfig = (
     typeof config.textColor === 'string' &&
     config.textColor.trim() !== '' &&
     config.textColor !== DEFAULT_HERO_CONFIG.textColor;
+  const imageHandling = getHeroLayoutImageHandling(layout);
   const previewHeroImage =
     mediaFields.showHeroImage &&
     (resolvedConfig.image ||
-      ((layout === 'minimal' && hasMinimalImages) ||
-      (layout === 'side-by-side' && hasSideBySideImages)
+      ((imageHandling === 'minimal' && hasMinimalImages) ||
+      (imageHandling === 'sideBySide' && hasSideBySideImages)
         ? undefined
         : {
             url: HERO_PREVIEW_IMAGE,
             alt: 'Preview hero image',
           }));
   const previewMinimalImages =
-    layout === 'minimal'
+    imageHandling === 'minimal'
       ? {
           primary:
             resolvedConfig.minimalImages?.primary ||
@@ -543,7 +554,7 @@ const getPreviewHeroConfig = (
         }
       : resolvedConfig.minimalImages;
   const previewSideBySideImages =
-    layout === 'side-by-side'
+    imageHandling === 'sideBySide'
       ? {
           left:
             resolvedConfig.sideBySideImages?.left ||
@@ -596,7 +607,7 @@ const getPreviewHeroConfig = (
         : ({
             ...DEFAULT_PRIMARY_BUTTON,
             label: HERO_PREVIEW_COPY.primaryCta,
-            href: '#menu',
+            href: '/menu',
             variant: 'primary',
           } satisfies HeroButton)),
     secondaryButton:
@@ -617,35 +628,34 @@ const getPreviewHeroConfig = (
       : undefined,
     videoUrl: mediaFields.showBackgroundVideo ? resolvedConfig.videoUrl : undefined,
     features:
-      layout === 'with-features' && (!resolvedConfig.features || resolvedConfig.features.length === 0)
+      layoutRequiresFeatures(layout) && (!resolvedConfig.features || resolvedConfig.features.length === 0)
         ? PREVIEW_FEATURES
         : resolvedConfig.features,
     bgColor: hasCustomBackgroundColor ? resolvedConfig.bgColor : globalBackgroundColor,
     textColor:
       hasCustomTextColor
         ? resolvedConfig.textColor
-        : mediaFields.showBackgroundImage || layout === 'video-background' || layout === 'full-height'
-          ? '#ffffff'
-          : globalTextColor,
+        : getHeroLayoutDefaultTextColor(layout) ||
+          (getHeroLayoutUseWhiteTextWithBackground(layout) && mediaFields.showBackgroundImage
+            ? '#ffffff'
+            : globalTextColor),
     overlayColor: resolvedConfig.overlayColor || '#020617',
     overlayOpacity:
-      resolvedConfig.overlayOpacity ??
-      (mediaFields.showBackgroundImage || layout === 'video-background' ? 0.48 : 0.18),
+      resolvedConfig.overlayOpacity ?? getHeroLayoutDefaultOverlayOpacity(layout),
     textAlign:
-      layout === 'video-background' &&
+      getHeroLayoutDefaultTextAlign(layout) &&
       (!resolvedConfig.textAlign?.trim() ||
         resolvedConfig.textAlign === DEFAULT_HERO_CONFIG.textAlign)
-        ? 'left'
+        ? (getHeroLayoutDefaultTextAlign(layout) as HeroConfig['textAlign']) || resolvedConfig.textAlign
         : resolvedConfig.textAlign,
     mobileTextAlign:
-      layout === 'video-background' &&
+      getHeroLayoutDefaultMobileTextAlign(layout) &&
       (!resolvedConfig.mobileTextAlign?.trim() ||
         resolvedConfig.mobileTextAlign === DEFAULT_HERO_CONFIG.mobileTextAlign)
-        ? 'left'
+        ? (getHeroLayoutDefaultMobileTextAlign(layout) as HeroConfig['mobileTextAlign']) || resolvedConfig.mobileTextAlign
         : resolvedConfig.mobileTextAlign,
     minHeight:
-      resolvedConfig.minHeight ||
-      (layout === 'minimal' ? '420px' : layout === 'video-background' || layout === 'full-height' ? '680px' : '560px'),
+      resolvedConfig.minHeight || getHeroLayoutDefaultMinHeight(layout),
   };
 };
 
@@ -653,6 +663,7 @@ const previewUsesPlaceholderContent = (config: HeroConfig) => {
   const resolvedConfig = mergeHeroConfig(config);
   const layout = resolvedConfig.layout || 'default';
   const mediaFields = getHeroLayoutMediaCapabilities(layout);
+  const imageHandling = getHeroLayoutImageHandling(layout);
   const hasMinimalImages = hasMinimalImagesConfigured(resolvedConfig.minimalImages);
   const hasSideBySideImages = hasSideBySideImagesConfigured(resolvedConfig.sideBySideImages);
 
@@ -671,11 +682,11 @@ const previewUsesPlaceholderContent = (config: HeroConfig) => {
       (mediaFields.showHeroImage &&
         !(
           resolvedConfig.image ||
-          (layout === 'minimal' && hasMinimalImages) ||
-          (layout === 'side-by-side' && hasSideBySideImages)
+          (imageHandling === 'minimal' && hasMinimalImages) ||
+          (imageHandling === 'sideBySide' && hasSideBySideImages)
         )) ||
       (mediaFields.showBackgroundImage && !resolvedConfig.backgroundImage) ||
-      (layout === 'with-features' &&
+      (layoutRequiresFeatures(layout) &&
         (!resolvedConfig.features || resolvedConfig.features.length === 0)),
   );
 };
@@ -1850,7 +1861,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
         </div>
 
         {/* Features Section */}
-        {formConfig.layout === 'with-features' && (
+        {layoutRequiresFeatures(formConfig.layout || 'default') && (
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="mb-6 flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
@@ -1985,7 +1996,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                       value={editablePrimaryButton.href}
                       onChange={(e) => updatePrimaryButton({ href: e.target.value })}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
-                      placeholder="#menu"
+                      placeholder="/menu"
                     />
                   </div>
                 </div>

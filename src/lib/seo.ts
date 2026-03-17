@@ -184,25 +184,40 @@ export function generateDynamicSEO(pageData: PageData, restaurantName?: string):
     return getPageSEO('default');
   }
 
-  const title = page.meta_title ||
-    (page.name && restaurantName ? `${page.name} - ${restaurantName}` : page.name) ||
-    DEFAULT_SEO.title;
+  // Priority: meta_title > page.name + restaurant_name > page.name > default
+  let title = DEFAULT_SEO.title;
+  if (page.meta_title?.trim()) {
+    title = page.meta_title.trim();
+  } else if (page.name?.trim()) {
+    if (restaurantName?.trim()) {
+      title = `${page.name.trim()} - ${restaurantName.trim()}`;
+    } else {
+      title = page.name.trim();
+    }
+  }
 
-  const description = page.meta_description ||
-    `Learn more about ${page.name || 'our services'}${restaurantName ? ` at ${restaurantName}` : ''}. ${DEFAULT_SEO.description}`;
+  // Priority: meta_description > generated description > default
+  let description = DEFAULT_SEO.description;
+  if (page.meta_description?.trim()) {
+    description = page.meta_description.trim();
+  } else if (page.name?.trim()) {
+    const pageName = page.name.trim();
+    const restaurantPart = restaurantName?.trim() ? ` at ${restaurantName.trim()}` : '';
+    description = `Learn more about ${pageName}${restaurantPart}. ${DEFAULT_SEO.description}`;
+  }
 
   // Handle keywords - can be string, JSON object with tags array, or null
   let keywords = DEFAULT_SEO.keywords;
   if (page.keywords) {
-    if (typeof page.keywords === 'string') {
+    if (typeof page.keywords === 'string' && page.keywords.trim()) {
       // Legacy format: comma-separated string
-      keywords = page.keywords.split(',').map((k: string) => k.trim());
+      keywords = page.keywords.split(',').map((k: string) => k.trim()).filter(Boolean);
     } else if (Array.isArray(page.keywords)) {
       // Direct array format
-      keywords = page.keywords;
+      keywords = page.keywords.filter(Boolean);
     } else if (typeof page.keywords === 'object' && 'tags' in page.keywords && Array.isArray(page.keywords.tags)) {
       // New format: JSON object with tags array
-      keywords = page.keywords.tags;
+      keywords = page.keywords.tags.filter(Boolean);
     }
   }
 
@@ -210,6 +225,6 @@ export function generateDynamicSEO(pageData: PageData, restaurantName?: string):
     title,
     description,
     keywords,
-    ogImage: page.og_image || DEFAULT_SEO.ogImage,
+    ogImage: page.og_image?.trim() || DEFAULT_SEO.ogImage,
   };
 }

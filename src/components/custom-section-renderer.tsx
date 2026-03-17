@@ -13,6 +13,10 @@ import {
   normalizeCustomSectionConfig,
 } from '@/lib/custom-section/normalize';
 import {
+  resolveCustomSectionSpacing,
+  resolveCustomSectionSpacingTier,
+} from '@/lib/custom-section/spacing';
+import {
   getSectionContainerStyles,
   getSectionTypographyStyles,
   getSurfaceShadowValue,
@@ -158,6 +162,9 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
   const [viewport, setViewport] = useState<CustomSectionViewport>(() =>
     resolveViewport(props.previewMode),
   );
+  const [windowWidth, setWindowWidth] = useState(() =>
+    typeof window === 'undefined' ? 1440 : window.innerWidth,
+  );
   const [isVisible, setIsVisible] = useState(props.enableScrollReveal !== true);
   const [activeSlide, setActiveSlide] = useState(0);
   const sectionRef = useRef<HTMLElement | null>(null);
@@ -180,7 +187,10 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       return;
     }
 
-    const updateViewport = () => setViewport(resolveViewport());
+    const updateViewport = () => {
+      setViewport(resolveViewport());
+      setWindowWidth(window.innerWidth);
+    };
     updateViewport();
     window.addEventListener('resize', updateViewport);
     return () => window.removeEventListener('resize', updateViewport);
@@ -202,6 +212,24 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
     [config.layout],
   );
   const isMobile = viewport === 'mobile';
+  const spacingTier = useMemo(
+    () =>
+      resolveCustomSectionSpacingTier({
+        viewport,
+        previewMode: props.previewMode,
+        windowWidth,
+      }),
+    [props.previewMode, viewport, windowWidth],
+  );
+  const spacing = useMemo(
+    () =>
+      resolveCustomSectionSpacing({
+        config,
+        viewport,
+        tier: spacingTier,
+      }),
+    [config, spacingTier, viewport],
+  );
 
   useEffect(() => {
     const itemsLength = config.items?.length || 0;
@@ -267,8 +295,18 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
     definition.value,
   ]);
 
+  const sectionStyleInput = useMemo(
+    () => ({
+      ...config,
+      sectionPaddingY: spacing.sectionPaddingY,
+      sectionPaddingX: spacing.sectionPaddingX,
+      mobileSectionPaddingY: spacing.sectionPaddingY,
+      mobileSectionPaddingX: spacing.sectionPaddingX,
+    }),
+    [config, spacing.sectionPaddingX, spacing.sectionPaddingY],
+  );
   const { sectionStyle, contentStyle, layoutConfig } =
-    getSectionContainerStyles(config, viewport);
+    getSectionContainerStyles(sectionStyleInput, viewport);
   const { titleStyle, subtitleStyle, bodyStyle } = getSectionTypographyStyles(
     config,
     globalStyles,
@@ -283,11 +321,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       : config.layoutSettings?.contentAlignment || layoutConfig.sectionTextAlign
   ) as 'left' | 'center' | 'right';
 
-  const contentGap = isMobile
-    ? config.responsive?.mobileContentGap ||
-      config.layoutSettings?.contentGap ||
-      '1.25rem'
-    : config.layoutSettings?.contentGap || '2rem';
+  const contentGap = spacing.internalGap;
   const contentWidth = isMobile
     ? config.responsive?.mobileContentWidth ||
       config.layoutSettings?.contentWidth ||
@@ -302,12 +336,19 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
     ? config.responsive?.mobileCardColumns || 1
     : config.layoutSettings?.cardColumns || 3;
   const cardSpacing = config.layoutSettings?.cardSpacing || '1.25rem';
+  const surfacePadding = spacing.surfacePadding;
+  const surfacePaddingLarge = spacing.surfacePaddingLarge;
+  const surfacePaddingCompact = spacing.surfacePaddingCompact;
   const stackOnMobile = config.layoutSettings?.stackOnMobile !== false;
   const shouldStack = isMobile && stackOnMobile;
   const splitLayouts = new Set(['layout-2', 'layout-6']);
   const edgeToEdgeLayouts = new Set(['layout-2', 'layout-6', 'layout-22']);
   const useEdgeToEdge = edgeToEdgeLayouts.has(definition.value) && !shouldStack;
-  const edgeToEdgePadding = '5rem';
+  const verticalStackStyle: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: contentGap,
+  };
   const introOrder = splitLayouts.has(definition.value)
     ? 'subheadline-first'
     : 'default';
@@ -487,15 +528,9 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
   }) => {
     const reverse = options?.reverse === true;
     const edgeToEdge = options?.edgeToEdge === true && useEdgeToEdge;
-    const edgeGap = edgeToEdge ? '0' : contentGap;
+    const edgeGap = contentGap;
     const splitColumnWidth = edgeToEdge && !shouldStack ? '50%' : undefined;
     const mediaFlex = edgeToEdge ? 1 : options?.wideMedia ? 1.15 : 1;
-    const contentEdgePadding =
-      edgeToEdge && edgeToEdgePadding
-        ? reverse
-          ? { paddingLeft: edgeToEdgePadding }
-          : { paddingRight: edgeToEdgePadding }
-        : {};
     const media = (
       <div
         className="min-w-0"
@@ -503,7 +538,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
           flex: mediaFlex,
           flexBasis: edgeToEdge ? 0 : undefined,
           maxWidth: splitColumnWidth,
-          marginTop: options?.overlap && !shouldStack ? '2rem' : 0,
+          marginTop: options?.overlap && !shouldStack ? surfacePadding : 0,
         }}
       >
         <CustomSectionMedia
@@ -528,11 +563,10 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
           maxWidth: shouldStack ? '100%' : contentWidth,
           ...(splitColumnWidth ? { maxWidth: splitColumnWidth } : {}),
           boxSizing: 'border-box',
-          ...contentEdgePadding,
           ...(options?.boxed
             ? {
                 ...baseSurfaceStyle,
-                padding: isMobile ? '1.5rem' : '2rem',
+                padding: surfacePadding,
               }
             : {}),
         }}
@@ -557,7 +591,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
               : config.layoutSettings?.verticalAlignment === 'end'
                 ? 'flex-end'
                 : 'center',
-          padding: options?.accentShell ? (isMobile ? '1rem' : '1.25rem') : 0,
+          padding: options?.accentShell ? spacing.accentShellPadding : 0,
           borderRadius: options?.accentShell
             ? `calc(${radius} + 0.5rem)`
             : undefined,
@@ -574,7 +608,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
             <div
               style={{
                 flex: 1,
-                marginLeft: '-4.5rem',
+                marginLeft: `-${spacing.overlapOffset}`,
                 position: 'relative',
                 zIndex: 2,
               }}
@@ -645,7 +679,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
         ) : null}
         <div
           className="relative z-10 flex h-full w-full items-center"
-          style={{ padding: isMobile ? '1.5rem' : '2.25rem' }}
+          style={{ padding: surfacePaddingLarge }}
         >
           <div style={{ width: '100%' }}>{intro}</div>
         </div>
@@ -694,7 +728,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
             <div
               style={{
                 ...baseSurfaceStyle,
-                padding: isMobile ? '1.5rem' : '2rem',
+                padding: surfacePadding,
               }}
             >
               {intro}
@@ -713,7 +747,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       case 'layout-10':
       case 'layout-21':
         return (
-          <div className="space-y-6">
+          <div style={verticalStackStyle}>
             <CustomSectionMedia
               image={config.image}
               label={definition.name}
@@ -725,7 +759,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
             <div
               style={{
                 ...baseSurfaceStyle,
-                padding: isMobile ? '1.5rem' : '2rem',
+                padding: surfacePadding,
               }}
             >
               {intro}
@@ -734,7 +768,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
         );
       case 'layout-11':
         return (
-          <div className="space-y-6">
+          <div style={verticalStackStyle}>
             <div
               className="grid"
               style={{
@@ -762,7 +796,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
             <div
               style={{
                 ...baseSurfaceStyle,
-                padding: isMobile ? '1.5rem' : '2rem',
+                padding: surfacePadding,
               }}
             >
               {intro}
@@ -773,7 +807,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
         return renderSplitLayout({ boxed: true });
       case 'layout-14':
         return (
-          <div className="space-y-6">
+          <div style={verticalStackStyle}>
             <div style={{ maxWidth: contentWidth }}>{intro}</div>
             {renderGridItems(1)}
           </div>
@@ -792,7 +826,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
             className="mx-auto max-w-4xl"
             style={{
               ...baseSurfaceStyle,
-              padding: isMobile ? '1.5rem' : '2.5rem',
+              padding: surfacePaddingLarge,
             }}
           >
             {intro}
@@ -802,13 +836,13 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
         return renderSplitLayout({ accentShell: true });
       case 'layout-22':
         return (
-          <div className="space-y-5">
+          <div style={verticalStackStyle}>
             {items.map((item, index) => (
               <div
                 key={item.id}
                 className="grid items-center"
                 style={{
-                  gap: useEdgeToEdge && !shouldStack ? '0' : contentGap,
+                  gap: contentGap,
                   gridTemplateColumns: shouldStack
                     ? '1fr'
                     : index % 2 === 0
@@ -826,19 +860,11 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
                     borderColor={palette.border}
                   />
                 ) : null}
-                <div
-                  style={{
-                    ...(useEdgeToEdge && !shouldStack
-                      ? index % 2 === 0
-                        ? { paddingRight: edgeToEdgePadding }
-                        : { paddingLeft: edgeToEdgePadding }
-                      : {}),
-                  }}
-                >
+                <div>
                   <div
                     style={{
                       ...baseSurfaceStyle,
-                      padding: isMobile ? '1.25rem' : '1.75rem',
+                      padding: surfacePaddingCompact,
                     }}
                   >
                     <CustomSectionItemCard
@@ -891,7 +917,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
             <div
               style={{
                 ...baseSurfaceStyle,
-                padding: isMobile ? '1.5rem' : '2.5rem',
+                padding: surfacePaddingLarge,
               }}
             >
               {intro}
@@ -906,7 +932,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
         return renderHeroLayout({ video: true, full: true });
       case 'layout-25':
         return (
-          <div className="space-y-6">
+          <div style={verticalStackStyle}>
             <div style={{ maxWidth: contentWidth }}>{intro}</div>
             {renderGridItems(cardColumns)}
           </div>
@@ -917,7 +943,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
             <div
               style={{
                 ...baseSurfaceStyle,
-                padding: isMobile ? '1.5rem' : '2.25rem',
+                padding: surfacePaddingLarge,
               }}
             >
               {intro}
@@ -928,7 +954,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
         return renderSplitLayout({ diagonal: true });
       case 'layout-28':
         return (
-          <div className="space-y-6">
+          <div style={verticalStackStyle}>
             <div style={{ maxWidth: contentWidth }}>{intro}</div>
             {renderGridItems(shouldStack ? 1 : 3)}
           </div>
@@ -940,7 +966,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       case 'layout-31': {
         const currentItem = items[activeSlide] || items[0];
         return (
-          <div className="space-y-6">
+          <div style={verticalStackStyle}>
             <div
               className="grid items-center"
               style={{
@@ -961,7 +987,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
               <div
                 style={{
                   ...baseSurfaceStyle,
-                  padding: isMobile ? '1.5rem' : '2rem',
+                  padding: surfacePadding,
                 }}
               >
                 {currentItem ? (
@@ -1026,7 +1052,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       }
       case 'layout-32':
         return (
-          <div className="space-y-6">
+          <div style={verticalStackStyle}>
             <div style={{ maxWidth: contentWidth }}>{intro}</div>
             <div
               className="grid"
@@ -1084,14 +1110,6 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
     }
   })();
 
-  const adjustedSectionStyle = useEdgeToEdge
-    ? {
-        ...sectionStyle,
-        paddingInline: '0',
-        paddingTop: '0',
-        paddingBottom: '0',
-      }
-    : sectionStyle;
   const adjustedContentStyle = useEdgeToEdge
     ? { width: '100%', maxWidth: '100%', marginInline: '0' }
     : contentStyle;
@@ -1100,7 +1118,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
     <section
       ref={sectionRef}
       style={{
-        ...adjustedSectionStyle,
+        ...sectionStyle,
         backgroundColor: palette.background,
         color: config.textColor || globalText,
         ...animatedStyle,

@@ -28,7 +28,9 @@ export default function Popup({ restaurantId }: PopupProps) {
 
   const fetchPopupConfig = async () => {
     try {
-      const response = await fetch(`/api/popup-config?restaurant_id=${restaurantId}`);
+      const response = await fetch(
+        `/api/popup-config?restaurant_id=${encodeURIComponent(restaurantId)}`
+      );
       const data = await response.json();
 
       if (data.success && data.data && data.data.enabled) {

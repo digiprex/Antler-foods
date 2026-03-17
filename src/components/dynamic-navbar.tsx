@@ -63,9 +63,9 @@ export default function DynamicNavbar({
         const domain = window.location.host;
 
         // Fetch navbar config using domain (API will resolve restaurant_id)
-        const navbarResponse = await fetch(`${apiEndpoint}?domain=${domain}`, {
-          cache: 'no-store',
-        });
+        const navbarResponse = await fetch(
+          `${apiEndpoint}?domain=${encodeURIComponent(domain)}`
+        );
 
         // Treat 404 as "no navbar template" - don't render navbar
         if (navbarResponse.status === 404) {

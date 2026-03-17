@@ -349,8 +349,8 @@ export default function FileUpload({
                   {accept === 'video'
                     ? 'Supported: MP4, MOV, WEBM, M4V, MKV (up to 100MB)'
                     : accept === 'image'
-                      ? 'Supported: JPG, JPEG, PNG, WEBP, GIF, AVIF, BMP (up to 5MB, Prefer below 1MB)'
-                      : 'Images: JPG/JPEG/PNG/WEBP/GIF/AVIF/BMP 5MB, Prefer below 1MB. Videos: MP4/MOV/WEBM/M4V/MKV up to 100MB.'}
+                      ? 'Supported: JPG, JPEG, PNG, WEBP, GIF, AVIF, BMP (up to 10MB, recommended below 1MB)'
+                      : 'Images: JPG/JPEG/PNG/WEBP/GIF/AVIF/BMP up to 10MB (recommended below 1MB). Videos: MP4/MOV/WEBM/M4V/MKV up to 100MB.'}
                 </p>
               </>
             )}

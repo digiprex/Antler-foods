@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import type { PopupConfig, PopupConfigResponse } from '@/types/popup.types';
 import { DEFAULT_POPUP_CONFIG } from '@/types/popup.types';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { resolveRestaurantIdByDomain } from '@/lib/server/domain-resolver';
 
 interface PopupTemplate {
   category: string;
@@ -30,12 +31,6 @@ interface GetPopupConfigResponse {
 interface GetPopupTemplateOnlyResponse {
   templates: Array<{
     template_id: string;
-  }>;
-}
-
-interface GetRestaurantByDomainResponse {
-  restaurants: Array<{
-    restaurant_id: string;
   }>;
 }
 
@@ -168,28 +163,7 @@ export async function GET(request: Request) {
     // If domain is provided but no restaurantId, fetch restaurantId from domain
     if (domain && !searchParams.get('restaurant_id')) {
       try {
-        const GET_RESTAURANT_BY_DOMAIN = `
-          query GetRestaurantByDomain($domain: String!) {
-            restaurants(
-              where: {
-                _or: [
-                  { custom_domain: { _eq: $domain } },
-                  { staging_domain: { _eq: $domain } }
-                ],
-                is_deleted: { _eq: false }
-              },
-              limit: 1
-            ) {
-              restaurant_id
-            }
-          }
-        `;
-
-        const domainData = await graphqlRequest<GetRestaurantByDomainResponse>(GET_RESTAURANT_BY_DOMAIN, { domain });
-
-        if (domainData.restaurants && domainData.restaurants.length > 0) {
-          restaurantId = domainData.restaurants[0].restaurant_id;
-        }
+        restaurantId = await resolveRestaurantIdByDomain(domain);
       } catch (error) {
         console.error('[Popup Config] Error fetching restaurant ID by domain:', error);
       }
@@ -211,7 +185,11 @@ export async function GET(request: Request) {
         success: true,
         data: DEFAULT_POPUP_CONFIG,
       };
-      return NextResponse.json(response);
+      return NextResponse.json(response, {
+        headers: {
+          'Cache-Control': 'public, max-age=10, stale-while-revalidate=120',
+        },
+      });
     }
 
     const template = data.templates[0];
@@ -226,7 +204,11 @@ export async function GET(request: Request) {
       data: config,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'public, max-age=10, stale-while-revalidate=120',
+      },
+    });
   } catch (error) {
     console.error('[Popup Config] Error:', error);
 

@@ -77,11 +77,12 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
 
         // Get current domain (includes port for localhost, e.g., localhost:3000)
         const domain = window.location.host;
+        const encodedDomain = encodeURIComponent(domain);
         console.log('[Page Client] 🌐 Resolving restaurant from domain:', domain);
         console.log('[Page Client] 📄 Page slug:', slug);
         // Fetch page details directly by domain + slug (single request path)
         const pageResponse = await fetch(
-          `/api/page-details?domain=${encodeURIComponent(domain)}&url_slug=${encodeURIComponent(slug)}`
+          `/api/page-details?domain=${encodedDomain}&url_slug=${encodeURIComponent(slug)}`
         );
 
         if (pageResponse.status === 404) {
@@ -132,13 +133,41 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
     return (
       <div style={{
         minHeight: '100vh',
-        backgroundColor: '#f9fafb',
+        background: '#ffffff',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        padding: '24px',
       }}>
-        <div style={{ textAlign: 'center' }}>
-          <h2>Loading...</h2>
+        <style>{`
+          @keyframes basicSpinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          .basic-loader {
+            text-align: center;
+          }
+          .basic-loader-spinner {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 12px;
+            border-radius: 999px;
+            border: 3px solid #d1d5db;
+            border-top-color: #111827;
+            animation: basicSpinner 0.8s linear infinite;
+          }
+          .basic-loader-text {
+            color: #374151;
+            font-size: 14px;
+            font-weight: 500;
+          }
+        `}</style>
+
+        <div className="basic-loader">
+          <div className="basic-loader-spinner" />
+          <div className="basic-loader-text">
+            Loading your restaurant site...
+          </div>
         </div>
       </div>
     );

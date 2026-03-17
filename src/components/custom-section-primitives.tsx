@@ -178,6 +178,9 @@ export function CustomSectionIntro({
   bodyStyle,
   buttonStyles,
   maxWidth,
+  hideEyebrow = false,
+  hideBadge = false,
+  order = 'default',
 }: {
   config: CustomSectionConfig;
   align: 'left' | 'center' | 'right';
@@ -191,6 +194,9 @@ export function CustomSectionIntro({
     secondary: { backgroundColor: string; color: string; borderColor: string };
   };
   maxWidth?: string;
+  hideEyebrow?: boolean;
+  hideBadge?: boolean;
+  order?: 'default' | 'subheadline-first';
 }) {
   const alignment =
     align === 'center'
@@ -198,13 +204,33 @@ export function CustomSectionIntro({
       : align === 'right'
         ? 'items-end text-right'
         : 'items-start text-left';
+  const showBadge = Boolean(config.badgeText) && !hideBadge;
+  const showEyebrow = Boolean(config.eyebrow) && !hideEyebrow;
+  const renderHeadline = (
+    <h2 className="text-balance" style={titleStyle}>
+      {config.headline}
+    </h2>
+  );
+  const renderSubheadline = config.subheadline ? (
+    <p
+      className={order === 'subheadline-first' ? 'mb-3 text-balance' : 'mt-3 text-balance'}
+      style={subtitleStyle}
+    >
+      {config.subheadline}
+    </p>
+  ) : null;
+  const renderDescription = config.description ? (
+    <p className="mt-4 max-w-2xl text-pretty" style={bodyStyle}>
+      {config.description}
+    </p>
+  ) : null;
 
   return (
     <div
       className={`flex flex-col ${alignment}`}
       style={{ maxWidth: maxWidth || '100%' }}
     >
-      {config.badgeText ? (
+      {showBadge ? (
         <span
           className="mb-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]"
           style={badgeStyle}
@@ -212,7 +238,7 @@ export function CustomSectionIntro({
           {config.badgeText}
         </span>
       ) : null}
-      {config.eyebrow ? (
+      {showEyebrow ? (
         <p
           className="mb-3 text-sm font-semibold uppercase tracking-[0.22em]"
           style={eyebrowStyle}
@@ -220,19 +246,18 @@ export function CustomSectionIntro({
           {config.eyebrow}
         </p>
       ) : null}
-      <h2 className="text-balance" style={titleStyle}>
-        {config.headline}
-      </h2>
-      {config.subheadline ? (
-        <p className="mt-3 text-balance" style={subtitleStyle}>
-          {config.subheadline}
-        </p>
-      ) : null}
-      {config.description ? (
-        <p className="mt-4 max-w-2xl text-pretty" style={bodyStyle}>
-          {config.description}
-        </p>
-      ) : null}
+      {order === 'subheadline-first' ? (
+        <>
+          {renderSubheadline}
+          {renderHeadline}
+        </>
+      ) : (
+        <>
+          {renderHeadline}
+          {renderSubheadline}
+        </>
+      )}
+      {renderDescription}
       <CustomSectionButtons
         primaryButton={
           config.primaryButtonEnabled === false ? undefined : config.primaryButton

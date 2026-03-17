@@ -304,6 +304,14 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
   const cardSpacing = config.layoutSettings?.cardSpacing || '1.25rem';
   const stackOnMobile = config.layoutSettings?.stackOnMobile !== false;
   const shouldStack = isMobile && stackOnMobile;
+  const splitLayouts = new Set(['layout-2', 'layout-6']);
+  const edgeToEdgeLayouts = new Set(['layout-2', 'layout-6', 'layout-22']);
+  const useEdgeToEdge = edgeToEdgeLayouts.has(definition.value) && !shouldStack;
+  const edgeToEdgePadding = '5rem';
+  const introOrder = splitLayouts.has(definition.value)
+    ? 'subheadline-first'
+    : 'default';
+  const hideIntroEyebrow = splitLayouts.has(definition.value);
 
   // Resolve global theme colors — used as fallbacks when useGlobalStyles is ON (is_custom === false)
   const globalAccent =
@@ -379,6 +387,8 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       config={config}
       align={align}
       maxWidth={contentWidth}
+      order={introOrder}
+      hideEyebrow={hideIntroEyebrow}
       badgeStyle={{
         backgroundColor: darkPresentation
           ? 'rgba(255,255,255,0.14)'
@@ -473,13 +483,26 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
     overlap?: boolean;
     wideMedia?: boolean;
     diagonal?: boolean;
+    edgeToEdge?: boolean;
   }) => {
     const reverse = options?.reverse === true;
+    const edgeToEdge = options?.edgeToEdge === true && useEdgeToEdge;
+    const edgeGap = edgeToEdge ? '0' : contentGap;
+    const splitColumnWidth = edgeToEdge && !shouldStack ? '50%' : undefined;
+    const mediaFlex = edgeToEdge ? 1 : options?.wideMedia ? 1.15 : 1;
+    const contentEdgePadding =
+      edgeToEdge && edgeToEdgePadding
+        ? reverse
+          ? { paddingLeft: edgeToEdgePadding }
+          : { paddingRight: edgeToEdgePadding }
+        : {};
     const media = (
       <div
         className="min-w-0"
         style={{
-          flex: options?.wideMedia ? 1.15 : 1,
+          flex: mediaFlex,
+          flexBasis: edgeToEdge ? 0 : undefined,
+          maxWidth: splitColumnWidth,
           marginTop: options?.overlap && !shouldStack ? '2rem' : 0,
         }}
       >
@@ -501,7 +524,11 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
         className="min-w-0"
         style={{
           flex: 1,
+          flexBasis: edgeToEdge ? 0 : undefined,
           maxWidth: shouldStack ? '100%' : contentWidth,
+          ...(splitColumnWidth ? { maxWidth: splitColumnWidth } : {}),
+          boxSizing: 'border-box',
+          ...contentEdgePadding,
           ...(options?.boxed
             ? {
                 ...baseSurfaceStyle,
@@ -523,7 +550,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
             : reverse
               ? 'row-reverse'
               : 'row',
-          gap: contentGap,
+          gap: edgeGap,
           alignItems:
             config.layoutSettings?.verticalAlignment === 'start'
               ? 'flex-start'
@@ -633,7 +660,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       case 'layout-1':
         return renderHeroLayout();
       case 'layout-2':
-        return renderSplitLayout();
+        return renderSplitLayout({ edgeToEdge: true });
       case 'layout-3':
         return renderHeroLayout({ video: true });
       case 'layout-4':
@@ -641,7 +668,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
       case 'layout-5':
         return renderSplitLayout({ circular: true });
       case 'layout-6':
-        return renderSplitLayout({ reverse: true });
+        return renderSplitLayout({ reverse: true, edgeToEdge: true });
       case 'layout-7':
         return renderSplitLayout();
       case 'layout-8':
@@ -781,7 +808,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
                 key={item.id}
                 className="grid items-center"
                 style={{
-                  gap: contentGap,
+                  gap: useEdgeToEdge && !shouldStack ? '0' : contentGap,
                   gridTemplateColumns: shouldStack
                     ? '1fr'
                     : index % 2 === 0
@@ -801,26 +828,36 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
                 ) : null}
                 <div
                   style={{
-                    ...baseSurfaceStyle,
-                    padding: isMobile ? '1.25rem' : '1.75rem',
+                    ...(useEdgeToEdge && !shouldStack
+                      ? index % 2 === 0
+                        ? { paddingRight: edgeToEdgePadding }
+                        : { paddingLeft: edgeToEdgePadding }
+                      : {}),
                   }}
                 >
-                  <CustomSectionItemCard
-                    item={item}
-                    accentColor={palette.accent}
-                    borderColor={palette.border}
-                    backgroundColor={palette.card}
-                    radius={radius}
-                    shadow="none"
-                    titleStyle={{
-                      ...(titleStyle as CSSProperties),
-                      fontSize: isMobile ? '1.2rem' : '1.35rem',
+                  <div
+                    style={{
+                      ...baseSurfaceStyle,
+                      padding: isMobile ? '1.25rem' : '1.75rem',
                     }}
-                    bodyStyle={bodyStyle as CSSProperties}
-                    showMedia={false}
-                    showBorder={false}
-                    showMeta={false}
-                  />
+                  >
+                    <CustomSectionItemCard
+                      item={item}
+                      accentColor={palette.accent}
+                      borderColor={palette.border}
+                      backgroundColor={palette.card}
+                      radius={radius}
+                      shadow="none"
+                      titleStyle={{
+                        ...(titleStyle as CSSProperties),
+                        fontSize: isMobile ? '1.2rem' : '1.35rem',
+                      }}
+                      bodyStyle={bodyStyle as CSSProperties}
+                      showMedia={false}
+                      showBorder={false}
+                      showMeta={false}
+                    />
+                  </div>
                 </div>
                 {index % 2 !== 0 && !shouldStack ? (
                   <CustomSectionMedia
@@ -1047,11 +1084,23 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
     }
   })();
 
+  const adjustedSectionStyle = useEdgeToEdge
+    ? {
+        ...sectionStyle,
+        paddingInline: '0',
+        paddingTop: '0',
+        paddingBottom: '0',
+      }
+    : sectionStyle;
+  const adjustedContentStyle = useEdgeToEdge
+    ? { width: '100%', maxWidth: '100%', marginInline: '0' }
+    : contentStyle;
+
   return (
     <section
       ref={sectionRef}
       style={{
-        ...sectionStyle,
+        ...adjustedSectionStyle,
         backgroundColor: palette.background,
         color: config.textColor || globalText,
         ...animatedStyle,
@@ -1061,7 +1110,7 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
         style={
           definition.value === 'layout-24'
             ? { width: '100%', maxWidth: '100%' }
-            : contentStyle
+            : adjustedContentStyle
         }
       >
         {layoutContent}

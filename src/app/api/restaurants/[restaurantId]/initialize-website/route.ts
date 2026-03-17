@@ -1455,7 +1455,7 @@ JSON format (return only valid JSON, no markdown):
 }`;
 
     // Use Claude 3 Sonnet for content generation
-    const modelId = 'anthropic.claude-3-5-sonnet-20241022-v2:0';
+    const modelId = 'anthropic.claude-sonnet-4-20250514-v1:0';
 
     const requestBody = {
       anthropic_version: 'bedrock-2023-05-31',
@@ -1574,7 +1574,7 @@ JSON format (return only valid JSON, no markdown):
 }`;
 
     // Use Claude 3 Sonnet for FAQ generation
-    const modelId = 'anthropic.claude-3-5-sonnet-20241022-v2:0';
+    const modelId = 'anthropic.claude-sonnet-4-20250514-v1:0';
 
     const requestBody = {
       anthropic_version: 'bedrock-2023-05-31',

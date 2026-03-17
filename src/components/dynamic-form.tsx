@@ -616,7 +616,7 @@ export default function DynamicForm({
         </p>
       ) : null}
       {displayConfig.description ? (
-        <p className="mt-4 max-w-2xl text-sm leading-7" style={{ ...bodyStyle, color: bodyColor, opacity: 0.78 }}>
+        <p className="mt-4 max-w-2xl text-sm leading-7 mx-auto text-center" style={{ ...bodyStyle, color: bodyColor, opacity: 0.78 }}>
           {displayConfig.description}
         </p>
       ) : null}

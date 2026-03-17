@@ -193,7 +193,6 @@ export const DEFAULT_CUSTOM_SECTION_CONFIG: CustomSectionConfig = {
     contentAlignment: 'left',
     verticalAlignment: 'center',
     mediaRatio: '4 / 3',
-    contentWidth: '560px',
     contentGap: '5rem',
     cardSpacing: '1.25rem',
     cardColumns: 3,

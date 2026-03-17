@@ -21,60 +21,63 @@
 
 import { NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { SECTION_STYLE_KEYS } from '@/types/section-style.types';
 
 function pickSectionStyleConfig(source: Record<string, unknown>) {
-  return {
-    is_custom: source.is_custom === true,
-    buttonStyleVariant: source.buttonStyleVariant === 'secondary' ? 'secondary' : 'primary',
-    titleFontFamily: source.titleFontFamily ?? 'Inter, system-ui, sans-serif',
-    titleFontSize: source.titleFontSize ?? '2.25rem',
-    titleFontWeight: source.titleFontWeight ?? 700,
-    titleColor: source.titleColor ?? '#111827',
-    subtitleFontFamily: source.subtitleFontFamily ?? 'Inter, system-ui, sans-serif',
-    subtitleFontSize: source.subtitleFontSize ?? '1.5rem',
-    subtitleFontWeight: source.subtitleFontWeight ?? 600,
-    subtitleColor: source.subtitleColor ?? '#374151',
-    bodyFontFamily: source.bodyFontFamily ?? 'Inter, system-ui, sans-serif',
-    bodyFontSize: source.bodyFontSize ?? '1rem',
-    bodyFontWeight: source.bodyFontWeight ?? 400,
-    bodyColor: source.bodyColor ?? '#6b7280',
-  } as const;
+  const picked: Record<string, unknown> = {};
+
+  for (const key of SECTION_STYLE_KEYS) {
+    const value = source[key];
+
+    if (value === undefined) {
+      continue;
+    }
+
+    if (key === 'is_custom') {
+      picked[key] = value === true;
+      continue;
+    }
+
+    if (key === 'buttonStyleVariant') {
+      picked[key] = value === 'secondary' ? 'secondary' : 'primary';
+      continue;
+    }
+
+    picked[key] = value;
+  }
+
+  return picked;
 }
 
 function pickFaqStyleConfig(source: Record<string, unknown>) {
   return {
-    faqCardBgColor:
-      typeof source.faqCardBgColor === 'string'
-        ? source.faqCardBgColor
-        : '#ffffff',
-    questionTextColor:
-      typeof source.questionTextColor === 'string'
-        ? source.questionTextColor
-        : '#1f2937',
-    answerTextColor:
-      typeof source.answerTextColor === 'string'
-        ? source.answerTextColor
-        : '#6b7280',
-    cardBorderRadius:
-      typeof source.cardBorderRadius === 'string'
-        ? source.cardBorderRadius
-        : '18px',
-    cardShadow:
-      source.cardShadow === 'none'
+    ...(typeof source.faqCardBgColor === 'string'
+      ? { faqCardBgColor: source.faqCardBgColor }
+      : {}),
+    ...(typeof source.questionTextColor === 'string'
+      ? { questionTextColor: source.questionTextColor }
+      : {}),
+    ...(typeof source.answerTextColor === 'string'
+      ? { answerTextColor: source.answerTextColor }
+      : {}),
+    ...(typeof source.cardBorderRadius === 'string'
+      ? { cardBorderRadius: source.cardBorderRadius }
+      : {}),
+    ...(source.cardShadow === 'none'
       || source.cardShadow === 'sm'
       || source.cardShadow === 'md'
       || source.cardShadow === 'lg'
-        ? source.cardShadow
-        : 'sm',
-    accentColor:
-      typeof source.accentColor === 'string'
-        ? source.accentColor
-        : '#8b5cf6',
-    hoverColor:
-      typeof source.hoverColor === 'string'
-        ? source.hoverColor
-        : '#f8fafc',
-    enableScrollAnimation: source.enableScrollAnimation === true,
+      ? { cardShadow: source.cardShadow }
+      : {}),
+    ...(typeof source.accentColor === 'string'
+      ? { accentColor: source.accentColor }
+      : {}),
+    ...(typeof source.hoverColor === 'string'
+      ? { hoverColor: source.hoverColor }
+      : {}),
+    ...(source.enableScrollAnimation !== undefined
+      ? { enableScrollAnimation: source.enableScrollAnimation === true }
+      : {}),
   } as const;
 }
 

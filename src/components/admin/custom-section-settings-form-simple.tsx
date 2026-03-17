@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Toast from '@/components/ui/toast';
 import {
   FloatingPreviewButton,
-  ResponsiveViewportTabs,
   SettingsCard,
   SettingsHeader,
   ToggleRow,
@@ -620,8 +619,6 @@ export default function CustomSectionSettingsForm({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [editorViewport, setEditorViewport] =
-    useState<EditorViewport>('desktop');
   const [previewViewport, setPreviewViewport] =
     useState<EditorViewport>('desktop');
   const [toast, setToast] = useState<{
@@ -1310,16 +1307,6 @@ export default function CustomSectionSettingsForm({
             </svg>
           }
           title="Typography and Responsive Structure"
-          action={
-            <ResponsiveViewportTabs
-              value={editorViewport}
-              onChange={(viewport) => {
-                setEditorViewport(viewport);
-                setPreviewViewport(viewport);
-              }}
-              scope="custom-section-typography"
-            />
-          }
         >
           <div className="space-y-6">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
@@ -1424,7 +1411,7 @@ export default function CustomSectionSettingsForm({
                   value={config}
                   onChange={updateConfig}
                   showAdvancedControls
-                  viewport={editorViewport}
+                  viewport="desktop"
                 />
               </div>
             ) : null}

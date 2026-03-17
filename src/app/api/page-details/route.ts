@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { resolveRestaurantIdByDomain } from '@/lib/server/domain-resolver';
 // Restaurant ID should be provided dynamically via query parameters - no static fallback
 
 /**
@@ -33,26 +34,6 @@ const GET_RESTAURANT_DOMAINS = `
       restaurant_id
       staging_domain
       custom_domain
-    }
-  }
-`;
-
-/**
- * GraphQL query to resolve restaurant_id directly by domain
- */
-const GET_RESTAURANT_ID_BY_DOMAIN = `
-  query GetRestaurantByDomain($domain: String!) {
-    restaurants(
-      where: {
-        _or: [
-          { custom_domain: { _eq: $domain } },
-          { staging_domain: { _eq: $domain } }
-        ],
-        is_deleted: { _eq: false }
-      },
-      limit: 1
-    ) {
-      restaurant_id
     }
   }
 `;
@@ -218,11 +199,7 @@ export async function GET(request: NextRequest) {
     // If domain is provided but no restaurantId, fetch restaurantId from domain
     if (domain && !restaurantId) {
       try {
-        const domainData = await graphqlRequest(GET_RESTAURANT_ID_BY_DOMAIN, {
-          domain,
-        });
-        const domainRestaurantId = (domainData as any)?.restaurants?.[0]?.restaurant_id;
-        restaurantId = domainRestaurantId || null;
+        restaurantId = await resolveRestaurantIdByDomain(domain);
       } catch (error) {
         console.error('Error fetching restaurant ID by domain:', error);
       }
@@ -352,7 +329,11 @@ export async function GET(request: NextRequest) {
       error: null,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'public, max-age=5, stale-while-revalidate=60',
+      },
+    });
   } catch (error: any) {
     console.error('Page details API error:', error);
     return NextResponse.json(

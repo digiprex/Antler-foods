@@ -19,6 +19,7 @@ import type {
   CustomSectionLayoutDefinition,
   CustomSectionMediaSlot,
 } from '@/lib/custom-section/layouts';
+import { getCustomSectionGapPlaceholder } from '@/lib/custom-section/spacing';
 
 export type CustomSectionMediaTarget =
   | { type: 'slot'; slot: CustomSectionMediaSlot; mediaKind: 'image' | 'video' }
@@ -843,8 +844,9 @@ export function LayoutControlsPanel({
         return isMobile
           ? config.responsive?.mobileContentGap ||
               config.layoutSettings?.contentGap ||
-              '1.25rem'
-          : config.layoutSettings?.contentGap || '2rem';
+              getCustomSectionGapPlaceholder('mobile')
+          : config.layoutSettings?.contentGap ||
+              getCustomSectionGapPlaceholder('desktop');
       case 'cardSpacing':
         return config.layoutSettings?.cardSpacing || '1.25rem';
       default:
@@ -1232,7 +1234,9 @@ export function LayoutControlsPanel({
                     : field === 'contentWidth'
                       ? '560px'
                       : field === 'contentGap'
-                        ? '2rem'
+                        ? getCustomSectionGapPlaceholder(
+                            isMobile ? 'mobile' : 'desktop',
+                          )
                         : '1.25rem'
                 }
               />

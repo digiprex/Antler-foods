@@ -17,6 +17,7 @@ import {
   resolveCustomSectionSpacingTier,
 } from '@/lib/custom-section/spacing';
 import {
+  getButtonInlineStyle,
   getSectionContainerStyles,
   getSectionTypographyStyles,
   getSurfaceShadowValue,
@@ -418,6 +419,12 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
     config.styleConfig?.cardShadow || layoutConfig.surfaceShadow,
   );
   const items = config.items || [];
+  const globalPrimaryButtonInlineStyle = getButtonInlineStyle(
+    globalStyles.primaryButton,
+  );
+  const globalSecondaryButtonInlineStyle = getButtonInlineStyle(
+    globalStyles.secondaryButton,
+  );
   const intro = (
     <CustomSectionIntro
       config={config}
@@ -457,11 +464,17 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
           backgroundColor: palette.buttonPrimary,
           color: palette.buttonPrimaryText,
           borderColor: palette.buttonPrimary,
+          border: globalStyles.primaryButton?.border,
+          baseStyle: globalPrimaryButtonInlineStyle,
+          globalStyle: globalStyles.primaryButton,
         },
         secondary: {
           backgroundColor: palette.buttonSecondary,
           color: palette.buttonSecondaryText,
           borderColor: palette.buttonBorder,
+          border: globalStyles.secondaryButton?.border,
+          baseStyle: globalSecondaryButtonInlineStyle,
+          globalStyle: globalStyles.secondaryButton,
         },
       }}
     />

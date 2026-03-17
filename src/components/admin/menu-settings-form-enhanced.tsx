@@ -477,11 +477,16 @@ function MenuLayoutThumbnail({ layout }: { layout: MenuLayout }) {
           {chrome}
           <div className="grid h-[120px] grid-cols-2 gap-3">
             {[0, 1].map((card) => (
-              <div key={card} className={`${lightCard} overflow-hidden p-2`}>
-                <div className={`${media} h-12`} />
-                <div className="mt-2 space-y-1.5">
-                  <div className="h-2.5 w-16 rounded-full bg-slate-700/80" />
-                  <div className="h-2 w-20 rounded-full bg-slate-300" />
+              <div
+                key={card}
+                className={`${lightCard} relative overflow-hidden`}
+              >
+                <div className={`absolute inset-0 ${media}`} />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/72 via-slate-900/28 to-transparent" />
+                <div className="relative grid h-full content-end justify-items-center gap-1.5 p-3 text-center">
+                  <div className="h-2.5 w-16 rounded-full bg-white/90" />
+                  <div className="h-2 w-20 rounded-full bg-white/65" />
+                  <div className="h-5 w-12 rounded-full bg-white/85" />
                 </div>
               </div>
             ))}

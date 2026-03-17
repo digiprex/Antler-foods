@@ -460,7 +460,7 @@ function getOverlayBodyStyle(
         inset: 0,
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-end',
+        justifyContent: 'center',
         alignItems: 'center',
         textAlign: 'center',
       };
@@ -1029,9 +1029,23 @@ export default function Menu(rawProps: MenuProps) {
       : undefined) || resolvedTextColor;
   const sharedTitleTextStyle: CSSProperties = {
     ...(titleStyle.fontFamily ? { fontFamily: titleStyle.fontFamily } : {}),
+    ...(typeof titleStyle.fontWeight === 'number'
+      ? { fontWeight: titleStyle.fontWeight }
+      : {}),
     ...(titleStyle.fontStyle
       ? {
           fontStyle: titleStyle.fontStyle as CSSProperties['fontStyle'],
+        }
+      : {}),
+    ...(titleStyle.lineHeight
+      ? {
+          lineHeight: titleStyle.lineHeight as CSSProperties['lineHeight'],
+        }
+      : {}),
+    ...(titleStyle.letterSpacing
+      ? {
+          letterSpacing:
+            titleStyle.letterSpacing as CSSProperties['letterSpacing'],
         }
       : {}),
     ...(titleStyle.textTransform
@@ -1078,8 +1092,23 @@ export default function Menu(rawProps: MenuProps) {
     ...(titleStyle.fontFamily
       ? { ['--menu-title-font-family' as string]: titleStyle.fontFamily }
       : {}),
+    ...(typeof titleStyle.fontWeight === 'number'
+      ? { ['--menu-title-font-weight' as string]: titleStyle.fontWeight }
+      : {}),
     ...(titleStyle.fontStyle
       ? { ['--menu-title-font-style' as string]: titleStyle.fontStyle }
+      : {}),
+    ...(titleStyle.lineHeight
+      ? {
+          ['--menu-title-line-height' as string]:
+            titleStyle.lineHeight as string,
+        }
+      : {}),
+    ...(titleStyle.letterSpacing
+      ? {
+          ['--menu-title-letter-spacing' as string]:
+            titleStyle.letterSpacing as string,
+        }
       : {}),
     ...(titleStyle.textTransform
       ? {
@@ -1531,6 +1560,7 @@ export default function Menu(rawProps: MenuProps) {
     index: number,
     options?: { overlay?: boolean; compact?: boolean; centered?: boolean },
   ) => {
+    const defaultOverlayPosition = layout === 'grid' ? 'center' : 'bottom-left';
     const imageAspectRatio = getAspectRatioValue(
       getGridAlignedImageAspectRatio(
         layout as MenuLayout,
@@ -1540,8 +1570,12 @@ export default function Menu(rawProps: MenuProps) {
     const overlayPosition = layoutString(
       'overlayTextPosition',
       'mobileOverlayTextPosition',
-      'bottom-left',
+      defaultOverlayPosition,
     );
+    const overlayAlignment =
+      overlayPosition === 'center' || overlayPosition === 'bottom-center'
+        ? 'center'
+        : resolvedItemTextAlign;
     const media = showImages
       ? resolveItemMedia(item, headerImage, backgroundImage)
       : undefined;
@@ -1598,7 +1632,7 @@ export default function Menu(rawProps: MenuProps) {
           )}
           style={
             options?.overlay
-              ? getOverlayBodyStyle(overlayPosition, resolvedItemTextAlign)
+              ? getOverlayBodyStyle(overlayPosition, overlayAlignment)
               : {
                   padding: resolvedItemPadding,
                   textAlign:
@@ -1613,7 +1647,9 @@ export default function Menu(rawProps: MenuProps) {
           ) : null}
           <div
             className={styles.cardTitleRow}
-            style={getTitleRowStyle(resolvedItemTextAlign)}
+            style={getTitleRowStyle(
+              options?.overlay ? overlayAlignment : resolvedItemTextAlign,
+            )}
           >
             <h3 className={styles.cardTitle} style={sharedTitleTextStyle}>
               {item.name}
@@ -1627,7 +1663,9 @@ export default function Menu(rawProps: MenuProps) {
           ) : null}
           {renderDietary(item)}
           {renderItemActions(item, {
-            className: getButtonGroupClassName(resolvedItemTextAlign),
+            className: getButtonGroupClassName(
+              options?.overlay ? overlayAlignment : resolvedItemTextAlign,
+            ),
           })}
         </div>
       </article>

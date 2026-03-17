@@ -551,6 +551,13 @@ export default function Reviews({
   }) => {
     const isSolid = variant === 'solid';
     const isDisabled = !restaurantId;
+    const primaryButtonBackground =
+      selectedButtonStyle.backgroundColor || reviewAccent.solid;
+    const primaryButtonText = selectedButtonStyle.color || '#ffffff';
+    const primaryButtonBorder =
+      selectedButtonStyle.border || `1px solid ${primaryButtonBackground}`;
+    const outlineBorder = `1px solid ${primaryButtonBackground}`;
+    const outlineText = primaryButtonBackground;
 
     return (
       <button
@@ -564,15 +571,13 @@ export default function Reviews({
           gap: '0.7rem',
           width: fullWidth ? '100%' : undefined,
           borderRadius: selectedButtonStyle.borderRadius || '16px',
-          border: isSolid
-            ? `1px solid ${reviewAccent.solid}`
-            : `2px solid ${reviewAccent.border}`,
+          border: isSolid ? primaryButtonBorder : outlineBorder,
           background: isDisabled
             ? '#d1d5db'
             : isSolid
-              ? `linear-gradient(135deg, ${reviewAccent.solid}, ${reviewAccent.solidDark})`
-              : reviewAccent.soft,
-          color: isDisabled ? '#64748b' : isSolid ? '#ffffff' : reviewAccent.text,
+              ? primaryButtonBackground
+              : 'transparent',
+          color: isDisabled ? '#64748b' : isSolid ? primaryButtonText : outlineText,
           padding: isSolid ? '1rem 1.35rem' : '0.9rem 1.2rem',
           fontFamily: selectedButtonStyle.fontFamily || bodyFontFamily,
           fontSize: selectedButtonStyle.fontSize || '0.96rem',
@@ -582,8 +587,8 @@ export default function Reviews({
           boxShadow: isDisabled
             ? 'none'
             : isSolid
-              ? `0 18px 40px ${reviewAccent.shadow}`
-              : `0 14px 30px ${reviewAccent.shadowSoft}`,
+              ? '0 18px 40px rgba(15, 23, 42, 0.12)'
+              : 'none',
           transition: 'transform 180ms ease, box-shadow 180ms ease',
         }}
       >

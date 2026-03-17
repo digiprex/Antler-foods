@@ -184,7 +184,7 @@ export const DEFAULT_CUSTOM_SECTION_CONFIG: CustomSectionConfig = {
   sectionPaddingY: '5rem',
   mobileSectionPaddingY: '2rem',
   sectionPaddingX: '5rem',
-  mobileSectionPaddingX: '2rem',
+  mobileSectionPaddingX: '1rem',
   surfaceBorderRadius: '1.75rem',
   surfaceShadow: 'soft',
   enableScrollReveal: false,

@@ -27,6 +27,7 @@ import type {
 } from '@/types/menu.types';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import Menu from '@/components/menu';
+import { getMenuLayoutOptions } from '@/utils/menu-layout-utils';
 import {
   CategoryDrivenLayoutEditor,
   type CategoryEditorCopy,
@@ -47,58 +48,8 @@ type MenuLayoutValue = NonNullable<MenuConfig['layout']>;
 type PreviewSurface = 'card' | 'modal';
 type PreviewViewport = 'desktop' | 'mobile';
 
-const MENU_LAYOUT_OPTIONS: Array<{
-  value: MenuLayoutValue;
-  name: string;
-  description: string;
-}> = [
-  {
-    value: 'grid',
-    name: 'Grid',
-    description: 'Two cards with text overlay on images',
-  },
-  { value: 'list', name: 'List', description: 'Bold promo cards with buttons' },
-  {
-    value: 'masonry',
-    name: 'Masonry',
-    description: 'Image top, details below - staggered',
-  },
-  {
-    value: 'carousel',
-    name: 'Carousel',
-    description: 'Scrollable image cards with overlay',
-  },
-  {
-    value: 'tabs',
-    name: 'Tabs',
-    description: 'Category selector with side tabs',
-  },
-  {
-    value: 'accordion',
-    name: 'Accordion',
-    description: 'Expandable menu sections',
-  },
-  {
-    value: 'two-column',
-    name: 'Two Column',
-    description: 'Two side-by-side image cards',
-  },
-  {
-    value: 'single-column',
-    name: 'Single Column',
-    description: 'Centered stacked cards',
-  },
-  {
-    value: 'featured-grid',
-    name: 'Featured Grid',
-    description: 'Three icon-based highlights',
-  },
-  {
-    value: 'minimal',
-    name: 'Minimal',
-    description: 'Clean text-only design',
-  },
-];
+// Get menu layout options from JSON
+const MENU_LAYOUT_OPTIONS = getMenuLayoutOptions();
 
 const IMAGE_FOCUSED_MENU_LAYOUTS = new Set<MenuLayoutValue>([
   'grid',

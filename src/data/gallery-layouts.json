@@ -1,0 +1,52 @@
+{
+  "layouts": [
+    {
+      "id": "showcase",
+      "name": "Showcase",
+      "description": "Center hero with side previews",
+      "preview": "/previews/gallery/showcase.png"
+    },
+    {
+      "id": "spotlight",
+      "name": "Spotlight",
+      "description": "Center-stage layered showcase",
+      "preview": "/previews/gallery/spotlight.png"
+    },
+    {
+      "id": "mosaic",
+      "name": "Mosaic",
+      "description": "Editorial collage layout",
+      "preview": "/previews/gallery/mosaic.png"
+    },
+    {
+      "id": "editorial",
+      "name": "Editorial",
+      "description": "Hero frame with supporting tiles",
+      "preview": "/previews/gallery/editorial.png"
+    },
+    {
+      "id": "filmstrip",
+      "name": "Filmstrip",
+      "description": "Horizontal reel with depth",
+      "preview": "/previews/gallery/filmstrip.png"
+    },
+    {
+      "id": "grid",
+      "name": "Grid",
+      "description": "Uniform layout",
+      "preview": "/previews/gallery/grid.png"
+    },
+    {
+      "id": "masonry",
+      "name": "Masonry",
+      "description": "Pinterest style",
+      "preview": "/previews/gallery/masonry.png"
+    },
+    {
+      "id": "carousel",
+      "name": "Carousel",
+      "description": "Sliding gallery",
+      "preview": "/previews/gallery/carousel.png"
+    }
+  ]
+}

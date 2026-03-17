@@ -24,6 +24,7 @@ import {
   DEFAULT_SCROLLING_TEXT_CONFIG,
   SCROLL_SPEEDS,
 } from '@/types/scrolling-text.types';
+import { getScrollingTextLayoutOptions } from '@/utils/scrolling-text-layout-utils';
 
 function LayoutPreview({ layout }: { layout: NonNullable<ScrollingTextConfig['layout']> }) {
   if (layout === 'vertical') {
@@ -328,21 +329,17 @@ export default function ScrollingTextSettingsForm() {
             />
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <LayoutCard
-                title="Horizontal Scroll"
-                description="A continuous marquee strip with strong motion and premium separators."
-                preview={<LayoutPreview layout="horizontal" />}
-                selected={(formConfig.layout || 'horizontal') === 'horizontal'}
-                onClick={() => updateConfig({ layout: 'horizontal' })}
-                badge="Recommended"
-              />
-              <LayoutCard
-                title="Vertical Scroll"
-                description="A stacked ticker feel that works well for short promotional statements."
-                preview={<LayoutPreview layout="vertical" />}
-                selected={formConfig.layout === 'vertical'}
-                onClick={() => updateConfig({ layout: 'vertical' })}
-              />
+              {getScrollingTextLayoutOptions().map((layoutOption) => (
+                <LayoutCard
+                  key={layoutOption.id}
+                  title={layoutOption.name}
+                  description={layoutOption.description}
+                  preview={<LayoutPreview layout={layoutOption.id} />}
+                  selected={(formConfig.layout || 'horizontal') === layoutOption.id}
+                  onClick={() => updateConfig({ layout: layoutOption.id })}
+                  badge={layoutOption.badge}
+                />
+              ))}
             </div>
           </div>
         </SettingsCard>

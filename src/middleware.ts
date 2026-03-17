@@ -35,7 +35,6 @@ export function middleware(request: NextRequest) {
 
   // For custom domains or Vercel staging domains, the request continues normally
   // The app/[slug]/page.tsx will resolve the restaurant based on the domain
-  // via the website-info API which queries by domain
 
   return NextResponse.next();
 }

@@ -22,6 +22,7 @@ import {
   SECTION_STYLE_KEYS,
   type SectionStyleConfig,
 } from '@/types/section-style.types';
+import { getLocationLayoutOptions, getLocationLayoutSupportTexts } from '@/utils/location-layout-utils';
 
 // Dynamically import Google Location Picker to avoid SSR issues
 const GoogleLocationPicker = dynamic(() => import('./google-location-picker'), {
@@ -209,68 +210,9 @@ export default function LocationSettingsForm({
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
-  // Layout options with descriptions
-  const layoutOptions = [
-    {
-      value: 'default',
-      name: 'Default',
-      description: 'Simple location display',
-      icon: '📄',
-    },
-    {
-      value: 'grid',
-      name: 'Grid',
-      description: 'Grid layout with details',
-      icon: '⊞',
-    },
-    {
-      value: 'list',
-      name: 'List',
-      description: 'Detailed list view',
-      icon: '☰',
-    },
-    {
-      value: 'cards',
-      name: 'Cards',
-      description: 'Card-based layout',
-      icon: '🗃️',
-    },
-    {
-      value: 'map',
-      name: 'Map View',
-      description: 'Interactive map',
-      icon: '🗺️',
-    },
-    {
-      value: 'compact',
-      name: 'Compact',
-      description: 'Minimal card view',
-      icon: '📋',
-    },
-    {
-      value: 'sidebar',
-      name: 'Sidebar',
-      description: 'Sidebar with map focus',
-      icon: '⊟',
-    },
-    {
-      value: 'fullscreen',
-      name: 'Fullscreen',
-      description: 'Full-width immersive',
-      icon: '🖼️',
-    },
-  ];
-
-  const layoutSupportText: Record<string, string> = {
-    default: 'Balanced address-first presentation',
-    grid: 'Best for clean map and info balance',
-    list: 'Great for long-form location details',
-    cards: 'Modular highlights with more breathing room',
-    map: 'Map-first experience with supporting info',
-    compact: 'Tight footprint for denser pages',
-    sidebar: 'Strong for multi-column page composition',
-    fullscreen: 'Best for bold destination-style sections',
-  };
+  // Get layout options from JSON
+  const layoutOptions = getLocationLayoutOptions();
+  const layoutSupportText = getLocationLayoutSupportTexts();
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 

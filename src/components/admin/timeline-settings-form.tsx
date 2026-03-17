@@ -17,14 +17,16 @@ import Toast from '@/components/ui/toast';
 import { useSectionStyleDefaults } from '@/hooks/use-section-style-defaults';
 import { useTimelineConfig, useUpdateTimelineConfig } from '@/hooks/use-timeline-config';
 import {
-  TIMELINE_LAYOUTS,
   type TimelineConfig,
   type TimelineItem,
   type TimelineLayout,
 } from '@/types/timeline.types';
+import {
+  getTimelineLayoutOptions,
+  type TimelineEditorLayoutValue,
+} from '@/utils/timeline-layout-utils';
 
-const TIMELINE_EDITOR_LAYOUTS = ['alternating', 'left', 'right', 'center'] as const;
-type EditorTimelineLayout = (typeof TIMELINE_EDITOR_LAYOUTS)[number];
+type EditorTimelineLayout = TimelineEditorLayoutValue;
 
 const GLOBAL_TYPOGRAPHY_KEYS = [
   'buttonStyleVariant',
@@ -330,15 +332,15 @@ export default function TimelineSettingsForm() {
           <div className="space-y-5">
             <ToggleRow title="Enable Timeline" description="Show or hide the timeline section on the page." checked={formConfig.isEnabled} onChange={(checked) => updateConfig({ isEnabled: checked })} />
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {TIMELINE_EDITOR_LAYOUTS.map((layout) => (
+              {getTimelineLayoutOptions().map((layoutOption) => (
                 <LayoutCard
-                  key={layout}
-                  title={TIMELINE_LAYOUTS[layout].name}
-                  description={TIMELINE_LAYOUTS[layout].description}
-                  preview={<LayoutPreview layout={layout} />}
-                  selected={selectedLayout === layout}
-                  onClick={() => updateConfig({ layout })}
-                  badge={layout === 'alternating' ? 'Recommended' : undefined}
+                  key={layoutOption.id}
+                  title={layoutOption.name}
+                  description={layoutOption.description}
+                  preview={<LayoutPreview layout={layoutOption.id} />}
+                  selected={selectedLayout === layoutOption.id}
+                  onClick={() => updateConfig({ layout: layoutOption.id })}
+                  badge={layoutOption.badge}
                 />
               ))}
             </div>

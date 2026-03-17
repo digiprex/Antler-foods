@@ -18,7 +18,7 @@ import Toast from '@/components/ui/toast';
 import { ImageGalleryModal } from './image-gallery-modal';
 import { SectionTypographyControls } from '@/components/admin/section-typography-controls';
 import styles from './gallery-settings-form.module.css';
-import { getCustomSectionLayoutOptions } from '@/utils/custom-section-layout-utils';
+import { getCustomSectionLayoutOptions, getCustomSectionMediaSupport } from '@/utils/custom-section-layout-utils';
 
 // Type definitions
 interface CustomSectionImage {
@@ -358,37 +358,25 @@ export default function CustomSectionSettingsForm({ pageId, templateId, isNewSec
     }
   };
 
-  // Determine which media fields to show based on layout
+  // Determine which media fields to show based on layout (from JSON configuration)
   const getMediaFieldsForLayout = (layout: string) => {
-    const fields = {
-      showSectionImage: false,
-      showBackgroundVideo: false,
-      showBackgroundImage: false,
-    };
+    const mediaSupport = getCustomSectionMediaSupport(layout);
 
-    switch (layout) {
-      case 'layout-1':
-      case 'layout-2':
-      case 'layout-6':
-      case 'layout-7':
-      case 'layout-8':
-      case 'layout-9':
-        fields.showSectionImage = true;
-        break;
-      case 'layout-3':
-        fields.showBackgroundVideo = true;
-        break;
-      case 'layout-4':
-      case 'layout-5':
-        fields.showSectionImage = true;
-        fields.showBackgroundImage = true;
-        break;
-      default:
-        fields.showSectionImage = true;
-        break;
+    // If layout not found in JSON, default to showing section image
+    if (!mediaSupport) {
+      return {
+        showSectionImage: true,
+        showBackgroundVideo: false,
+        showBackgroundImage: false,
+      };
     }
 
-    return fields;
+    // Map JSON mediaSupport to component field names
+    return {
+      showSectionImage: mediaSupport.image,
+      showBackgroundVideo: mediaSupport.video,
+      showBackgroundImage: mediaSupport.backgroundImage,
+    };
   };
 
   // Render layout preview with placeholder content

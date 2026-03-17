@@ -1332,6 +1332,371 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
 }
 
 /**
+ * Generate section content (title, subtitle, description) using Amazon Bedrock AI
+ * Universal function for any section type
+ * @param restaurantId - Restaurant ID
+ * @param pageName - Page name (e.g., 'home', 'about')
+ * @param sectionType - Section type (e.g., 'Gallery', 'FAQ', 'Reviews', 'Form')
+ * @param layoutId - Layout ID for context
+ * @returns Object with title, subtitle, description or null if generation fails
+ */
+async function generateSectionContent(
+  restaurantId: string,
+  pageName: string,
+  sectionType: string,
+  layoutId?: string
+) {
+  try {
+    // Check if Bedrock is configured
+    if (!process.env.AWS_BEARER_TOKEN_BEDROCK) {
+      console.log(`AWS Bedrock not configured, skipping ${sectionType} content generation`);
+      return null;
+    }
+
+    // Fetch restaurant details
+    const restaurant = await getRestaurantDetails(restaurantId);
+    if (!restaurant) {
+      console.log(`Restaurant not found, skipping ${sectionType} content generation`);
+      return null;
+    }
+
+    // Build context for the AI prompt
+    const contextParts = [];
+    if (restaurant.business_type) contextParts.push(restaurant.business_type);
+    if (restaurant.cuisine_types && Array.isArray(restaurant.cuisine_types) && restaurant.cuisine_types.length > 0) {
+      contextParts.push(`${restaurant.cuisine_types.join(', ')} cuisine`);
+    }
+
+    const locationInfo = [restaurant.city, restaurant.state, restaurant.country]
+      .filter(Boolean)
+      .join(', ');
+    if (locationInfo) contextParts.push(`located in ${locationInfo}`);
+
+    const context = contextParts.length > 0 ? ` - ${contextParts.join(', ')}` : '';
+
+    // Section-specific guidance
+    const sectionGuidance: Record<string, { purpose: string; titleGuidance: string; subtitleGuidance: string; descriptionGuidance: string }> = {
+      Gallery: {
+        purpose: 'photo gallery showcasing restaurant images',
+        titleGuidance: 'Short, engaging headline (3-6 words) about visual experience',
+        subtitleGuidance: 'Brief supporting text (5-10 words) inviting exploration',
+        descriptionGuidance: 'Inviting description (1-2 sentences) encouraging visitors to explore the gallery',
+      },
+      FAQ: {
+        purpose: 'frequently asked questions section',
+        titleGuidance: 'Clear, direct headline (2-4 words) about questions/answers',
+        subtitleGuidance: 'Helpful supporting text (5-8 words) about finding information',
+        descriptionGuidance: 'Brief description (1 sentence) encouraging visitors to find answers',
+      },
+      Reviews: {
+        purpose: 'customer reviews and testimonials section',
+        titleGuidance: 'Engaging headline (2-4 words) about customer feedback',
+        subtitleGuidance: 'Supporting text (5-8 words) about guest experiences',
+        descriptionGuidance: 'Brief description (1 sentence) highlighting authentic customer voices',
+      },
+      form: {
+        purpose: 'contact form section',
+        titleGuidance: 'Welcoming headline (2-4 words) about getting in touch',
+        subtitleGuidance: 'Friendly supporting text (5-8 words) about being available',
+        descriptionGuidance: 'Brief description (1 sentence) encouraging visitors to reach out',
+      },
+      YouTube: {
+        purpose: 'video content section',
+        titleGuidance: 'Engaging headline (3-5 words) about video content',
+        subtitleGuidance: 'Supporting text (5-8 words) inviting to watch',
+        descriptionGuidance: 'Brief description (1 sentence) about visual storytelling',
+      },
+      Timeline: {
+        purpose: 'timeline or history section',
+        titleGuidance: 'Compelling headline (2-4 words) about journey or history',
+        subtitleGuidance: 'Supporting text (5-8 words) about the story',
+        descriptionGuidance: 'Brief description (1 sentence) about the restaurant\'s journey',
+      },
+      Location: {
+        purpose: 'location and directions section',
+        titleGuidance: 'Clear headline (2-4 words) about finding the restaurant',
+        subtitleGuidance: 'Supporting text (5-8 words) about visiting',
+        descriptionGuidance: 'Brief description (1 sentence) about location accessibility',
+      },
+      ScrollingText: {
+        purpose: 'scrolling text banner section',
+        titleGuidance: 'Catchy headline (3-5 words) for banner',
+        subtitleGuidance: 'Supporting text (5-8 words) complementing the headline',
+        descriptionGuidance: 'Brief description (1 sentence) about the message',
+      },
+    };
+
+    const guidance = sectionGuidance[sectionType] || {
+      purpose: 'section',
+      titleGuidance: 'Engaging headline (3-5 words)',
+      subtitleGuidance: 'Supporting text (5-8 words)',
+      descriptionGuidance: 'Brief description (1-2 sentences)',
+    };
+
+    // Create section content generation prompt
+    const prompt = `Generate a title, subtitle, and description for a ${guidance.purpose} on a restaurant website.
+
+Restaurant: ${restaurant.name}${context}
+Page: ${pageName}
+Section Type: ${sectionType}${layoutId ? `\nLayout: ${layoutId}` : ''}
+
+Requirements:
+- Title: ${guidance.titleGuidance}
+- Subtitle: ${guidance.subtitleGuidance}
+- Description: ${guidance.descriptionGuidance}
+- Keep content professional, engaging, and relevant to ${sectionType}
+- Make it specific to the restaurant context
+
+JSON format (return only valid JSON, no markdown):
+{
+  "title": "...",
+  "subtitle": "...",
+  "description": "..."
+}`;
+
+    // Use Claude 3 Sonnet for content generation
+    const modelId = 'anthropic.claude-3-5-sonnet-20241022-v2:0';
+
+    const requestBody = {
+      anthropic_version: 'bedrock-2023-05-31',
+      max_tokens: 1000,
+      temperature: 0.7,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    };
+
+    // Invoke the model
+    const command = new InvokeModelCommand({
+      modelId,
+      body: JSON.stringify(requestBody),
+      contentType: 'application/json',
+      accept: 'application/json',
+    });
+
+    const response = await bedrockClient.send(command);
+
+    // Parse the response
+    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+
+    if (!responseBody.content || !responseBody.content[0] || !responseBody.content[0].text) {
+      throw new Error('Invalid response from Bedrock model');
+    }
+
+    const generatedText = responseBody.content[0].text.trim();
+
+    // Extract JSON from the response
+    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Could not extract JSON from Bedrock response');
+    }
+
+    const generatedContent = JSON.parse(jsonMatch[0]);
+
+    console.log(`✅ Generated ${sectionType} content for ${pageName} page`);
+
+    return {
+      title: generatedContent.title || `Our ${sectionType}`,
+      subtitle: generatedContent.subtitle || '',
+      description: generatedContent.description || '',
+    };
+
+  } catch (error) {
+    console.error(`Error generating ${sectionType} content with Bedrock:`, error);
+    return null;
+  }
+}
+
+
+async function generateFAQContent(
+  restaurantId: string,
+  pageName: string
+) {
+  try {
+    // Check if Bedrock is configured
+    if (!process.env.AWS_BEARER_TOKEN_BEDROCK) {
+      console.log('AWS Bedrock not configured, skipping FAQ generation');
+      return null;
+    }
+
+    // Fetch restaurant details
+    const restaurant = await getRestaurantDetails(restaurantId);
+    if (!restaurant) {
+      console.log('Restaurant not found, skipping FAQ generation');
+      return null;
+    }
+
+    // Build context for the AI prompt
+    const contextParts = [];
+    if (restaurant.business_type) contextParts.push(restaurant.business_type);
+    if (restaurant.cuisine_types && Array.isArray(restaurant.cuisine_types) && restaurant.cuisine_types.length > 0) {
+      contextParts.push(`${restaurant.cuisine_types.join(', ')} cuisine`);
+    }
+
+    const locationInfo = [restaurant.city, restaurant.state, restaurant.country]
+      .filter(Boolean)
+      .join(', ');
+    if (locationInfo) contextParts.push(`located in ${locationInfo}`);
+
+    const context = contextParts.length > 0 ? ` - ${contextParts.join(', ')}` : '';
+
+    // Create FAQ generation prompt
+    const prompt = `Generate 3 frequently asked questions (FAQs) for a restaurant website.
+
+Restaurant: ${restaurant.name}${context}
+
+Requirements:
+- Generate exactly 3 relevant FAQs
+- Questions should be common inquiries customers would have
+- Answers should be helpful, professional, and concise (2-3 sentences each)
+- Topics can include: reservations, hours, parking, dietary accommodations, dress code, etc.
+- Make answers specific to the restaurant when possible
+
+JSON format (return only valid JSON, no markdown):
+{
+  "faqs": [
+    {
+      "question": "...",
+      "answer": "..."
+    },
+    {
+      "question": "...",
+      "answer": "..."
+    },
+    {
+      "question": "...",
+      "answer": "..."
+    }
+  ]
+}`;
+
+    // Use Claude 3 Sonnet for FAQ generation
+    const modelId = 'anthropic.claude-3-5-sonnet-20241022-v2:0';
+
+    const requestBody = {
+      anthropic_version: 'bedrock-2023-05-31',
+      max_tokens: 2000,
+      temperature: 0.7,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    };
+
+    // Invoke the model
+    const command = new InvokeModelCommand({
+      modelId,
+      body: JSON.stringify(requestBody),
+      contentType: 'application/json',
+      accept: 'application/json',
+    });
+
+    const response = await bedrockClient.send(command);
+
+    // Parse the response
+    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+
+    if (!responseBody.content || !responseBody.content[0] || !responseBody.content[0].text) {
+      throw new Error('Invalid response from Bedrock model');
+    }
+
+    const generatedText = responseBody.content[0].text.trim();
+
+    // Extract JSON from the response
+    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Could not extract JSON from Bedrock response');
+    }
+
+    const generatedContent = JSON.parse(jsonMatch[0]);
+
+    // Add unique IDs to each FAQ
+    const faqsWithIds = (generatedContent.faqs || []).map((faq: any, index: number) => ({
+      id: `faq-${Date.now()}-${index}`,
+      question: faq.question || '',
+      answer: faq.answer || '',
+    }));
+
+    console.log(`✅ Generated ${faqsWithIds.length} FAQs for ${pageName} page`);
+
+    return faqsWithIds;
+
+  } catch (error) {
+    console.error('Error generating FAQ content with Bedrock:', error);
+    return null;
+  }
+}
+
+/**
+ * Fetch reviews from the database for a restaurant
+ * @param restaurantId - Restaurant ID
+ * @param limit - Maximum number of reviews to fetch (default: 6)
+ * @returns Array of reviews or null if none found
+ */
+async function getRestaurantReviews(restaurantId: string, limit: number = 6) {
+  try {
+    const query = `
+      query GetRestaurantReviews($restaurant_id: uuid!, $limit: Int!) {
+        reviews(
+          where: {
+            restaurant_id: { _eq: $restaurant_id },
+            is_deleted: { _eq: false },
+            is_hidden: { _eq: false }
+          },
+          order_by: { created_at: desc },
+          limit: $limit
+        ) {
+          review_id
+          rating
+          author_name
+          review_text
+          author_url
+          review_url
+          published_at
+          source
+          avatar_url
+          avatar_file_id
+        }
+      }
+    `;
+
+    const data = await adminGraphqlRequest<{
+      reviews: Array<{
+        review_id: string;
+        rating: number;
+        author_name?: string | null;
+        review_text?: string | null;
+        author_url?: string | null;
+        review_url?: string | null;
+        published_at?: string | null;
+        source: string;
+        avatar_url?: string | null;
+        avatar_file_id?: string | null;
+      }>
+    }>(query, {
+      restaurant_id: restaurantId,
+      limit: limit,
+    });
+
+    if (data.reviews && data.reviews.length > 0) {
+      console.log(`✅ Found ${data.reviews.length} reviews for restaurant`);
+      return data.reviews;
+    }
+
+    console.log('No reviews found for restaurant');
+    return null;
+  } catch (error) {
+    console.error('Error fetching restaurant reviews:', error);
+    return null;
+  }
+}
+
+/**
  * Creates sections for all pages (including Home, About, Contact, etc.) from theme's other_page_sections
  * @param restaurantId - Restaurant ID
  * @param themeId - Theme ID to fetch other_page_sections from
@@ -1428,6 +1793,9 @@ async function createOtherPageSectionsFromTheme(
         const isHeroSection = category.toLowerCase() === 'hero';
         const isCustomSection = category.toLowerCase() === 'customsection';
         const isFormSection = category.toLowerCase() === 'form';
+        const isFAQSection = category.toLowerCase() === 'faq';
+        const isReviewSection = category.toLowerCase() === 'reviews';
+        const isGallerySection = category.toLowerCase() === 'gallery';
 
         if (isHeroSection) {
           category = 'Hero';
@@ -1435,6 +1803,12 @@ async function createOtherPageSectionsFromTheme(
           category = 'CustomSection';
         } else if (isFormSection) {
           category = 'form';
+        } else if (isFAQSection) {
+          category = 'FAQ';
+        } else if (isReviewSection) {
+          category = 'Reviews';
+        } else if (isGallerySection) {
+          category = 'Gallery';
         }
 
         // Use full config if provided, otherwise create minimal config with layout ID
@@ -1442,6 +1816,15 @@ async function createOtherPageSectionsFromTheme(
 
         // For Form sections on contact page, ensure they have the form_id regardless of existing config
         if (isFormSection && pageName === 'contact' && contactFormId) {
+          // Generate section title, subtitle, and description
+          const aiSectionContent = await generateSectionContent(restaurantId, pageName, 'form', section.id);
+          const defaultSectionContent = {
+            title: 'Get In Touch',
+            subtitle: 'We\'re here to help',
+            description: 'Fill out the form below and we\'ll get back to you as soon as possible.',
+          };
+          const sectionContent = aiSectionContent || defaultSectionContent;
+
           // Build complete form configuration
           const formConfig = {
             // Essential form configuration
@@ -1449,12 +1832,12 @@ async function createOtherPageSectionsFromTheme(
             isEnabled: true,
             restaurant_id: restaurantId,
             layout: sectionConfig.layout || section.id || 'centered',
-            
-            // Content configuration with fallbacks
-            title: sectionConfig.title || 'Get In Touch',
-            subtitle: sectionConfig.subtitle || 'We\'re here to help',
-            description: sectionConfig.description || 'Fill out the form below and we\'ll get back to you as soon as possible.',
-            
+
+            // Content configuration from AI generation
+            title: sectionContent.title,
+            subtitle: sectionContent.subtitle,
+            description: sectionContent.description,
+
             // Visual configuration
             backgroundColor: sectionConfig.backgroundColor || '#f8fafc',
             mobileBackgroundColor: sectionConfig.mobileBackgroundColor || '',
@@ -1465,7 +1848,7 @@ async function createOtherPageSectionsFromTheme(
             buttonText: sectionConfig.buttonText || 'Send Message',
             showImage: sectionConfig.showImage !== undefined ? sectionConfig.showImage : false,
             imageUrl: sectionConfig.imageUrl || '',
-            
+
             // Typography from global_styles
             titleFontFamily: sectionConfig.titleFontFamily || globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
             titleFontSize: sectionConfig.titleFontSize || globalStyles?.title?.fontSize || '2.25rem',
@@ -1497,11 +1880,237 @@ async function createOtherPageSectionsFromTheme(
             enableScrollReveal: sectionConfig.enableScrollReveal !== undefined ? sectionConfig.enableScrollReveal : false,
             scrollRevealAnimation: sectionConfig.scrollRevealAnimation || 'fade-up',
           };
-          
+
           // Merge with any additional properties from original config, but prioritize form config
           sectionConfig = { ...sectionConfig, ...formConfig };
-          
-          console.log(`  ✓ Configured form section with form_id: ${contactFormId} and full config`);
+
+          console.log(`  ✓ Configured form section with form_id: ${contactFormId} and AI-generated content`);
+        }
+
+        // For FAQ sections without full config, generate AI FAQs and section content
+        if (isFAQSection && !section.config) {
+          console.log(`  ⚡ Generating AI FAQ content for ${pageName} page (layout: ${section.id})...`);
+
+          // Generate FAQ questions and answers
+          const aiGeneratedFAQs = await generateFAQContent(restaurantId, pageName);
+
+          // Default fallback FAQs if AI generation fails
+          const defaultFAQs = [
+            {
+              id: `faq-default-1-${Date.now()}`,
+              question: 'Do you take reservations?',
+              answer: 'Yes, we accept reservations online or by phone. Walk-ins are welcome based on availability.',
+            },
+            {
+              id: `faq-default-2-${Date.now()}`,
+              question: 'What are your hours?',
+              answer: 'We are open Tuesday through Sunday for lunch and dinner. Please check our website for specific hours.',
+            },
+            {
+              id: `faq-default-3-${Date.now()}`,
+              question: 'Do you accommodate dietary restrictions?',
+              answer: 'Yes, we can accommodate most dietary restrictions including vegetarian, vegan, and gluten-free options. Please inform your server.',
+            },
+          ];
+
+          const faqs = aiGeneratedFAQs || defaultFAQs;
+
+          // Generate section title, subtitle, and description
+          const aiSectionContent = await generateSectionContent(restaurantId, pageName, 'FAQ', section.id);
+          const defaultSectionContent = {
+            title: 'Frequently Asked Questions',
+            subtitle: 'Find answers to common questions',
+            description: 'Have questions? We have answers.',
+          };
+          const sectionContent = aiSectionContent || defaultSectionContent;
+
+          // Build complete FAQ configuration
+          const faqConfig = {
+            restaurant_id: restaurantId,
+            layout: sectionConfig.layout || section.id || 'accordion',
+            isEnabled: true,
+
+            // Content from AI generation
+            title: sectionContent.title,
+            subtitle: sectionContent.subtitle,
+            description: sectionContent.description,
+            faqs: faqs,
+
+            // Visual configuration
+            backgroundColor: sectionConfig.backgroundColor || globalStyles?.backgroundColor || '#ffffff',
+            mobileBackgroundColor: sectionConfig.mobileBackgroundColor || '',
+            textColor: sectionConfig.textColor || globalStyles?.textColor || '#000000',
+            mobileTextColor: sectionConfig.mobileTextColor || '',
+            accentColor: sectionConfig.accentColor || globalStyles?.primaryColor || '#7c3aed',
+            mobileAccentColor: sectionConfig.mobileAccentColor || '',
+
+            // Typography from global_styles
+            titleFontFamily: sectionConfig.titleFontFamily || globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
+            titleFontSize: sectionConfig.titleFontSize || globalStyles?.title?.fontSize || '2.25rem',
+            titleMobileFontSize: sectionConfig.titleMobileFontSize || '',
+            titleFontWeight: sectionConfig.titleFontWeight || globalStyles?.title?.fontWeight || 700,
+            titleColor: sectionConfig.titleColor || globalStyles?.title?.color || '#111827',
+
+            subtitleFontFamily: sectionConfig.subtitleFontFamily || globalStyles?.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
+            subtitleFontSize: sectionConfig.subtitleFontSize || globalStyles?.subheading?.fontSize || '1.5rem',
+            subtitleMobileFontSize: sectionConfig.subtitleMobileFontSize || '',
+            subtitleFontWeight: sectionConfig.subtitleFontWeight || globalStyles?.subheading?.fontWeight || 600,
+            subtitleColor: sectionConfig.subtitleColor || globalStyles?.subheading?.color || '#374151',
+
+            bodyFontFamily: sectionConfig.bodyFontFamily || globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
+            bodyFontSize: sectionConfig.bodyFontSize || globalStyles?.paragraph?.fontSize || '1rem',
+            bodyMobileFontSize: sectionConfig.bodyMobileFontSize || '',
+            bodyFontWeight: sectionConfig.bodyFontWeight || globalStyles?.paragraph?.fontWeight || 400,
+            bodyColor: sectionConfig.bodyColor || globalStyles?.paragraph?.color || '#6b7280',
+
+            // Section style settings
+            is_custom: sectionConfig.is_custom !== undefined ? sectionConfig.is_custom : false,
+            buttonStyleVariant: sectionConfig.buttonStyleVariant || 'primary',
+            enableScrollAnimation: sectionConfig.enableScrollAnimation !== undefined ? sectionConfig.enableScrollAnimation : false,
+          };
+
+          // Merge with any additional properties from original config
+          sectionConfig = { ...sectionConfig, ...faqConfig };
+
+          console.log(`  ✓ Configured FAQ section with ${faqs.length} questions and AI-generated content`);
+        }
+
+        // For Review sections without full config, fetch reviews from database and generate section content
+        if (isReviewSection && !section.config) {
+          console.log(`  ⚡ Fetching reviews from database for ${pageName} page (layout: ${section.id})...`);
+          const dbReviews = await getRestaurantReviews(restaurantId, 6);
+
+          // Generate section title, subtitle, and description
+          const aiSectionContent = await generateSectionContent(restaurantId, pageName, 'Reviews', section.id);
+          const defaultSectionContent = {
+            title: 'Customer Reviews',
+            subtitle: 'What Our Guests Say',
+            description: 'Read reviews from our valued customers.',
+          };
+          const sectionContent = aiSectionContent || defaultSectionContent;
+
+          // Build complete review configuration
+          const reviewConfig = {
+            restaurant_id: restaurantId,
+            layout: sectionConfig.layout || section.id || 'grid',
+            isEnabled: true,
+
+            // Content from AI generation
+            title: sectionContent.title,
+            subtitle: sectionContent.subtitle,
+            description: sectionContent.description,
+
+            // Display options
+            columns: sectionConfig.columns || 3,
+            showAvatar: sectionConfig.showAvatar !== undefined ? sectionConfig.showAvatar : true,
+            showRating: sectionConfig.showRating !== undefined ? sectionConfig.showRating : true,
+            showDate: sectionConfig.showDate !== undefined ? sectionConfig.showDate : true,
+            showSource: sectionConfig.showSource !== undefined ? sectionConfig.showSource : true,
+            maxReviews: sectionConfig.maxReviews || undefined,
+            highlightImageUrl: sectionConfig.highlightImageUrl || '',
+            enableAnimations: sectionConfig.enableAnimations !== undefined ? sectionConfig.enableAnimations : true,
+            animationStyle: sectionConfig.animationStyle || 'fade-up',
+            animationSpeed: sectionConfig.animationSpeed || 'normal',
+
+            // Visual configuration
+            bgColor: sectionConfig.bgColor || globalStyles?.backgroundColor || '#f9fafb',
+            textColor: sectionConfig.textColor || globalStyles?.textColor || '#000000',
+
+            // Typography from global_styles
+            titleFontFamily: sectionConfig.titleFontFamily || globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
+            titleFontSize: sectionConfig.titleFontSize || globalStyles?.title?.fontSize || '2.25rem',
+            titleFontWeight: sectionConfig.titleFontWeight || globalStyles?.title?.fontWeight || 700,
+            titleColor: sectionConfig.titleColor || globalStyles?.title?.color || '#111827',
+
+            subtitleFontFamily: sectionConfig.subtitleFontFamily || globalStyles?.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
+            subtitleFontSize: sectionConfig.subtitleFontSize || globalStyles?.subheading?.fontSize || '1.5rem',
+            subtitleFontWeight: sectionConfig.subtitleFontWeight || globalStyles?.subheading?.fontWeight || 600,
+            subtitleColor: sectionConfig.subtitleColor || globalStyles?.subheading?.color || '#374151',
+
+            bodyFontFamily: sectionConfig.bodyFontFamily || globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
+            bodyFontSize: sectionConfig.bodyFontSize || globalStyles?.paragraph?.fontSize || '1rem',
+            bodyFontWeight: sectionConfig.bodyFontWeight || globalStyles?.paragraph?.fontWeight || 400,
+            bodyColor: sectionConfig.bodyColor || globalStyles?.paragraph?.color || '#6b7280',
+
+            // Section style settings
+            is_custom: sectionConfig.is_custom !== undefined ? sectionConfig.is_custom : false,
+            buttonStyleVariant: sectionConfig.buttonStyleVariant || 'primary',
+          };
+
+          // Merge with any additional properties from original config
+          sectionConfig = { ...sectionConfig, ...reviewConfig };
+
+          const reviewCount = dbReviews ? dbReviews.length : 0;
+          console.log(`  ✓ Configured review section with ${reviewCount} reviews and AI-generated content`);
+
+          if (reviewCount === 0) {
+            console.log(`  ⚠️ No reviews found in database - section will display empty state or placeholder`);
+          }
+        }
+
+        // For Gallery sections without full config, generate AI content for title, subtitle, and description
+        if (isGallerySection && !section.config) {
+          console.log(`  ⚡ Generating AI Gallery content for ${pageName} page (layout: ${section.id})...`);
+          const aiGeneratedContent = await generateSectionContent(restaurantId, pageName, 'Gallery', section.id);
+
+          // Default fallback content if AI generation fails
+          const defaultContent = {
+            title: 'Our Gallery',
+            subtitle: 'Explore Our Space',
+            description: 'Discover the atmosphere and artistry that makes our restaurant special.',
+          };
+
+          const content = aiGeneratedContent || defaultContent;
+
+          // Build complete gallery configuration
+          const galleryConfig = {
+            restaurant_id: restaurantId,
+            layout: sectionConfig.layout || section.id || 'showcase',
+            isEnabled: true,
+
+            // Content from AI generation
+            title: content.title,
+            subtitle: content.subtitle,
+            description: content.description,
+
+            // Display options
+            showTitle: sectionConfig.showTitle !== undefined ? sectionConfig.showTitle : true,
+            showSubtitle: sectionConfig.showSubtitle !== undefined ? sectionConfig.showSubtitle : true,
+            showDescription: sectionConfig.showDescription !== undefined ? sectionConfig.showDescription : true,
+            columns: sectionConfig.columns || 3,
+            imageAspectRatio: sectionConfig.imageAspectRatio || '16/9',
+            enableLightbox: sectionConfig.enableLightbox !== undefined ? sectionConfig.enableLightbox : true,
+            enableAnimations: sectionConfig.enableAnimations !== undefined ? sectionConfig.enableAnimations : true,
+            animationStyle: sectionConfig.animationStyle || 'fade-up',
+
+            // Visual configuration
+            bgColor: sectionConfig.bgColor || globalStyles?.backgroundColor || '#ffffff',
+            textColor: sectionConfig.textColor || globalStyles?.textColor || '#000000',
+
+            // Typography from global_styles
+            titleFontFamily: sectionConfig.titleFontFamily || globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
+            titleFontSize: sectionConfig.titleFontSize || globalStyles?.title?.fontSize || '2.25rem',
+            titleFontWeight: sectionConfig.titleFontWeight || globalStyles?.title?.fontWeight || 700,
+            titleColor: sectionConfig.titleColor || globalStyles?.title?.color || '#111827',
+
+            subtitleFontFamily: sectionConfig.subtitleFontFamily || globalStyles?.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
+            subtitleFontSize: sectionConfig.subtitleFontSize || globalStyles?.subheading?.fontSize || '1.25rem',
+            subtitleFontWeight: sectionConfig.subtitleFontWeight || globalStyles?.subheading?.fontWeight || 600,
+            subtitleColor: sectionConfig.subtitleColor || globalStyles?.subheading?.color || '#374151',
+
+            descriptionFontFamily: sectionConfig.descriptionFontFamily || globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
+            descriptionFontSize: sectionConfig.descriptionFontSize || globalStyles?.paragraph?.fontSize || '1rem',
+            descriptionFontWeight: sectionConfig.descriptionFontWeight || globalStyles?.paragraph?.fontWeight || 400,
+            descriptionColor: sectionConfig.descriptionColor || globalStyles?.paragraph?.color || '#6b7280',
+
+            // Section style settings
+            is_custom: sectionConfig.is_custom !== undefined ? sectionConfig.is_custom : false,
+          };
+
+          // Merge with any additional properties from original config
+          sectionConfig = { ...sectionConfig, ...galleryConfig };
+
+          console.log(`  ✓ Configured gallery section with AI-generated content`);
         }
 
         // For Hero sections without full config, generate AI content and merge with global styles
@@ -1694,6 +2303,55 @@ async function createOtherPageSectionsFromTheme(
             // Content settings
             contentMaxWidth: '1200px',
           };
+        }
+
+        // Generic AI content generation for all other section types (YouTube, Timeline, Location, ScrollingText, etc.)
+        // Only generate if section doesn't have config and isn't one of the special types handled above
+        const specialHandledTypes = ['hero', 'customsection', 'faq', 'reviews', 'gallery', 'form'];
+        const shouldGenerateGenericContent = !section.config &&
+                                              !specialHandledTypes.includes(category.toLowerCase()) &&
+                                              !sectionConfig.title; // Only if title hasn't been set yet
+
+        if (shouldGenerateGenericContent) {
+          console.log(`  ⚡ Generating AI content for ${category} section on ${pageName} page (layout: ${section.id})...`);
+          const aiSectionContent = await generateSectionContent(restaurantId, pageName, category, section.id);
+
+          if (aiSectionContent) {
+            // Merge AI-generated content with section config
+            sectionConfig = {
+              ...sectionConfig,
+              title: aiSectionContent.title,
+              subtitle: aiSectionContent.subtitle,
+              description: aiSectionContent.description,
+
+              // Add common configuration
+              restaurant_id: restaurantId,
+              layout: sectionConfig.layout || section.id,
+              isEnabled: true,
+
+              // Visual configuration from global_styles
+              bgColor: sectionConfig.bgColor || globalStyles?.backgroundColor || '#ffffff',
+              textColor: sectionConfig.textColor || globalStyles?.textColor || '#000000',
+
+              // Typography from global_styles
+              titleFontFamily: sectionConfig.titleFontFamily || globalStyles?.title?.fontFamily || 'Inter, system-ui, sans-serif',
+              titleFontSize: sectionConfig.titleFontSize || globalStyles?.title?.fontSize || '2.25rem',
+              titleFontWeight: sectionConfig.titleFontWeight || globalStyles?.title?.fontWeight || 700,
+              titleColor: sectionConfig.titleColor || globalStyles?.title?.color || '#111827',
+
+              subtitleFontFamily: sectionConfig.subtitleFontFamily || globalStyles?.subheading?.fontFamily || 'Inter, system-ui, sans-serif',
+              subtitleFontSize: sectionConfig.subtitleFontSize || globalStyles?.subheading?.fontSize || '1.5rem',
+              subtitleFontWeight: sectionConfig.subtitleFontWeight || globalStyles?.subheading?.fontWeight || 600,
+              subtitleColor: sectionConfig.subtitleColor || globalStyles?.subheading?.color || '#374151',
+
+              bodyFontFamily: sectionConfig.bodyFontFamily || globalStyles?.paragraph?.fontFamily || 'Inter, system-ui, sans-serif',
+              bodyFontSize: sectionConfig.bodyFontSize || globalStyles?.paragraph?.fontSize || '1rem',
+              bodyFontWeight: sectionConfig.bodyFontWeight || globalStyles?.paragraph?.fontWeight || 400,
+              bodyColor: sectionConfig.bodyColor || globalStyles?.paragraph?.color || '#6b7280',
+            };
+
+            console.log(`  ✓ Configured ${category} section with AI-generated content`);
+          }
         }
 
         // Ensure restaurant_id is set in config if not already present

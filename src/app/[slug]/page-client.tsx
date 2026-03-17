@@ -22,6 +22,7 @@ import DynamicForm from '@/components/dynamic-form';
 import Popup from '@/components/popup';
 import YouTubeSection from '@/components/youtube-section';
 import CustomSection from '@/components/custom-section';
+import { CUSTOM_SECTION_LAYOUT_VALUES } from '@/types/custom-section.types';
 
 interface DynamicPageClientProps {
   slug: string;
@@ -427,10 +428,19 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           isPreview={false}
         />;
       case 'customsection':
+        // Resolve layout safely: prefer config.layout, then template.name only if valid.
+        const customSectionLayoutCandidate = [
+          template?.config?.layout,
+          template?.name,
+        ].find((value) =>
+          typeof value === 'string' &&
+          CUSTOM_SECTION_LAYOUT_VALUES.includes(value as any),
+        ) as string | undefined;
+
         // Transform template data to match CustomSection config format
         const customSectionConfigData = template.config ? {
           ...template.config,
-          layout: template.name || 'layout-1'
+          layout: customSectionLayoutCandidate || 'layout-1'
         } : undefined;
 
         return <CustomSection

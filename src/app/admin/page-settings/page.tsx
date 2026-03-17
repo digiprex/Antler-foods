@@ -13,6 +13,7 @@ import {
   GALLERY_LAYOUT_OPTIONS,
   normalizeGalleryLayout,
 } from '@/components/gallery-layouts/gallery-layout-options';
+import { CUSTOM_SECTION_LAYOUT_VALUES } from '@/types/custom-section.types';
 
 // Dynamically import preview components for better performance
 // These are only loaded when section previews are needed
@@ -470,9 +471,16 @@ function PageSettingsSelector() {
       case 'customsection':
         // Get the template to extract layout from template.name
         const customSectionTemplate = sectionTemplates.get(templateId || '');
+        const customSectionLayoutCandidate = [
+          config?.layout,
+          customSectionTemplate?.name,
+        ].find((value) =>
+          typeof value === 'string' &&
+          CUSTOM_SECTION_LAYOUT_VALUES.includes(value as any),
+        ) as string | undefined;
         const customSectionConfigWithLayout = config ? {
           ...config,
-          layout: customSectionTemplate?.name || config.layout || 'layout-1'
+          layout: customSectionLayoutCandidate || 'layout-1'
         } : undefined;
 
         return (
@@ -777,7 +785,11 @@ function PageSettingsSelector() {
       order_index: template.order_index ?? 999,
       template_id: template.template_id,
       config: template.config,
-      layout: template.name // Add layout name from template.name
+      layout:
+        (typeof template?.config?.layout === 'string' &&
+          CUSTOM_SECTION_LAYOUT_VALUES.includes(template.config.layout as any))
+          ? template.config.layout
+          : template.name
     }))
     .sort((a, b) => (a.order_index ?? 999) - (b.order_index ?? 999));
 

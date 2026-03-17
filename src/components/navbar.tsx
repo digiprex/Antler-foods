@@ -84,7 +84,7 @@ export default function Navbar({
   additionalText,
   borderColor = '#000000',
   borderWidth = '2px',
-  fontFamily = 'Poppins, system-ui, sans-serif',
+  fontFamily = 'Poppins, sans-serif',
   fontSize = '1rem',
   fontWeight = 400,
   textTransform = 'uppercase'

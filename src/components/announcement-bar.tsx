@@ -169,7 +169,7 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
   const containerStyle: React.CSSProperties = {
     backgroundColor: announcementConfig.bgColor || '#000000',
     color: announcementConfig.textColor || '#ffffff',
-    fontFamily: announcementConfig.fontFamily || 'Inter, system-ui, sans-serif',
+    fontFamily: announcementConfig.fontFamily || 'Poppins, sans-serif',
     fontSize: announcementConfig.fontSize || '14px',
     fontWeight: announcementConfig.fontWeight || 400,
     textTransform: announcementConfig.textTransform || 'none',

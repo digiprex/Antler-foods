@@ -78,15 +78,6 @@ export function Sidebar({
             requiresDomain: true,
           },
           {
-            href: buildRestaurantScopedHref(
-              `${dashboardBasePath}/menu`,
-              selectedRestaurant,
-            ),
-            label: 'Manage Menu',
-            icon: <MenuIcon />,
-            requiresDomain: true,
-          },
-          {
             href: informationBrandPath,
             label: 'Information',
             icon: <InfoIcon />,
@@ -110,6 +101,27 @@ export function Sidebar({
 
         return items; // Show all items regardless of domain requirements
       })()
+    : [];
+
+  const MENU_MANAGEMENT_ITEMS = selectedRestaurant
+    ? [
+        {
+          href: buildRestaurantScopedHref(
+            `/admin/menu-management`,
+            selectedRestaurant,
+          ),
+          label: 'Menu Management',
+          icon: <MenuManagementIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
+            `/admin/modifier-groups`,
+            selectedRestaurant,
+          ),
+          label: 'Modifiers',
+          icon: <ModifierGroupsIcon />,
+        },
+      ]
     : [];
 
   const WEBSITE_MENU_ITEMS = selectedRestaurant
@@ -281,6 +293,29 @@ export function Sidebar({
             )}
             <nav className="space-y-0.5">
               {RESTAURANT_MENU_ITEMS.map((item) => (
+                <NavItem
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  active={isSidebarItemActive(pathname, item)}
+                  collapsed={!isOpen}
+                />
+              ))}
+            </nav>
+          </div>
+        ) : null}
+
+        {/* Menu Section */}
+        {hasRestaurantSelection && MENU_MANAGEMENT_ITEMS.length > 0 ? (
+          <div>
+            {isOpen && (
+              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Menu
+              </p>
+            )}
+            <nav className="space-y-0.5">
+              {MENU_MANAGEMENT_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
                   href={item.href}
@@ -843,6 +878,44 @@ function NewsletterIcon() {
       strokeLinejoin="round"
     >
       <path d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+    </svg>
+  );
+}
+
+function MenuManagementIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      <path d="M10 12h4" />
+      <path d="M10 16h4" />
+    </svg>
+  );
+}
+
+function ModifierGroupsIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+      <path d="M8 12h8" />
+      <path d="M10 16h4" />
     </svg>
   );
 }

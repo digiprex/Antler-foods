@@ -19,6 +19,7 @@ export interface ServiceModel {
 
 export interface RestaurantListItem {
   id: string;
+  franchiseId: string | null;
   name: string;
   ownerName: string;
   ownerEmail: string;
@@ -262,6 +263,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
       query GetRestaurantsWithRestaurantId {
         restaurants(order_by: { created_at: desc }) {
           restaurant_id
+          franchise_id
           name
           poc_name
           poc_email
@@ -284,6 +286,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
       query GetRestaurantsWithoutCreatedAt {
         restaurants {
           restaurant_id
+          franchise_id
           name
           poc_name
           poc_email
@@ -305,6 +308,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
       query GetRestaurantsWithCustomerDomainAlias {
         restaurants {
           restaurant_id
+          franchise_id
           name
           poc_name
           poc_email
@@ -327,6 +331,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
       query GetRestaurantsWithCustomerDomianAlias {
         restaurants {
           restaurant_id
+          franchise_id
           name
           poc_name
           poc_email
@@ -349,6 +354,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
       query GetRestaurantsMinimalWithRestaurantId {
         restaurants {
           restaurant_id
+          franchise_id
           name
           poc_user_id
         }
@@ -365,6 +371,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
           order_by: { created_at: desc }
         ) {
           restaurant_id
+          franchise_id
           name
           poc_name
           poc_email
@@ -389,6 +396,7 @@ const RESTAURANTS_LIST_VARIANTS: RestaurantsListVariant[] = [
           where: { poc_user_id: { _eq: $poc_user_id } }
         ) {
           restaurant_id
+          franchise_id
           name
           poc_name
           poc_email
@@ -1071,6 +1079,10 @@ function parseRestaurants(rows: Array<Record<string, unknown>>, idField: string)
 
       return {
         id: rawId,
+        franchiseId:
+          typeof row.franchise_id === "string" && row.franchise_id.trim()
+            ? row.franchise_id.trim()
+            : null,
         name: normalizeText(row.name, "Unnamed restaurant"),
         ownerName: normalizeTextFromFieldCandidates(row, ["poc_name", "owner_name"]),
         ownerEmail: normalizeTextFromFieldCandidates(row, [

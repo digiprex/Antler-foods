@@ -57,6 +57,31 @@ export default function Footer(props: FooterProps) {
   const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [newsletterMessage, setNewsletterMessage] = useState('');
 
+  const getSocialPlatformName = (platform?: string) => {
+    if (!platform) return 'social media';
+
+    const normalized = platform.toLowerCase();
+    const names: Record<string, string> = {
+      gmb: 'Google Business Profile',
+      twitter: 'X (Twitter)',
+      x: 'X (Twitter)',
+      doordash: 'DoorDash',
+      ubereats: 'Uber Eats',
+      grubhub: 'Grubhub',
+      yelp: 'Yelp',
+      tiktok: 'TikTok',
+      youtube: 'YouTube',
+      linkedin: 'LinkedIn',
+      instagram: 'Instagram',
+      facebook: 'Facebook',
+    };
+
+    return names[normalized] || platform;
+  };
+
+  const getSocialLinkLabel = (platform?: string) =>
+    `Visit us on ${getSocialPlatformName(platform)}`;
+
   // Show scroll to top button when scrolled down
   useEffect(() => {
     const handleScroll = () => {
@@ -216,7 +241,7 @@ export default function Footer(props: FooterProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.socialIcon}
-                aria-label={link.platform}
+                aria-label={getSocialLinkLabel(link.platform)}
               >
                 {socialIcons[link.platform] || (
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -301,7 +326,7 @@ export default function Footer(props: FooterProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.socialIcon}
-                aria-label={link.platform}
+                aria-label={getSocialLinkLabel(link.platform)}
               >
                 {socialIcons[link.platform] || (
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -377,7 +402,7 @@ export default function Footer(props: FooterProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.socialIcon}
-                aria-label={link.platform}
+                aria-label={getSocialLinkLabel(link.platform)}
               >
                 {socialIcons[link.platform] || (
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -494,7 +519,7 @@ export default function Footer(props: FooterProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className={styles.socialIconLarge}
-                  aria-label={link.platform}
+                  aria-label={getSocialLinkLabel(link.platform)}
                 >
                   {socialIcons[link.platform] || (
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">

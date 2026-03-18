@@ -281,7 +281,8 @@ export default function AnnouncementBar({ config, restaurantId, domain }: Announ
                 rel="noopener noreferrer"
                 style={linkStyle}
                 className={styles.socialIcon}
-                title={`Visit our ${SOCIAL_MEDIA_PLATFORMS[icon.platform]?.name || 'social media'}`}
+                title={`Visit us on ${SOCIAL_MEDIA_PLATFORMS[icon.platform]?.name || 'social media'}`}
+                aria-label={`Visit us on ${SOCIAL_MEDIA_PLATFORMS[icon.platform]?.name || 'social media'}`}
               >
                 {SOCIAL_MEDIA_PLATFORMS[icon.platform]?.icon() || '🔗'}
               </a>

@@ -587,7 +587,9 @@ export default function DynamicFAQ({
     selectedButtonStyle.backgroundColor ||
     globalStyles?.primaryButton?.backgroundColor;
   const globalAccent =
-    globalButtonColor || globalStyles?.accentColor || globalStyles?.primaryColor;
+    globalButtonColor ||
+    globalStyles?.accentColor ||
+    globalStyles?.primaryColor;
   const useCustomStyles = mergedConfig.is_custom === true;
   const accentColor = useCustomStyles
     ? mergedConfig.accentColor || globalAccent || DEFAULT_CONFIG.accentColor!
@@ -620,7 +622,8 @@ export default function DynamicFAQ({
       bodyStyle.color,
     ...(isMobileViewport
       ? {
-          fontSize: resolved.bodyMobileFontSize || 'clamp(0.92rem, 3.9vw, 1rem)',
+          fontSize:
+            resolved.bodyMobileFontSize || 'clamp(0.92rem, 3.9vw, 1rem)',
           lineHeight: resolved.bodyMobileLineHeight || '1.65',
         }
       : {}),

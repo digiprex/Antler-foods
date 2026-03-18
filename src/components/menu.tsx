@@ -1060,9 +1060,24 @@ export default function Menu(rawProps: MenuProps) {
     ...(subtitleStyle.fontFamily
       ? { fontFamily: subtitleStyle.fontFamily }
       : {}),
+    ...(typeof subtitleStyle.fontWeight === 'number'
+      ? { fontWeight: subtitleStyle.fontWeight }
+      : {}),
     ...(subtitleStyle.fontStyle
       ? {
           fontStyle: subtitleStyle.fontStyle as CSSProperties['fontStyle'],
+        }
+      : {}),
+    ...(subtitleStyle.lineHeight
+      ? {
+          lineHeight:
+            subtitleStyle.lineHeight as CSSProperties['lineHeight'],
+        }
+      : {}),
+    ...(subtitleStyle.letterSpacing
+      ? {
+          letterSpacing:
+            subtitleStyle.letterSpacing as CSSProperties['letterSpacing'],
         }
       : {}),
     ...(subtitleStyle.textTransform
@@ -1075,9 +1090,22 @@ export default function Menu(rawProps: MenuProps) {
   };
   const sharedBodyTextStyle: CSSProperties = {
     ...(bodyStyle.fontFamily ? { fontFamily: bodyStyle.fontFamily } : {}),
+    ...(typeof bodyStyle.fontWeight === 'number'
+      ? { fontWeight: bodyStyle.fontWeight }
+      : {}),
     ...(bodyStyle.fontStyle
       ? {
           fontStyle: bodyStyle.fontStyle as CSSProperties['fontStyle'],
+        }
+      : {}),
+    ...(bodyStyle.lineHeight
+      ? {
+          lineHeight: bodyStyle.lineHeight as CSSProperties['lineHeight'],
+        }
+      : {}),
+    ...(bodyStyle.letterSpacing
+      ? {
+          letterSpacing: bodyStyle.letterSpacing as CSSProperties['letterSpacing'],
         }
       : {}),
     ...(bodyStyle.textTransform
@@ -1087,6 +1115,31 @@ export default function Menu(rawProps: MenuProps) {
         }
       : {}),
     color: resolvedBodyTextColor,
+  };
+  const sharedItemTitleTextStyle: CSSProperties = {
+    ...sharedTitleTextStyle,
+    fontSize: resolvedItemTitleSize,
+    fontWeight:
+      typeof titleStyle.fontWeight === 'number'
+        ? titleStyle.fontWeight
+        : resolvedItemTitleWeight,
+    lineHeight:
+      (titleStyle.lineHeight as CSSProperties['lineHeight']) ||
+      (resolvedItemLineHeight as CSSProperties['lineHeight']),
+    letterSpacing:
+      (titleStyle.letterSpacing as CSSProperties['letterSpacing']) ||
+      (resolvedItemLetterSpacing as CSSProperties['letterSpacing']),
+  };
+  const sharedItemSubtitleTextStyle: CSSProperties = {
+    ...sharedSubtitleTextStyle,
+    fontSize: resolvedItemDescriptionSize,
+    lineHeight:
+      (subtitleStyle.lineHeight as CSSProperties['lineHeight']) ||
+      (resolvedItemLineHeight as CSSProperties['lineHeight']),
+    letterSpacing:
+      (subtitleStyle.letterSpacing as CSSProperties['letterSpacing']) ||
+      (resolvedItemLetterSpacing as CSSProperties['letterSpacing']),
+    color: resolvedSubtitleTextColor,
   };
   const titleTypographyVariables: CSSProperties = {
     ...(titleStyle.fontFamily
@@ -1130,6 +1183,24 @@ export default function Menu(rawProps: MenuProps) {
             subtitleStyle.fontStyle,
         }
       : {}),
+    ...(typeof subtitleStyle.fontWeight === 'number'
+      ? {
+          ['--menu-subtitle-font-weight' as string]:
+            subtitleStyle.fontWeight,
+        }
+      : {}),
+    ...(subtitleStyle.lineHeight
+      ? {
+          ['--menu-subtitle-line-height' as string]:
+            subtitleStyle.lineHeight as string,
+        }
+      : {}),
+    ...(subtitleStyle.letterSpacing
+      ? {
+          ['--menu-subtitle-letter-spacing' as string]:
+            subtitleStyle.letterSpacing as string,
+        }
+      : {}),
     ...(subtitleStyle.textTransform
       ? {
           ['--menu-subtitle-text-transform' as string]:
@@ -1144,8 +1215,55 @@ export default function Menu(rawProps: MenuProps) {
     ...(bodyStyle.fontStyle
       ? { ['--menu-body-font-style' as string]: bodyStyle.fontStyle }
       : {}),
+    ...(typeof bodyStyle.fontWeight === 'number'
+      ? { ['--menu-body-font-weight' as string]: bodyStyle.fontWeight }
+      : {}),
+    ...(bodyStyle.lineHeight
+      ? {
+          ['--menu-body-line-height' as string]:
+            bodyStyle.lineHeight as string,
+        }
+      : {}),
+    ...(bodyStyle.letterSpacing
+      ? {
+          ['--menu-body-letter-spacing' as string]:
+            bodyStyle.letterSpacing as string,
+        }
+      : {}),
     ...(bodyStyle.textTransform
       ? { ['--menu-body-text-transform' as string]: bodyStyle.textTransform }
+      : {}),
+  };
+  const buttonTypographyVariables: CSSProperties = {
+    ...(ctaButtonStyle.fontFamily
+      ? {
+          ['--menu-button-font-family' as string]:
+            String(ctaButtonStyle.fontFamily),
+        }
+      : {}),
+    ...(ctaButtonStyle.fontSize
+      ? {
+          ['--menu-button-font-size' as string]:
+            String(ctaButtonStyle.fontSize),
+        }
+      : {}),
+    ...(ctaButtonStyle.fontWeight
+      ? {
+          ['--menu-button-font-weight' as string]:
+            String(ctaButtonStyle.fontWeight),
+        }
+      : {}),
+    ...(ctaButtonStyle.borderRadius
+      ? {
+          ['--menu-button-radius' as string]:
+            String(ctaButtonStyle.borderRadius),
+        }
+      : {}),
+    ...(ctaButtonStyle.textTransform
+      ? {
+          ['--menu-button-text-transform' as string]:
+            String(ctaButtonStyle.textTransform),
+        }
       : {}),
   };
 
@@ -1282,6 +1400,7 @@ export default function Menu(rawProps: MenuProps) {
     ...titleTypographyVariables,
     ...subtitleTypographyVariables,
     ...bodyTypographyVariables,
+    ...buttonTypographyVariables,
     ['--menu-accent' as string]: resolvedAccentColor,
     ['--menu-card-bg' as string]: resolvedCardBgColor,
     ['--menu-text' as string]: resolvedTextColor,
@@ -1651,13 +1770,16 @@ export default function Menu(rawProps: MenuProps) {
               options?.overlay ? overlayAlignment : resolvedItemTextAlign,
             )}
           >
-            <h3 className={styles.cardTitle} style={sharedTitleTextStyle}>
+            <h3 className={styles.cardTitle} style={sharedItemTitleTextStyle}>
               {item.name}
             </h3>
             {renderPrice(item)}
           </div>
           {showDescriptions && item.description ? (
-            <p className={styles.cardDescription} style={sharedBodyTextStyle}>
+            <p
+              className={styles.cardDescription}
+              style={sharedItemSubtitleTextStyle}
+            >
               {item.description}
             </p>
           ) : null}
@@ -1741,13 +1863,16 @@ export default function Menu(rawProps: MenuProps) {
             className={styles.cardTitleRow}
             style={getTitleRowStyle(splitCardTextAlign)}
           >
-            <h3 className={styles.cardTitle} style={sharedTitleTextStyle}>
+            <h3 className={styles.cardTitle} style={sharedItemTitleTextStyle}>
               {item.name}
             </h3>
             {renderPrice(item)}
           </div>
           {showDescriptions && item.description ? (
-            <p className={styles.cardDescription} style={sharedBodyTextStyle}>
+            <p
+              className={styles.cardDescription}
+              style={sharedItemSubtitleTextStyle}
+            >
               {item.description}
             </p>
           ) : null}
@@ -1795,11 +1920,14 @@ export default function Menu(rawProps: MenuProps) {
             {itemEyebrow}
           </div>
         ) : null}
-        <h3 className={styles.promoTitle} style={sharedTitleTextStyle}>
+        <h3 className={styles.promoTitle} style={sharedItemTitleTextStyle}>
           {item.name}
         </h3>
         {showDescriptions && item.description ? (
-          <p className={styles.promoDescription} style={sharedBodyTextStyle}>
+          <p
+            className={styles.promoDescription}
+            style={sharedItemSubtitleTextStyle}
+          >
             {item.description}
           </p>
         ) : null}
@@ -2061,14 +2189,14 @@ export default function Menu(rawProps: MenuProps) {
                           ) : null}
                           <h3
                             className={styles.cardTitle}
-                            style={sharedTitleTextStyle}
+                            style={sharedItemTitleTextStyle}
                           >
                             {item.name}
                           </h3>
                           {showDescriptions && item.description ? (
                             <p
                               className={styles.carouselCardDescription}
-                              style={sharedBodyTextStyle}
+                              style={sharedItemSubtitleTextStyle}
                             >
                               {item.description}
                             </p>
@@ -2396,7 +2524,7 @@ export default function Menu(rawProps: MenuProps) {
                                 <div>
                                   <h4
                                     className={styles.accordionItemTitle}
-                                    style={sharedTitleTextStyle}
+                                    style={sharedItemTitleTextStyle}
                                   >
                                     {item.name}
                                   </h4>
@@ -2405,7 +2533,7 @@ export default function Menu(rawProps: MenuProps) {
                                       className={
                                         styles.accordionItemDescription
                                       }
-                                      style={sharedBodyTextStyle}
+                                      style={sharedItemSubtitleTextStyle}
                                     >
                                       {item.description}
                                     </p>
@@ -2549,13 +2677,16 @@ export default function Menu(rawProps: MenuProps) {
                   }}
                 >
                   {renderSymbol(item, index)}
-                  <h3 className={styles.featureTitle} style={sharedTitleTextStyle}>
+                  <h3
+                    className={styles.featureTitle}
+                    style={sharedItemTitleTextStyle}
+                  >
                     {item.name}
                   </h3>
                   {showDescriptions && item.description ? (
                     <p
                       className={styles.featureDescription}
-                      style={sharedBodyTextStyle}
+                      style={sharedItemSubtitleTextStyle}
                     >
                       {item.description}
                     </p>
@@ -2582,13 +2713,16 @@ export default function Menu(rawProps: MenuProps) {
                   className={styles.minimalCard}
                 >
                   {renderSymbol(item, index)}
-                  <h3 className={styles.minimalTitle} style={sharedTitleTextStyle}>
+                  <h3
+                    className={styles.minimalTitle}
+                    style={sharedItemTitleTextStyle}
+                  >
                     {item.name}
                   </h3>
                   {showDescriptions && item.description ? (
                     <p
                       className={styles.minimalDescription}
-                      style={sharedBodyTextStyle}
+                      style={sharedItemSubtitleTextStyle}
                     >
                       {item.description}
                     </p>

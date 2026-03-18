@@ -382,12 +382,7 @@ export async function POST(request: NextRequest) {
     // Transform LocationConfig to template structure
     const name = layout || 'default'; // layout goes to name field
     const config = {
-      enabled: configData.enabled,
-      title: configData.title,
-      description: configData.description,
-      bgColor: configData.bgColor,
-      textColor: configData.textColor,
-      maxWidth: configData.maxWidth,
+      ...configData,
       buttonStyleVariant: configData.buttonStyleVariant === 'secondary' ? 'secondary' : 'primary',
       is_custom: isCustom,
       ...typographyConfig,

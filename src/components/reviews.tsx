@@ -11,14 +11,17 @@
 
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import type { ReviewConfig, Review } from '@/types/review.types';
 import { DEFAULT_REVIEW_CONFIG } from '@/types/review.types';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
 import { useSectionReveal } from '@/hooks/use-section-reveal';
+import { useSectionViewport } from '@/hooks/use-section-viewport';
 import {
   getSectionTypographyStyles,
   getSelectedGlobalButtonStyle,
   getButtonInlineStyle,
+  mergeGlobalStyleConfig,
 } from '@/lib/section-style';
 import { resolveSharedSectionSpacing } from '@/lib/shared-section-spacing';
 
@@ -74,7 +77,66 @@ function truncateReviewText(text: string | null | undefined, limit: number) {
   return `${text.slice(0, limit).trim()}...`;
 }
 
-function createSpotlightPlaceholder(label: string) {
+function parseCssColorChannels(color?: string | null): [number, number, number] | null {
+  if (!color) {
+    return null;
+  }
+
+  const value = color.trim();
+  const hexMatch = value.match(/^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i);
+  if (hexMatch) {
+    const hex = hexMatch[1];
+    const expand = (segment: string) => Number.parseInt(segment.repeat(2), 16);
+
+    if (hex.length === 3 || hex.length === 4) {
+      return [expand(hex[0]), expand(hex[1]), expand(hex[2])];
+    }
+
+    return [
+      Number.parseInt(hex.slice(0, 2), 16),
+      Number.parseInt(hex.slice(2, 4), 16),
+      Number.parseInt(hex.slice(4, 6), 16),
+    ];
+  }
+
+  const rgbMatch = value.match(
+    /^rgba?\(\s*([0-9]+(?:\.[0-9]+)?)\s*,\s*([0-9]+(?:\.[0-9]+)?)\s*,\s*([0-9]+(?:\.[0-9]+)?)(?:\s*,\s*[0-9.]+\s*)?\)$/i,
+  );
+  if (!rgbMatch) {
+    return null;
+  }
+
+  return [
+    Math.max(0, Math.min(255, Number(rgbMatch[1]))),
+    Math.max(0, Math.min(255, Number(rgbMatch[2]))),
+    Math.max(0, Math.min(255, Number(rgbMatch[3]))),
+  ];
+}
+
+function withAlpha(color: string | undefined | null, alpha: number, fallback: string) {
+  const channels = parseCssColorChannels(color);
+  if (!channels) {
+    return fallback;
+  }
+
+  return `rgba(${channels[0]}, ${channels[1]}, ${channels[2]}, ${alpha})`;
+}
+
+function extractBorderColor(border: string | undefined | null, fallback: string) {
+  if (!border) {
+    return fallback;
+  }
+
+  const tokens = border.trim().split(/\s+/);
+  const parsedToken = tokens.find((token) => parseCssColorChannels(token));
+  return parsedToken || fallback;
+}
+
+function createSpotlightPlaceholder(
+  label: string,
+  accentColor: string,
+  accentColorDark: string,
+) {
   const safeLabel = label
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -86,8 +148,8 @@ function createSpotlightPlaceholder(label: string) {
       <defs>
         <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
           <stop offset="0%" stop-color="#0f172a" />
-          <stop offset="45%" stop-color="#6d28d9" />
-          <stop offset="100%" stop-color="#a855f7" />
+          <stop offset="45%" stop-color="${accentColorDark}" />
+          <stop offset="100%" stop-color="${accentColor}" />
         </linearGradient>
       </defs>
       <rect width="1200" height="900" rx="48" fill="url(#bg)" />
@@ -96,7 +158,7 @@ function createSpotlightPlaceholder(label: string) {
       <rect x="240" y="310" width="320" height="24" rx="12" fill="rgba(255,255,255,0.72)" />
       <rect x="240" y="354" width="410" height="18" rx="9" fill="rgba(255,255,255,0.46)" />
       <rect x="240" y="390" width="380" height="18" rx="9" fill="rgba(255,255,255,0.46)" />
-      <rect x="240" y="462" width="220" height="54" rx="27" fill="#7c3aed" />
+      <rect x="240" y="462" width="220" height="54" rx="27" fill="${accentColor}" />
       <text x="240" y="625" fill="rgba(255,255,255,0.88)" font-family="Arial, sans-serif" font-size="44" font-weight="700">${safeLabel}</text>
     </svg>
   `;
@@ -138,7 +200,7 @@ export default function Reviews({
   bodyFontSize,
   bodyFontWeight,
   bodyColor,
-  previewViewport = 'desktop',
+  previewViewport,
   enableScrollReveal = false,
   scrollRevealAnimation = 'fade-up',
   isPreview = false,
@@ -167,6 +229,7 @@ export default function Reviews({
     apiEndpoint: globalStyleEndpoint,
     fetchOnMount: Boolean(restaurantId),
   });
+  const mergedGlobalStyles = mergeGlobalStyleConfig(globalStyles);
 
   const displayReviews = maxReviews ? liveReviews.slice(0, maxReviews) : liveReviews;
   const resolvedBgColor =
@@ -205,8 +268,9 @@ export default function Reviews({
     animation: scrollRevealAnimation,
     isPreview,
   });
-  const isPreviewMobile = previewViewport === 'mobile';
-  const sharedSpacing = resolveSharedSectionSpacing(previewViewport);
+  const resolvedViewport = useSectionViewport(previewViewport);
+  const isPreviewMobile = resolvedViewport === 'mobile';
+  const sharedSpacing = resolveSharedSectionSpacing(resolvedViewport);
   const effectiveLayout = normalizeReviewLayout(layout);
   const sectionPadding = sharedSpacing.sectionPadding;
   const sectionGap = sharedSpacing.sectionGap;
@@ -244,24 +308,42 @@ export default function Reviews({
       : effectiveLayout === 'grid'
         ? Math.max(0, displayReviews.length - stripVisibleCount)
         : Math.max(0, displayReviews.length - cardRailVisibleCount);
+  const primaryReviewAccent =
+    mergedGlobalStyles.primaryButton?.backgroundColor ||
+    mergedGlobalStyles.primaryColor ||
+    '#2563eb';
+  const primaryReviewAccentDark =
+    mergedGlobalStyles.primaryButton?.hoverBackgroundColor || primaryReviewAccent;
+  const primaryReviewBorderAccent = extractBorderColor(
+    mergedGlobalStyles.primaryButton?.border,
+    primaryReviewAccent,
+  );
   const spotlightImage =
     highlightImageUrl?.trim() ||
-    createSpotlightPlaceholder(title || subtitle || 'Restaurant Spotlight');
+    createSpotlightPlaceholder(
+      title || subtitle || 'Restaurant Spotlight',
+      primaryReviewAccent,
+      primaryReviewAccentDark,
+    );
   const subtleSurface = 'rgba(255, 255, 255, 0.92)';
   const reviewAccent = {
-    solid: '#7c3aed',
-    solidDark: '#6d28d9',
-    soft: '#f5f3ff',
-    border: '#c4b5fd',
-    text: '#6d28d9',
-    textSoft: '#7c3aed',
-    shadow: 'rgba(124, 58, 237, 0.24)',
-    shadowSoft: 'rgba(124, 58, 237, 0.12)',
-    progressSoft: 'rgba(124, 58, 237, 0.24)',
-    navBorder: 'rgba(196, 181, 253, 0.7)',
-    navDisabled: '#c4b5fd',
+    solid: primaryReviewAccent,
+    solidDark: primaryReviewAccentDark,
+    soft: withAlpha(primaryReviewAccent, 0.1, 'rgba(37, 99, 235, 0.1)'),
+    border: primaryReviewBorderAccent,
+    text: primaryReviewAccentDark,
+    textSoft: primaryReviewAccent,
+    shadow: withAlpha(primaryReviewAccent, 0.24, 'rgba(37, 99, 235, 0.24)'),
+    shadowSoft: withAlpha(primaryReviewAccent, 0.12, 'rgba(37, 99, 235, 0.12)'),
+    progressSoft: withAlpha(primaryReviewAccent, 0.24, 'rgba(37, 99, 235, 0.24)'),
+    navBorder: withAlpha(primaryReviewBorderAccent, 0.7, 'rgba(37, 99, 235, 0.7)'),
+    navDisabled: withAlpha(primaryReviewAccent, 0.4, 'rgba(37, 99, 235, 0.4)'),
   };
   const layoutFrameStyle: CSSProperties = {
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
     borderRadius: isPreviewMobile ? '26px' : '32px',
     border: 'none',
     background: 'transparent',
@@ -290,7 +372,7 @@ export default function Reviews({
     });
 
     return () => window.cancelAnimationFrame(animationFrame);
-  }, [effectiveLayout, currentSlide, previewViewport, animationStyle, animationSpeed]);
+  }, [effectiveLayout, currentSlide, resolvedViewport, animationStyle, animationSpeed]);
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }).map((_, index) => (
@@ -389,8 +471,8 @@ export default function Reviews({
           height: `${size}px`,
           borderRadius: '999px',
           background:
-            'linear-gradient(135deg, rgba(124, 58, 237, 0.14), rgba(59, 130, 246, 0.16))',
-          color: '#5b21b6',
+            `linear-gradient(135deg, ${withAlpha(reviewAccent.solid, 0.14, 'rgba(37, 99, 235, 0.14)')}, ${withAlpha(reviewAccent.solidDark, 0.22, 'rgba(29, 78, 216, 0.22)')})`,
+          color: reviewAccent.text,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -570,6 +652,8 @@ export default function Reviews({
           justifyContent: 'center',
           gap: '0.7rem',
           width: fullWidth ? '100%' : undefined,
+          maxWidth: '100%',
+          boxSizing: 'border-box',
           borderRadius: selectedButtonStyle.borderRadius || '16px',
           border: isSolid ? primaryButtonBorder : outlineBorder,
           background: isDisabled
@@ -629,6 +713,9 @@ export default function Reviews({
     <div
       style={{
         width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
+        boxSizing: 'border-box',
         borderRadius: isPreviewMobile ? '24px' : '28px',
         border: '1px solid rgba(226, 232, 240, 0.9)',
         background: 'transparent',
@@ -640,6 +727,8 @@ export default function Reviews({
       <div
         style={{
           width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -846,10 +935,17 @@ export default function Reviews({
     <div
       style={{
         width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
+        boxSizing: 'border-box',
       }}
     >
       <div
         style={{
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
+          boxSizing: 'border-box',
           background: 'transparent',
           borderRadius: cardRadius,
           padding: isPreviewMobile ? '1.3rem 1.1rem' : '1.75rem 1.45rem',
@@ -1102,13 +1198,39 @@ export default function Reviews({
   const activeReview = displayReviews[safeCurrentSlide] || displayReviews[0];
   const canGoPrev = safeCurrentSlide > 0;
   const canGoNext = safeCurrentSlide < layoutMaxStart;
+  const modalWidth = showFeedbackForm ? 'min(100%, 42rem)' : 'min(100%, 38rem)';
+  const modalFieldStyle: CSSProperties = {
+    width: '100%',
+    boxSizing: 'border-box',
+    borderRadius: '10px',
+    border: '1px solid #cbd5e1',
+    padding: '0.65rem 0.75rem',
+    outline: 'none',
+  };
 
   return (
     <section
       ref={reveal.ref}
-      style={{ backgroundColor: resolvedBgColor, padding: sectionPadding, ...bodyStyle, ...reveal.style }}
+      style={{
+        width: '100%',
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        overflowX: 'clip',
+        backgroundColor: resolvedBgColor,
+        padding: sectionPadding,
+        ...bodyStyle,
+        ...reveal.style,
+      }}
     >
-      <div style={{ display: 'grid', gap: sectionGap }}>
+      <div
+        style={{
+          display: 'grid',
+          gap: sectionGap,
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
+        }}
+      >
         {displayReviews.length === 0 ? (
           <div
             style={{
@@ -1131,6 +1253,9 @@ export default function Reviews({
               display: 'flex',
               flexDirection: 'column',
               gap: sectionGap,
+              width: '100%',
+              maxWidth: '100%',
+              minWidth: 0,
             }}
           >
             <div
@@ -1185,10 +1310,12 @@ export default function Reviews({
                   ...getEntranceStyle(1),
                 }}
               >
-                <div style={{ overflow: 'hidden' }}>
+                <div style={{ overflow: 'hidden', width: '100%', maxWidth: '100%', minWidth: 0 }}>
                   <div
                     style={{
                       display: 'flex',
+                      width: '100%',
+                      minWidth: 0,
                       gap: `${stripGapPx}px`,
                       alignItems: 'stretch',
                       transition: 'transform 420ms ease',
@@ -1201,6 +1328,8 @@ export default function Reviews({
                         style={{
                           flex: `0 0 ${stripCardWidth}`,
                           display: 'flex',
+                          minWidth: 0,
+                          maxWidth: '100%',
                           ...getEntranceStyle(index),
                         }}
                       >
@@ -1267,6 +1396,9 @@ export default function Reviews({
               display: 'flex',
               flexDirection: 'column',
               gap: sectionGap,
+              width: '100%',
+              maxWidth: '100%',
+              minWidth: 0,
             }}
           >
             <div
@@ -1338,10 +1470,12 @@ export default function Reviews({
                 </div>
               ) : null}
 
-              <div style={{ overflow: 'hidden' }}>
+              <div style={{ overflow: 'hidden', width: '100%', maxWidth: '100%', minWidth: 0 }}>
                 <div
                   style={{
                     display: 'flex',
+                    width: '100%',
+                    minWidth: 0,
                     gap: `${cardRailGapPx}px`,
                     transition: 'transform 420ms ease',
                     transform: `translateX(calc(-${safeCurrentSlide} * (${cardRailWidth} + ${cardRailGapPx}px)))`,
@@ -1352,6 +1486,8 @@ export default function Reviews({
                       key={review.review_id}
                       style={{
                         flex: `0 0 ${cardRailWidth}`,
+                        minWidth: 0,
+                        maxWidth: '100%',
                         ...getEntranceStyle(index),
                       }}
                     >
@@ -1382,327 +1518,330 @@ export default function Reviews({
         )}
       </div>
 
-      {isModalOpen ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.58)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem',
-            zIndex: 1100,
-          }}
-          onClick={closeModal}
-        >
-          <div
-            style={{
-              width: '100%',
-              borderRadius: '16px',
-              background: '#ffffff',
-              padding: '1.25rem',
-              boxShadow: '0 24px 60px rgba(15, 23, 42, 0.35)',
-            }}
-            onClick={(event) => event.stopPropagation()}
-          >
+      {isModalOpen && typeof document !== 'undefined'
+        ? createPortal(
             <div
+              role="dialog"
+              aria-modal="true"
               style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(15, 23, 42, 0.58)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '1rem',
+                justifyContent: 'center',
+                padding: 'clamp(0.75rem, 2vw, 1.25rem)',
+                overflowY: 'auto',
+                boxSizing: 'border-box',
+                zIndex: 1100,
               }}
+              onClick={closeModal}
             >
-              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>
-                {showFeedbackForm ? 'Share your feedback' : 'Rate your experience'}
-              </h3>
-              <button
-                type="button"
-                onClick={closeModal}
+              <div
                 style={{
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  fontSize: '1.2rem',
-                  color: '#64748b',
+                  width: modalWidth,
+                  maxWidth: '100%',
+                  maxHeight: 'calc(100vh - 1.5rem)',
+                  overflowY: 'auto',
+                  boxSizing: 'border-box',
+                  borderRadius: '20px',
+                  background: '#ffffff',
+                  padding: 'clamp(1rem, 2vw, 1.25rem)',
+                  boxShadow: '0 24px 60px rgba(15, 23, 42, 0.35)',
                 }}
-                aria-label="Close"
+                onClick={(event) => event.stopPropagation()}
               >
-                {'\u2715'}
-              </button>
-            </div>
-
-            {!showFeedbackForm ? (
-              <div>
-                <p
-                  style={{
-                    marginTop: 0,
-                    marginBottom: '0.9rem',
-                    color: '#475569',
-                    fontSize: '0.95rem',
-                  }}
-                >
-                  Select your rating. 5 stars takes you to Google review.
-                </p>
                 <div
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-                    gap: '0.5rem',
-                    marginBottom: '0.8rem',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                    marginBottom: '1rem',
                   }}
                 >
-                  {[1, 2, 3, 4, 5].map((rating) => (
-                    <button
-                      key={rating}
-                      type="button"
-                      onClick={() => void handleRatingSelection(rating)}
-                      disabled={isResolvingGoogleUrl}
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>
+                    {showFeedbackForm ? 'Share your feedback' : 'Rate your experience'}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '1.2rem',
+                      color: '#64748b',
+                      flexShrink: 0,
+                    }}
+                    aria-label="Close"
+                  >
+                    {'\u2715'}
+                  </button>
+                </div>
+
+                {!showFeedbackForm ? (
+                  <div>
+                    <p
                       style={{
-                        borderRadius: '12px',
-                        border:
-                          selectedRating === rating
-                            ? '2px solid #6f4cf6'
-                            : '1px solid #d5ddea',
-                        background:
-                          selectedRating === rating ? '#f3f0ff' : '#ffffff',
-                        padding: '0.6rem 0.4rem',
-                        cursor: 'pointer',
-                        color: '#111827',
-                        fontWeight: 700,
+                        marginTop: 0,
+                        marginBottom: '0.9rem',
+                        color: '#475569',
+                        fontSize: '0.95rem',
                       }}
                     >
-                      {`${rating} ${'\u2605'}`}
-                    </button>
-                  ))}
-                </div>
-                {isResolvingGoogleUrl ? (
-                  <p style={{ margin: 0, color: '#6f4cf6', fontSize: '0.9rem' }}>
-                    Opening Google review...
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gap: '0.75rem' }}>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                      marginBottom: '0.35rem',
-                    }}
-                  >
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    value={authorName}
-                    onChange={(event) => setAuthorName(event.target.value)}
-                    placeholder="John Doe"
-                    style={{
-                      width: '100%',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      padding: '0.65rem 0.75rem',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                      marginBottom: '0.35rem',
-                    }}
-                  >
-                    Avatar Image
-                  </label>
-                  {!avatarPreview ? (
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
+                      Select your rating. 5 stars takes you to Google review.
+                    </p>
+                    <div
                       style={{
-                        width: '100%',
-                        borderRadius: '10px',
-                        border: '1px solid #cbd5e1',
-                        padding: '0.55rem 0.75rem',
-                        background: '#ffffff',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(5.5rem, 1fr))',
+                        gap: '0.5rem',
+                        marginBottom: '0.8rem',
                       }}
-                    />
-                  ) : (
+                    >
+                      {[1, 2, 3, 4, 5].map((rating) => (
+                        <button
+                          key={rating}
+                          type="button"
+                          onClick={() => void handleRatingSelection(rating)}
+                          disabled={isResolvingGoogleUrl}
+                          style={{
+                            minHeight: '3.15rem',
+                            boxSizing: 'border-box',
+                            borderRadius: '12px',
+                            border:
+                              selectedRating === rating
+                                ? '2px solid #6f4cf6'
+                                : '1px solid #d5ddea',
+                            background:
+                              selectedRating === rating ? '#f3f0ff' : '#ffffff',
+                            padding: '0.6rem 0.4rem',
+                            cursor: 'pointer',
+                            color: '#111827',
+                            fontWeight: 700,
+                          }}
+                        >
+                          {`${rating} ${'\u2605'}`}
+                        </button>
+                      ))}
+                    </div>
+                    {isResolvingGoogleUrl ? (
+                      <p style={{ margin: 0, color: '#6f4cf6', fontSize: '0.9rem' }}>
+                        Opening Google review...
+                      </p>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          marginBottom: '0.35rem',
+                        }}
+                      >
+                        Name
+                      </label>
+                      <input
+                        type="text"
+                        value={authorName}
+                        onChange={(event) => setAuthorName(event.target.value)}
+                        placeholder="John Doe"
+                        style={modalFieldStyle}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          marginBottom: '0.35rem',
+                        }}
+                      >
+                        Avatar Image
+                      </label>
+                      {!avatarPreview ? (
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarChange}
+                          style={{
+                            ...modalFieldStyle,
+                            padding: '0.55rem 0.75rem',
+                            background: '#ffffff',
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '0.75rem',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '10px',
+                            padding: '0.5rem 0.65rem',
+                            background: '#f8fafc',
+                          }}
+                        >
+                          <img
+                            src={avatarPreview}
+                            alt="Avatar preview"
+                            style={{
+                              width: '44px',
+                              height: '44px',
+                              borderRadius: '50%',
+                              objectFit: 'cover',
+                              border: '1px solid #cbd5e1',
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAvatarFile(null);
+                              setAvatarPreview('');
+                            }}
+                            style={{
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '10px',
+                              background: '#ffffff',
+                              color: '#334155',
+                              padding: '0.4rem 0.7rem',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          marginBottom: '0.35rem',
+                        }}
+                      >
+                        Published Date
+                      </label>
+                      <input
+                        type="date"
+                        value={publishedAt}
+                        onChange={(event) => setPublishedAt(event.target.value)}
+                        style={modalFieldStyle}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          marginBottom: '0.35rem',
+                        }}
+                      >
+                        Review
+                      </label>
+                      <textarea
+                        value={reviewText}
+                        onChange={(event) => setReviewText(event.target.value)}
+                        rows={4}
+                        placeholder="This restaurant has amazing food and great service..."
+                        style={{
+                          ...modalFieldStyle,
+                          resize: 'vertical',
+                        }}
+                      />
+                    </div>
                     <div
                       style={{
                         display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '10px',
-                        padding: '0.5rem 0.65rem',
-                        background: '#f8fafc',
+                        justifyContent: 'flex-end',
+                        flexWrap: 'wrap',
+                        gap: '0.5rem',
                       }}
                     >
-                      <img
-                        src={avatarPreview}
-                        alt="Avatar preview"
-                        style={{
-                          width: '44px',
-                          height: '44px',
-                          borderRadius: '50%',
-                          objectFit: 'cover',
-                          border: '1px solid #cbd5e1',
-                        }}
-                      />
                       <button
                         type="button"
-                        onClick={() => {
-                          setAvatarFile(null);
-                          setAvatarPreview('');
-                        }}
+                        onClick={() => setShowFeedbackForm(false)}
+                        disabled={isSubmitting}
                         style={{
                           border: '1px solid #cbd5e1',
                           borderRadius: '10px',
                           background: '#ffffff',
                           color: '#334155',
-                          padding: '0.4rem 0.7rem',
+                          padding: '0.55rem 0.9rem',
                           cursor: 'pointer',
                           fontWeight: 600,
                         }}
                       >
-                        Remove
+                        Back
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleFeedbackSubmit()}
+                        disabled={isSubmitting}
+                        style={{
+                          border: 'none',
+                          borderRadius: '10px',
+                          background: '#6f4cf6',
+                          color: '#ffffff',
+                          padding: '0.55rem 0.95rem',
+                          cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                          fontWeight: 700,
+                          opacity: isSubmitting ? 0.7 : 1,
+                        }}
+                      >
+                        {isSubmitting ? 'Submitting...' : 'Submit feedback'}
                       </button>
                     </div>
-                  )}
-                </div>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                      marginBottom: '0.35rem',
-                    }}
-                  >
-                    Published Date
-                  </label>
-                  <input
-                    type="date"
-                    value={publishedAt}
-                    onChange={(event) => setPublishedAt(event.target.value)}
-                    style={{
-                      width: '100%',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      padding: '0.65rem 0.75rem',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                      marginBottom: '0.35rem',
-                    }}
-                  >
-                    Review
-                  </label>
-                  <textarea
-                    value={reviewText}
-                    onChange={(event) => setReviewText(event.target.value)}
-                    rows={4}
-                    placeholder="This restaurant has amazing food and great service..."
-                    style={{
-                      width: '100%',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      padding: '0.65rem 0.75rem',
-                      outline: 'none',
-                      resize: 'vertical',
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowFeedbackForm(false)}
-                    disabled={isSubmitting}
-                    style={{
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '10px',
-                      background: '#ffffff',
-                      color: '#334155',
-                      padding: '0.55rem 0.9rem',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                    }}
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleFeedbackSubmit()}
-                    disabled={isSubmitting}
-                    style={{
-                      border: 'none',
-                      borderRadius: '10px',
-                      background: '#6f4cf6',
-                      color: '#ffffff',
-                      padding: '0.55rem 0.95rem',
-                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                      fontWeight: 700,
-                      opacity: isSubmitting ? 0.7 : 1,
-                    }}
-                  >
-                    {isSubmitting ? 'Submitting...' : 'Submit feedback'}
-                  </button>
-                </div>
-              </div>
-            )}
+                  </div>
+                )}
 
-            {modalError ? (
-              <p
-                style={{
-                  marginTop: '0.8rem',
-                  marginBottom: 0,
-                  fontSize: '0.88rem',
-                  color: '#b91c1c',
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '10px',
-                  padding: '0.5rem 0.7rem',
-                }}
-              >
-                {modalError}
-              </p>
-            ) : null}
-            {modalSuccess ? (
-              <p
-                style={{
-                  marginTop: '0.8rem',
-                  marginBottom: 0,
-                  fontSize: '0.88rem',
-                  color: '#166534',
-                  background: '#f0fdf4',
-                  border: '1px solid #bbf7d0',
-                  borderRadius: '10px',
-                  padding: '0.5rem 0.7rem',
-                }}
-              >
-                {modalSuccess}
-              </p>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+                {modalError ? (
+                  <p
+                    style={{
+                      marginTop: '0.8rem',
+                      marginBottom: 0,
+                      fontSize: '0.88rem',
+                      color: '#b91c1c',
+                      background: '#fef2f2',
+                      border: '1px solid #fecaca',
+                      borderRadius: '10px',
+                      padding: '0.5rem 0.7rem',
+                    }}
+                  >
+                    {modalError}
+                  </p>
+                ) : null}
+                {modalSuccess ? (
+                  <p
+                    style={{
+                      marginTop: '0.8rem',
+                      marginBottom: 0,
+                      fontSize: '0.88rem',
+                      color: '#166534',
+                      background: '#f0fdf4',
+                      border: '1px solid #bbf7d0',
+                      borderRadius: '10px',
+                      padding: '0.5rem 0.7rem',
+                    }}
+                  >
+                    {modalSuccess}
+                  </p>
+                ) : null}
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </section>
   );
 }

@@ -62,7 +62,9 @@
 .menuSubtitle {
   margin: 0;
   font-size: clamp(1rem, 2vw, 1.2rem);
-  font-weight: 600;
+  font-weight: var(--menu-subtitle-font-weight, 600);
+  line-height: var(--menu-subtitle-line-height, 1.45);
+  letter-spacing: var(--menu-subtitle-letter-spacing, 0);
   color: var(--menu-subtitle-color, var(--menu-title-color, var(--menu-text, inherit)));
   opacity: 0.78;
   font-family: var(--menu-subtitle-font-family, inherit);
@@ -74,7 +76,9 @@
   margin: 0;
   max-width: 52rem;
   font-size: 1rem;
-  line-height: 1.7;
+  line-height: var(--menu-body-line-height, 1.7);
+  letter-spacing: var(--menu-body-letter-spacing, 0);
+  font-weight: var(--menu-body-font-weight, 400);
   color: var(--menu-body-color, var(--menu-body, var(--menu-text, inherit)));
   opacity: 0.78;
   font-family: var(--menu-body-font-family, inherit);
@@ -274,8 +278,9 @@
 
 .cardEyebrow {
   font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-weight: var(--menu-subtitle-font-weight, 700);
+  line-height: var(--menu-subtitle-line-height, 1.2);
+  letter-spacing: var(--menu-subtitle-letter-spacing, 0.14em);
   text-transform: var(--menu-subtitle-text-transform, uppercase);
   color: var(--menu-subtitle-color, var(--menu-title-color, var(--menu-text, inherit)));
   font-family: var(--menu-subtitle-font-family, inherit);
@@ -310,7 +315,9 @@
 .cardDescription {
   margin: 0;
   font-size: var(--menu-item-description-size, 0.96rem);
-  line-height: var(--menu-item-line-height, 1.7);
+  line-height: var(--menu-body-line-height, var(--menu-item-line-height, 1.7));
+  letter-spacing: var(--menu-body-letter-spacing, 0);
+  font-weight: var(--menu-body-font-weight, 400);
   color: var(--menu-body-color, var(--menu-body, var(--menu-text, inherit)));
   opacity: 0.78;
   font-family: var(--menu-body-font-family, inherit);
@@ -347,11 +354,13 @@
   min-height: 2.75rem;
   padding: 0.72rem 1.25rem;
   border: 1.5px solid transparent;
-  border-radius: 0.85rem;
+  border-radius: var(--menu-button-radius, 0.85rem);
   text-decoration: none;
-  font-size: 0.92rem;
-  font-weight: 700;
+  font-size: var(--menu-button-font-size, 0.92rem);
+  font-weight: var(--menu-button-font-weight, 700);
   line-height: 1;
+  font-family: var(--menu-button-font-family, inherit);
+  text-transform: var(--menu-button-text-transform, none);
   transition:
     transform 160ms ease,
     box-shadow 160ms ease,
@@ -369,7 +378,6 @@
   justify-self: start;
   min-height: 2.3rem;
   padding: 0.58rem 1rem;
-  font-size: 0.83rem;
 }
 
 .itemButtonOutline {

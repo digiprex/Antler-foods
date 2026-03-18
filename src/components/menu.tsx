@@ -1118,7 +1118,8 @@ export default function Menu(rawProps: MenuProps) {
   };
   const sharedItemTitleTextStyle: CSSProperties = {
     ...sharedTitleTextStyle,
-    fontSize: resolvedItemTitleSize,
+    fontSize:
+      (titleStyle.fontSize as CSSProperties['fontSize']) || resolvedItemTitleSize,
     fontWeight:
       typeof titleStyle.fontWeight === 'number'
         ? titleStyle.fontWeight
@@ -1132,7 +1133,9 @@ export default function Menu(rawProps: MenuProps) {
   };
   const sharedItemSubtitleTextStyle: CSSProperties = {
     ...sharedSubtitleTextStyle,
-    fontSize: resolvedItemDescriptionSize,
+    fontSize:
+      (subtitleStyle.fontSize as CSSProperties['fontSize']) ||
+      resolvedItemDescriptionSize,
     lineHeight:
       (subtitleStyle.lineHeight as CSSProperties['lineHeight']) ||
       (resolvedItemLineHeight as CSSProperties['lineHeight']),

@@ -12,7 +12,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import ModifierGroupFormModal from './modifier-group-form-modal';
+import ModifierGroupFormModal from '@/components/admin/modifier-group-form-modal';
 
 // Modifier group interface matching the database schema
 interface ModifierGroup {
@@ -23,6 +23,7 @@ interface ModifierGroup {
   max_selection: number;
   type: string;
   is_required: boolean;
+  is_multi_select: boolean;
   modifier_items: any;
   created_at: string;
   updated_at: string;
@@ -255,11 +256,38 @@ export default function ModifierGroupsForm() {
                     }`}>
                       {group.type}
                     </span>
-                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                      group.is_required ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      Required: {group.is_required ? 'True' : 'False'}
-                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-600">Required</span>
+                      <span
+                        className={`relative inline-flex h-5 w-10 items-center rounded-full ${
+                          group.is_required ? 'bg-red-500' : 'bg-gray-300'
+                        }`}
+                        aria-label={`Required ${group.is_required ? 'enabled' : 'disabled'}`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            group.is_required ? 'translate-x-5' : 'translate-x-1'
+                          }`}
+                        />
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-600">Multi Select</span>
+                      <span
+                        className={`relative inline-flex h-5 w-10 items-center rounded-full ${
+                          group.is_multi_select ? 'bg-purple-600' : 'bg-gray-300'
+                        }`}
+                        aria-label={`Multi select ${group.is_multi_select ? 'enabled' : 'disabled'}`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            group.is_multi_select ? 'translate-x-5' : 'translate-x-1'
+                          }`}
+                        />
+                      </span>
+                    </div>
                   </div>
                   {group.description && (
                     <p className="text-sm text-gray-600 mb-2">{group.description}</p>

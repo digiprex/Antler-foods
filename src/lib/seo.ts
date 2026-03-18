@@ -51,6 +51,15 @@ export const DEFAULT_SEO: Required<Omit<SEOConfig, 'canonical'>> = {
   noIndex: false,
 };
 
+function getSiteUrl(): string {
+  const rawUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    'http://localhost:3000';
+
+  return rawUrl.replace(/\/+$/, '');
+}
+
 /**
  * Generate metadata object for Next.js pages
  */
@@ -65,6 +74,7 @@ export function generateMetadata(config: SEOConfig = {}): Metadata {
   } = config;
 
   const metadata: Metadata = {
+    metadataBase: new URL(getSiteUrl()),
     title,
     description,
     keywords: keywords.join(', '),
@@ -86,6 +96,10 @@ export function generateMetadata(config: SEOConfig = {}): Metadata {
       title,
       description,
       images: [ogImage],
+    },
+    robots: {
+      index: true,
+      follow: true,
     },
   };
 

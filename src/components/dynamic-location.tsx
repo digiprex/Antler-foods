@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import type { LocationConfig } from '@/types/location.types';
 import { useGlobalStyleConfig } from '@/hooks/use-global-style-config';
+import { useSectionViewport } from '@/hooks/use-section-viewport';
 import {
   getSectionTypographyStyles,
   getSelectedGlobalButtonStyle,
@@ -120,7 +121,7 @@ export default function DynamicLocation({
   showLoading = false,
   configData,
   placeDetailsData,
-  previewViewport = 'desktop',
+  previewViewport,
 }: DynamicLocationProps) {
   const [config, setConfig] = useState<LocationConfig | null>(null);
   const [placeDetails, setPlaceDetails] = useState<PlaceDetails | null>(null);
@@ -132,6 +133,7 @@ export default function DynamicLocation({
     apiEndpoint: globalStyleEndpoint,
     fetchOnMount: Boolean(restaurantId),
   });
+  const resolvedViewport = useSectionViewport(previewViewport);
 
   const fetchLocationConfig = async () => {
     // If configData is provided, use it directly
@@ -402,9 +404,9 @@ export default function DynamicLocation({
       name: placeDetails.name,
     };
     const directionsUrl = buildGoogleMapsDirectionsUrl(mapTarget);
-    const isPreviewMobile = previewViewport === 'mobile';
-    const sharedSpacing = resolveSharedSectionSpacing(previewViewport);
-    const sectionPadding = sharedSpacing.sectionPadding;
+    const isPreviewMobile = resolvedViewport === 'mobile';
+    const sharedSpacing = resolveSharedSectionSpacing(resolvedViewport);
+    const sectionPadding = isPreviewMobile ? '2rem 1rem' : sharedSpacing.sectionPadding;
     const sectionGap = sharedSpacing.sectionGap;
     const sectionStyleInput = {
       ...config,
@@ -425,6 +427,33 @@ export default function DynamicLocation({
     );
     const titleTypography = titleStyle;
     const descriptionTypography = subtitleStyle;
+    const sectionTitleFontSize = isPreviewMobile ? 'clamp(1.7rem, 7vw, 2.05rem)' : '2.5rem';
+    const compactSectionTitleFontSize = isPreviewMobile ? 'clamp(1.5rem, 6.3vw, 1.85rem)' : '2rem';
+    const sectionDescriptionFontSize = isPreviewMobile ? '0.9rem' : '1.125rem';
+    const sectionDescriptionMargin = isPreviewMobile ? '0 0 1rem' : '0 0 3rem';
+    const cardPadding = isPreviewMobile ? '1rem' : '2rem';
+    const cardPaddingCompact = isPreviewMobile ? '1rem' : '1.5rem';
+    const cardRadius = isPreviewMobile ? '10px' : '12px';
+    const largeCardRadius = isPreviewMobile ? '12px' : '16px';
+    const cardNameFontSize = isPreviewMobile ? '1.2rem' : '1.75rem';
+    const secondaryHeadingFontSize = isPreviewMobile ? '1.05rem' : '1.5rem';
+    const bodyCopyFontSize = isPreviewMobile ? '0.92rem' : '0.9375rem';
+    const detailFontSize = isPreviewMobile ? '0.95rem' : '1.125rem';
+    const metaLabelFontSize = isPreviewMobile ? '0.82rem' : '1rem';
+    const hoursFontSize = isPreviewMobile ? '0.82rem' : '0.875rem';
+    const iconFontSize = isPreviewMobile ? '1.05rem' : '1.25rem';
+    const displayCardPadding = isPreviewMobile ? '1.1rem' : '1.5rem';
+    const miniSectionGap = isPreviewMobile ? '0.75rem' : '1rem';
+    const infoGridGap = isPreviewMobile ? '0.85rem' : '1rem';
+    const mapCardMinHeight = isPreviewMobile ? '260px' : 'clamp(280px, 52vw, 400px)';
+    const mapPanelMinHeight = isPreviewMobile ? '280px' : 'clamp(320px, 56vw, 500px)';
+    const compactMapMinHeight = isPreviewMobile ? '260px' : 'clamp(280px, 58vw, 420px)';
+    const sidebarMapMinHeight = isPreviewMobile ? '280px' : 'clamp(320px, 60vw, 600px)';
+    const fullScreenMinHeight = isPreviewMobile ? '680px' : '100vh';
+    const negativeSectionPadding = sectionPadding
+      .split(' ')
+      .map((value) => (value.startsWith('-') ? value : `-${value}`))
+      .join(' ');
     if (layout === 'default') {
       return (
         <div
@@ -438,9 +467,9 @@ export default function DynamicLocation({
           <h2
             style={{
               ...titleTypography,
-              fontSize: '2rem',
+              fontSize: compactSectionTitleFontSize,
               fontWeight: '700',
-              marginBottom: '1rem',
+              marginBottom: isPreviewMobile ? '0.75rem' : '1rem',
             }}
           >
             {config.title}
@@ -448,7 +477,8 @@ export default function DynamicLocation({
           <p
             style={{
               ...descriptionTypography,
-              fontSize: '1.125rem',
+              fontSize: sectionDescriptionFontSize,
+              margin: sectionDescriptionMargin,
               opacity: 0.8,
             }}
           >
@@ -458,8 +488,8 @@ export default function DynamicLocation({
             style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
-              borderRadius: '12px',
-              padding: '2rem',
+              borderRadius: cardRadius,
+              padding: cardPadding,
               textAlign: 'left',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
             }}
@@ -467,9 +497,9 @@ export default function DynamicLocation({
             <h3
               style={{
                 ...titleTypography,
-                fontSize: '1.5rem',
+                fontSize: secondaryHeadingFontSize,
                 fontWeight: '600',
-                marginBottom: '1rem',
+                marginBottom: miniSectionGap,
               }}
             >
               {placeDetails.name}
@@ -478,6 +508,7 @@ export default function DynamicLocation({
               <p
                 style={{
                   marginBottom: '0.5rem',
+                  fontSize: bodyCopyFontSize,
                   opacity: 0.9,
                   color: config.textColor || '#666666',
                 }}
@@ -489,6 +520,7 @@ export default function DynamicLocation({
               <p
                 style={{
                   marginBottom: '0.5rem',
+                  fontSize: bodyCopyFontSize,
                   opacity: 0.9,
                   color: config.textColor || '#666666',
                 }}
@@ -497,7 +529,7 @@ export default function DynamicLocation({
               </p>
             ) : null}
             {placeDetails.website ? (
-              <p style={{ marginBottom: '0.5rem', opacity: 0.9 }}>
+              <p style={{ marginBottom: '0.5rem', fontSize: bodyCopyFontSize, opacity: 0.9 }}>
                 {'ðŸŒ'}{' '}
                 <a
                   href={placeDetails.website}
@@ -525,14 +557,15 @@ export default function DynamicLocation({
                     display: 'flex',
                     gap: '0.5rem',
                     alignItems: 'center',
+                    fontSize: metaLabelFontSize,
                   }}
                 >
-                  <span style={{ fontSize: '1.25rem' }}>{'ðŸ•’'}</span>
+                  <span style={{ fontSize: iconFontSize }}>{'ðŸ•’'}</span>
                   <span>Opening Hours:</span>
                 </p>
                 <div
                   style={{
-                    fontSize: '0.875rem',
+                    fontSize: hoursFontSize,
                     lineHeight: '1.6',
                     paddingLeft: '1.75rem',
                     color: config.textColor || '#666666',
@@ -547,10 +580,10 @@ export default function DynamicLocation({
             {config.showMap !== false ? (
               <div
                 style={{
-                  marginTop: '1.5rem',
-                  borderRadius: '8px',
+                  marginTop: isPreviewMobile ? '1rem' : '1.5rem',
+                  borderRadius: cardRadius,
                   overflow: 'hidden',
-                  minHeight: isPreviewMobile ? '220px' : '280px',
+                  minHeight: mapCardMinHeight,
                   backgroundColor: '#e8e8e8',
                 }}
               >
@@ -573,46 +606,46 @@ export default function DynamicLocation({
     if (layout === 'grid') {
       return (
         <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
-          <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center' }}>
+          <h2 style={{ ...titleTypography, fontSize: sectionTitleFontSize, fontWeight: '700', marginBottom: isPreviewMobile ? '0.75rem' : '1rem', textAlign: 'center' }}>
             {config.title}
           </h2>
-          <p style={{ ...descriptionTypography, fontSize: '1.125rem', textAlign: 'center', opacity: 0.8 }}>
+          <p style={{ ...descriptionTypography, fontSize: sectionDescriptionFontSize, margin: sectionDescriptionMargin, textAlign: 'center', opacity: 0.8 }}>
             {config.description}
           </p>
           <div className="grid grid-cols-1 lg:grid-cols-2" style={{ alignItems: 'start', gap: sectionGap }}>
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
-              borderRadius: '12px',
-              padding: '2rem',
+              borderRadius: cardRadius,
+              padding: cardPadding,
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
             }}>
-              <h3 style={{ ...titleTypography, fontSize: '1.75rem', fontWeight: '600', marginBottom: '1.5rem' }}>
+              <h3 style={{ ...titleTypography, fontSize: cardNameFontSize, fontWeight: '600', marginBottom: isPreviewMobile ? '1rem' : '1.5rem' }}>
                 {placeDetails.name}
               </h3>
-              <div style={{ display: 'grid', gap: '1rem' }}>
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'start' }}>
-                  <span style={{ fontSize: '1.25rem' }}>📍</span>
-                  <span style={{ color: config.textColor || '#666666' }}>{placeDetails.formatted_address}</span>
+              <div style={{ display: 'grid', gap: infoGridGap }}>
+                <div style={{ display: 'flex', gap: miniSectionGap, alignItems: 'start' }}>
+                  <span style={{ fontSize: iconFontSize }}>📍</span>
+                  <span style={{ fontSize: bodyCopyFontSize, color: config.textColor || '#666666' }}>{placeDetails.formatted_address}</span>
                 </div>
                 {placeDetails.formatted_phone_number && (
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <span style={{ fontSize: '1.25rem' }}>📞</span>
-                    <span style={{ color: config.textColor || '#666666' }}>{placeDetails.formatted_phone_number}</span>
+                  <div style={{ display: 'flex', gap: miniSectionGap, alignItems: 'center' }}>
+                    <span style={{ fontSize: iconFontSize }}>📞</span>
+                    <span style={{ fontSize: bodyCopyFontSize, color: config.textColor || '#666666' }}>{placeDetails.formatted_phone_number}</span>
                   </div>
                 )}
                 {placeDetails.website && (
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <span style={{ fontSize: '1.25rem' }}>🌐</span>
+                  <div style={{ display: 'flex', gap: miniSectionGap, alignItems: 'center' }}>
+                    <span style={{ fontSize: iconFontSize }}>🌐</span>
                     <a href={placeDetails.website} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6' }}>Visit Website</a>
                   </div>
                 )}
                 {placeDetails.opening_hours?.weekday_text && (
                   <div style={{ marginTop: '1rem' }}>
-                    <div style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem', color: config.textColor || '#000000' }}>
+                    <div style={{ fontSize: metaLabelFontSize, fontWeight: '600', marginBottom: '0.5rem', color: config.textColor || '#000000' }}>
                       🕒 Hours:
                     </div>
-                    <div style={{ fontSize: '0.875rem', opacity: 0.9, color: config.textColor || '#666666' }}>
+                    <div style={{ fontSize: hoursFontSize, opacity: 0.9, color: config.textColor || '#666666' }}>
                       {placeDetails.opening_hours.weekday_text.slice(0, 3).map((text, i) => (
                         <div key={i}>{text}</div>
                       ))}
@@ -629,9 +662,9 @@ export default function DynamicLocation({
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
-              borderRadius: '12px',
-              padding: '1rem',
-              minHeight: 'clamp(280px, 52vw, 400px)',
+              borderRadius: cardRadius,
+              padding: isPreviewMobile ? '0.75rem' : '1rem',
+              minHeight: mapCardMinHeight,
               overflow: 'hidden',
             }}>
               <SimpleMapPreview
@@ -652,47 +685,47 @@ export default function DynamicLocation({
     if (layout === 'list') {
       return (
         <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
-          <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem' }}>
+          <h2 style={{ ...titleTypography, fontSize: sectionTitleFontSize, fontWeight: '700', marginBottom: isPreviewMobile ? '0.75rem' : '1rem' }}>
             {config.title}
           </h2>
-          <p style={{ ...descriptionTypography, fontSize: '1.125rem', marginBottom: '3rem', opacity: 0.8 }}>
+          <p style={{ ...descriptionTypography, fontSize: sectionDescriptionFontSize, margin: sectionDescriptionMargin, opacity: 0.8 }}>
             {config.description}
           </p>
           <div style={{
             backgroundColor: 'rgba(255, 255, 255, 0.95)',
             border: '1px solid rgba(0, 0, 0, 0.1)',
-            borderRadius: '12px',
-            padding: '2rem',
+            borderRadius: cardRadius,
+            padding: cardPadding,
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
           }}>
-            <h3 style={{ ...titleTypography, fontSize: '2rem', fontWeight: '600', marginBottom: '1.5rem' }}>
+            <h3 style={{ ...titleTypography, fontSize: compactSectionTitleFontSize, fontWeight: '600', marginBottom: isPreviewMobile ? '1rem' : '1.5rem' }}>
               {placeDetails.name}
             </h3>
-            <div style={{ display: 'grid', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gap: isPreviewMobile ? '1rem' : '1.5rem' }}>
               <div>
-                <div style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem', opacity: 0.7, color: config.textColor || '#999999' }}>
+                <div style={{ fontSize: metaLabelFontSize, fontWeight: '600', marginBottom: '0.5rem', opacity: 0.7, color: config.textColor || '#999999' }}>
                   Address
                 </div>
-                <div style={{ fontSize: '1.125rem', color: config.textColor || '#666666' }}>
+                <div style={{ fontSize: detailFontSize, color: config.textColor || '#666666' }}>
                   📍 {placeDetails.formatted_address}
                 </div>
               </div>
               {placeDetails.formatted_phone_number && (
                 <div>
-                  <div style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem', opacity: 0.7, color: config.textColor || '#999999' }}>
+                  <div style={{ fontSize: metaLabelFontSize, fontWeight: '600', marginBottom: '0.5rem', opacity: 0.7, color: config.textColor || '#999999' }}>
                     Phone
                   </div>
-                  <div style={{ fontSize: '1.125rem', color: config.textColor || '#666666' }}>
+                  <div style={{ fontSize: detailFontSize, color: config.textColor || '#666666' }}>
                     📞 {placeDetails.formatted_phone_number}
                   </div>
                 </div>
               )}
               {placeDetails.opening_hours?.weekday_text && (
                 <div>
-                  <div style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem', opacity: 0.7, color: config.textColor || '#999999' }}>
+                  <div style={{ fontSize: metaLabelFontSize, fontWeight: '600', marginBottom: '0.5rem', opacity: 0.7, color: config.textColor || '#999999' }}>
                     Hours
                   </div>
-                  <div style={{ fontSize: '0.9375rem', lineHeight: '1.6', opacity: 0.9, color: config.textColor || '#666666' }}>
+                  <div style={{ fontSize: hoursFontSize, lineHeight: '1.6', opacity: 0.9, color: config.textColor || '#666666' }}>
                     {placeDetails.opening_hours.weekday_text.map((text, i) => (
                       <div key={i}>🕒 {text}</div>
                     ))}
@@ -709,10 +742,10 @@ export default function DynamicLocation({
     if (layout === 'map') {
       return (
         <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
-          <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center' }}>
+          <h2 style={{ ...titleTypography, fontSize: sectionTitleFontSize, fontWeight: '700', marginBottom: isPreviewMobile ? '0.75rem' : '1rem', textAlign: 'center' }}>
             {config.title}
           </h2>
-          <p style={{ ...descriptionTypography, fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8 }}>
+          <p style={{ ...descriptionTypography, fontSize: sectionDescriptionFontSize, margin: sectionDescriptionMargin, textAlign: 'center', opacity: 0.8 }}>
             {config.description}
           </p>
           <div
@@ -725,14 +758,14 @@ export default function DynamicLocation({
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
-              borderRadius: '12px',
-              padding: '2rem',
+              borderRadius: cardRadius,
+              padding: cardPadding,
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
             }}>
-              <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1.5rem', color: config.textColor || '#000000' }}>
+              <h3 style={{ fontSize: secondaryHeadingFontSize, fontWeight: '600', marginBottom: isPreviewMobile ? '1rem' : '1.5rem', color: config.textColor || '#000000' }}>
                 {placeDetails.name}
               </h3>
-              <div style={{ display: 'grid', gap: '1rem', fontSize: '0.9375rem' }}>
+              <div style={{ display: 'grid', gap: infoGridGap, fontSize: bodyCopyFontSize }}>
                 <div>
                   <strong>📍 Address:</strong>
                   <div style={{ marginTop: '0.25rem', opacity: 0.9, color: config.textColor || '#666666' }}>{placeDetails.formatted_address}</div>
@@ -746,7 +779,7 @@ export default function DynamicLocation({
                 {placeDetails.opening_hours?.weekday_text && (
                   <div>
                     <strong>🕒 Hours:</strong>
-                    <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', opacity: 0.8, color: config.textColor || '#666666' }}>
+                    <div style={{ marginTop: '0.5rem', fontSize: hoursFontSize, opacity: 0.8, color: config.textColor || '#666666' }}>
                       {placeDetails.opening_hours.weekday_text.slice(0, 2).map((text, i) => (
                         <div key={i}>{text}</div>
                       ))}
@@ -761,9 +794,9 @@ export default function DynamicLocation({
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
-              borderRadius: '12px',
-              padding: '1rem',
-              minHeight: 'clamp(320px, 56vw, 500px)',
+              borderRadius: cardRadius,
+              padding: isPreviewMobile ? '0.75rem' : '1rem',
+              minHeight: mapPanelMinHeight,
               overflow: 'hidden',
             }}>
               <SimpleMapPreview
@@ -784,7 +817,7 @@ export default function DynamicLocation({
     if (layout === 'compact') {
       return (
         <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
-          <h2 style={{ ...titleTypography, fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'center' }}>
+          <h2 style={{ ...titleTypography, fontSize: compactSectionTitleFontSize, fontWeight: '700', marginBottom: isPreviewMobile ? '1rem' : '2rem', textAlign: 'center' }}>
             {config.title}
           </h2>
           <div
@@ -799,19 +832,19 @@ export default function DynamicLocation({
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid rgba(0, 0, 0, 0.1)',
-              borderRadius: '8px',
-              padding: '2rem',
+              borderRadius: cardRadius,
+              padding: cardPaddingCompact,
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
             }}>
-              <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '0.25rem', color: config.textColor || '#1a1a1a' }}>
+              <h3 style={{ fontSize: secondaryHeadingFontSize, fontWeight: '700', marginBottom: '0.25rem', color: config.textColor || '#1a1a1a' }}>
                 {placeDetails.name}
               </h3>
-              <p style={{ ...descriptionTypography, fontSize: '0.75rem', marginBottom: '1.5rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <p style={{ ...descriptionTypography, fontSize: isPreviewMobile ? '0.68rem' : '0.75rem', marginBottom: isPreviewMobile ? '1rem' : '1.5rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 {config.description}
               </p>
-              <div style={{ display: 'grid', gap: '1rem', fontSize: '0.875rem', color: '#333' }}>
+              <div style={{ display: 'grid', gap: infoGridGap, fontSize: bodyCopyFontSize, color: '#333' }}>
                 <div>
-                  <div style={{ fontWeight: '600', marginBottom: '0.25rem', fontSize: '0.75rem', color: '#999' }}>INFORMATION</div>
+                  <div style={{ fontWeight: '600', marginBottom: '0.25rem', fontSize: isPreviewMobile ? '0.7rem' : '0.75rem', color: '#999' }}>INFORMATION</div>
                   <div>📍 {placeDetails.formatted_address}</div>
                 </div>
                 {placeDetails.formatted_phone_number && (
@@ -819,9 +852,9 @@ export default function DynamicLocation({
                 )}
                 {placeDetails.opening_hours?.weekday_text && (
                   <div>
-                    <div style={{ fontWeight: '600', marginBottom: '0.5rem', fontSize: '0.75rem', color: '#999' }}>HOURS</div>
+                    <div style={{ fontWeight: '600', marginBottom: '0.5rem', fontSize: isPreviewMobile ? '0.7rem' : '0.75rem', color: '#999' }}>HOURS</div>
                     {placeDetails.opening_hours.weekday_text.slice(0, 3).map((text, i) => (
-                      <div key={i} style={{ fontSize: '0.8125rem', lineHeight: '1.6' }}>{text}</div>
+                      <div key={i} style={{ fontSize: hoursFontSize, lineHeight: '1.6' }}>{text}</div>
                     ))}
                   </div>
                 )}
@@ -831,7 +864,7 @@ export default function DynamicLocation({
                   rel="noopener noreferrer"
                   aria-label={`Get directions to ${placeDetails.name}`}
                   style={{
-                    marginTop: '1rem',
+                    marginTop: isPreviewMobile ? '0.75rem' : '1rem',
                     padding: '0.75rem 1.5rem',
                     backgroundColor: buttonStyle.backgroundColor || '#8b0000',
                     color: buttonStyle.color || '#fff',
@@ -853,10 +886,10 @@ export default function DynamicLocation({
             {/* Map */}
             <div style={{
               backgroundColor: '#e8e8e8',
-              borderRadius: '8px',
+              borderRadius: cardRadius,
               overflow: 'hidden',
               position: 'relative',
-              minHeight: 'clamp(280px, 58vw, 420px)',
+              minHeight: compactMapMinHeight,
             }}>
               <SimpleMapPreview
                 lat={lat}
@@ -876,20 +909,20 @@ export default function DynamicLocation({
     if (layout === 'cards') {
       return (
         <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
-          <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center' }}>
+          <h2 style={{ ...titleTypography, fontSize: sectionTitleFontSize, fontWeight: '700', marginBottom: isPreviewMobile ? '0.75rem' : '1rem', textAlign: 'center' }}>
             {config.title}
           </h2>
-          <p style={{ ...descriptionTypography, fontSize: '1.125rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.8 }}>
+          <p style={{ ...descriptionTypography, fontSize: sectionDescriptionFontSize, margin: sectionDescriptionMargin, textAlign: 'center', opacity: 0.8 }}>
             {config.description}
           </p>
           <div style={{
             backgroundColor: 'rgba(255, 255, 255, 0.95)',
             border: '1px solid rgba(0, 0, 0, 0.1)',
-            borderRadius: '16px',
-            padding: isPreviewMobile ? '2rem 1.25rem' : '3rem',
+            borderRadius: largeCardRadius,
+            padding: isPreviewMobile ? '1.25rem 1rem' : '3rem',
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.08)',
           }}>
-            <h3 style={{ ...titleTypography, fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'center' }}>
+            <h3 style={{ ...titleTypography, fontSize: compactSectionTitleFontSize, fontWeight: '700', marginBottom: isPreviewMobile ? '1rem' : '2rem', textAlign: 'center' }}>
               {placeDetails.name}
             </h3>
             <div
@@ -898,44 +931,44 @@ export default function DynamicLocation({
                 gridTemplateColumns: isPreviewMobile
                   ? '1fr'
                   : 'repeat(auto-fit, minmax(250px, 1fr))',
-                gap: '1.5rem',
+                gap: isPreviewMobile ? '0.85rem' : '1.5rem',
               }}
             >
               <div style={{
                 backgroundColor: 'rgba(0, 0, 0, 0.03)',
                 border: '1px solid rgba(0, 0, 0, 0.1)',
-                borderRadius: '12px',
-                padding: '1.5rem',
+                borderRadius: cardRadius,
+                padding: displayCardPadding,
                 textAlign: 'center',
               }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📍</div>
+                <div style={{ fontSize: isPreviewMobile ? '1.8rem' : '2.5rem', marginBottom: '1rem' }}>📍</div>
                 <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: config.textColor || '#000000' }}>Address</div>
-                <div style={{ fontSize: '0.9375rem', opacity: 0.8, color: config.textColor || '#666666' }}>{placeDetails.formatted_address}</div>
+                <div style={{ fontSize: bodyCopyFontSize, opacity: 0.8, color: config.textColor || '#666666' }}>{placeDetails.formatted_address}</div>
               </div>
               {placeDetails.formatted_phone_number && (
                 <div style={{
                   backgroundColor: 'rgba(0, 0, 0, 0.03)',
                   border: '1px solid rgba(0, 0, 0, 0.1)',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
+                  borderRadius: cardRadius,
+                  padding: displayCardPadding,
                   textAlign: 'center',
                 }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📞</div>
+                  <div style={{ fontSize: isPreviewMobile ? '1.8rem' : '2.5rem', marginBottom: '1rem' }}>📞</div>
                   <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: config.textColor || '#000000' }}>Phone</div>
-                  <div style={{ fontSize: '0.9375rem', opacity: 0.8, color: config.textColor || '#666666' }}>{placeDetails.formatted_phone_number}</div>
+                  <div style={{ fontSize: bodyCopyFontSize, opacity: 0.8, color: config.textColor || '#666666' }}>{placeDetails.formatted_phone_number}</div>
                 </div>
               )}
               {placeDetails.website && (
                 <div style={{
                   backgroundColor: 'rgba(0, 0, 0, 0.03)',
                   border: '1px solid rgba(0, 0, 0, 0.1)',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
+                  borderRadius: cardRadius,
+                  padding: displayCardPadding,
                   textAlign: 'center',
                 }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🌐</div>
+                  <div style={{ fontSize: isPreviewMobile ? '1.8rem' : '2.5rem', marginBottom: '1rem' }}>🌐</div>
                   <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: config.textColor || '#000000' }}>Website</div>
-                  <div style={{ fontSize: '0.9375rem', opacity: 0.8 }}>
+                  <div style={{ fontSize: bodyCopyFontSize, opacity: 0.8 }}>
                     <a href={placeDetails.website} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6' }}>Visit Site</a>
                   </div>
                 </div>
@@ -944,14 +977,14 @@ export default function DynamicLocation({
                 <div style={{
                   backgroundColor: 'rgba(0, 0, 0, 0.03)',
                   border: '1px solid rgba(0, 0, 0, 0.1)',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
+                  borderRadius: cardRadius,
+                  padding: displayCardPadding,
                   textAlign: 'center',
                   gridColumn: isPreviewMobile ? 'auto' : 'span 2',
                 }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🕒</div>
+                  <div style={{ fontSize: isPreviewMobile ? '1.8rem' : '2.5rem', marginBottom: '1rem' }}>🕒</div>
                   <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: config.textColor || '#000000' }}>Hours</div>
-                  <div style={{ fontSize: '0.875rem', opacity: 0.8, color: config.textColor || '#666666' }}>
+                  <div style={{ fontSize: hoursFontSize, opacity: 0.8, color: config.textColor || '#666666' }}>
                     {placeDetails.opening_hours.weekday_text.slice(0, 3).map((text, i) => (
                       <div key={i}>{text}</div>
                     ))}
@@ -973,10 +1006,10 @@ export default function DynamicLocation({
     if (layout === 'sidebar') {
       return (
         <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
-          <h2 style={{ ...titleTypography, fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem', textAlign: 'center' }}>
+          <h2 style={{ ...titleTypography, fontSize: sectionTitleFontSize, fontWeight: '700', marginBottom: '0.5rem', textAlign: 'center' }}>
             {config.title}
           </h2>
-          <p style={{ ...descriptionTypography, fontSize: '1rem', marginBottom: '3rem', textAlign: 'center', opacity: 0.7 }}>
+          <p style={{ ...descriptionTypography, fontSize: sectionDescriptionFontSize, margin: sectionDescriptionMargin, textAlign: 'center', opacity: 0.7 }}>
             {config.description}
           </p>
           <div
@@ -985,7 +1018,7 @@ export default function DynamicLocation({
               gridTemplateColumns: isPreviewMobile ? '1fr' : '350px minmax(0,1fr)',
               gap: '0',
               border: '1px solid rgba(0, 0, 0, 0.1)',
-              borderRadius: '12px',
+              borderRadius: cardRadius,
               backgroundColor: '#fff',
               overflow: 'hidden',
             }}
@@ -993,23 +1026,23 @@ export default function DynamicLocation({
             {/* Sidebar with location list */}
             <div style={{
               backgroundColor: '#f8f9fa',
-              padding: isPreviewMobile ? '1.5rem' : '2rem',
+              padding: cardPadding,
               borderRight: isPreviewMobile ? 'none' : '1px solid rgba(0, 0, 0, 0.1)',
               overflowY: 'auto',
               maxHeight: isPreviewMobile ? 'none' : '600px',
             }}>
               <div style={{
                 backgroundColor: '#fff',
-                borderRadius: '8px',
-                padding: '1.5rem',
+                borderRadius: cardRadius,
+                padding: displayCardPadding,
                 marginBottom: '1rem',
                 border: '2px solid #dc3545',
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
               }}>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '0.75rem', color: config.textColor || '#1a1a1a' }}>
+                <h3 style={{ fontSize: secondaryHeadingFontSize, fontWeight: '700', marginBottom: '0.75rem', color: config.textColor || '#1a1a1a' }}>
                   {placeDetails.name}
                 </h3>
-                <div style={{ fontSize: '0.875rem', color: config.textColor || '#666', lineHeight: '1.6' }}>
+                <div style={{ fontSize: bodyCopyFontSize, color: config.textColor || '#666', lineHeight: '1.6' }}>
                   <div style={{ marginBottom: '0.5rem' }}>
                     <strong>📍</strong> {placeDetails.formatted_address}
                   </div>
@@ -1022,7 +1055,7 @@ export default function DynamicLocation({
                     <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e5e7eb' }}>
                       <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: config.textColor || '#1a1a1a' }}>Hours:</div>
                       {placeDetails.opening_hours.weekday_text.slice(0, 2).map((text, i) => (
-                        <div key={i} style={{ fontSize: '0.8125rem' }}>{text}</div>
+                        <div key={i} style={{ fontSize: hoursFontSize }}>{text}</div>
                       ))}
                     </div>
                   )}
@@ -1057,7 +1090,7 @@ export default function DynamicLocation({
             {/* Map area */}
             <div style={{
               backgroundColor: '#e8e8e8',
-              minHeight: isPreviewMobile ? '320px' : 'clamp(320px, 60vw, 600px)',
+              minHeight: sidebarMapMinHeight,
               position: 'relative',
             }}>
               <SimpleMapPreview
@@ -1078,8 +1111,8 @@ export default function DynamicLocation({
     if (layout === 'fullscreen') {
       return (
         <div style={{
-          margin: `-${sectionPadding}`,
-          minHeight: isPreviewMobile ? '760px' : '100vh',
+          margin: negativeSectionPadding,
+          minHeight: fullScreenMinHeight,
           position: 'relative',
           backgroundColor: config.bgColor || '#1a2332',
           backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255, 107, 107, 0.1), transparent 50%), radial-gradient(circle at 80% 70%, rgba(107, 148, 255, 0.1), transparent 50%)',
@@ -1110,39 +1143,40 @@ export default function DynamicLocation({
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            minHeight: isPreviewMobile ? '760px' : '100vh',
+            minHeight: fullScreenMinHeight,
           }}>
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               backdropFilter: 'blur(10px)',
-              borderRadius: '16px',
-              padding: isPreviewMobile ? '1.75rem 1.25rem' : '2.5rem',
+              borderRadius: largeCardRadius,
+              padding: isPreviewMobile ? '1.5rem 1rem' : '2.5rem',
               boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
               border: '1px solid rgba(255, 255, 255, 0.2)',
+              width: 'min(100%, 520px)',
             }}>
-              <h2 style={{ ...titleTypography, fontSize: '2rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+              <h2 style={{ ...titleTypography, fontSize: compactSectionTitleFontSize, fontWeight: '700', marginBottom: '0.5rem' }}>
                 {config.title}
               </h2>
-              <p style={{ ...descriptionTypography, fontSize: '0.9375rem', marginBottom: '2rem' }}>
+              <p style={{ ...descriptionTypography, fontSize: bodyCopyFontSize, marginBottom: isPreviewMobile ? '1.25rem' : '2rem' }}>
                 {config.description}
               </p>
-              <h3 style={{ ...titleTypography, fontSize: '1.5rem', fontWeight: '700', marginBottom: '1.5rem' }}>
+              <h3 style={{ ...titleTypography, fontSize: secondaryHeadingFontSize, fontWeight: '700', marginBottom: isPreviewMobile ? '1rem' : '1.5rem' }}>
                 {placeDetails.name}
               </h3>
-              <div style={{ display: 'grid', gap: '1rem', fontSize: '0.9375rem', color: config.textColor || '#333' }}>
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'start' }}>
-                  <span style={{ fontSize: '1.25rem' }}>📍</span>
+              <div style={{ display: 'grid', gap: infoGridGap, fontSize: bodyCopyFontSize, color: config.textColor || '#333' }}>
+                <div style={{ display: 'flex', gap: miniSectionGap, alignItems: 'start' }}>
+                  <span style={{ fontSize: iconFontSize }}>📍</span>
                   <span>{placeDetails.formatted_address}</span>
                 </div>
                 {placeDetails.formatted_phone_number && (
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <span style={{ fontSize: '1.25rem' }}>📞</span>
+                  <div style={{ display: 'flex', gap: miniSectionGap, alignItems: 'center' }}>
+                    <span style={{ fontSize: iconFontSize }}>📞</span>
                     <span>{placeDetails.formatted_phone_number}</span>
                   </div>
                 )}
                 {placeDetails.website && (
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <span style={{ fontSize: '1.25rem' }}>🌐</span>
+                  <div style={{ display: 'flex', gap: miniSectionGap, alignItems: 'center' }}>
+                    <span style={{ fontSize: iconFontSize }}>🌐</span>
                     <a href={placeDetails.website} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6' }}>Visit Website</a>
                   </div>
                 )}
@@ -1153,7 +1187,7 @@ export default function DynamicLocation({
                 rel="noopener noreferrer"
                 aria-label={`Get directions to ${placeDetails.name}`}
                 style={{
-                  marginTop: '2rem',
+                  marginTop: isPreviewMobile ? '1.25rem' : '2rem',
                   width: '100%',
                   padding: '1rem',
                   backgroundColor: buttonStyle.backgroundColor || '#8b0000',
@@ -1195,11 +1229,14 @@ export default function DynamicLocation({
     return (
       <div
         style={{
-          padding: resolveSharedSectionSpacing(previewViewport).sectionPadding,
+          padding:
+            resolvedViewport === 'mobile'
+              ? '2rem 1rem'
+              : resolveSharedSectionSpacing(resolvedViewport).sectionPadding,
           textAlign: 'center',
         }}
       >
-        <div style={{ fontSize: '1.125rem', color: '#6b7280' }}>Loading location...</div>
+        <div style={{ fontSize: resolvedViewport === 'mobile' ? '1rem' : '1.125rem', color: '#6b7280' }}>Loading location...</div>
       </div>
     );
   }

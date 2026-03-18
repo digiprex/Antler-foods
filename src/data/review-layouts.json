@@ -2,7 +2,7 @@
   "layouts": [
     {
       "id": "grid",
-      "name": "Editorial Strip",
+      "name": "",
       "description": "Headline, CTA, and centered testimonials",
       "support": "Matches the clean top-strip review reference",
       "accent": "Top carousel",

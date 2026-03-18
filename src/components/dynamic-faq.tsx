@@ -518,8 +518,8 @@ export default function DynamicFAQ({
       },
     ),
     isMobileViewport,
-    `clamp(2rem, 8vw, ${resolved.titleFontSize})`,
-    '1.12',
+    resolved.titleMobileFontSize || 'clamp(1.75rem, 9vw, 2.65rem)',
+    resolved.titleMobileLineHeight || '1.12',
   );
   const subtitleStyle = withMobileFontSizeFallback(
     buildResponsiveTypographyStyle(
@@ -546,8 +546,8 @@ export default function DynamicFAQ({
       },
     ),
     isMobileViewport,
-    `clamp(1rem, 5vw, ${resolved.subtitleFontSize})`,
-    '1.55',
+    resolved.subtitleMobileFontSize || 'clamp(0.95rem, 4.6vw, 1.15rem)',
+    resolved.subtitleMobileLineHeight || '1.55',
   );
   const bodyStyle = withMobileFontSizeFallback(
     buildResponsiveTypographyStyle(
@@ -574,8 +574,8 @@ export default function DynamicFAQ({
       },
     ),
     isMobileViewport,
-    `clamp(0.95rem, 3.8vw, ${resolved.bodyFontSize})`,
-    '1.7',
+    resolved.bodyMobileFontSize || 'clamp(0.92rem, 3.9vw, 1rem)',
+    resolved.bodyMobileLineHeight || '1.65',
   );
 
   const globalBackground = globalStyles?.backgroundColor;
@@ -605,12 +605,25 @@ export default function DynamicFAQ({
     color:
       (useCustomStyles ? mergedConfig.questionTextColor : undefined) ||
       subtitleStyle.color,
+    ...(isMobileViewport
+      ? {
+          fontSize:
+            resolved.subtitleMobileFontSize || 'clamp(1.02rem, 5.5vw, 1.35rem)',
+          lineHeight: resolved.subtitleMobileLineHeight || '1.4',
+        }
+      : {}),
   };
   const answerStyle: CSSProperties = {
     ...bodyStyle,
     color:
       (useCustomStyles ? mergedConfig.answerTextColor : undefined) ||
       bodyStyle.color,
+    ...(isMobileViewport
+      ? {
+          fontSize: resolved.bodyMobileFontSize || 'clamp(0.92rem, 3.9vw, 1rem)',
+          lineHeight: resolved.bodyMobileLineHeight || '1.65',
+        }
+      : {}),
   };
   const sectionTheme = {
     backgroundColor: 'transparent',

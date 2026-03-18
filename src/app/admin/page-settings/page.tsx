@@ -1,8 +1,7 @@
 'use client';
 
-import { Suspense } from 'react';
-
-import { useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
+import type { DragEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -67,6 +66,10 @@ function PageSettingsSelector() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
+  const [draggedSectionTemplateId, setDraggedSectionTemplateId] = useState<string | null>(null);
+  const [dragOverSectionTemplateId, setDragOverSectionTemplateId] = useState<string | null>(null);
+  const [reorderingSections, setReorderingSections] = useState(false);
+  const dragPreviewNodeRef = useRef<HTMLElement | null>(null);
 
   // Function to render section preview based on category
   const renderSectionPreview = (category: string, config?: any, templateId?: string) => {
@@ -817,8 +820,29 @@ function PageSettingsSelector() {
   // Function to reorder all sections sequentially
   const reorderAllSections = useCallback(async (sections: any[]) => {
     try {
+      setReorderingSections(true);
+
+      const reorderedSections = sections.map((section, index) => ({
+        ...section,
+        order_index: index + 1,
+      }));
+      const nextOrderMap = new Map(
+        reorderedSections.map((section) => [section.template_id, section.order_index]),
+      );
+
+      setAllTemplates((prev) =>
+        prev.map((template) =>
+          nextOrderMap.has(template.template_id)
+            ? {
+                ...template,
+                order_index: nextOrderMap.get(template.template_id),
+              }
+            : template,
+        ),
+      );
+
       // Update all sections with sequential order indices (1, 2, 3, 4...)
-      const updates = sections.map((section, index) =>
+      const updates = reorderedSections.map((section, index) =>
         updateSectionOrder(section.template_id, index + 1)
       );
       await Promise.all(updates);
@@ -827,37 +851,159 @@ function PageSettingsSelector() {
       await fetchPageAndSections();
     } catch (error) {
       console.error('Error reordering sections:', error);
+      await fetchPageAndSections();
       alert('Error updating section order');
+    } finally {
+      setReorderingSections(false);
+      setDraggedSectionTemplateId(null);
+      setDragOverSectionTemplateId(null);
     }
   }, [updateSectionOrder, fetchPageAndSections]);
+
+  const reorderSectionsByIndex = useCallback(async (fromIndex: number, toIndex: number) => {
+    if (
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex === toIndex ||
+      fromIndex >= existingSectionsData.length ||
+      toIndex >= existingSectionsData.length
+    ) {
+      return;
+    }
+
+    const reorderedSections = [...existingSectionsData];
+    const [movedSection] = reorderedSections.splice(fromIndex, 1);
+    reorderedSections.splice(toIndex, 0, movedSection);
+
+    await reorderAllSections(reorderedSections);
+  }, [existingSectionsData, reorderAllSections]);
 
   // Function to move section up
   const moveSectionUp = useCallback(async (sectionIndex: number) => {
     if (sectionIndex === 0) return; // Already at top
-
-    // Create a new array with swapped positions
-    const reorderedSections = [...existingSectionsData];
-    const temp = reorderedSections[sectionIndex];
-    reorderedSections[sectionIndex] = reorderedSections[sectionIndex - 1];
-    reorderedSections[sectionIndex - 1] = temp;
-
-    // Update all sections with sequential order indices
-    await reorderAllSections(reorderedSections);
-  }, [existingSectionsData, reorderAllSections]);
+    await reorderSectionsByIndex(sectionIndex, sectionIndex - 1);
+  }, [reorderSectionsByIndex]);
 
   // Function to move section down
   const moveSectionDown = useCallback(async (sectionIndex: number) => {
     if (sectionIndex === existingSectionsData.length - 1) return; // Already at bottom
+    await reorderSectionsByIndex(sectionIndex, sectionIndex + 1);
+  }, [existingSectionsData.length, reorderSectionsByIndex]);
 
-    // Create a new array with swapped positions
-    const reorderedSections = [...existingSectionsData];
-    const temp = reorderedSections[sectionIndex];
-    reorderedSections[sectionIndex] = reorderedSections[sectionIndex + 1];
-    reorderedSections[sectionIndex + 1] = temp;
+  const cleanupDragPreview = useCallback(() => {
+    if (dragPreviewNodeRef.current) {
+      dragPreviewNodeRef.current.remove();
+      dragPreviewNodeRef.current = null;
+    }
+  }, []);
 
-    // Update all sections with sequential order indices
-    await reorderAllSections(reorderedSections);
-  }, [existingSectionsData, reorderAllSections]);
+  useEffect(() => cleanupDragPreview, [cleanupDragPreview]);
+
+  const handleSectionDragStart = useCallback((
+    event: DragEvent<HTMLElement>,
+    templateId: string,
+  ) => {
+    if (reorderingSections) {
+      event.preventDefault();
+      return;
+    }
+
+    const dragOrigin = event.target instanceof Element ? event.target : null;
+    if (dragOrigin?.closest('[data-no-drag="true"]')) {
+      event.preventDefault();
+      return;
+    }
+
+    cleanupDragPreview();
+
+    const sectionCard =
+      (event.currentTarget.closest('[data-section-card="true"]') as HTMLElement | null) ||
+      event.currentTarget;
+    const previewNode = sectionCard.cloneNode(true) as HTMLElement;
+    previewNode.style.position = 'fixed';
+    previewNode.style.top = '-9999px';
+    previewNode.style.left = '-9999px';
+    previewNode.style.width = `${sectionCard.offsetWidth}px`;
+    previewNode.style.maxWidth = `${sectionCard.offsetWidth}px`;
+    previewNode.style.pointerEvents = 'none';
+    previewNode.style.opacity = '0.9';
+    previewNode.style.transform = 'scale(0.9)';
+    previewNode.style.transformOrigin = 'top left';
+    previewNode.style.boxShadow = '0 24px 64px rgba(15, 23, 42, 0.18)';
+    previewNode.style.borderColor = '#c084fc';
+    previewNode.style.zIndex = '9999';
+    previewNode.style.background = '#ffffff';
+    document.body.appendChild(previewNode);
+    dragPreviewNodeRef.current = previewNode;
+
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', templateId);
+    event.dataTransfer.setDragImage(
+      previewNode,
+      Math.min(160, Math.max(80, sectionCard.offsetWidth * 0.2)),
+      36,
+    );
+    setDraggedSectionTemplateId(templateId);
+    setDragOverSectionTemplateId(templateId);
+  }, [cleanupDragPreview, reorderingSections]);
+
+  const handleSectionDragOver = useCallback((
+    event: DragEvent<HTMLDivElement>,
+    templateId: string,
+  ) => {
+    if (!draggedSectionTemplateId || draggedSectionTemplateId === templateId) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+
+    if (dragOverSectionTemplateId !== templateId) {
+      setDragOverSectionTemplateId(templateId);
+    }
+  }, [dragOverSectionTemplateId, draggedSectionTemplateId]);
+
+  const handleSectionDragLeave = useCallback((templateId: string) => {
+    if (dragOverSectionTemplateId === templateId) {
+      setDragOverSectionTemplateId(draggedSectionTemplateId);
+    }
+  }, [dragOverSectionTemplateId, draggedSectionTemplateId]);
+
+  const handleSectionDrop = useCallback(async (
+    event: DragEvent<HTMLDivElement>,
+    targetTemplateId: string,
+  ) => {
+    event.preventDefault();
+
+    const sourceTemplateId =
+      draggedSectionTemplateId || event.dataTransfer.getData('text/plain');
+
+    setDragOverSectionTemplateId(null);
+    setDraggedSectionTemplateId(null);
+
+    if (!sourceTemplateId || sourceTemplateId === targetTemplateId) {
+      return;
+    }
+
+    const fromIndex = existingSectionsData.findIndex(
+      (section) => section.template_id === sourceTemplateId,
+    );
+    const toIndex = existingSectionsData.findIndex(
+      (section) => section.template_id === targetTemplateId,
+    );
+
+    if (fromIndex === -1 || toIndex === -1) {
+      return;
+    }
+
+    await reorderSectionsByIndex(fromIndex, toIndex);
+  }, [draggedSectionTemplateId, existingSectionsData, reorderSectionsByIndex]);
+
+  const handleSectionDragEnd = useCallback(() => {
+    cleanupDragPreview();
+    setDraggedSectionTemplateId(null);
+    setDragOverSectionTemplateId(null);
+  }, [cleanupDragPreview]);
 
   // Function to handle delete click
   const handleDeleteClick = (sectionName: string, templateId: string) => {
@@ -1372,6 +1518,9 @@ function PageSettingsSelector() {
               <p className="mt-0.5 text-sm text-gray-600">
                 {existingSectionsData.length} section{existingSectionsData.length !== 1 ? 's' : ''} configured
               </p>
+              <p className="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-purple-600">
+                Drag sections to reorder
+              </p>
             </div>
           </div>
           <div className="space-y-6">
@@ -1380,15 +1529,41 @@ function PageSettingsSelector() {
                 const isVisibleOnPage =
                   section.config?.enabled !== false &&
                   section.config?.isEnabled !== false;
+                const isDraggedSection = draggedSectionTemplateId === section.template_id;
+                const isDragTarget =
+                  dragOverSectionTemplateId === section.template_id &&
+                  draggedSectionTemplateId !== section.template_id;
 
                 return (
                   <div
                     key={section.template_id}
-                    className="stagger-item bg-gray-50 border-2 border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-purple-300 transition-all duration-300 group overflow-hidden hover-lift animate-fade-in"
+                    data-section-card="true"
+                    onDragOver={(event) => handleSectionDragOver(event, section.template_id)}
+                    onDragLeave={() => handleSectionDragLeave(section.template_id)}
+                    onDrop={(event) => void handleSectionDrop(event, section.template_id)}
+                    className={`stagger-item rounded-2xl border-2 bg-gray-50 shadow-sm transition-all duration-300 group overflow-hidden animate-fade-in ${
+                      isDraggedSection
+                        ? 'border-purple-300 opacity-60 shadow-xl scale-[0.97]'
+                        : isDragTarget
+                          ? 'border-dashed border-purple-400 bg-purple-50/50 shadow-lg -translate-y-0.5'
+                          : 'border-gray-200 hover:border-purple-300 hover:shadow-md hover-lift'
+                    } ${reorderingSections ? 'pointer-events-none' : ''}`}
                     style={{ animationDelay: `${idx * 0.1}s` }}
                   >
                     {/* Section Header */}
-                    <div className="p-4 lg:p-6 border-b-2 border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                    <div
+                      draggable={!reorderingSections}
+                      onDragStart={(event) => handleSectionDragStart(event, section.template_id)}
+                      onDragEnd={handleSectionDragEnd}
+                      className={`cursor-grab active:cursor-grabbing select-none border-b-2 border-gray-100 p-4 lg:p-6 transition-colors ${
+                        isDraggedSection
+                          ? 'bg-purple-50/70'
+                          : isDragTarget
+                            ? 'bg-purple-50/60'
+                            : 'bg-gradient-to-r from-gray-50 to-white'
+                      }`}
+                      title="Drag this section to reorder"
+                    >
                       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-3 mb-2">
@@ -1447,7 +1622,7 @@ function PageSettingsSelector() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div data-no-drag="true" className="flex items-center gap-3">
                           {/* Order Controls */}
                           <div className="flex flex-col gap-1">
                             <button
@@ -1455,7 +1630,7 @@ function PageSettingsSelector() {
                                 e.stopPropagation();
                                 moveSectionUp(idx);
                               }}
-                              disabled={idx === 0}
+                              disabled={idx === 0 || reorderingSections}
                               className="px-2 py-1 text-xs bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg hover:from-gray-200 hover:to-gray-300 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 font-medium shadow-sm min-w-[60px]"
                               title="Move up"
                             >
@@ -1469,7 +1644,7 @@ function PageSettingsSelector() {
                                 e.stopPropagation();
                                 moveSectionDown(idx);
                               }}
-                              disabled={idx === existingSectionsData.length - 1}
+                              disabled={idx === existingSectionsData.length - 1 || reorderingSections}
                               className="px-2 py-1 text-xs bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg hover:from-gray-200 hover:to-gray-300 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 font-medium shadow-sm min-w-[60px]"
                               title="Move down"
                             >

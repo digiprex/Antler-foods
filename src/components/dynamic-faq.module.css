@@ -265,7 +265,7 @@
 }
 
 .section[data-faq-preview-viewport='mobile'] {
-  padding: 1.35rem 0.9rem;
+  padding: 2rem 1rem;
 }
 
 .section[data-faq-preview-viewport='mobile'] .shellPreview {
@@ -273,51 +273,75 @@
 }
 
 .section[data-faq-layout-viewport='mobile'] .header {
-  margin-bottom: 1.1rem;
+  margin-bottom: 1rem;
 }
 
 .section[data-faq-layout-viewport='mobile'] .subtitle {
-  margin-top: 0.7rem;
+  margin-top: 0.55rem;
+  max-width: 100%;
 }
 
 .section[data-faq-layout-viewport='mobile'] .gridLayout {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.section[data-faq-layout-viewport='mobile'] {
+  padding: 2rem 1rem;
+}
+
 .section[data-faq-layout-viewport='mobile'] .frame {
-  padding: 1rem;
+  padding: 0.75rem 0;
 }
 
 .section[data-faq-layout-viewport='mobile'] .listCard,
 .section[data-faq-layout-viewport='mobile'] .gridCard,
 .section[data-faq-layout-viewport='mobile'] .accordionTrigger {
-  padding: 1rem;
+  padding: 0.95rem;
 }
 
 .section[data-faq-layout-viewport='mobile'] .cardHeader {
-  gap: 0.6rem;
+  gap: 0.55rem;
+  align-items: flex-start;
 }
 
 .section[data-faq-layout-viewport='mobile'] .itemKicker {
-  font-size: 0.66rem;
-  letter-spacing: 0.11em;
+  font-size: 0.62rem;
+  letter-spacing: 0.09em;
+}
+
+.section[data-faq-layout-viewport='mobile'] .itemBadge {
+  min-width: 2rem;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.7rem;
+}
+
+.section[data-faq-layout-viewport='mobile'] .title {
+  text-wrap: pretty;
+}
+
+.section[data-faq-layout-viewport='mobile'] .question {
+  text-wrap: pretty;
+}
+
+.section[data-faq-layout-viewport='mobile'] .answer {
+  margin-top: 0.65rem;
 }
 
 .section[data-faq-layout-viewport='mobile'] .accordionLeading {
-  gap: 0.75rem;
+  gap: 0.7rem;
 }
 
 .section[data-faq-layout-viewport='mobile'] .accordionIconWrap {
-  width: 2.2rem;
-  height: 2.2rem;
+  width: 2rem;
+  height: 2rem;
 }
 
 .section[data-faq-layout-viewport='mobile'] .accordionBodyInner {
-  padding: 0 1rem;
+  padding: 0 0.95rem;
 }
 
 .section[data-faq-layout-viewport='mobile'] .accordionBodyInner .answer {
-  padding-bottom: 1rem;
+  padding: 0.8rem 0 0.95rem;
 }
 
 @media (max-width: 900px) {
@@ -328,34 +352,34 @@
 
 @media (max-width: 768px) {
   .section {
-    padding: 2rem;
+    padding: 2rem 1rem;
   }
 
   .frame {
-    padding: 1rem;
+    padding: 0.75rem 0;
   }
 
   .listLayout,
   .accordionLayout,
   .gridLayout {
-    gap: 1rem;
+    gap: 0.9rem;
   }
 
   .listCard,
   .gridCard,
   .accordionTrigger {
-    padding: 1rem;
+    padding: 0.95rem;
   }
 
   .accordionLeading {
-    gap: 0.75rem;
+    gap: 0.7rem;
   }
 
   .accordionBodyInner {
-    padding: 0 1rem;
+    padding: 0 0.95rem;
   }
 
   .accordionBodyInner .answer {
-    padding-bottom: 1rem;
+    padding: 0.8rem 0 0.95rem;
   }
 }

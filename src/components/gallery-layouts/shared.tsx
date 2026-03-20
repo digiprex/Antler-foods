@@ -55,6 +55,24 @@ export function getAnimationStyle(index: number): CSSProperties {
   };
 }
 
+function getVisibleGalleryTitle(title?: string | null) {
+  if (!title) {
+    return '';
+  }
+
+  const trimmed = title.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  // Hide auto-generated placeholders like "Gallery image 1"
+  if (/^gallery image\s+\d+$/i.test(trimmed)) {
+    return '';
+  }
+
+  return trimmed;
+}
+
 export function GalleryCaptionOverlay({
   image,
   showCaptions,
@@ -64,7 +82,9 @@ export function GalleryCaptionOverlay({
   showCaptions: boolean;
   variant?: 'overlay' | 'glass';
 }) {
-  if (!showCaptions || (!image.title && !image.description)) {
+  const visibleTitle = getVisibleGalleryTitle(image.title);
+
+  if (!showCaptions || (!visibleTitle && !image.description)) {
     return null;
   }
 
@@ -74,7 +94,7 @@ export function GalleryCaptionOverlay({
         variant === 'glass' ? styles.cardCaptionGlass : styles.cardCaption
       }
     >
-      {image.title && <p className={styles.cardCaptionTitle}>{image.title}</p>}
+      {visibleTitle && <p className={styles.cardCaptionTitle}>{visibleTitle}</p>}
       {image.description && (
         <p className={styles.cardCaptionDescription}>{image.description}</p>
       )}
@@ -196,6 +216,7 @@ export function GalleryLightbox({
   }
 
   const image = images[index];
+  const visibleTitle = getVisibleGalleryTitle(image.title);
 
   return (
     <div className={styles.lightboxOverlay}>
@@ -253,10 +274,10 @@ export function GalleryLightbox({
             className={styles.lightboxImage}
           />
 
-          {showCaptions && (image.title || image.description) && (
+          {showCaptions && (visibleTitle || image.description) && (
             <div className={styles.lightboxMeta}>
-              {image.title && (
-                <p className={styles.lightboxTitle}>{image.title}</p>
+              {visibleTitle && (
+                <p className={styles.lightboxTitle}>{visibleTitle}</p>
               )}
               {image.description && (
                 <p className={styles.lightboxDescription}>

@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
-  getRestaurants,
   getRestaurantsForUser,
   type RestaurantListItem,
+  updateFranchiseOwner,
   updateRestaurant,
 } from '@/lib/graphql/queries';
 import {
@@ -13,6 +13,7 @@ import {
   useHasuraClaims,
 } from '@nhost/react';
 import { getUserRole, getRoleFromHasuraClaims } from '@/lib/auth/get-user-role';
+import { nhost } from '@/lib/nhost';
 
 const PAGE_SIZE = 10;
 const PAGE_WINDOW_SIZE = 5;
@@ -27,8 +28,18 @@ export function RestaurantsListPage() {
   const [deletingRestaurantId, setDeletingRestaurantId] = useState<
     string | null
   >(null);
+  const [assigningOwnerRestaurantId, setAssigningOwnerRestaurantId] = useState<
+    string | null
+  >(null);
   const [restaurantPendingDelete, setRestaurantPendingDelete] =
     useState<RestaurantListItem | null>(null);
+  const [restaurantPendingOwner, setRestaurantPendingOwner] =
+    useState<RestaurantListItem | null>(null);
+  const [ownerEmail, setOwnerEmail] = useState('');
+  const [ownerDisplayName, setOwnerDisplayName] = useState('');
+  const [ownerPassword, setOwnerPassword] = useState('');
+  const [ownerFormError, setOwnerFormError] = useState<string | null>(null);
+  const [isOwnerPasswordVisible, setIsOwnerPasswordVisible] = useState(false);
 
   const user = useUserData();
   const hasuraClaims = useHasuraClaims();
@@ -134,6 +145,38 @@ export function RestaurantsListPage() {
     setRestaurantPendingDelete(restaurant);
   };
 
+  const onRequestAssignOwner = (restaurant: RestaurantListItem) => {
+    if (hasExistingOwner(restaurant)) {
+      return;
+    }
+
+    setRestaurantPendingOwner(restaurant);
+    setOwnerEmail(restaurant.ownerEmail || restaurant.email || '');
+    setOwnerDisplayName(
+      restaurant.ownerName && restaurant.ownerName !== 'N/A'
+        ? restaurant.ownerName
+        : restaurant.name || '',
+    );
+    setOwnerPassword('');
+    setOwnerFormError(null);
+    setIsOwnerPasswordVisible(false);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+  };
+
+  const onCloseAssignOwner = (force = false) => {
+    if (assigningOwnerRestaurantId && !force) {
+      return;
+    }
+
+    setRestaurantPendingOwner(null);
+    setOwnerEmail('');
+    setOwnerDisplayName('');
+    setOwnerPassword('');
+    setOwnerFormError(null);
+    setIsOwnerPasswordVisible(false);
+  };
+
   const onConfirmDeleteRestaurant = async () => {
     if (!restaurantPendingDelete) {
       return;
@@ -166,6 +209,94 @@ export function RestaurantsListPage() {
       setErrorMessage(message);
     } finally {
       setDeletingRestaurantId(null);
+    }
+  };
+
+  const onConfirmAssignOwner = async () => {
+    if (!restaurantPendingOwner || assigningOwnerRestaurantId) {
+      return;
+    }
+
+    const normalizedEmail = ownerEmail.trim();
+    const normalizedPassword = ownerPassword.trim();
+    const normalizedDisplayName = ownerDisplayName.trim();
+
+    if (!normalizedEmail) {
+      setOwnerFormError('Owner email is required.');
+      return;
+    }
+
+    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(normalizedEmail)) {
+      setOwnerFormError('Enter a valid owner email.');
+      return;
+    }
+
+    if (!normalizedPassword) {
+      setOwnerFormError('Owner password is required.');
+      return;
+    }
+
+    if (normalizedPassword.length < 8) {
+      setOwnerFormError('Password must be at least 8 characters.');
+      return;
+    }
+
+    try {
+      setAssigningOwnerRestaurantId(restaurantPendingOwner.id);
+      setOwnerFormError(null);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+
+      const ownerUserId = await createOwnerUser({
+        email: normalizedEmail,
+        password: normalizedPassword,
+        displayName:
+          normalizedDisplayName ||
+          restaurantPendingOwner.ownerName ||
+          restaurantPendingOwner.name,
+      });
+
+      if (restaurantPendingOwner.franchiseId) {
+        await updateFranchiseOwner(
+          restaurantPendingOwner.franchiseId,
+          ownerUserId,
+        );
+      }
+
+      const resolvedOwnerName =
+        normalizedDisplayName ||
+        restaurantPendingOwner.ownerName ||
+        restaurantPendingOwner.name;
+
+      await updateRestaurant(restaurantPendingOwner.id, {
+        poc_user_id: ownerUserId,
+        poc_name: resolvedOwnerName,
+        poc_email: normalizedEmail,
+      });
+
+      setRestaurants((previous) =>
+        previous.map((restaurant) =>
+          restaurant.id === restaurantPendingOwner.id
+            ? {
+                ...restaurant,
+                ownerName: resolvedOwnerName,
+                ownerEmail: normalizedEmail,
+                pocUserId: ownerUserId,
+              }
+            : restaurant,
+        ),
+      );
+
+      setSuccessMessage(
+        `Owner assigned to "${restaurantPendingOwner.name}" successfully.`,
+      );
+      onCloseAssignOwner(true);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to assign owner.';
+      setOwnerFormError(message);
+    } finally {
+      setAssigningOwnerRestaurantId(null);
     }
   };
 
@@ -247,6 +378,7 @@ export function RestaurantsListPage() {
                     <th className="px-6 py-4">Owner</th>
                     <th className="px-6 py-4">Domain</th>
                     <th className="px-6 py-4">Created</th>
+                    {isAdmin && <th className="px-6 py-4">Add Owner</th>}
                     {isAdmin && <th className="px-6 py-4 text-right">Actions</th>}
                   </tr>
                 </thead>
@@ -290,6 +422,29 @@ export function RestaurantsListPage() {
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {formatDate(restaurant.createdAt)}
                       </td>
+                      {isAdmin ? (
+                        <td className="px-6 py-4">
+                          {hasExistingOwner(restaurant) ? (
+                            <span className="inline-flex min-h-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-700">
+                              Owner Added
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => onRequestAssignOwner(restaurant)}
+                              disabled={
+                                assigningOwnerRestaurantId === restaurant.id ||
+                                isLoading
+                              }
+                              className="inline-flex min-h-9 items-center justify-center rounded-lg border border-purple-200 bg-purple-50 px-3.5 py-2 text-sm font-semibold text-purple-700 transition hover:bg-purple-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {assigningOwnerRestaurantId === restaurant.id
+                                ? 'Saving...'
+                                : 'Add Owner'}
+                            </button>
+                          )}
+                        </td>
+                      ) : null}
                       {isAdmin && (
                         <td className="px-6 py-4 text-right">
                           <button
@@ -439,7 +594,209 @@ export function RestaurantsListPage() {
           </div>
         </div>
       ) : null}
+
+      {restaurantPendingOwner ? (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-md">
+                  <svg
+                    className="h-5 w-5 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Add Owner
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Create an owner account and link it to{' '}
+                    <span className="font-semibold text-gray-900">
+                      {restaurantPendingOwner.name}
+                    </span>
+                    .
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onCloseAssignOwner()}
+                disabled={Boolean(assigningOwnerRestaurantId)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-50 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Close add owner dialog"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 to-white p-6 shadow-sm">
+              <div className="mb-4 flex items-start gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
+                  <svg
+                    className="h-4 w-4 text-purple-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-gray-900">
+                    Owner Assignment
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    Same owner fields as the restaurant creation flow.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-5">
+                <OwnerField
+                  label="Owner email"
+                  required
+                  type="email"
+                  autoComplete="email"
+                  placeholder="owner@brand.com"
+                  value={ownerEmail}
+                  onChange={setOwnerEmail}
+                />
+
+                <OwnerField
+                  label="Owner name"
+                  placeholder="Owner full name"
+                  value={ownerDisplayName}
+                  onChange={setOwnerDisplayName}
+                />
+
+                <OwnerField
+                  label="Owner password"
+                  required
+                  type={isOwnerPasswordVisible ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  placeholder="Enter password"
+                  value={ownerPassword}
+                  onChange={setOwnerPassword}
+                  rightAddon={
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setIsOwnerPasswordVisible((previous) => !previous)
+                      }
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#8d9aa6] transition hover:bg-[#f1efff] hover:text-[#4a5d6f]"
+                      aria-label={
+                        isOwnerPasswordVisible
+                          ? 'Hide password'
+                          : 'Show password'
+                      }
+                    >
+                      {isOwnerPasswordVisible ? (
+                        <EyeOpenIcon />
+                      ) : (
+                        <EyeClosedIcon />
+                      )}
+                    </button>
+                  }
+                />
+              </div>
+            </div>
+
+            {ownerFormError ? (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {ownerFormError}
+              </div>
+            ) : null}
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => onCloseAssignOwner()}
+                disabled={Boolean(assigningOwnerRestaurantId)}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void onConfirmAssignOwner()}
+                disabled={Boolean(assigningOwnerRestaurantId)}
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:from-purple-600 hover:to-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {assigningOwnerRestaurantId ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <OwnerIcon />
+                    Save Owner
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
+  );
+}
+
+function OwnerField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  required = false,
+  type = 'text',
+  autoComplete,
+  rightAddon,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  required?: boolean;
+  type?: string;
+  autoComplete?: string;
+  rightAddon?: ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-base font-medium text-[#111827]">
+        {required ? <span className="mr-1 text-[#ef5350]">*</span> : null}
+        {label}
+      </label>
+      <div className="flex min-h-12 items-center rounded-xl border border-[#d4e0e6] bg-white">
+        <input
+          type={type}
+          autoComplete={autoComplete}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="h-12 w-full bg-transparent px-3 text-base text-[#101827] placeholder:text-[#a0acb7] focus:outline-none"
+        />
+        {rightAddon ? <div className="mr-3">{rightAddon}</div> : null}
+      </div>
+    </div>
   );
 }
 
@@ -540,6 +897,17 @@ function formatDate(value: string | null) {
   return parsedDate.toLocaleString();
 }
 
+function hasExistingOwner(restaurant: RestaurantListItem) {
+  const ownerName = restaurant.ownerName.trim();
+  const ownerEmail = restaurant.ownerEmail.trim();
+  const hasNamedOwner =
+    ownerName.length > 0 && ownerName.toLowerCase() !== 'n/a';
+  const hasOwnerEmail =
+    ownerEmail.length > 0 && ownerEmail.toLowerCase() !== 'n/a';
+
+  return Boolean(restaurant.pocUserId || (hasNamedOwner && hasOwnerEmail));
+}
+
 function TrashIcon() {
   return (
     <svg
@@ -559,4 +927,142 @@ function TrashIcon() {
       <path d="M14 10.5v6" />
     </svg>
   );
+}
+
+function OwnerIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0Z" />
+      <path d="M12 14a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7Z" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  );
+}
+
+function EyeOpenIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeClosedIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 3 21 21" />
+      <path d="M10.6 10.6a2 2 0 1 0 2.8 2.8" />
+      <path d="M9.4 5.3A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a14 14 0 0 1-3.1 3.9" />
+      <path d="M6.2 6.2A14 14 0 0 0 2.5 12s3.5 7 9.5 7a10 10 0 0 0 4.3-.9" />
+    </svg>
+  );
+}
+
+async function createOwnerUser({
+  email,
+  password,
+  displayName,
+}: {
+  email: string;
+  password: string;
+  displayName?: string;
+}) {
+  const accessToken = await nhost.auth.getAccessToken();
+  if (!accessToken) {
+    throw new Error('Your session has expired. Please login again and retry.');
+  }
+
+  const response = await fetch('/api/admin/create-owner', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      email: email.trim(),
+      password: password.trim(),
+      displayName: displayName?.trim() || '',
+    }),
+  });
+
+  const payload = (await safeParseJson(response)) as
+    | {
+        userId?: unknown;
+        error?: unknown;
+        message?: unknown;
+      }
+    | null;
+
+  if (!response.ok) {
+    const message =
+      (payload &&
+        (typeof payload.error === 'string'
+          ? payload.error
+          : typeof payload.message === 'string'
+            ? payload.message
+            : null)) ||
+      'Failed to create owner user.';
+    throw new Error(message);
+  }
+
+  const userId =
+    payload && typeof payload.userId === 'string' ? payload.userId : '';
+  if (!userId.trim()) {
+    throw new Error('Owner creation succeeded but no user id was returned.');
+  }
+
+  return userId;
+}
+
+async function safeParseJson(response: Response) {
+  try {
+    return (await response.json()) as unknown;
+  } catch {
+    return null;
+  }
 }

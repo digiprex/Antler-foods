@@ -270,16 +270,26 @@ export function Sidebar({
             </p>
           )}
           <nav className="space-y-0.5">
-            {HOME_MENU_ITEMS.map((item) => (
-              <NavItem
-                key={`${dashboardBasePath}${item.href}`}
-                href={`${dashboardBasePath}${item.href}`}
-                label={item.label}
-                icon={item.icon}
-                active={pathname === `${dashboardBasePath}${item.href}`}
-                collapsed={!isOpen}
-              />
-            ))}
+            {HOME_MENU_ITEMS.map((item) => {
+              const resolvedHref =
+                selectedRestaurant
+                  ? buildRestaurantScopedHref(
+                      `${dashboardBasePath}${item.href}`,
+                      selectedRestaurant,
+                    )
+                  : `${dashboardBasePath}${item.href}`;
+
+              return (
+                <NavItem
+                  key={resolvedHref}
+                  href={resolvedHref}
+                  label={item.label}
+                  icon={item.icon}
+                  active={isSidebarItemActive(pathname, { href: resolvedHref })}
+                  collapsed={!isOpen}
+                />
+              );
+            })}
           </nav>
         </div>
 

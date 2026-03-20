@@ -35,6 +35,65 @@ interface CustomSectionRendererProps extends Partial<CustomSectionConfig> {
   previewMode?: CustomSectionViewport;
 }
 
+function parseColorToRgb(color?: string | null): [number, number, number] | null {
+  if (!color) {
+    return null;
+  }
+
+  const value = color.trim();
+  const hexMatch = value.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hexMatch) {
+    const hex = hexMatch[1];
+    if (hex.length === 3) {
+      return [
+        Number.parseInt(hex[0] + hex[0], 16),
+        Number.parseInt(hex[1] + hex[1], 16),
+        Number.parseInt(hex[2] + hex[2], 16),
+      ];
+    }
+
+    return [
+      Number.parseInt(hex.slice(0, 2), 16),
+      Number.parseInt(hex.slice(2, 4), 16),
+      Number.parseInt(hex.slice(4, 6), 16),
+    ];
+  }
+
+  const rgbMatch = value.match(
+    /^rgba?\(\s*([0-9]+(?:\.[0-9]+)?)\s*,\s*([0-9]+(?:\.[0-9]+)?)\s*,\s*([0-9]+(?:\.[0-9]+)?)/i,
+  );
+  if (!rgbMatch) {
+    return null;
+  }
+
+  return [
+    Math.max(0, Math.min(255, Number(rgbMatch[1]))),
+    Math.max(0, Math.min(255, Number(rgbMatch[2]))),
+    Math.max(0, Math.min(255, Number(rgbMatch[3]))),
+  ];
+}
+
+function isLightColor(color?: string | null) {
+  const rgb = parseColorToRgb(color);
+  if (!rgb) {
+    return null;
+  }
+
+  const [r, g, b] = rgb;
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminance > 0.68;
+}
+
+function isNearWhite(color?: string | null) {
+  const rgb = parseColorToRgb(color);
+  if (!rgb) {
+    return false;
+  }
+
+  const [r, g, b] = rgb;
+  return r >= 230 && g >= 230 && b >= 230;
+}
+
 function resolveViewport(previewMode?: CustomSectionViewport) {
   if (previewMode) {
     return previewMode;
@@ -418,6 +477,34 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
   const shadow = getSurfaceShadowValue(
     config.styleConfig?.cardShadow || layoutConfig.surfaceShadow,
   );
+  const buttonSurfaceColor = darkPresentation
+    ? palette.overlayColor
+    : palette.contentSurface || palette.background;
+  const isLightButtonSurface = isLightColor(buttonSurfaceColor) ?? true;
+  const resolvedSecondaryTextColor = (() => {
+    if (config.secondaryButton?.textColor) {
+      return config.secondaryButton.textColor;
+    }
+
+    const candidate = palette.buttonSecondaryText;
+    if (isLightButtonSurface && isNearWhite(candidate)) {
+      return globalStyles.textColor || '#1f2937';
+    }
+
+    return candidate || (isLightButtonSurface ? '#1f2937' : '#f8fafc');
+  })();
+  const resolvedSecondaryBorderColor = (() => {
+    if (config.secondaryButton?.borderColor) {
+      return config.secondaryButton.borderColor;
+    }
+
+    const candidate = palette.buttonBorder;
+    if (isLightButtonSurface && isNearWhite(candidate)) {
+      return resolvedSecondaryTextColor;
+    }
+
+    return candidate || resolvedSecondaryTextColor;
+  })();
   const items = config.items || [];
   const globalPrimaryButtonInlineStyle = getButtonInlineStyle(
     globalStyles.primaryButton,
@@ -470,8 +557,8 @@ export function CustomSectionRenderer(props: CustomSectionRendererProps) {
         },
         secondary: {
           backgroundColor: palette.buttonSecondary,
-          color: palette.buttonSecondaryText,
-          borderColor: palette.buttonBorder,
+          color: resolvedSecondaryTextColor,
+          borderColor: resolvedSecondaryBorderColor,
           border: globalStyles.secondaryButton?.border,
           baseStyle: globalSecondaryButtonInlineStyle,
           globalStyle: globalStyles.secondaryButton,

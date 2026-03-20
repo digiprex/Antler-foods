@@ -1556,10 +1556,16 @@ async function createFooterFromTheme(restaurantId: string, themeId: string) {
 
   // Build config based on global styles with footer section overrides
   // Priority: AI-generated content > globalStyles > footerSection.style > defaults
+  const resolvedFooterTextColor =
+    (globalStyles as any)?.textColor ||
+    globalStyles?.paragraph?.color ||
+    footerSection.style?.textColor ||
+    '#ffffff';
+
   const config = {
     bgColor: (globalStyles as any)?.primaryColor || footerSection.style?.bgColor || '#4a90e2',
-    textColor: globalStyles?.paragraph?.color || footerSection.style?.textColor || '#ffffff',
-    linkColor: (globalStyles as any)?.textColor || footerSection.style?.linkColor || '#ffffff',
+    textColor: resolvedFooterTextColor,
+    linkColor: (globalStyles as any)?.textColor || footerSection.style?.linkColor || resolvedFooterTextColor,
     copyrightBgColor: (globalStyles as any)?.accentColor || footerSection.style?.copyrightBgColor || '#ffca58',
     copyrightTextColor: footerSection.style?.copyrightTextColor || '#ffffff',
     fontFamily: globalStyles?.paragraph?.fontFamily || footerSection.style?.fontFamily || 'Poppins, sans-serif',

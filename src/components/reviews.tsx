@@ -762,17 +762,55 @@ export default function Reviews({
   );
 
   const renderSpotlightReview = (review: Review) => (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(0, 0.98fr) minmax(0, 1.02fr)',
-        borderRadius: isPreviewMobile ? '28px' : '34px',
-        overflow: 'hidden',
-        border: 'none',
-        background: 'transparent',
-        boxShadow: 'none',
-      }}
-    >
+    <div style={{ display: 'grid', gap: isPreviewMobile ? '1rem' : '1.5rem' }}>
+      {(title || subtitle || description) && (
+        <div
+          style={{
+            textAlign: 'center',
+            maxWidth: isPreviewMobile ? '100%' : '58rem',
+            margin: '0 auto',
+          }}
+        >
+          {subtitle ? (
+            <p
+              style={{
+                ...subtitleStyle,
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                opacity: 0.72,
+                marginBottom: '0.55rem',
+              }}
+            >
+              {subtitle}
+            </p>
+          ) : null}
+          {title ? (
+            <h2
+              style={{
+                ...titleStyle,
+                margin: 0,
+                marginBottom: description ? '0.85rem' : 0,
+              }}
+            >
+              {title}
+            </h2>
+          ) : null}
+          {description ? (
+            <p style={{ ...bodyStyle, margin: 0, opacity: 0.82 }}>{description}</p>
+          ) : null}
+        </div>
+      )}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isPreviewMobile ? '1fr' : 'minmax(0, 0.98fr) minmax(0, 1.02fr)',
+          borderRadius: isPreviewMobile ? '28px' : '34px',
+          overflow: 'hidden',
+          border: 'none',
+          background: 'transparent',
+          boxShadow: 'none',
+        }}
+      >
       <div
         style={{
           order: isPreviewMobile ? 2 : 1,
@@ -786,38 +824,6 @@ export default function Reviews({
           ...getEntranceStyle(0),
         }}
       >
-        {(title || subtitle || description) && (
-          <div style={{ marginBottom: isPreviewMobile ? '0.4rem' : '0.8rem' }}>
-            {subtitle ? (
-              <p
-                style={{
-                  ...subtitleStyle,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.12em',
-                  opacity: 0.72,
-                  marginBottom: '0.55rem',
-                }}
-              >
-                {subtitle}
-              </p>
-            ) : null}
-            {title ? (
-              <h2
-                style={{
-                  ...titleStyle,
-                  margin: 0,
-                  marginBottom: description ? '0.85rem' : 0,
-                }}
-              >
-                {title}
-              </h2>
-            ) : null}
-            {description ? (
-              <p style={{ ...bodyStyle, margin: 0, opacity: 0.82 }}>{description}</p>
-            ) : null}
-          </div>
-        )}
-
         <div
           style={{
             display: 'flex',
@@ -928,6 +934,7 @@ export default function Reviews({
           }}
         />
       </div>
+    </div>
     </div>
   );
 

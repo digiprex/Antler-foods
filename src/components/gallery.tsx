@@ -47,9 +47,9 @@ export default function Gallery({
   aspectRatio = 'square',
   bgColor = '#ffffff',
   textColor = '#0f172a',
-  padding = '4rem 2rem',
+  padding = '4rem 5rem',
   margin = '0',
-  maxWidth = '1200px',
+  maxWidth = '1440px',
   showCaptions = true,
   enableLightbox = true,
   enableScrollAnimation = false,
@@ -227,10 +227,8 @@ export default function Gallery({
     return null;
   }
 
-  const openLightbox = (index: number) => {
-    if (enableLightbox) {
-      setLightboxIndex(index);
-    }
+  const openLightbox = (_index: number) => {
+    // Preview popup is intentionally disabled.
   };
 
   const closeLightbox = () => setLightboxIndex(null);
@@ -273,8 +271,11 @@ export default function Gallery({
     sectionStyleConfig.sectionMaxWidth ||
     sectionStyleConfig.mobileSectionMaxWidth ||
     maxWidth;
+  const resolvedSectionPadding =
+    isClientMobileViewport || previewMode === 'mobile' ? '1rem' : padding;
   const sectionStyle = {
-    backgroundColor: bgColor,
+    backgroundColor: 'transparent',
+    border: 'none',
     margin,
     textAlign: sharedSectionStyle.textAlign,
     color: bodyStyle.color || textColor,
@@ -283,9 +284,9 @@ export default function Gallery({
           paddingBlock: sharedSectionStyle.paddingBlock,
           paddingInline: sharedSectionStyle.paddingInline,
         }
-      : { padding }),
+      : { padding: resolvedSectionPadding }),
     '--gallery-accent': bodyStyle.color || textColor,
-    '--gallery-showcase-base': bgColor,
+    '--gallery-showcase-base': 'transparent',
   } as CSSProperties & Record<string, any>;
 
   const sharedLayoutProps = {
@@ -294,7 +295,7 @@ export default function Gallery({
     gap,
     aspectRatio,
     showCaptions,
-    enableLightbox,
+    enableLightbox: false,
     layoutViewport,
     onImageClick: openLightbox,
   };
@@ -379,16 +380,7 @@ export default function Gallery({
             </p>
           ) : null}
 
-          {enableLightbox && (
-            <GalleryLightbox
-              images={images}
-              index={lightboxIndex}
-              showCaptions={showCaptions}
-              onClose={closeLightbox}
-              onNext={nextLightboxImage}
-              onPrevious={previousLightboxImage}
-            />
-          )}
+          {null}
         </div>
       </div>
     </section>

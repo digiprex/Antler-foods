@@ -446,16 +446,19 @@ export default function DynamicLocation({
       ...titleStyle,
       color: resolvedTitleColor,
     };
-    const descriptionTypography: CSSProperties = {
+    const subtitleTypography: CSSProperties = {
       ...subtitleStyle,
       color: resolvedSubtitleColor,
+    };
+    const descriptionTypography: CSSProperties = {
+      ...bodyStyle,
+      color: resolvedBodyColor,
     };
     const bodyTypography: CSSProperties = {
       ...bodyStyle,
       color: resolvedBodyColor,
     };
     const compactSectionTitleFontSize = isPreviewMobile ? 'clamp(1.5rem, 6.3vw, 1.85rem)' : '2rem';
-    const sectionDescriptionMargin = isPreviewMobile ? '0 0 1rem' : '0 0 3rem';
     const cardPadding = isPreviewMobile ? '1rem' : '2rem';
     const cardPaddingCompact = isPreviewMobile ? '1rem' : '1.5rem';
     const cardRadius = isPreviewMobile ? '10px' : '12px';
@@ -526,6 +529,47 @@ export default function DynamicLocation({
       .split(' ')
       .map((value) => (value.startsWith('-') ? value : `-${value}`))
       .join(' ');
+    const renderLocationHeader = ({
+      align = 'center',
+      maxWidth = isPreviewMobile ? '100%' : '56rem',
+      showDescription = true,
+    }: {
+      align?: 'left' | 'center' | 'right';
+      maxWidth?: string;
+      showDescription?: boolean;
+    } = {}) => (
+      <div
+        style={{
+          maxWidth,
+          margin: align === 'center' ? '0 auto' : '0',
+          display: 'grid',
+          gap: isPreviewMobile ? '0.5rem' : '0.75rem',
+          textAlign: align,
+        }}
+      >
+        {config.subtitle ? (
+          <p
+            style={{
+              ...subtitleTypography,
+              margin: 0,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              opacity: 0.75,
+            }}
+          >
+            {config.subtitle}
+          </p>
+        ) : null}
+        {config.title ? (
+          <h2 style={{ ...titleTypography, margin: 0 }}>{config.title}</h2>
+        ) : null}
+        {showDescription && config.description ? (
+          <p style={{ ...descriptionTypography, margin: 0, opacity: 0.82 }}>
+            {config.description}
+          </p>
+        ) : null}
+      </div>
+    );
     if (layout === 'default') {
       return (
         <div
@@ -536,23 +580,7 @@ export default function DynamicLocation({
             gap: sectionGap,
           }}
         >
-          <h2
-            style={{
-              ...titleTypography,
-              marginBottom: isPreviewMobile ? '0.75rem' : '1rem',
-            }}
-          >
-            {config.title}
-          </h2>
-          <p
-            style={{
-              ...descriptionTypography,
-              margin: sectionDescriptionMargin,
-              opacity: 0.8,
-            }}
-          >
-            {config.description}
-          </p>
+          {renderLocationHeader()}
           <div
             style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -679,12 +707,7 @@ export default function DynamicLocation({
     if (layout === 'grid') {
       return (
         <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
-          <h2 style={{ ...titleTypography, marginBottom: isPreviewMobile ? '0.75rem' : '1rem', textAlign: 'center' }}>
-            {config.title}
-          </h2>
-          <p style={{ ...descriptionTypography, margin: sectionDescriptionMargin, textAlign: 'center', opacity: 0.8 }}>
-            {config.description}
-          </p>
+          {renderLocationHeader()}
           <div className="grid grid-cols-1 lg:grid-cols-2" style={{ alignItems: 'start', gap: sectionGap }}>
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -754,12 +777,7 @@ export default function DynamicLocation({
     if (layout === 'list') {
       return (
         <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
-          <h2 style={{ ...titleTypography, marginBottom: isPreviewMobile ? '0.75rem' : '1rem' }}>
-            {config.title}
-          </h2>
-          <p style={{ ...descriptionTypography, margin: sectionDescriptionMargin, opacity: 0.8 }}>
-            {config.description}
-          </p>
+          {renderLocationHeader()}
           <div style={{
             backgroundColor: 'rgba(255, 255, 255, 0.95)',
             border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -812,12 +830,7 @@ export default function DynamicLocation({
     if (layout === 'map') {
       return (
         <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
-          <h2 style={{ ...titleTypography, marginBottom: isPreviewMobile ? '0.75rem' : '1rem', textAlign: 'center' }}>
-            {config.title}
-          </h2>
-          <p style={{ ...descriptionTypography, margin: sectionDescriptionMargin, textAlign: 'center', opacity: 0.8 }}>
-            {config.description}
-          </p>
+          {renderLocationHeader()}
           <div
             style={{
               display: 'grid',
@@ -885,9 +898,7 @@ export default function DynamicLocation({
     if (layout === 'compact') {
       return (
         <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
-          <h2 style={{ ...titleTypography, marginBottom: isPreviewMobile ? '1rem' : '2rem', textAlign: 'center' }}>
-            {config.title}
-          </h2>
+          {renderLocationHeader()}
           <div
             style={{
               display: 'grid',
@@ -908,9 +919,6 @@ export default function DynamicLocation({
               <h3 style={{ ...sectionCardHeadingTypography, fontWeight: '700', marginBottom: '0.25rem' }}>
                 {placeDetails.name}
               </h3>
-              <p style={{ ...descriptionTypography, marginBottom: isPreviewMobile ? '1rem' : '1.5rem' }}>
-                {config.description}
-              </p>
               <div style={{ ...bodyCopyTypography, display: 'grid', gap: infoGridGap, color: resolvedBodyColor }}>
                 <div>
                   <div style={{ ...metaLabelTypography, marginBottom: '0.25rem', fontSize: isPreviewMobile ? '0.7rem' : '0.75rem' }}>INFORMATION</div>
@@ -978,12 +986,7 @@ export default function DynamicLocation({
     if (layout === 'cards') {
       return (
         <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
-          <h2 style={{ ...titleTypography, marginBottom: isPreviewMobile ? '0.75rem' : '1rem', textAlign: 'center' }}>
-            {config.title}
-          </h2>
-          <p style={{ ...descriptionTypography, margin: sectionDescriptionMargin, textAlign: 'center', opacity: 0.8 }}>
-            {config.description}
-          </p>
+          {renderLocationHeader()}
           <div style={{
             backgroundColor: 'rgba(255, 255, 255, 0.95)',
             border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -1075,12 +1078,7 @@ export default function DynamicLocation({
     if (layout === 'sidebar') {
       return (
         <div style={{ padding: sectionPadding, display: 'grid', gap: sectionGap }}>
-          <h2 style={{ ...titleTypography, marginBottom: '0.5rem', textAlign: 'center' }}>
-            {config.title}
-          </h2>
-          <p style={{ ...descriptionTypography, margin: sectionDescriptionMargin, textAlign: 'center', opacity: 0.7 }}>
-            {config.description}
-          </p>
+          {renderLocationHeader()}
           <div
             style={{
               display: 'grid',
@@ -1225,12 +1223,10 @@ export default function DynamicLocation({
               width: 'min(100%, 520px)',
               ...sectionCardContentStyle,
             }}>
-              <h2 style={{ ...titleTypography, marginBottom: '0.5rem' }}>
-                {config.title}
-              </h2>
-              <p style={{ ...descriptionTypography, marginBottom: isPreviewMobile ? '1.25rem' : '2rem' }}>
-                {config.description}
-              </p>
+              {renderLocationHeader({
+                align: 'left',
+                maxWidth: '100%',
+              })}
               <h3 style={{ ...sectionCardHeadingTypography, fontWeight: '700', marginBottom: isPreviewMobile ? '1rem' : '1.5rem' }}>
                 {placeDetails.name}
               </h3>

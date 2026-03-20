@@ -630,7 +630,7 @@ export function RestaurantsListPage() {
               </div>
               <button
                 type="button"
-                onClick={onCloseAssignOwner}
+                onClick={() => onCloseAssignOwner()}
                 disabled={Boolean(assigningOwnerRestaurantId)}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-50 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Close add owner dialog"
@@ -725,7 +725,7 @@ export function RestaurantsListPage() {
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 type="button"
-                onClick={onCloseAssignOwner}
+                onClick={() => onCloseAssignOwner()}
                 disabled={Boolean(assigningOwnerRestaurantId)}
                 className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >

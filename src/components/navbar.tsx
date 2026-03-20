@@ -37,6 +37,7 @@ export interface NavbarProps {
   fontSize?: string; // Font size for navbar menu items
   fontWeight?: number; // Font weight for navbar menu items
   textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize'; // Text transformation for navbar menu items
+  forceHamburgerMenu?: boolean;
 }
 
 // Default dynamic values
@@ -87,7 +88,8 @@ export default function Navbar({
   fontFamily = 'Poppins, sans-serif',
   fontSize = '1rem',
   fontWeight = 400,
-  textTransform = 'uppercase'
+  textTransform = 'uppercase',
+  forceHamburgerMenu = false
 }: NavbarProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -152,7 +154,7 @@ export default function Navbar({
   // Add margin class for bordered layout when position is absolute (without border)
   const showAbsoluteMargin = layout === 'bordered-centered' && position === 'absolute';
   
-  const navbarClass = layout === 'centered'
+  const baseLayoutClass = layout === 'centered'
     ? `${styles.navbar} ${styles.navbarCentered} ${isScrolled ? styles.scrolled : ''}`
     : layout === 'logo-center'
     ? `${styles.navbar} ${styles.navbarLogoCenter} ${isScrolled ? styles.scrolled : ''}`
@@ -165,6 +167,11 @@ export default function Navbar({
     : layout === 'bordered-centered'
     ? `${styles.navbar} ${styles.navbarBorderedCentered} ${showBorder ? styles.withBorder : ''} ${showAbsoluteMargin ? styles.absoluteMargin : ''} ${isScrolled ? styles.scrolled : ''}`
     : `${styles.navbar} ${isScrolled ? styles.scrolled : ''}`;
+
+  const navbarClass = forceHamburgerMenu
+    ? `${baseLayoutClass} ${styles.forceHamburger}`
+    : baseLayoutClass;
+  const navItems = [...leftNavItems, ...rightNavItems];
 
   // Stacked layout has a different structure
   if (layout === 'stacked') {
@@ -206,7 +213,7 @@ export default function Navbar({
                   {item.label}
                 </a>
               ))}
-              {showCtaButton && ctaButton && (
+              {showCtaButton && ctaButton && !forceHamburgerMenu && (
                 <a href={ctaButton.href} className={styles.ctaButton}>
                   {ctaButton.label}
                 </a>
@@ -221,7 +228,10 @@ export default function Navbar({
         </nav>
 
         {/* Mobile Sidebar */}
-        <div className={`${styles.sidebar} ${isSidebarOpen ? styles.open : styles.closed}`} style={navbarStyle}>
+        <div
+          className={`${styles.sidebar} ${isSidebarOpen ? styles.open : styles.closed} ${forceHamburgerMenu ? styles.forceSidebarDesktop : ''}`}
+          style={navbarStyle}
+        >
           <div onClick={toggleSidebar} className={styles.sidebarOverlay}></div>
 
           <div className={styles.sidebarContent}>
@@ -232,18 +242,20 @@ export default function Navbar({
               </svg>
             </button>
 
-            {leftNavItems.map((item, index) => (
-              <a key={index} href={item.href} className={styles.sidebarLink}>
-                {item.label}
-              </a>
-            ))}
-            {rightNavItems.map((item, index) => (
-              <a key={`right-${index}`} href={item.href} className={styles.sidebarLink}>
-                {item.label}
-              </a>
-            ))}
+            <div className={styles.sidebarHeader}>
+              <div className={styles.sidebarBrand}>{brandDisplay}</div>
+              <p className={styles.sidebarLabel}>Navigation</p>
+            </div>
 
-            {showCtaButton && ctaButton && (
+            <div className={styles.sidebarNavList}>
+              {navItems.map((item, index) => (
+                <a key={`${item.href}-${index}`} href={item.href} className={styles.sidebarLink}>
+                  {item.label}
+                </a>
+              ))}
+            </div>
+
+            {showCtaButton && ctaButton && !forceHamburgerMenu && (
               <a href={ctaButton.href} className={styles.sidebarCta}>
                 {ctaButton.label}
               </a>
@@ -313,7 +325,11 @@ export default function Navbar({
 
         {/* Center - Logo (mobile or logo-center/split layout) or Nav Items (centered/bordered-centered layout) */}
         <div className={styles.centerSection}>
-          {layout === 'centered' || layout === 'bordered-centered' ? (
+          {forceHamburgerMenu ? (
+            <div className={styles.brandLogoMobile}>
+              {brandDisplay}
+            </div>
+          ) : layout === 'centered' || layout === 'bordered-centered' ? (
             <>
               {/* Desktop: Nav items */}
               <div className={styles.desktopNavCentered}>
@@ -353,33 +369,61 @@ export default function Navbar({
 
         {/* Right Section - All Menu Items (default) or Text + Button (split) or Button only (others) */}
         <div className={styles.rightSection}>
-          {layout === 'default' && (
-            <div className={styles.desktopNav}>
-              {leftNavItems.map((item, index) => (
-                <a key={index} href={item.href} className={styles.navLink}>
-                  {item.label}
-                </a>
-              ))}
-              {rightNavItems.map((item, index) => (
-                <a key={`right-${index}`} href={item.href} className={styles.navLink}>
-                  {item.label}
-                </a>
-              ))}
+          {forceHamburgerMenu ? (
+            <div className={styles.menuPageActions}>
+              <a href="/login" className={styles.menuAuthLink}>
+                Sign In
+              </a>
+              <a href="/signup" className={styles.menuAuthLink}>
+                Sign Up
+              </a>
+              <a
+                href="/cart"
+                className={styles.menuCartLink}
+                aria-label={bagCount > 0 ? `Cart with ${bagCount} items` : 'Cart'}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M3 4H5L7.4 14.2C7.5 14.8 8 15.2 8.6 15.2H17.7C18.3 15.2 18.9 14.8 19 14.2L21 7.2H6.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="9.5" cy="19.2" r="1.5" fill="currentColor"/>
+                  <circle cx="17" cy="19.2" r="1.5" fill="currentColor"/>
+                </svg>
+                {bagCount > 0 && <span className={styles.menuCartCount}>{bagCount}</span>}
+              </a>
             </div>
-          )}
-          {layout === 'split' && additionalText && (
-            <span className={styles.additionalText}>{additionalText}</span>
-          )}
-          {showCtaButton && ctaButton && (
-            <a href={ctaButton.href} className={styles.ctaButton}>
-              {ctaButton.label}
-            </a>
+          ) : (
+            <>
+              {layout === 'default' && (
+                <div className={styles.desktopNav}>
+                  {leftNavItems.map((item, index) => (
+                    <a key={index} href={item.href} className={styles.navLink}>
+                      {item.label}
+                    </a>
+                  ))}
+                  {rightNavItems.map((item, index) => (
+                    <a key={`right-${index}`} href={item.href} className={styles.navLink}>
+                      {item.label}
+                    </a>
+                  ))}
+                </div>
+              )}
+              {layout === 'split' && additionalText && (
+                <span className={styles.additionalText}>{additionalText}</span>
+              )}
+              {showCtaButton && ctaButton && !forceHamburgerMenu && (
+                <a href={ctaButton.href} className={styles.ctaButton}>
+                  {ctaButton.label}
+                </a>
+              )}
+            </>
           )}
         </div>
       </nav>
 
       {/* Mobile Sidebar */}
-      <div className={`${styles.sidebar} ${isSidebarOpen ? styles.open : styles.closed}`} style={navbarStyle}>
+      <div
+        className={`${styles.sidebar} ${isSidebarOpen ? styles.open : styles.closed} ${forceHamburgerMenu ? styles.forceSidebarDesktop : ''}`}
+        style={navbarStyle}
+      >
         <div onClick={toggleSidebar} className={styles.sidebarOverlay}></div>
 
         <div className={styles.sidebarContent}>
@@ -390,18 +434,34 @@ export default function Navbar({
             </svg>
           </button>
 
-          {leftNavItems.map((item, index) => (
-            <a key={index} href={item.href} className={styles.sidebarLink}>
-              {item.label}
-            </a>
-          ))}
-          {rightNavItems.map((item, index) => (
-            <a key={`right-${index}`} href={item.href} className={styles.sidebarLink}>
-              {item.label}
-            </a>
-          ))}
+          <div className={styles.sidebarHeader}>
+            <div className={styles.sidebarBrand}>{brandDisplay}</div>
+            <p className={styles.sidebarLabel}>Navigation</p>
+          </div>
 
-          {showCtaButton && ctaButton && (
+          <div className={styles.sidebarNavList}>
+            {navItems.map((item, index) => (
+              <a key={`${item.href}-${index}`} href={item.href} className={styles.sidebarLink}>
+                {item.label}
+              </a>
+            ))}
+          </div>
+
+          {forceHamburgerMenu && (
+            <div className={styles.sidebarActions}>
+              <a href="/login" className={styles.sidebarActionLink}>
+                Sign In
+              </a>
+              <a href="/signup" className={styles.sidebarActionLink}>
+                Sign Up
+              </a>
+              <a href="/cart" className={`${styles.sidebarActionLink} ${styles.sidebarActionPrimary}`}>
+                Cart {bagCount > 0 ? `(${bagCount})` : ''}
+              </a>
+            </div>
+          )}
+
+          {showCtaButton && ctaButton && !forceHamburgerMenu && (
             <a href={ctaButton.href} className={styles.sidebarCta}>
               {ctaButton.label}
             </a>
@@ -411,3 +471,4 @@ export default function Navbar({
     </>
   );
 }
+

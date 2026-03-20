@@ -616,7 +616,7 @@ export default function Footer(props: FooterProps) {
   const footerStyle = {
     '--footer-bg-color': bgColor,
     '--footer-text-color': textColor,
-    '--footer-link-color': textColor,
+    '--footer-link-color': linkColor || textColor,
     '--copyright-bg-color': copyrightBgColor,
     '--copyright-text-color': copyrightTextColor,
     '--scroll-button-bg-color': copyrightBgColor,

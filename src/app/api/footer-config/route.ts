@@ -268,7 +268,10 @@ export async function GET(request: Request) {
       // Return default configuration if no footer template exists - allows users to create their first footer
       // Apply global_styles if available, with proper text color fallbacks
       const defaultBgColor = (globalStyles as any)?.primaryColor || '#1f2937';
-      const defaultTextColor = globalStyles?.paragraph?.color || '#f9fafb';
+      const defaultTextColor =
+        (globalStyles as any)?.textColor ||
+        globalStyles?.paragraph?.color ||
+        '#f9fafb';
       
       // Ensure proper contrast: if background is dark, use light text; if light, use dark text
       const isLightBackground = defaultBgColor && (
@@ -321,8 +324,20 @@ export async function GET(request: Request) {
       
       // Determine background and text colors with proper fallbacks
       const templateBgColor = template.config?.bgColor || (globalStyles as any)?.primaryColor || '#1f2937';
-      const globalTextColor = globalStyles?.paragraph?.color;
+      const globalTextColor =
+        (globalStyles as any)?.textColor ||
+        globalStyles?.paragraph?.color;
       let templateTextColor = template.config?.textColor;
+      const normalizedTemplateTextColor =
+        typeof templateTextColor === 'string' ? templateTextColor.trim().toLowerCase() : '';
+      const looksLikeLegacyGray =
+        normalizedTemplateTextColor === '#6b7280' ||
+        normalizedTemplateTextColor === '#9ca3af' ||
+        normalizedTemplateTextColor === 'rgb(107, 114, 128)' ||
+        normalizedTemplateTextColor === 'rgb(156, 163, 175)';
+      if (looksLikeLegacyGray && globalTextColor) {
+        templateTextColor = globalTextColor;
+      }
       
       // If no text color is explicitly set, determine based on background for better contrast
       if (!templateTextColor && !globalTextColor) {

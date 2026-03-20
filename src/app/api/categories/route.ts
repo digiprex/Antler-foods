@@ -37,8 +37,6 @@ const GET_CATEGORIES_QUERY = `
       description
       image
       is_active
-      modifier_groups
-      identifiers
     }
   }
 `;
@@ -79,14 +77,13 @@ const GET_ITEMS_BY_CATEGORY_IDS_QUERY = `
  * GraphQL mutation to create a new category
  */
 const CREATE_CATEGORY_MUTATION = `
-  mutation CreateCategory($menu_id: uuid!, $name: String!, $description: String, $order_index: numeric, $type: String, $image: String, $is_active: Boolean) {
+  mutation CreateCategory($menu_id: uuid!, $name: String!, $description: String, $order_index: numeric, $type: String, $is_active: Boolean) {
     insert_categories_one(object: {
       menu_id: $menu_id,
       name: $name,
       description: $description,
       order_index: $order_index,
       type: $type,
-      image: $image,
       is_active: $is_active
     }) {
       category_id
@@ -98,10 +95,7 @@ const CREATE_CATEGORY_MUTATION = `
       is_deleted
       type
       description
-      image
       is_active
-      modifier_groups
-      identifiers
     }
   }
 `;
@@ -110,13 +104,12 @@ const CREATE_CATEGORY_MUTATION = `
  * GraphQL mutation to update a category
  */
 const UPDATE_CATEGORY_MUTATION = `
-  mutation UpdateCategory($category_id: uuid!, $name: String!, $description: String, $order_index: numeric, $type: String, $image: String, $is_active: Boolean) {
+  mutation UpdateCategory($category_id: uuid!, $name: String!, $description: String, $order_index: numeric, $type: String, $is_active: Boolean) {
     update_categories_by_pk(pk_columns: {category_id: $category_id}, _set: {
       name: $name,
       description: $description,
       order_index: $order_index,
       type: $type,
-      image: $image,
       is_active: $is_active,
       updated_at: "now()"
     }) {
@@ -129,10 +122,7 @@ const UPDATE_CATEGORY_MUTATION = `
       is_deleted
       type
       description
-      image
       is_active
-      modifier_groups
-      identifiers
     }
   }
 `;
@@ -222,7 +212,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { menu_id, name, description, order_index = 0, type = 'default', image, is_active = true } = body;
+    const { menu_id, name, description, order_index = 0, type = 'default', is_active = true } = body;
 
     if (!menu_id || !name) {
       return NextResponse.json(
@@ -237,7 +227,6 @@ export async function POST(request: NextRequest) {
       description,
       order_index,
       type,
-      image,
       is_active,
     });
 
@@ -262,7 +251,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { category_id, name, description, order_index, type, image, is_active } = body;
+    const { category_id, name, description, order_index, type, is_active } = body;
 
     if (!category_id || !name) {
       return NextResponse.json(
@@ -277,7 +266,6 @@ export async function PUT(request: NextRequest) {
       description,
       order_index,
       type,
-      image,
       is_active,
     });
 

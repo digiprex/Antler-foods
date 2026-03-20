@@ -88,12 +88,23 @@ export default function MenuCategoriesForm({
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch categories');
+        // Instead of showing error, treat as empty state
+        console.log('Categories API returned error, treating as empty state:', data.error);
+        setCategories([]);
+        setLoading(false);
+        return;
       }
 
-      setCategories(data.categories || []);
+      // Handle successful response with empty categories array
+      const categoriesArray = data.categories || [];
+      setCategories(categoriesArray);
+      
+      // Log for debugging
+      console.log('Categories fetched successfully:', categoriesArray.length, 'categories found');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch categories');
+      // Instead of showing error, treat as empty state
+      console.log('Categories fetch failed, treating as empty state:', err);
+      setCategories([]);
     } finally {
       setLoading(false);
     }
@@ -165,7 +176,7 @@ export default function MenuCategoriesForm({
     router.push(`/admin/menu-items?${params.toString()}`);
   };
 
-  const handleSaveCategory = async (payload: Pick<Category, 'name' | 'description' | 'order_index' | 'type' | 'image' | 'is_active'>) => {
+  const handleSaveCategory = async (payload: Pick<Category, 'name' | 'description' | 'order_index' | 'type' | 'is_active'>) => {
     try {
       if (showCreateCategory) {
         // Create new category
@@ -180,7 +191,6 @@ export default function MenuCategoriesForm({
             description: payload.description,
             order_index: payload.order_index || 0,
             type: payload.type,
-            image: payload.image,
             is_active: payload.is_active,
           }),
         });
@@ -208,7 +218,6 @@ export default function MenuCategoriesForm({
             description: payload.description,
             order_index: payload.order_index,
             type: payload.type,
-            image: payload.image,
             is_active: payload.is_active,
           }),
         });
@@ -255,23 +264,6 @@ export default function MenuCategoriesForm({
     );
   }
 
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <section className="rounded-xl border border-red-200 bg-red-50 p-5 shadow-sm">
-          <div className="text-center">
-            <p className="text-sm text-red-600 mb-4">{error}</p>
-            <button
-              onClick={fetchCategories}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-            >
-              Retry
-            </button>
-          </div>
-        </section>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

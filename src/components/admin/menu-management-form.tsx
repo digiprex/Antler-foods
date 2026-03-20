@@ -33,6 +33,11 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [menuToDelete, setMenuToDelete] = useState<Menu | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Single active menu confirmation modal
+  const [showActiveMenuModal, setShowActiveMenuModal] = useState(false);
+  const [pendingMenuData, setPendingMenuData] = useState<Pick<Menu, 'name' | 'varies_with_time' | 'is_active'> | null>(null);
+  const [currentActiveMenu, setCurrentActiveMenu] = useState<Menu | null>(null);
 
   const selectedMenu = useMemo(
     () => menus.find((menu) => menu.menu_id === selectedMenuId) ?? null,
@@ -138,6 +143,27 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
   };
 
   const saveMenu = async (payload: Pick<Menu, 'name' | 'varies_with_time' | 'is_active'>) => {
+    // Check if trying to activate a menu when another is already active
+    if (payload.is_active) {
+      const currentActiveMenu = menus.find(menu =>
+        menu.is_active &&
+        (menuModalMode === 'create' || menu.menu_id !== selectedMenu?.menu_id)
+      );
+      
+      if (currentActiveMenu) {
+        // Show confirmation modal
+        setCurrentActiveMenu(currentActiveMenu);
+        setPendingMenuData(payload);
+        setShowActiveMenuModal(true);
+        return;
+      }
+    }
+    
+    // Proceed with saving the menu
+    await performSaveMenu(payload);
+  };
+
+  const performSaveMenu = async (payload: Pick<Menu, 'name' | 'varies_with_time' | 'is_active'>) => {
     try {
       if (menuModalMode === 'create') {
         const response = await fetch('/api/menus', {
@@ -196,6 +222,56 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to save menu');
     }
+  };
+
+  const confirmActiveMenuChange = async () => {
+    if (!pendingMenuData || !currentActiveMenu) return;
+
+    try {
+      // First deactivate the current active menu
+      const deactivateResponse = await fetch('/api/menus', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          menu_id: currentActiveMenu.menu_id,
+          name: currentActiveMenu.name,
+          is_active: false,
+          varies_with_time: currentActiveMenu.varies_with_time,
+        }),
+      });
+
+      if (!deactivateResponse.ok) {
+        const data = await deactivateResponse.json();
+        throw new Error(data.error || 'Failed to deactivate current menu');
+      }
+
+      // Update local state to deactivate the current menu
+      setMenus((prevMenus) =>
+        prevMenus.map((menu) =>
+          menu.menu_id === currentActiveMenu.menu_id
+            ? { ...menu, is_active: false }
+            : menu,
+        ),
+      );
+
+      // Now save the new menu with active status
+      await performSaveMenu(pendingMenuData);
+      
+      // Close the confirmation modal
+      setShowActiveMenuModal(false);
+      setPendingMenuData(null);
+      setCurrentActiveMenu(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to change active menu');
+    }
+  };
+
+  const cancelActiveMenuChange = () => {
+    setShowActiveMenuModal(false);
+    setPendingMenuData(null);
+    setCurrentActiveMenu(null);
   };
 
   const openMenuDetails = (menu: Menu) => {
@@ -361,6 +437,50 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                   )}
                   {isDeleting ? 'Deleting...' : 'Delete Menu'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Active Menu Confirmation Modal */}
+      {showActiveMenuModal && currentActiveMenu && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
+                  <svg className="h-5 w-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Change Active Menu</h3>
+                  <p className="text-sm text-gray-600">Only one menu can be active at a time.</p>
+                </div>
+              </div>
+              
+              <p className="text-sm text-gray-700 mb-6">
+                The menu "<span className="font-medium">{currentActiveMenu.name}</span>" is currently active.
+                {menuModalMode === 'create'
+                  ? ` Do you want to deactivate it and make "${pendingMenuData?.name}" active instead?`
+                  : ` Do you want to deactivate it and make "${selectedMenu?.name}" active instead?`
+                }
+              </p>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={cancelActiveMenuChange}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmActiveMenuChange}
+                  className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                >
+                  Change Active Menu
                 </button>
               </div>
             </div>

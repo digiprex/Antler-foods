@@ -24,7 +24,7 @@ interface Category {
 interface CategoryFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (category: Pick<Category, 'name' | 'description' | 'order_index' | 'type' | 'image' | 'is_active'>) => void;
+  onSave: (category: Pick<Category, 'name' | 'description' | 'order_index' | 'type' | 'is_active'>) => void;
   category?: Category | null;
   mode: 'create' | 'edit';
   menuId: string;
@@ -40,17 +40,15 @@ export default function CategoryFormModal({
   menuId,
   restaurantId
 }: CategoryFormModalProps) {
-  const [formData, setFormData] = useState<Pick<Category, 'name' | 'description' | 'order_index' | 'type' | 'image' | 'is_active'>>({
+  const [formData, setFormData] = useState<Pick<Category, 'name' | 'description' | 'order_index' | 'type' | 'is_active'>>({
     name: '',
     description: '',
     order_index: 1,
     type: 'default',
-    image: '',
     is_active: true
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imageUploading, setImageUploading] = useState(false);
 
   useEffect(() => {
     if (category && mode === 'edit') {
@@ -59,7 +57,6 @@ export default function CategoryFormModal({
         description: category.description,
         order_index: category.order_index,
         type: category.type,
-        image: category.image || '',
         is_active: category.is_active
       });
     } else {
@@ -68,7 +65,6 @@ export default function CategoryFormModal({
         description: '',
         order_index: 1,
         type: 'default',
-        image: '',
         is_active: true
       });
     }
@@ -125,7 +121,7 @@ export default function CategoryFormModal({
     }
   };
 
-  const handleInputChange = (field: keyof Pick<Category, 'name' | 'description' | 'order_index' | 'type' | 'image' | 'is_active'>, value: string | number | boolean) => {
+  const handleInputChange = (field: keyof Pick<Category, 'name' | 'description' | 'order_index' | 'type' | 'is_active'>, value: string | number | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -137,66 +133,6 @@ export default function CategoryFormModal({
         ...prev,
         [field as string]: ''
       }));
-    }
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size must be less than 5MB');
-      return;
-    }
-
-    setImageUploading(true);
-    // Clear any previous image errors
-    if (errors.image) {
-      setErrors(prev => ({
-        ...prev,
-        image: ''
-      }));
-    }
-    
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('restaurant_id', restaurantId);
-
-      const response = await fetch('/api/upload-optimized-media', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `Upload failed (${response.status})`);
-      }
-
-      const data = await response.json();
-      
-      if (!data.success || !data.data) {
-        throw new Error(data.error || 'Upload failed');
-      }
-      
-      // Use the URL from the response data
-      handleInputChange('image', data.data.url || data.data.file?.url);
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      // Set a more user-friendly error state instead of alert
-      setErrors(prev => ({
-        ...prev,
-        image: `Failed to upload image: ${error instanceof Error ? error.message : 'Please try again.'}`
-      }));
-    } finally {
-      setImageUploading(false);
     }
   };
 
@@ -315,52 +251,6 @@ export default function CategoryFormModal({
               </p>
             </div>
 
-            {/* Category Image */}
-            <div>
-              <label htmlFor="categoryImage" className="block text-sm font-medium text-gray-700 mb-1">
-                Category Image
-              </label>
-              <div className="space-y-2">
-                <input
-                  type="file"
-                  id="categoryImage"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
-                />
-                {formData.image && (
-                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                    <img
-                      src={formData.image}
-                      alt="Category preview"
-                      className="w-12 h-12 object-cover rounded"
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-700">Image uploaded</p>
-                      <button
-                        type="button"
-                        onClick={() => handleInputChange('image', '')}
-                        className="text-xs text-red-600 hover:text-red-700"
-                      >
-                        Remove image
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {imageUploading && (
-                  <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-                    <p className="text-sm text-blue-700">Uploading image...</p>
-                  </div>
-                )}
-              </div>
-              {errors.image && (
-                <p className="mt-1 text-sm text-red-600">{errors.image}</p>
-              )}
-              <p className="mt-1 text-xs text-gray-500">
-                Upload an image for the category (JPG, PNG, WebP supported)
-              </p>
-            </div>
 
             {/* Active Status Toggle */}
             <div className="space-y-2">

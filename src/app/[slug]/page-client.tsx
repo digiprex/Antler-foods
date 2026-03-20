@@ -290,13 +290,32 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
           showLoading={true}
         />;
       case 'menu':
-        const menuConfigData = template.config ? {
-          ...template.config,
-          layout: template.name,
-          restaurant_id: restaurantId,
-          categories: template.menu_items?.categories || template.config?.categories || [],
-          featuredItems: template.menu_items?.featuredItems || template.config?.featuredItems || [],
-        } : undefined;
+        const isMenuPage = slug?.toLowerCase() === 'menu';
+        const menuConfigData = template.config
+          ? {
+              ...template.config,
+              layout: template.name,
+              restaurant_id: restaurantId,
+              categories:
+                template.menu_items?.categories ||
+                template.config?.categories ||
+                [],
+              featuredItems:
+                template.menu_items?.featuredItems ||
+                template.config?.featuredItems ||
+                [],
+              ...(isMenuPage
+                ? {
+                    sectionMaxWidth: '1440px',
+                    sectionPaddingX: '2.5rem',
+                    mobileSectionPaddingX: '1rem',
+                    title: '',
+                    subtitle: '',
+                    description: '',
+                  }
+                : {}),
+            }
+          : undefined;
 
         return <DynamicMenu
           key={uniqueKey}
@@ -466,7 +485,7 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
 
       {/* Dynamic top spacing to prevent navbar overlap - only when navbar is fixed or absolute */}
       <div style={{
-        paddingTop: topSpacing
+        paddingTop: slug?.toLowerCase() === 'menu' ? '0px' : topSpacing
       }}>
         {/* Universal Popup - Only show on homepage */}
         {slug === 'home' && <Popup restaurantId={restaurantId} />}

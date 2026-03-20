@@ -6,7 +6,15 @@
       "description": "Simple location display",
       "icon": "📄",
       "preview": "/previews/location/default.png",
-      "supportText": "Balanced address-first presentation"
+      "supportText": "Balanced address-first presentation",
+      "previewConfig": {
+        "layout": "column",
+        "elements": [
+          { "type": "address", "width": "90%", "height": "12px" },
+          { "type": "map", "height": "45px" },
+          { "type": "hours", "width": "70%", "height": "8px" }
+        ]
+      }
     },
     {
       "id": "grid",
@@ -14,7 +22,22 @@
       "description": "Grid layout with details",
       "icon": "⊞",
       "preview": "/previews/location/grid.png",
-      "supportText": "Best for clean map and info balance"
+      "supportText": "Best for clean map and info balance",
+      "previewConfig": {
+        "layout": "grid",
+        "columns": "repeat(2, 1fr)",
+        "elements": [
+          {
+            "type": "info-panel",
+            "elements": [
+              { "type": "address", "width": "100%", "height": "8px" },
+              { "type": "hours", "width": "80%", "height": "6px" },
+              { "type": "hours", "width": "70%", "height": "6px" }
+            ]
+          },
+          { "type": "map" }
+        ]
+      }
     },
     {
       "id": "list",
@@ -22,7 +45,21 @@
       "description": "Detailed list view",
       "icon": "☰",
       "preview": "/previews/location/list.png",
-      "supportText": "Great for long-form location details"
+      "supportText": "Great for long-form location details",
+      "previewConfig": {
+        "layout": "column",
+        "elements": [
+          { "type": "address", "width": "100%", "height": "10px" },
+          { "type": "map", "flex": 1 },
+          {
+            "type": "hours-group",
+            "elements": [
+              { "type": "hours", "width": "80%", "height": "6px" },
+              { "type": "hours", "width": "70%", "height": "6px" }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "cards",
@@ -30,7 +67,43 @@
       "description": "Card-based layout",
       "icon": "🗃️",
       "preview": "/previews/location/cards.png",
-      "supportText": "Modular highlights with more breathing room"
+      "supportText": "Modular highlights with more breathing room",
+      "previewConfig": {
+        "layout": "column",
+        "elements": [
+          { "type": "address", "width": "52%", "height": "8px", "centered": true },
+          {
+            "type": "card-grid",
+            "columns": "repeat(3, 1fr)",
+            "cards": [
+              {
+                "icon": "📍",
+                "elements": [
+                  { "type": "address", "width": "85%", "height": "5px" },
+                  { "type": "hours", "width": "68%", "height": "4px" },
+                  { "type": "hours", "width": "60%", "height": "4px" }
+                ]
+              },
+              {
+                "icon": "📞",
+                "elements": [
+                  { "type": "address", "width": "72%", "height": "5px" },
+                  { "type": "hours", "width": "78%", "height": "4px" },
+                  { "type": "hours", "width": "60%", "height": "4px" }
+                ]
+              },
+              {
+                "icon": "🕒",
+                "elements": [
+                  { "type": "address", "width": "72%", "height": "5px" },
+                  { "type": "hours", "width": "68%", "height": "4px" },
+                  { "type": "hours", "width": "88%", "height": "4px" }
+                ]
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "map",
@@ -38,7 +111,30 @@
       "description": "Interactive map",
       "icon": "🗺️",
       "preview": "/previews/location/map.png",
-      "supportText": "Map-first experience with supporting info"
+      "supportText": "Map-first experience with supporting info",
+      "previewConfig": {
+        "layout": "grid",
+        "columns": "0.92fr 1.18fr",
+        "elements": [
+          {
+            "type": "info-card",
+            "elements": [
+              { "type": "address", "width": "92%", "height": "7px" },
+              { "type": "hours", "width": "72%", "height": "5px" },
+              { "type": "hours", "width": "88%", "height": "5px" },
+              {
+                "type": "hours-group",
+                "marginTop": "auto",
+                "elements": [
+                  { "type": "hours", "width": "68%", "height": "4px" },
+                  { "type": "hours", "width": "54%", "height": "4px" }
+                ]
+              }
+            ]
+          },
+          { "type": "map" }
+        ]
+      }
     },
     {
       "id": "compact",
@@ -46,7 +142,30 @@
       "description": "Minimal card view",
       "icon": "📋",
       "preview": "/previews/location/compact.png",
-      "supportText": "Tight footprint for denser pages"
+      "supportText": "Tight footprint for denser pages",
+      "previewConfig": {
+        "layout": "grid",
+        "columns": "0.95fr 1.05fr",
+        "elements": [
+          {
+            "type": "info-card",
+            "elements": [
+              { "type": "address", "width": "72%", "height": "7px" },
+              {
+                "type": "hours-group",
+                "marginTop": "2px",
+                "elements": [
+                  { "type": "hours", "width": "90%", "height": "4px" },
+                  { "type": "hours", "width": "82%", "height": "4px" },
+                  { "type": "hours", "width": "64%", "height": "4px" }
+                ]
+              },
+              { "type": "hours", "width": "56%", "height": "6px", "marginTop": "auto" }
+            ]
+          },
+          { "type": "map" }
+        ]
+      }
     },
     {
       "id": "sidebar",
@@ -54,7 +173,29 @@
       "description": "Sidebar with map focus",
       "icon": "⊟",
       "preview": "/previews/location/sidebar.png",
-      "supportText": "Strong for multi-column page composition"
+      "supportText": "Strong for multi-column page composition",
+      "previewConfig": {
+        "layout": "grid",
+        "columns": "1fr 1.8fr",
+        "elements": [
+          {
+            "type": "sidebar-panel",
+            "elements": [
+              {
+                "type": "info-card",
+                "nested": true,
+                "elements": [
+                  { "type": "address", "width": "90%", "height": "6px" },
+                  { "type": "hours", "width": "72%", "height": "5px" },
+                  { "type": "hours", "width": "84%", "height": "5px" },
+                  { "type": "hours", "width": "58%", "height": "5px", "marginTop": "auto" }
+                ]
+              }
+            ]
+          },
+          { "type": "map" }
+        ]
+      }
     },
     {
       "id": "fullscreen",
@@ -62,7 +203,24 @@
       "description": "Full-width immersive",
       "icon": "🖼️",
       "preview": "/previews/location/fullscreen.png",
-      "supportText": "Best for bold destination-style sections"
+      "supportText": "Best for bold destination-style sections",
+      "previewConfig": {
+        "layout": "overlay",
+        "elements": [
+          { "type": "map", "fullscreen": true },
+          {
+            "type": "overlay-card",
+            "position": "center",
+            "width": "70%",
+            "elements": [
+              { "type": "address", "width": "74%", "height": "6px" },
+              { "type": "hours", "width": "92%", "height": "5px" },
+              { "type": "hours", "width": "68%", "height": "5px" },
+              { "type": "hours", "width": "100%", "height": "8px", "marginTop": "2px" }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

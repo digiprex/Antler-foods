@@ -720,14 +720,9 @@ export default function DynamicLocation({
                       🕒 Hours:
                     </div>
                     <div style={{ ...hoursTypography, opacity: 0.9, color: resolvedBodyColor }}>
-                      {placeDetails.opening_hours.weekday_text.slice(0, 3).map((text, i) => (
+                      {placeDetails.opening_hours.weekday_text.map((text, i) => (
                         <div key={i}>{text}</div>
                       ))}
-                      {placeDetails.opening_hours.weekday_text.length > 3 && (
-                        <div style={{ fontStyle: 'italic', marginTop: '0.25rem' }}>
-                          + {placeDetails.opening_hours.weekday_text.length - 3} more days
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -856,12 +851,9 @@ export default function DynamicLocation({
                   <div>
                     <strong>🕒 Hours:</strong>
                     <div style={{ ...hoursTypography, marginTop: '0.5rem', opacity: 0.8, color: resolvedBodyColor }}>
-                      {placeDetails.opening_hours.weekday_text.slice(0, 2).map((text, i) => (
+                      {placeDetails.opening_hours.weekday_text.map((text, i) => (
                         <div key={i}>{text}</div>
                       ))}
-                      <div style={{ fontStyle: 'italic', marginTop: '0.5rem' }}>
-                        View full hours on map
-                      </div>
                     </div>
                   </div>
                 )}
@@ -930,7 +922,7 @@ export default function DynamicLocation({
                 {placeDetails.opening_hours?.weekday_text && (
                   <div>
                     <div style={{ ...metaLabelTypography, marginBottom: '0.5rem', fontSize: isPreviewMobile ? '0.7rem' : '0.75rem' }}>HOURS</div>
-                    {placeDetails.opening_hours.weekday_text.slice(0, 3).map((text, i) => (
+                    {placeDetails.opening_hours.weekday_text.map((text, i) => (
                       <div key={i} style={{ ...hoursTypography }}>{text}</div>
                     ))}
                   </div>
@@ -1067,14 +1059,9 @@ export default function DynamicLocation({
                   <div style={{ fontSize: isPreviewMobile ? '1.8rem' : '2.5rem', marginBottom: '1rem' }}>🕒</div>
                   <div style={{ ...metaLabelTypography, marginBottom: '0.5rem', opacity: 1 }}>Hours</div>
                   <div style={{ ...hoursTypography, opacity: 0.8, color: resolvedBodyColor }}>
-                    {placeDetails.opening_hours.weekday_text.slice(0, 3).map((text, i) => (
+                    {placeDetails.opening_hours.weekday_text.map((text, i) => (
                       <div key={i}>{text}</div>
                     ))}
-                    {placeDetails.opening_hours.weekday_text.length > 3 && (
-                      <div style={{ fontStyle: 'italic', marginTop: '0.25rem' }}>
-                        + {placeDetails.opening_hours.weekday_text.length - 3} more days
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -1137,7 +1124,7 @@ export default function DynamicLocation({
                   {placeDetails.opening_hours?.weekday_text && (
                     <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e5e7eb' }}>
                       <div style={{ ...metaLabelTypography, marginBottom: '0.5rem', opacity: 1 }}>Hours:</div>
-                      {placeDetails.opening_hours.weekday_text.slice(0, 2).map((text, i) => (
+                      {placeDetails.opening_hours.weekday_text.map((text, i) => (
                         <div key={i} style={{ ...hoursTypography }}>{text}</div>
                       ))}
                     </div>

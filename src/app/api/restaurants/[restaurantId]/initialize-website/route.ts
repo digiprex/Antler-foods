@@ -110,6 +110,8 @@ const DEFAULT_SYSTEM_PAGES = [
   { urlSlug: 'home', name: 'Home' },
   { urlSlug: 'about', name: 'About' },
   { urlSlug: 'contact', name: 'Contact' },
+  { urlSlug: 'catering', name: 'Catering' },
+  { urlSlug: 'location', name: 'Location' },
   { urlSlug: 'menu', name: 'Menu' },
 ] as const;
 
@@ -270,6 +272,14 @@ function generateSEOMetadata(restaurantName: string, pageSlug: string, pageName:
     contact: {
       meta_title: `Contact ${cleanRestaurantName} - Location, Hours & Reservations`,
       meta_description: `Get in touch with ${cleanRestaurantName}. Find our location, hours, phone number, and make reservations. We're here to serve you!`
+    },
+    catering: {
+      meta_title: `${cleanRestaurantName} Catering - Events, Parties & Corporate Catering`,
+      meta_description: `Book catering with ${cleanRestaurantName} for weddings, corporate events, and private parties. Fresh menu options and reliable service for every occasion.`
+    },
+    location: {
+      meta_title: `${cleanRestaurantName} Location - Hours, Address & Directions`,
+      meta_description: `Visit ${cleanRestaurantName}. Find our address, opening hours, contact details, map directions, guest reviews, and gallery highlights.`
     },
     menu: {
       meta_title: `${cleanRestaurantName} Menu - Fresh, Delicious Food | Order Now`,
@@ -654,48 +664,143 @@ async function getRestaurantDetails(restaurantId: string) {
 }
 
 /**
- * Create a contact form for the restaurant
+ * Create a page-specific lead form for the restaurant
  * @param restaurantId - Restaurant ID
  * @param restaurantName - Restaurant name
+ * @param pageName - Page slug (e.g., contact, catering)
  * @returns The created form's ID
  */
-async function createContactForm(restaurantId: string, restaurantName: string): Promise<string | null> {
+async function createContactForm(
+  restaurantId: string,
+  restaurantName: string,
+  pageName: 'contact' | 'catering' = 'contact',
+): Promise<string | null> {
   try {
-    // Default contact form fields
-    const formFields = [
-      {
-        id: 'name',
-        type: 'text',
-        label: 'Full Name',
-        placeholder: 'John Doe',
-        required: true,
-        order: 1,
-      },
-      {
-        id: 'email',
-        type: 'email',
-        label: 'Email Address',
-        placeholder: 'john@example.com',
-        required: true,
-        order: 2,
-      },
-      {
-        id: 'phone',
-        type: 'tel',
-        label: 'Phone Number',
-        placeholder: '+1 (555) 123-4567',
-        required: false,
-        order: 3,
-      },
-      {
-        id: 'message',
-        type: 'textarea',
-        label: 'Message',
-        placeholder: 'How can we help you?',
-        required: true,
-        order: 4,
-      },
-    ];
+    const formFields =
+      pageName === 'catering'
+        ? [
+            {
+              id: 'full_name',
+              type: 'text',
+              label: 'Full Name',
+              placeholder: 'John Doe',
+              required: true,
+              order: 1,
+            },
+            {
+              id: 'email',
+              type: 'email',
+              label: 'Email Address',
+              placeholder: 'john@example.com',
+              required: true,
+              order: 2,
+            },
+            {
+              id: 'phone',
+              type: 'tel',
+              label: 'Phone Number',
+              placeholder: '+1 (555) 123-4567',
+              required: true,
+              order: 3,
+            },
+            {
+              id: 'event_type',
+              type: 'select',
+              label: 'Event Type',
+              required: true,
+              options: ['Corporate Event', 'Wedding', 'Birthday', 'Private Party', 'Other'],
+              order: 4,
+            },
+            {
+              id: 'event_date',
+              type: 'date',
+              label: 'Event Date',
+              required: true,
+              order: 5,
+            },
+            {
+              id: 'guest_count',
+              type: 'number',
+              label: 'Number of Guests',
+              placeholder: 'Estimated guest count',
+              required: true,
+              order: 6,
+            },
+            {
+              id: 'service_style',
+              type: 'radio',
+              label: 'Service Style',
+              required: true,
+              options: ['Drop-off Catering', 'Full-service Catering', 'Buffet Setup'],
+              order: 7,
+            },
+            {
+              id: 'venue_address',
+              type: 'text',
+              label: 'Event Venue Address',
+              placeholder: 'Street, City, State',
+              required: false,
+              order: 8,
+            },
+            {
+              id: 'budget_range',
+              type: 'select',
+              label: 'Estimated Budget',
+              required: false,
+              options: ['Under $500', '$500 - $1,500', '$1,500 - $3,000', '$3,000+'],
+              order: 9,
+            },
+            {
+              id: 'dietary_requirements',
+              type: 'textarea',
+              label: 'Dietary Requirements / Menu Notes',
+              placeholder: 'Vegetarian, vegan, gluten-free, allergies, preferred dishes, etc.',
+              required: false,
+              order: 10,
+            },
+            {
+              id: 'additional_details',
+              type: 'textarea',
+              label: 'Additional Event Details',
+              placeholder: 'Setup time, event schedule, special requests, and anything else we should know.',
+              required: false,
+              order: 11,
+            },
+          ]
+        : [
+            {
+              id: 'name',
+              type: 'text',
+              label: 'Full Name',
+              placeholder: 'John Doe',
+              required: true,
+              order: 1,
+            },
+            {
+              id: 'email',
+              type: 'email',
+              label: 'Email Address',
+              placeholder: 'john@example.com',
+              required: true,
+              order: 2,
+            },
+            {
+              id: 'phone',
+              type: 'tel',
+              label: 'Phone Number',
+              placeholder: '+1 (555) 123-4567',
+              required: false,
+              order: 3,
+            },
+            {
+              id: 'message',
+              type: 'textarea',
+              label: 'Message',
+              placeholder: 'How can we help you?',
+              required: true,
+              order: 4,
+            },
+          ];
 
     // Fetch restaurant POC email instead of generating a default email
     let formEmail = '';
@@ -757,14 +862,14 @@ async function createContactForm(restaurantId: string, restaurantName: string): 
     const data = await adminGraphqlRequest<{
       insert_forms_one: { form_id: string } | null;
     }>(mutation, {
-      title: 'Contact Form',
+      title: pageName === 'catering' ? 'Catering Inquiry Form' : 'Contact Form',
       email: formEmail,
       fields: formFields,
       restaurant_id: restaurantId,
     });
 
     if (data.insert_forms_one?.form_id) {
-      console.log(`✅ Created contact form with ID: ${data.insert_forms_one.form_id}`);
+      console.log(`✅ Created ${pageName} form with ID: ${data.insert_forms_one.form_id}`);
       return data.insert_forms_one.form_id;
     }
 
@@ -1071,6 +1176,38 @@ Requirements:
 - Subheadline (2-3 words): (e.g., "We're Here", "Always Available")
 - Description (1 sentence, max 30 characters): About accessibility
 - Keep minimal and action-focused
+
+JSON format:
+{
+  "headline": "...",
+  "subheadline": "...",
+  "description": "..."
+}`,
+      catering: `Generate concise hero content for the Catering page.
+
+Restaurant: ${restaurant.name}${context}
+
+Requirements:
+- Headline (1-2 words): (e.g., "Catering", "Event Catering")
+- Subheadline (2-4 words): (e.g., "For Every Occasion", "Weddings & Corporate")
+- Description (1 sentence, max 40 characters): About catering service
+- Keep minimal and action-focused
+
+JSON format:
+{
+  "headline": "...",
+  "subheadline": "...",
+  "description": "..."
+}`,
+      location: `Generate concise hero content for the Location page.
+
+Restaurant: ${restaurant.name}${context}
+
+Requirements:
+- Headline (1-2 words): (e.g., "Find Us", "Visit Us")
+- Subheadline (2-4 words): (e.g., "Easy To Reach", "Open Every Day")
+- Description (1 sentence, max 40 characters): About location convenience
+- Keep minimal, practical, and action-focused
 
 JSON format:
 {
@@ -2167,11 +2304,148 @@ async function createOtherPageSectionsFromTheme(
     return;
   }
 
-  const otherPageSections = themeData.themes_by_pk.other_page_sections;
+  const rawOtherPageSections = themeData.themes_by_pk.other_page_sections as unknown;
+  const otherPageSections: Array<Record<string, OtherPageSection[]>> = Array.isArray(rawOtherPageSections)
+    ? [...rawOtherPageSections]
+    : rawOtherPageSections && typeof rawOtherPageSections === 'object'
+      ? [rawOtherPageSections as Record<string, OtherPageSection[]>]
+      : [];
 
-  if (!Array.isArray(otherPageSections) || otherPageSections.length === 0) {
-    console.log('other_page_sections is empty or not an array');
+  if (otherPageSections.length === 0) {
+    console.log('other_page_sections is empty or invalid');
     return;
+  }
+
+  const findSectionsForPage = (
+    pageConfig: Record<string, any>,
+    pageSlug: string,
+  ): OtherPageSection[] | undefined => {
+    const match = Object.entries(pageConfig).find(
+      ([key, value]) =>
+        typeof key === 'string' &&
+        key.trim().toLowerCase() === pageSlug &&
+        Array.isArray(value),
+    );
+    return match?.[1] as OtherPageSection[] | undefined;
+  };
+
+  const hasCateringConfig = otherPageSections.some((pageConfig) =>
+    Boolean(findSectionsForPage(pageConfig, 'catering')),
+  );
+  const contactConfigEntry = otherPageSections.find((pageConfig) =>
+    Boolean(findSectionsForPage(pageConfig, 'contact')),
+  );
+  const contactSections = contactConfigEntry
+    ? findSectionsForPage(contactConfigEntry, 'contact')
+    : undefined;
+
+  // If theme does not define catering sections, mirror contact sections as a sensible default.
+  if (!hasCateringConfig && contactSections) {
+    otherPageSections.push({
+      catering: contactSections.map((section) => ({ ...section })),
+    });
+    console.log('ℹ️ No catering sections found in theme. Reusing contact sections for catering page.');
+  }
+  const hasLocationConfig = otherPageSections.some((pageConfig) =>
+    Boolean(findSectionsForPage(pageConfig, 'location')),
+  );
+
+  if (!hasLocationConfig) {
+    const restaurant = await getRestaurantDetails(restaurantId);
+    const restaurantName = restaurant?.name || 'Our Restaurant';
+    const locationLine = [restaurant?.city, restaurant?.state, restaurant?.country]
+      .filter(Boolean)
+      .join(', ');
+    const fullAddress = [
+      restaurant?.address,
+      restaurant?.city,
+      restaurant?.state,
+      restaurant?.postal_code,
+      restaurant?.country,
+    ]
+      .filter(Boolean)
+      .join(', ');
+    const contactPhone = restaurant?.poc_phone_number || restaurant?.phone_number || '';
+    const contactEmail = restaurant?.poc_email || restaurant?.email || '';
+
+    const openingHoursDescription = `Opening Hours:
+Mon: Closed
+Tue-Sun: 11:00 AM - 10:00 PM
+Please call ahead for holiday hour updates.`;
+
+    const addressAndContactDescription = [
+      fullAddress ? `Address: ${fullAddress}` : '',
+      locationLine ? `Area: ${locationLine}` : '',
+      contactPhone ? `Phone: ${contactPhone}` : '',
+      contactEmail ? `Email: ${contactEmail}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    otherPageSections.push({
+      location: [
+        {
+          id: 'centered-large',
+          name: 'centered-large',
+          type: 'Hero',
+          order_index: 0,
+        },
+        {
+          id: 'layout-1',
+          name: 'layout-1',
+          type: 'CustomSection',
+          order_index: 1,
+          config: {
+            layout: 'layout-1',
+            headline: 'Opening Hours',
+            subheadline: 'Plan your visit',
+            description: openingHoursDescription,
+          },
+        },
+        {
+          id: 'layout-1',
+          name: 'layout-1',
+          type: 'CustomSection',
+          order_index: 2,
+          config: {
+            layout: 'layout-1',
+            headline: `${restaurantName} Address`,
+            subheadline: 'Contact details',
+            description: addressAndContactDescription || 'Address and contact details are being updated.',
+          },
+        },
+        {
+          id: 'default',
+          name: 'default',
+          type: 'Location',
+          order_index: 3,
+          config: {
+            layout: 'default',
+            enabled: true,
+            title: 'Map & Directions',
+            subtitle: 'Find us easily',
+            description: 'Use the map below for directions and navigation.',
+            showMap: true,
+            showDirections: true,
+            showAddress: true,
+            showHours: true,
+          },
+        },
+        {
+          id: 'grid',
+          name: 'grid',
+          type: 'Reviews',
+          order_index: 4,
+        },
+        {
+          id: 'grid',
+          name: 'grid',
+          type: 'Gallery',
+          order_index: 5,
+        },
+      ],
+    });
+    console.log('INFO: No location sections found in theme. Added default location page sections.');
   }
 
   // Fetch restaurant's global_styles once for all sections
@@ -2193,7 +2467,8 @@ async function createOtherPageSectionsFromTheme(
   // Process each page configuration in other_page_sections
   // Format: [{ "about": [...sections] }, { "contact": [...sections] }]
   for (const pageConfig of otherPageSections) {
-    for (const [pageName, sections] of Object.entries(pageConfig)) {
+    for (const [rawPageName, sections] of Object.entries(pageConfig)) {
+      const pageName = rawPageName.trim().toLowerCase();
       if (!Array.isArray(sections) || sections.length === 0) {
         continue;
       }
@@ -2206,9 +2481,9 @@ async function createOtherPageSectionsFromTheme(
         continue;
       }
 
-      // Create contact form if this is the contact page
+      // Create contact-style form if this is the contact/catering page
       let contactFormId: string | null = null;
-      if (pageName === 'contact') {
+      if (pageName === 'contact' || pageName === 'catering') {
         // Fetch restaurant name for creating the form
         const restaurantQuery = `
           query GetRestaurantName($restaurant_id: uuid!) {
@@ -2222,10 +2497,14 @@ async function createOtherPageSectionsFromTheme(
         }>(restaurantQuery, { restaurant_id: restaurantId });
 
         const restaurantName = restaurantData.restaurants_by_pk?.name || 'Restaurant';
-        contactFormId = await createContactForm(restaurantId, restaurantName);
+        contactFormId = await createContactForm(
+          restaurantId,
+          restaurantName,
+          pageName === 'catering' ? 'catering' : 'contact',
+        );
 
         if (contactFormId) {
-          console.log(`  ✓ Created contact form with ID: ${contactFormId}`);
+          console.log(`  ✓ Created ${pageName} form with ID: ${contactFormId}`);
         }
       }
 
@@ -2266,15 +2545,21 @@ async function createOtherPageSectionsFromTheme(
         // Use full config if provided, otherwise create minimal config with layout ID
         let sectionConfig = section.config || { layout: section.id };
 
-        // For Form sections on contact page, ensure they have the form_id regardless of existing config
-        if (isFormSection && pageName === 'contact' && contactFormId) {
+        // For Form sections on contact/catering page, ensure they have the form_id regardless of existing config
+        if (isFormSection && (pageName === 'contact' || pageName === 'catering') && contactFormId) {
           // Generate section title, subtitle, and description
           const aiSectionContent = await generateSectionContent(restaurantId, pageName, 'form', section.id);
-          const defaultSectionContent = {
-            title: 'Get In Touch',
-            subtitle: 'We\'re here to help',
-            description: 'Fill out the form below and we\'ll get back to you as soon as possible.',
-          };
+          const defaultSectionContent = pageName === 'catering'
+            ? {
+                title: 'Request Catering',
+                subtitle: 'Tell us about your event',
+                description: 'Share your event details and our team will send a custom catering quote.',
+              }
+            : {
+                title: 'Get In Touch',
+                subtitle: 'We\'re here to help',
+                description: 'Fill out the form below and we\'ll get back to you as soon as possible.',
+              };
           const sectionContent = aiSectionContent || defaultSectionContent;
 
           // Build complete form configuration
@@ -2297,7 +2582,7 @@ async function createOtherPageSectionsFromTheme(
             mobileTextColor: sectionConfig.mobileTextColor || '',
             accentColor: sectionConfig.accentColor || globalStyles?.primaryColor || '#7c3aed',
             mobileAccentColor: sectionConfig.mobileAccentColor || '',
-            buttonText: sectionConfig.buttonText || 'Send Message',
+            buttonText: sectionConfig.buttonText || (pageName === 'catering' ? 'Request Catering Quote' : 'Send Message'),
             showImage: sectionConfig.showImage !== undefined ? sectionConfig.showImage : false,
             imageUrl: sectionConfig.imageUrl || '',
 
@@ -2431,6 +2716,8 @@ async function createOtherPageSectionsFromTheme(
         if (isReviewSection && !section.config) {
           console.log(`  ⚡ Fetching reviews from database for ${pageName} page (layout: ${section.id})...`);
           const dbReviews = await getRestaurantReviews(restaurantId, 6);
+          const galleryImagesForReviews = await getRestaurantGalleryImages(restaurantId, 1);
+          const reviewHighlightImageUrl = galleryImagesForReviews[0]?.url || '';
 
           // Generate section title, subtitle, and description
           const aiSectionContent = await generateSectionContent(restaurantId, pageName, 'Reviews', section.id);
@@ -2459,7 +2746,7 @@ async function createOtherPageSectionsFromTheme(
             showDate: sectionConfig.showDate !== undefined ? sectionConfig.showDate : true,
             showSource: sectionConfig.showSource !== undefined ? sectionConfig.showSource : true,
             maxReviews: sectionConfig.maxReviews || undefined,
-            highlightImageUrl: sectionConfig.highlightImageUrl || '',
+            highlightImageUrl: sectionConfig.highlightImageUrl || reviewHighlightImageUrl,
             enableAnimations: sectionConfig.enableAnimations !== undefined ? sectionConfig.enableAnimations : true,
             animationStyle: sectionConfig.animationStyle || 'fade-up',
             animationSpeed: sectionConfig.animationSpeed || 'normal',
@@ -2601,6 +2888,16 @@ async function createOtherPageSectionsFromTheme(
               headline: 'Contact Us',
               subheadline: "We're Here",
               description: 'Questions? We love to help.',
+            },
+            catering: {
+              headline: 'Catering',
+              subheadline: 'For Every Occasion',
+              description: 'Event-ready menus and service.',
+            },
+            location: {
+              headline: 'Find Us',
+              subheadline: 'Visit Today',
+              description: 'Easy to reach, ready to serve.',
             },
             menu: {
               headline: '',
@@ -2924,8 +3221,8 @@ async function createOtherPageSectionsFromTheme(
         console.log(`  ✓ Created ${category} section "${section.name || section.id}" (layout: ${sectionConfig.layout}) for page_id: ${pageId}`);
       }
 
-      // Add form section to contact page if form was created and no form sections exist in theme
-      if (pageName === 'contact' && contactFormId) {
+      // Add form section to contact/catering page if form was created and no form sections exist in theme
+      if ((pageName === 'contact' || pageName === 'catering') && contactFormId) {
         // Check if there are already form sections in the theme configuration
         const hasFormSection = sortedSections.some(section =>
           section.type.toLowerCase() === 'form'
@@ -2935,9 +3232,11 @@ async function createOtherPageSectionsFromTheme(
           const formSectionConfig = {
             isEnabled: true,
             form_id: contactFormId,
-            title: 'Get In Touch',
-            subtitle: 'We\'re here to help',
-            description: 'Fill out the form below and we\'ll get back to you as soon as possible.',
+            title: pageName === 'catering' ? 'Request Catering' : 'Get In Touch',
+            subtitle: pageName === 'catering' ? 'Tell us about your event' : 'We\'re here to help',
+            description: pageName === 'catering'
+              ? 'Share your event details and our team will send a custom catering quote.'
+              : 'Fill out the form below and we\'ll get back to you as soon as possible.',
             layout: 'centered',
             backgroundColor: '#f8fafc',
             mobileBackgroundColor: '',
@@ -2945,7 +3244,7 @@ async function createOtherPageSectionsFromTheme(
             mobileTextColor: '',
             accentColor: globalStyles?.primaryColor || '#7c3aed',
             mobileAccentColor: '',
-            buttonText: 'Send Message',
+            buttonText: pageName === 'catering' ? 'Request Catering Quote' : 'Send Message',
             showImage: false,
             imageUrl: '',
 

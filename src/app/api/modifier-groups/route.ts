@@ -26,7 +26,6 @@ const GET_MODIFIER_GROUPS = `
       type
       is_required
       is_multi_select
-      modifier_items
       created_at
       updated_at
       is_deleted
@@ -43,7 +42,6 @@ const INSERT_MODIFIER_GROUP = `
     $type: String!
     $is_required: Boolean!
     $is_multi_select: Boolean!
-    $modifier_items: jsonb
   ) {
     insert_modifier_groups_one(
       object: {
@@ -54,7 +52,6 @@ const INSERT_MODIFIER_GROUP = `
         type: $type
         is_required: $is_required
         is_multi_select: $is_multi_select
-        modifier_items: $modifier_items
       }
     ) {
       modifier_group_id
@@ -65,7 +62,6 @@ const INSERT_MODIFIER_GROUP = `
       type
       is_required
       is_multi_select
-      modifier_items
       created_at
       updated_at
       is_deleted
@@ -83,7 +79,6 @@ const UPDATE_MODIFIER_GROUP = `
     $type: String!
     $is_required: Boolean!
     $is_multi_select: Boolean!
-    $modifier_items: jsonb
   ) {
     update_modifier_groups_by_pk(
       pk_columns: { modifier_group_id: $modifier_group_id }
@@ -95,7 +90,6 @@ const UPDATE_MODIFIER_GROUP = `
         type: $type
         is_required: $is_required
         is_multi_select: $is_multi_select
-        modifier_items: $modifier_items
         updated_at: "now()"
       }
     ) {
@@ -107,7 +101,6 @@ const UPDATE_MODIFIER_GROUP = `
       type
       is_required
       is_multi_select
-      modifier_items
       created_at
       updated_at
       is_deleted
@@ -185,8 +178,7 @@ export async function POST(request: NextRequest) {
       max_selection = 0,
       type = 'Regular',
       is_required = false,
-      is_multi_select = false,
-      modifier_items
+      is_multi_select = false
     } = body;
 
     // Validation
@@ -206,8 +198,7 @@ export async function POST(request: NextRequest) {
         max_selection: Number(max_selection),
         type,
         is_required: Boolean(is_required),
-        is_multi_select: Boolean(is_multi_select),
-        modifier_items
+        is_multi_select: Boolean(is_multi_select)
       }
     );
 
@@ -249,8 +240,7 @@ export async function PUT(request: NextRequest) {
       max_selection = 0,
       type = 'Regular',
       is_required = false,
-      is_multi_select = false,
-      modifier_items
+      is_multi_select = false
     } = body;
 
     // Validation
@@ -271,8 +261,7 @@ export async function PUT(request: NextRequest) {
         max_selection: Number(max_selection),
         type,
         is_required: Boolean(is_required),
-        is_multi_select: Boolean(is_multi_select),
-        modifier_items
+        is_multi_select: Boolean(is_multi_select)
       }
     );
 

@@ -35,7 +35,6 @@ const GET_CATEGORIES_QUERY = `
       is_deleted
       type
       description
-      image
       is_active
     }
   }

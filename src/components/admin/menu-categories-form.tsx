@@ -541,7 +541,7 @@ export default function MenuCategoriesForm({
                     Are you sure you want to delete "{categoryToDelete.name}"?
                   </h4>
                   <p className="text-sm text-gray-600 mb-4">
-                    This action cannot be undone. All items in this category will also be deleted permanently.
+                    This action cannot be undone. 
                   </p>
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                     <div className="flex">
@@ -552,7 +552,7 @@ export default function MenuCategoriesForm({
                       </div>
                       <div className="ml-3">
                         <p className="text-sm text-yellow-800">
-                          <strong>Warning:</strong> This will permanently delete the category and all its items.
+                          <strong>Warning:</strong> This will permanently delete the category and all its items permanently.
                         </p>
                       </div>
                     </div>

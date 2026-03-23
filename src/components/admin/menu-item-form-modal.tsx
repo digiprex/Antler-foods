@@ -53,6 +53,8 @@ interface MenuItemFormData {
   is_available: boolean;
   in_stock: boolean;
   modifiers?: any;
+  has_variants?: boolean;
+  parent_item_id?: string;
 }
 
 // Full menu item interface matching the database schema
@@ -93,13 +95,17 @@ export default function MenuItemFormModal({
     category_id: categoryId,
     is_available: true,
     in_stock: true,
-    modifiers: null
+    modifiers: null,
+    has_variants: false,
+    parent_item_id: undefined
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([]);
   const [loadingModifiers, setLoadingModifiers] = useState(false);
+  const [availableItems, setAvailableItems] = useState<MenuItem[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
   const selectedModifierIds = normalizeModifierIds(formData.modifiers);
 
   // Fetch modifier groups
@@ -121,10 +127,37 @@ export default function MenuItemFormModal({
     }
   };
 
+  // Fetch available items for parent selection
+  const fetchAvailableItems = async () => {
+    try {
+      setLoadingItems(true);
+      const response = await fetch(`/api/items?category_id=${categoryId}`);
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Filter out the current item if we're in edit mode
+        const items = data.items || [];
+        const filteredItems = item && mode === 'edit'
+          ? items.filter((availableItem: MenuItem) => availableItem.item_id !== item.item_id)
+          : items;
+        setAvailableItems(filteredItems);
+      } else {
+        console.error('Failed to fetch items:', data.error);
+        setAvailableItems([]);
+      }
+    } catch (error) {
+      console.error('Error fetching items:', error);
+      setAvailableItems([]);
+    } finally {
+      setLoadingItems(false);
+    }
+  };
+
   // Load modifier groups when modal opens
   useEffect(() => {
     if (isOpen) {
       fetchModifierGroups();
+      fetchAvailableItems();
     }
   }, [isOpen]);
 
@@ -141,7 +174,9 @@ export default function MenuItemFormModal({
         category_id: item.category_id,
         is_available: item.is_available,
         in_stock: item.in_stock,
-        modifiers: normalizeModifierIds(item.modifiers)
+        modifiers: normalizeModifierIds(item.modifiers),
+        has_variants: item.has_variants || false,
+        parent_item_id: item.parent_item_id || undefined
       });
     } else {
       setFormData({
@@ -155,7 +190,9 @@ export default function MenuItemFormModal({
         category_id: categoryId,
         is_available: true,
         in_stock: true,
-        modifiers: null
+        modifiers: null,
+        has_variants: false,
+        parent_item_id: undefined
       });
     }
     setErrors({});
@@ -218,10 +255,19 @@ export default function MenuItemFormModal({
   };
 
   const handleInputChange = (field: keyof MenuItemFormData, value: string | number | boolean | any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [field]: value
+      };
+      
+      // If has_variants is being disabled, clear the parent_item_id
+      if (field === 'has_variants' && !value) {
+        newData.parent_item_id = undefined;
+      }
+      
+      return newData;
+    });
     
     // Clear error when user starts typing
     if (errors[field as string]) {
@@ -573,7 +619,71 @@ export default function MenuItemFormModal({
                   </div>
                 </div>
               </div>
+
+              {/* Has Variants Toggle */}
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700">
+                  Has variants
+                  <p className="text-xs text-gray-500 font-normal">Item has different variations (size, color, etc.)</p>
+                </label>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={formData.has_variants || false}
+                    onChange={(e) => handleInputChange('has_variants', e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div
+                    className={`w-11 h-6 p-0.5 rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${
+                      formData.has_variants ? 'bg-purple-600' : 'bg-gray-300'
+                    }`}
+                    onClick={() => handleInputChange('has_variants', !formData.has_variants)}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ease-in-out ${
+                      formData.has_variants ? 'translate-x-5' : 'translate-x-0'
+                    }`}></div>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            {/* Parent Item Selection - Only show when has_variants is true */}
+            {formData.has_variants && (
+              <div>
+                <label htmlFor="parentItem" className="block text-sm font-medium text-gray-700 mb-1">
+                  Parent Item
+                </label>
+                
+                {loadingItems ? (
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
+                    <p className="text-sm text-gray-600">Loading available items...</p>
+                  </div>
+                ) : availableItems.length === 0 ? (
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">No other items available in this category to use as parent.</p>
+                  </div>
+                ) : (
+                  <select
+                    id="parentItem"
+                    value={formData.parent_item_id || ''}
+                    onChange={(e) => handleInputChange('parent_item_id', e.target.value || undefined)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="">Select a parent item...</option>
+                    {availableItems.map((availableItem) => (
+                      <option key={availableItem.item_id} value={availableItem.item_id}>
+                        {availableItem.name} - ${availableItem.delivery_price}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                
+                <p className="mt-1 text-xs text-gray-500">
+                  Select the parent item that this variant belongs to
+                </p>
+              </div>
+            )}
 
             {/* Modifiers */}
             <div>

@@ -104,6 +104,7 @@ export default function MenuItemFormModal({
   const [imageUploading, setImageUploading] = useState(false);
   const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([]);
   const [loadingModifiers, setLoadingModifiers] = useState(false);
+  const [isModifierDropdownOpen, setIsModifierDropdownOpen] = useState(false);
   const [availableItems, setAvailableItems] = useState<MenuItem[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
   const selectedModifierIds = normalizeModifierIds(formData.modifiers);
@@ -196,7 +197,17 @@ export default function MenuItemFormModal({
       });
     }
     setErrors({});
+    setIsModifierDropdownOpen(false);
   }, [item, mode, isOpen, categoryId]);
+
+  const toggleModifierSelection = (modifierGroupId: string) => {
+    const isSelected = selectedModifierIds.includes(modifierGroupId);
+    const nextValues = isSelected
+      ? selectedModifierIds.filter((id) => id !== modifierGroupId)
+      : [...selectedModifierIds, modifierGroupId];
+
+    handleInputChange('modifiers', nextValues.length > 0 ? nextValues : null);
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -701,21 +712,57 @@ export default function MenuItemFormModal({
                   <p className="text-sm text-gray-600">No modifier groups available. Create modifier groups first to assign them to items.</p>
                 </div>
               ) : (
-                <select
-                  multiple
-                  value={selectedModifierIds}
-                  onChange={(e) => {
-                    const values = Array.from(e.target.selectedOptions, (option) => option.value);
-                    handleInputChange('modifiers', values.length > 0 ? values : null);
-                  }}
-                  className="h-44 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
-                >
-                  {modifierGroups.map((group) => (
-                    <option key={group.modifier_group_id} value={group.modifier_group_id}>
-                      {group.name} ({group.type}) - Required: {group.is_required ? 'True' : 'False'} - Multi: {group.is_multi_select ? 'True' : 'False'} - Min {group.min_selection}, Max {group.max_selection}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsModifierDropdownOpen((prev) => !prev)}
+                    className="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                  >
+                    <span>
+                      {selectedModifierIds.length > 0
+                        ? `${selectedModifierIds.length} modifier group${selectedModifierIds.length > 1 ? 's' : ''} selected`
+                        : 'Select modifier groups'}
+                    </span>
+                    <svg
+                      className={`h-4 w-4 text-gray-500 transition-transform ${isModifierDropdownOpen ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {isModifierDropdownOpen && (
+                    <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                      <div className="space-y-1 p-2">
+                        {modifierGroups.map((group) => {
+                          const isChecked = selectedModifierIds.includes(group.modifier_group_id);
+                          return (
+                            <label
+                              key={group.modifier_group_id}
+                              className="flex cursor-pointer items-start gap-3 rounded-md p-2 hover:bg-gray-50"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleModifierSelection(group.modifier_group_id)}
+                                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-gray-900">{group.name}</p>
+                                <p className="text-xs text-gray-500">
+                                  {group.type} | Required: {group.is_required ? 'True' : 'False'} | Multi: {group.is_multi_select ? 'True' : 'False'} | Min {group.min_selection}, Max {group.max_selection}
+                                </p>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Selected Modifier Groups Display */}
@@ -736,7 +783,7 @@ export default function MenuItemFormModal({
               )}
               
               <p className="mt-1 text-xs text-gray-500">
-                Multi-select modifier groups from the table (Ctrl/Cmd + click for multiple).
+                Choose one or more modifier groups from the dropdown.
               </p>
             </div>
           </div>

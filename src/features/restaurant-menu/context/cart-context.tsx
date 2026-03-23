@@ -10,6 +10,7 @@ import type {
   AddCartItemInput,
   CartItem,
 } from '@/features/restaurant-menu/types/restaurant-menu.types';
+import { useAnalytics } from '@/lib/analytics';
 
 interface CartContextValue {
   items: CartItem[];
@@ -31,12 +32,22 @@ function buildCartItemKey(input: AddCartItemInput) {
 
 export function CartProvider({ children }: PropsWithChildren) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const { trackAddToCart } = useAnalytics();
 
   const addItem = (input: AddCartItemInput) => {
     const key = buildCartItemKey(input);
 
     setItems((currentItems) => {
       const existingItem = currentItems.find((item) => item.key === key);
+
+      // Track analytics event for add to cart
+      trackAddToCart({
+        item_name: input.item.name,
+        item_id: input.item.id,
+        price: input.item.price,
+        quantity: input.quantity,
+        category: input.item.categoryId || 'menu_item',
+      });
 
       if (existingItem) {
         return currentItems.map((item) =>

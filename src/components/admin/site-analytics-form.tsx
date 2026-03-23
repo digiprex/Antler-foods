@@ -39,6 +39,12 @@ interface AnalyticsDetails {
   topChannels?: AnalyticsRow[];
 }
 
+interface BusinessMetrics {
+  addToCartEvents: number;
+  signupEvents: number;
+  totalEvents: number;
+}
+
 interface AnalyticsPayload {
   success: boolean;
   configured?: boolean;
@@ -135,9 +141,23 @@ export default function SiteAnalyticsForm({
     return (summary.bounces / summary.visits) * 100;
   }, [summary]);
 
+  const businessMetrics = useMemo(() => {
+    const events = analytics?.topEvents || [];
+    const addToCartEvents = events.find(event => event.x === 'add_to_cart')?.y || 0;
+    const signupEvents = events.find(event => event.x === 'signup')?.y || 0;
+    const totalEvents = events.reduce((sum, event) => sum + event.y, 0);
+    
+    return {
+      addToCartEvents,
+      signupEvents,
+      totalEvents,
+    };
+  }, [analytics?.topEvents]);
+
   const detailSections = useMemo(
-    () =>
-      [
+    () => {
+      const sections = [
+        { title: 'All Events Breakdown', rows: analytics?.topEvents || [], priority: true },
         { title: 'Top Pages', rows: analytics?.topPages || [] },
         { title: 'Top Referrers', rows: analytics?.topReferrers || [] },
         { title: 'Top Entry Pages', rows: analytics?.topEntryPages || [] },
@@ -149,10 +169,17 @@ export default function SiteAnalyticsForm({
         { title: 'Top Operating Systems', rows: analytics?.topOperatingSystems || [] },
         { title: 'Top Devices', rows: analytics?.topDevices || [] },
         { title: 'Top Languages', rows: analytics?.topLanguages || [] },
-        { title: 'Top Events', rows: analytics?.topEvents || [] },
         { title: 'Top Hostnames', rows: analytics?.topHostnames || [] },
         { title: 'Top Channels', rows: analytics?.topChannels || [] },
-      ].filter((section) => section.rows.length > 0),
+      ].filter((section) => section.rows.length > 0);
+
+      // Sort to put priority sections first
+      return sections.sort((a, b) => {
+        if (a.priority && !b.priority) return -1;
+        if (!a.priority && b.priority) return 1;
+        return 0;
+      });
+    },
     [analytics],
   );
 
@@ -233,6 +260,37 @@ export default function SiteAnalyticsForm({
             <MetricCard label="Avg. Time" value={formatDuration(summary.totaltime)} />
           </div>
 
+          {/* Business Events Section */}
+          <div className="rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 shadow-sm">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Business Events</h3>
+              <p className="text-sm text-gray-600">Key user interactions and conversions</p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <BusinessMetricCard
+                label="Add to Cart"
+                value={formatNumber(businessMetrics.addToCartEvents)}
+                icon="🛒"
+                description="Items added to cart"
+                color="bg-green-500"
+              />
+              <BusinessMetricCard
+                label="Signups"
+                value={formatNumber(businessMetrics.signupEvents)}
+                icon="👤"
+                description="New user registrations"
+                color="bg-purple-500"
+              />
+              <BusinessMetricCard
+                label="Total Events"
+                value={formatNumber(businessMetrics.totalEvents)}
+                icon="📊"
+                description="All tracked events"
+                color="bg-blue-500"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <HorizontalBarChartCard title="Top Pages Graph" rows={chartPages} />
             <HorizontalBarChartCard title="Top Referrers Graph" rows={chartReferrers} />
@@ -270,16 +328,53 @@ function MetricCard({ label, value }: { label: string; value: string }) {
 }
 
 function MetricListCard({ title, rows }: { title: string; rows: AnalyticsRow[] }) {
+  const isEventsBreakdown = title === 'All Events Breakdown';
+  
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <h3 className="mb-3 text-sm font-semibold text-gray-900">{title}</h3>
+    <div className={`rounded-xl border p-5 shadow-sm ${
+      isEventsBreakdown
+        ? 'border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50'
+        : 'border-gray-200 bg-white'
+    }`}>
+      <h3 className={`mb-3 text-sm font-semibold ${
+        isEventsBreakdown ? 'text-blue-900' : 'text-gray-900'
+      }`}>
+        {title}
+        {isEventsBreakdown && (
+          <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
+            Business Events
+          </span>
+        )}
+      </h3>
       <div className="space-y-2">
-        {rows.map((row) => (
-          <div key={`${title}-${row.x}`} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-            <span className="truncate pr-3 text-sm text-gray-700">{row.x}</span>
-            <span className="text-sm font-semibold text-gray-900">{formatNumber(row.y)}</span>
-          </div>
-        ))}
+        {rows.map((row) => {
+          const isBusinessEvent = row.x === 'add_to_cart' || row.x === 'signup';
+          const eventIcon = row.x === 'add_to_cart' ? '🛒' : row.x === 'signup' ? '👤' : '📊';
+          const eventLabel = row.x === 'add_to_cart' ? 'Add to Cart' : row.x === 'signup' ? 'Signups' : row.x;
+          
+          return (
+            <div
+              key={`${title}-${row.x}`}
+              className={`flex items-center justify-between rounded-lg px-3 py-2 ${
+                isBusinessEvent && isEventsBreakdown
+                  ? 'bg-white/80 border border-blue-200 shadow-sm'
+                  : 'bg-gray-50'
+              }`}
+            >
+              <span className="flex items-center gap-2 truncate pr-3 text-sm text-gray-700">
+                {isEventsBreakdown && <span>{eventIcon}</span>}
+                <span className={isBusinessEvent && isEventsBreakdown ? 'font-medium' : ''}>
+                  {isEventsBreakdown ? eventLabel : row.x}
+                </span>
+              </span>
+              <span className={`text-sm font-semibold ${
+                isBusinessEvent && isEventsBreakdown ? 'text-blue-900' : 'text-gray-900'
+              }`}>
+                {formatNumber(row.y)}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -315,6 +410,35 @@ function HorizontalBarChartCard({ title, rows }: { title: string; rows: Analytic
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function BusinessMetricCard({
+  label,
+  value,
+  icon,
+  description,
+  color
+}: {
+  label: string;
+  value: string;
+  icon: string;
+  description: string;
+  color: string;
+}) {
+  return (
+    <div className="rounded-lg border border-white/20 bg-white/60 p-4 backdrop-blur-sm">
+      <div className="flex items-center gap-3">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${color} text-white`}>
+          <span className="text-lg">{icon}</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
+          <p className="text-xl font-bold text-gray-900">{value}</p>
+          <p className="text-xs text-gray-600">{description}</p>
+        </div>
+      </div>
     </div>
   );
 }

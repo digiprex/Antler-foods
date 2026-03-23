@@ -35,22 +35,27 @@ interface ModifierItemsFormProps {
 
 function normalizeModifierItems(modifierItems: any): ModifierItem[] {
   if (Array.isArray(modifierItems)) {
-    return modifierItems
-      .map((item) => {
-        if (typeof item === 'string') {
-          return { name: item, price: 0 };
-        }
+    const normalized: ModifierItem[] = [];
 
-        if (item && typeof item === 'object') {
-          return {
-            name: String(item.name ?? '').trim(),
-            price: Number(item.price ?? 0),
-          };
-        }
+    for (const item of modifierItems) {
+      if (typeof item === 'string') {
+        const name = item.trim();
+        if (name) normalized.push({ name, price: 0 });
+        continue;
+      }
 
-        return null;
-      })
-      .filter((item): item is ModifierItem => Boolean(item?.name));
+      if (item && typeof item === 'object') {
+        const name = String(item.name ?? '').trim();
+        if (!name) continue;
+
+        normalized.push({
+          name,
+          price: Number(item.price ?? 0),
+        });
+      }
+    }
+
+    return normalized;
   }
 
   if (modifierItems && typeof modifierItems === 'object') {
@@ -77,8 +82,15 @@ export default function ModifierItemsForm({
   const [itemName, setItemName] = useState('');
   const [itemPrice, setItemPrice] = useState('0');
   const [itemError, setItemError] = useState<string | null>(null);
+  const [itemSearch, setItemSearch] = useState('');
 
   const items = useMemo(() => normalizeModifierItems(group?.modifier_items), [group?.modifier_items]);
+  const normalizedItemSearch = itemSearch.trim().toLowerCase();
+  const filteredItemEntries = useMemo(() => {
+    const entries = items.map((item, index) => ({ item, index }));
+    if (!normalizedItemSearch) return entries;
+    return entries.filter(({ item }) => item.name.toLowerCase().includes(normalizedItemSearch));
+  }, [items, normalizedItemSearch]);
 
   const fetchGroup = useCallback(async () => {
     try {
@@ -278,6 +290,33 @@ export default function ModifierItemsForm({
         </button>
       </div>
 
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+          <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0z" />
+          </svg>
+        </div>
+        <input
+          type="text"
+          value={itemSearch}
+          onChange={(event) => setItemSearch(event.target.value)}
+          placeholder="Search modifier items..."
+          className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-10 text-sm text-gray-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+        />
+        {itemSearch && (
+          <button
+            type="button"
+            onClick={() => setItemSearch('')}
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+            aria-label="Clear modifier item search"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
+
       {items.length === 0 ? (
         <div className="text-center py-12 rounded-lg border border-gray-200 bg-white shadow-sm">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
@@ -302,9 +341,22 @@ export default function ModifierItemsForm({
             Add Item
           </button>
         </div>
+      ) : filteredItemEntries.length === 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-sm text-gray-600">
+            No modifier items match "<span className="font-medium text-gray-800">{itemSearch}</span>".
+          </p>
+          <button
+            type="button"
+            onClick={() => setItemSearch('')}
+            className="mt-3 text-sm font-medium text-purple-600 hover:text-purple-700"
+          >
+            Clear search
+          </button>
+        </div>
       ) : (
         <div className="space-y-4">
-          {items.map((item, index) => (
+          {filteredItemEntries.map(({ item, index }) => (
             <div key={`${item.name}-${index}`} className="rounded-lg border border-gray-200 bg-white shadow-sm">
               <div className="flex items-center justify-between p-4">
                 <div>

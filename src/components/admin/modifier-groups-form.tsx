@@ -11,8 +11,8 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import ModifierGroupFormModal from '@/components/admin/modifier-group-form-modal';
 
 // Modifier group interface matching the database schema
@@ -33,6 +33,7 @@ interface ModifierGroup {
 
 export default function ModifierGroupsForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +43,17 @@ export default function ModifierGroupsForm() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<ModifierGroup | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [groupSearch, setGroupSearch] = useState('');
+
+  const normalizedGroupSearch = groupSearch.trim().toLowerCase();
+  const filteredModifierGroups = useMemo(() => {
+    if (!normalizedGroupSearch) return modifierGroups;
+
+    return modifierGroups.filter((group) => {
+      const searchableText = `${group.name} ${group.description || ''} ${group.type || ''}`.toLowerCase();
+      return searchableText.includes(normalizedGroupSearch);
+    });
+  }, [modifierGroups, normalizedGroupSearch]);
 
   // Fetch modifier groups from API
   const fetchModifierGroups = async () => {
@@ -80,10 +92,15 @@ export default function ModifierGroupsForm() {
   };
 
   const handleManageModifierItems = (group: ModifierGroup) => {
-    const params = new URLSearchParams({
-      modifier_group_id: group.modifier_group_id,
-      modifier_group_name: group.name,
-    });
+    const params = new URLSearchParams();
+    params.set('modifier_group_id', group.modifier_group_id);
+    params.set('modifier_group_name', group.name);
+
+    const restaurantId = searchParams.get('restaurant_id');
+    const restaurantName = searchParams.get('restaurant_name');
+    if (restaurantId) params.set('restaurant_id', restaurantId);
+    if (restaurantName) params.set('restaurant_name', restaurantName);
+
     router.push(`/admin/modifier-items?${params.toString()}`);
   };
 
@@ -289,6 +306,33 @@ export default function ModifierGroupsForm() {
         </button>
       </div>
 
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+          <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0z" />
+          </svg>
+        </div>
+        <input
+          type="text"
+          value={groupSearch}
+          onChange={(event) => setGroupSearch(event.target.value)}
+          placeholder="Search modifier groups..."
+          className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-10 text-sm text-gray-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+        />
+        {groupSearch && (
+          <button
+            type="button"
+            onClick={() => setGroupSearch('')}
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+            aria-label="Clear modifier group search"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
+
       {/* Modifier Groups List */}
       {modifierGroups.length === 0 ? (
         <div className="text-center py-12">
@@ -309,9 +353,22 @@ export default function ModifierGroupsForm() {
             Add Modifier Group
           </button>
         </div>
+      ) : filteredModifierGroups.length === 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-sm text-gray-600">
+            No modifier groups match "<span className="font-medium text-gray-800">{groupSearch}</span>".
+          </p>
+          <button
+            type="button"
+            onClick={() => setGroupSearch('')}
+            className="mt-3 text-sm font-medium text-purple-600 hover:text-purple-700"
+          >
+            Clear search
+          </button>
+        </div>
       ) : (
         <div className="space-y-4">
-          {modifierGroups.map((group) => {
+          {filteredModifierGroups.map((group) => {
             const itemCount = Array.isArray(group.modifier_items)
               ? group.modifier_items.length
               : group.modifier_items && typeof group.modifier_items === 'object'

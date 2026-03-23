@@ -9,6 +9,7 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { generateDynamicSEO, generateMetadata as generateSEOMetadata } from '@/lib/seo';
+import { getUmamiWebsiteIdForDomain } from '@/lib/server/umami';
 import DynamicPageClient from './page-client';
 
 interface PageProps {
@@ -134,6 +135,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 /**
  * Main page component
  */
-export default function DynamicPage({ params }: PageProps) {
-  return <DynamicPageClient slug={params.slug} />;
+export default async function DynamicPage({ params }: PageProps) {
+  const requestHeaders = headers();
+  const domain =
+    requestHeaders.get('x-forwarded-host') ||
+    requestHeaders.get('host') ||
+    '';
+  const umamiWebsiteId = domain
+    ? await getUmamiWebsiteIdForDomain(domain)
+    : null;
+
+  return (
+    <DynamicPageClient
+      slug={params.slug}
+      umamiWebsiteId={umamiWebsiteId}
+    />
+  );
 }

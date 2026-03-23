@@ -3,6 +3,8 @@ import { headers } from 'next/headers';
 import { aromaBarAndGrillMenuMock } from '@/features/restaurant-menu/data/aroma-bar-and-grill.mock';
 import { RestaurantMenuPage } from '@/features/restaurant-menu';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { getUmamiWebsiteIdForDomain } from '@/lib/server/umami';
+import UmamiAnalytics from '@/components/umami-analytics';
 
 interface RestaurantInfo {
   restaurant_id: string;
@@ -108,6 +110,7 @@ export default async function MenuPageRoute() {
   try {
     const requestHeaders = headers();
     const domain = requestHeaders.get('x-forwarded-host') || requestHeaders.get('host') || 'localhost:3000';
+    const umamiWebsiteId = await getUmamiWebsiteIdForDomain(domain);
     
     const restaurant = await getRestaurantByDomain(domain);
     
@@ -126,7 +129,12 @@ export default async function MenuPageRoute() {
       };
       
       console.log('[Menu Page] Using real restaurant data:', restaurant.name);
-      return <RestaurantMenuPage data={menuData} />;
+      return (
+        <>
+          <UmamiAnalytics websiteId={umamiWebsiteId} />
+          <RestaurantMenuPage data={menuData} />
+        </>
+      );
     }
   } catch (error) {
     console.error('[Menu Page] Error fetching restaurant data:', error);
@@ -134,5 +142,10 @@ export default async function MenuPageRoute() {
 
   // Fallback to mock data
   console.log('[Menu Page] Using mock data as fallback');
-  return <RestaurantMenuPage data={aromaBarAndGrillMenuMock} />;
+  return (
+    <>
+      <UmamiAnalytics websiteId={null} />
+      <RestaurantMenuPage data={aromaBarAndGrillMenuMock} />
+    </>
+  );
 }

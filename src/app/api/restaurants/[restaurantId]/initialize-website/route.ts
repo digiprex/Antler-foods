@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { addVercelDomain } from '@/lib/server/vercel-domains';
+import { ensureUmamiWebsiteForDomain } from '@/lib/server/umami';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import OpenAI from 'openai';
 import { createLayoutItems, getCustomSectionLayoutDefinition } from '@/lib/custom-section/layouts';
@@ -3369,6 +3370,23 @@ export async function POST(
     console.log('🏪 Step 3: Updating restaurant data...');
     await updateRestaurantData(restaurantId, defaultStagingDomain);
     console.log('✅ Restaurant data updated');
+
+    // Ensure Umami website exists for the new restaurant domain.
+    // This should not block website creation if Umami is unavailable.
+    try {
+      console.log('📊 Step 3b: Ensuring Umami website...');
+      const umamiWebsiteId = await ensureUmamiWebsiteForDomain(
+        defaultStagingDomain,
+        `${restaurantName} (${defaultStagingDomain})`,
+      );
+      if (umamiWebsiteId) {
+        console.log('✅ Umami website ready:', umamiWebsiteId);
+      } else {
+        console.log('⚠️ Umami not configured; skipping analytics provisioning');
+      }
+    } catch (umamiError) {
+      console.error('⚠️ Umami setup failed; continuing initialization:', umamiError);
+    }
 
     // Create default system pages
     console.log('📄 Step 4: Creating default system pages...');

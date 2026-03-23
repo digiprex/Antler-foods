@@ -112,6 +112,12 @@ export function Sidebar({
           ),
           label: 'Menu Management',
           icon: <MenuManagementIcon />,
+          matchPrefixes: [
+            `/admin/menu-management`,
+            `/admin/menu-categories`,
+            `/admin/menu-items`,
+            `/admin/menu-settings`
+          ],
         },
         {
           href: buildRestaurantScopedHref(
@@ -120,6 +126,10 @@ export function Sidebar({
           ),
           label: 'Modifiers',
           icon: <ModifierGroupsIcon />,
+          matchPrefixes: [
+            `/admin/modifier-groups`,
+            `/admin/modifier-items`
+          ],
         },
       ]
     : [];
@@ -133,11 +143,33 @@ export function Sidebar({
           ),
           label: 'Pages',
           icon: <PagesIcon />,
+          matchPrefixes: [
+            `/admin/pages-settings`,
+            `/admin/pages`,
+            `/admin/pages-form`,
+            `/admin/page-settings`,
+            `/admin/hero-settings`,
+            `/admin/gallery-settings`,
+            `/admin/faq-settings`,
+            `/admin/review-settings`,
+            `/admin/youtube-settings`,
+            `/admin/custom-section-settings`,
+            `/admin/custom-code-settings`,
+            `/admin/location-settings`,
+            `/admin/timeline-settings`,
+            `/admin/scrolling-text-settings`,
+            `/admin/seo-settings`
+          ],
         },
         {
           href: buildRestaurantScopedHref(`/admin/forms`, selectedRestaurant),
           label: 'Forms',
           icon: <FormsIcon />,
+          matchPrefixes: [
+            `/admin/forms`,
+            `/admin/form-submissions`,
+            `/admin/form-settings`
+          ],
         },
         {
           href: buildRestaurantScopedHref(
@@ -146,6 +178,10 @@ export function Sidebar({
           ),
           label: 'Navbar Settings',
           icon: <NavbarIcon />,
+          matchPrefixes: [
+            `/admin/navbar-settings`,
+            `/admin/navbar-config`
+          ],
         },
         {
           href: buildRestaurantScopedHref(
@@ -154,6 +190,10 @@ export function Sidebar({
           ),
           label: 'Global Style',
           icon: <GlobalStyleIcon />,
+          matchPrefixes: [
+            `/admin/global-style-settings`,
+            `/admin/select-theme`
+          ],
         },
         {
           href: buildRestaurantScopedHref(
@@ -186,6 +226,22 @@ export function Sidebar({
           ),
           label: 'Domain Settings',
           icon: <DomainIcon />,
+        },
+      ]
+    : [];
+
+  const REPORTS_MENU_ITEMS = selectedRestaurant
+    ? [
+        {
+          href: buildRestaurantScopedHref(
+            `/admin/site-analytics`,
+            selectedRestaurant,
+          ),
+          label: 'Storefornt Analytics',
+          icon: <SiteAnalyticsIcon />,
+          matchPrefixes: [
+            `/admin/site-analytics`,
+          ],
         },
       ]
     : [];
@@ -367,6 +423,29 @@ export function Sidebar({
         ) : null}
 
         {/* Marketing / Reservation / Catering */}
+        {hasRestaurantSelection && REPORTS_MENU_ITEMS.length > 0 ? (
+          <div>
+            {isOpen && (
+              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Reports
+              </p>
+            )}
+            <nav className="space-y-0.5">
+              {REPORTS_MENU_ITEMS.map((item) => (
+                <NavItem
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  active={isSidebarItemActive(pathname, item)}
+                  collapsed={!isOpen}
+                />
+              ))}
+            </nav>
+          </div>
+        ) : null}
+
+        {/* Marketing / Reservation / Catering */}
         {hasRestaurantSelection && MARKETING_MENU_ITEMS.length > 0 ? (
           <div>
             {isOpen && (
@@ -465,15 +544,26 @@ function isSidebarItemActive(
   item: { href: string; matchPrefixes?: string[] },
 ) {
   const itemPath = extractPathFromHref(item.href);
+  
+  // Exact match
   if (pathname === itemPath) {
     return true;
   }
 
-  return (
-    item.matchPrefixes?.some((prefix) =>
-      pathname.startsWith(extractPathFromHref(prefix)),
-    ) ?? false
-  );
+  // Check if current path starts with the item path (for nested routes)
+  if (pathname.startsWith(itemPath + '/')) {
+    return true;
+  }
+
+  // Check matchPrefixes for related pages
+  if (item.matchPrefixes?.length) {
+    return item.matchPrefixes.some((prefix) => {
+      const prefixPath = extractPathFromHref(prefix);
+      return pathname === prefixPath || pathname.startsWith(prefixPath + '/');
+    });
+  }
+
+  return false;
 }
 
 function HomeIcon() {
@@ -888,6 +978,27 @@ function NewsletterIcon() {
       strokeLinejoin="round"
     >
       <path d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+    </svg>
+  );
+}
+
+function SiteAnalyticsIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 19h16" />
+      <path d="M7 15V9" />
+      <path d="M12 15V5" />
+      <path d="M17 15v-3" />
+      <path d="M5 5h14" />
     </svg>
   );
 }

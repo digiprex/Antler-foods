@@ -22,13 +22,15 @@ import DynamicForm from '@/components/dynamic-form';
 import Popup from '@/components/popup';
 import YouTubeSection from '@/components/youtube-section';
 import CustomSection from '@/components/custom-section';
+import UmamiAnalytics from '@/components/umami-analytics';
 import { CUSTOM_SECTION_LAYOUT_VALUES } from '@/types/custom-section.types';
 
 interface DynamicPageClientProps {
   slug: string;
+  umamiWebsiteId?: string | null;
 }
 
-export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
+export default function DynamicPageClient({ slug, umamiWebsiteId = null }: DynamicPageClientProps) {
   const [pageData, setPageData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -481,6 +483,7 @@ export default function DynamicPageClient({ slug }: DynamicPageClientProps) {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
+      <UmamiAnalytics websiteId={umamiWebsiteId} />
       {/* Navbar is automatically rendered by ConditionalNavbar in root layout */}
 
       {/* Dynamic top spacing to prevent navbar overlap - only when navbar is fixed or absolute */}

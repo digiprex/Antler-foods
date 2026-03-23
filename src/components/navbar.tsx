@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import styles from './navbar.module.scss';
 
 export interface NavItem {
@@ -93,6 +94,44 @@ export default function Navbar({
 }: NavbarProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const pathname = usePathname();
+
+  // Function to check if a nav item is active
+  const isNavItemActive = (href: string): boolean => {
+    if (!pathname || !href) return false;
+    
+    // Handle hash links (e.g., #collection, #archive)
+    if (href.startsWith('#')) {
+      return false; // Hash links don't correspond to routes, so never active
+    }
+    
+    // Handle absolute URLs
+    if (href.startsWith('http')) {
+      return false; // External links are never active
+    }
+    
+    // Handle relative paths
+    // Remove leading slash for comparison
+    const cleanHref = href.startsWith('/') ? href.slice(1) : href;
+    const cleanPathname = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+    
+    // Exact match
+    if (cleanPathname === cleanHref) {
+      return true;
+    }
+    
+    // Handle home page - if href is empty or '/' and pathname is 'home'
+    if ((cleanHref === '' || cleanHref === '/') && cleanPathname === 'home') {
+      return true;
+    }
+    
+    // Handle nested paths (e.g., /about matches /about/team)
+    if (cleanPathname.startsWith(cleanHref + '/')) {
+      return true;
+    }
+    
+    return false;
+  };
 
 
   const toggleSidebar = () => {
@@ -204,12 +243,20 @@ export default function Navbar({
             {/* Nav items and button below */}
             <div className={styles.stackedNav}>
               {leftNavItems.map((item, index) => (
-                <a key={index} href={item.href} className={styles.navLink}>
+                <a
+                  key={index}
+                  href={item.href}
+                  className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
+                >
                   {item.label}
                 </a>
               ))}
               {rightNavItems.map((item, index) => (
-                <a key={`right-${index}`} href={item.href} className={styles.navLink}>
+                <a
+                  key={`right-${index}`}
+                  href={item.href}
+                  className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
+                >
                   {item.label}
                 </a>
               ))}
@@ -288,12 +335,20 @@ export default function Navbar({
           {layout === 'logo-center' || layout === 'split' ? (
             <div className={styles.desktopNavLeft}>
               {leftNavItems.map((item, index) => (
-                <a key={index} href={item.href} className={styles.navLink}>
+                <a
+                  key={index}
+                  href={item.href}
+                  className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
+                >
                   {item.label}
                 </a>
               ))}
               {rightNavItems.map((item, index) => (
-                <a key={`right-${index}`} href={item.href} className={styles.navLink}>
+                <a
+                  key={`right-${index}`}
+                  href={item.href}
+                  className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
+                >
                   {item.label}
                 </a>
               ))}
@@ -305,12 +360,20 @@ export default function Navbar({
               </div>
               <div className={styles.desktopNavLeft}>
                 {leftNavItems.map((item, index) => (
-                  <a key={index} href={item.href} className={styles.navLink}>
+                  <a
+                    key={index}
+                    href={item.href}
+                    className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
+                  >
                     {item.label}
                   </a>
                 ))}
                 {rightNavItems.map((item, index) => (
-                  <a key={`right-${index}`} href={item.href} className={styles.navLink}>
+                  <a
+                    key={`right-${index}`}
+                    href={item.href}
+                    className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
+                  >
                     {item.label}
                   </a>
                 ))}
@@ -334,12 +397,20 @@ export default function Navbar({
               {/* Desktop: Nav items */}
               <div className={styles.desktopNavCentered}>
                 {leftNavItems.map((item, index) => (
-                  <a key={index} href={item.href} className={styles.navLink}>
+                  <a
+                    key={index}
+                    href={item.href}
+                    className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
+                  >
                     {item.label}
                   </a>
                 ))}
                 {rightNavItems.map((item, index) => (
-                  <a key={`right-${index}`} href={item.href} className={styles.navLink}>
+                  <a
+                    key={`right-${index}`}
+                    href={item.href}
+                    className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
+                  >
                     {item.label}
                   </a>
                 ))}
@@ -395,12 +466,20 @@ export default function Navbar({
               {layout === 'default' && (
                 <div className={styles.desktopNav}>
                   {leftNavItems.map((item, index) => (
-                    <a key={index} href={item.href} className={styles.navLink}>
+                    <a
+                      key={index}
+                      href={item.href}
+                      className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
+                    >
                       {item.label}
                     </a>
                   ))}
                   {rightNavItems.map((item, index) => (
-                    <a key={`right-${index}`} href={item.href} className={styles.navLink}>
+                    <a
+                      key={`right-${index}`}
+                      href={item.href}
+                      className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
+                    >
                       {item.label}
                     </a>
                   ))}
@@ -441,7 +520,11 @@ export default function Navbar({
 
           <div className={styles.sidebarNavList}>
             {navItems.map((item, index) => (
-              <a key={`${item.href}-${index}`} href={item.href} className={styles.sidebarLink}>
+              <a
+                key={`${item.href}-${index}`}
+                href={item.href}
+                className={`${styles.sidebarLink} ${isNavItemActive(item.href) ? styles.sidebarLinkActive : ''}`}
+              >
                 {item.label}
               </a>
             ))}

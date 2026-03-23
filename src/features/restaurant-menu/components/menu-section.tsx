@@ -20,14 +20,14 @@ export function MenuSection({
     <section
       id={`menu-section-${category.id}`}
       ref={registerRef}
-      className={`scroll-mt-52 rounded-[32px] ${first ? '' : 'pt-1'}`}
+      className={`scroll-mt-32 ${first ? '' : 'pt-10'}`}
     >
-      <div className="mb-6 space-y-2">
-        <h2 className="text-3xl font-semibold tracking-tight text-slate-950">
+      <div className="mb-6 space-y-2 border-b border-stone-200 pb-4">
+        <h2 className="text-2xl font-bold tracking-tight text-stone-900">
           {category.label}
         </h2>
         {category.description ? (
-          <p className="max-w-3xl text-sm leading-6 text-slate-600 md:text-[15px]">
+          <p className="max-w-3xl text-sm text-stone-600">
             {category.description}
           </p>
         ) : null}

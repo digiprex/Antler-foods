@@ -2,15 +2,12 @@
 
 import { useState } from 'react';
 import { AnnouncementStrip } from '@/features/restaurant-menu/components/announcement-strip';
-import { CategoryTabs } from '@/features/restaurant-menu/components/category-tabs';
+import { SidebarNavigation } from '@/features/restaurant-menu/components/sidebar-navigation';
 import { FulfillmentSelector } from '@/features/restaurant-menu/components/fulfillment-selector';
 import { ItemDetailsModal } from '@/features/restaurant-menu/components/item-details-modal';
 import { LocationModal } from '@/features/restaurant-menu/components/location-modal';
-import { MenuHeader } from '@/features/restaurant-menu/components/menu-header';
-import { MenuSearch } from '@/features/restaurant-menu/components/menu-search';
 import { MenuSection } from '@/features/restaurant-menu/components/menu-section';
 import { PopularItemsCarousel } from '@/features/restaurant-menu/components/popular-items-carousel';
-import { RestaurantInfoCard } from '@/features/restaurant-menu/components/restaurant-info-card';
 import { RewardsBanner } from '@/features/restaurant-menu/components/rewards-banner';
 import { ScheduleOrderModal } from '@/features/restaurant-menu/components/schedule-order-modal';
 import { CartProvider } from '@/features/restaurant-menu/context/cart-context';
@@ -50,6 +47,7 @@ function MenuPageContent({ data }: MenuPageProps) {
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [scheduleModalSource, setScheduleModalSource] = useState<'info' | 'location'>('info');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const contentContainerClass = 'mx-auto w-full max-w-[1120px] px-4 sm:px-6';
 
   const selectedLocation =
     data.locations.find((location) => location.id === selectedLocationId) || data.locations[0];
@@ -60,7 +58,7 @@ function MenuPageContent({ data }: MenuPageProps) {
     : null;
   const locationLabel =
     fulfillmentMode === 'pickup'
-      ? selectedLocation?.label || 'Select pickup location'
+      ? `${selectedLocation?.label || 'Select pickup location'} • ${scheduleLabel}`
       : deliveryAddress.trim()
         ? `Deliver to ${deliveryAddress.trim()}`
         : 'Add delivery address';
@@ -71,11 +69,6 @@ function MenuPageContent({ data }: MenuPageProps) {
   };
 
   const handleModeSelect = (mode: FulfillmentMode) => {
-    if (mode === 'delivery' && !deliveryAddress.trim()) {
-      openLocationModal('delivery');
-      return;
-    }
-
     setFulfillmentMode(mode);
   };
 
@@ -92,77 +85,112 @@ function MenuPageContent({ data }: MenuPageProps) {
   };
 
   return (
-    <div id="top" className="min-h-screen bg-[#f6f2eb] text-slate-900">
-      <div className="sticky top-0 z-40">
-        <MenuHeader
-          brand={data.brand}
-          navigation={data.navigation}
-          cartCount={itemCount}
-        />
+    <div
+      className="min-h-screen bg-stone-100"
+      style={{ paddingTop: 'var(--navbar-height, 0px)' }}
+    >
+      <div className="sticky top-0 z-50 border-b border-stone-200/70">
         <AnnouncementStrip text={data.announcement} />
       </div>
 
-      <main className="mx-auto max-w-[1320px] space-y-8 px-4 py-8 sm:px-6 lg:space-y-10 lg:px-8 lg:py-10">
-        <RestaurantInfoCard
-          restaurant={data.restaurant}
-          scheduleLabel={scheduleLabel}
-          onChangeTime={() => {
-            setScheduleModalSource('info');
-            setScheduleModalOpen(true);
-          }}
-        />
-
-        <FulfillmentSelector
-          mode={fulfillmentMode}
-          locationLabel={locationLabel}
-          onModeSelect={handleModeSelect}
-          onOpenLocation={() => openLocationModal(fulfillmentMode)}
-        />
-
-        <RewardsBanner rewards={data.rewards} />
-
-        <PopularItemsCarousel
-          items={popularItems}
-          onOpenItem={(itemId) => setSelectedItemId(itemId)}
-          onQuickAdd={handleQuickAdd}
-        />
-
-        <div className="sticky top-[112px] z-30 space-y-4 rounded-[30px] bg-[#f6f2eb] pt-1">
-          <MenuSearch value={query} onChange={setQuery} />
-          <CategoryTabs
+      <div className="mx-auto flex w-full max-w-[1440px]">
+        <div className="hidden lg:block">
+          <SidebarNavigation
             categories={filteredCategories.map((category) => ({
               id: category.id,
               label: category.label,
             }))}
             activeCategoryId={activeCategoryId}
             onSelect={scrollToCategory}
+            searchQuery={query}
+            onSearchQueryChange={setQuery}
           />
         </div>
 
-        <section id="menu-sections" className="space-y-8 lg:space-y-10">
-          {filteredCategories.length ? (
-            filteredCategories.map((category, index) => (
-              <MenuSection
-                key={category.id}
-                category={category}
-                onOpenItem={(itemId) => setSelectedItemId(itemId)}
-                onQuickAdd={handleQuickAdd}
-                registerRef={registerSectionRef(category.id)}
-                first={index === 0}
+        <div className="min-w-0 flex-1 bg-stone-50">
+          <div className="border-b border-stone-200 bg-white/85 py-4 backdrop-blur sm:py-6">
+            <div className={contentContainerClass}>
+              <div className="mb-4 sm:mb-6">
+              <h1 className="mb-2 text-xl font-bold text-stone-900 sm:text-2xl">
+                {data.restaurant.name.replace(' Menu', '')}
+              </h1>
+                <div className="mb-4 flex flex-col gap-2 text-sm text-stone-600 sm:flex-row sm:items-center sm:gap-4">
+                  <span>Location: {selectedLocation?.fullAddress || selectedLocation?.label || 'Location not set'}</span>
+                  <span>Time: {scheduleLabel}</span>
+                </div>
+              </div>
+
+              <FulfillmentSelector
+                mode={fulfillmentMode}
+                locationLabel={locationLabel}
+                deliveryAddress={deliveryAddress}
+                onModeSelect={handleModeSelect}
+                onOpenSchedule={() => {
+                  setScheduleModalSource('info');
+                  setScheduleModalOpen(true);
+                }}
+                onDeliveryAddressChange={setDeliveryAddress}
               />
-            ))
-          ) : (
-            <div className="rounded-[28px] border border-dashed border-black/15 bg-white px-6 py-16 text-center shadow-sm">
-              <h2 className="text-3xl font-semibold tracking-tight text-slate-950">
-                No dishes matched your search
-              </h2>
-              <p className="mt-3 text-base text-slate-600">
-                Try a broader term like chicken, naan, biryani, or masala.
-              </p>
             </div>
-          )}
-        </section>
-      </main>
+          </div>
+
+          <div className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 px-4 py-3 backdrop-blur lg:hidden sm:px-6 sm:py-4">
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {filteredCategories.map((category) => {
+                const isActive = category.id === activeCategoryId;
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => scrollToCategory(category.id)}
+                    className={`shrink-0 rounded-full px-3 py-2 text-sm font-semibold transition ${
+                      isActive
+                        ? 'bg-stone-900 text-white'
+                        : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                    }`}
+                  >
+                    {category.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className={`${contentContainerClass} space-y-6 py-4 sm:py-6`}>
+            <RewardsBanner rewards={data.rewards} />
+
+            <PopularItemsCarousel
+              items={popularItems}
+              onOpenItem={(itemId) => setSelectedItemId(itemId)}
+              onQuickAdd={handleQuickAdd}
+            />
+
+            <section id="menu-sections" className="space-y-8 pb-8">
+              {filteredCategories.length ? (
+                filteredCategories.map((category, index) => (
+                  <MenuSection
+                    key={category.id}
+                    category={category}
+                    onOpenItem={(itemId) => setSelectedItemId(itemId)}
+                    onQuickAdd={handleQuickAdd}
+                    registerRef={registerSectionRef(category.id)}
+                    first={index === 0}
+                  />
+                ))
+              ) : (
+                <div className="rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-16 text-center shadow-sm">
+                  <h2 className="text-xl font-semibold text-stone-900">
+                    No dishes matched your search
+                  </h2>
+                  <p className="mt-2 text-stone-600">
+                    Try a broader term like chicken, naan, biryani, or masala.
+                  </p>
+                </div>
+              )}
+            </section>
+          </div>
+        </div>
+      </div>
 
       <ItemDetailsModal
         item={selectedItem}

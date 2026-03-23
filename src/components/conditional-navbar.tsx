@@ -14,6 +14,7 @@ import DynamicNavbar from './dynamic-navbar';
 
 export default function ConditionalNavbar() {
   const pathname = usePathname();
+  const isMenuPage = pathname?.startsWith('/menu');
 
   // Hide navbar on admin and dashboard routes
   const hideNavbar =
@@ -27,5 +28,10 @@ export default function ConditionalNavbar() {
     return null;
   }
 
-  return <DynamicNavbar showLoadingSkeleton={false} />;
+  return (
+    <DynamicNavbar
+      showLoadingSkeleton={false}
+      forceHamburgerMenu={isMenuPage}
+    />
+  );
 }

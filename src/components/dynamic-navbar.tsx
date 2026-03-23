@@ -37,12 +37,18 @@ interface DynamicNavbarProps {
    * Override configuration (useful for testing or static pages)
    */
   overrideConfig?: Partial<NavbarConfig>;
+
+  /**
+   * Forces hamburger-style nav on all breakpoints.
+   */
+  forceHamburgerMenu?: boolean;
 }
 
 export default function DynamicNavbar({
   apiEndpoint = '/api/navbar-config',
   showLoadingSkeleton = false,
   overrideConfig,
+  forceHamburgerMenu = false,
 }: DynamicNavbarProps) {
   const [config, setConfig] = useState<NavbarConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -167,6 +173,7 @@ export default function DynamicNavbar({
       fontSize={config.fontSize}
       fontWeight={config.fontWeight}
       textTransform={config.textTransform}
+      forceHamburgerMenu={forceHamburgerMenu}
     />
   );
 }

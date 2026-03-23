@@ -36,6 +36,8 @@ const GET_ITEMS_BY_CATEGORY = `
       is_available
       in_stock
       modifiers
+      has_variants
+      parent_item_id
     }
   }
 `;
@@ -53,6 +55,8 @@ const INSERT_ITEM = `
     $is_available: Boolean!
     $in_stock: Boolean!
     $modifiers: jsonb
+    $has_variants: Boolean
+    $parent_item_id: uuid
   ) {
     insert_items_one(
       object: {
@@ -67,6 +71,8 @@ const INSERT_ITEM = `
         is_available: $is_available
         in_stock: $in_stock
         modifiers: $modifiers
+        has_variants: $has_variants
+        parent_item_id: $parent_item_id
       }
     ) {
       item_id
@@ -84,6 +90,8 @@ const INSERT_ITEM = `
       is_available
       in_stock
       modifiers
+      has_variants
+      parent_item_id
     }
   }
 `;
@@ -101,6 +109,8 @@ const UPDATE_ITEM = `
     $is_available: Boolean!
     $in_stock: Boolean!
     $modifiers: jsonb
+    $has_variants: Boolean
+    $parent_item_id: uuid
   ) {
     update_items_by_pk(
       pk_columns: { item_id: $item_id }
@@ -115,6 +125,8 @@ const UPDATE_ITEM = `
         is_available: $is_available
         in_stock: $in_stock
         modifiers: $modifiers
+        has_variants: $has_variants
+        parent_item_id: $parent_item_id
         updated_at: "now()"
       }
     ) {
@@ -133,6 +145,8 @@ const UPDATE_ITEM = `
       is_available
       in_stock
       modifiers
+      has_variants
+      parent_item_id
     }
   }
 `;
@@ -222,7 +236,9 @@ export async function POST(request: NextRequest) {
       category_id,
       is_available = true,
       in_stock = true,
-      modifiers
+      modifiers,
+      has_variants = false,
+      parent_item_id
     } = body;
 
     // Validation
@@ -240,21 +256,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Prepare variables, only include parent_item_id if it's a valid UUID
+    const variables: any = {
+      name,
+      description,
+      delivery_price: parseFloat(delivery_price),
+      pickup_price: parseFloat(pickup_price),
+      image_url,
+      is_recommended,
+      is_best_seller,
+      category_id,
+      is_available,
+      in_stock,
+      modifiers,
+      has_variants
+    };
+
+    // Only include parent_item_id if it's a non-empty string (valid UUID)
+    if (parent_item_id && parent_item_id.trim() !== '') {
+      variables.parent_item_id = parent_item_id;
+    }
+
     const data = await adminGraphqlRequest<InsertItemResponse>(
       INSERT_ITEM,
-      {
-        name,
-        description,
-        delivery_price: parseFloat(delivery_price),
-        pickup_price: parseFloat(pickup_price),
-        image_url,
-        is_recommended,
-        is_best_seller,
-        category_id,
-        is_available,
-        in_stock,
-        modifiers
-      }
+      variables
     );
 
     if (!data.insert_items_one) {
@@ -298,7 +323,9 @@ export async function PUT(request: NextRequest) {
       is_best_seller = false,
       is_available = true,
       in_stock = true,
-      modifiers
+      modifiers,
+      has_variants = false,
+      parent_item_id
     } = body;
 
     // Validation
@@ -316,21 +343,30 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Prepare variables, only include parent_item_id if it's a valid UUID
+    const variables: any = {
+      item_id,
+      name,
+      description,
+      delivery_price: parseFloat(delivery_price),
+      pickup_price: parseFloat(pickup_price),
+      image_url,
+      is_recommended,
+      is_best_seller,
+      is_available,
+      in_stock,
+      modifiers,
+      has_variants
+    };
+
+    // Only include parent_item_id if it's a non-empty string (valid UUID)
+    if (parent_item_id && parent_item_id.trim() !== '') {
+      variables.parent_item_id = parent_item_id;
+    }
+
     const data = await adminGraphqlRequest<UpdateItemResponse>(
       UPDATE_ITEM,
-      {
-        item_id,
-        name,
-        description,
-        delivery_price: parseFloat(delivery_price),
-        pickup_price: parseFloat(pickup_price),
-        image_url,
-        is_recommended,
-        is_best_seller,
-        is_available,
-        in_stock,
-        modifiers
-      }
+      variables
     );
 
     if (!data.update_items_by_pk) {

@@ -33,6 +33,8 @@ interface Item {
   is_available: boolean;
   in_stock: boolean;
   modifiers?: any;
+  has_variants?: boolean;
+  parent_item_id?: string;
 }
 
 // Enhanced category interface matching the database schema

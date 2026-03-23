@@ -92,6 +92,8 @@ const GET_ITEMS_BY_CATEGORY_IDS_QUERY = `
       updated_at
       is_deleted
       modifiers
+      has_variants
+      parent_item_id
     }
   }
 `;

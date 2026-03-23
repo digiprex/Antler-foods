@@ -112,6 +112,12 @@ export function Sidebar({
           ),
           label: 'Menu Management',
           icon: <MenuManagementIcon />,
+          matchPrefixes: [
+            `/admin/menu-management`,
+            `/admin/menu-categories`,
+            `/admin/menu-items`,
+            `/admin/menu-settings`
+          ],
         },
         {
           href: buildRestaurantScopedHref(
@@ -120,6 +126,10 @@ export function Sidebar({
           ),
           label: 'Modifiers',
           icon: <ModifierGroupsIcon />,
+          matchPrefixes: [
+            `/admin/modifier-groups`,
+            `/admin/modifier-items`
+          ],
         },
       ]
     : [];
@@ -133,11 +143,33 @@ export function Sidebar({
           ),
           label: 'Pages',
           icon: <PagesIcon />,
+          matchPrefixes: [
+            `/admin/pages-settings`,
+            `/admin/pages`,
+            `/admin/pages-form`,
+            `/admin/page-settings`,
+            `/admin/hero-settings`,
+            `/admin/gallery-settings`,
+            `/admin/faq-settings`,
+            `/admin/review-settings`,
+            `/admin/youtube-settings`,
+            `/admin/custom-section-settings`,
+            `/admin/custom-code-settings`,
+            `/admin/location-settings`,
+            `/admin/timeline-settings`,
+            `/admin/scrolling-text-settings`,
+            `/admin/seo-settings`
+          ],
         },
         {
           href: buildRestaurantScopedHref(`/admin/forms`, selectedRestaurant),
           label: 'Forms',
           icon: <FormsIcon />,
+          matchPrefixes: [
+            `/admin/forms`,
+            `/admin/form-submissions`,
+            `/admin/form-settings`
+          ],
         },
         {
           href: buildRestaurantScopedHref(
@@ -146,6 +178,10 @@ export function Sidebar({
           ),
           label: 'Navbar Settings',
           icon: <NavbarIcon />,
+          matchPrefixes: [
+            `/admin/navbar-settings`,
+            `/admin/navbar-config`
+          ],
         },
         {
           href: buildRestaurantScopedHref(
@@ -154,6 +190,10 @@ export function Sidebar({
           ),
           label: 'Global Style',
           icon: <GlobalStyleIcon />,
+          matchPrefixes: [
+            `/admin/global-style-settings`,
+            `/admin/select-theme`
+          ],
         },
         {
           href: buildRestaurantScopedHref(
@@ -465,15 +505,26 @@ function isSidebarItemActive(
   item: { href: string; matchPrefixes?: string[] },
 ) {
   const itemPath = extractPathFromHref(item.href);
+  
+  // Exact match
   if (pathname === itemPath) {
     return true;
   }
 
-  return (
-    item.matchPrefixes?.some((prefix) =>
-      pathname.startsWith(extractPathFromHref(prefix)),
-    ) ?? false
-  );
+  // Check if current path starts with the item path (for nested routes)
+  if (pathname.startsWith(itemPath + '/')) {
+    return true;
+  }
+
+  // Check matchPrefixes for related pages
+  if (item.matchPrefixes?.length) {
+    return item.matchPrefixes.some((prefix) => {
+      const prefixPath = extractPathFromHref(prefix);
+      return pathname === prefixPath || pathname.startsWith(prefixPath + '/');
+    });
+  }
+
+  return false;
 }
 
 function HomeIcon() {

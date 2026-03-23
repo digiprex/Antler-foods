@@ -32,6 +32,8 @@ interface MenuItem {
   is_available: boolean;
   in_stock: boolean;
   modifiers?: any;
+  has_variants?: boolean;
+  parent_item_id?: string;
 }
 
 interface MenuItemsFormProps {
@@ -77,6 +79,43 @@ export default function MenuItemsForm({
       setLoading(false);
     }
   }, [categoryId]);
+
+  // Organize items into parent-child hierarchy
+  const organizeItems = (items: MenuItem[]) => {
+    const parentItems: MenuItem[] = [];
+    const variantItems: MenuItem[] = [];
+    
+    // Separate parent items and variants
+    items.forEach(item => {
+      if (item.parent_item_id) {
+        variantItems.push(item);
+      } else {
+        parentItems.push(item);
+      }
+    });
+    
+    // Create organized structure with variants grouped under parents
+    const organizedItems: (MenuItem & { variants?: MenuItem[] })[] = [];
+    
+    parentItems.forEach(parent => {
+      const variants = variantItems.filter(variant => variant.parent_item_id === parent.item_id);
+      organizedItems.push({
+        ...parent,
+        variants: variants.length > 0 ? variants : undefined
+      });
+    });
+    
+    // Add orphaned variants (variants without parent in current list)
+    const orphanedVariants = variantItems.filter(variant =>
+      !parentItems.some(parent => parent.item_id === variant.parent_item_id)
+    );
+    
+    orphanedVariants.forEach(orphan => {
+      organizedItems.push(orphan);
+    });
+    
+    return organizedItems;
+  };
 
   // Load items on component mount
   useEffect(() => {
@@ -166,6 +205,8 @@ export default function MenuItemsForm({
           is_available: updates.is_available ?? item.is_available,
           in_stock: updates.in_stock ?? item.in_stock,
           modifiers: item.modifiers,
+          has_variants: item.has_variants,
+          parent_item_id: item.parent_item_id,
         }),
       });
       
@@ -325,38 +366,40 @@ export default function MenuItemsForm({
         </div>
       ) : (
         <div className="space-y-4">
-          {items.map((item) => (
-            <div key={item.item_id} className="rounded-lg border border-gray-200 bg-white shadow-sm">
-              <div className="flex gap-6 p-6">
-                {/* Item Image */}
-                <div className="flex-shrink-0">
-                  {item.image_url ? (
-                    <img
-                      src={item.image_url}
-                      alt={item.name}
-                      className="h-24 w-24 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-gray-100">
-                      <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
+          {organizeItems(items).map((item) => (
+            <div key={item.item_id} className="space-y-2">
+              {/* Parent Item */}
+              <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+                <div className="flex gap-6 p-6">
+                  {/* Item Image */}
+                  <div className="flex-shrink-0">
+                    {item.image_url ? (
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        className="h-24 w-24 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-gray-100">
+                        <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
 
-                {/* Item Details */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-lg font-semibold text-gray-900">{item.name}</h3>
-                        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                          item.is_available
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {item.is_available ? 'Available' : 'Unavailable'}
+                  {/* Item Details */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                          <h3 className="text-lg font-semibold text-gray-900">{item.name}</h3>
+                          <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                            item.is_available
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {item.is_available ? 'Available' : 'Unavailable'}
                           </span>
                           <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                             item.in_stock
@@ -375,90 +418,258 @@ export default function MenuItemsForm({
                               Best Seller
                             </span>
                           )}
+                          {item.has_variants && (
+                            <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800">
+                              Parent Item ({(item as any).variants?.length || 0} variants)
+                            </span>
+                          )}
+                          {item.parent_item_id && (
+                            <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800">
+                              Variant
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 mb-2">
+                          <p className="text-lg font-bold text-gray-900">
+                            Delivery: ${item.delivery_price}
+                          </p>
+                          <p className="text-lg font-bold text-gray-900">
+                            Pickup: ${item.pickup_price}
+                          </p>
+                        </div>
+                        {item.description && (
+                          <p className="text-sm text-gray-600 mb-3">{item.description}</p>
+                        )}
                       </div>
-                      <div className="flex items-center gap-4 mb-2">
-                        <p className="text-lg font-bold text-gray-900">
-                          Delivery: ${item.delivery_price}
-                        </p>
-                        <p className="text-lg font-bold text-gray-900">
-                          Pickup: ${item.pickup_price}
-                        </p>
+                      <div className="flex items-center gap-3 ml-4">
+                        <div className="flex flex-col items-end gap-2">
+                          <label className="flex items-center gap-2 text-xs font-medium text-gray-700">
+                            <span>Available</span>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={item.is_available}
+                              onClick={() => toggleItemAvailability(item.item_id)}
+                              className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${
+                                item.is_available ? 'bg-green-500' : 'bg-gray-300'
+                              }`}
+                            >
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                  item.is_available ? 'translate-x-5' : 'translate-x-1'
+                                }`}
+                              />
+                            </button>
+                          </label>
+                          <label className="flex items-center gap-2 text-xs font-medium text-gray-700">
+                            <span>In Stock</span>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={item.in_stock}
+                              onClick={() => toggleItemStock(item.item_id)}
+                              className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${
+                                item.in_stock ? 'bg-green-500' : 'bg-gray-300'
+                              }`}
+                            >
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                  item.in_stock ? 'translate-x-5' : 'translate-x-1'
+                                }`}
+                              />
+                            </button>
+                          </label>
+                        </div>
+                        <button
+                          onClick={() => handleEditItem(item)}
+                          className="rounded p-2 text-gray-400 hover:text-gray-600"
+                          title="Edit item"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteItem(item)}
+                          className="rounded p-2 text-gray-400 hover:text-red-600"
+                          title="Delete item"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
                       </div>
-                      {item.description && (
-                        <p className="text-sm text-gray-600 mb-3">{item.description}</p>
+                    </div>
+
+                    {/* Additional Info */}
+                    <div className="flex flex-wrap gap-4 text-sm">
+                      {item.modifiers && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-500">Modifiers:</span>
+                          <span className="text-gray-700">Available</span>
+                        </div>
+                      )}
+                      {item.parent_item_id && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-500">Parent Item:</span>
+                          <span className="text-gray-700 text-xs">{item.parent_item_id}</span>
+                        </div>
+                      )}
+                      {item.has_variants && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-500">Variants:</span>
+                          <span className="text-gray-700">{(item as any).variants?.length || 0} variant(s)</span>
+                        </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 ml-4">
-                      <div className="flex flex-col items-end gap-2">
-                        <label className="flex items-center gap-2 text-xs font-medium text-gray-700">
-                          <span>Available</span>
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={item.is_available}
-                            onClick={() => toggleItemAvailability(item.item_id)}
-                            className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${
-                              item.is_available ? 'bg-green-500' : 'bg-gray-300'
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                item.is_available ? 'translate-x-5' : 'translate-x-1'
-                              }`}
-                            />
-                          </button>
-                        </label>
-                        <label className="flex items-center gap-2 text-xs font-medium text-gray-700">
-                          <span>In Stock</span>
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={item.in_stock}
-                            onClick={() => toggleItemStock(item.item_id)}
-                            className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${
-                              item.in_stock ? 'bg-green-500' : 'bg-gray-300'
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                item.in_stock ? 'translate-x-5' : 'translate-x-1'
-                              }`}
-                            />
-                          </button>
-                        </label>
-                      </div>
-                      <button
-                        onClick={() => handleEditItem(item)}
-                        className="rounded p-2 text-gray-400 hover:text-gray-600"
-                        title="Edit item"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteItem(item)}
-                        className="rounded p-2 text-gray-400 hover:text-red-600"
-                        title="Delete item"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Additional Info */}
-                  <div className="flex flex-wrap gap-4 text-sm">
-                    {item.modifiers && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-500">Modifiers:</span>
-                        <span className="text-gray-700">Available</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
+
+              {/* Variants - Show indented under parent */}
+              {(item as any).variants && (item as any).variants.length > 0 && (
+                <div className="ml-8 space-y-2">
+                  {(item as any).variants.map((variant: MenuItem) => (
+                    <div key={variant.item_id} className="rounded-lg border border-gray-200 bg-gray-50 shadow-sm">
+                      <div className="flex gap-4 p-4">
+                        {/* Variant Image */}
+                        <div className="flex-shrink-0">
+                          {variant.image_url ? (
+                            <img
+                              src={variant.image_url}
+                              alt={variant.name}
+                              className="h-16 w-16 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-200">
+                              <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Variant Details */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm text-gray-500">↳</span>
+                                <h4 className="text-md font-medium text-gray-900">{variant.name}</h4>
+                                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-700">
+                                  Variant
+                                </span>
+                                {variant.is_recommended && (
+                                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800">
+                                    Recommended
+                                  </span>
+                                )}
+                                {variant.is_best_seller && (
+                                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800">
+                                    Best Seller
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3 mb-1">
+                                <p className="text-sm font-semibold text-gray-800">
+                                  Delivery: ${variant.delivery_price}
+                                </p>
+                                <p className="text-sm font-semibold text-gray-800">
+                                  Pickup: ${variant.pickup_price}
+                                </p>
+                              </div>
+                              {variant.description && (
+                                <p className="text-xs text-gray-600">{variant.description}</p>
+                              )}
+                              
+                              {/* Variant Status Badges */}
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                  variant.is_available
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {variant.is_available ? 'Available' : 'Unavailable'}
+                                </span>
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                  variant.in_stock
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {variant.in_stock ? 'In Stock' : 'Out of Stock'}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 ml-3">
+                              {/* Variant Toggle Controls */}
+                              <div className="flex flex-col gap-1">
+                                <label className="flex items-center gap-1 text-xs font-medium text-gray-600">
+                                  <span className="text-xs">Available</span>
+                                  <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={variant.is_available}
+                                    onClick={() => toggleItemAvailability(variant.item_id)}
+                                    className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
+                                      variant.is_available ? 'bg-green-500' : 'bg-gray-300'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                                        variant.is_available ? 'translate-x-3.5' : 'translate-x-0.5'
+                                      }`}
+                                    />
+                                  </button>
+                                </label>
+                                <label className="flex items-center gap-1 text-xs font-medium text-gray-600">
+                                  <span className="text-xs">In Stock</span>
+                                  <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={variant.in_stock}
+                                    onClick={() => toggleItemStock(variant.item_id)}
+                                    className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
+                                      variant.in_stock ? 'bg-green-500' : 'bg-gray-300'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                                        variant.in_stock ? 'translate-x-3.5' : 'translate-x-0.5'
+                                      }`}
+                                    />
+                                  </button>
+                                </label>
+                              </div>
+                              
+                              {/* Edit/Delete Controls */}
+                              <div className="flex flex-col gap-1 ml-2">
+                                <button
+                                  onClick={() => handleEditItem(variant)}
+                                  className="rounded p-1.5 text-gray-400 hover:text-gray-600"
+                                  title="Edit variant"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteItem(variant)}
+                                  className="rounded p-1.5 text-gray-400 hover:text-red-600"
+                                  title="Delete variant"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -33,6 +33,8 @@ interface Item {
   is_available: boolean;
   in_stock: boolean;
   modifiers?: any;
+  has_variants?: boolean;
+  parent_item_id?: string;
 }
 
 // Enhanced category interface matching the database schema
@@ -78,6 +80,15 @@ export default function MenuCategoriesForm({
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const sortCategories = useCallback((input: Category[]) => {
+    return [...input].sort((a, b) => {
+      const orderA = Number(a.order_index ?? 0);
+      const orderB = Number(b.order_index ?? 0);
+      if (orderA !== orderB) return orderA - orderB;
+      return a.name.localeCompare(b.name);
+    });
+  }, []);
+
   // Fetch categories + item previews in one request to avoid N+1 fetches.
   const fetchCategories = useCallback(async () => {
     try {
@@ -88,16 +99,27 @@ export default function MenuCategoriesForm({
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch categories');
+        // Instead of showing error, treat as empty state
+        console.log('Categories API returned error, treating as empty state:', data.error);
+        setCategories([]);
+        setLoading(false);
+        return;
       }
 
-      setCategories(data.categories || []);
+      // Handle successful response with empty categories array
+      const categoriesArray = data.categories || [];
+      setCategories(sortCategories(categoriesArray));
+      
+      // Log for debugging
+      console.log('Categories fetched successfully:', categoriesArray.length, 'categories found');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch categories');
+      // Instead of showing error, treat as empty state
+      console.log('Categories fetch failed, treating as empty state:', err);
+      setCategories([]);
     } finally {
       setLoading(false);
     }
-  }, [menuId]);
+  }, [menuId, sortCategories]);
 
   // Load categories on component mount
   useEffect(() => {
@@ -165,9 +187,33 @@ export default function MenuCategoriesForm({
     router.push(`/admin/menu-items?${params.toString()}`);
   };
 
-  const handleSaveCategory = async (payload: Pick<Category, 'name' | 'description' | 'order_index' | 'type' | 'image' | 'is_active'>) => {
+  const handleSaveCategory = async (payload: Pick<Category, 'name' | 'description' | 'order_index' | 'type' | 'is_active'>) => {
+    let optimisticCategoryId: string | null = null;
     try {
       if (showCreateCategory) {
+        const temporaryCategoryId = `temp-${Date.now()}`;
+        optimisticCategoryId = temporaryCategoryId;
+        const optimisticCategory: Category = {
+          category_id: temporaryCategoryId,
+          name: payload.name,
+          description: payload.description,
+          order_index: payload.order_index || 0,
+          menu_id: menuId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_deleted: false,
+          type: payload.type,
+          is_active: payload.is_active,
+          items: [],
+          items_count: 0,
+        };
+
+        // Optimistic insert so UI updates instantly.
+        setCategories((prevCategories) =>
+          sortCategories([...prevCategories, optimisticCategory]),
+        );
+        setShowCreateCategory(false);
+
         // Create new category
         const response = await fetch('/api/categories', {
           method: 'POST',
@@ -180,7 +226,6 @@ export default function MenuCategoriesForm({
             description: payload.description,
             order_index: payload.order_index || 0,
             type: payload.type,
-            image: payload.image,
             is_active: payload.is_active,
           }),
         });
@@ -191,10 +236,15 @@ export default function MenuCategoriesForm({
           throw new Error(data.error || 'Failed to create category');
         }
         
-        // Add to local state with empty items array
+        // Replace optimistic category with server response.
         const newCategory = { ...data.category, items: [], items_count: 0 };
-        setCategories((prevCategories) => [...prevCategories, newCategory]);
-        setShowCreateCategory(false);
+        setCategories((prevCategories) =>
+          sortCategories(
+            prevCategories.map((category) =>
+              category.category_id === temporaryCategoryId ? newCategory : category,
+            ),
+          ),
+        );
       } else if (showEditCategory && selectedCategory) {
         // Update existing category
         const response = await fetch('/api/categories', {
@@ -208,7 +258,6 @@ export default function MenuCategoriesForm({
             description: payload.description,
             order_index: payload.order_index,
             type: payload.type,
-            image: payload.image,
             is_active: payload.is_active,
           }),
         });
@@ -221,14 +270,16 @@ export default function MenuCategoriesForm({
         
         // Update local state, preserving existing item preview/count.
         setCategories((prevCategories) =>
-          prevCategories.map((category) =>
-            category.category_id === selectedCategory.category_id
-              ? {
-                  ...data.category,
-                  items: category.items,
-                  items_count: category.items_count ?? category.items?.length ?? 0,
-                }
-              : category,
+          sortCategories(
+            prevCategories.map((category) =>
+              category.category_id === selectedCategory.category_id
+                ? {
+                    ...data.category,
+                    items: category.items,
+                    items_count: category.items_count ?? category.items?.length ?? 0,
+                  }
+                : category,
+            ),
           ),
         );
         setShowEditCategory(false);
@@ -236,6 +287,13 @@ export default function MenuCategoriesForm({
       }
     } catch (err) {
       console.error('Save category error:', err);
+      // Roll back optimistic category on create failure.
+      if (optimisticCategoryId) {
+        setCategories((prevCategories) =>
+          prevCategories.filter((category) => category.category_id !== optimisticCategoryId),
+        );
+        setShowCreateCategory(true);
+      }
       // You could add a toast notification or error state here instead of alert
       // For now, keeping it simple but this could be improved with proper error handling
       const errorMessage = err instanceof Error ? err.message : 'Failed to save category';
@@ -255,23 +313,6 @@ export default function MenuCategoriesForm({
     );
   }
 
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <section className="rounded-xl border border-red-200 bg-red-50 p-5 shadow-sm">
-          <div className="text-center">
-            <p className="text-sm text-red-600 mb-4">{error}</p>
-            <button
-              onClick={fetchCategories}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-            >
-              Retry
-            </button>
-          </div>
-        </section>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -502,7 +543,7 @@ export default function MenuCategoriesForm({
                     Are you sure you want to delete "{categoryToDelete.name}"?
                   </h4>
                   <p className="text-sm text-gray-600 mb-4">
-                    This action cannot be undone. All items in this category will also be deleted permanently.
+                    This action cannot be undone. 
                   </p>
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                     <div className="flex">
@@ -513,7 +554,7 @@ export default function MenuCategoriesForm({
                       </div>
                       <div className="ml-3">
                         <p className="text-sm text-yellow-800">
-                          <strong>Warning:</strong> This will permanently delete the category and all its items.
+                          <strong>Warning:</strong> This will permanently delete the category and all its items permanently.
                         </p>
                       </div>
                     </div>

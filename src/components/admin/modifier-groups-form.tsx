@@ -12,6 +12,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import ModifierGroupFormModal from '@/components/admin/modifier-group-form-modal';
 
 // Modifier group interface matching the database schema
@@ -31,6 +32,7 @@ interface ModifierGroup {
 }
 
 export default function ModifierGroupsForm() {
+  const router = useRouter();
   const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +79,14 @@ export default function ModifierGroupsForm() {
     setShowEditGroup(true);
   };
 
+  const handleManageModifierItems = (group: ModifierGroup) => {
+    const params = new URLSearchParams({
+      modifier_group_id: group.modifier_group_id,
+      modifier_group_name: group.name,
+    });
+    router.push(`/admin/modifier-items?${params.toString()}`);
+  };
+
   const handleDeleteGroup = (group: ModifierGroup) => {
     setGroupToDelete(group);
     setShowDeleteConfirm(true);
@@ -112,6 +122,67 @@ export default function ModifierGroupsForm() {
   const cancelDeleteGroup = () => {
     setShowDeleteConfirm(false);
     setGroupToDelete(null);
+  };
+
+  const toggleGroupRequired = async (groupId: string) => {
+    const group = modifierGroups.find(g => g.modifier_group_id === groupId);
+    if (!group) return;
+
+    await updateGroupFlags(group, { is_required: !group.is_required });
+  };
+
+  const toggleGroupMultiSelect = async (groupId: string) => {
+    const group = modifierGroups.find(g => g.modifier_group_id === groupId);
+    if (!group) return;
+
+    await updateGroupFlags(group, { is_multi_select: !group.is_multi_select });
+  };
+
+  const updateGroupFlags = async (
+    group: ModifierGroup,
+    updates: Partial<Pick<ModifierGroup, 'is_required' | 'is_multi_select'>>,
+  ) => {
+    try {
+      const response = await fetch('/api/modifier-groups', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          modifier_group_id: group.modifier_group_id,
+          name: group.name,
+          description: group.description,
+          min_selection: group.min_selection,
+          max_selection: group.max_selection,
+          type: group.type,
+          is_required: updates.is_required ?? group.is_required,
+          is_multi_select: updates.is_multi_select ?? group.is_multi_select,
+          modifier_items: group.modifier_items,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update modifier group');
+      }
+      
+      // Update local state
+      setModifierGroups((prevGroups) =>
+        prevGroups.map((currentGroup) =>
+          currentGroup.modifier_group_id === group.modifier_group_id
+            ? {
+                ...currentGroup,
+                is_required: updates.is_required ?? currentGroup.is_required,
+                is_multi_select: updates.is_multi_select ?? currentGroup.is_multi_select,
+              }
+            : currentGroup,
+        ),
+      );
+    } catch (err) {
+      console.error('Toggle modifier group flag error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to update modifier group');
+    }
   };
 
   const handleSaveGroup = async (payload: Omit<ModifierGroup, 'modifier_group_id' | 'created_at' | 'updated_at' | 'is_deleted'>) => {
@@ -240,119 +311,147 @@ export default function ModifierGroupsForm() {
         </div>
       ) : (
         <div className="space-y-4">
-          {modifierGroups.map((group) => (
-            <div key={group.modifier_group_id} className="rounded-lg border border-gray-200 bg-white shadow-sm">
-              {/* Group Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">{group.name}</h3>
-                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                      group.type === 'Upsell'
-                        ? 'bg-amber-100 text-amber-800'
-                        : group.type === 'Meal'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {group.type}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-gray-600">Required</span>
-                      <span
-                        className={`relative inline-flex h-5 w-10 items-center rounded-full ${
-                          group.is_required ? 'bg-red-500' : 'bg-gray-300'
-                        }`}
-                        aria-label={`Required ${group.is_required ? 'enabled' : 'disabled'}`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            group.is_required ? 'translate-x-5' : 'translate-x-1'
-                          }`}
-                        />
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-gray-600">Multi Select</span>
-                      <span
-                        className={`relative inline-flex h-5 w-10 items-center rounded-full ${
-                          group.is_multi_select ? 'bg-purple-600' : 'bg-gray-300'
-                        }`}
-                        aria-label={`Multi select ${group.is_multi_select ? 'enabled' : 'disabled'}`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            group.is_multi_select ? 'translate-x-5' : 'translate-x-1'
-                          }`}
-                        />
-                      </span>
-                    </div>
-                  </div>
-                  {group.description && (
-                    <p className="text-sm text-gray-600 mb-2">{group.description}</p>
-                  )}
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span>Min: {group.min_selection}</span>
-                    <span>Max: {group.max_selection}</span>
-                    {group.modifier_items && (
-                      <span>
-                        Items: {Array.isArray(group.modifier_items) 
-                          ? group.modifier_items.length 
-                          : Object.keys(group.modifier_items).length}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 ml-4">
-                  <button
-                    onClick={() => handleEditGroup(group)}
-                    className="rounded p-2 text-gray-400 hover:text-gray-600"
-                    title="Edit modifier group"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleDeleteGroup(group)}
-                    className="rounded p-2 text-gray-400 hover:text-red-600"
-                    title="Delete modifier group"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
+          {modifierGroups.map((group) => {
+            const itemCount = Array.isArray(group.modifier_items)
+              ? group.modifier_items.length
+              : group.modifier_items && typeof group.modifier_items === 'object'
+                ? Object.keys(group.modifier_items).length
+                : 0;
 
-              {/* Modifier Items Display */}
-              <div className="p-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">Modifier Items</h4>
-                {group.modifier_items ? (
-                  <div className="flex flex-wrap gap-2">
-                    {Array.isArray(group.modifier_items) 
-                      ? group.modifier_items.map((item: any, index: number) => (
-                          <span key={index} className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">
-                            {typeof item === 'string' ? item : item.name || `Item ${index + 1}`}
-                            {typeof item === 'object' && item.price && (
-                              <span className="ml-1 text-xs text-gray-500">+${item.price}</span>
-                            )}
-                          </span>
-                        ))
-                      : Object.entries(group.modifier_items).map(([key, value]) => (
-                          <span key={key} className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">
-                            {key}: {String(value)}
-                          </span>
-                        ))
-                    }
+            return (
+              <div key={group.modifier_group_id} className="rounded-lg border border-gray-200 bg-white shadow-sm">
+                {/* Group Header */}
+                <div className="flex items-start justify-between p-6 border-b border-gray-100">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <h3 className="text-lg font-semibold text-gray-900">{group.name}</h3>
+                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                        group.type === 'Upsell'
+                          ? 'bg-amber-100 text-amber-800'
+                          : group.type === 'Meal'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {group.type}
+                      </span>
+                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                        group.is_required ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {group.is_required ? 'Required' : 'Optional'}
+                      </span>
+                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                        group.is_multi_select ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {group.is_multi_select ? 'Multi Select' : 'Single Select'}
+                      </span>
+                    </div>
+                    {group.description && (
+                      <p className="text-sm text-gray-600 mb-3">{group.description}</p>
+                    )}
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <span>Min: {group.min_selection}</span>
+                      <span>Max: {group.max_selection}</span>
+                      <span>Items: {itemCount}</span>
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-500">No modifier items defined</p>
-                )}
+                  <div className="flex items-center gap-3 ml-4">
+                    <div className="flex flex-col items-end gap-2">
+                      <label className="flex items-center gap-2 text-xs font-medium text-gray-700">
+                        <span>Required</span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={group.is_required}
+                          onClick={() => toggleGroupRequired(group.modifier_group_id)}
+                          className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${
+                            group.is_required ? 'bg-purple-600' : 'bg-gray-300'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              group.is_required ? 'translate-x-5' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </label>
+                      <label className="flex items-center gap-2 text-xs font-medium text-gray-700">
+                        <span>Multi Select</span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={group.is_multi_select}
+                          onClick={() => toggleGroupMultiSelect(group.modifier_group_id)}
+                          className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${
+                            group.is_multi_select ? 'bg-purple-600' : 'bg-gray-300'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              group.is_multi_select ? 'translate-x-5' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </label>
+                    </div>
+                    <button
+                      onClick={() => handleEditGroup(group)}
+                      className="rounded p-2 text-gray-400 hover:text-gray-600"
+                      title="Edit modifier group"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteGroup(group)}
+                      className="rounded p-2 text-gray-400 hover:text-red-600"
+                      title="Delete modifier group"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Modifier Items Display */}
+                <div className="p-6">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h4 className="text-sm font-medium text-gray-900">
+                      Modifier Items ({itemCount})
+                    </h4>
+                    <button
+                      onClick={() => handleManageModifierItems(group)}
+                      className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                    >
+                      Manage Modifier Items {'\u2192'}
+                    </button>
+                  </div>
+                  {itemCount > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {Array.isArray(group.modifier_items)
+                        ? group.modifier_items.map((item: any, index: number) => (
+                            <span key={index} className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">
+                              {typeof item === 'string' ? item : item.name || `Item ${index + 1}`}
+                              {typeof item === 'object' && item.price && (
+                                <span className="ml-1 text-xs text-gray-500">+${item.price}</span>
+                              )}
+                            </span>
+                          ))
+                        : Object.entries(group.modifier_items).map(([key, value]) => (
+                            <span key={key} className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">
+                              {key}: {String(value)}
+                            </span>
+                          ))
+                      }
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No modifier items defined</p>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

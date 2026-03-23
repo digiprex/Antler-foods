@@ -53,6 +53,8 @@ interface MenuItemFormData {
   is_available: boolean;
   in_stock: boolean;
   modifiers?: any;
+  has_variants?: boolean;
+  parent_item_id?: string;
 }
 
 // Full menu item interface matching the database schema
@@ -93,13 +95,18 @@ export default function MenuItemFormModal({
     category_id: categoryId,
     is_available: true,
     in_stock: true,
-    modifiers: null
+    modifiers: null,
+    has_variants: false,
+    parent_item_id: undefined
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([]);
   const [loadingModifiers, setLoadingModifiers] = useState(false);
+  const [isModifierDropdownOpen, setIsModifierDropdownOpen] = useState(false);
+  const [availableItems, setAvailableItems] = useState<MenuItem[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
   const selectedModifierIds = normalizeModifierIds(formData.modifiers);
 
   // Fetch modifier groups
@@ -121,10 +128,37 @@ export default function MenuItemFormModal({
     }
   };
 
+  // Fetch available items for parent selection
+  const fetchAvailableItems = async () => {
+    try {
+      setLoadingItems(true);
+      const response = await fetch(`/api/items?category_id=${categoryId}`);
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Filter out the current item if we're in edit mode
+        const items = data.items || [];
+        const filteredItems = item && mode === 'edit'
+          ? items.filter((availableItem: MenuItem) => availableItem.item_id !== item.item_id)
+          : items;
+        setAvailableItems(filteredItems);
+      } else {
+        console.error('Failed to fetch items:', data.error);
+        setAvailableItems([]);
+      }
+    } catch (error) {
+      console.error('Error fetching items:', error);
+      setAvailableItems([]);
+    } finally {
+      setLoadingItems(false);
+    }
+  };
+
   // Load modifier groups when modal opens
   useEffect(() => {
     if (isOpen) {
       fetchModifierGroups();
+      fetchAvailableItems();
     }
   }, [isOpen]);
 
@@ -141,7 +175,9 @@ export default function MenuItemFormModal({
         category_id: item.category_id,
         is_available: item.is_available,
         in_stock: item.in_stock,
-        modifiers: normalizeModifierIds(item.modifiers)
+        modifiers: normalizeModifierIds(item.modifiers),
+        has_variants: item.has_variants || false,
+        parent_item_id: item.parent_item_id || undefined
       });
     } else {
       setFormData({
@@ -155,11 +191,23 @@ export default function MenuItemFormModal({
         category_id: categoryId,
         is_available: true,
         in_stock: true,
-        modifiers: null
+        modifiers: null,
+        has_variants: false,
+        parent_item_id: undefined
       });
     }
     setErrors({});
+    setIsModifierDropdownOpen(false);
   }, [item, mode, isOpen, categoryId]);
+
+  const toggleModifierSelection = (modifierGroupId: string) => {
+    const isSelected = selectedModifierIds.includes(modifierGroupId);
+    const nextValues = isSelected
+      ? selectedModifierIds.filter((id) => id !== modifierGroupId)
+      : [...selectedModifierIds, modifierGroupId];
+
+    handleInputChange('modifiers', nextValues.length > 0 ? nextValues : null);
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -218,10 +266,19 @@ export default function MenuItemFormModal({
   };
 
   const handleInputChange = (field: keyof MenuItemFormData, value: string | number | boolean | any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [field]: value
+      };
+      
+      // If has_variants is being disabled, clear the parent_item_id
+      if (field === 'has_variants' && !value) {
+        newData.parent_item_id = undefined;
+      }
+      
+      return newData;
+    });
     
     // Clear error when user starts typing
     if (errors[field as string]) {
@@ -573,7 +630,71 @@ export default function MenuItemFormModal({
                   </div>
                 </div>
               </div>
+
+              {/* Has Variants Toggle */}
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700">
+                  Has variants
+                  <p className="text-xs text-gray-500 font-normal">Item has different variations (size, color, etc.)</p>
+                </label>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={formData.has_variants || false}
+                    onChange={(e) => handleInputChange('has_variants', e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div
+                    className={`w-11 h-6 p-0.5 rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${
+                      formData.has_variants ? 'bg-purple-600' : 'bg-gray-300'
+                    }`}
+                    onClick={() => handleInputChange('has_variants', !formData.has_variants)}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ease-in-out ${
+                      formData.has_variants ? 'translate-x-5' : 'translate-x-0'
+                    }`}></div>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            {/* Parent Item Selection - Only show when has_variants is true */}
+            {formData.has_variants && (
+              <div>
+                <label htmlFor="parentItem" className="block text-sm font-medium text-gray-700 mb-1">
+                  Parent Item
+                </label>
+                
+                {loadingItems ? (
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
+                    <p className="text-sm text-gray-600">Loading available items...</p>
+                  </div>
+                ) : availableItems.length === 0 ? (
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">No other items available in this category to use as parent.</p>
+                  </div>
+                ) : (
+                  <select
+                    id="parentItem"
+                    value={formData.parent_item_id || ''}
+                    onChange={(e) => handleInputChange('parent_item_id', e.target.value || undefined)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="">Select a parent item...</option>
+                    {availableItems.map((availableItem) => (
+                      <option key={availableItem.item_id} value={availableItem.item_id}>
+                        {availableItem.name} - ${availableItem.delivery_price}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                
+                <p className="mt-1 text-xs text-gray-500">
+                  Select the parent item that this variant belongs to
+                </p>
+              </div>
+            )}
 
             {/* Modifiers */}
             <div>
@@ -591,21 +712,57 @@ export default function MenuItemFormModal({
                   <p className="text-sm text-gray-600">No modifier groups available. Create modifier groups first to assign them to items.</p>
                 </div>
               ) : (
-                <select
-                  multiple
-                  value={selectedModifierIds}
-                  onChange={(e) => {
-                    const values = Array.from(e.target.selectedOptions, (option) => option.value);
-                    handleInputChange('modifiers', values.length > 0 ? values : null);
-                  }}
-                  className="h-44 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
-                >
-                  {modifierGroups.map((group) => (
-                    <option key={group.modifier_group_id} value={group.modifier_group_id}>
-                      {group.name} ({group.type}) - Required: {group.is_required ? 'True' : 'False'} - Multi: {group.is_multi_select ? 'True' : 'False'} - Min {group.min_selection}, Max {group.max_selection}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsModifierDropdownOpen((prev) => !prev)}
+                    className="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                  >
+                    <span>
+                      {selectedModifierIds.length > 0
+                        ? `${selectedModifierIds.length} modifier group${selectedModifierIds.length > 1 ? 's' : ''} selected`
+                        : 'Select modifier groups'}
+                    </span>
+                    <svg
+                      className={`h-4 w-4 text-gray-500 transition-transform ${isModifierDropdownOpen ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {isModifierDropdownOpen && (
+                    <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                      <div className="space-y-1 p-2">
+                        {modifierGroups.map((group) => {
+                          const isChecked = selectedModifierIds.includes(group.modifier_group_id);
+                          return (
+                            <label
+                              key={group.modifier_group_id}
+                              className="flex cursor-pointer items-start gap-3 rounded-md p-2 hover:bg-gray-50"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleModifierSelection(group.modifier_group_id)}
+                                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-gray-900">{group.name}</p>
+                                <p className="text-xs text-gray-500">
+                                  {group.type} | Required: {group.is_required ? 'True' : 'False'} | Multi: {group.is_multi_select ? 'True' : 'False'} | Min {group.min_selection}, Max {group.max_selection}
+                                </p>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Selected Modifier Groups Display */}
@@ -626,7 +783,7 @@ export default function MenuItemFormModal({
               )}
               
               <p className="mt-1 text-xs text-gray-500">
-                Multi-select modifier groups from the table (Ctrl/Cmd + click for multiple).
+                Choose one or more modifier groups from the dropdown.
               </p>
             </div>
           </div>

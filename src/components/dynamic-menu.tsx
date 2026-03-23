@@ -11,6 +11,17 @@ import { useEffect, useState } from 'react';
 import Menu from '@/components/menu';
 import type { MenuConfig } from '@/types/menu.types';
 
+interface RestaurantInfo {
+  restaurant_id: string;
+  name: string;
+  favicon_url?: string;
+  logo?: string;
+  custom_domain?: string;
+  staging_domain?: string;
+  is_published?: boolean;
+  is_deleted?: boolean;
+}
+
 interface DynamicMenuProps {
   /**
    * Restaurant ID to fetch configuration for
@@ -40,6 +51,7 @@ export default function DynamicMenu({
   showLoading = true
 }: DynamicMenuProps) {
   const [config, setConfig] = useState<MenuConfig | null>(configData as MenuConfig || null);
+  const [restaurantInfo, setRestaurantInfo] = useState<RestaurantInfo | null>(null);
   const [loading, setLoading] = useState(!configData);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,7 +92,43 @@ export default function DynamicMenu({
         const data = await response.json();
 
         if (data.success && data.data) {
-          setConfig(data.data);
+          let menuConfig = data.data;
+          
+          // Fetch restaurant information to get real brand details
+          try {
+            const restaurantUrl = new URL('/api/restaurant-info', window.location.origin);
+            if (menuConfig.restaurant_id) {
+              restaurantUrl.searchParams.set('restaurant_id', menuConfig.restaurant_id);
+            } else {
+              // Use domain-based lookup
+              restaurantUrl.searchParams.set('domain', window.location.host);
+            }
+
+            console.log('[DynamicMenu] Fetching restaurant info from:', restaurantUrl.toString());
+            const restaurantResponse = await fetch(restaurantUrl.toString());
+            
+            if (restaurantResponse.ok) {
+              const restaurantData = await restaurantResponse.json();
+              if (restaurantData.success && restaurantData.data) {
+                setRestaurantInfo(restaurantData.data);
+                
+                // Update menu config with real restaurant name
+                if (restaurantData.data.name) {
+                  menuConfig = {
+                    ...menuConfig,
+                    title: restaurantData.data.name,
+                  };
+                  console.log('[DynamicMenu] Updated menu title with restaurant name:', restaurantData.data.name);
+                }
+              }
+            } else {
+              console.warn('[DynamicMenu] Failed to fetch restaurant info:', restaurantResponse.status);
+            }
+          } catch (restaurantError) {
+            console.error('[DynamicMenu] Error fetching restaurant info:', restaurantError);
+          }
+          
+          setConfig(menuConfig);
         } else {
           throw new Error(data.error || 'Failed to load menu configuration');
         }

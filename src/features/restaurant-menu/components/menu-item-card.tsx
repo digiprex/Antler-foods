@@ -1,4 +1,4 @@
-import { HeartIcon, PlusIcon } from '@/features/restaurant-menu/components/icons';
+import { PlusIcon } from '@/features/restaurant-menu/components/icons';
 import { formatPrice } from '@/features/restaurant-menu/lib/format-price';
 import type { MenuItem } from '@/features/restaurant-menu/types/restaurant-menu.types';
 
@@ -11,7 +11,7 @@ interface MenuItemCardProps {
 export function MenuItemCard({ item, onOpen, onQuickAdd }: MenuItemCardProps) {
   return (
     <article
-      className="group relative grid cursor-pointer gap-5 rounded-[28px] border border-black/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className="group relative grid cursor-pointer gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
       onClick={() => onOpen(item.id)}
       role="button"
       tabIndex={0}
@@ -22,35 +22,31 @@ export function MenuItemCard({ item, onOpen, onQuickAdd }: MenuItemCardProps) {
         }
       }}
     >
-      <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_148px] md:items-start">
-        <div className="space-y-3">
-          <div className="space-y-2">
-            <h3 className="text-xl font-semibold tracking-tight text-slate-950">
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_136px] md:items-start">
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <h3 className="text-lg font-semibold text-stone-900">
               {item.name}
             </h3>
-            <div className="flex items-center gap-3 text-sm text-slate-500">
-              <span className="font-semibold text-slate-900">{formatPrice(item.price)}</span>
-              <span className="inline-flex items-center gap-1">
-                <HeartIcon className="h-4 w-4" />
-                {item.likes}
-              </span>
+            <div className="flex items-center gap-3 text-sm">
+              <span className="font-semibold text-stone-900">{formatPrice(item.price)}</span>
             </div>
           </div>
-          <p className="text-sm leading-6 text-slate-600 md:text-[15px]">{item.description}</p>
+          <p className="text-sm text-stone-600">{item.description}</p>
         </div>
 
-        <div className="relative overflow-hidden rounded-[24px] border border-black/5 bg-[#f4f1ec]">
-          <img src={item.image} alt={item.name} className="h-36 w-full object-cover" />
+        <div className="relative overflow-hidden rounded-xl bg-stone-100">
+          <img src={item.image} alt={item.name} className="h-32 w-full object-cover transition duration-300 group-hover:scale-105" />
           <button
             type="button"
             onClick={(event) => {
               event.stopPropagation();
               onQuickAdd(item);
             }}
-            className="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-slate-900 shadow-md transition hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+            className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-white text-stone-900 shadow-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300"
             aria-label={`Add ${item.name}`}
           >
-            <PlusIcon className="h-5 w-5" />
+            <PlusIcon className="h-4 w-4" />
           </button>
         </div>
       </div>

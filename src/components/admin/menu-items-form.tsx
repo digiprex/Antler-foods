@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import MenuItemFormModal from './menu-item-form-modal';
 
 interface MenuItem {
@@ -48,6 +48,7 @@ interface MenuItemsFormProps {
 export default function MenuItemsForm({ 
   restaurantId,
   categoryId,
+  categoryName,
 }: MenuItemsFormProps) {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +59,8 @@ export default function MenuItemsForm({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [itemSearch, setItemSearch] = useState('');
+  const [itemStatusFilter, setItemStatusFilter] = useState<'all' | 'available' | 'out_of_stock'>('all');
 
   // Fetch items from API
   const fetchItems = useCallback(async () => {
@@ -116,6 +119,36 @@ export default function MenuItemsForm({
     
     return organizedItems;
   };
+
+  const organizedItems = useMemo(() => organizeItems(items), [items]);
+  const availableCount = useMemo(
+    () => organizedItems.filter((item) => item.is_available).length,
+    [organizedItems],
+  );
+  const outOfStockCount = useMemo(
+    () => organizedItems.filter((item) => !item.in_stock).length,
+    [organizedItems],
+  );
+  const filteredByStatus = useMemo(() => {
+    if (itemStatusFilter === 'available') {
+      return organizedItems.filter((item) => item.is_available);
+    }
+    if (itemStatusFilter === 'out_of_stock') {
+      return organizedItems.filter((item) => !item.in_stock);
+    }
+    return organizedItems;
+  }, [organizedItems, itemStatusFilter]);
+  const normalizedItemSearch = itemSearch.trim().toLowerCase();
+  const filteredOrganizedItems = useMemo(() => {
+    if (!normalizedItemSearch) return filteredByStatus;
+
+    return filteredByStatus.filter((item) => {
+      const variants = (item as any).variants as MenuItem[] | undefined;
+      const variantNames = variants?.map((variant) => `${variant.name} ${variant.description || ''}`).join(' ') || '';
+      const searchableText = `${item.name} ${item.description || ''} ${variantNames}`.toLowerCase();
+      return searchableText.includes(normalizedItemSearch);
+    });
+  }, [filteredByStatus, normalizedItemSearch]);
 
   // Load items on component mount
   useEffect(() => {
@@ -327,21 +360,90 @@ export default function MenuItemsForm({
 
   return (
     <div className="space-y-6">
-      {/* Header Actions */}
-      <div className="flex items-center justify-between">
-        {/* <div>
-          <h2 className="text-lg font-semibold text-gray-900">Menu Items</h2>
-          <p className="text-sm text-gray-600">Manage items in the "{categoryName}" category</p>
-        </div> */}
-        <button
-          onClick={handleCreateItem}
-          className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-purple-700"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+      {/* Header + Filters */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Menu Items</h2>
+            <p className="text-sm text-gray-600">Manage items in the "{categoryName}" category</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-medium">
+              <span className="rounded-full bg-purple-100 px-2.5 py-1 text-purple-800">Total: {organizedItems.length}</span>
+              <span className="rounded-full bg-green-100 px-2.5 py-1 text-green-800">Available: {availableCount}</span>
+              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-amber-800">Out of Stock: {outOfStockCount}</span>
+            </div>
+          </div>
+          <button
+            onClick={handleCreateItem}
+            className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-purple-700"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Item
+          </button>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setItemStatusFilter('all')}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              itemStatusFilter === 'all'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            onClick={() => setItemStatusFilter('available')}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              itemStatusFilter === 'available'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Available
+          </button>
+          <button
+            type="button"
+            onClick={() => setItemStatusFilter('out_of_stock')}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              itemStatusFilter === 'out_of_stock'
+                ? 'bg-amber-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Out of Stock
+          </button>
+        </div>
+      </div>
+
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+          <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0z" />
           </svg>
-          Add Item
-        </button>
+        </div>
+        <input
+          type="text"
+          value={itemSearch}
+          onChange={(event) => setItemSearch(event.target.value)}
+          placeholder="Search items..."
+          className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-10 text-sm text-gray-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+        />
+        {itemSearch && (
+          <button
+            type="button"
+            onClick={() => setItemSearch('')}
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+            aria-label="Clear item search"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Items List */}
@@ -364,12 +466,25 @@ export default function MenuItemsForm({
             Add Item
           </button>
         </div>
+      ) : filteredOrganizedItems.length === 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-sm text-gray-600">
+            No items match "<span className="font-medium text-gray-800">{itemSearch}</span>".
+          </p>
+          <button
+            type="button"
+            onClick={() => setItemSearch('')}
+            className="mt-3 text-sm font-medium text-purple-600 hover:text-purple-700"
+          >
+            Clear search
+          </button>
+        </div>
       ) : (
         <div className="space-y-4">
-          {organizeItems(items).map((item) => (
+          {filteredOrganizedItems.map((item) => (
             <div key={item.item_id} className="space-y-2">
               {/* Parent Item */}
-              <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+              <div className="rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
                 <div className="flex gap-6 p-6">
                   {/* Item Image */}
                   <div className="flex-shrink-0">
@@ -528,7 +643,7 @@ export default function MenuItemsForm({
 
               {/* Variants - Show indented under parent */}
               {(item as any).variants && (item as any).variants.length > 0 && (
-                <div className="ml-8 space-y-2">
+                <div className="ml-8 space-y-2 border-l-2 border-gray-200 pl-4">
                   {(item as any).variants.map((variant: MenuItem) => (
                     <div key={variant.item_id} className="rounded-lg border border-gray-200 bg-gray-50 shadow-sm">
                       <div className="flex gap-4 p-4">
@@ -554,7 +669,7 @@ export default function MenuItemsForm({
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="text-sm text-gray-500">↳</span>
+                                {/* <span className="text-sm text-gray-500">{'->'}</span> */}
                                 <h4 className="text-md font-medium text-gray-900">{variant.name}</h4>
                                 <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-700">
                                   Variant

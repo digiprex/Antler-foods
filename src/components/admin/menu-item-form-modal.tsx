@@ -634,8 +634,8 @@ export default function MenuItemFormModal({
               {/* Has Variants Toggle */}
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-gray-700">
-                  Has variants
-                  <p className="text-xs text-gray-500 font-normal">Item has different variations (size, color, etc.)</p>
+                  Is variant
+                  <p className="text-xs text-gray-500 font-normal">Item is part of different variations (size, color, etc.)</p>
                 </label>
                 <div className="relative">
                   <input

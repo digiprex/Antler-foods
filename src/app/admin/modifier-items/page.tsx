@@ -32,9 +32,15 @@ function ModifierItemsContent() {
   const searchParams = useSearchParams();
   const modifierGroupId = searchParams?.get('modifier_group_id') || null;
   const modifierGroupName = searchParams?.get('modifier_group_name') || null;
+  const restaurantId = searchParams?.get('restaurant_id') || null;
+  const restaurantName = searchParams?.get('restaurant_name') || null;
 
   const handleBack = () => {
-    router.push('/admin/modifier-groups');
+    const params = new URLSearchParams();
+    if (restaurantId) params.set('restaurant_id', restaurantId);
+    if (restaurantName) params.set('restaurant_name', restaurantName);
+    const query = params.toString();
+    router.push(query ? `/admin/modifier-groups?${query}` : '/admin/modifier-groups');
   };
 
   return (
@@ -99,4 +105,3 @@ export default function ModifierItemsPage() {
     </Suspense>
   );
 }
-

@@ -33,7 +33,7 @@ export function MenuSection({
         ) : null}
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-4 md:grid-cols-2">
         {category.items.map((item) => (
           <MenuItemCard
             key={item.id}

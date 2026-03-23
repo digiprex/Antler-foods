@@ -1,4 +1,4 @@
-import { HeartIcon, PlusIcon } from '@/features/restaurant-menu/components/icons';
+import { PlusIcon } from '@/features/restaurant-menu/components/icons';
 import { formatPrice } from '@/features/restaurant-menu/lib/format-price';
 import type { MenuItem } from '@/features/restaurant-menu/types/restaurant-menu.types';
 
@@ -30,10 +30,6 @@ export function MenuItemCard({ item, onOpen, onQuickAdd }: MenuItemCardProps) {
             </h3>
             <div className="flex items-center gap-3 text-sm">
               <span className="font-semibold text-stone-900">{formatPrice(item.price)}</span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600">
-                <HeartIcon className="h-3 w-3" />
-                {item.likes}
-              </span>
             </div>
           </div>
           <p className="text-sm text-stone-600">{item.description}</p>

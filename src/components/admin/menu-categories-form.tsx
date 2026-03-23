@@ -78,6 +78,15 @@ export default function MenuCategoriesForm({
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const sortCategories = useCallback((input: Category[]) => {
+    return [...input].sort((a, b) => {
+      const orderA = Number(a.order_index ?? 0);
+      const orderB = Number(b.order_index ?? 0);
+      if (orderA !== orderB) return orderA - orderB;
+      return a.name.localeCompare(b.name);
+    });
+  }, []);
+
   // Fetch categories + item previews in one request to avoid N+1 fetches.
   const fetchCategories = useCallback(async () => {
     try {
@@ -97,7 +106,7 @@ export default function MenuCategoriesForm({
 
       // Handle successful response with empty categories array
       const categoriesArray = data.categories || [];
-      setCategories(categoriesArray);
+      setCategories(sortCategories(categoriesArray));
       
       // Log for debugging
       console.log('Categories fetched successfully:', categoriesArray.length, 'categories found');
@@ -108,7 +117,7 @@ export default function MenuCategoriesForm({
     } finally {
       setLoading(false);
     }
-  }, [menuId]);
+  }, [menuId, sortCategories]);
 
   // Load categories on component mount
   useEffect(() => {
@@ -177,8 +186,32 @@ export default function MenuCategoriesForm({
   };
 
   const handleSaveCategory = async (payload: Pick<Category, 'name' | 'description' | 'order_index' | 'type' | 'is_active'>) => {
+    let optimisticCategoryId: string | null = null;
     try {
       if (showCreateCategory) {
+        const temporaryCategoryId = `temp-${Date.now()}`;
+        optimisticCategoryId = temporaryCategoryId;
+        const optimisticCategory: Category = {
+          category_id: temporaryCategoryId,
+          name: payload.name,
+          description: payload.description,
+          order_index: payload.order_index || 0,
+          menu_id: menuId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_deleted: false,
+          type: payload.type,
+          is_active: payload.is_active,
+          items: [],
+          items_count: 0,
+        };
+
+        // Optimistic insert so UI updates instantly.
+        setCategories((prevCategories) =>
+          sortCategories([...prevCategories, optimisticCategory]),
+        );
+        setShowCreateCategory(false);
+
         // Create new category
         const response = await fetch('/api/categories', {
           method: 'POST',
@@ -201,10 +234,15 @@ export default function MenuCategoriesForm({
           throw new Error(data.error || 'Failed to create category');
         }
         
-        // Add to local state with empty items array
+        // Replace optimistic category with server response.
         const newCategory = { ...data.category, items: [], items_count: 0 };
-        setCategories((prevCategories) => [...prevCategories, newCategory]);
-        setShowCreateCategory(false);
+        setCategories((prevCategories) =>
+          sortCategories(
+            prevCategories.map((category) =>
+              category.category_id === temporaryCategoryId ? newCategory : category,
+            ),
+          ),
+        );
       } else if (showEditCategory && selectedCategory) {
         // Update existing category
         const response = await fetch('/api/categories', {
@@ -230,14 +268,16 @@ export default function MenuCategoriesForm({
         
         // Update local state, preserving existing item preview/count.
         setCategories((prevCategories) =>
-          prevCategories.map((category) =>
-            category.category_id === selectedCategory.category_id
-              ? {
-                  ...data.category,
-                  items: category.items,
-                  items_count: category.items_count ?? category.items?.length ?? 0,
-                }
-              : category,
+          sortCategories(
+            prevCategories.map((category) =>
+              category.category_id === selectedCategory.category_id
+                ? {
+                    ...data.category,
+                    items: category.items,
+                    items_count: category.items_count ?? category.items?.length ?? 0,
+                  }
+                : category,
+            ),
           ),
         );
         setShowEditCategory(false);
@@ -245,6 +285,13 @@ export default function MenuCategoriesForm({
       }
     } catch (err) {
       console.error('Save category error:', err);
+      // Roll back optimistic category on create failure.
+      if (optimisticCategoryId) {
+        setCategories((prevCategories) =>
+          prevCategories.filter((category) => category.category_id !== optimisticCategoryId),
+        );
+        setShowCreateCategory(true);
+      }
       // You could add a toast notification or error state here instead of alert
       // For now, keeping it simple but this could be improved with proper error handling
       const errorMessage = err instanceof Error ? err.message : 'Failed to save category';

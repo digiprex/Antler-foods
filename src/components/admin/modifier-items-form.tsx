@@ -35,22 +35,27 @@ interface ModifierItemsFormProps {
 
 function normalizeModifierItems(modifierItems: any): ModifierItem[] {
   if (Array.isArray(modifierItems)) {
-    return modifierItems
-      .map((item) => {
-        if (typeof item === 'string') {
-          return { name: item, price: 0 };
-        }
+    const normalized: ModifierItem[] = [];
 
-        if (item && typeof item === 'object') {
-          return {
-            name: String(item.name ?? '').trim(),
-            price: Number(item.price ?? 0),
-          };
-        }
+    for (const item of modifierItems) {
+      if (typeof item === 'string') {
+        const name = item.trim();
+        if (name) normalized.push({ name, price: 0 });
+        continue;
+      }
 
-        return null;
-      })
-      .filter((item): item is ModifierItem => Boolean(item?.name));
+      if (item && typeof item === 'object') {
+        const name = String(item.name ?? '').trim();
+        if (!name) continue;
+
+        normalized.push({
+          name,
+          price: Number(item.price ?? 0),
+        });
+      }
+    }
+
+    return normalized;
   }
 
   if (modifierItems && typeof modifierItems === 'object') {

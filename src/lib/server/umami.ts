@@ -111,17 +111,17 @@ function getAuthHeaders(config: UmamiApiConfig) {
     return null;
   }
 
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
   if (config.isCloudApi) {
-    return {
-      'x-umami-api-key': apiKey,
-      'Content-Type': 'application/json',
-    } as const;
+    headers['x-umami-api-key'] = apiKey;
+    return headers;
   }
 
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    'Content-Type': 'application/json',
-  } as const;
+  headers.Authorization = `Bearer ${apiKey}`;
+  return headers;
 }
 
 function websitesPath(config: UmamiApiConfig) {

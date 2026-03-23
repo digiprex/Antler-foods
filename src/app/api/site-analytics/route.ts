@@ -3,7 +3,7 @@ import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import {
   ensureUmamiWebsiteForDomain,
   getUmamiAnalyticsForWebsite,
-  getUmamiWebsiteIdForDomain,
+  getUmamiWebsiteMatchForDomains,
 } from '@/lib/server/umami';
 
 interface RestaurantByIdResponse {
@@ -68,19 +68,9 @@ async function getAnalyticsPayload(restaurantId: string, periodDays: number) {
     };
   }
 
-  let resolvedWebsiteId: string | null = null;
-  let resolvedDomain: string | null = null;
+  const websiteMatch = await getUmamiWebsiteMatchForDomains(candidateDomains);
 
-  for (const domain of candidateDomains) {
-    const websiteId = await getUmamiWebsiteIdForDomain(domain);
-    if (websiteId) {
-      resolvedWebsiteId = websiteId;
-      resolvedDomain = domain;
-      break;
-    }
-  }
-
-  if (!resolvedWebsiteId || !resolvedDomain) {
+  if (!websiteMatch) {
     return {
       success: true,
       configured: false,
@@ -91,8 +81,8 @@ async function getAnalyticsPayload(restaurantId: string, periodDays: number) {
   }
 
   const analytics = await getUmamiAnalyticsForWebsite(
-    resolvedWebsiteId,
-    resolvedDomain,
+    websiteMatch.websiteId,
+    websiteMatch.domain,
     periodDays,
   );
 
@@ -103,8 +93,8 @@ async function getAnalyticsPayload(restaurantId: string, periodDays: number) {
       id: restaurant.restaurant_id,
       name: restaurant.name,
     },
-    domain: resolvedDomain,
-    website_id: resolvedWebsiteId,
+    domain: websiteMatch.domain,
+    website_id: websiteMatch.websiteId,
     analytics,
   };
 }
@@ -186,8 +176,6 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    const analytics = await getUmamiAnalyticsForWebsite(websiteId, targetDomain, periodDays);
-
     return NextResponse.json({
       success: true,
       configured: true,
@@ -198,7 +186,7 @@ export async function POST(request: NextRequest) {
       },
       domain: targetDomain,
       website_id: websiteId,
-      analytics,
+      analytics: null,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to initialize site analytics';
@@ -219,4 +207,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface SiteAnalyticsFormProps {
   restaurantId: string;
@@ -77,10 +77,12 @@ export default function SiteAnalyticsForm({
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AnalyticsPayload | null>(null);
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(
+    async (withLoader: boolean = true) => {
       try {
-        setLoading(true);
+        if (withLoader) {
+          setLoading(true);
+        }
         setError(null);
 
         const response = await fetch(
@@ -96,12 +98,17 @@ export default function SiteAnalyticsForm({
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch analytics');
       } finally {
-        setLoading(false);
+        if (withLoader) {
+          setLoading(false);
+        }
       }
-    };
+    },
+    [periodDays, restaurantId],
+  );
 
-    fetchAnalytics();
-  }, [restaurantId, periodDays]);
+  useEffect(() => {
+    fetchAnalytics(true);
+  }, [fetchAnalytics]);
 
   const handleCreateAndConnect = async () => {
     try {
@@ -125,6 +132,8 @@ export default function SiteAnalyticsForm({
       }
 
       setData(payload);
+      // Refresh analytics in background after site creation so creation itself returns fast.
+      void fetchAnalytics(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create analytics site');
     } finally {

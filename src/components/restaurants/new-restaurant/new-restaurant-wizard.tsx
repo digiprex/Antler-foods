@@ -692,21 +692,8 @@ export function NewRestaurantWizard() {
     // await ensureDefaultSystemPagesForRestaurant(primaryRestaurantId);
 
     if (values.googlePlaceId.trim()) {
-      setSaveProgressMessage('Syncing Google timings...');
-      await syncGoogleOpeningHoursForRestaurant(primaryRestaurantId);
-
-      setSaveProgressMessage('Importing Google photos/videos...');
-      try {
-        await importAllGoogleMediaForRestaurant(primaryRestaurantId);
-      } catch (caughtError) {
-        debugLog('google-media:sync-failed', {
-          restaurantId: primaryRestaurantId,
-          reason:
-            caughtError instanceof Error
-              ? caughtError.message
-              : 'Unknown error',
-        });
-      }
+      setSaveProgressMessage('Starting Google sync...');
+      void runPostCreationGoogleSync(primaryRestaurantId);
     }
 
     setSaveProgressMessage('Finalizing setup...');
@@ -1460,6 +1447,33 @@ async function syncGoogleOpeningHoursForRestaurant(restaurantId: string) {
             : null)) ||
       'Failed to sync opening hours from Google.';
     throw new Error(message);
+  }
+}
+
+async function runPostCreationGoogleSync(restaurantId: string) {
+  const [openingHoursResult, mediaResult] = await Promise.allSettled([
+    syncGoogleOpeningHoursForRestaurant(restaurantId),
+    importAllGoogleMediaForRestaurant(restaurantId),
+  ]);
+
+  if (openingHoursResult.status === 'rejected') {
+    debugLog('google-opening-hours:sync-failed', {
+      restaurantId,
+      reason:
+        openingHoursResult.reason instanceof Error
+          ? openingHoursResult.reason.message
+          : 'Unknown error',
+    });
+  }
+
+  if (mediaResult.status === 'rejected') {
+    debugLog('google-media:sync-failed', {
+      restaurantId,
+      reason:
+        mediaResult.reason instanceof Error
+          ? mediaResult.reason.message
+          : 'Unknown error',
+    });
   }
 }
 

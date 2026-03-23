@@ -301,6 +301,40 @@ export async function getUmamiWebsiteIdForDomain(domain: string) {
   }
 }
 
+export async function getUmamiWebsiteMatchForDomains(domains: string[]) {
+  try {
+    const normalizedCandidates = domains
+      .map((domain) => ({
+        original: domain,
+        normalized: normalizeDomain(domain),
+      }))
+      .filter((entry) => Boolean(entry.normalized));
+
+    if (normalizedCandidates.length === 0) {
+      return null;
+    }
+
+    const websites = await fetchUmamiWebsites();
+
+    for (const candidate of normalizedCandidates) {
+      const found = findWebsiteByDomain(websites, candidate.normalized);
+      const websiteId = websiteIdFromWebsite(found);
+
+      if (websiteId) {
+        return {
+          domain: candidate.original,
+          websiteId,
+        };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('[Umami] Failed to resolve website for candidate domains:', domains, error);
+    return null;
+  }
+}
+
 export async function ensureUmamiWebsiteForDomain(domain: string, name: string) {
   const config = getUmamiConfig();
   const normalizedDomain = normalizeDomain(domain);

@@ -4,7 +4,6 @@ import { useRef } from 'react';
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
-  HeartIcon,
   PlusIcon,
 } from '@/features/restaurant-menu/components/icons';
 import { formatPrice } from '@/features/restaurant-menu/lib/format-price';
@@ -36,7 +35,7 @@ export function PopularItemsCarousel({
         <h2 className="text-2xl font-bold tracking-tight text-stone-900">
           Popular
         </h2>
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => scrollRail('left')}
@@ -56,11 +55,14 @@ export function PopularItemsCarousel({
         </div>
       </div>
 
-      <div ref={railRef} className="flex gap-4 overflow-x-auto pb-2">
+      <div
+        ref={railRef}
+        className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      >
         {items.map((item) => (
           <article
             key={item.id}
-            className="group w-[250px] shrink-0 cursor-pointer rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            className="group w-[250px] shrink-0 snap-start cursor-pointer rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             onClick={() => onOpenItem(item.id)}
             role="button"
             tabIndex={0}
@@ -96,10 +98,6 @@ export function PopularItemsCarousel({
               </h3>
               <div className="flex items-center justify-between text-sm">
                 <span className="font-semibold text-stone-900">{formatPrice(item.price)}</span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600">
-                  <HeartIcon className="h-3 w-3" />
-                  {item.likes}
-                </span>
               </div>
             </div>
           </article>

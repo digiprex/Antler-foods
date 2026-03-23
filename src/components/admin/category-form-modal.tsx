@@ -24,7 +24,7 @@ interface Category {
 interface CategoryFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (category: Pick<Category, 'name' | 'description' | 'order_index' | 'type' | 'is_active'>) => void;
+  onSave: (category: Pick<Category, 'name' | 'description' | 'order_index' | 'type' | 'is_active'>) => void | Promise<void>;
   category?: Category | null;
   mode: 'create' | 'edit';
   menuId: string;
@@ -104,10 +104,7 @@ export default function CategoryFormModal({
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      onSave({
+      await onSave({
         ...formData,
         name: formData.name.trim(),
         description: formData.description?.trim() || undefined

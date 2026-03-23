@@ -14,7 +14,7 @@ export function SidebarNavigation({
   onSearchQueryChange,
 }: SidebarNavigationProps) {
   return (
-    <aside className="sticky top-[calc(var(--navbar-height,0px)+var(--announcement-bar-height,0px))] h-[calc(100vh-var(--navbar-height,0px)-var(--announcement-bar-height,0px))] w-72 overflow-y-auto border-r border-stone-200 bg-gradient-to-b from-stone-50 to-white">
+    <aside className="sticky top-[calc(var(--navbar-height,0px)+var(--announcement-bar-height,0px))] h-[calc(100vh-var(--navbar-height,0px)-var(--announcement-bar-height,0px))] w-72 overflow-y-auto border-r border-stone-200 bg-gradient-to-b from-stone-50 to-white [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
       <div className="space-y-3 px-5 pt-6">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
           Browse Menu

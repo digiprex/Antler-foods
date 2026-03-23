@@ -42,6 +42,30 @@ const GET_CATEGORIES_QUERY = `
 `;
 
 /**
+ * GraphQL query to resolve the active menu for a restaurant.
+ */
+const GET_ACTIVE_MENU_QUERY = `
+  query GetActiveMenuByRestaurant($restaurant_id: uuid!) {
+    menu(
+      where: {
+        restaurant_id: {_eq: $restaurant_id}
+        is_deleted: {_eq: false}
+        is_active: {_eq: true}
+      }
+      order_by: [{updated_at: desc}, {created_at: desc}]
+      limit: 1
+    ) {
+      menu_id
+      name
+      is_active
+      restaurant_id
+      updated_at
+      created_at
+    }
+  }
+`;
+
+/**
  * GraphQL query to fetch all non-deleted items for a set of categories.
  * We merge these into categories server-side so the client avoids N+1 requests.
  */
@@ -149,21 +173,41 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const menuId = searchParams.get('menu_id');
+    const restaurantId = searchParams.get('restaurant_id');
     const includeItems = searchParams.get('include_items') === 'true';
     const itemPreviewLimitRaw = Number(searchParams.get('item_preview_limit') || '3');
     const itemPreviewLimit = Number.isFinite(itemPreviewLimitRaw) && itemPreviewLimitRaw > 0
       ? Math.min(itemPreviewLimitRaw, 20)
       : 3;
 
-    if (!menuId) {
+    if (!menuId && !restaurantId) {
       return NextResponse.json(
-        { error: 'menu_id is required' },
+        { error: 'menu_id or restaurant_id is required' },
         { status: 400 }
       );
     }
 
+    let resolvedMenuId = menuId;
+
+    // If menu_id is not provided, resolve using active menu for restaurant_id.
+    if (!resolvedMenuId && restaurantId) {
+      const menuData = await adminGraphqlRequest(GET_ACTIVE_MENU_QUERY, {
+        restaurant_id: restaurantId,
+      });
+      const activeMenu = (menuData as any).menu?.[0];
+
+      if (!activeMenu?.menu_id) {
+        return NextResponse.json(
+          { error: 'No active menu found for this restaurant' },
+          { status: 404 }
+        );
+      }
+
+      resolvedMenuId = activeMenu.menu_id;
+    }
+
     const data = await adminGraphqlRequest(GET_CATEGORIES_QUERY, {
-      menu_id: menuId,
+      menu_id: resolvedMenuId,
     });
 
     const baseCategories = (data as any).categories || [];
@@ -195,6 +239,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      menu_id: resolvedMenuId,
       categories,
     });
   } catch (error) {

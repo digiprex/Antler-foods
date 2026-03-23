@@ -157,7 +157,10 @@ function MenuPageContent({ data }: MenuPageProps) {
           </div>
 
           <div className={`${contentContainerClass} space-y-6 py-4 sm:py-6`}>
-            <RewardsBanner rewards={data.rewards} />
+            <RewardsBanner
+              rewards={data.rewards}
+              brandName={data.restaurant.name.replace(' Menu', '')}
+            />
 
             <PopularItemsCarousel
               items={popularItems}

@@ -179,7 +179,6 @@ export function MenuAuthSidebar({
           ) : view === 'signup' ? (
             <MenuSignupForm
               restaurantId={restaurantId}
-              onAuthenticatedUser={handleAuthenticatedCustomer}
               onRequestLogin={() => onViewChange('login')}
             />
           ) : view === 'forgot-password' ? (
@@ -201,4 +200,5 @@ export function MenuAuthSidebar({
     </div>
   );
 }
+
 

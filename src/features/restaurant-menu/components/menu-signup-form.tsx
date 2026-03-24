@@ -1,42 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { signupSchema, type SignupFormValues } from '@/lib/validation/auth';
 import {
   buildCustomerAuthHref,
-  CUSTOMER_DEFAULT_AUTH_REDIRECT,
   CUSTOMER_LOGIN_ROUTE,
   resolveCustomerNextPath,
 } from '@/features/restaurant-menu/lib/customer-auth';
 import { MenuAuthInput } from '@/features/restaurant-menu/components/menu-auth-input';
-import type { MenuCustomerProfile } from '@/features/restaurant-menu/lib/customer-profile';
 
 interface MenuSignupFormProps {
   restaurantId?: string | null;
-  onAuthenticatedUser?: (customer: MenuCustomerProfile) => void;
   onRequestLogin?: () => void;
 }
 
+const SIGNUP_SUCCESS_REDIRECT_DELAY_MS = 1500;
+
 export function MenuSignupForm({
   restaurantId,
-  onAuthenticatedUser,
   onRequestLogin,
 }: MenuSignupFormProps) {
   const router = useRouter();
-  const pathname = usePathname() ?? '';
   const searchParams = useSearchParams() ?? new URLSearchParams();
   const nextPath = resolveCustomerNextPath(searchParams.get('next'));
   const resolvedRestaurantId = restaurantId || searchParams.get('restaurantId');
+  const redirectTimeoutRef = useRef<number | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        window.clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -50,12 +59,23 @@ export function MenuSignupForm({
     },
   });
 
+  const loginHref = buildCustomerAuthHref(
+    CUSTOMER_LOGIN_ROUTE,
+    nextPath,
+    resolvedRestaurantId,
+  );
+
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
+    setSuccessMessage(null);
 
     if (!resolvedRestaurantId) {
       setFormError('Restaurant context is missing. Return to the menu and try again.');
       return;
+    }
+
+    if (redirectTimeoutRef.current) {
+      window.clearTimeout(redirectTimeoutRef.current);
     }
 
     setIsSubmitting(true);
@@ -78,33 +98,32 @@ export function MenuSignupForm({
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | { error?: string; customer?: MenuCustomerProfile }
+        | { error?: string; message?: string }
         | null;
 
-      if (!response.ok || !payload?.customer) {
+      if (!response.ok || !payload?.message) {
         setFormError(payload?.error ?? 'Unable to create account.');
         return;
       }
 
-      if (onAuthenticatedUser) {
-        onAuthenticatedUser(payload.customer);
-        return;
-      }
+      const confirmationText = payload.message;
+      reset();
+      setSuccessMessage(`${confirmationText} Redirecting you to sign in...`);
+      toast.success('Account created successfully. Please sign in.');
 
-      const destination =
-        nextPath === pathname ? CUSTOMER_DEFAULT_AUTH_REDIRECT : nextPath;
-      router.replace(destination);
-      router.refresh();
+      redirectTimeoutRef.current = window.setTimeout(() => {
+        if (onRequestLogin) {
+          onRequestLogin();
+          return;
+        }
+
+        router.replace(loginHref);
+        router.refresh();
+      }, SIGNUP_SUCCESS_REDIRECT_DELAY_MS);
     } finally {
       setIsSubmitting(false);
     }
   });
-
-  const loginHref = buildCustomerAuthHref(
-    CUSTOMER_LOGIN_ROUTE,
-    nextPath,
-    resolvedRestaurantId,
-  );
 
   return (
     <div className="space-y-5">
@@ -174,12 +193,22 @@ export function MenuSignupForm({
           </div>
         ) : null}
 
+        {successMessage ? (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 text-sm text-emerald-900 shadow-sm">
+            {successMessage}
+          </div>
+        ) : null}
+
         <button
           type="submit"
           className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-stone-900 px-5 text-sm font-semibold text-stone-50 shadow-[0_18px_34px_rgba(28,25,23,0.18)] transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/20 disabled:cursor-not-allowed disabled:bg-stone-300"
-          disabled={isSubmitting}
+          disabled={isSubmitting || Boolean(successMessage)}
         >
-          {isSubmitting ? 'Creating account...' : 'Create Account'}
+          {isSubmitting
+            ? 'Creating account...'
+            : successMessage
+              ? 'Account created'
+              : 'Create Account'}
         </button>
       </form>
 

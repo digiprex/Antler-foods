@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  attachMenuCustomerSession,
   MenuCustomerAuthError,
   signUpMenuCustomer,
 } from '@/features/restaurant-menu/lib/server/customer-auth';
@@ -18,7 +17,7 @@ export async function POST(request: NextRequest) {
         }
       | null;
 
-    const customer = await signUpMenuCustomer({
+    await signUpMenuCustomer({
       restaurantId: body?.restaurantId || '',
       email: body?.email || '',
       firstName: body?.firstName || '',
@@ -27,9 +26,10 @@ export async function POST(request: NextRequest) {
       password: body?.password || '',
     });
 
-    const response = NextResponse.json({ success: true, customer });
-    attachMenuCustomerSession(response, customer);
-    return response;
+    return NextResponse.json({
+      success: true,
+      message: 'Account created successfully. Please sign in to continue.',
+    });
   } catch (error) {
     if (error instanceof MenuCustomerAuthError) {
       return NextResponse.json({ success: false, error: error.message }, { status: error.status });

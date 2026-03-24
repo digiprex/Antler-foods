@@ -165,7 +165,7 @@ export default function FAQSettingsForm({
   restaurantId,
 }: FAQFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const domainParamRaw =
     searchParams?.get('domain') ||
     searchParams?.get('staging_domain') ||

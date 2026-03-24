@@ -82,7 +82,7 @@ function CustomCodePreview({ htmlCode, cssCode, jsCode }: { htmlCode: string; cs
 }
 
 export default function CustomCodeSettingsForm() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
   const restaurantNameFromQuery = searchParams.get('restaurant_name')?.trim() ?? '';
   const pageIdFromQuery = searchParams.get('page_id')?.trim() ?? '';

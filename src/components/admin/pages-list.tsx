@@ -574,7 +574,7 @@ export function PagesList({ restaurantId }: PagesListProps) {
 }
 
 export default function PagesListPage() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
 
   return (

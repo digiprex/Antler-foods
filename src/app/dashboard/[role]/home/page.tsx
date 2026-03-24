@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 export default function DashboardHomePage() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const roleSegment = pathname.split('/')[2] || 'admin';
 
   return (

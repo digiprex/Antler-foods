@@ -46,7 +46,7 @@ import styles from '@/components/admin/gallery-settings-form.module.css';
 
 function MenuSettingsContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantId = searchParams?.get('restaurant_id') || null;
   const restaurantName = searchParams?.get('restaurant_name') || null;
   const pageId = searchParams?.get('page_id') || null;

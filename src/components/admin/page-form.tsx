@@ -534,7 +534,7 @@ export function PageForm({ pageId, onSuccess, onCancel, restaurantId }: PageForm
 
 export default function PageFormPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const pageId = searchParams.get('page_id');
   const restaurantId = searchParams.get('restaurant_id');
 

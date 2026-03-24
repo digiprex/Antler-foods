@@ -1349,7 +1349,7 @@ const renderHeroLayoutCardPreview = (layoutType: string) => {
 
 export default function HeroSettingsForm({ pageId, templateId, isNewSection }: HeroSettingsFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantId = searchParams?.get('restaurant_id') || '';
   const restaurantName = searchParams?.get('restaurant_name') || '';
   const globalStyleEndpoint = restaurantId

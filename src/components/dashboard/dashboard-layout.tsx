@@ -102,8 +102,8 @@ function isRestaurantScopedPath(pathname: string) {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const pathname = usePathname() ?? '';
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const user = useUserData();
   const hasuraClaims = useHasuraClaims();
   const roleFromClaims = getRoleFromHasuraClaims(hasuraClaims);

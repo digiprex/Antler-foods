@@ -41,7 +41,7 @@ function PreviewLayout({ children }: { children: React.ReactNode }) {
 }
 
 function FormPreviewContent() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const formId = searchParams.get('form_id');
   const restaurantId = searchParams.get('restaurant_id');
 

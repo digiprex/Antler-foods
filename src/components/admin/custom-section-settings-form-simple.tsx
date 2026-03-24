@@ -610,7 +610,7 @@ export default function CustomSectionSettingsForm({
   isNewSection = false,
 }: CustomSectionSettingsFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantId = searchParams?.get('restaurant_id') ?? '';
   const restaurantName = searchParams?.get('restaurant_name') ?? '';
   const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);

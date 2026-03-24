@@ -114,7 +114,7 @@ const FORM_TEMPLATES = [
 ];
 
 function FormBuilderContent() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const router = useRouter();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');

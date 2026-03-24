@@ -222,7 +222,7 @@ export default function YouTubeSettingsForm({
   pageId,
   restaurantId,
 }: YouTubeFormProps) {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantIdFromQuery = searchParams?.get("restaurant_id")?.trim() ?? "";
   const finalRestaurantId = restaurantIdFromQuery || restaurantId || "";
   const sectionStyleDefaults = useSectionStyleDefaults(finalRestaurantId);

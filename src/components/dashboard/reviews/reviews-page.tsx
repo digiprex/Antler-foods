@@ -62,7 +62,7 @@ type ReviewApiDeleteResponse = {
 };
 
 function useRestaurantScope(): RestaurantScope | null {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantId = searchParams.get('restaurant_id')?.trim() ?? '';
   const restaurantName = searchParams.get('restaurant_name')?.trim() ?? '';
 

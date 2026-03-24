@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import ScrollingText from './scrolling-text';
 
 export default function ConditionalScrollingText() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const [domain, setDomain] = useState<string>('');
 
   // Get current domain on client side

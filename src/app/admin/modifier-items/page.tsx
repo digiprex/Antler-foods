@@ -29,7 +29,7 @@ const ModifierItemsForm = dynamic(
 
 function ModifierItemsContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const modifierGroupId = searchParams?.get('modifier_group_id') || null;
   const modifierGroupName = searchParams?.get('modifier_group_name') || null;
   const restaurantId = searchParams?.get('restaurant_id') || null;

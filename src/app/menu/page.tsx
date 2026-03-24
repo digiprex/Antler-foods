@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { RestaurantMenuPage } from '@/features/restaurant-menu';
@@ -7,6 +8,8 @@ import {
   loadRestaurantMenuPageData,
 } from '@/features/restaurant-menu/lib/server/menu-data';
 
+export const dynamic = 'force-dynamic';
+
 function getRequestDomain() {
   const requestHeaders = headers();
   return (
@@ -14,6 +17,10 @@ function getRequestDomain() {
     requestHeaders.get('host') ||
     'localhost:1000'
   );
+}
+
+function MenuPageFallback() {
+  return <div className="min-h-screen bg-stone-50" />;
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -35,9 +42,17 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function MenuPageRoute() {
   try {
     const data = await loadRestaurantMenuPageData(getRequestDomain());
-    return <RestaurantMenuPage data={data} />;
+    return (
+      <Suspense fallback={<MenuPageFallback />}>
+        <RestaurantMenuPage data={data} />
+      </Suspense>
+    );
   } catch (error) {
     console.error('[Menu Page] Error building menu data:', error);
-    return <RestaurantMenuPage data={getEmptyRestaurantMenuData()} />;
+    return (
+      <Suspense fallback={<MenuPageFallback />}>
+        <RestaurantMenuPage data={getEmptyRestaurantMenuData()} />
+      </Suspense>
+    );
   }
 }

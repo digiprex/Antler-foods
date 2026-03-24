@@ -49,7 +49,7 @@ export default function AnnouncementBarSettingsForm() {
       document.head.appendChild(style);
     }
   }
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
   const restaurantNameFromQuery = searchParams.get('restaurant_name')?.trim() ?? '';
   const restaurantId = restaurantIdFromQuery || '';

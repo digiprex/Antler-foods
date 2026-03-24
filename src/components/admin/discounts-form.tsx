@@ -6,6 +6,8 @@ interface Coupon {
   coupon_id: string;
   created_at: string;
   updated_at: string;
+  start_date: string;
+  end_date: string | null;
   code: string;
   discount_type: string;
   value: number;
@@ -26,14 +28,41 @@ interface CouponFormState {
   discount_type: string;
   value: string;
   min_spend: string;
+  start_date: string;
+  end_date: string;
 }
 
-const INITIAL_FORM_STATE: CouponFormState = {
-  code: '',
-  discount_type: 'percentage',
-  value: '0',
-  min_spend: '0',
-};
+function toDateTimeLocalInput(value: string | null | undefined) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function nowDateTimeLocalInput() {
+  return toDateTimeLocalInput(new Date().toISOString());
+}
+
+function toIsoFromDateTimeInput(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+}
+
+function createInitialFormState(): CouponFormState {
+  return {
+    code: '',
+    discount_type: 'percentage',
+    value: '0',
+    min_spend: '0',
+    start_date: nowDateTimeLocalInput(),
+    end_date: '',
+  };
+}
 
 function normalizeNumber(value: string, fallback = 0) {
   const parsed = Number(value);
@@ -76,7 +105,7 @@ export default function DiscountsForm({
   const [showModal, setShowModal] = useState(false);
   const [mode, setMode] = useState<FormMode>('create');
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
-  const [form, setForm] = useState<CouponFormState>(INITIAL_FORM_STATE);
+  const [form, setForm] = useState<CouponFormState>(createInitialFormState());
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingCouponId, setDeletingCouponId] = useState<string | null>(null);
@@ -120,7 +149,7 @@ export default function DiscountsForm({
   const openCreateModal = () => {
     setMode('create');
     setSelectedCoupon(null);
-    setForm(INITIAL_FORM_STATE);
+    setForm(createInitialFormState());
     setFormError(null);
     setShowModal(true);
   };
@@ -133,6 +162,8 @@ export default function DiscountsForm({
       discount_type: coupon.discount_type,
       value: String(Number(coupon.value ?? 0)),
       min_spend: String(Number(coupon.min_spend ?? 0)),
+      start_date: toDateTimeLocalInput(coupon.start_date),
+      end_date: toDateTimeLocalInput(coupon.end_date),
     });
     setFormError(null);
     setShowModal(true);
@@ -142,7 +173,7 @@ export default function DiscountsForm({
     if (isSaving) return;
     setShowModal(false);
     setSelectedCoupon(null);
-    setForm(INITIAL_FORM_STATE);
+    setForm(createInitialFormState());
     setFormError(null);
   };
 
@@ -151,6 +182,10 @@ export default function DiscountsForm({
     const discountType = form.discount_type.trim();
     const value = normalizeNumber(form.value, NaN);
     const minSpend = normalizeNumber(form.min_spend, NaN);
+    const startDateIso = toIsoFromDateTimeInput(form.start_date);
+    const endDateIso = form.end_date.trim()
+      ? toIsoFromDateTimeInput(form.end_date)
+      : null;
 
     if (!code) {
       setFormError('Coupon code is required.');
@@ -177,6 +212,21 @@ export default function DiscountsForm({
       return;
     }
 
+    if (!startDateIso) {
+      setFormError('Start date must be a valid date and time.');
+      return;
+    }
+
+    if (form.end_date.trim() && !endDateIso) {
+      setFormError('End date must be a valid date and time.');
+      return;
+    }
+
+    if (endDateIso && Date.parse(endDateIso) < Date.parse(startDateIso)) {
+      setFormError('End date must be greater than or equal to start date.');
+      return;
+    }
+
     setIsSaving(true);
     setFormError(null);
 
@@ -187,6 +237,8 @@ export default function DiscountsForm({
         value,
         min_spend: minSpend,
         usage_limit: null,
+        start_date: startDateIso,
+        end_date: endDateIso,
         restaurant_id: restaurantId,
       };
 
@@ -364,6 +416,8 @@ export default function DiscountsForm({
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Type</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Value</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Min Spend</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Start Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">End Date</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
                 </tr>
               </thead>
@@ -381,6 +435,12 @@ export default function DiscountsForm({
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700">
                       {formatCurrency(Number(coupon.min_spend || 0))}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">
+                      {coupon.start_date ? new Date(coupon.start_date).toLocaleString() : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">
+                      {coupon.end_date ? new Date(coupon.end_date).toLocaleString() : '-'}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
@@ -408,102 +468,153 @@ export default function DiscountsForm({
       )}
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="w-full max-w-lg rounded-lg bg-white">
-            <div className="flex items-center justify-between border-b border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {mode === 'create' ? 'Create Coupon' : 'Edit Coupon'}
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-[1px]">
+          <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-gray-200 bg-gradient-to-r from-purple-50 to-indigo-50 p-6">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">
+                  {mode === 'create' ? 'Create Coupon' : 'Edit Coupon'}
+                </h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  Configure discount value and active date window.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={closeModal}
                 disabled={isSaving}
-                className="text-gray-400 hover:text-gray-600 disabled:opacity-60"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-white hover:text-gray-700 disabled:opacity-60"
               >
                 <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <div className="space-y-4 p-6">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Code *</label>
-                  <input
-                    type="text"
-                    value={form.code}
-                    onChange={(event) =>
-                      setForm((previous) => ({
-                        ...previous,
-                        code: event.target.value.toUpperCase(),
-                      }))
-                    }
-                    placeholder="SAVE20"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Discount Type *</label>
-                  <select
-                    value={form.discount_type}
-                    onChange={(event) =>
-                      setForm((previous) => ({
-                        ...previous,
-                        discount_type: event.target.value,
-                      }))
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="percentage">Percentage</option>
-                    <option value="fixed_amount">Fixed Amount</option>
-                  </select>
+            <div className="space-y-5 p-6">
+              <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+                <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Coupon Details
+                </p>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">Code *</label>
+                    <input
+                      type="text"
+                      value={form.code}
+                      onChange={(event) =>
+                        setForm((previous) => ({
+                          ...previous,
+                          code: event.target.value.toUpperCase(),
+                        }))
+                      }
+                      placeholder="SAVE20"
+                      className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">Discount Type *</label>
+                    <select
+                      value={form.discount_type}
+                      onChange={(event) =>
+                        setForm((previous) => ({
+                          ...previous,
+                          discount_type: event.target.value,
+                        }))
+                      }
+                      className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="percentage">Percentage</option>
+                      <option value="fixed_amount">Fixed Amount</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+                      {form.discount_type === 'percentage' ? 'Value (%)' : 'Value ($)'} *
+                    </label>
+                    <input
+                      type="number"
+                      value={form.value}
+                      onChange={(event) =>
+                        setForm((previous) => ({ ...previous, value: event.target.value }))
+                      }
+                      min="0"
+                      max={form.discount_type === 'percentage' ? 100 : undefined}
+                      step="0.01"
+                      className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">Min Spend ($)</label>
+                    <input
+                      type="number"
+                      value={form.min_spend}
+                      onChange={(event) =>
+                        setForm((previous) => ({ ...previous, min_spend: event.target.value }))
+                      }
+                      min="0"
+                      step="0.01"
+                      className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    {form.discount_type === 'percentage' ? 'Value (%)' : 'Value ($)'} *
-                  </label>
-                  <input
-                    type="number"
-                    value={form.value}
-                    onChange={(event) =>
-                      setForm((previous) => ({ ...previous, value: event.target.value }))
-                    }
-                    min="0"
-                    max={form.discount_type === 'percentage' ? 100 : undefined}
-                    step="0.01"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
-                  />
+              <div className="rounded-xl border border-purple-100 bg-purple-50/40 p-4">
+                <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-purple-700">
+                  Active Window
+                </p>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_auto]">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">Start Date *</label>
+                    <input
+                      type="datetime-local"
+                      value={form.start_date}
+                      onChange={(event) =>
+                        setForm((previous) => ({ ...previous, start_date: event.target.value }))
+                      }
+                      className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">End Date</label>
+                    <input
+                      type="datetime-local"
+                      value={form.end_date}
+                      onChange={(event) =>
+                        setForm((previous) => ({ ...previous, end_date: event.target.value }))
+                      }
+                      className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((previous) => ({ ...previous, end_date: '' }))
+                      }
+                      className="h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    >
+                      Clear End Date
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Min Spend ($)</label>
-                  <input
-                    type="number"
-                    value={form.min_spend}
-                    onChange={(event) =>
-                      setForm((previous) => ({ ...previous, min_spend: event.target.value }))
-                    }
-                    min="0"
-                    step="0.01"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
+                <p className="mt-3 text-xs text-gray-600">
+                  Leave end date empty to keep this coupon active until you disable or edit it.
+                </p>
               </div>
 
               {formError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                   {formError}
                 </div>
               )}
             </div>
-            <div className="flex justify-end gap-3 border-t border-gray-200 p-6">
+            <div className="flex justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
               <button
                 type="button"
                 onClick={closeModal}
                 disabled={isSaving}
-                className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-60"
+                className="h-11 rounded-xl border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 disabled:opacity-60"
               >
                 Cancel
               </button>
@@ -511,7 +622,7 @@ export default function DiscountsForm({
                 type="button"
                 onClick={saveCoupon}
                 disabled={isSaving}
-                className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-60"
+                className="h-11 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:from-purple-700 hover:to-indigo-700 disabled:opacity-60"
               >
                 {isSaving ? 'Saving...' : mode === 'create' ? 'Create Coupon' : 'Save Changes'}
               </button>

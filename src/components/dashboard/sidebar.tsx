@@ -89,18 +89,33 @@ export function Sidebar({
             icon: <MediaIcon />,
             matchPrefixes: [mediaPath, `${mediaPath}/`],
           },
-          {
-            href: buildRestaurantScopedHref(
-              `${dashboardBasePath}/reviews`,
-              selectedRestaurant,
-            ),
-            label: 'Reviews',
-            icon: <UsersIcon />,
-          },
         ];
 
         return items; // Show all items regardless of domain requirements
       })()
+    : [];
+
+  const CUSTOMER_MENU_ITEMS = selectedRestaurant
+    ? [
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/reviews`,
+            selectedRestaurant,
+          ),
+          label: 'Reviews',
+          icon: <UsersIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(`/admin/form-submissions`, selectedRestaurant),
+          label: 'Form Submissions',
+          icon: <FormSubmissionsIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(`/admin/newsletter-submissions`, selectedRestaurant),
+          label: 'Newsletter Subscribers',
+          icon: <NewsletterIcon />,
+        },
+      ]
     : [];
 
   const MENU_MANAGEMENT_ITEMS = selectedRestaurant
@@ -230,7 +245,7 @@ export function Sidebar({
       ]
     : [];
 
-  const REPORTS_MENU_ITEMS = selectedRestaurant
+  const GROWTH_MENU_ITEMS = selectedRestaurant
     ? [
         {
           href: buildRestaurantScopedHref(
@@ -243,11 +258,6 @@ export function Sidebar({
             `/admin/site-analytics`,
           ],
         },
-      ]
-    : [];
-
-const MARKETING_MENU_ITEMS = selectedRestaurant
-    ? [
         {
           href: buildRestaurantScopedHref(`/admin/discounts`, selectedRestaurant),
           label: 'Discounts',
@@ -255,16 +265,6 @@ const MARKETING_MENU_ITEMS = selectedRestaurant
           matchPrefixes: [
             `/admin/discounts`,
           ],
-        },
-        {
-          href: buildRestaurantScopedHref(`/admin/newsletter-submissions`, selectedRestaurant),
-          label: 'Newsletter Subscribers',
-          icon: <NewsletterIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(`/admin/form-submissions`, selectedRestaurant),
-          label: 'Form Submissions',
-          icon: <FormSubmissionsIcon />,
         },
       ]
     : [];
@@ -328,7 +328,7 @@ const MARKETING_MENU_ITEMS = selectedRestaurant
           <div>
             {isOpen && (
               <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Restaurant
+                Operations
               </p>
             )}
             <nav className="space-y-0.5">
@@ -396,16 +396,16 @@ const MARKETING_MENU_ITEMS = selectedRestaurant
           </div>
         ) : null}
 
-        {/* Reports */}
-        {hasRestaurantSelection && REPORTS_MENU_ITEMS.length > 0 ? (
+        {/* Customer */}
+        {hasRestaurantSelection && CUSTOMER_MENU_ITEMS.length > 0 ? (
           <div>
             {isOpen && (
               <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Reports
+                Customer
               </p>
             )}
             <nav className="space-y-0.5">
-              {REPORTS_MENU_ITEMS.map((item) => (
+              {CUSTOMER_MENU_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
                   href={item.href}
@@ -419,16 +419,16 @@ const MARKETING_MENU_ITEMS = selectedRestaurant
           </div>
         ) : null}
 
-        {/* Marketing */}
-        {hasRestaurantSelection && MARKETING_MENU_ITEMS.length > 0 ? (
+        {/* Growth */}
+        {hasRestaurantSelection && GROWTH_MENU_ITEMS.length > 0 ? (
           <div>
             {isOpen && (
               <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Marketing
+                Growth
               </p>
             )}
             <nav className="space-y-0.5">
-              {MARKETING_MENU_ITEMS.map((item) => (
+              {GROWTH_MENU_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
                   href={item.href}

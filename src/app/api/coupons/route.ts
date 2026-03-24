@@ -5,6 +5,8 @@ const COUPON_FIELDS = `
   coupon_id
   created_at
   updated_at
+  start_date
+  end_date
   code
   discount_type
   value
@@ -31,6 +33,8 @@ const INSERT_COUPON = `
     $value: numeric!
     $min_spend: numeric!
     $usage_limit: numeric
+    $start_date: timestamptz!
+    $end_date: timestamptz
     $restaurant_id: uuid!
   ) {
     insert_coupons_one(
@@ -40,6 +44,8 @@ const INSERT_COUPON = `
         value: $value
         min_spend: $min_spend
         usage_limit: $usage_limit
+        start_date: $start_date
+        end_date: $end_date
         restaurant_id: $restaurant_id
       }
     ) {
@@ -57,6 +63,8 @@ const UPDATE_COUPON = `
     $value: numeric!
     $min_spend: numeric!
     $usage_limit: numeric
+    $start_date: timestamptz!
+    $end_date: timestamptz
   ) {
     update_coupons(
       where: {
@@ -69,6 +77,8 @@ const UPDATE_COUPON = `
         value: $value
         min_spend: $min_spend
         usage_limit: $usage_limit
+        start_date: $start_date
+        end_date: $end_date
       }
     ) {
       returning {
@@ -97,6 +107,8 @@ type CouponPayload = {
   value: number;
   min_spend: number;
   usage_limit: number | null;
+  start_date: string;
+  end_date: string | null;
   restaurant_id: string;
 };
 
@@ -129,12 +141,23 @@ function toNumber(value: unknown, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function toIsoTimestamp(value: string) {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+
+  return new Date(timestamp).toISOString();
+}
+
 function parseCouponPayload(raw: Record<string, unknown>) {
   const code = normalizeString(raw.code).toUpperCase();
   const discountType = normalizeString(raw.discount_type);
   const value = toNumber(raw.value);
   const minSpend = toNumber(raw.min_spend);
   const usageLimitRaw = raw.usage_limit;
+  const startDateRaw = normalizeString(raw.start_date);
+  const endDateRaw = normalizeString(raw.end_date);
   const restaurantId = normalizeString(raw.restaurant_id);
 
   if (!restaurantId) {
@@ -170,12 +193,34 @@ function parseCouponPayload(raw: Record<string, unknown>) {
     }
   }
 
+  const parsedStartDate = toIsoTimestamp(startDateRaw || new Date().toISOString());
+  if (!parsedStartDate) {
+    return { error: 'Start date must be a valid date and time.' };
+  }
+
+  let parsedEndDate: string | null = null;
+  if (endDateRaw) {
+    parsedEndDate = toIsoTimestamp(endDateRaw);
+    if (!parsedEndDate) {
+      return { error: 'End date must be a valid date and time.' };
+    }
+  }
+
+  if (
+    parsedEndDate &&
+    Date.parse(parsedEndDate) < Date.parse(parsedStartDate)
+  ) {
+    return { error: 'End date must be greater than or equal to start date.' };
+  }
+
   const payload: CouponPayload = {
     code,
     discount_type: discountType,
     value,
     min_spend: minSpend,
     usage_limit: usageLimit,
+    start_date: parsedStartDate,
+    end_date: parsedEndDate,
     restaurant_id: restaurantId,
   };
 

@@ -102,7 +102,7 @@ export default function CustomSectionSettingsForm({ pageId, templateId, isNewSec
   const [uploading, setUploading] = useState(false);
 
   // Get restaurant ID and other params from URL
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantId = searchParams.get('restaurant_id') || '';
   const restaurantName = searchParams.get('restaurant_name') || '';
 

@@ -204,8 +204,8 @@ function resolveDashboardBasePath(pathname: string) {
 }
 
 function useMyInfoTabLinks() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const pathname = usePathname() ?? '';
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const paramsString = searchParams.toString();
   const fallbackRestaurantId = searchParams.get('restaurant_id')?.trim() ?? '';
   const fallbackRestaurantName =
@@ -314,7 +314,7 @@ function MyInfoWorkspaceShell({
   children: ReactNode;
 }) {
   const tabLinks = useMyInfoTabLinks();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const [pendingTab, setPendingTab] = useState<MyInfoTabKey | null>(null);
 
   useEffect(() => {
@@ -380,8 +380,8 @@ function MyInfoWorkspaceShell({
 }
 
 function useRestaurantScope(): RestaurantScope | null {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const pathname = usePathname() ?? '';
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantScope = parseRestaurantScopeFromPath(pathname);
   if (restaurantScope) {
     return {

@@ -21,7 +21,7 @@ import type { Form } from '@/types/forms.types';
 import Toast from '@/components/ui/toast';
 
 function FormsContent() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const router = useRouter();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');

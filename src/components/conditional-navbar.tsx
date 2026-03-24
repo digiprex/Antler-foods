@@ -13,7 +13,7 @@ import { usePathname } from 'next/navigation';
 import DynamicNavbar from './dynamic-navbar';
 
 export default function ConditionalNavbar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const isMenuCheckoutPage = pathname?.startsWith('/menu/checkout');
   const isMenuPage = pathname?.startsWith('/menu') && !isMenuCheckoutPage;
 

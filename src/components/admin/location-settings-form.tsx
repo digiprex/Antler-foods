@@ -186,7 +186,7 @@ export default function LocationSettingsForm({
   isNewSection = false,
 }: LocationSettingsFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const sectionStyleDefaults = useSectionStyleDefaults(restaurantId);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

@@ -1,11 +1,48 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useHasuraClaims, useUserData } from '@nhost/react';
+import { getRestaurantsForUser } from '@/lib/graphql/queries';
+import { getRoleFromHasuraClaims, getUserRole } from '@/lib/auth/get-user-role';
 
 export default function DashboardHomePage() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const roleSegment = pathname.split('/')[2] || 'admin';
+  const user = useUserData();
+  const hasuraClaims = useHasuraClaims();
+  const roleFromClaims = getRoleFromHasuraClaims(hasuraClaims);
+  const roleFromUser = user ? getUserRole(user) : null;
+  const role =
+    roleFromClaims && roleFromClaims !== 'user' ? roleFromClaims : roleFromUser;
+  const isOwner = role === 'owner';
+  const [totalRestaurants, setTotalRestaurants] = useState<number | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadRestaurantCount = async () => {
+      try {
+        const restaurants = await getRestaurantsForUser(user?.id, isOwner);
+        if (!isActive) {
+          return;
+        }
+        setTotalRestaurants(restaurants.length);
+      } catch {
+        if (!isActive) {
+          return;
+        }
+        setTotalRestaurants(0);
+      }
+    };
+
+    void loadRestaurantCount();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isOwner, user?.id]);
 
   return (
     <div className="space-y-6">
@@ -22,10 +59,10 @@ export default function DashboardHomePage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           title="Total Restaurants"
-          value="0"
+          value={totalRestaurants === null ? '...' : String(totalRestaurants)}
           icon={<StoreIcon />}
           color="purple"
         />
@@ -41,18 +78,12 @@ export default function DashboardHomePage() {
           icon={<RevenueIcon />}
           color="green"
         />
-        <StatCard
-          title="Team Members"
-          value="1"
-          icon={<TeamIcon />}
-          color="orange"
-        />
       </div>
 
       {/* Quick Actions */}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <h2 className="mb-4 text-xl font-bold text-gray-900">Quick Actions</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
           {roleSegment === 'admin' && (
             <QuickActionCard
               href={`/dashboard/${roleSegment}/new-restaurant`}
@@ -67,38 +98,8 @@ export default function DashboardHomePage() {
             title="View Restaurants"
             description="Manage your restaurant locations"
           />
-          <QuickActionCard
-            href={`/dashboard/${roleSegment}/website`}
-            icon={<WebIcon />}
-            title="Website Settings"
-            description="Customize your website appearance"
-          />
         </div>
       </div>
-
-      {/* Getting Started */}
-      {roleSegment === 'admin' && (
-        <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-6 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-purple-100">
-              <span className="text-2xl">🚀</span>
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-900">Getting Started</h2>
-              <p className="mt-2 text-gray-600">
-                Start by adding your first restaurant to unlock all dashboard features.
-              </p>
-              <Link
-                href={`/dashboard/${roleSegment}/new-restaurant`}
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                <PlusIcon />
-                Add Your First Restaurant
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -215,10 +216,3 @@ function ViewIcon() {
   );
 }
 
-function WebIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-    </svg>
-  );
-}

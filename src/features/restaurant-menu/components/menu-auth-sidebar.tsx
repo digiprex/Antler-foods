@@ -35,7 +35,7 @@ export function MenuAuthSidebar({
   onViewChange,
   onLogout,
 }: MenuAuthSidebarProps) {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const nextPath = resolveCustomerNextPath(searchParams.get('next'));
 
   useScrollLock(open);

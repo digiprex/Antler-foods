@@ -179,7 +179,7 @@ function toPreviewForm(form: FormRecord | null): PreviewFormRecord | null {
 
 export default function FormSettingsForm({ pageId, restaurantId }: FormSettingsFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantName = searchParams?.get('restaurant_name')?.trim() || '';
   const templateId = searchParams?.get('template_id') || null;
   const isNewSection = searchParams?.get('new_section') === 'true';

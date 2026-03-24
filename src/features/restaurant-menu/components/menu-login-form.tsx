@@ -35,7 +35,7 @@ export function MenuLoginForm({
   onRequestForgotPassword,
 }: MenuLoginFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const nextPath = resolveCustomerNextPath(searchParams.get('next'));
   const [formError, setFormError] = useState<string | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);

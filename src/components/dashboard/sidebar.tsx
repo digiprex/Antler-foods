@@ -89,18 +89,33 @@ export function Sidebar({
             icon: <MediaIcon />,
             matchPrefixes: [mediaPath, `${mediaPath}/`],
           },
-          {
-            href: buildRestaurantScopedHref(
-              `${dashboardBasePath}/reviews`,
-              selectedRestaurant,
-            ),
-            label: 'Reviews',
-            icon: <UsersIcon />,
-          },
         ];
 
         return items; // Show all items regardless of domain requirements
       })()
+    : [];
+
+  const CUSTOMER_MENU_ITEMS = selectedRestaurant
+    ? [
+        {
+          href: buildRestaurantScopedHref(
+            `${dashboardBasePath}/reviews`,
+            selectedRestaurant,
+          ),
+          label: 'Reviews',
+          icon: <UsersIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(`/admin/form-submissions`, selectedRestaurant),
+          label: 'Form Submissions',
+          icon: <FormSubmissionsIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(`/admin/newsletter-submissions`, selectedRestaurant),
+          label: 'Newsletter Subscribers',
+          icon: <NewsletterIcon />,
+        },
+      ]
     : [];
 
   const MENU_MANAGEMENT_ITEMS = selectedRestaurant
@@ -227,10 +242,21 @@ export function Sidebar({
           label: 'Domain Settings',
           icon: <DomainIcon />,
         },
+        {
+          href: buildRestaurantScopedHref(
+            `/admin/qr-codes`,
+            selectedRestaurant,
+          ),
+          label: 'QR Codes',
+          icon: <QRCodeIcon />,
+          matchPrefixes: [
+            `/admin/qr-codes`
+          ],
+        },
       ]
     : [];
 
-  const REPORTS_MENU_ITEMS = selectedRestaurant
+  const GROWTH_MENU_ITEMS = selectedRestaurant
     ? [
         {
           href: buildRestaurantScopedHref(
@@ -243,11 +269,6 @@ export function Sidebar({
             `/admin/site-analytics`,
           ],
         },
-      ]
-    : [];
-
-const MARKETING_MENU_ITEMS = selectedRestaurant
-    ? [
         {
           href: buildRestaurantScopedHref(`/admin/discounts`, selectedRestaurant),
           label: 'Discounts',
@@ -257,48 +278,12 @@ const MARKETING_MENU_ITEMS = selectedRestaurant
           ],
         },
         {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/marketing`,
-            selectedRestaurant,
-          ),
-          label: 'Marketing',
-          icon: <MarketingIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(`/admin/newsletter-submissions`, selectedRestaurant),
-          label: 'Newsletter Subscribers',
-          icon: <NewsletterIcon />,
-        },
-        {
-          href: buildRestaurantScopedHref(`/admin/form-submissions`, selectedRestaurant),
-          label: 'Form Submissions',
-          icon: <FormSubmissionsIcon />,
-        },
-      ]
-    : [];
-
-  const RESERVATION_MENU_ITEMS = selectedRestaurant
-    ? [
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/reservations`,
-            selectedRestaurant,
-          ),
-          label: 'Reservation',
-          icon: <ReservationIcon />,
-        },
-      ]
-    : [];
-
-  const CATERING_MENU_ITEMS = selectedRestaurant
-    ? [
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/catering`,
-            selectedRestaurant,
-          ),
-          label: 'Catering',
-          icon: <CateringIcon />,
+          href: buildRestaurantScopedHref(`/admin/gift-cards`, selectedRestaurant),
+          label: 'Gift Cards',
+          icon: <GiftCardsIcon />,
+          matchPrefixes: [
+            `/admin/gift-cards`,
+          ],
         },
       ]
     : [];
@@ -362,7 +347,7 @@ const MARKETING_MENU_ITEMS = selectedRestaurant
           <div>
             {isOpen && (
               <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Restaurant
+                Operations
               </p>
             )}
             <nav className="space-y-0.5">
@@ -430,16 +415,16 @@ const MARKETING_MENU_ITEMS = selectedRestaurant
           </div>
         ) : null}
 
-        {/* Marketing / Reservation / Catering */}
-        {hasRestaurantSelection && REPORTS_MENU_ITEMS.length > 0 ? (
+        {/* Customer */}
+        {hasRestaurantSelection && CUSTOMER_MENU_ITEMS.length > 0 ? (
           <div>
             {isOpen && (
               <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Reports
+                Customer
               </p>
             )}
             <nav className="space-y-0.5">
-              {REPORTS_MENU_ITEMS.map((item) => (
+              {CUSTOMER_MENU_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
                   href={item.href}
@@ -453,60 +438,16 @@ const MARKETING_MENU_ITEMS = selectedRestaurant
           </div>
         ) : null}
 
-        {/* Marketing / Reservation / Catering */}
-        {hasRestaurantSelection && MARKETING_MENU_ITEMS.length > 0 ? (
+        {/* Growth */}
+        {hasRestaurantSelection && GROWTH_MENU_ITEMS.length > 0 ? (
           <div>
             {isOpen && (
               <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Marketing
+                Growth
               </p>
             )}
             <nav className="space-y-0.5">
-              {MARKETING_MENU_ITEMS.map((item) => (
-                <NavItem
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  active={isSidebarItemActive(pathname, item)}
-                  collapsed={!isOpen}
-                />
-              ))}
-            </nav>
-          </div>
-        ) : null}
-
-        {hasRestaurantSelection && RESERVATION_MENU_ITEMS.length > 0 ? (
-          <div>
-            {isOpen && (
-              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Reservation
-              </p>
-            )}
-            <nav className="space-y-0.5">
-              {RESERVATION_MENU_ITEMS.map((item) => (
-                <NavItem
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  active={isSidebarItemActive(pathname, item)}
-                  collapsed={!isOpen}
-                />
-              ))}
-            </nav>
-          </div>
-        ) : null}
-
-        {hasRestaurantSelection && CATERING_MENU_ITEMS.length > 0 ? (
-          <div>
-            {isOpen && (
-              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Catering
-              </p>
-            )}
-            <nav className="space-y-0.5">
-              {CATERING_MENU_ITEMS.map((item) => (
+              {GROWTH_MENU_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
                   href={item.href}
@@ -818,44 +759,6 @@ function AssetsIcon() {
   );
 }
 
-function MarketingIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-6 w-6"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 11h4l9-6v14l-9-6H3v-2z" />
-      <path d="M17 8l4-2v10l-4-2" />
-    </svg>
-  );
-}
-
-function CateringIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-6 w-6"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M8 2v12" />
-      <path d="M12 2v12" />
-      <path d="M16 2v12" />
-      <path d="M3 18h18" />
-    </svg>
-  );
-}
-
 function PopupIcon() {
   return (
     <svg
@@ -1031,6 +934,27 @@ function DiscountsIcon() {
   );
 }
 
+function GiftCardsIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M3 11h18" />
+      <path d="M12 7v13" />
+      <path d="M12 7c0-1.7 1.3-3 3-3 1.3 0 2.4.8 2.8 2" />
+      <path d="M12 7c0-1.7-1.3-3-3-3-1.3 0-2.4.8-2.8 2" />
+    </svg>
+  );
+}
+
 function MenuManagementIcon() {
   return (
     <svg
@@ -1046,6 +970,30 @@ function MenuManagementIcon() {
       <path d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
       <path d="M10 12h4" />
       <path d="M10 16h4" />
+    </svg>
+  );
+}
+
+function QRCodeIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="6" height="6" rx="1" />
+      <rect x="15" y="3" width="6" height="6" rx="1" />
+      <rect x="3" y="15" width="6" height="6" rx="1" />
+      <path d="M15 15h6v6h-6z" />
+      <path d="M6 6h.01" />
+      <path d="M18 6h.01" />
+      <path d="M6 18h.01" />
+      <path d="M18 18h.01" />
     </svg>
   );
 }

@@ -106,7 +106,7 @@ export default function Navbar({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [menuCartCount, setMenuCartCount] = useState(bagCount);
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
 
   // Function to check if a nav item is active
   const isNavItemActive = (href: string): boolean => {

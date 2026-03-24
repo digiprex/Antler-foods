@@ -70,8 +70,8 @@ function MenuPageContent({ data }: MenuPageProps) {
     filteredCategories.map((category) => category.id),
   );
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const pathname = usePathname() ?? '';
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const [fulfillmentMode, setFulfillmentMode] = useState<FulfillmentMode>('pickup');
   const [selectedLocationId, setSelectedLocationId] = useState(data.locations[0]?.id || '');
   const [deliveryAddress, setDeliveryAddress] = useState(data.defaultDeliveryAddress);

@@ -483,7 +483,7 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
     categories
       .filter((category: any) => isFavoritesCategoryType(category.type))
       .map((category: any) => text(category.category_id))
-      .filter((categoryId: unknown): categoryId is string => Boolean(categoryId)),
+      .filter((categoryId: any): categoryId is string => Boolean(categoryId)),
   );
   const allItems = menuCategories.flatMap((category) => category.items);
   const heroImage = text(restaurant.logo) || allItems.find((item) => Boolean(item.image))?.image || placeholderImage(restaurantName);
@@ -789,11 +789,11 @@ function modifierGroupIdsFromValue(modifiers: any): string[] {
     return normalizedModifiers.filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
   }
   if (normalizedModifiers && typeof normalizedModifiers === 'object') {
-    const modifierGroupIds = (normalizedModifiers as Record<string, unknown>).modifier_group_ids;
+    const modifiersObj = normalizedModifiers as Record<string, unknown>;
+    const modifierGroupIds = modifiersObj.modifier_group_ids;
     if (Array.isArray(modifierGroupIds)) {
-      return modifierGroupIds.filter(
-        (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0,
-      );
+      return (modifierGroupIds as unknown[])
+        .filter((value: unknown): value is string => typeof value === 'string' && value.trim().length > 0);
     }
     return Object.entries(normalizedModifiers)
       .filter(([, value]) => Boolean(value))

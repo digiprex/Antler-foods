@@ -64,6 +64,7 @@ function MenuPageContent({ data }: MenuPageProps) {
   const user = useUserData();
   const hasuraClaims = useHasuraClaims();
   const { signOut } = useSignOut();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { query, setQuery, filteredCategories } = useMenuSearch(data.categories);
   const { activeCategoryId, registerSectionRef, scrollToCategory } = useActiveCategory(
     filteredCategories.map((category) => category.id),

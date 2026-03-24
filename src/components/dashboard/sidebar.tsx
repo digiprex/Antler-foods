@@ -266,6 +266,14 @@ export function Sidebar({
             `/admin/discounts`,
           ],
         },
+        {
+          href: buildRestaurantScopedHref(`/admin/gift-cards`, selectedRestaurant),
+          label: 'Gift Cards',
+          icon: <GiftCardsIcon />,
+          matchPrefixes: [
+            `/admin/gift-cards`,
+          ],
+        },
       ]
     : [];
 
@@ -911,6 +919,27 @@ function DiscountsIcon() {
       <path d="M8 11h8" />
       <path d="M9 15h1" />
       <path d="M14 15h1" />
+    </svg>
+  );
+}
+
+function GiftCardsIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M3 11h18" />
+      <path d="M12 7v13" />
+      <path d="M12 7c0-1.7 1.3-3 3-3 1.3 0 2.4.8 2.8 2" />
+      <path d="M12 7c0-1.7-1.3-3-3-3-1.3 0-2.4.8-2.8 2" />
     </svg>
   );
 }

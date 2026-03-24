@@ -40,10 +40,6 @@ function resolveActiveRailTab(
     return 'website';
   }
 
-  if (pathname.startsWith(`${baseDashboardPath}/reservations`)) {
-    return 'reservations';
-  }
-
   if (pathname.startsWith(`${baseDashboardPath}/team`)) {
     return 'team';
   }
@@ -83,7 +79,7 @@ function isInformationPath(pathname: string) {
 
 function isRestaurantWorkspacePath(pathname: string) {
   return (
-    /^\/dashboard\/(admin|owner|manager)\/(sales|menu|information|reviews|assets|opening-hours|locations|marketing|reservations|catering)(\/|$)/.test(
+    /^\/dashboard\/(admin|owner|manager)\/(sales|menu|information|reviews|assets|opening-hours|locations)(\/|$)/.test(
       pathname,
     ) ||
     /^\/dashboard\/(admin|owner|manager)\/restaurants\/[^/]+\/media(\/|$)/.test(

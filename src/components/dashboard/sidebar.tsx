@@ -257,14 +257,6 @@ const MARKETING_MENU_ITEMS = selectedRestaurant
           ],
         },
         {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/marketing`,
-            selectedRestaurant,
-          ),
-          label: 'Marketing',
-          icon: <MarketingIcon />,
-        },
-        {
           href: buildRestaurantScopedHref(`/admin/newsletter-submissions`, selectedRestaurant),
           label: 'Newsletter Subscribers',
           icon: <NewsletterIcon />,
@@ -273,32 +265,6 @@ const MARKETING_MENU_ITEMS = selectedRestaurant
           href: buildRestaurantScopedHref(`/admin/form-submissions`, selectedRestaurant),
           label: 'Form Submissions',
           icon: <FormSubmissionsIcon />,
-        },
-      ]
-    : [];
-
-  const RESERVATION_MENU_ITEMS = selectedRestaurant
-    ? [
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/reservations`,
-            selectedRestaurant,
-          ),
-          label: 'Reservation',
-          icon: <ReservationIcon />,
-        },
-      ]
-    : [];
-
-  const CATERING_MENU_ITEMS = selectedRestaurant
-    ? [
-        {
-          href: buildRestaurantScopedHref(
-            `${dashboardBasePath}/catering`,
-            selectedRestaurant,
-          ),
-          label: 'Catering',
-          icon: <CateringIcon />,
         },
       ]
     : [];
@@ -430,7 +396,7 @@ const MARKETING_MENU_ITEMS = selectedRestaurant
           </div>
         ) : null}
 
-        {/* Marketing / Reservation / Catering */}
+        {/* Reports */}
         {hasRestaurantSelection && REPORTS_MENU_ITEMS.length > 0 ? (
           <div>
             {isOpen && (
@@ -453,7 +419,7 @@ const MARKETING_MENU_ITEMS = selectedRestaurant
           </div>
         ) : null}
 
-        {/* Marketing / Reservation / Catering */}
+        {/* Marketing */}
         {hasRestaurantSelection && MARKETING_MENU_ITEMS.length > 0 ? (
           <div>
             {isOpen && (
@@ -463,50 +429,6 @@ const MARKETING_MENU_ITEMS = selectedRestaurant
             )}
             <nav className="space-y-0.5">
               {MARKETING_MENU_ITEMS.map((item) => (
-                <NavItem
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  active={isSidebarItemActive(pathname, item)}
-                  collapsed={!isOpen}
-                />
-              ))}
-            </nav>
-          </div>
-        ) : null}
-
-        {hasRestaurantSelection && RESERVATION_MENU_ITEMS.length > 0 ? (
-          <div>
-            {isOpen && (
-              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Reservation
-              </p>
-            )}
-            <nav className="space-y-0.5">
-              {RESERVATION_MENU_ITEMS.map((item) => (
-                <NavItem
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  active={isSidebarItemActive(pathname, item)}
-                  collapsed={!isOpen}
-                />
-              ))}
-            </nav>
-          </div>
-        ) : null}
-
-        {hasRestaurantSelection && CATERING_MENU_ITEMS.length > 0 ? (
-          <div>
-            {isOpen && (
-              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Catering
-              </p>
-            )}
-            <nav className="space-y-0.5">
-              {CATERING_MENU_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}
                   href={item.href}
@@ -814,44 +736,6 @@ function AssetsIcon() {
       <rect x="3" y="3" width="18" height="18" rx="2" />
       <path d="M7 3v18" />
       <path d="M17 3v18" />
-    </svg>
-  );
-}
-
-function MarketingIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-6 w-6"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 11h4l9-6v14l-9-6H3v-2z" />
-      <path d="M17 8l4-2v10l-4-2" />
-    </svg>
-  );
-}
-
-function CateringIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-6 w-6"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M8 2v12" />
-      <path d="M12 2v12" />
-      <path d="M16 2v12" />
-      <path d="M3 18h18" />
     </svg>
   );
 }

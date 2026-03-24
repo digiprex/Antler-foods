@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { RestaurantSearchSelection } from "./search-box";
 
-export type DashboardRailTab = "home" | "reservations" | "team" | "website";
+export type DashboardRailTab = "home" | "team" | "website";
 
 interface IconRailProps {
   activeTab: DashboardRailTab;
@@ -22,12 +22,6 @@ const RAIL_TABS: Array<{
     label: "Home",
     href: "/new-restaurant",
     icon: <StoreIcon />,
-  },
-  {
-    key: "reservations",
-    label: "Reservations",
-    href: "/reservations",
-    icon: <ReservationIcon />,
   },
   {
     key: "team",
@@ -121,27 +115,6 @@ function StoreIcon() {
     >
       <path d="M4 7h16l-1.5 4.5a2.6 2.6 0 0 1-2.5 1.8H8a2.6 2.6 0 0 1-2.5-1.8L4 7Z" />
       <path d="M6 13.5V19a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-5.5" />
-      <path d="M9 17h6" />
-    </svg>
-  );
-}
-
-function ReservationIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M5 12h14" />
-      <path d="M8 7h8" />
-      <path d="M7 12v5" />
-      <path d="M17 12v5" />
       <path d="M9 17h6" />
     </svg>
   );

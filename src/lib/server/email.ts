@@ -42,6 +42,14 @@ export interface FormSubmissionEmailData {
   submittedAt: string;
 }
 
+export interface GiftCardEmailData {
+  code: string;
+  initialValue: number;
+  currentBalance: number;
+  expiryDate: string;
+  restaurantName?: string;
+}
+
 /**
  * Sends an email notification for a form submission
  *
@@ -266,6 +274,85 @@ form submission system.
     console.error('Error sending form submission email:', error);
     throw error;
   }
+}
+
+/**
+ * Sends a gift card creation email to the recipient.
+ */
+export async function sendGiftCardEmail(
+  to: string,
+  data: GiftCardEmailData,
+): Promise<void> {
+  const transporter = createTransporter();
+
+  const formattedInitialValue = Number(data.initialValue || 0).toFixed(2);
+  const formattedCurrentBalance = Number(data.currentBalance || 0).toFixed(2);
+  const formattedExpiryDate = new Date(data.expiryDate).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <body style="margin:0;padding:24px;background:#f9fafb;font-family:Arial,sans-serif;color:#111827;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td style="padding:24px;background:linear-gradient(90deg,#f5f3ff,#eef2ff);border-bottom:1px solid #e5e7eb;">
+              <h1 style="margin:0;font-size:24px;line-height:1.2;">Your Gift Card Is Ready</h1>
+              <p style="margin:8px 0 0;color:#4b5563;font-size:14px;">
+                ${data.restaurantName ? `${data.restaurantName}` : 'A new gift card'} has been created for you.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px;">
+              <p style="margin:0 0 16px;color:#374151;font-size:14px;">Use the details below to redeem your gift card:</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+                <tr>
+                  <td style="padding:12px 14px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-weight:600;">Gift Card Code</td>
+                  <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:15px;">${data.code}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 14px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-weight:600;">Initial Value</td>
+                  <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;">$${formattedInitialValue}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 14px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-weight:600;">Current Balance</td>
+                  <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;">$${formattedCurrentBalance}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 14px;background:#f9fafb;font-weight:600;">Expiry Date</td>
+                  <td style="padding:12px 14px;">${formattedExpiryDate}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+
+  const textContent = `
+Your Gift Card Is Ready
+
+${data.restaurantName ? `${data.restaurantName}\n` : ''}
+Gift Card Code: ${data.code}
+Initial Value: $${formattedInitialValue}
+Current Balance: $${formattedCurrentBalance}
+Expiry Date: ${formattedExpiryDate}
+  `.trim();
+
+  await transporter.sendMail({
+    from: DEFAULT_FROM,
+    to,
+    subject: `Your Gift Card Code: ${data.code}`,
+    text: textContent,
+    html: htmlContent,
+  });
 }
 
 /**

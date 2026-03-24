@@ -347,15 +347,91 @@ export function RestaurantsListPage() {
         ) : null}
 
         {isLoading ? (
-          <div className="flex items-center justify-center px-6 py-12">
-            <div className="flex items-center gap-3 text-gray-600">
-              <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span className="text-sm font-medium">Loading restaurants...</span>
+          <>
+            {/* Table Skeleton */}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr className="text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
+                    <th className="px-6 py-4">Restaurant</th>
+                    <th className="px-6 py-4">Contact Info</th>
+                    <th className="px-6 py-4">Owner</th>
+                    <th className="px-6 py-4">Domain</th>
+                    <th className="px-6 py-4">Created</th>
+                    {isAdmin && <th className="px-6 py-4">Add Owner</th>}
+                    {isAdmin && <th className="px-6 py-4 text-right">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {/* Skeleton Rows */}
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <tr key={index} className="align-top">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <div className="h-5 w-32 animate-pulse rounded bg-gray-200"></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1.5">
+                            <svg className="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <svg className="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <div className="h-4 w-28 animate-pulse rounded bg-gray-200"></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          <div className="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
+                          <div className="h-3 w-24 animate-pulse rounded bg-gray-200"></div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
+                          <div className="h-5 w-16 animate-pulse rounded-full bg-gray-200"></div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
+                      </td>
+                      {isAdmin && (
+                        <td className="px-6 py-4">
+                          <div className="h-9 w-20 animate-pulse rounded-lg bg-gray-200"></div>
+                        </td>
+                      )}
+                      {isAdmin && (
+                        <td className="px-6 py-4 text-right">
+                          <div className="inline-flex h-9 w-9 animate-pulse rounded-lg bg-gray-200"></div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+
+            {/* Pagination Skeleton */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
+              <div className="h-4 w-48 animate-pulse rounded bg-gray-200"></div>
+              <div className="flex items-center gap-2">
+                <div className="h-9 w-20 animate-pulse rounded-lg bg-gray-200"></div>
+                <div className="h-9 w-9 animate-pulse rounded-lg bg-gray-200"></div>
+                <div className="h-9 w-9 animate-pulse rounded-lg bg-gray-200"></div>
+                <div className="h-9 w-9 animate-pulse rounded-lg bg-gray-200"></div>
+                <div className="h-9 w-16 animate-pulse rounded-lg bg-gray-200"></div>
+              </div>
+            </div>
+          </>
         ) : null}
 
         {errorMessage ? (

@@ -63,7 +63,8 @@ function MenuPageContent({ data }: MenuPageProps) {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuthenticationStatus();
   const user = useUserData();
   const hasuraClaims = useHasuraClaims();
-  const { signOut, isLoading: isLoggingOut } = useSignOut();
+  const { signOut } = useSignOut();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { query, setQuery, filteredCategories } = useMenuSearch(data.categories);
   const { activeCategoryId, registerSectionRef, scrollToCategory } = useActiveCategory(
     filteredCategories.map((category) => category.id),
@@ -100,10 +101,15 @@ function MenuPageContent({ data }: MenuPageProps) {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    setAuthSidebarOpen(false);
-    setAuthSidebarView('login');
-    router.refresh();
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+      setAuthSidebarOpen(false);
+      setAuthSidebarView('login');
+      router.refresh();
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   useEffect(() => {

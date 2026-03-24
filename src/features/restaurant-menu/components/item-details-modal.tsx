@@ -19,6 +19,24 @@ interface ItemDetailsModalProps {
   onAddToCart: (input: AddCartItemInput) => void;
 }
 
+function getDisplayModifierGroups(item: MenuItem) {
+  if (item.modifierGroups?.length) {
+    return item.modifierGroups;
+  }
+
+  if (item.addOns?.length) {
+    return [
+      {
+        id: 'default-modifiers',
+        name: 'Goes well with',
+        items: item.addOns,
+      },
+    ];
+  }
+
+  return [];
+}
+
 export function ItemDetailsModal({
   item,
   open,
@@ -29,28 +47,29 @@ export function ItemDetailsModal({
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
   const [selectedAddOnIds, setSelectedAddOnIds] = useState<string[]>([]);
+  const modifierGroups = item ? getDisplayModifierGroups(item) : [];
+  const modifierOptions = modifierGroups.flatMap((group) => group.items);
 
   useEffect(() => {
     if (!item || !open) {
       return;
     }
 
+    const requiredAddOnIds = getDisplayModifierGroups(item)
+      .flatMap((group) => group.items)
+      .filter((addOn) => addOn.required)
+      .map((addOn) => addOn.id);
+
     setQuantity(1);
     setNotes('');
-    setSelectedAddOnIds(
-      (item.addOns || [])
-        .filter((addOn) => addOn.required)
-        .map((addOn) => addOn.id),
-    );
+    setSelectedAddOnIds(requiredAddOnIds);
   }, [item, open]);
 
   if (!item) {
     return null;
   }
 
-  const selectedAddOns = (item.addOns || []).filter((addOn) =>
-    selectedAddOnIds.includes(addOn.id),
-  );
+  const selectedAddOns = modifierOptions.filter((addOn) => selectedAddOnIds.includes(addOn.id));
   const addOnTotal = selectedAddOns.reduce((sum, addOn) => sum + addOn.price, 0);
   const totalPrice = (item.price + addOnTotal) * quantity;
 
@@ -74,7 +93,7 @@ export function ItemDetailsModal({
     <ModalShell open={open} onClose={onClose} maxWidthClassName="max-w-4xl">
       <div className="flex max-h-[92vh] flex-col overflow-hidden">
         <div className="overflow-y-auto">
-          <div className="overflow-hidden border-b border-black/5 bg-[#f4f1ec]">
+          <div className="overflow-hidden border-b border-black/5 bg-stone-100">
             <img src={item.image} alt={item.name} className="h-72 w-full object-cover sm:h-96" />
           </div>
 
@@ -87,31 +106,35 @@ export function ItemDetailsModal({
                 <span className="text-lg font-semibold text-slate-950">
                   {formatPrice(item.price)}
                 </span>
-                <span className="inline-flex items-center gap-1">
-                  <HeartIcon className="h-4 w-4" />
-                  {item.likes}
-                </span>
+                {typeof item.likes === 'number' ? (
+                  <span className="inline-flex items-center gap-1">
+                    <HeartIcon className="h-4 w-4" />
+                    {item.likes}
+                  </span>
+                ) : null}
               </div>
               <p className="max-w-3xl text-base leading-7 text-slate-600">
                 {item.description}
               </p>
             </div>
 
-            <div className="rounded-2xl bg-[#d9d5d2] px-4 py-3 text-center text-sm font-semibold text-slate-950">
-              <span className="inline-flex items-center gap-2">
-                <StarIcon className="h-4 w-4 fill-current" />
-                EARN {item.points} POINTS
-              </span>
-            </div>
+            {typeof item.points === 'number' && item.points > 0 ? (
+              <div className="rounded-2xl bg-stone-200 px-4 py-3 text-center text-sm font-semibold text-slate-950">
+                <span className="inline-flex items-center gap-2">
+                  <StarIcon className="h-4 w-4 fill-current" />
+                  EARN {item.points} POINTS
+                </span>
+              </div>
+            ) : null}
 
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm font-semibold text-emerald-900">
+            <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 text-sm font-semibold text-slate-900">
               <span className="inline-flex items-center gap-2">
                 <ShieldIcon className="h-4 w-4" />
                 {trustBanner}
               </span>
             </div>
 
-            <div className="rounded-[24px] bg-[#f7f5f1] p-5">
+            <div className="rounded-[24px] bg-stone-50 p-5">
               <h3 className="text-2xl font-semibold tracking-tight text-slate-950">
                 Special notes:
               </h3>
@@ -126,51 +149,63 @@ export function ItemDetailsModal({
               />
             </div>
 
-            {item.addOns?.length ? (
-              <div className="rounded-[24px] bg-[#f7f5f1] p-5">
+            {modifierGroups.length ? (
+              <div className="rounded-[24px] bg-stone-50 p-5">
                 <div className="mb-4">
                   <h3 className="text-2xl font-semibold tracking-tight text-slate-950">
                     Goes well with
                   </h3>
                   <p className="text-sm text-slate-500">
-                    {item.addOns.some((addOn) => addOn.required) ? 'Required' : 'Optional pairings'}
+                    {modifierOptions.some((addOn) => addOn.required) ? 'Required' : 'Optional pairings'}
                   </p>
                 </div>
-                <div className="space-y-3">
-                  {item.addOns.map((addOn) => {
-                    const isSelected = selectedAddOnIds.includes(addOn.id);
-
-                    return (
-                      <div
-                        key={addOn.id}
-                        className="flex items-center justify-between gap-4 rounded-2xl bg-white px-4 py-3"
-                      >
-                        <div className="flex min-w-0 items-center gap-3">
-                          <img
-                            src={addOn.image}
-                            alt={addOn.name}
-                            className="h-12 w-12 rounded-2xl object-cover"
-                          />
-                          <div>
-                            <p className="font-semibold text-slate-950">{addOn.name}</p>
-                            <p className="text-sm text-slate-500">+ {formatPrice(addOn.price)}</p>
-                          </div>
+                <div className="space-y-5">
+                  {modifierGroups.map((group) => (
+                    <div key={group.id} className="space-y-3">
+                      {modifierGroups.length > 1 ? (
+                        <div>
+                          <p className="font-semibold text-slate-950">{group.name}</p>
+                          {group.description ? (
+                            <p className="text-sm text-slate-500">{group.description}</p>
+                          ) : null}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => toggleAddOn(addOn)}
-                          className={`flex h-10 w-10 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 ${
-                            isSelected
-                              ? 'bg-black text-white'
-                              : 'border border-black/10 bg-white text-slate-900 hover:border-black/20'
-                          }`}
-                          aria-pressed={isSelected}
-                        >
-                          <PlusIcon className={`h-4 w-4 transition ${isSelected ? 'rotate-45' : ''}`} />
-                        </button>
-                      </div>
-                    );
-                  })}
+                      ) : null}
+                      {group.items.map((addOn) => {
+                        const isSelected = selectedAddOnIds.includes(addOn.id);
+
+                        return (
+                          <div
+                            key={addOn.id}
+                            className="flex items-center justify-between gap-4 rounded-2xl bg-white px-4 py-3"
+                          >
+                            <div className="flex min-w-0 items-center gap-3">
+                              <img
+                                src={addOn.image}
+                                alt={addOn.name}
+                                className="h-12 w-12 rounded-2xl object-cover"
+                              />
+                              <div>
+                                <p className="font-semibold text-slate-950">{addOn.name}</p>
+                                <p className="text-sm text-slate-500">+ {formatPrice(addOn.price)}</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleAddOn(addOn)}
+                              className={`flex h-10 w-10 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 ${
+                                isSelected
+                                  ? 'bg-black text-white'
+                                  : 'border border-black/10 bg-white text-slate-900 hover:border-black/20'
+                              }`}
+                              aria-pressed={isSelected}
+                            >
+                              <PlusIcon className={`h-4 w-4 transition ${isSelected ? 'rotate-45' : ''}`} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
               </div>
             ) : null}

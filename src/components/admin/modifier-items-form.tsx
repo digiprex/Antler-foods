@@ -1,7 +1,8 @@
 /**
  * Modifier Items Form Component
  *
- * Dedicated management screen for modifier items inside a single modifier group.
+ * Dedicated management screen for modifier items using the new separate modifier_items table.
+ * This component now uses the new API endpoints for CRUD operations on individual modifier items.
  */
 
 'use client';
@@ -9,8 +10,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface ModifierItem {
+  modifier_item_id: string;
   name: string;
-  price?: number;
+  price: number;
+  modifier_group_id: string;
+  created_at: string;
+  updated_at: string;
+  is_deleted: boolean;
 }
 
 interface ModifierGroup {
@@ -22,7 +28,6 @@ interface ModifierGroup {
   type: string;
   is_required: boolean;
   is_multi_select: boolean;
-  modifier_items: any;
   created_at: string;
   updated_at: string;
   is_deleted: boolean;
@@ -33,68 +38,33 @@ interface ModifierItemsFormProps {
   modifierGroupName: string;
 }
 
-function normalizeModifierItems(modifierItems: any): ModifierItem[] {
-  if (Array.isArray(modifierItems)) {
-    const normalized: ModifierItem[] = [];
-
-    for (const item of modifierItems) {
-      if (typeof item === 'string') {
-        const name = item.trim();
-        if (name) normalized.push({ name, price: 0 });
-        continue;
-      }
-
-      if (item && typeof item === 'object') {
-        const name = String(item.name ?? '').trim();
-        if (!name) continue;
-
-        normalized.push({
-          name,
-          price: Number(item.price ?? 0),
-        });
-      }
-    }
-
-    return normalized;
-  }
-
-  if (modifierItems && typeof modifierItems === 'object') {
-    return Object.entries(modifierItems).map(([key, value]) => ({
-      name: key,
-      price: Number(value ?? 0),
-    }));
-  }
-
-  return [];
-}
-
 export default function ModifierItemsForm({
   modifierGroupId,
   modifierGroupName,
 }: ModifierItemsFormProps) {
   const [group, setGroup] = useState<ModifierGroup | null>(null);
+  const [items, setItems] = useState<ModifierItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateItem, setShowCreateItem] = useState(false);
   const [showEditItem, setShowEditItem] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingItem, setEditingItem] = useState<ModifierItem | null>(null);
   const [itemName, setItemName] = useState('');
   const [itemPrice, setItemPrice] = useState('0');
   const [itemError, setItemError] = useState<string | null>(null);
   const [itemSearch, setItemSearch] = useState('');
 
-  const items = useMemo(() => normalizeModifierItems(group?.modifier_items), [group?.modifier_items]);
   const normalizedItemSearch = itemSearch.trim().toLowerCase();
-  const filteredItemEntries = useMemo(() => {
-    const entries = items.map((item, index) => ({ item, index }));
-    if (!normalizedItemSearch) return entries;
-    return entries.filter(({ item }) => item.name.toLowerCase().includes(normalizedItemSearch));
+  const filteredItems = useMemo(() => {
+    if (!normalizedItemSearch) return items;
+    return items.filter(item => 
+      item.name.toLowerCase().includes(normalizedItemSearch)
+    );
   }, [items, normalizedItemSearch]);
 
   const fetchGroup = useCallback(async () => {
     try {
-      setLoading(true);
       setError(null);
 
       const response = await fetch('/api/modifier-groups');
@@ -115,50 +85,38 @@ export default function ModifierItemsForm({
       setGroup(foundGroup);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch modifier group');
-    } finally {
-      setLoading(false);
     }
   }, [modifierGroupId]);
 
-  useEffect(() => {
-    fetchGroup();
-  }, [fetchGroup]);
-
-  const saveItems = async (nextItems: ModifierItem[]) => {
-    if (!group) return;
-
-    setIsSaving(true);
+  const fetchItems = useCallback(async () => {
     try {
-      const response = await fetch('/api/modifier-groups', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          modifier_group_id: group.modifier_group_id,
-          name: group.name,
-          description: group.description,
-          min_selection: group.min_selection,
-          max_selection: group.max_selection,
-          type: group.type,
-          is_required: group.is_required,
-          is_multi_select: group.is_multi_select,
-          modifier_items: nextItems,
-        }),
-      });
+      setError(null);
 
+      const response = await fetch(`/api/modifier-items?modifier_group_id=${modifierGroupId}`);
       const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to update modifier items');
+        throw new Error(data.error || 'Failed to fetch modifier items');
       }
 
-      setGroup(data.modifier_group);
+      setItems(data.modifier_items || []);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update modifier items');
-    } finally {
-      setIsSaving(false);
+      setError(err instanceof Error ? err.message : 'Failed to fetch modifier items');
     }
-  };
+  }, [modifierGroupId]);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      await Promise.all([fetchGroup(), fetchItems()]);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchGroup, fetchItems]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleCreateItem = async () => {
     const name = itemName.trim();
@@ -174,23 +132,48 @@ export default function ModifierItemsForm({
       return;
     }
 
-    setItemError(null);
-    await saveItems([...items, { name, price }]);
-    setShowCreateItem(false);
-    setItemName('');
-    setItemPrice('0');
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/modifier-items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          price,
+          modifier_group_id: modifierGroupId,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create modifier item');
+      }
+
+      // Add the new item to the list
+      setItems(prevItems => [...prevItems, data.modifier_item]);
+      setShowCreateItem(false);
+      setItemName('');
+      setItemPrice('0');
+      setItemError(null);
+    } catch (err) {
+      setItemError(err instanceof Error ? err.message : 'Failed to create modifier item');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const openEditItemModal = (item: ModifierItem, index: number) => {
-    setEditingIndex(index);
+  const openEditItemModal = (item: ModifierItem) => {
+    setEditingItem(item);
     setItemName(item.name);
-    setItemPrice(String(Number(item.price ?? 0)));
+    setItemPrice(String(item.price));
     setItemError(null);
     setShowEditItem(true);
   };
 
   const handleEditItem = async () => {
-    if (editingIndex === null || editingIndex < 0 || editingIndex >= items.length) return;
+    if (!editingItem) return;
 
     const name = itemName.trim();
     const price = Number(itemPrice || 0);
@@ -205,21 +188,70 @@ export default function ModifierItemsForm({
       return;
     }
 
-    const nextItems = items.map((item, index) =>
-      index === editingIndex ? { ...item, name, price } : item,
-    );
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/modifier-items', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          modifier_item_id: editingItem.modifier_item_id,
+          name,
+          price,
+        }),
+      });
 
-    setItemError(null);
-    await saveItems(nextItems);
-    setShowEditItem(false);
-    setEditingIndex(null);
-    setItemName('');
-    setItemPrice('0');
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update modifier item');
+      }
+
+      // Update the item in the list
+      setItems(prevItems =>
+        prevItems.map(item =>
+          item.modifier_item_id === editingItem.modifier_item_id
+            ? data.modifier_item
+            : item
+        )
+      );
+      setShowEditItem(false);
+      setEditingItem(null);
+      setItemName('');
+      setItemPrice('0');
+      setItemError(null);
+    } catch (err) {
+      setItemError(err instanceof Error ? err.message : 'Failed to update modifier item');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDeleteItem = async (index: number) => {
-    const nextItems = items.filter((_, itemIndex) => itemIndex !== index);
-    await saveItems(nextItems);
+  const handleDeleteItem = async (item: ModifierItem) => {
+    if (!confirm(`Are you sure you want to delete "${item.name}"?`)) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await fetch(`/api/modifier-items?modifier_item_id=${item.modifier_item_id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete modifier item');
+      }
+
+      // Remove the item from the list
+      setItems(prevItems =>
+        prevItems.filter(i => i.modifier_item_id !== item.modifier_item_id)
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete modifier item');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const closeCreateItemModal = () => {
@@ -231,7 +263,7 @@ export default function ModifierItemsForm({
 
   const closeEditItemModal = () => {
     setShowEditItem(false);
-    setEditingIndex(null);
+    setEditingItem(null);
     setItemName('');
     setItemPrice('0');
     setItemError(null);
@@ -255,7 +287,7 @@ export default function ModifierItemsForm({
           <div className="text-center">
             <p className="text-sm text-red-600 mb-4">{error || 'Modifier group not found'}</p>
             <button
-              onClick={fetchGroup}
+              onClick={fetchData}
               className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
             >
               Retry
@@ -280,7 +312,7 @@ export default function ModifierItemsForm({
             setItemError(null);
             setShowCreateItem(true);
           }}
-                  className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-purple-700 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-purple-700 disabled:opacity-60"
           disabled={isSaving}
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -341,7 +373,7 @@ export default function ModifierItemsForm({
             Add Item
           </button>
         </div>
-      ) : filteredItemEntries.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
           <p className="text-sm text-gray-600">
             No modifier items match "<span className="font-medium text-gray-800">{itemSearch}</span>".
@@ -356,16 +388,16 @@ export default function ModifierItemsForm({
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredItemEntries.map(({ item, index }) => (
-            <div key={`${item.name}-${index}`} className="rounded-lg border border-gray-200 bg-white shadow-sm">
+          {filteredItems.map((item) => (
+            <div key={item.modifier_item_id} className="rounded-lg border border-gray-200 bg-white shadow-sm">
               <div className="flex items-center justify-between p-4">
                 <div>
                   <h3 className="text-base font-semibold text-gray-900">{item.name}</h3>
-                  <p className="text-sm text-gray-500">Price: ${Number(item.price ?? 0).toFixed(2)}</p>
+                  <p className="text-sm text-gray-500">Price: ${Number(item.price).toFixed(2)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => openEditItemModal(item, index)}
+                    onClick={() => openEditItemModal(item)}
                     className="rounded p-2 text-gray-400 hover:text-gray-600 disabled:opacity-60"
                     title="Edit modifier item"
                     disabled={isSaving}
@@ -375,7 +407,7 @@ export default function ModifierItemsForm({
                     </svg>
                   </button>
                   <button
-                    onClick={() => handleDeleteItem(index)}
+                    onClick={() => handleDeleteItem(item)}
                     className="rounded p-2 text-gray-400 hover:text-red-600 disabled:opacity-60"
                     title="Delete modifier item"
                     disabled={isSaving}

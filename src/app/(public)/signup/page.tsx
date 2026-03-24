@@ -1,17 +1,27 @@
-import { AuthLayout } from "@/components/auth/auth-layout";
-import { SignupForm } from "@/components/auth/signup-form";
-import { generateMetadata as generateSEOMetadata, getPageSEO } from "@/lib/seo";
-import type { Metadata } from "next";
+import { Suspense } from 'react';
+import type { Metadata } from 'next';
+import { MenuAuthLayout } from '@/features/restaurant-menu/components/menu-auth-layout';
+import { MenuSignupForm } from '@/features/restaurant-menu/components/menu-signup-form';
+import { generateMetadata as generateSEOMetadata, getPageSEO } from '@/lib/seo';
 
-export const metadata: Metadata = generateSEOMetadata(getPageSEO('signup'));
+export const metadata: Metadata = generateSEOMetadata(
+  getPageSEO('signup', {
+    title: 'Sign Up - Online Ordering',
+    description: 'Create your account for faster online ordering and checkout.',
+  }),
+);
 
 export default function SignupPage() {
   return (
-    <AuthLayout
-      title="Run your restaurant from anywhere"
-      subtitle="Create your account to launch and manage operations."
+    <MenuAuthLayout
+      title="Create your account"
+      subtitle="Save your details, speed up checkout, and keep ordering simple."
     >
-      <SignupForm />
-    </AuthLayout>
+      <Suspense
+        fallback={<p className="rounded-lg bg-white px-4 py-3 text-sm text-slate-700">Loading sign up...</p>}
+      >
+        <MenuSignupForm />
+      </Suspense>
+    </MenuAuthLayout>
   );
 }

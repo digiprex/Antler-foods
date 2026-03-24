@@ -246,8 +246,16 @@ export function Sidebar({
       ]
     : [];
 
-  const MARKETING_MENU_ITEMS = selectedRestaurant
+const MARKETING_MENU_ITEMS = selectedRestaurant
     ? [
+        {
+          href: buildRestaurantScopedHref(`/admin/discounts`, selectedRestaurant),
+          label: 'Discounts',
+          icon: <DiscountsIcon />,
+          matchPrefixes: [
+            `/admin/discounts`,
+          ],
+        },
         {
           href: buildRestaurantScopedHref(
             `${dashboardBasePath}/marketing`,
@@ -999,6 +1007,26 @@ function SiteAnalyticsIcon() {
       <path d="M12 15V5" />
       <path d="M17 15v-3" />
       <path d="M5 5h14" />
+    </svg>
+  );
+}
+
+function DiscountsIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 7h16v10H4z" />
+      <path d="M8 11h8" />
+      <path d="M9 15h1" />
+      <path d="M14 15h1" />
     </svg>
   );
 }

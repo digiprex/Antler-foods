@@ -17,6 +17,7 @@ import {
 import { isNhostConfigured } from '@/lib/nhost';
 import { getUserRole } from '@/lib/auth/get-user-role';
 import { signupSchema, type SignupFormValues } from '@/lib/validation/auth';
+import { useAnalytics } from '@/lib/analytics';
 
 export function SignupForm() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export function SignupForm() {
   const { isAuthenticated, isLoading: isStatusLoading } =
     useAuthenticationStatus();
   const user = useUserData();
+  const { trackSignup } = useAnalytics();
 
   useEffect(() => {
     if (!isStatusLoading && isAuthenticated && user) {
@@ -85,6 +87,13 @@ export function SignupForm() {
         setFormError(payload?.error ?? 'Unable to create account.');
         return;
       }
+
+      // Track successful signup
+      trackSignup({
+        method: 'email',
+        user_type: 'restaurant_owner',
+        source: 'signup_form',
+      });
 
       setSuccessMessage(
         'Account created successfully! A verification email has been sent to your inbox.',

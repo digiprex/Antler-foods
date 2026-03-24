@@ -344,15 +344,16 @@ async function ensureDefaultSystemPagesForRestaurant(restaurantId: string, resta
   console.log(`📋 Existing pages for restaurant ${restaurantId}:`, Array.from(existingSlugs));
   console.log(`📋 Default pages to create:`, DEFAULT_SYSTEM_PAGES.map(p => p.urlSlug));
 
-  for (const page of DEFAULT_SYSTEM_PAGES) {
-    if (existingSlugs.has(page.urlSlug)) {
-      console.log(`⚠️ Page ${page.urlSlug} already exists, skipping creation`);
-      continue;
-    }
+  const pagesToCreate = DEFAULT_SYSTEM_PAGES.filter(
+    (page) => !existingSlugs.has(page.urlSlug),
+  );
 
-    console.log(`🔨 Creating page: ${page.name} (/${page.urlSlug})`);
-    await createSystemPage(restaurantId, page.urlSlug, page.name, restaurantName);
-  }
+  await Promise.all(
+    pagesToCreate.map((page) => {
+      console.log(`Creating page: ${page.name} (/${page.urlSlug})`);
+      return createSystemPage(restaurantId, page.urlSlug, page.name, restaurantName);
+    }),
+  );
 
   console.log(`✅ Finished ensuring default system pages for restaurant ${restaurantId}`);
 }
@@ -3372,21 +3373,21 @@ export async function POST(
     console.log('✅ Restaurant data updated');
 
     // Ensure Umami website exists for the new restaurant domain.
-    // This should not block website creation if Umami is unavailable.
-    try {
-      console.log('📊 Step 3b: Ensuring Umami website...');
-      const umamiWebsiteId = await ensureUmamiWebsiteForDomain(
-        defaultStagingDomain,
-        `${restaurantName} (${defaultStagingDomain})`,
-      );
-      if (umamiWebsiteId) {
-        console.log('✅ Umami website ready:', umamiWebsiteId);
-      } else {
-        console.log('⚠️ Umami not configured; skipping analytics provisioning');
-      }
-    } catch (umamiError) {
-      console.error('⚠️ Umami setup failed; continuing initialization:', umamiError);
-    }
+    // This runs in the background so analytics provisioning does not delay site creation.
+    void ensureUmamiWebsiteForDomain(
+      defaultStagingDomain,
+      `${restaurantName} (${defaultStagingDomain})`,
+    )
+      .then((umamiWebsiteId) => {
+        if (umamiWebsiteId) {
+          console.log('Umami website ready:', umamiWebsiteId);
+        } else {
+          console.log('Umami not configured; skipping analytics provisioning');
+        }
+      })
+      .catch((umamiError) => {
+        console.error('Umami setup failed; continuing initialization:', umamiError);
+      });
 
     // Create default system pages
     console.log('📄 Step 4: Creating default system pages...');

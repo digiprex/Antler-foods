@@ -1,12 +1,28 @@
-import type { AppRole } from "./get-user-role";
+﻿import type { AppRole } from "./get-user-role";
 
-export const LOGIN_ROUTE = "/login";
-export const SIGNUP_ROUTE = "/signup";
-export const FORGOT_PASSWORD_ROUTE = "/forgot-password";
+export const ADMIN_LOGIN_ROUTE = "/admin/login";
+export const ADMIN_SIGNUP_ROUTE = "/admin/signup";
+export const ADMIN_FORGOT_PASSWORD_ROUTE = "/admin/forgot-password";
+
+export const CUSTOMER_LOGIN_ROUTE = "/login";
+export const CUSTOMER_SIGNUP_ROUTE = "/signup";
+export const CUSTOMER_FORGOT_PASSWORD_ROUTE = "/forgot-password";
+export const CUSTOMER_DEFAULT_AUTH_REDIRECT = "/menu";
+
+export const LOGIN_ROUTE = ADMIN_LOGIN_ROUTE;
+export const SIGNUP_ROUTE = ADMIN_SIGNUP_ROUTE;
+export const FORGOT_PASSWORD_ROUTE = ADMIN_FORGOT_PASSWORD_ROUTE;
 export const DEFAULT_AUTH_REDIRECT = "/dashboard/admin/home";
 export const UNAUTHORIZED_ROUTE = "/unauthorized";
 
-export const PUBLIC_ROUTES = [LOGIN_ROUTE, SIGNUP_ROUTE, FORGOT_PASSWORD_ROUTE] as const;
+export const PUBLIC_ROUTES = [
+  CUSTOMER_LOGIN_ROUTE,
+  CUSTOMER_SIGNUP_ROUTE,
+  CUSTOMER_FORGOT_PASSWORD_ROUTE,
+  ADMIN_LOGIN_ROUTE,
+  ADMIN_SIGNUP_ROUTE,
+  ADMIN_FORGOT_PASSWORD_ROUTE,
+] as const;
 export const PROTECTED_ROUTE_PREFIXES = [
   "/dashboard",
 ] as const;

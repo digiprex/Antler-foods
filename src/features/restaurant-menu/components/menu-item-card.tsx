@@ -4,11 +4,17 @@ import type { MenuItem } from '@/features/restaurant-menu/types/restaurant-menu.
 
 interface MenuItemCardProps {
   item: MenuItem;
+  quantityInCart?: number;
   onOpen: (itemId: string) => void;
   onQuickAdd: (item: MenuItem) => void;
 }
 
-export function MenuItemCard({ item, onOpen, onQuickAdd }: MenuItemCardProps) {
+export function MenuItemCard({
+  item,
+  quantityInCart = 0,
+  onOpen,
+  onQuickAdd,
+}: MenuItemCardProps) {
   return (
     <article
       className="group relative grid cursor-pointer gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
@@ -37,17 +43,23 @@ export function MenuItemCard({ item, onOpen, onQuickAdd }: MenuItemCardProps) {
 
         <div className="relative overflow-hidden rounded-xl bg-stone-100">
           <img src={item.image} alt={item.name} className="h-32 w-full object-cover transition duration-300 group-hover:scale-105" />
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onQuickAdd(item);
-            }}
-            className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-white text-stone-900 shadow-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300"
-            aria-label={`Add ${item.name}`}
-          >
-            <PlusIcon className="h-4 w-4" />
-          </button>
+          {item.inStock !== false ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onQuickAdd(item);
+              }}
+              className={`absolute bottom-2 right-2 flex items-center justify-center shadow-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 ${
+                quantityInCart > 0
+                  ? 'h-10 min-w-[2.5rem] rounded-2xl bg-black px-3 text-sm font-semibold text-white'
+                  : 'h-8 w-8 rounded-full bg-white text-stone-900'
+              }`}
+              aria-label={`Add ${item.name}`}
+            >
+              {quantityInCart > 0 ? quantityInCart : <PlusIcon className="h-4 w-4" />}
+            </button>
+          ) : null}
         </div>
       </div>
     </article>

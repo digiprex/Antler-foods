@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
+import { ADMIN_LOGIN_ROUTE } from "@/lib/auth/routes";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const verificationRedirectUrl = buildAppRedirectUrl(request, "/login");
+    const verificationRedirectUrl = buildAppRedirectUrl(request, ADMIN_LOGIN_ROUTE);
 
     const verificationEmailResult = await sendVerificationEmail({
       authUrl,

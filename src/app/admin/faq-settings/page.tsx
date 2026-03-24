@@ -42,7 +42,7 @@ import styles from '@/components/admin/gallery-settings-form.module.css';
 
 function FAQSettingsContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const pageId = searchParams.get('page_id');
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');

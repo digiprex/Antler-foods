@@ -195,7 +195,7 @@ function LayoutPreview({ layout }: { layout: EditorTimelineLayout }) {
 }
 
 export default function TimelineSettingsForm() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantId = searchParams?.get('restaurant_id')?.trim() || '';
   const restaurantName = searchParams?.get('restaurant_name')?.trim() || '';
   const pageId = searchParams?.get('page_id')?.trim() || '';

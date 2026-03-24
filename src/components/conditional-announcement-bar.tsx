@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import AnnouncementBar from './announcement-bar';
 
 export default function ConditionalAnnouncementBar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const [domain, setDomain] = useState<string>('');
 
   // Get current domain on client side

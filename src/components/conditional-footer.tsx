@@ -11,7 +11,7 @@ import { usePathname } from 'next/navigation';
 import DynamicFooter from './dynamic-footer';
 
 export default function ConditionalFooter() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const hideFooter =
     pathname?.startsWith('/admin') ||
     pathname?.startsWith('/dashboard') ||

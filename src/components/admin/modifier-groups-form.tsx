@@ -33,7 +33,7 @@ interface ModifierGroup {
 
 export default function ModifierGroupsForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

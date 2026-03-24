@@ -27,7 +27,7 @@ import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import AnnouncementBarSettingsForm from '@/components/admin/announcement-bar-settings-form';
 
 function AnnouncementBarSettingsContent() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const router = useRouter();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');

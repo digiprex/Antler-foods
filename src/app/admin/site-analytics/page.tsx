@@ -28,7 +28,7 @@ const SiteAnalyticsForm = dynamic(
 );
 
 function SiteAnalyticsContent() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantId = searchParams?.get('restaurant_id') || null;
   const restaurantName = searchParams?.get('restaurant_name') || null;
 

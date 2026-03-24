@@ -42,7 +42,7 @@ const MenuCategoriesForm = dynamic(
 
 function MenuCategoriesContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantId = searchParams?.get('restaurant_id') || null;
   const restaurantName = searchParams?.get('restaurant_name') || null;
   const menuId = searchParams?.get('menu_id') || null;

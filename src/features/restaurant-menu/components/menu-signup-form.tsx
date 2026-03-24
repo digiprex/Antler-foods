@@ -33,7 +33,7 @@ function wait(durationMs: number) {
 
 export function MenuSignupForm({ onAuthenticatedUser, onRequestLogin }: MenuSignupFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const nextPath = resolveCustomerNextPath(searchParams.get('next'));
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -104,8 +104,8 @@ function debugLog(label: string, data?: unknown) {
 
 export function NewRestaurantWizard() {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const pathname = usePathname() ?? '';
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const user = useUserData();
   const role = user ? getUserRole(user) : null;
   const isOwner = role === 'owner';

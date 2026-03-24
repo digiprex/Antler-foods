@@ -70,8 +70,8 @@ function MenuPageContent({ data }: MenuPageProps) {
     filteredCategories.map((category) => category.id),
   );
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const pathname = usePathname() ?? '';
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const [fulfillmentMode, setFulfillmentMode] = useState<FulfillmentMode>('pickup');
   const [selectedLocationId, setSelectedLocationId] = useState(data.locations[0]?.id || '');
   const [deliveryAddress, setDeliveryAddress] = useState(data.defaultDeliveryAddress);
@@ -89,6 +89,7 @@ function MenuPageContent({ data }: MenuPageProps) {
   const [cartOpen, setCartOpen] = useState(false);
   const [authSidebarOpen, setAuthSidebarOpen] = useState(false);
   const [authSidebarView, setAuthSidebarView] = useState<MenuAuthView>('login');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const contentContainerClass = 'mx-auto w-full max-w-[1120px] px-4 sm:px-6';
   const brandName = data.restaurant.name.replace(' Menu', '');
   const resolvedRole = getRoleFromHasuraClaims(hasuraClaims) || (user ? getUserRole(user) : null);

@@ -14,7 +14,7 @@ import styles from '@/components/admin/gallery-settings-form.module.css';
 import { ImageGalleryModal } from '@/components/admin/image-gallery-modal';
 
 export default function PopupSettingsForm() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
 

@@ -120,7 +120,7 @@ const BORDER_RADIUS_OPTIONS = [
 // Restaurant ID should be provided dynamically - no default static ID
 
 export default function NavbarSettingsForm() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantIdFromQuery = searchParams.get('restaurant_id')?.trim() ?? '';
   const restaurantNameFromQuery =
     searchParams.get('restaurant_name')?.trim() ?? '';

@@ -25,7 +25,7 @@ import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import FooterSettingsForm from '@/components/admin/footer-settings-form';
 
 function FooterSettingsContent() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantId = searchParams.get('restaurant_id');
   const restaurantName = searchParams.get('restaurant_name');
 

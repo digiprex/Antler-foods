@@ -1,7 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import {
+  MENU_CART_STORAGE_KEY,
+  MENU_CART_UPDATED_EVENT,
+} from '@/features/restaurant-menu/context/cart-context';
 import styles from './navbar.module.scss';
 
 export interface NavItem {
@@ -30,7 +34,14 @@ export interface NavbarProps {
   buttonBgColor?: string;
   buttonTextColor?: string;
   buttonBorderRadius?: string; // Border radius for CTA button (e.g., '0.5rem', '8px', '9999px')
-  layout?: 'default' | 'centered' | 'logo-center' | 'stacked' | 'split' | 'logo-left-items-left' | 'bordered-centered'; // default: logo left, items right | centered: logo left, items center, button right | logo-center: items left, logo center, button right | stacked: logo top center, items and button below | split: items left, logo center, text and button right | logo-left-items-left: logo and items left, button right | bordered-centered: logo left, items center, button right with border
+  layout?:
+    | 'default'
+    | 'centered'
+    | 'logo-center'
+    | 'stacked'
+    | 'split'
+    | 'logo-left-items-left'
+    | 'bordered-centered'; // default: logo left, items right | centered: logo left, items center, button right | logo-center: items left, logo center, button right | stacked: logo top center, items and button below | split: items left, logo center, text and button right | logo-left-items-left: logo and items left, button right | bordered-centered: logo left, items center, button right with border
   additionalText?: string; // For split layout - text to display before button (e.g., "STANDORT: 50 | 100")
   borderColor?: string; // For bordered layouts - border color
   borderWidth?: string; // For bordered layouts - border width (e.g., '2px')
@@ -42,7 +53,7 @@ export interface NavbarProps {
 }
 
 // Default dynamic values
-const DEFAULT_RESTAURANT_NAME = "Restaurant";
+const DEFAULT_RESTAURANT_NAME = 'Restaurant';
 
 const DEFAULT_LEFT_NAV_ITEMS: NavItem[] = [
   { label: 'Collection', href: '#collection' },
@@ -53,14 +64,14 @@ const DEFAULT_RIGHT_NAV_ITEMS: NavItem[] = [];
 
 const DEFAULT_CTA_BUTTON: CTAButton = {
   label: 'Get Started',
-  href: '#get-started'
+  href: '#get-started',
 };
 
 // Helper function to get initials from restaurant name
 const getInitials = (name: string): string => {
   return name
     .split(' ')
-    .map(word => word[0])
+    .map((word) => word[0])
     .join('')
     .toUpperCase()
     .slice(0, 3); // Limit to 3 characters
@@ -90,49 +101,51 @@ export default function Navbar({
   fontSize = '1rem',
   fontWeight = 400,
   textTransform = 'uppercase',
-  forceHamburgerMenu = false
+  forceHamburgerMenu = false,
 }: NavbarProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [menuCartCount, setMenuCartCount] = useState(bagCount);
   const pathname = usePathname();
 
   // Function to check if a nav item is active
   const isNavItemActive = (href: string): boolean => {
     if (!pathname || !href) return false;
-    
+
     // Handle hash links (e.g., #collection, #archive)
     if (href.startsWith('#')) {
       return false; // Hash links don't correspond to routes, so never active
     }
-    
+
     // Handle absolute URLs
     if (href.startsWith('http')) {
       return false; // External links are never active
     }
-    
+
     // Handle relative paths
     // Remove leading slash for comparison
     const cleanHref = href.startsWith('/') ? href.slice(1) : href;
-    const cleanPathname = pathname.startsWith('/') ? pathname.slice(1) : pathname;
-    
+    const cleanPathname = pathname.startsWith('/')
+      ? pathname.slice(1)
+      : pathname;
+
     // Exact match
     if (cleanPathname === cleanHref) {
       return true;
     }
-    
+
     // Handle home page - if href is empty or '/' and pathname is 'home'
     if ((cleanHref === '' || cleanHref === '/') && cleanPathname === 'home') {
       return true;
     }
-    
+
     // Handle nested paths (e.g., /about matches /about/team)
     if (cleanPathname.startsWith(cleanHref + '/')) {
       return true;
     }
-    
+
     return false;
   };
-
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -147,7 +160,6 @@ export default function Navbar({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
 
   const brandDisplay = logoUrl ? (
     <img
@@ -189,28 +201,97 @@ export default function Navbar({
   } as React.CSSProperties;
 
   // Add class for bordered layout when position is relative or static (with border)
-  const showBorder = layout === 'bordered-centered' && (position === 'relative' || position === 'static');
+  const showBorder =
+    layout === 'bordered-centered' &&
+    (position === 'relative' || position === 'static');
   // Add margin class for bordered layout when position is absolute (without border)
-  const showAbsoluteMargin = layout === 'bordered-centered' && position === 'absolute';
-  
-  const baseLayoutClass = layout === 'centered'
-    ? `${styles.navbar} ${styles.navbarCentered} ${isScrolled ? styles.scrolled : ''}`
-    : layout === 'logo-center'
-    ? `${styles.navbar} ${styles.navbarLogoCenter} ${isScrolled ? styles.scrolled : ''}`
-    : layout === 'stacked'
-    ? `${styles.navbar} ${styles.navbarStacked} ${isScrolled ? styles.scrolled : ''}`
-    : layout === 'split'
-    ? `${styles.navbar} ${styles.navbarSplit} ${isScrolled ? styles.scrolled : ''}`
-    : layout === 'logo-left-items-left'
-    ? `${styles.navbar} ${styles.navbarLogoLeftItemsLeft} ${isScrolled ? styles.scrolled : ''}`
-    : layout === 'bordered-centered'
-    ? `${styles.navbar} ${styles.navbarBorderedCentered} ${showBorder ? styles.withBorder : ''} ${showAbsoluteMargin ? styles.absoluteMargin : ''} ${isScrolled ? styles.scrolled : ''}`
-    : `${styles.navbar} ${isScrolled ? styles.scrolled : ''}`;
+  const showAbsoluteMargin =
+    layout === 'bordered-centered' && position === 'absolute';
+
+  const baseLayoutClass =
+    layout === 'centered'
+      ? `${styles.navbar} ${styles.navbarCentered} ${isScrolled ? styles.scrolled : ''}`
+      : layout === 'logo-center'
+        ? `${styles.navbar} ${styles.navbarLogoCenter} ${isScrolled ? styles.scrolled : ''}`
+        : layout === 'stacked'
+          ? `${styles.navbar} ${styles.navbarStacked} ${isScrolled ? styles.scrolled : ''}`
+          : layout === 'split'
+            ? `${styles.navbar} ${styles.navbarSplit} ${isScrolled ? styles.scrolled : ''}`
+            : layout === 'logo-left-items-left'
+              ? `${styles.navbar} ${styles.navbarLogoLeftItemsLeft} ${isScrolled ? styles.scrolled : ''}`
+              : layout === 'bordered-centered'
+                ? `${styles.navbar} ${styles.navbarBorderedCentered} ${showBorder ? styles.withBorder : ''} ${showAbsoluteMargin ? styles.absoluteMargin : ''} ${isScrolled ? styles.scrolled : ''}`
+                : `${styles.navbar} ${isScrolled ? styles.scrolled : ''}`;
 
   const navbarClass = forceHamburgerMenu
     ? `${baseLayoutClass} ${styles.forceHamburger}`
     : baseLayoutClass;
   const navItems = [...leftNavItems, ...rightNavItems];
+
+  useEffect(() => {
+    if (!forceHamburgerMenu) {
+      setMenuCartCount(bagCount);
+      return;
+    }
+
+    const readMenuCartCount = () => {
+      try {
+        const raw = window.localStorage.getItem(MENU_CART_STORAGE_KEY);
+
+        if (!raw) {
+          setMenuCartCount(0);
+          return;
+        }
+
+        const parsed = JSON.parse(raw) as {
+          items?: Array<{ quantity?: number }>;
+        };
+
+        if (!Array.isArray(parsed.items)) {
+          setMenuCartCount(0);
+          return;
+        }
+
+        const nextCount = parsed.items.reduce(
+          (sum, item) =>
+            sum + (typeof item?.quantity === 'number' ? item.quantity : 0),
+          0,
+        );
+
+        setMenuCartCount(nextCount);
+      } catch {
+        setMenuCartCount(0);
+      }
+    };
+
+    const handleCartUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ itemCount?: number }>;
+
+      if (typeof customEvent.detail?.itemCount === 'number') {
+        setMenuCartCount(customEvent.detail.itemCount);
+        return;
+      }
+
+      readMenuCartCount();
+    };
+
+    readMenuCartCount();
+    window.addEventListener(
+      MENU_CART_UPDATED_EVENT,
+      handleCartUpdated as EventListener,
+    );
+    window.addEventListener('storage', readMenuCartCount);
+
+    return () => {
+      window.removeEventListener(
+        MENU_CART_UPDATED_EVENT,
+        handleCartUpdated as EventListener,
+      );
+      window.removeEventListener('storage', readMenuCartCount);
+    };
+  }, [bagCount, forceHamburgerMenu]);
+
+  const resolvedBagCount = forceHamburgerMenu ? menuCartCount : bagCount;
 
   // Stacked layout has a different structure
   if (layout === 'stacked') {
@@ -218,17 +299,58 @@ export default function Navbar({
       <>
         <nav className={navbarClass} style={navbarStyle}>
           {/* Mobile menu button */}
-          <button onClick={toggleSidebar} className={styles.menuButtonStacked} aria-label="Menu">
+          <button
+            onClick={toggleSidebar}
+            className={styles.menuButtonStacked}
+            aria-label="Menu"
+          >
             {isSidebarOpen ? (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M18 6L6 18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M6 6L18 18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
             ) : (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 12H21"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M3 6H21"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M3 18H21"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
             )}
           </button>
@@ -236,10 +358,8 @@ export default function Navbar({
           {/* Stacked layout container */}
           <div className={styles.stackedContainer}>
             {/* Logo on top */}
-            <div className={styles.stackedLogo}>
-              {brandDisplay}
-            </div>
-            
+            <div className={styles.stackedLogo}>{brandDisplay}</div>
+
             {/* Nav items and button below */}
             <div className={styles.stackedNav}>
               {leftNavItems.map((item, index) => (
@@ -269,9 +389,7 @@ export default function Navbar({
           </div>
 
           {/* Mobile logo center */}
-          <div className={styles.stackedLogoMobile}>
-            {brandDisplay}
-          </div>
+          <div className={styles.stackedLogoMobile}>{brandDisplay}</div>
         </nav>
 
         {/* Mobile Sidebar */}
@@ -282,10 +400,30 @@ export default function Navbar({
           <div onClick={toggleSidebar} className={styles.sidebarOverlay}></div>
 
           <div className={styles.sidebarContent}>
-            <button onClick={toggleSidebar} className={styles.closeButton} aria-label="Close">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <button
+              onClick={toggleSidebar}
+              className={styles.closeButton}
+              aria-label="Close"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M18 6L6 18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M6 6L18 18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
             </button>
 
@@ -296,7 +434,11 @@ export default function Navbar({
 
             <div className={styles.sidebarNavList}>
               {navItems.map((item, index) => (
-                <a key={`${item.href}-${index}`} href={item.href} className={styles.sidebarLink}>
+                <a
+                  key={`${item.href}-${index}`}
+                  href={item.href}
+                  className={styles.sidebarLink}
+                >
                   {item.label}
                 </a>
               ))}
@@ -318,17 +460,58 @@ export default function Navbar({
       <nav className={navbarClass} style={navbarStyle}>
         {/* Left Section - Menu button (mobile) / Nav Items or Logo (desktop) */}
         <div className={styles.leftSection}>
-          <button onClick={toggleSidebar} className={styles.menuButton} aria-label="Menu">
+          <button
+            onClick={toggleSidebar}
+            className={styles.menuButton}
+            aria-label="Menu"
+          >
             {isSidebarOpen ? (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M18 6L6 18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M6 6L18 18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
             ) : (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 12H21"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M3 6H21"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M3 18H21"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
             )}
           </button>
@@ -355,9 +538,7 @@ export default function Navbar({
             </div>
           ) : layout === 'logo-left-items-left' ? (
             <>
-              <div className={styles.brandLogo}>
-                {brandDisplay}
-              </div>
+              <div className={styles.brandLogo}>{brandDisplay}</div>
               <div className={styles.desktopNavLeft}>
                 {leftNavItems.map((item, index) => (
                   <a
@@ -380,18 +561,14 @@ export default function Navbar({
               </div>
             </>
           ) : (
-            <div className={styles.brandLogo}>
-              {brandDisplay}
-            </div>
+            <div className={styles.brandLogo}>{brandDisplay}</div>
           )}
         </div>
 
         {/* Center - Logo (mobile or logo-center/split layout) or Nav Items (centered/bordered-centered layout) */}
         <div className={styles.centerSection}>
           {forceHamburgerMenu ? (
-            <div className={styles.brandLogoMobile}>
-              {brandDisplay}
-            </div>
+            <div className={styles.brandLogoMobile}>{brandDisplay}</div>
           ) : layout === 'centered' || layout === 'bordered-centered' ? (
             <>
               {/* Desktop: Nav items */}
@@ -416,25 +593,17 @@ export default function Navbar({
                 ))}
               </div>
               {/* Mobile: Logo */}
-              <div className={styles.brandLogoMobile}>
-                {brandDisplay}
-              </div>
+              <div className={styles.brandLogoMobile}>{brandDisplay}</div>
             </>
           ) : layout === 'logo-center' || layout === 'split' ? (
             <>
               {/* Desktop: Logo in center */}
-              <div className={styles.brandLogoCenter}>
-                {brandDisplay}
-              </div>
+              <div className={styles.brandLogoCenter}>{brandDisplay}</div>
               {/* Mobile: Logo in center */}
-              <div className={styles.brandLogoMobile}>
-                {brandDisplay}
-              </div>
+              <div className={styles.brandLogoMobile}>{brandDisplay}</div>
             </>
           ) : (
-            <div className={styles.brandLogoMobile}>
-              {brandDisplay}
-            </div>
+            <div className={styles.brandLogoMobile}>{brandDisplay}</div>
           )}
         </div>
 
@@ -451,14 +620,35 @@ export default function Navbar({
               <a
                 href="/cart"
                 className={styles.menuCartLink}
-                aria-label={bagCount > 0 ? `Cart with ${bagCount} items` : 'Cart'}
+                aria-label={
+                  resolvedBagCount > 0
+                    ? `Cart with ${resolvedBagCount} items`
+                    : 'Cart'
+                }
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path d="M3 4H5L7.4 14.2C7.5 14.8 8 15.2 8.6 15.2H17.7C18.3 15.2 18.9 14.8 19 14.2L21 7.2H6.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="9.5" cy="19.2" r="1.5" fill="currentColor"/>
-                  <circle cx="17" cy="19.2" r="1.5" fill="currentColor"/>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3 4H5L7.4 14.2C7.5 14.8 8 15.2 8.6 15.2H17.7C18.3 15.2 18.9 14.8 19 14.2L21 7.2H6.2"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="9.5" cy="19.2" r="1.5" fill="currentColor" />
+                  <circle cx="17" cy="19.2" r="1.5" fill="currentColor" />
                 </svg>
-                {bagCount > 0 && <span className={styles.menuCartCount}>{bagCount}</span>}
+                {resolvedBagCount > 0 && (
+                  <span className={styles.menuCartCount}>
+                    {resolvedBagCount}
+                  </span>
+                )}
               </a>
             </div>
           ) : (
@@ -506,10 +696,30 @@ export default function Navbar({
         <div onClick={toggleSidebar} className={styles.sidebarOverlay}></div>
 
         <div className={styles.sidebarContent}>
-          <button onClick={toggleSidebar} className={styles.closeButton} aria-label="Close">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <button
+            onClick={toggleSidebar}
+            className={styles.closeButton}
+            aria-label="Close"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M18 6L6 18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <path
+                d="M6 6L18 18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
 
@@ -538,8 +748,11 @@ export default function Navbar({
               <a href="/signup" className={styles.sidebarActionLink}>
                 Sign Up
               </a>
-              <a href="/cart" className={`${styles.sidebarActionLink} ${styles.sidebarActionPrimary}`}>
-                Cart {bagCount > 0 ? `(${bagCount})` : ''}
+              <a
+                href="/cart"
+                className={`${styles.sidebarActionLink} ${styles.sidebarActionPrimary}`}
+              >
+                Cart {resolvedBagCount > 0 ? `(${resolvedBagCount})` : ''}
               </a>
             </div>
           )}
@@ -554,4 +767,3 @@ export default function Navbar({
     </>
   );
 }
-

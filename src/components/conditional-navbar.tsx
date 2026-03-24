@@ -14,15 +14,16 @@ import DynamicNavbar from './dynamic-navbar';
 
 export default function ConditionalNavbar() {
   const pathname = usePathname();
-  const isMenuPage = pathname?.startsWith('/menu');
+  const isMenuCheckoutPage = pathname?.startsWith('/menu/checkout');
+  const isMenuPage = pathname?.startsWith('/menu') && !isMenuCheckoutPage;
 
-  // Hide navbar on admin and dashboard routes
   const hideNavbar =
     pathname?.startsWith('/admin') ||
     pathname?.startsWith('/dashboard') ||
     pathname?.startsWith('/signup') ||
     pathname?.startsWith('/login') ||
-    pathname?.startsWith('/forgot-password');
+    pathname?.startsWith('/forgot-password') ||
+    isMenuCheckoutPage;
 
   if (hideNavbar) {
     return null;
@@ -31,7 +32,7 @@ export default function ConditionalNavbar() {
   return (
     <DynamicNavbar
       showLoadingSkeleton={false}
-      forceHamburgerMenu={isMenuPage}
+      forceHamburgerMenu={Boolean(isMenuPage)}
     />
   );
 }

@@ -7,6 +7,7 @@ interface MenuSectionProps {
   onQuickAdd: (item: MenuItem) => void;
   registerRef: (element: HTMLElement | null) => void;
   first?: boolean;
+  getItemQuantity?: (itemId: string) => number;
 }
 
 export function MenuSection({
@@ -15,6 +16,7 @@ export function MenuSection({
   onQuickAdd,
   registerRef,
   first = false,
+  getItemQuantity,
 }: MenuSectionProps) {
   return (
     <section
@@ -33,16 +35,23 @@ export function MenuSection({
         ) : null}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {category.items.map((item) => (
-          <MenuItemCard
-            key={item.id}
-            item={item}
-            onOpen={onOpenItem}
-            onQuickAdd={onQuickAdd}
-          />
-        ))}
-      </div>
+      {category.items.length ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {category.items.map((item) => (
+            <MenuItemCard
+              key={item.id}
+              item={item}
+              quantityInCart={getItemQuantity ? getItemQuantity(item.id) : 0}
+              onOpen={onOpenItem}
+              onQuickAdd={onQuickAdd}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-10 text-center text-stone-600 shadow-sm">
+          No items found
+        </div>
+      )}
     </section>
   );
 }

@@ -47,6 +47,20 @@ export interface MenuAddOn {
   price: number;
   image: string;
   required?: boolean;
+  modifierGroupId?: string;
+  modifierGroupName?: string;
+}
+
+export interface MenuModifierGroup {
+  id: string;
+  name: string;
+  description?: string;
+  minSelection?: number;
+  maxSelection?: number;
+  type?: string;
+  isRequired?: boolean;
+  isMultiSelect?: boolean;
+  items: MenuAddOn[];
 }
 
 export interface MenuItem {
@@ -56,10 +70,16 @@ export interface MenuItem {
   description: string;
   price: number;
   image: string;
-  likes: number;
-  points: number;
+  pickupPrice?: number;
+  deliveryPrice?: number;
+  likes?: number;
+  points?: number;
   badge?: string;
+  isBestSeller?: boolean;
+  isRecommended?: boolean;
+  inStock?: boolean;
   addOns?: MenuAddOn[];
+  modifierGroups?: MenuModifierGroup[];
 }
 
 export interface MenuCategory {

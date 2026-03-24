@@ -13,12 +13,14 @@ interface PopularItemsCarouselProps {
   items: MenuItem[];
   onOpenItem: (itemId: string) => void;
   onQuickAdd: (item: MenuItem) => void;
+  getItemQuantity?: (itemId: string) => number;
 }
 
 export function PopularItemsCarousel({
   items,
   onOpenItem,
   onQuickAdd,
+  getItemQuantity,
 }: PopularItemsCarouselProps) {
   const railRef = useRef<HTMLDivElement | null>(null);
 
@@ -59,49 +61,59 @@ export function PopularItemsCarousel({
         ref={railRef}
         className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       >
-        {items.map((item) => (
-          <article
-            key={item.id}
-            className="group w-[250px] shrink-0 snap-start cursor-pointer rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-            onClick={() => onOpenItem(item.id)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                onOpenItem(item.id);
-              }
-            }}
-          >
-            <div className="relative overflow-hidden rounded-t-2xl bg-stone-100">
-              {item.badge ? (
-                <div className="absolute left-3 top-3 z-10 rounded-full bg-white/95 px-2 py-1 text-xs font-medium text-stone-700 shadow-sm">
-                  {item.badge}
-                </div>
-              ) : null}
-              <img src={item.image} alt={item.name} className="h-40 w-full object-cover transition duration-300 group-hover:scale-105" />
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onQuickAdd(item);
-                }}
-                className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white text-stone-900 shadow-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-200"
-                aria-label={`Add ${item.name}`}
-              >
-                <PlusIcon className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="p-3">
-              <h3 className="mb-1 text-lg font-semibold text-stone-900">
-                {item.name}
-              </h3>
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-semibold text-stone-900">{formatPrice(item.price)}</span>
+        {items.map((item) => {
+          const quantityInCart = getItemQuantity ? getItemQuantity(item.id) : 0;
+
+          return (
+            <article
+              key={item.id}
+              className="group w-[250px] shrink-0 snap-start cursor-pointer rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              onClick={() => onOpenItem(item.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onOpenItem(item.id);
+                }
+              }}
+            >
+              <div className="relative overflow-hidden rounded-t-2xl bg-stone-100">
+                {item.badge ? (
+                  <div className="absolute left-3 top-3 z-10 rounded-full bg-white/95 px-2 py-1 text-xs font-medium text-stone-700 shadow-sm">
+                    {item.badge}
+                  </div>
+                ) : null}
+                <img src={item.image} alt={item.name} className="h-40 w-full object-cover transition duration-300 group-hover:scale-105" />
+                {item.inStock !== false ? (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onQuickAdd(item);
+                    }}
+                    className={`absolute bottom-3 right-3 flex items-center justify-center shadow-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-200 ${
+                      quantityInCart > 0
+                        ? 'h-10 min-w-[2.5rem] rounded-2xl bg-black px-3 text-sm font-semibold text-white'
+                        : 'h-8 w-8 rounded-full bg-white text-stone-900'
+                    }`}
+                    aria-label={`Add ${item.name}`}
+                  >
+                    {quantityInCart > 0 ? quantityInCart : <PlusIcon className="h-4 w-4" />}
+                  </button>
+                ) : null}
               </div>
-            </div>
-          </article>
-        ))}
+              <div className="p-3">
+                <h3 className="mb-1 text-lg font-semibold text-stone-900">
+                  {item.name}
+                </h3>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-semibold text-stone-900">{formatPrice(item.price)}</span>
+                </div>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </section>
   );

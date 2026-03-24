@@ -4,9 +4,10 @@ import type { RestaurantRewards } from '@/features/restaurant-menu/types/restaur
 interface RewardsBannerProps {
   rewards: RestaurantRewards;
   brandName?: string;
+  onCtaClick?: () => void;
 }
 
-export function RewardsBanner({ rewards, brandName }: RewardsBannerProps) {
+export function RewardsBanner({ rewards, brandName, onCtaClick }: RewardsBannerProps) {
   const normalizedBrandName = brandName?.trim();
   const normalizedMessage = rewards.message.trim();
   const messageBody = normalizedMessage
@@ -34,6 +35,7 @@ export function RewardsBanner({ rewards, brandName }: RewardsBannerProps) {
         </div>
         <button
           type="button"
+          onClick={onCtaClick}
           className="inline-flex self-start whitespace-nowrap rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:self-center"
         >
           {rewards.ctaLabel}

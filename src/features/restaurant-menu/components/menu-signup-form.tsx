@@ -1,75 +1,38 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  useAuthenticationStatus,
-  useHasuraClaims,
-  useSignInEmailPassword,
-  useUserData,
-} from '@nhost/react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { getRoleFromHasuraClaims, getUserRole } from '@/lib/auth/get-user-role';
-import { getRoleDashboardRoute } from '@/lib/auth/routes';
-import { isNhostConfigured } from '@/lib/nhost';
 import { signupSchema, type SignupFormValues } from '@/lib/validation/auth';
 import {
   buildCustomerAuthHref,
+  CUSTOMER_DEFAULT_AUTH_REDIRECT,
   CUSTOMER_LOGIN_ROUTE,
   resolveCustomerNextPath,
 } from '@/features/restaurant-menu/lib/customer-auth';
 import { MenuAuthInput } from '@/features/restaurant-menu/components/menu-auth-input';
+import type { MenuCustomerProfile } from '@/features/restaurant-menu/lib/customer-profile';
 
 interface MenuSignupFormProps {
-  onAuthenticatedUser?: () => void;
+  restaurantId?: string | null;
+  onAuthenticatedUser?: (customer: MenuCustomerProfile) => void;
   onRequestLogin?: () => void;
 }
 
-function wait(durationMs: number) {
-  return new Promise((resolve) => window.setTimeout(resolve, durationMs));
-}
-
-export function MenuSignupForm({ onAuthenticatedUser, onRequestLogin }: MenuSignupFormProps) {
+export function MenuSignupForm({
+  restaurantId,
+  onAuthenticatedUser,
+  onRequestLogin,
+}: MenuSignupFormProps) {
   const router = useRouter();
+  const pathname = usePathname() ?? '';
   const searchParams = useSearchParams() ?? new URLSearchParams();
   const nextPath = resolveCustomerNextPath(searchParams.get('next'));
+  const resolvedRestaurantId = restaurantId || searchParams.get('restaurantId');
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { isAuthenticated, isLoading: isStatusLoading } = useAuthenticationStatus();
-  const user = useUserData();
-  const hasuraClaims = useHasuraClaims();
-  const roleFromClaims = getRoleFromHasuraClaims(hasuraClaims);
-  const { signInEmailPassword, isLoading: isSigningIn } = useSignInEmailPassword();
-
-  useEffect(() => {
-    if (isStatusLoading || !isAuthenticated) {
-      return;
-    }
-
-    const resolvedRole = roleFromClaims || (user ? getUserRole(user) : null);
-
-    if (resolvedRole && resolvedRole !== 'user') {
-      router.replace(getRoleDashboardRoute(resolvedRole));
-      return;
-    }
-
-    if (onAuthenticatedUser) {
-      onAuthenticatedUser();
-      return;
-    }
-
-    router.replace(nextPath);
-  }, [
-    isAuthenticated,
-    isStatusLoading,
-    nextPath,
-    onAuthenticatedUser,
-    roleFromClaims,
-    router,
-    user,
-  ]);
 
   const {
     register,
@@ -90,67 +53,58 @@ export function MenuSignupForm({ onAuthenticatedUser, onRequestLogin }: MenuSign
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
 
-    if (!isNhostConfigured) {
-      setFormError(
-        'Nhost is not configured. Add NEXT_PUBLIC_NHOST_SUBDOMAIN and NEXT_PUBLIC_NHOST_REGION in .env.local and restart the dev server.',
-      );
+    if (!resolvedRestaurantId) {
+      setFormError('Restaurant context is missing. Return to the menu and try again.');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/auth/signup-user', {
+      const response = await fetch('/api/menu-auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'same-origin',
         body: JSON.stringify({
+          restaurantId: resolvedRestaurantId,
           firstName: values.firstName,
           lastName: values.lastName,
           email: values.email,
-          phoneNumber: values.phone,
+          phone: values.phone,
           password: values.password,
         }),
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | { error?: string }
+        | { error?: string; customer?: MenuCustomerProfile }
         | null;
 
-      if (!response.ok) {
+      if (!response.ok || !payload?.customer) {
         setFormError(payload?.error ?? 'Unable to create account.');
         return;
       }
 
-      const retryDelays = [0, 300, 700, 1200];
-      let autoSignInError: string | null = null;
-
-      for (const delayMs of retryDelays) {
-        if (delayMs > 0) {
-          await wait(delayMs);
-        }
-
-        const signInResult = await signInEmailPassword(values.email, values.password);
-
-        if (!signInResult.error) {
-          autoSignInError = null;
-          break;
-        }
-
-        autoSignInError = signInResult.error.message ?? 'Automatic sign-in failed.';
+      if (onAuthenticatedUser) {
+        onAuthenticatedUser(payload.customer);
+        return;
       }
 
-      if (autoSignInError) {
-        setFormError('Account created, but automatic sign-in could not be completed. Please sign in once.');
-      }
+      const destination =
+        nextPath === pathname ? CUSTOMER_DEFAULT_AUTH_REDIRECT : nextPath;
+      router.replace(destination);
+      router.refresh();
     } finally {
       setIsSubmitting(false);
     }
   });
 
-  const loginHref = buildCustomerAuthHref(CUSTOMER_LOGIN_ROUTE, nextPath);
-  const isBusy = isSubmitting || isSigningIn;
+  const loginHref = buildCustomerAuthHref(
+    CUSTOMER_LOGIN_ROUTE,
+    nextPath,
+    resolvedRestaurantId,
+  );
 
   return (
     <div className="space-y-5">
@@ -210,38 +164,38 @@ export function MenuSignupForm({ onAuthenticatedUser, onRequestLogin }: MenuSign
           {...register('confirmPassword')}
         />
 
-        <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 text-xs leading-6 text-slate-600">
+        <div className="rounded-2xl border border-stone-200 bg-white px-4 py-4 text-xs leading-6 text-stone-600 shadow-sm">
           Password must be at least 8 characters and should include a mix of letters and numbers.
         </div>
 
         {formError ? (
-          <div className="rounded-2xl border border-black/10 bg-black/[0.03] px-4 py-3 text-sm text-slate-900">
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-900 shadow-sm">
             {formError}
           </div>
         ) : null}
 
         <button
           type="submit"
-          className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-black px-5 text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/10 disabled:cursor-not-allowed disabled:bg-stone-300"
-          disabled={isBusy}
+          className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-stone-900 px-5 text-sm font-semibold text-stone-50 shadow-[0_18px_34px_rgba(28,25,23,0.18)] transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/20 disabled:cursor-not-allowed disabled:bg-stone-300"
+          disabled={isSubmitting}
         >
-          {isSigningIn ? 'Signing you in...' : isSubmitting ? 'Creating account...' : 'Create Account'}
+          {isSubmitting ? 'Creating account...' : 'Create Account'}
         </button>
       </form>
 
-      <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 text-center text-sm text-slate-700">
+      <div className="rounded-2xl border border-stone-200 bg-white px-4 py-4 text-center text-sm text-stone-700 shadow-sm">
         <p>
           Already have an account?{' '}
           {onRequestLogin ? (
             <button
               type="button"
               onClick={onRequestLogin}
-              className="font-semibold text-black transition hover:text-slate-700"
+              className="font-semibold text-stone-900 transition hover:text-stone-700"
             >
               Sign in
             </button>
           ) : (
-            <Link href={loginHref} className="font-semibold text-black transition hover:text-slate-700">
+            <Link href={loginHref} className="font-semibold text-stone-900 transition hover:text-stone-700">
               Sign in
             </Link>
           )}

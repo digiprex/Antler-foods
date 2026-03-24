@@ -25,15 +25,15 @@ export function FulfillmentSelector({
   onDeliveryAddressChange,
 }: FulfillmentSelectorProps) {
   return (
-    <section className="space-y-4">
-      <div className="grid grid-cols-2 rounded-[24px] bg-[#e8e4de] p-1.5 shadow-sm">
+    <section className="space-y-3">
+      <div className="grid grid-cols-2 rounded-[20px] border border-stone-200 bg-stone-100 p-1">
         <button
           type="button"
           onClick={() => onModeSelect('pickup')}
-          className={`flex h-14 items-center justify-center gap-2 rounded-[20px] text-base font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 ${
+          className={`flex h-11 items-center justify-center gap-2 rounded-[16px] text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 ${
             mode === 'pickup'
-              ? 'bg-white text-slate-950 shadow-sm'
-              : 'text-slate-500 hover:text-slate-900'
+              ? 'bg-stone-900 text-stone-50 shadow-sm'
+              : 'text-stone-600 hover:text-stone-950'
           }`}
         >
           <BagIcon className="h-4 w-4" />
@@ -42,10 +42,10 @@ export function FulfillmentSelector({
         <button
           type="button"
           onClick={() => onModeSelect('delivery')}
-          className={`flex h-14 items-center justify-center gap-2 rounded-[20px] text-base font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 ${
+          className={`flex h-11 items-center justify-center gap-2 rounded-[16px] text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 ${
             mode === 'delivery'
-              ? 'bg-white text-slate-950 shadow-sm'
-              : 'text-slate-500 hover:text-slate-900'
+              ? 'bg-stone-900 text-stone-50 shadow-sm'
+              : 'text-stone-600 hover:text-stone-950'
           }`}
         >
           <BikeIcon className="h-4 w-4" />
@@ -53,30 +53,35 @@ export function FulfillmentSelector({
         </button>
       </div>
 
-      {mode === 'pickup' && onOpenSchedule && (
+      {mode === 'pickup' && onOpenSchedule ? (
         <button
           type="button"
           onClick={onOpenSchedule}
-          className="flex h-16 w-full items-center justify-between gap-3 rounded-[24px] border border-black/10 bg-white px-5 text-left shadow-sm transition hover:border-black/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+          className="flex min-h-[3.9rem] w-full items-center justify-between gap-3 rounded-[20px] border border-stone-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-stone-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
         >
           <span className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f4f1ec] text-slate-700">
-              <MapPinIcon className="h-5 w-5" />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-100 text-stone-900">
+              <MapPinIcon className="h-4 w-4" />
             </span>
-            <span className="truncate text-base font-semibold text-slate-900">
-              {locationLabel || 'Select pickup date & time'}
+            <span className="min-w-0">
+              <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+                Pickup details
+              </span>
+              <span className="mt-0.5 block truncate text-sm font-semibold text-stone-900">
+                {locationLabel || 'Select pickup date and time'}
+              </span>
             </span>
           </span>
-          <ChevronDownIcon className="h-5 w-5 shrink-0 text-slate-500" />
+          <ChevronDownIcon className="h-4 w-4 shrink-0 text-stone-500" />
         </button>
-      )}
+      ) : null}
 
-      {mode === 'delivery' && (
+      {mode === 'delivery' ? (
         <DeliveryAddressInput
           value={deliveryAddress}
           onChange={onDeliveryAddressChange || (() => {})}
         />
-      )}
+      ) : null}
     </section>
   );
 }

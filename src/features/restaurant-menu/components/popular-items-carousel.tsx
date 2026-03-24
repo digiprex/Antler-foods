@@ -26,22 +26,27 @@ export function PopularItemsCarousel({
 
   const scrollRail = (direction: 'left' | 'right') => {
     railRef.current?.scrollBy({
-      left: direction === 'left' ? -360 : 360,
+      left: direction === 'left' ? -320 : 320,
       behavior: 'smooth',
     });
   };
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-3">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-2xl font-bold tracking-tight text-stone-900">
-          Popular
-        </h2>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+            Recommended
+          </p>
+          <h2 className="mt-1 text-xl font-semibold tracking-tight text-stone-950 sm:text-[1.7rem]">
+            Popular right now
+          </h2>
+        </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => scrollRail('left')}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-600 transition hover:border-stone-300 hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-200"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-700 shadow-sm transition hover:border-stone-300 hover:bg-stone-50 hover:text-stone-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
             aria-label="Scroll popular items left"
           >
             <ChevronLeftIcon className="h-4 w-4" />
@@ -49,7 +54,7 @@ export function PopularItemsCarousel({
           <button
             type="button"
             onClick={() => scrollRail('right')}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-600 transition hover:border-stone-300 hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-200"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-700 shadow-sm transition hover:border-stone-300 hover:bg-stone-50 hover:text-stone-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
             aria-label="Scroll popular items right"
           >
             <ChevronRightIcon className="h-4 w-4" />
@@ -59,7 +64,7 @@ export function PopularItemsCarousel({
 
       <div
         ref={railRef}
-        className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       >
         {items.map((item) => {
           const quantityInCart = getItemQuantity ? getItemQuantity(item.id) : 0;
@@ -67,7 +72,7 @@ export function PopularItemsCarousel({
           return (
             <article
               key={item.id}
-              className="group w-[250px] shrink-0 snap-start cursor-pointer rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="group w-[240px] shrink-0 snap-start cursor-pointer overflow-hidden rounded-[22px] border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               onClick={() => onOpenItem(item.id)}
               role="button"
               tabIndex={0}
@@ -78,13 +83,13 @@ export function PopularItemsCarousel({
                 }
               }}
             >
-              <div className="relative overflow-hidden rounded-t-2xl bg-stone-100">
+              <div className="relative overflow-hidden bg-stone-100">
                 {item.badge ? (
-                  <div className="absolute left-3 top-3 z-10 rounded-full bg-white/95 px-2 py-1 text-xs font-medium text-stone-700 shadow-sm">
+                  <div className="absolute left-3 top-3 z-10 rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-stone-700 shadow-sm">
                     {item.badge}
                   </div>
                 ) : null}
-                <img src={item.image} alt={item.name} className="h-40 w-full object-cover transition duration-300 group-hover:scale-105" />
+                <img src={item.image} alt={item.name} className="h-40 w-full object-cover transition duration-500 group-hover:scale-105" />
                 {item.inStock !== false ? (
                   <button
                     type="button"
@@ -92,10 +97,10 @@ export function PopularItemsCarousel({
                       event.stopPropagation();
                       onQuickAdd(item);
                     }}
-                    className={`absolute bottom-3 right-3 flex items-center justify-center shadow-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-200 ${
+                    className={`absolute bottom-3 right-3 flex items-center justify-center shadow-lg transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 ${
                       quantityInCart > 0
-                        ? 'h-10 min-w-[2.5rem] rounded-2xl bg-black px-3 text-sm font-semibold text-white'
-                        : 'h-8 w-8 rounded-full bg-white text-stone-900'
+                        ? 'h-9 min-w-[2.5rem] rounded-full bg-stone-900 px-3.5 text-sm font-semibold text-stone-50'
+                        : 'h-9 w-9 rounded-full border border-stone-200 bg-white text-stone-900'
                     }`}
                     aria-label={`Add ${item.name}`}
                   >
@@ -103,12 +108,13 @@ export function PopularItemsCarousel({
                   </button>
                 ) : null}
               </div>
-              <div className="p-3">
-                <h3 className="mb-1 text-lg font-semibold text-stone-900">
+              <div className="space-y-1.5 p-3.5">
+                <h3 className="text-base font-semibold leading-tight text-stone-950">
                   {item.name}
                 </h3>
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-semibold text-stone-900">{formatPrice(item.price)}</span>
+                  <span className="text-[10px] uppercase tracking-[0.14em] text-stone-500">Popular</span>
                 </div>
               </div>
             </article>

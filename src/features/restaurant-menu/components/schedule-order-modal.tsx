@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ChevronDownIcon, ChevronLeftIcon } from '@/features/restaurant-menu/components/icons';
+import { ChevronDownIcon } from '@/features/restaurant-menu/components/icons';
 import { ModalShell } from '@/features/restaurant-menu/components/modal-shell';
 import type {
   ScheduleDay,
@@ -39,19 +39,20 @@ export function ScheduleOrderModal({
     days.find((day) => day.id === tempSelection.dayId) || visibleDays[0] || days[0];
 
   return (
-    <ModalShell open={open} onClose={onClose} maxWidthClassName="max-w-[500px]">
-      <div className="flex max-h-[85vh] flex-col overflow-hidden px-6 py-5">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-slate-950">
+    <ModalShell open={open} onClose={onClose} maxWidthClassName="max-w-[520px]">
+      <div className="flex max-h-[85vh] flex-col overflow-hidden px-6 py-5 sm:px-7 sm:py-6">
+        <div className="mb-6 pr-12">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500">
+            Schedule
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-stone-950">
             Order time
           </h2>
         </div>
 
-        {/* Days Grid */}
         <div className="mb-6 grid grid-cols-2 gap-3">
           {visibleDays.map((day) => {
             const isSelected = tempSelection.dayId === day.id;
-            const isToday = day.label.toLowerCase() === 'tomorrow';
             const isClosed = day.slots.length === 0;
 
             return (
@@ -65,16 +66,16 @@ export function ScheduleOrderModal({
                   })
                 }
                 disabled={isClosed}
-                className={`flex flex-col items-start gap-1 rounded-xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 ${
+                className={`flex flex-col items-start gap-1 rounded-[22px] border px-4 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 ${
                   isSelected
-                    ? 'border-black bg-black text-white'
+                    ? 'border-stone-900 bg-stone-900 text-stone-50 shadow-[0_12px_24px_rgba(28,25,23,0.16)]'
                     : isClosed
-                      ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                      : 'border-gray-200 bg-white text-slate-900 hover:border-gray-300'
+                      ? 'cursor-not-allowed border-stone-200 bg-stone-100 text-stone-400'
+                      : 'border-stone-200 bg-white text-stone-900 hover:border-stone-300 hover:bg-stone-50'
                 }`}
               >
-                <span className="text-sm font-medium">{day.label}</span>
-                <span className="text-sm">
+                <span className="text-sm font-semibold">{day.label}</span>
+                <span className="text-sm opacity-80">
                   {isClosed ? 'Orders closed' : day.dateLabel}
                 </span>
               </button>
@@ -82,29 +83,34 @@ export function ScheduleOrderModal({
           })}
         </div>
 
-        {/* Show More/Less Button */}
-        {days.length > 2 && (
+        {days.length > 2 ? (
           <button
             type="button"
             onClick={() => setShowAllDays((current) => !current)}
-            className="mb-6 flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+            className="mb-6 flex items-center justify-center gap-2 rounded-[18px] border border-stone-200 bg-white px-4 py-3 text-sm font-semibold text-stone-700 shadow-sm transition hover:border-stone-300 hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
           >
             {showAllDays ? 'Less dates' : 'More dates'}
             <ChevronDownIcon className={`h-4 w-4 transition ${showAllDays ? 'rotate-180' : ''}`} />
           </button>
-        )}
+        ) : null}
 
-        {/* Time Slots - Scrollable */}
-        <div className="flex-1 overflow-y-auto mb-4">
-          <div className="space-y-3 pr-2">
+        <div className="mb-4 flex-1 overflow-y-auto pr-1">
+          <div className="space-y-3">
             {selectedDay?.slots.map((slot) => {
               const checked = tempSelection.dayId === selectedDay.id && tempSelection.time === slot;
 
               return (
                 <label
                   key={`${selectedDay.id}-${slot}`}
-                  className="flex cursor-pointer items-center gap-3"
+                  className={`flex cursor-pointer items-center justify-between gap-3 rounded-[18px] border px-4 py-3 transition ${
+                    checked
+                      ? 'border-stone-900 bg-stone-50'
+                      : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50'
+                  }`}
                 >
+                  <span className="text-base font-medium text-stone-900">
+                    {slot}
+                  </span>
                   <input
                     type="radio"
                     name="schedule-slot"
@@ -115,24 +121,20 @@ export function ScheduleOrderModal({
                         time: slot,
                       })
                     }
-                    className="h-5 w-5 accent-black"
+                    className="h-5 w-5 accent-stone-900"
                   />
-                  <span className="text-base font-medium text-slate-900">
-                    {slot}
-                  </span>
                 </label>
               );
             })}
           </div>
         </div>
 
-        {/* Schedule Button - Fixed at bottom */}
-        <div className="border-t border-gray-100 pt-4">
+        <div className="border-t border-stone-200 pt-4">
           <button
             type="button"
             onClick={() => onConfirm(tempSelection)}
             disabled={!tempSelection.dayId || !tempSelection.time}
-            className="w-full flex h-12 items-center justify-center rounded-xl bg-black text-base font-medium text-white transition hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
+            className="flex h-11 w-full items-center justify-center rounded-[18px] bg-stone-900 text-sm font-semibold text-stone-50 shadow-[0_16px_32px_rgba(28,25,23,0.16)] transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-500"
           >
             Schedule order
           </button>

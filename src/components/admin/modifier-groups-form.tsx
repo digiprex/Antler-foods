@@ -31,6 +31,16 @@ interface ModifierGroup {
   is_deleted: boolean;
 }
 
+interface ModifierItem {
+  modifier_item_id: string;
+  name: string;
+  price: number;
+  modifier_group_id: string;
+  created_at: string;
+  updated_at: string;
+  is_deleted: boolean;
+}
+
 export default function ModifierGroupsForm() {
   const router = useRouter();
   const searchParams = useSearchParams() ?? new URLSearchParams();
@@ -60,15 +70,38 @@ export default function ModifierGroupsForm() {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch('/api/modifier-groups');
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch modifier groups');
+
+      const [groupsResponse, itemsResponse] = await Promise.all([
+        fetch('/api/modifier-groups'),
+        fetch('/api/modifier-items'),
+      ]);
+      const [groupsData, itemsData] = await Promise.all([
+        groupsResponse.json(),
+        itemsResponse.json(),
+      ]);
+
+      if (!groupsResponse.ok) {
+        throw new Error(groupsData.error || 'Failed to fetch modifier groups');
       }
-      
-      setModifierGroups(data.modifier_groups || []);
+
+      if (!itemsResponse.ok) {
+        throw new Error(itemsData.error || 'Failed to fetch modifier items');
+      }
+
+      const modifierItemsByGroupId = new Map<string, ModifierItem[]>();
+
+      for (const item of (itemsData.modifier_items || []) as ModifierItem[]) {
+        const existingItems = modifierItemsByGroupId.get(item.modifier_group_id) || [];
+        existingItems.push(item);
+        modifierItemsByGroupId.set(item.modifier_group_id, existingItems);
+      }
+
+      setModifierGroups(
+        ((groupsData.modifier_groups || []) as ModifierGroup[]).map((group) => ({
+          ...group,
+          modifier_items: modifierItemsByGroupId.get(group.modifier_group_id) || group.modifier_items || [],
+        })),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch modifier groups');
     } finally {
@@ -221,7 +254,13 @@ export default function ModifierGroupsForm() {
         }
         
         // Add to local state
-        setModifierGroups((prevGroups) => [...prevGroups, data.modifier_group]);
+        setModifierGroups((prevGroups) => [
+          ...prevGroups,
+          {
+            ...data.modifier_group,
+            modifier_items: [],
+          },
+        ]);
         setShowCreateGroup(false);
       } else if (showEditGroup && selectedGroup) {
         // Update existing modifier group
@@ -245,7 +284,13 @@ export default function ModifierGroupsForm() {
         // Update local state
         setModifierGroups((prevGroups) =>
           prevGroups.map((group) =>
-            group.modifier_group_id === selectedGroup.modifier_group_id ? data.modifier_group : group,
+            group.modifier_group_id === selectedGroup.modifier_group_id
+              ? {
+                  ...group,
+                  ...data.modifier_group,
+                  modifier_items: group.modifier_items,
+                }
+              : group,
           ),
         );
         setShowEditGroup(false);

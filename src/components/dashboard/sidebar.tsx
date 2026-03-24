@@ -242,6 +242,17 @@ export function Sidebar({
           label: 'Domain Settings',
           icon: <DomainIcon />,
         },
+        {
+          href: buildRestaurantScopedHref(
+            `/admin/qr-codes`,
+            selectedRestaurant,
+          ),
+          label: 'QR Codes',
+          icon: <QRCodeIcon />,
+          matchPrefixes: [
+            `/admin/qr-codes`
+          ],
+        },
       ]
     : [];
 
@@ -959,6 +970,30 @@ function MenuManagementIcon() {
       <path d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
       <path d="M10 12h4" />
       <path d="M10 16h4" />
+    </svg>
+  );
+}
+
+function QRCodeIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="6" height="6" rx="1" />
+      <rect x="15" y="3" width="6" height="6" rx="1" />
+      <rect x="3" y="15" width="6" height="6" rx="1" />
+      <path d="M15 15h6v6h-6z" />
+      <path d="M6 6h.01" />
+      <path d="M18 6h.01" />
+      <path d="M6 18h.01" />
+      <path d="M18 18h.01" />
     </svg>
   );
 }

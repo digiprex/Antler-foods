@@ -305,7 +305,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
     if (pathname.startsWith('/website')) {
       const nextSuffix = pathname.slice('/website'.length);
-      router.replace(`/dashboard/${roleRouteSegment}/website${nextSuffix}`);
+      const normalizedSuffix =
+        nextSuffix === '' || nextSuffix === '/'
+          ? '/pages-settings'
+          : nextSuffix;
+      router.replace(
+        `/dashboard/${roleRouteSegment}/website${normalizedSuffix}`,
+      );
     }
   }, [
     expectedRoleRouteSegment,

@@ -12,11 +12,11 @@ export function CompactQuantityStepper({
   onIncrease,
 }: CompactQuantityStepperProps) {
   return (
-    <div className="inline-flex items-center rounded-2xl border border-stone-200 bg-[#fcfbf8] shadow-sm">
+    <div className="inline-flex items-center rounded-2xl border border-stone-200 bg-white shadow-sm">
       <button
         type="button"
         onClick={onDecrease}
-        className="flex h-11 w-11 items-center justify-center rounded-l-2xl text-slate-500 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+        className="flex h-10 w-10 items-center justify-center rounded-l-2xl text-slate-500 transition hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
         aria-label="Decrease quantity"
       >
         <MinusIcon className="h-3.5 w-3.5" />
@@ -27,7 +27,7 @@ export function CompactQuantityStepper({
       <button
         type="button"
         onClick={onIncrease}
-        className="flex h-11 w-11 items-center justify-center rounded-r-2xl text-slate-500 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+        className="flex h-10 w-10 items-center justify-center rounded-r-2xl text-slate-500 transition hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
         aria-label="Increase quantity"
       >
         <PlusIcon className="h-3.5 w-3.5" />

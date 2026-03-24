@@ -103,6 +103,7 @@ export interface ServiceOption {
 }
 
 export interface RestaurantMenuData {
+  restaurantId?: string | null;
   slug: string;
   announcement: string;
   brand: RestaurantBrand;
@@ -140,3 +141,5 @@ export interface AddCartItemInput {
   notes?: string;
   selectedAddOns?: MenuAddOn[];
 }
+
+

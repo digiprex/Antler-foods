@@ -18,9 +18,9 @@ export const MenuAuthInput = forwardRef<HTMLInputElement, MenuAuthInputProps>(
     const resolvedId = id ?? label.toLowerCase().replace(/\s+/g, '-');
 
     const inputClassName = [
-      'h-12 w-full rounded-2xl border bg-white px-4 text-sm font-medium text-slate-950 outline-none transition',
-      'placeholder:text-slate-400 focus:border-black focus:ring-2 focus:ring-black/10',
-      error ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10' : 'border-stone-300 hover:border-stone-400',
+      'h-12 w-full rounded-2xl border bg-white px-4 text-sm font-medium text-stone-900 outline-none transition',
+      'placeholder:text-stone-400 focus:border-stone-500 focus:bg-white focus:ring-2 focus:ring-stone-900/5',
+      error ? 'border-red-300 focus:border-red-400' : 'border-stone-200 hover:border-stone-300',
       isPasswordField ? 'pr-12' : '',
       className ?? '',
     ]
@@ -29,7 +29,7 @@ export const MenuAuthInput = forwardRef<HTMLInputElement, MenuAuthInputProps>(
 
     return (
       <div className="space-y-2">
-        <label htmlFor={resolvedId} className="block text-sm font-medium text-slate-900">
+        <label htmlFor={resolvedId} className="block text-sm font-semibold text-stone-900">
           {label}
         </label>
         <div className="relative">
@@ -47,13 +47,13 @@ export const MenuAuthInput = forwardRef<HTMLInputElement, MenuAuthInputProps>(
               aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
               aria-pressed={isPasswordVisible}
               onClick={() => setIsPasswordVisible((previous) => !previous)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-2 text-slate-400 transition hover:bg-stone-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/10"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-2 text-stone-400 transition hover:bg-stone-100 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
             >
               {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           ) : null}
         </div>
-        {error ? <p className="text-xs font-medium text-red-600">{error}</p> : null}
+        {error ? <p className="text-xs font-semibold text-red-600">{error}</p> : null}
       </div>
     );
   },

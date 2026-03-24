@@ -1,10 +1,22 @@
 import type { User } from '@nhost/nhost-js';
 
 export interface MenuCustomerProfile {
+  customerId?: string | null;
+  restaurantId?: string | null;
   name: string;
   email: string;
   phone: string | null;
   initials: string;
+  isGuest?: boolean;
+}
+
+interface CreateMenuCustomerProfileInput {
+  customerId?: string | null;
+  restaurantId?: string | null;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  isGuest?: boolean;
 }
 
 function readRecord(value: unknown): Record<string, unknown> | null {
@@ -34,6 +46,31 @@ function getInitials(name: string, email: string) {
   return email.slice(0, 2).toUpperCase();
 }
 
+export function createMenuCustomerProfile({
+  customerId = null,
+  restaurantId = null,
+  name,
+  email,
+  phone = null,
+  isGuest = false,
+}: CreateMenuCustomerProfileInput): MenuCustomerProfile {
+  const resolvedEmail = readString(email) || '';
+  const resolvedName =
+    readString(name) ||
+    resolvedEmail.split('@')[0] ||
+    (isGuest ? 'Guest' : 'Customer');
+
+  return {
+    customerId,
+    restaurantId,
+    name: resolvedName,
+    email: resolvedEmail,
+    phone: readString(phone),
+    initials: getInitials(resolvedName, resolvedEmail || 'CU'),
+    isGuest,
+  };
+}
+
 export function getMenuCustomerProfile(user: User | null | undefined): MenuCustomerProfile | null {
   if (!user) {
     return null;
@@ -49,16 +86,12 @@ export function getMenuCustomerProfile(user: User | null | undefined): MenuCusto
     readString(metadata?.phone) ||
     readString((readRecord(user) ?? {}).phoneNumber);
   const derivedName = `${firstName || ''} ${lastName || ''}`.trim();
-  const name =
-    derivedName ||
-    displayName ||
-    email.split('@')[0] ||
-    'Customer';
 
-  return {
-    name,
+  return createMenuCustomerProfile({
+    customerId: readString((readRecord(user) ?? {}).id),
+    name: derivedName || displayName || undefined,
     email,
     phone,
-    initials: getInitials(name, email || 'CU'),
-  };
+    isGuest: false,
+  });
 }

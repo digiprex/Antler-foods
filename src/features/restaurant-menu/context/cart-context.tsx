@@ -11,6 +11,7 @@ import type {
   AddCartItemInput,
   CartItem,
 } from '@/features/restaurant-menu/types/restaurant-menu.types';
+import { useAnalytics } from '@/lib/analytics';
 
 export const MENU_CART_STORAGE_KEY = 'restaurant-menu-cart-v1';
 export const MENU_CART_UPDATED_EVENT = 'restaurant-menu-cart-updated';
@@ -86,6 +87,7 @@ function readStoredItems() {
 
 export function CartProvider({ children }: PropsWithChildren) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const { trackAddToCart } = useAnalytics();
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -113,6 +115,15 @@ export function CartProvider({ children }: PropsWithChildren) {
 
     setItems((currentItems) => {
       const existingItem = currentItems.find((item) => item.key === key);
+
+      // Track analytics event for add to cart
+      trackAddToCart({
+        item_name: input.item.name,
+        item_id: input.item.id,
+        price: input.item.price,
+        quantity: input.quantity,
+        category: input.item.categoryId || 'menu_item',
+      });
 
       if (existingItem) {
         return currentItems.map((item) =>

@@ -327,16 +327,9 @@ export default function SelectThemeForm() {
         throw new Error(data.error || 'Failed to initialize website');
       }
 
-      // Simulate step progression for better UX
-      for (let i = 1; i < initializationSteps.length; i++) {
-        updateStepStatus(i, 'completed');
-        if (i < initializationSteps.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 800)); // Brief delay between steps
-        }
-      }
-
-      // Small delay before navigation to show completion
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      updateStepStatus(1, 'completed');
+      setCurrentStep(initializationSteps.length - 1);
+      setStepStatus(initializationSteps.map(() => 'completed'));
 
       // Navigate to restaurant list page with the newly created restaurant auto-selected
       const params = new URLSearchParams({

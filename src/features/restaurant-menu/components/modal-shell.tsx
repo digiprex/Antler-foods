@@ -10,6 +10,7 @@ interface ModalShellProps {
   children: ReactNode;
   maxWidthClassName?: string;
   panelClassName?: string;
+  showTopGlow?: boolean;
 }
 
 const EXIT_ANIMATION_MS = 220;
@@ -20,6 +21,7 @@ export function ModalShell({
   children,
   maxWidthClassName = 'max-w-3xl',
   panelClassName = 'border border-stone-200 bg-white shadow-[0_24px_64px_rgba(15,23,42,0.16)]',
+  showTopGlow = true,
 }: ModalShellProps) {
   const [isMounted, setIsMounted] = useState(open);
   const [isVisible, setIsVisible] = useState(open);
@@ -75,7 +77,9 @@ export function ModalShell({
           isVisible ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-4 scale-[0.98] opacity-0'
         }`}
       >
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[radial-gradient(circle_at_top,rgba(248,250,252,0.9),transparent_72%)]" />
+        {showTopGlow ? (
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[radial-gradient(circle_at_top,rgba(248,250,252,0.9),transparent_72%)]" />
+        ) : null}
         <button
           type="button"
           onClick={onClose}

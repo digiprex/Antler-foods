@@ -183,7 +183,7 @@ export function MenuSignupForm({
           {...register('confirmPassword')}
         />
 
-        <div className="rounded-2xl border border-stone-200 bg-white px-4 py-4 text-xs leading-6 text-stone-600 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-xs leading-6 text-slate-600 shadow-sm">
           Password must be at least 8 characters and should include a mix of letters and numbers.
         </div>
 
@@ -201,7 +201,7 @@ export function MenuSignupForm({
 
         <button
           type="submit"
-          className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-stone-900 px-5 text-sm font-semibold text-stone-50 shadow-[0_18px_34px_rgba(28,25,23,0.18)] transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/20 disabled:cursor-not-allowed disabled:bg-stone-300"
+          className="auth-primary-btn-modern w-full"
           disabled={isSubmitting || Boolean(successMessage)}
         >
           {isSubmitting
@@ -212,19 +212,19 @@ export function MenuSignupForm({
         </button>
       </form>
 
-      <div className="rounded-2xl border border-stone-200 bg-white px-4 py-4 text-center text-sm text-stone-700 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-center text-sm text-slate-700 shadow-sm">
         <p>
           Already have an account?{' '}
           {onRequestLogin ? (
             <button
               type="button"
               onClick={onRequestLogin}
-              className="font-semibold text-stone-900 transition hover:text-stone-700"
+              className="auth-link-modern"
             >
               Sign in
             </button>
           ) : (
-            <Link href={loginHref} className="font-semibold text-stone-900 transition hover:text-stone-700">
+            <Link href={loginHref} className="auth-link-modern">
               Sign in
             </Link>
           )}

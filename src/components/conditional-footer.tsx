@@ -18,6 +18,7 @@ export default function ConditionalFooter() {
     pathname?.startsWith('/signup') ||
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/forgot-password') ||
+    pathname?.startsWith('/reset-password') ||
     pathname?.startsWith('/menu/checkout');
 
   if (hideFooter) {

@@ -12,6 +12,7 @@ import {
 import {
   buildCustomerAuthHref,
   CUSTOMER_LOGIN_ROUTE,
+  resolveCustomerRestaurantId,
   resolveCustomerNextPath,
 } from '@/features/restaurant-menu/lib/customer-auth';
 import { MenuAuthInput } from '@/features/restaurant-menu/components/menu-auth-input';
@@ -29,7 +30,7 @@ export function MenuForgotPasswordForm({
 }: MenuForgotPasswordFormProps) {
   const searchParams = useSearchParams() ?? new URLSearchParams();
   const resolvedNextPath = resolveCustomerNextPath(nextPath ?? searchParams.get('next'));
-  const resolvedRestaurantId = restaurantId || searchParams.get('restaurantId');
+  const resolvedRestaurantId = resolveCustomerRestaurantId(searchParams, restaurantId);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -13,6 +13,7 @@ import {
   buildCustomerAuthHref,
   CUSTOMER_FORGOT_PASSWORD_ROUTE,
   CUSTOMER_LOGIN_ROUTE,
+  resolveCustomerRestaurantId,
   resolveCustomerNextPath,
 } from '@/features/restaurant-menu/lib/customer-auth';
 import { MenuAuthInput } from '@/features/restaurant-menu/components/menu-auth-input';
@@ -34,7 +35,7 @@ export function MenuResetPasswordForm() {
   const searchParams = useSearchParams() ?? new URLSearchParams();
   const token = searchParams.get('token')?.trim() || '';
   const nextPath = resolveCustomerNextPath(searchParams.get('next'));
-  const fallbackRestaurantId = searchParams.get('restaurantId');
+  const fallbackRestaurantId = resolveCustomerRestaurantId(searchParams);
   const redirectTimeoutRef = useRef<number | null>(null);
   const [context, setContext] = useState<ResetPasswordContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);

@@ -12,6 +12,7 @@ const CUSTOMER_AUTH_ROUTES = new Set([
   CUSTOMER_FORGOT_PASSWORD_ROUTE,
   CUSTOMER_RESET_PASSWORD_ROUTE,
 ]);
+const CUSTOMER_RESTAURANT_ID_STORAGE_KEY = 'menu_customer_restaurant_id';
 
 export function resolveCustomerNextPath(value: string | null | undefined) {
   if (!value || !value.startsWith('/') || value.startsWith('//')) {
@@ -45,6 +46,59 @@ export function buildCustomerAuthHref(
 
   const query = params.toString();
   return query ? `${route}?${query}` : route;
+}
+
+type SearchParamsLike = {
+  get: (key: string) => string | null;
+};
+
+function persistCustomerRestaurantId(restaurantId: string) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(CUSTOMER_RESTAURANT_ID_STORAGE_KEY, restaurantId);
+  } catch {
+    // Ignore storage failures in private browsing / restrictive environments.
+  }
+}
+
+function readPersistedCustomerRestaurantId() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(CUSTOMER_RESTAURANT_ID_STORAGE_KEY)?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveCustomerRestaurantId(
+  searchParams?: SearchParamsLike | null,
+  restaurantId?: string | null,
+) {
+  const directId = restaurantId?.trim();
+  if (directId) {
+    persistCustomerRestaurantId(directId);
+    return directId;
+  }
+
+  const fromCamel = searchParams?.get('restaurantId')?.trim();
+  if (fromCamel) {
+    persistCustomerRestaurantId(fromCamel);
+    return fromCamel;
+  }
+
+  const fromSnake = searchParams?.get('restaurant_id')?.trim();
+  if (fromSnake) {
+    persistCustomerRestaurantId(fromSnake);
+    return fromSnake;
+  }
+
+  return readPersistedCustomerRestaurantId();
 }
 
 export {

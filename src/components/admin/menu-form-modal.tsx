@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 // Simplified menu interface matching the database schema
 interface Menu {
@@ -38,6 +39,12 @@ export default function MenuFormModal({
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   useEffect(() => {
     if (menu && mode === 'edit') {
@@ -96,10 +103,10 @@ export default function MenuFormModal({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !isMounted || typeof document === 'undefined' || !document.body) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+  return createPortal(
+    <div className="fixed inset-0 top-0 z-[100] flex items-center justify-center bg-black/50 p-4">
       <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl bg-white">
         <form onSubmit={handleSubmit}>
           <div className="flex items-center justify-between border-b border-gray-200 p-5">
@@ -211,6 +218,7 @@ export default function MenuFormModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

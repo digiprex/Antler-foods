@@ -8,11 +8,13 @@
  * - Filter and search orders
  * - Order pagination
  * - Download receipt functionality
+ * - Professional PDF receipt generation
  */
 
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Order,
   OrdersResponse,
@@ -26,6 +28,12 @@ import {
   formatOrderItemsCount
 } from '@/types/orders.types';
 
+// Dynamic import for jsPDF to avoid SSR issues
+const loadJsPDF = async () => {
+  const { jsPDF } = await import('jspdf');
+  return jsPDF;
+};
+
 interface OrdersFormProps {
   restaurantId: string;
   restaurantName: string;
@@ -35,6 +43,7 @@ export default function OrdersForm({
   restaurantId,
   restaurantName,
 }: OrdersFormProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +60,11 @@ export default function OrdersForm({
   const [filters, setFilters] = useState<OrderFilters>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   // Fetch orders from API
   const fetchOrders = useCallback(async (page = 1) => {
@@ -500,6 +514,266 @@ Generated on: ${new Date().toLocaleString()}
     printWindow.print();
   };
 
+  // Generate professional PDF receipt matching the image format
+  const generatePDFReceipt = async (order: Order) => {
+    try {
+      const jsPDF = await loadJsPDF();
+      const doc = new jsPDF();
+      
+      const customerName = order.contact_first_name || order.contact_last_name
+        ? `${order.contact_first_name || ''} ${order.contact_last_name || ''}`.trim()
+        : 'N/A';
+      
+      const orderDate = formatDate(order.created_at);
+      const orderNumber = order.order_number || order.order_id;
+      
+      // Page setup
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+      const margin = 20;
+      const footerHeight = 24;
+      const bottomContentLimit = pageHeight - footerHeight - 8;
+      let yPos = 30;
+
+      const ensureSpace = (requiredHeight = 12) => {
+        if (yPos + requiredHeight > bottomContentLimit) {
+          doc.addPage();
+          yPos = 30;
+        }
+      };
+      
+      // Header - Receipt Title
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Receipt', margin, yPos);
+      yPos += 15;
+      
+      // Invoice description
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Here is the invoice for your order at ${restaurantName}:`, margin, yPos);
+      yPos += 15;
+      
+      // Invoice details
+      doc.setFontSize(9);
+      doc.text(`Invoice: ${orderNumber}`, margin, yPos);
+      yPos += 5;
+      doc.text(`Paid: ${orderDate}`, margin, yPos);
+      yPos += 5;
+      doc.text(`Due: ${orderDate}`, margin, yPos);
+      yPos += 5;
+      
+      // Restaurant address (you can customize this)
+      doc.text(`${restaurantName}`, margin, yPos);
+      yPos += 5;
+      doc.text('123 Main St, 12345 Your City, United States of America', margin, yPos);
+      yPos += 15;
+      
+      // Horizontal line
+      doc.setLineWidth(0.5);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 15;
+      
+      // Recipient details section
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Recipient details', margin, yPos);
+      yPos += 10;
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(customerName, margin, yPos);
+      yPos += 5;
+      if (order.contact_email) {
+        doc.text(`Email: ${order.contact_email}`, margin, yPos);
+        yPos += 5;
+      }
+      if (order.delivery_address) {
+        doc.text(order.delivery_address, margin, yPos);
+        yPos += 5;
+      }
+      yPos += 10;
+      
+      // Horizontal line
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 15;
+      
+      // Order details section
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Order details', margin, yPos);
+      yPos += 15;
+      
+      // Order items
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      
+      order.order_items?.forEach((item) => {
+        ensureSpace(28);
+        const quantity = item.quantity || 1;
+        const itemTotal = item.line_total || (item.item_price * quantity);
+        
+        // Item name and quantity
+        doc.text(`${quantity}x ${item.item_name}`, margin, yPos);
+        doc.text(formatCurrency(itemTotal), pageWidth - margin - 30, yPos, { align: 'right' });
+        yPos += 5;
+        
+        // Modifiers if any
+        if (item.selected_modifiers) {
+          try {
+            const modifiers = typeof item.selected_modifiers === 'string'
+              ? JSON.parse(item.selected_modifiers)
+              : item.selected_modifiers;
+            
+            if (Array.isArray(modifiers)) {
+              modifiers.forEach((modifier: any) => {
+                ensureSpace(8);
+                const modifierName = modifier.name || modifier.modifierGroupName || 'Modifier';
+                doc.setFont('helvetica', 'italic');
+                doc.text(`  ${modifierName}`, margin + 5, yPos);
+                yPos += 4;
+              });
+              doc.setFont('helvetica', 'normal');
+            }
+          } catch (e) {
+            // Ignore parsing errors
+          }
+        }
+        
+        // Special instructions
+        if (item.item_note) {
+          ensureSpace(8);
+          doc.setFont('helvetica', 'italic');
+          doc.text(`  Note: ${item.item_note}`, margin + 5, yPos);
+          yPos += 4;
+          doc.setFont('helvetica', 'normal');
+        }
+        
+        yPos += 5;
+      });
+      
+      yPos += 5;
+      
+      // Horizontal line before totals
+      ensureSpace(70);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 15;
+      
+      // Price details section
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Price details', margin, yPos);
+      yPos += 15;
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      
+      // Subtotal
+      doc.text('Subtotal', margin, yPos);
+      doc.text(formatCurrency(order.sub_total), pageWidth - margin - 30, yPos, { align: 'right' });
+      yPos += 8;
+      
+      // Online processing fee (if applicable)
+      if (order.tax_total && order.tax_total > 0) {
+        doc.text('Tax', margin, yPos);
+        doc.text(formatCurrency(order.tax_total), pageWidth - margin - 30, yPos, { align: 'right' });
+        yPos += 8;
+      }
+      
+      // Tip
+      if (order.tip_total && order.tip_total > 0) {
+        doc.text('Tip', margin, yPos);
+        doc.text(formatCurrency(order.tip_total), pageWidth - margin - 30, yPos, { align: 'right' });
+        yPos += 8;
+      }
+      
+      // Discount
+      if (order.discount_total && order.discount_total > 0) {
+        doc.text('Discount', margin, yPos);
+        doc.text(`-${formatCurrency(order.discount_total)}`, pageWidth - margin - 30, yPos, { align: 'right' });
+        yPos += 8;
+      }
+      
+      // Total line
+      doc.setFont('helvetica', 'bold');
+      doc.text('Total', margin, yPos);
+      doc.text(formatCurrency(order.cart_total), pageWidth - margin - 30, yPos, { align: 'right' });
+      yPos += 10;
+      
+      // Payment method
+      doc.setFont('helvetica', 'normal');
+      if (order.payment_method) {
+        const paymentText = `Payment method: ${order.payment_method.replace('_', ' ')}`;
+        const maskedRef = order.payment_reference ? ` **** ${order.payment_reference.slice(-4)}` : '';
+        doc.text(`${paymentText}${maskedRef}`, margin, yPos);
+        yPos += 10;
+      }
+      
+      yPos += 20;
+      
+      // Tax breakdown table (if applicable)
+      if (order.tax_total && order.tax_total > 0) {
+        ensureSpace(28);
+        // Table header
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Description', margin, yPos);
+        doc.text('Net', margin + 60, yPos);
+        doc.text('Tax %', margin + 90, yPos);
+        doc.text('Tax', margin + 120, yPos);
+        doc.text('Total', pageWidth - margin - 30, yPos, { align: 'right' });
+        yPos += 8;
+        
+        // Table row
+        doc.setFont('helvetica', 'normal');
+        doc.text('Food and drinks', margin, yPos);
+        doc.text(formatCurrency(order.sub_total), margin + 60, yPos);
+        doc.text('7%', margin + 90, yPos);
+        doc.text(formatCurrency(order.tax_total), margin + 120, yPos);
+        doc.text(formatCurrency(order.sub_total + (order.tax_total || 0)), pageWidth - margin - 30, yPos, { align: 'right' });
+        yPos += 10;
+      }
+      
+      // Footer
+      const footerStartY = pageHeight - footerHeight;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${restaurantName}`, pageWidth / 2, footerStartY, { align: 'center' });
+      doc.text('123 Main St, 12345 Your City, United States of America', pageWidth / 2, footerStartY + 5, { align: 'center' });
+      doc.text('+1 (555) 123-4567', pageWidth / 2, footerStartY + 10, { align: 'center' });
+      
+      // Save the PDF
+      doc.save(`receipt-${orderNumber}.pdf`);
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      // Fallback to a minimal PDF so download remains PDF-only
+      try {
+        const jsPDF = await loadJsPDF();
+        const fallbackDoc = new jsPDF();
+        const orderNumber = order.order_number || order.order_id;
+        const customerName = order.contact_first_name || order.contact_last_name
+          ? `${order.contact_first_name || ''} ${order.contact_last_name || ''}`.trim()
+          : 'N/A';
+
+        fallbackDoc.setFontSize(16);
+        fallbackDoc.setFont('helvetica', 'bold');
+        fallbackDoc.text('Order Receipt', 20, 24);
+        fallbackDoc.setFontSize(10);
+        fallbackDoc.setFont('helvetica', 'normal');
+        fallbackDoc.text(`Restaurant: ${restaurantName}`, 20, 36);
+        fallbackDoc.text(`Order: ${orderNumber}`, 20, 44);
+        fallbackDoc.text(`Customer: ${customerName}`, 20, 52);
+        fallbackDoc.text(`Total: ${formatCurrency(order.cart_total)}`, 20, 60);
+        fallbackDoc.text(`Generated: ${new Date().toLocaleString()}`, 20, 68);
+        fallbackDoc.save(`receipt-${orderNumber}.pdf`);
+      } catch (fallbackError) {
+        console.error('Fallback PDF generation failed:', fallbackError);
+        alert('Unable to generate PDF receipt right now. Please try again.');
+      }
+    }
+  };
+
   if (loading && orders.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -770,9 +1044,10 @@ Generated on: ${new Date().toLocaleString()}
       )}
 
       {/* Order Details Modal */}
-      {showOrderDetails && selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl">
+      {showOrderDetails && selectedOrder && isMounted && typeof document !== 'undefined' && document.body ? createPortal(
+        <div className="fixed inset-0 top-0 z-[100] overflow-y-auto bg-black/50">
+          <div className="mx-auto w-full max-w-5xl px-4 pb-4 pt-4 sm:pt-6">
+            <div className="w-full overflow-hidden rounded-xl bg-white shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50">
               <div>
@@ -801,14 +1076,14 @@ Generated on: ${new Date().toLocaleString()}
                   
                   <button
                     type="button"
-                    onClick={() => downloadReceipt(selectedOrder)}
+                    onClick={() => generatePDFReceipt(selectedOrder)}
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors"
-                    title="Download Receipt"
+                    title="Download PDF Receipt"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    Download
+                    Download PDF
                   </button>
                 </div>
                 
@@ -1091,9 +1366,10 @@ Generated on: ${new Date().toLocaleString()}
                 )}
               </div>
             </div>
+            </div>
           </div>
         </div>
-      )}
+      , document.body) : null}
     </div>
   );
 }

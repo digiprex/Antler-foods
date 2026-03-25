@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface Coupon {
   coupon_id: string;
@@ -97,6 +98,7 @@ export default function DiscountsForm({
   restaurantId,
   restaurantName,
 }: DiscountsFormProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +111,11 @@ export default function DiscountsForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingCouponId, setDeletingCouponId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   const fetchCoupons = async () => {
     try {
@@ -467,8 +474,8 @@ export default function DiscountsForm({
         </div>
       )}
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-[1px]">
+      {showModal && isMounted && typeof document !== 'undefined' && document.body ? createPortal(
+        <div className="fixed inset-0 top-0 z-[100] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[1px]">
           <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
             <div className="flex items-start justify-between border-b border-gray-200 bg-gradient-to-r from-purple-50 to-indigo-50 p-6">
               <div>
@@ -629,7 +636,7 @@ export default function DiscountsForm({
             </div>
           </div>
         </div>
-      )}
+      , document.body) : null}
     </div>
   );
 }

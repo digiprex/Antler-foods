@@ -14,6 +14,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import MenuItemFormModal from './menu-item-form-modal';
 
 interface MenuItem {
@@ -61,6 +62,7 @@ export default function MenuItemsForm({
   const [isDeleting, setIsDeleting] = useState(false);
   const [itemSearch, setItemSearch] = useState('');
   const [itemStatusFilter, setItemStatusFilter] = useState<'all' | 'available' | 'out_of_stock'>('all');
+  const [isMounted, setIsMounted] = useState(false);
 
   // Fetch items from API
   const fetchItems = useCallback(async () => {
@@ -154,6 +156,11 @@ export default function MenuItemsForm({
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   const handleCreateItem = () => {
     setShowCreateItem(true);
@@ -819,8 +826,13 @@ export default function MenuItemsForm({
       )}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && itemToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      {showDeleteConfirm &&
+        itemToDelete &&
+        isMounted &&
+        typeof document !== 'undefined' &&
+        document.body &&
+        createPortal(
+        <div className="fixed inset-0 top-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-md">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -897,7 +909,8 @@ export default function MenuItemsForm({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

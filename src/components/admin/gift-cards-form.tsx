@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface GiftCard {
   gift_card_id: string;
@@ -53,6 +54,7 @@ function isExpired(expiryDate: string) {
 }
 
 export default function GiftCardsForm({ restaurantId, restaurantName }: GiftCardsFormProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [giftCards, setGiftCards] = useState<GiftCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +64,11 @@ export default function GiftCardsForm({ restaurantId, restaurantName }: GiftCard
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [updatingGiftCardId, setUpdatingGiftCardId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   const fetchGiftCards = async () => {
     try {
@@ -361,9 +368,10 @@ export default function GiftCardsForm({ restaurantId, restaurantName }: GiftCard
         </div>
       )}
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-[1px]">
-          <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+      {showModal && isMounted && typeof document !== 'undefined' && document.body ? createPortal(
+        <div className="fixed inset-0 top-0 z-[100] overflow-y-auto bg-black/45 backdrop-blur-[1px]">
+          <div className="mx-auto w-full max-w-2xl px-4 pb-4 pt-6 md:pt-8">
+          <div className="w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
             <div className="flex items-start justify-between border-b border-gray-200 bg-gradient-to-r from-purple-50 to-indigo-50 p-6">
               <div>
                 <h3 className="text-2xl font-bold text-gray-900">Create Gift Card</h3>
@@ -477,8 +485,9 @@ export default function GiftCardsForm({ restaurantId, restaurantName }: GiftCard
               </button>
             </div>
           </div>
+          </div>
         </div>
-      )}
+      , document.body) : null}
     </div>
   );
 }

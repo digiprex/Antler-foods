@@ -14,6 +14,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import CategoryFormModal from './category-form-modal';
 
 // Item interface
@@ -81,6 +82,7 @@ export default function MenuCategoriesForm({
   const [isDeleting, setIsDeleting] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
   const [categoryStatusFilter, setCategoryStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [isMounted, setIsMounted] = useState(false);
 
   const sortCategories = useCallback((input: Category[]) => {
     return [...input].sort((a, b) => {
@@ -156,6 +158,11 @@ export default function MenuCategoriesForm({
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   const handleCreateCategory = () => {
     setShowCreateCategory(true);
@@ -626,8 +633,13 @@ export default function MenuCategoriesForm({
       )}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && categoryToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      {showDeleteConfirm &&
+        categoryToDelete &&
+        isMounted &&
+        typeof document !== 'undefined' &&
+        document.body &&
+        createPortal(
+        <div className="fixed inset-0 top-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-md">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -704,7 +716,8 @@ export default function MenuCategoriesForm({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

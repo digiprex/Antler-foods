@@ -73,7 +73,7 @@ export function MenuAuthSidebar({
     : view === 'signup'
       ? 'Create your account'
       : view === 'forgot-password'
-        ? 'Password help'
+        ? 'Reset your password'
         : 'Sign in to continue';
   const subheading = isProfileView
     ? isGuestView
@@ -82,7 +82,7 @@ export function MenuAuthSidebar({
     : view === 'signup'
       ? 'Save your details for faster checkout and future orders.'
       : view === 'forgot-password'
-        ? 'Password reset is not available yet for menu customer accounts.'
+        ? 'Enter your email address and we will send a reset link for this restaurant.'
         : `Continue ordering from ${restaurantName}.`;
 
   const handleAuthenticatedCustomer = (customer: MenuCustomerProfile) => {

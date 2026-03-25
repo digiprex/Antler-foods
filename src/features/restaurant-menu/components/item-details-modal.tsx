@@ -185,6 +185,7 @@ export function ItemDetailsModal({
       onClose={onClose}
       maxWidthClassName="max-w-3xl"
       panelClassName="border border-stone-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.14)]"
+      showTopGlow={false}
     >
       <div className="flex max-h-[88vh] flex-col overflow-hidden bg-white">
         <div className="overflow-y-auto">
@@ -281,8 +282,8 @@ export function ItemDetailsModal({
                               }`}>
                                 {group.isRequired ? 'Required' : 'Optional'}
                               </span>
-                              <span className="inline-flex rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-700">
-                                {isSingleSelect ? 'Single Select' : 'Multi Select'}
+                              <span className="menu-selection-chip">
+                                {isSingleSelect ? 'Choose one' : 'Choose multiple'}
                               </span>
                             </div>
                             {group.description ? (

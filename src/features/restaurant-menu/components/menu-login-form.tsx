@@ -134,12 +134,12 @@ export function MenuLoginForm({
             <button
               type="button"
               onClick={onRequestForgotPassword}
-              className="text-sm font-semibold text-stone-600 transition hover:text-stone-900"
+              className="auth-link-modern text-sm"
             >
               Forgot password?
             </button>
           ) : (
-            <Link href={forgotPasswordHref} className="text-sm font-semibold text-stone-600 transition hover:text-stone-900">
+            <Link href={forgotPasswordHref} className="auth-link-modern text-sm">
               Forgot password?
             </Link>
           )}
@@ -153,26 +153,26 @@ export function MenuLoginForm({
 
         <button
           type="submit"
-          className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-stone-900 px-5 text-sm font-semibold text-stone-50 shadow-[0_18px_34px_rgba(28,25,23,0.18)] transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/20 disabled:cursor-not-allowed disabled:bg-stone-300"
+          className="auth-primary-btn-modern w-full"
           disabled={isSubmitting}
         >
           {isSubmitting ? 'Signing in...' : 'Sign In'}
         </button>
       </form>
 
-      <div className="rounded-2xl border border-stone-200 bg-white px-4 py-4 text-center text-sm text-stone-700 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-center text-sm text-slate-700 shadow-sm">
         <p>
           New here?{' '}
           {onRequestSignup ? (
             <button
               type="button"
               onClick={onRequestSignup}
-              className="font-semibold text-stone-900 transition hover:text-stone-700"
+              className="auth-link-modern"
             >
               Create an account
             </button>
           ) : (
-            <Link href={signupHref} className="font-semibold text-stone-900 transition hover:text-stone-700">
+            <Link href={signupHref} className="auth-link-modern">
               Create an account
             </Link>
           )}

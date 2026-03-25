@@ -23,6 +23,7 @@ export default function ConditionalNavbar() {
     pathname?.startsWith('/signup') ||
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/forgot-password') ||
+    pathname?.startsWith('/reset-password') ||
     isMenuCheckoutPage;
 
   if (hideNavbar) {

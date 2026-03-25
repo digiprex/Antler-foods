@@ -13,15 +13,15 @@ export const MenuAuthInput = forwardRef<HTMLInputElement, MenuAuthInputProps>(
     ref,
   ) {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
     const isPasswordField = type === 'password';
     const resolvedType = isPasswordField && isPasswordVisible ? 'text' : type;
     const resolvedId = id ?? label.toLowerCase().replace(/\s+/g, '-');
 
     const inputClassName = [
-      'h-12 w-full rounded-2xl border bg-white px-4 text-sm font-medium text-stone-900 outline-none transition',
-      'placeholder:text-stone-400 focus:border-stone-500 focus:bg-white focus:ring-2 focus:ring-stone-900/5',
-      error ? 'border-red-300 focus:border-red-400' : 'border-stone-200 hover:border-stone-300',
-      isPasswordField ? 'pr-12' : '',
+      'auth-input-modern h-12 rounded-[16px]',
+      isPasswordField ? 'pr-11' : '',
+      error ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' : '',
       className ?? '',
     ]
       .filter(Boolean)
@@ -29,16 +29,23 @@ export const MenuAuthInput = forwardRef<HTMLInputElement, MenuAuthInputProps>(
 
     return (
       <div className="space-y-2">
-        <label htmlFor={resolvedId} className="block text-sm font-semibold text-stone-900">
+        <label
+          htmlFor={resolvedId}
+          className={`block text-sm font-semibold tracking-[-0.01em] transition-colors duration-200 ${
+            error ? 'text-red-700' : isFocused ? 'text-violet-700' : 'text-slate-700'
+          }`}
+        >
           {label}
         </label>
-        <div className="relative">
+        <div className="relative group">
           <input
             id={resolvedId}
             ref={ref}
             type={resolvedType}
             aria-invalid={Boolean(error)}
             className={inputClassName}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             {...props}
           />
           {isPasswordField ? (
@@ -47,11 +54,17 @@ export const MenuAuthInput = forwardRef<HTMLInputElement, MenuAuthInputProps>(
               aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
               aria-pressed={isPasswordVisible}
               onClick={() => setIsPasswordVisible((previous) => !previous)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-2 text-stone-400 transition hover:bg-stone-100 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30"
             >
               {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           ) : null}
+
+          <div
+            className={`pointer-events-none absolute inset-0 rounded-[16px] border-2 border-transparent transition-all duration-200 ${
+              isFocused && !error ? 'border-violet-500/25 shadow-lg shadow-violet-500/10' : ''
+            }`}
+          />
         </div>
         {error ? <p className="text-xs font-semibold text-red-600">{error}</p> : null}
       </div>

@@ -28,20 +28,24 @@ const GET_ACTIVE_COUPONS = `
 
 
 const GET_COUPON_BY_CODE = `
-  query GetCouponByCode($restaurant_id: uuid!, $code: String!) {
+  query GetCouponByCode($restaurant_id: uuid!, $code: String!, $now: timestamptz!) {
     coupons(
       where: {
         restaurant_id: { _eq: $restaurant_id }
         is_deleted: { _eq: false }
         code: { _ilike: $code }
+        start_date: { _lte: $now }
+        end_date: { _gte: $now }
       }
       limit: 1
     ) {
       coupon_id
+      restaurant_id
       code
       discount_type
       value
       min_spend
+      is_deleted
       start_date
       end_date
     }
@@ -50,10 +54,12 @@ const GET_COUPON_BY_CODE = `
 
 interface CouponRecord {
   coupon_id?: string | null;
+  restaurant_id?: string | null;
   code?: string | null;
   discount_type?: string | null;
   value?: number | string | null;
   min_spend?: number | string | null;
+  is_deleted?: boolean | null;
   start_date?: string | null;
   end_date?: string | null;
 }
@@ -149,11 +155,21 @@ export async function validateMenuCouponCode({
   const data = await adminGraphqlRequest<GetCouponByCodeResponse>(GET_COUPON_BY_CODE, {
     restaurant_id: normalizedRestaurantId,
     code: normalizedCode,
+    now: new Date().toISOString(),
   });
 
   const record = Array.isArray(data.coupons) ? data.coupons[0] : null;
   if (!record) {
     throw new Error('Enter a valid coupon code.');
+  }
+
+  if (record.is_deleted) {
+    throw new Error('Enter a valid coupon code.');
+  }
+
+  const recordRestaurantId = trimText(record.restaurant_id);
+  if (!recordRestaurantId || recordRestaurantId !== normalizedRestaurantId) {
+    throw new Error('This coupon does not belong to this restaurant.');
   }
 
   const now = new Date();
@@ -164,7 +180,7 @@ export async function validateMenuCouponCode({
     throw new Error('This coupon is not active yet.');
   }
 
-  if (endDate && endDate.getTime() < now.getTime()) {
+  if (!endDate || endDate.getTime() < now.getTime()) {
     throw new Error('This coupon has expired.');
   }
 

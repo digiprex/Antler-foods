@@ -166,6 +166,10 @@ export default function RestaurantMenuCheckoutPage({
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<CheckoutCouponOffer | null>(null);
+  const [giftCardCodeInput, setGiftCardCodeInput] = useState('');
+  const [isRedeemingGiftCard, setIsRedeemingGiftCard] = useState(false);
+  const [giftCardError, setGiftCardError] = useState<string | null>(null);
+  const [appliedGiftCardCode, setAppliedGiftCardCode] = useState<string | null>(null);
   const brandName = data.restaurant.name.replace(' Menu', '');
 
   const openAuthSidebar = (view: MenuAuthView) => {
@@ -242,7 +246,7 @@ export default function RestaurantMenuCheckoutPage({
       }
 
       setAppliedCoupon(payload.coupon);
-      setCouponCodeInput(payload.coupon.code);
+      setCouponCodeInput('');
       toast.success(`${payload.coupon.code} applied.`);
     } finally {
       setIsApplyingCoupon(false);
@@ -261,6 +265,37 @@ export default function RestaurantMenuCheckoutPage({
     if (options?.showToast !== false && currentCode) {
       toast.success(`${currentCode} removed.`);
     }
+  };
+
+  const handleRedeemGiftCard = async () => {
+    const normalizedCode = giftCardCodeInput.trim().toUpperCase();
+    if (!normalizedCode) {
+      setGiftCardError('Enter a gift card code.');
+      return;
+    }
+
+    setGiftCardError(null);
+    setIsRedeemingGiftCard(true);
+
+    try {
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, 250);
+      });
+      setAppliedGiftCardCode(normalizedCode);
+      setGiftCardCodeInput('');
+      toast.success(`${normalizedCode} redeemed.`);
+    } finally {
+      setIsRedeemingGiftCard(false);
+    }
+  };
+
+  const handleRemoveGiftCard = () => {
+    if (appliedGiftCardCode) {
+      toast.success(`${appliedGiftCardCode} removed.`);
+    }
+    setAppliedGiftCardCode(null);
+    setGiftCardError(null);
+    setGiftCardCodeInput('');
   };
 
   useEffect(() => {
@@ -290,7 +325,6 @@ export default function RestaurantMenuCheckoutPage({
 
       setCouponError(null);
       setAppliedCoupon(payload.coupon);
-      setCouponCodeInput(payload.coupon.code);
     };
 
     void refreshAppliedCoupon();
@@ -471,9 +505,13 @@ export default function RestaurantMenuCheckoutPage({
   }
 
   const normalizedCouponInput = couponCodeInput.trim().toUpperCase();
+  const normalizedGiftCardInput = giftCardCodeInput.trim().toUpperCase();
   const discountAmount = appliedCoupon?.discountAmount || 0;
-  const isCouponInputApplied = Boolean(
-    appliedCoupon && normalizedCouponInput === appliedCoupon.code,
+  const showAppliedCouponActions = Boolean(
+    appliedCoupon && !normalizedCouponInput,
+  );
+  const showRedeemedGiftCardActions = Boolean(
+    appliedGiftCardCode && !normalizedGiftCardInput,
   );
   const total = roundCurrency(subtotal + tipAmount - discountAmount);
 
@@ -873,7 +911,7 @@ export default function RestaurantMenuCheckoutPage({
           </div>
 
           <aside className="space-y-3.5 lg:h-full lg:overflow-y-auto lg:rounded-[30px] lg:border lg:border-stone-200 lg:bg-stone-50 lg:p-0 lg:shadow-[0_24px_64px_rgba(15,23,42,0.08)] lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
-            <div className="rounded-[18px] border border-stone-200 bg-white p-3.5 shadow-sm sm:p-4 lg:sticky lg:top-0 lg:z-10 lg:flex lg:h-[calc(100vh-9.5rem)] lg:flex-col lg:rounded-t-[30px] lg:rounded-b-none lg:border-b-0">
+            <div className="rounded-[18px] border border-stone-200 bg-white p-3.5 shadow-sm sm:p-4 lg:sticky lg:top-0 lg:z-10 lg:flex lg:h-[calc(100vh-_-0.8rem)] lg:flex-col lg:rounded-t-[30px] lg:rounded-b-none lg:border-b-0">
               <h2
                 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]"
               >
@@ -881,7 +919,7 @@ export default function RestaurantMenuCheckoutPage({
               </h2>
               <div className="mt-3 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1">
                 <div className="space-y-2.5 rounded-[16px] border border-stone-200 bg-stone-50 px-3 py-2.5">
-                  <div className="max-h-[320px] space-y-2.5 overflow-y-auto pr-1">
+                  <div className="max-h-[420px] space-y-2.5 overflow-y-auto pr-1">
                     {items.map((item) => {
                       const addOnTotal = item.selectedAddOns.reduce(
                         (sum, addOn) => sum + addOn.price,
@@ -948,53 +986,125 @@ export default function RestaurantMenuCheckoutPage({
                   </div>
                 ) : null}
               </div>
-              <div className="mt-3 space-y-2 rounded-[16px] border border-stone-200 bg-stone-50 px-3.5 py-2.5 lg:mt-auto">
+              <div className="mt-3 space-y-3 rounded-[16px] border border-stone-200 bg-stone-50 px-3.5 py-3 lg:mt-auto">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[13px] font-semibold text-slate-950">Add coupon or gift card</p>
+                    <p className="text-[13px] font-semibold text-slate-950">Offers and gift cards</p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">
+                      Apply coupon and redeem gift card separately.
+                    </p>
                   </div>
                 </div>
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void handleApplyCoupon();
-                  }}
-                  className="flex flex-col gap-2 sm:flex-row"
-                >
-                  <input
-                    type="text"
-                    value={couponCodeInput}
-                    onChange={(event) => {
-                      setCouponCodeInput(event.target.value.toUpperCase());
-                      if (couponError) {
-                        setCouponError(null);
-                      }
+                <div className="space-y-2 rounded-[14px] border border-stone-200 bg-white p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
+                      Coupon
+                    </p>
+                    {appliedCoupon ? (
+                      <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                        Applied
+                      </span>
+                    ) : null}
+                  </div>
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void handleApplyCoupon();
                     }}
-                    placeholder="Enter code"
-                    className="h-9 w-full rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-950 outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-black/35"
-                    disabled={isApplyingCoupon}
-                  />
-                  {isCouponInputApplied ? (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveCoupon()}
-                      className="inline-flex h-9 items-center justify-center rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
-                    >
-                      Remove
-                    </button>
-                  ) : (
-                    <button
-                      type="submit"
+                    className="flex flex-col gap-2 sm:flex-row"
+                  >
+                    <input
+                      type="text"
+                      value={couponCodeInput}
+                      onChange={(event) => {
+                        setCouponCodeInput(event.target.value.toUpperCase());
+                        if (couponError) {
+                          setCouponError(null);
+                        }
+                      }}
+                      placeholder="Coupon code"
+                      className="h-9 w-full rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-950 outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-black/35"
                       disabled={isApplyingCoupon}
-                      className="inline-flex h-9 items-center justify-center rounded-[12px] bg-black px-3 text-[12px] font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-stone-300"
-                    >
-                      {isApplyingCoupon ? 'Applying...' : 'Apply'}
-                    </button>
-                  )}
-                </form>
-                {couponError ? (
-                  <p className="text-[11px] text-red-700">{couponError}</p>
-                ) : null}
+                    />
+                    {showAppliedCouponActions ? (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCoupon()}
+                        className="inline-flex h-9 items-center justify-center rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                      >
+                        Remove
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={isApplyingCoupon}
+                        className="inline-flex h-9 items-center justify-center rounded-[12px] bg-black px-3 text-[12px] font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-stone-300"
+                      >
+                        {isApplyingCoupon ? 'Applying...' : 'Apply'}
+                      </button>
+                    )}
+                  </form>
+                  {couponError ? (
+                    <p className="text-[11px] text-red-700">{couponError}</p>
+                  ) : null}
+                </div>
+                <div className="space-y-2 rounded-[14px] border border-stone-200 bg-white p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
+                      Gift card
+                    </p>
+                    {appliedGiftCardCode ? (
+                      <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                        Redeemed
+                      </span>
+                    ) : null}
+                  </div>
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void handleRedeemGiftCard();
+                    }}
+                    className="flex flex-col gap-2 sm:flex-row"
+                  >
+                    <input
+                      type="text"
+                      value={giftCardCodeInput}
+                      onChange={(event) => {
+                        setGiftCardCodeInput(event.target.value.toUpperCase());
+                        if (giftCardError) {
+                          setGiftCardError(null);
+                        }
+                      }}
+                      placeholder="Gift card code"
+                      className="h-9 w-full rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-950 outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-black/35"
+                      disabled={isRedeemingGiftCard}
+                    />
+                    {showRedeemedGiftCardActions ? (
+                      <button
+                        type="button"
+                        onClick={handleRemoveGiftCard}
+                        className="inline-flex h-9 items-center justify-center rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                      >
+                        Remove
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={isRedeemingGiftCard}
+                        className="inline-flex h-9 items-center justify-center rounded-[12px] bg-black px-3 text-[12px] font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-stone-300"
+                      >
+                        {isRedeemingGiftCard ? 'Redeeming...' : 'Redeem'}
+                      </button>
+                    )}
+                  </form>
+                  {giftCardError ? (
+                    <p className="text-[11px] text-red-700">{giftCardError}</p>
+                  ) : appliedGiftCardCode ? (
+                    <p className="text-[11px] text-emerald-700">
+                      {appliedGiftCardCode} ready to use at payment.
+                    </p>
+                  ) : null}
+                </div>
               </div>
 
               <div className="mt-3 border-t border-stone-200 pt-3">

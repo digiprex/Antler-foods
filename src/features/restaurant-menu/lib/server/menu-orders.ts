@@ -2,7 +2,7 @@ import 'server-only';
 
 import { randomBytes } from 'crypto';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
-import { getCouponOfferByCode } from '@/features/restaurant-menu/lib/server/menu-coupons';
+import { validateMenuCouponCode } from '@/features/restaurant-menu/lib/server/menu-coupons';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -398,18 +398,23 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
   });
 
   const subtotal = roundCurrency(lineItems.reduce((sum, lineItem) => sum + lineItem.lineTotal, 0));
-  const appliedCoupon = await getCouponOfferByCode({
-    restaurantId,
-    subtotal,
-    code: input.couponCode,
-  });
+  let appliedCoupon = null;
 
-  if (trimText(input.couponCode) && !appliedCoupon) {
-    throw new MenuOrderError(400, 'This coupon is not valid for the current order.');
-  }
-
-  if (appliedCoupon && !appliedCoupon.isEligible) {
-    throw new MenuOrderError(400, appliedCoupon.helperText);
+  if (trimText(input.couponCode)) {
+    try {
+      appliedCoupon = await validateMenuCouponCode({
+        restaurantId,
+        subtotal,
+        code: input.couponCode,
+      });
+    } catch (error) {
+      throw new MenuOrderError(
+        400,
+        error instanceof Error
+          ? error.message
+          : 'This coupon is not valid for the current order.',
+      );
+    }
   }
 
   const discountTotal = appliedCoupon?.discountAmount || 0;

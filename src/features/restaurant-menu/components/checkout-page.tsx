@@ -14,7 +14,6 @@ import {
   MapPinIcon,
 } from '@/features/restaurant-menu/components/icons';
 import { CompactQuantityStepper } from '@/features/restaurant-menu/components/compact-quantity-stepper';
-import { CouponPickerModal, type CheckoutCouponOffer } from '@/features/restaurant-menu/components/coupon-picker-modal';
 import { useMenuCustomerAuth } from '@/features/restaurant-menu/hooks/use-menu-customer-auth';
 import { useMenuCart } from '@/features/restaurant-menu/hooks/use-menu-cart';
 import { formatPrice } from '@/features/restaurant-menu/lib/format-price';
@@ -38,6 +37,21 @@ interface CheckoutContactFields {
   firstName: string;
   lastName: string;
   email: string;
+}
+
+interface CheckoutCouponOffer {
+  couponId: string;
+  code: string;
+  discountType: 'percent' | 'amount';
+  value: number;
+  minSpend: number;
+  discountAmount: number;
+  isEligible: boolean;
+  title: string;
+  description: string;
+  helperText: string;
+  savingsText: string;
+  isBestOffer: boolean;
 }
 
 type TipPreset = '10' | '15' | '20' | 'custom';
@@ -73,8 +87,12 @@ function splitName(name: string) {
   };
 }
 
-async function requestCheckoutCoupons(restaurantId: string, subtotal: number) {
-  const response = await fetch('/api/menu-orders/coupons', {
+async function requestValidateCoupon(
+  restaurantId: string,
+  subtotal: number,
+  couponCode: string,
+) {
+  const response = await fetch('/api/menu-orders/validate-coupon', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -83,17 +101,18 @@ async function requestCheckoutCoupons(restaurantId: string, subtotal: number) {
     body: JSON.stringify({
       restaurantId,
       subtotal,
+      couponCode,
     }),
   });
 
   const payload = (await response.json().catch(() => null)) as
-    | { error?: string; coupons?: CheckoutCouponOffer[] }
+    | { error?: string; coupon?: CheckoutCouponOffer }
     | null;
 
   return {
     ok: response.ok,
     error: payload?.error ?? null,
-    coupons: Array.isArray(payload?.coupons) ? payload.coupons : [],
+    coupon: payload?.coupon ?? null,
   };
 }
 
@@ -149,9 +168,8 @@ export default function RestaurantMenuCheckoutPage({
   const [isSubmittingGuest, setIsSubmittingGuest] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [couponModalOpen, setCouponModalOpen] = useState(false);
-  const [availableCoupons, setAvailableCoupons] = useState<CheckoutCouponOffer[]>([]);
-  const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
+  const [couponCodeInput, setCouponCodeInput] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<CheckoutCouponOffer | null>(null);
   const brandName = data.restaurant.name.replace(' Menu', '');
@@ -201,40 +219,50 @@ export default function RestaurantMenuCheckoutPage({
     }));
   };
 
-  const openCouponPicker = async () => {
+  const handleApplyCoupon = async () => {
     if (!restaurantId) {
       setCouponError('Restaurant context is missing.');
-      setCouponModalOpen(true);
       return;
     }
 
-    setCouponModalOpen(true);
-    setIsLoadingCoupons(true);
+    const normalizedCode = couponCodeInput.trim().toUpperCase();
+    if (!normalizedCode) {
+      setCouponError('Enter a coupon code.');
+      return;
+    }
+
     setCouponError(null);
+    setIsApplyingCoupon(true);
 
     try {
-      const payload = await requestCheckoutCoupons(restaurantId, subtotal);
-      if (!payload.ok) {
-        setCouponError(payload.error ?? 'Unable to load offers right now.');
-        setAvailableCoupons([]);
+      const payload = await requestValidateCoupon(
+        restaurantId,
+        subtotal,
+        normalizedCode,
+      );
+
+      if (!payload.ok || !payload.coupon) {
+        setAppliedCoupon(null);
+        setCouponError(payload.error ?? 'Unable to validate this coupon right now.');
         return;
       }
 
-      setAvailableCoupons(payload.coupons);
+      setAppliedCoupon(payload.coupon);
+      setCouponCodeInput(payload.coupon.code);
+      toast.success(`${payload.coupon.code} applied.`);
     } finally {
-      setIsLoadingCoupons(false);
+      setIsApplyingCoupon(false);
     }
   };
 
-  const handleApplyCoupon = (coupon: CheckoutCouponOffer) => {
-    setAppliedCoupon(coupon);
-    setCouponModalOpen(false);
-    toast.success(`${coupon.code} applied.`);
-  };
-
-  const handleRemoveCoupon = (options?: { showToast?: boolean }) => {
+  const handleRemoveCoupon = (options?: { showToast?: boolean; clearInput?: boolean }) => {
     const currentCode = appliedCoupon?.code;
     setAppliedCoupon(null);
+    setCouponError(null);
+
+    if (options?.clearInput !== false) {
+      setCouponCodeInput('');
+    }
 
     if (options?.showToast !== false && currentCode) {
       toast.success(`${currentCode} removed.`);
@@ -249,25 +277,26 @@ export default function RestaurantMenuCheckoutPage({
     let active = true;
 
     const refreshAppliedCoupon = async () => {
-      const payload = await requestCheckoutCoupons(restaurantId, subtotal);
+      const payload = await requestValidateCoupon(
+        restaurantId,
+        subtotal,
+        appliedCoupon.code,
+      );
+
       if (!active) {
         return;
       }
 
-      if (!payload.ok) {
-        setCouponError(payload.error ?? 'Unable to refresh offers right now.');
-        return;
-      }
-
-      setAvailableCoupons(payload.coupons);
-      const nextAppliedCoupon = payload.coupons.find((coupon) => coupon.code === appliedCoupon.code);
-      if (!nextAppliedCoupon || !nextAppliedCoupon.isEligible) {
+      if (!payload.ok || !payload.coupon) {
         setAppliedCoupon(null);
-        toast.error('Coupon removed because the current subtotal no longer qualifies.');
+        setCouponError(payload.error ?? 'This coupon no longer applies to the current order.');
+        toast.error(payload.error ?? 'Coupon removed because the current subtotal no longer qualifies.');
         return;
       }
 
-      setAppliedCoupon(nextAppliedCoupon);
+      setCouponError(null);
+      setAppliedCoupon(payload.coupon);
+      setCouponCodeInput(payload.coupon.code);
     };
 
     void refreshAppliedCoupon();
@@ -448,8 +477,11 @@ export default function RestaurantMenuCheckoutPage({
     );
   }
 
+  const normalizedCouponInput = couponCodeInput.trim().toUpperCase();
   const discountAmount = appliedCoupon?.discountAmount || 0;
-  const availableOfferCount = availableCoupons.filter((coupon) => coupon.isEligible).length;
+  const isCouponInputApplied = Boolean(
+    appliedCoupon && normalizedCouponInput === appliedCoupon.code,
+  );
   const total = roundCurrency(subtotal + tipAmount - discountAmount);
 
   return (
@@ -463,11 +495,11 @@ export default function RestaurantMenuCheckoutPage({
           Menu
         </Link>
 
-        <div className="mt-4 grid gap-5 lg:h-[calc(100vh-7.25rem)] lg:grid-cols-[minmax(0,760px)_390px] lg:justify-center lg:overflow-hidden lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,800px)_400px]">
+        <div className="mt-4 grid gap-5 lg:h-[calc(100vh-7.25rem)] lg:grid-cols-[minmax(0,680px)_360px] lg:justify-center lg:overflow-hidden lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,720px)_380px]">
           <div className="space-y-5 sm:space-y-6 lg:h-full lg:overflow-y-auto lg:pr-5 lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
             <div>
               <h1
-                className="text-[1.95rem] font-semibold tracking-tight text-slate-950 sm:text-[2.65rem]"
+                className="text-[1.5rem] font-semibold tracking-tight text-slate-950 sm:text-[1.95rem]"
                 style={getHeadingFontStyle()}
               >
                 Checkout
@@ -577,7 +609,7 @@ export default function RestaurantMenuCheckoutPage({
 
             <section className="space-y-2.5">
               <h2
-                className="text-[1.3rem] font-semibold text-slate-950 sm:text-[1.5rem]"
+                className="text-[1.1rem] font-semibold text-slate-950 sm:text-[1.25rem]"
                 style={getHeadingFontStyle()}
               >
                 {fulfillmentMode === 'pickup'
@@ -604,7 +636,7 @@ export default function RestaurantMenuCheckoutPage({
 
             <section className="space-y-2.5">
               <h2
-                className="text-[1.3rem] font-semibold text-slate-950 sm:text-[1.5rem]"
+                className="text-[1.1rem] font-semibold text-slate-950 sm:text-[1.25rem]"
                 style={getHeadingFontStyle()}
               >
                 Tip
@@ -685,7 +717,7 @@ export default function RestaurantMenuCheckoutPage({
 
             <section id="checkout-contact-fields" className="space-y-2.5">
               <h2
-                className="text-[1.3rem] font-semibold text-slate-950 sm:text-[1.5rem]"
+                className="text-[1.1rem] font-semibold text-slate-950 sm:text-[1.25rem]"
                 style={getHeadingFontStyle()}
               >
                 Your information
@@ -771,7 +803,7 @@ export default function RestaurantMenuCheckoutPage({
 
             <section className="space-y-2.5">
               <h2
-                className="text-[1.3rem] font-semibold text-slate-950 sm:text-[1.5rem]"
+                className="text-[1.1rem] font-semibold text-slate-950 sm:text-[1.25rem]"
                 style={getHeadingFontStyle()}
               >
                 Payment
@@ -837,15 +869,15 @@ export default function RestaurantMenuCheckoutPage({
             </div>
           </div>
 
-          <aside className="space-y-4 lg:h-full lg:overflow-y-auto lg:rounded-[30px] lg:border lg:border-stone-200 lg:bg-stone-50 lg:p-5 lg:shadow-[0_24px_64px_rgba(15,23,42,0.08)] lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
-            <div className="rounded-[18px] border border-stone-200 bg-white p-4 shadow-sm sm:p-5 lg:sticky lg:top-0 lg:z-10">
+          <aside className="space-y-3.5 lg:h-full lg:overflow-y-auto lg:rounded-[30px] lg:border lg:border-stone-200 lg:bg-stone-50 lg:p-0 lg:shadow-[0_24px_64px_rgba(15,23,42,0.08)] lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
+            <div className="rounded-[18px] border border-stone-200 bg-white p-3.5 shadow-sm sm:p-4 lg:rounded-t-[30px] lg:rounded-b-none lg:border-b-0 lg:sticky lg:top-0 lg:z-10">
               <h2
-                className="text-[1.3rem] font-semibold text-slate-950 sm:text-[1.45rem]"
+                className="text-[1.15rem] font-semibold text-slate-950 sm:text-[1.25rem]"
                 style={getHeadingFontStyle()}
               >
                 Order summary
               </h2>
-              <div className="mt-4 space-y-3 text-sm text-slate-900">
+              <div className="mt-3 space-y-2 text-[13px] text-slate-900">
                 <div className="flex items-center justify-between gap-4">
                   <span>Subtotal</span>
                   <span className="font-medium">{formatPrice(subtotal)}</span>
@@ -854,69 +886,89 @@ export default function RestaurantMenuCheckoutPage({
                   <span>Tip</span>
                   <span className="font-medium">{formatPrice(tipAmount)}</span>
                 </div>
-                {appliedCoupon ? (
-                  <div className="space-y-2 rounded-[16px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
-                          Coupon applied
-                        </p>
-                        <p className="mt-1 font-semibold">{appliedCoupon.code}</p>
-                        <p className="mt-1 text-sm text-emerald-800">{appliedCoupon.title}</p>
-                      </div>
+                <div className="space-y-2 rounded-[16px] border border-stone-200 bg-stone-50 px-3.5 py-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[13px] font-semibold text-slate-950">Add coupon or gift card</p>
+                    </div>
+                    {appliedCoupon ? (
+                      <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
+                        Applied
+                      </span>
+                    ) : null}
+                  </div>
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void handleApplyCoupon();
+                    }}
+                    className="flex flex-col gap-2 sm:flex-row"
+                  >
+                    <input
+                      type="text"
+                      value={couponCodeInput}
+                      onChange={(event) => {
+                        setCouponCodeInput(event.target.value.toUpperCase());
+                        if (couponError) {
+                          setCouponError(null);
+                        }
+                      }}
+                      placeholder="Enter code"
+                      className="h-9 w-full rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-950 outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-black/35"
+                      disabled={isApplyingCoupon}
+                    />
+                    {isCouponInputApplied ? (
                       <button
                         type="button"
                         onClick={() => handleRemoveCoupon()}
-                        className="text-xs font-semibold text-emerald-800 transition hover:text-emerald-950"
+                        className="inline-flex h-9 items-center justify-center rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
                       >
                         Remove
                       </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={isApplyingCoupon}
+                        className="inline-flex h-9 items-center justify-center rounded-[12px] bg-black px-3 text-[12px] font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-stone-300"
+                      >
+                        {isApplyingCoupon ? 'Applying...' : 'Apply'}
+                      </button>
+                    )}
+                  </form>
+                  {appliedCoupon ? (
+                    <div className="rounded-[12px] border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-[12px] text-emerald-950">
+                      <p className="font-semibold">{appliedCoupon.code}</p>
+                      <p className="mt-0.5 text-[11px] text-emerald-800">{appliedCoupon.title}</p>
                     </div>
-                  </div>
-                ) : null}
+                  ) : null}
+                  {couponError ? (
+                    <p className="text-[11px] text-red-700">{couponError}</p>
+                  ) : null}
+                </div>
                 <div className="flex items-center justify-between gap-4">
                   <span>Discount</span>
                   <span className={`font-medium ${discountAmount > 0 ? 'text-emerald-700' : 'text-slate-500'}`}>
                     {discountAmount > 0 ? `- ${formatPrice(discountAmount)}` : formatPrice(0)}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={openCouponPicker}
-                  className="flex w-full items-center justify-between rounded-[16px] border border-stone-200 bg-stone-50 px-4 py-3 text-left transition hover:border-stone-300 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-slate-950">Offers</p>
-                    <p className="mt-1 text-xs text-slate-600">
-                      {appliedCoupon
-                        ? `${appliedCoupon.code} applied`
-                        : availableOfferCount > 0
-                          ? `${availableOfferCount} available now`
-                          : 'View available restaurant coupons'}
-                    </p>
-                  </div>
-                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    {appliedCoupon ? 'Change' : 'View'}
-                  </span>
-                </button>
                 {cartNote.trim() ? (
-                  <div className="rounded-[16px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-slate-700">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  <div className="rounded-[14px] border border-stone-200 bg-stone-50 px-3 py-2.5 text-[12px] text-slate-700">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                       special note
                     </p>
-                    <p className="mt-2 leading-6">{cartNote.trim()}</p>
+                    <p className="mt-1.5 leading-5">{cartNote.trim()}</p>
                   </div>
                 ) : null}
               </div>
-              <div className="mt-5 border-t border-stone-200 pt-4">
-                <div className="flex items-center justify-between gap-4 text-[1.3rem] font-semibold text-slate-950 sm:text-[1.45rem]">
+              <div className="mt-3 border-t border-stone-200 pt-3">
+                <div className="flex items-center justify-between gap-4 text-[1.15rem] font-semibold text-slate-950 sm:text-[1.25rem]">
                   <span>Total</span>
                   <span>{formatPrice(total)}</span>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-3 rounded-[18px] border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="space-y-2.5 rounded-[18px] border-t border-stone-200 bg-white p-3.5 shadow-sm sm:p-4 lg:rounded-none lg:border-t lg:mx-0">
               {items.map((item) => {
                 const addOnTotal = item.selectedAddOns.reduce(
                   (sum, addOn) => sum + addOn.price,
@@ -925,38 +977,38 @@ export default function RestaurantMenuCheckoutPage({
                 return (
                   <div
                     key={item.key}
-                    className="rounded-[16px] border border-stone-200 bg-stone-50 p-3.5"
+                    className="flex items-start gap-2.5"
                   >
-                    <div className="flex items-start gap-3">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="h-12 w-12 rounded-[14px] object-cover"
-                      />
-                      <div className="min-w-0 flex-1 space-y-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-slate-950">
-                              {item.name}
-                            </p>
-                            {item.selectedAddOns.length ? (
-                              <p className="mt-1 text-[11px] leading-4 text-slate-500">
-                                {item.selectedAddOns
-                                  .map((addOn) => addOn.name)
-                                  .join(', ')}
-                              </p>
-                            ) : null}
-                          </div>
-                          <p className="text-sm font-semibold text-slate-950">
-                            {formatPrice(
-                              getCartItemTotal(
-                                item.basePrice,
-                                addOnTotal,
-                                item.quantity,
-                              ),
-                            )}
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="h-12 w-12 rounded-[12px] object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="flex-1">
+                          <p className="text-[13px] font-semibold leading-tight text-slate-950">
+                            {item.name}
                           </p>
+                          {item.selectedAddOns.length ? (
+                            <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
+                              {item.selectedAddOns
+                                .map((addOn) => addOn.name)
+                                .join(', ')}
+                            </p>
+                          ) : null}
                         </div>
+                        <p className="text-[13px] font-semibold text-slate-950">
+                          {formatPrice(
+                            getCartItemTotal(
+                              item.basePrice,
+                              addOnTotal,
+                              item.quantity,
+                            ),
+                          )}
+                        </p>
+                      </div>
+                      <div className="mt-2.5">
                         <CompactQuantityStepper
                           quantity={item.quantity}
                           onDecrease={() =>
@@ -975,17 +1027,6 @@ export default function RestaurantMenuCheckoutPage({
           </aside>
         </div>
       </div>
-
-      <CouponPickerModal
-        open={couponModalOpen}
-        loading={isLoadingCoupons}
-        coupons={availableCoupons}
-        appliedCouponCode={appliedCoupon?.code || null}
-        error={couponError}
-        onClose={() => setCouponModalOpen(false)}
-        onApply={handleApplyCoupon}
-        onRemove={() => handleRemoveCoupon()}
-      />
 
       <MenuAuthSidebar
         open={authSidebarOpen}

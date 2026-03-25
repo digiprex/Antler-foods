@@ -517,6 +517,17 @@ $cta-hover-bg-color: rgb(31 41 55);
   gap: 0.9rem;
 }
 
+.menuProfileSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+
+  &:empty {
+    display: none;
+  }
+}
+
 .menuAuthLink {
   text-transform: var(--navbar-text-transform, uppercase);
   letter-spacing: 0.08em;

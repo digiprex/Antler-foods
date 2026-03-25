@@ -14,6 +14,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Order,
   OrdersResponse,
@@ -42,6 +43,7 @@ export default function OrdersForm({
   restaurantId,
   restaurantName,
 }: OrdersFormProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +60,11 @@ export default function OrdersForm({
   const [filters, setFilters] = useState<OrderFilters>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   // Fetch orders from API
   const fetchOrders = useCallback(async (page = 1) => {
@@ -1037,9 +1044,10 @@ Generated on: ${new Date().toLocaleString()}
       )}
 
       {/* Order Details Modal */}
-      {showOrderDetails && selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl">
+      {showOrderDetails && selectedOrder && isMounted && typeof document !== 'undefined' && document.body ? createPortal(
+        <div className="fixed inset-0 top-0 z-[100] overflow-y-auto bg-black/50">
+          <div className="mx-auto w-full max-w-5xl px-4 pb-4 pt-4 sm:pt-6">
+            <div className="w-full overflow-hidden rounded-xl bg-white shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50">
               <div>
@@ -1358,9 +1366,10 @@ Generated on: ${new Date().toLocaleString()}
                 )}
               </div>
             </div>
+            </div>
           </div>
         </div>
-      )}
+      , document.body) : null}
     </div>
   );
 }

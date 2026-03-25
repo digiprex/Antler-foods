@@ -491,6 +491,7 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
   const firstAvailableDay = scheduleDays.find((day) => day.slots.length > 0) || scheduleDays[0];
 
   return {
+    restaurantId: text(restaurant.restaurant_id),
     slug: slugify(restaurantName) || slugify(menu?.name) || 'menu',
     announcement: `Order directly from ${restaurantName} for pickup and delivery.`,
     brand: {
@@ -549,6 +550,7 @@ function isFavoritesCategoryType(value: unknown) {
 function buildEmptyMenuData(restaurantName: string): RestaurantMenuData {
   const scheduleDays = [fallbackScheduleDay(new Date(), DEFAULT_TIME_ZONE)];
   return {
+    restaurantId: null,
     slug: slugify(restaurantName) || 'menu',
     announcement: `Order directly from ${restaurantName}.`,
     brand: { name: restaurantName.toUpperCase(), subtitle: 'Online Ordering', accentText: restaurantName },
@@ -928,4 +930,5 @@ function escapeSvg(value: string) {
 async function gql<T = any>(query: string, variables?: Record<string, unknown>): Promise<T> {
   return adminGraphqlRequest<T>(query, variables);
 }
+
 

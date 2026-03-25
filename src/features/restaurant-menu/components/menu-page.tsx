@@ -1,14 +1,7 @@
 'use client';
 
-import {
-  useAuthenticationStatus,
-  useHasuraClaims,
-  useSignOut,
-  useUserData,
-} from '@nhost/react';
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { getRoleFromHasuraClaims, getUserRole } from '@/lib/auth/get-user-role';
 import { AnnouncementStrip } from '@/features/restaurant-menu/components/announcement-strip';
 import { CartDrawer } from '@/features/restaurant-menu/components/cart-drawer';
 import { CartIcon } from '@/features/restaurant-menu/components/icons';
@@ -17,21 +10,21 @@ import { FulfillmentSelector } from '@/features/restaurant-menu/components/fulfi
 import { ItemDetailsModal } from '@/features/restaurant-menu/components/item-details-modal';
 import { LocationModal } from '@/features/restaurant-menu/components/location-modal';
 import { MenuAuthSidebar, type MenuAuthView } from '@/features/restaurant-menu/components/menu-auth-sidebar';
-import { MenuProfileCard } from '@/features/restaurant-menu/components/menu-profile-card';
 import { MenuSection } from '@/features/restaurant-menu/components/menu-section';
 import { PopularItemsCarousel } from '@/features/restaurant-menu/components/popular-items-carousel';
+import { ProfileDropdown } from '@/features/restaurant-menu/components/profile-dropdown';
 import { RewardsBanner } from '@/features/restaurant-menu/components/rewards-banner';
 import { ScheduleOrderModal } from '@/features/restaurant-menu/components/schedule-order-modal';
 import { CartProvider } from '@/features/restaurant-menu/context/cart-context';
 import { useActiveCategory } from '@/features/restaurant-menu/hooks/use-active-category';
 import { useMenuCart } from '@/features/restaurant-menu/hooks/use-menu-cart';
 import { useMenuSearch } from '@/features/restaurant-menu/hooks/use-menu-search';
+import { useMenuCustomerAuth } from '@/features/restaurant-menu/hooks/use-menu-customer-auth';
 import {
   CUSTOMER_FORGOT_PASSWORD_ROUTE,
   CUSTOMER_LOGIN_ROUTE,
   CUSTOMER_SIGNUP_ROUTE,
 } from '@/features/restaurant-menu/lib/customer-auth';
-import { getMenuCustomerProfile } from '@/features/restaurant-menu/lib/customer-profile';
 import { formatPrice } from '@/features/restaurant-menu/lib/format-price';
 import {
   findMenuItemById,
@@ -55,16 +48,22 @@ function MenuPageContent({ data }: MenuPageProps) {
     itemCount,
     items,
     subtotal,
+    cartNote,
     isHydrated,
     addItem,
     updateItemQuantity,
+    updateCartNote,
     getItemQuantity,
   } = useMenuCart();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuthenticationStatus();
-  const user = useUserData();
-  const hasuraClaims = useHasuraClaims();
-  const { signOut } = useSignOut();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const restaurantId = data.restaurantId || data.locations[0]?.id || null;
+  const {
+    customerProfile,
+    hasCustomerSession,
+    isLoading: isAuthLoading,
+    isLoggingOut,
+    applyCustomerProfile,
+    logout,
+  } = useMenuCustomerAuth(restaurantId);
   const { query, setQuery, filteredCategories } = useMenuSearch(data.categories);
   const { activeCategoryId, registerSectionRef, scrollToCategory } = useActiveCategory(
     filteredCategories.map((category) => category.id),
@@ -89,11 +88,8 @@ function MenuPageContent({ data }: MenuPageProps) {
   const [cartOpen, setCartOpen] = useState(false);
   const [authSidebarOpen, setAuthSidebarOpen] = useState(false);
   const [authSidebarView, setAuthSidebarView] = useState<MenuAuthView>('login');
-  const contentContainerClass = 'mx-auto w-full max-w-[1120px] px-4 sm:px-6';
+  const contentContainerClass = 'mx-auto w-full max-w-[1080px] px-4 sm:px-6';
   const brandName = data.restaurant.name.replace(' Menu', '');
-  const resolvedRole = getRoleFromHasuraClaims(hasuraClaims) || (user ? getUserRole(user) : null);
-  const isCustomerAuthenticated = !isAuthLoading && isAuthenticated && resolvedRole === 'user';
-  const customerProfile = getMenuCustomerProfile(user);
 
   const openAuthSidebar = (view: MenuAuthView) => {
     setAuthSidebarView(view);
@@ -101,15 +97,10 @@ function MenuPageContent({ data }: MenuPageProps) {
   };
 
   const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await signOut();
-      setAuthSidebarOpen(false);
-      setAuthSidebarView('login');
-      router.refresh();
-    } finally {
-      setIsLoggingOut(false);
-    }
+    await logout();
+    setAuthSidebarOpen(false);
+    setAuthSidebarView('login');
+    router.refresh();
   };
 
   useEffect(() => {
@@ -187,7 +178,7 @@ function MenuPageContent({ data }: MenuPageProps) {
         link.dataset.menuAuthOriginalDisplay = link.style.display || '';
       }
 
-      link.style.display = isCustomerAuthenticated ? 'none' : link.dataset.menuAuthOriginalDisplay || '';
+      link.style.display = hasCustomerSession ? 'none' : link.dataset.menuAuthOriginalDisplay || '';
     });
 
     return () => {
@@ -196,7 +187,7 @@ function MenuPageContent({ data }: MenuPageProps) {
         delete link.dataset.menuAuthOriginalDisplay;
       });
     };
-  }, [isCustomerAuthenticated]);
+  }, [hasCustomerSession]);
 
   const selectedLocation =
     data.locations.find((location) => location.id === selectedLocationId) || data.locations[0];
@@ -270,10 +261,10 @@ function MenuPageContent({ data }: MenuPageProps) {
 
   return (
     <div
-      className="min-h-screen bg-stone-100"
+      className="min-h-screen bg-white"
       style={{ paddingTop: 'var(--navbar-height, 0px)' }}
     >
-      <div className="sticky top-0 z-50 border-b border-stone-200/70">
+      <div className="sticky top-0 z-50 border-b border-stone-200 bg-white/95 backdrop-blur-xl">
         <AnnouncementStrip text={data.announcement} />
       </div>
 
@@ -291,69 +282,106 @@ function MenuPageContent({ data }: MenuPageProps) {
           />
         </div>
 
-        <div className="min-w-0 flex-1 bg-stone-50">
-          <div className="border-b border-stone-200 bg-white/85 py-4 backdrop-blur sm:py-6">
+        <div className="min-w-0 flex-1 bg-white">
+          <div className="border-b border-stone-200 bg-white py-4 sm:py-5">
             <div className={contentContainerClass}>
-              <div className="mb-4 sm:mb-6">
-                <h1 className="mb-2 text-xl font-bold text-stone-900 sm:text-2xl">
-                  {brandName}
-                </h1>
-                <div className="mb-4 flex flex-col gap-2 text-sm text-stone-600 sm:flex-row sm:items-center sm:gap-4">
-                  <span>Location: {selectedLocation?.fullAddress || selectedLocation?.label || 'Location not set'}</span>
-                  <span>Time: {scheduleLabel}</span>
+              <div className="rounded-[24px] border border-stone-200 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.06)] sm:p-5">
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">
+                        Online ordering
+                      </p>
+                      <h1 className="mt-2 text-[1.9rem] font-semibold tracking-tight text-stone-950 sm:text-[2.15rem]">
+                        {brandName}
+                      </h1>
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-stone-600 sm:text-sm">
+                        <span className="rounded-full border border-stone-200 bg-white px-3 py-1">
+                          {selectedLocation?.fullAddress || selectedLocation?.label || 'Location not set'}
+                        </span>
+                        <span className="rounded-full border border-stone-200 bg-white px-3 py-1">
+                          {scheduleLabel}
+                        </span>
+                      </div>
+                    </div>
+
+                    {!isAuthLoading && hasCustomerSession && customerProfile ? (
+                      <ProfileDropdown
+                        profile={customerProfile}
+                        isLoggingOut={isLoggingOut}
+                        onLogout={handleLogout}
+                      />
+                    ) : (
+                      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+                        <button
+                          type="button"
+                          onClick={() => openAuthSidebar('login')}
+                          className="inline-flex h-10 w-full items-center justify-center rounded-full border border-stone-200 bg-white px-4 text-sm font-semibold text-stone-900 shadow-sm transition hover:border-stone-300 hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 sm:w-auto"
+                        >
+                          Sign in
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openAuthSidebar('signup')}
+                          className="inline-flex h-10 w-full items-center justify-center rounded-full bg-stone-900 px-4 text-sm font-semibold text-stone-50 transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 sm:w-auto"
+                        >
+                          Sign up
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <FulfillmentSelector
+                    mode={fulfillmentMode}
+                    locationLabel={locationLabel}
+                    deliveryAddress={deliveryAddress}
+                    onModeSelect={handleModeSelect}
+                    onOpenSchedule={() => {
+                      setScheduleModalSource('info');
+                      setScheduleModalOpen(true);
+                    }}
+                    onDeliveryAddressChange={setDeliveryAddress}
+                  />
                 </div>
               </div>
-
-              <FulfillmentSelector
-                mode={fulfillmentMode}
-                locationLabel={locationLabel}
-                deliveryAddress={deliveryAddress}
-                onModeSelect={handleModeSelect}
-                onOpenSchedule={() => {
-                  setScheduleModalSource('info');
-                  setScheduleModalOpen(true);
-                }}
-                onDeliveryAddressChange={setDeliveryAddress}
-              />
             </div>
           </div>
 
-          <div className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 px-4 py-3 backdrop-blur lg:hidden sm:px-6 sm:py-4">
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {filteredCategories.map((category) => {
-                const isActive = category.id === activeCategoryId;
-                return (
-                  <button
-                    key={category.id}
-                    type="button"
-                    onClick={() => scrollToCategory(category.id)}
-                    className={`shrink-0 rounded-full px-3 py-2 text-sm font-semibold transition ${
-                      isActive
-                        ? 'bg-stone-900 text-white'
-                        : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                    }`}
-                  >
-                    {category.label}
-                  </button>
-                );
-              })}
+          <div className="border-b border-stone-200 bg-white px-4 py-3 lg:hidden sm:px-6">
+            <div className="space-y-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+                Browse categories
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {filteredCategories.map((category) => {
+                  const isActive = category.id === activeCategoryId;
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => scrollToCategory(category.id)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
+                        isActive
+                          ? 'bg-stone-900 text-stone-50 shadow-sm'
+                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200 hover:text-stone-900'
+                      }`}
+                    >
+                      {category.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          <div className={`${contentContainerClass} space-y-6 py-4 sm:py-6`}>
-            {isCustomerAuthenticated && customerProfile ? (
-              <MenuProfileCard
-                profile={customerProfile}
-                isLoggingOut={isLoggingOut}
-                onLogout={handleLogout}
-              />
-            ) : (
+          <div className={`${contentContainerClass} space-y-5 py-4 sm:py-5`}>
+            {!hasCustomerSession ? (
               <RewardsBanner
                 rewards={data.rewards}
                 brandName={brandName}
                 onCtaClick={() => openAuthSidebar('login')}
               />
-            )}
+            ) : null}
             {popularItems.length ? (
               <PopularItemsCarousel
                 items={popularItems}
@@ -377,10 +405,13 @@ function MenuPageContent({ data }: MenuPageProps) {
                   />
                 ))
               ) : (
-                <div className="rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-16 text-center shadow-sm">
+                <div className="rounded-[24px] border border-dashed border-stone-300 bg-white px-6 py-14 text-center shadow-sm">
                   <h2 className="text-xl font-semibold text-stone-900">
                     No items found
                   </h2>
+                  <p className="mt-2 text-sm text-stone-500">
+                    Try another search or choose a different category.
+                  </p>
                 </div>
               )}
             </section>
@@ -392,13 +423,13 @@ function MenuPageContent({ data }: MenuPageProps) {
         <button
           type="button"
           onClick={openCart}
-          className="fixed bottom-6 right-6 z-[80] flex items-center gap-4 rounded-full bg-black px-5 py-4 text-white shadow-2xl transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+          className="fixed bottom-5 right-5 z-[80] flex items-center gap-3 rounded-full bg-stone-900 px-4 py-3 text-sm text-stone-50 shadow-[0_18px_40px_rgba(15,23,42,0.18)] transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
         >
-          <span className="inline-flex items-center gap-2 text-base font-semibold">
-            <CartIcon className="h-5 w-5" />
+          <span className="inline-flex items-center gap-2 text-sm font-semibold">
+            <CartIcon className="h-4 w-4" />
             {itemCount}
           </span>
-          <span className="border-l border-white/20 pl-4 text-base font-semibold">
+          <span className="border-l border-white/20 pl-3 text-sm font-semibold">
             {formatPrice(subtotal)}
           </span>
         </button>
@@ -417,6 +448,7 @@ function MenuPageContent({ data }: MenuPageProps) {
         items={items}
         itemCount={itemCount}
         subtotal={subtotal}
+        cartNote={cartNote}
         mode={fulfillmentMode}
         deliveryAddress={deliveryAddress}
         scheduleLabel={scheduleLabel}
@@ -429,6 +461,7 @@ function MenuPageContent({ data }: MenuPageProps) {
           setScheduleModalOpen(true);
         }}
         onUpdateQuantity={updateItemQuantity}
+        onUpdateCartNote={updateCartNote}
         onCheckout={handleCheckout}
       />
 
@@ -490,13 +523,13 @@ function MenuPageContent({ data }: MenuPageProps) {
       <MenuAuthSidebar
         open={authSidebarOpen}
         view={authSidebarView}
+        restaurantId={restaurantId}
         restaurantName={brandName}
-        isCustomerAuthenticated={isCustomerAuthenticated}
+        hasCustomerSession={hasCustomerSession}
         customerProfile={customerProfile}
-        isLoggingOut={isLoggingOut}
         onClose={() => setAuthSidebarOpen(false)}
         onViewChange={setAuthSidebarView}
-        onLogout={handleLogout}
+        onAuthenticatedCustomer={applyCustomerProfile}
       />
     </div>
   );
@@ -543,3 +576,10 @@ export default function MenuPage({ data }: MenuPageProps) {
     </CartProvider>
   );
 }
+
+
+
+
+
+
+

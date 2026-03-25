@@ -7,6 +7,7 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react';
+import { Toaster, toast } from 'react-hot-toast';
 import type {
   AddCartItemInput,
   CartItem,
@@ -16,13 +17,20 @@ import { useAnalytics } from '@/lib/analytics';
 export const MENU_CART_STORAGE_KEY = 'restaurant-menu-cart-v1';
 export const MENU_CART_UPDATED_EVENT = 'restaurant-menu-cart-updated';
 
+interface StoredCartState {
+  items?: unknown;
+  cartNote?: unknown;
+}
+
 interface CartContextValue {
   items: CartItem[];
   itemCount: number;
   subtotal: number;
+  cartNote: string;
   isHydrated: boolean;
   addItem: (input: AddCartItemInput) => void;
   updateItemQuantity: (key: string, quantity: number) => void;
+  updateCartNote: (notes: string) => void;
   removeItem: (key: string) => void;
   clearCart: () => void;
   getItemQuantity: (itemId: string) => number;
@@ -38,6 +46,11 @@ function buildCartItemKey(input: AddCartItemInput) {
   const notes = input.notes?.trim() || '';
 
   return `${input.item.id}::${input.item.price}::${addOnIds}::${notes}`;
+}
+
+function buildCartToastMessage(input: AddCartItemInput) {
+  const quantityLabel = input.quantity > 1 ? `${input.quantity} x ` : '';
+  return `${quantityLabel}${input.item.name} added to cart`;
 }
 
 function getCartItemTotal(item: CartItem) {
@@ -63,35 +76,49 @@ function isCartItem(value: unknown): value is CartItem {
   );
 }
 
-function readStoredItems() {
+function readStoredCartState() {
   if (typeof window === 'undefined') {
-    return [] as CartItem[];
+    return {
+      items: [] as CartItem[],
+      cartNote: '',
+    };
   }
 
   try {
     const raw = window.localStorage.getItem(MENU_CART_STORAGE_KEY);
     if (!raw) {
-      return [] as CartItem[];
+      return {
+        items: [] as CartItem[],
+        cartNote: '',
+      };
     }
 
-    const parsed = JSON.parse(raw) as { items?: unknown };
-    if (!Array.isArray(parsed.items)) {
-      return [] as CartItem[];
-    }
+    const parsed = JSON.parse(raw) as StoredCartState;
+    const items = Array.isArray(parsed.items) ? parsed.items.filter(isCartItem) : [];
+    const cartNote = typeof parsed.cartNote === 'string' ? parsed.cartNote : '';
 
-    return parsed.items.filter(isCartItem);
+    return {
+      items,
+      cartNote,
+    };
   } catch {
-    return [] as CartItem[];
+    return {
+      items: [] as CartItem[],
+      cartNote: '',
+    };
   }
 }
 
 export function CartProvider({ children }: PropsWithChildren) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [cartNote, setCartNote] = useState('');
   const { trackAddToCart } = useAnalytics();
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    setItems(readStoredItems());
+    const stored = readStoredCartState();
+    setItems(stored.items);
+    setCartNote(stored.cartNote);
     setIsHydrated(true);
   }, []);
 
@@ -100,7 +127,7 @@ export function CartProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    window.localStorage.setItem(MENU_CART_STORAGE_KEY, JSON.stringify({ items }));
+    window.localStorage.setItem(MENU_CART_STORAGE_KEY, JSON.stringify({ items, cartNote }));
     window.dispatchEvent(
       new CustomEvent(MENU_CART_UPDATED_EVENT, {
         detail: {
@@ -108,15 +135,19 @@ export function CartProvider({ children }: PropsWithChildren) {
         },
       }),
     );
-  }, [isHydrated, items]);
+  }, [cartNote, isHydrated, items]);
 
   const addItem = (input: AddCartItemInput) => {
     const key = buildCartItemKey(input);
 
+    toast.success(buildCartToastMessage(input), {
+      id: `cart-${key}`,
+      duration: 2200,
+    });
+
     setItems((currentItems) => {
       const existingItem = currentItems.find((item) => item.key === key);
 
-      // Track analytics event for add to cart
       trackAddToCart({
         item_name: input.item.name,
         item_id: input.item.id,
@@ -169,12 +200,17 @@ export function CartProvider({ children }: PropsWithChildren) {
     });
   };
 
+  const updateCartNote = (notes: string) => {
+    setCartNote(notes);
+  };
+
   const removeItem = (key: string) => {
     setItems((currentItems) => currentItems.filter((item) => item.key !== key));
   };
 
   const clearCart = () => {
     setItems([]);
+    setCartNote('');
   };
 
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -188,21 +224,47 @@ export function CartProvider({ children }: PropsWithChildren) {
   };
 
   return (
-    <CartContext.Provider
-      value={{
-        items,
-        itemCount,
-        subtotal,
-        isHydrated,
-        addItem,
-        updateItemQuantity,
-        removeItem,
-        clearCart,
-        getItemQuantity,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
+    <>
+      <Toaster
+        position="bottom-center"
+        toastOptions={{
+          duration: 2200,
+          style: {
+            background: '#ffffff',
+            color: '#111827',
+            border: '1px solid #e7e5e4',
+            borderRadius: '9999px',
+            boxShadow: '0 16px 36px rgba(15, 23, 42, 0.12)',
+            padding: '12px 16px',
+            fontSize: '14px',
+            fontWeight: '600',
+          },
+          success: {
+            iconTheme: {
+              primary: '#111827',
+              secondary: '#ffffff',
+            },
+          },
+        }}
+      />
+      <CartContext.Provider
+        value={{
+          items,
+          itemCount,
+          subtotal,
+          cartNote,
+          isHydrated,
+          addItem,
+          updateItemQuantity,
+          updateCartNote,
+          removeItem,
+          clearCart,
+          getItemQuantity,
+        }}
+      >
+        {children}
+      </CartContext.Provider>
+    </>
   );
 }
 

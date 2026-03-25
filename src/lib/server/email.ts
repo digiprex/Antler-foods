@@ -7,19 +7,45 @@
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 
+function normalizeEmailValue(value: string | undefined | null) {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function normalizeEmailPassword(password: string | undefined, host: string) {
+  const normalized = normalizeEmailValue(password);
+  if (!normalized) {
+    return undefined;
+  }
+
+  // Gmail app passwords are shown in grouped blocks with spaces for readability.
+  // Nodemailer must receive the raw 16-character value without spaces.
+  if (host.toLowerCase().includes('gmail')) {
+    return normalized.replace(/\s+/g, '');
+  }
+
+  return normalized;
+}
+
+const EMAIL_HOST = normalizeEmailValue(process.env.EMAIL_HOST) || 'smtp.gmail.com';
+const EMAIL_PORT = parseInt(process.env.EMAIL_PORT || '587');
+const EMAIL_ALLOW_SELF_SIGNED_CERTS = process.env.EMAIL_TLS_REJECT_UNAUTHORIZED === 'false';
+
 // Email configuration from environment variables
 const EMAIL_CONFIG = {
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT || '587'),
+  host: EMAIL_HOST,
+  port: EMAIL_PORT,
   secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
+    user: normalizeEmailValue(process.env.EMAIL_USER),
+    pass: normalizeEmailPassword(process.env.EMAIL_PASSWORD, EMAIL_HOST),
+  },
+  tls: {
+    rejectUnauthorized: !EMAIL_ALLOW_SELF_SIGNED_CERTS,
   },
 };
 
 // Default sender email
-const DEFAULT_FROM = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+const DEFAULT_FROM = normalizeEmailValue(process.env.EMAIL_FROM) || EMAIL_CONFIG.auth.user;
 
 /**
  * Creates a nodemailer transporter instance
@@ -360,6 +386,114 @@ Expiry Date: ${formattedExpiryDate}
  *
  * @returns Promise that resolves if connection is successful
  */
+
+export interface MenuPasswordResetEmailData {
+  customerName?: string | null;
+  restaurantName?: string | null;
+  resetUrl: string;
+  expiresInMinutes: number;
+}
+
+/**
+ * Sends a password reset email for menu customer accounts.
+ */
+export async function sendMenuPasswordResetEmail(
+  to: string,
+  data: MenuPasswordResetEmailData,
+): Promise<void> {
+  const transporter = createTransporter();
+  const accountLabel = data.restaurantName || 'Online Ordering';
+  const customerLabel = data.customerName?.trim() || 'there';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <body style="margin:0;padding:24px;background:linear-gradient(180deg,#f8fafc 0%,#eef2ff 100%);font-family:Arial,sans-serif;color:#0f172a;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:22px;overflow:hidden;box-shadow:0 24px 60px rgba(76,29,149,0.12);">
+          <tr>
+            <td style="padding:32px 32px 24px;background:linear-gradient(135deg,#312e81 0%,#6d28d9 55%,#7c3aed 100%);color:#ffffff;">
+              <div style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(255,255,255,0.24);padding:8px 14px;background:rgba(255,255,255,0.08);margin-bottom:18px;">
+                <span style="display:inline-block;height:8px;width:8px;border-radius:999px;background:#ddd6fe;margin-right:10px;"></span>
+                <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.84);">Online Ordering</span>
+              </div>
+              <h1 style="margin:0;font-size:30px;line-height:1.15;letter-spacing:-0.02em;">Reset your password</h1>
+              <p style="margin:12px 0 0;font-size:14px;line-height:1.7;color:rgba(255,255,255,0.82);">
+                ${accountLabel}
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#334155;">
+                Hi ${customerLabel},
+              </p>
+              <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#334155;">
+                We received a request to reset the password for your online ordering account. Use the button below to choose a new password.
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+                <tr>
+                  <td style="border:1px solid #e9d5ff;border-radius:18px;background:linear-gradient(180deg,#faf5ff 0%,#ffffff 100%);padding:20px;">
+                    <p style="margin:0 0 10px;font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#7c3aed;">Secure reset link</p>
+                    <p style="margin:0;font-size:14px;line-height:1.7;color:#475569;">
+                      This one-time link expires in ${data.expiresInMinutes} minutes and can only be used once.
+                    </p>
+                    <table cellpadding="0" cellspacing="0" style="margin:18px 0 0;">
+                      <tr>
+                        <td>
+                          <a href="${data.resetUrl}" style="display:inline-block;border-radius:999px;background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);padding:14px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;box-shadow:0 14px 32px rgba(124,58,237,0.28);">
+                            Reset password
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 10px;font-size:14px;line-height:1.7;color:#64748b;">
+                If the button does not work, copy and paste this link into your browser:
+              </p>
+              <p style="margin:0;word-break:break-all;font-size:13px;line-height:1.7;color:#5b21b6;">
+                <a href="${data.resetUrl}" style="color:#6d28d9;text-decoration:none;">${data.resetUrl}</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;">
+              <p style="margin:0;font-size:12px;line-height:1.7;color:#64748b;">
+                If you did not request a password reset, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+
+  const textContent = `
+Reset your password
+
+${accountLabel}
+
+Hi ${customerLabel},
+
+We received a request to reset the password for your online ordering account.
+Use the link below to choose a new password:
+
+${data.resetUrl}
+
+This link will expire in ${data.expiresInMinutes} minutes and can only be used once.
+If you did not request a password reset, you can safely ignore this email.
+  `.trim();
+
+  await transporter.sendMail({
+    from: DEFAULT_FROM,
+    to,
+    subject: `Reset your password - ${accountLabel}`,
+    text: textContent,
+    html: htmlContent,
+  });
+}
+
 export async function verifyEmailConfig(): Promise<boolean> {
   try {
     const transporter = createTransporter();

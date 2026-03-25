@@ -13,6 +13,7 @@ interface Offer {
   sub_type: string | null;
   status: string;
   percentage_off: number | null;
+  amount_off: number | null;
   min_spend: number | null;
   discounted_items: any | null;
   qualifying_items: any | null;
@@ -32,6 +33,7 @@ interface OfferFormState {
   type: string;
   sub_type: string;
   percentage_off: string;
+  amount_off: string;
   min_spend: string;
   discounted_items: any[];
   qualifying_items: any[];
@@ -80,6 +82,7 @@ function createInitialFormState(): OfferFormState {
     type: 'percentage_off',
     sub_type: 'total_order_value', // Explicitly set the first sub-type for percentage_off
     percentage_off: '',
+    amount_off: '',
     min_spend: '',
     discounted_items: [],
     qualifying_items: [],
@@ -198,6 +201,8 @@ export default function OffersForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingOfferId, setDeletingOfferId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [offerToDelete, setOfferToDelete] = useState<Offer | null>(null);
   const [showItemSelector, setShowItemSelector] = useState(false);
   const [showQualifyingItemSelector, setShowQualifyingItemSelector] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -308,6 +313,7 @@ export default function OffersForm({
       type: offer.type,
       sub_type: offer.sub_type || '',
       percentage_off: offer.percentage_off ? String(offer.percentage_off) : '',
+      amount_off: offer.amount_off ? String(offer.amount_off) : '',
       min_spend: offer.min_spend ? String(offer.min_spend) : '',
       discounted_items: offer.discounted_items && typeof offer.discounted_items === 'object'
         ? Object.entries(offer.discounted_items).flatMap(([categoryId, itemIds]) => {
@@ -404,7 +410,7 @@ export default function OffersForm({
         setFormError('Minimum spend amount is required and must be greater than 0.');
         return;
       }
-      if (!form.percentage_off || Number(form.percentage_off) <= 0) {
+      if (!form.amount_off || Number(form.amount_off) <= 0) {
         setFormError('Amount off is required and must be greater than 0.');
         return;
       }
@@ -428,7 +434,7 @@ export default function OffersForm({
         setFormError('At least one discounted item must be selected.');
         return;
       }
-      if (!form.percentage_off || Number(form.percentage_off) <= 0) {
+      if (!form.amount_off || Number(form.amount_off) <= 0) {
         setFormError('Amount off is required and must be greater than 0.');
         return;
       }
@@ -503,6 +509,7 @@ export default function OffersForm({
         sub_type: form.sub_type || null,
         status: 'active', // Always set to active by default
         percentage_off: form.percentage_off ? Number(form.percentage_off) : null,
+        amount_off: form.amount_off ? Number(form.amount_off) : null,
         min_spend: form.min_spend ? Number(form.min_spend) : null,
         discounted_items: Array.isArray(form.discounted_items) && form.discounted_items.length > 0
           ? form.discounted_items.reduce((acc, item) => {
@@ -588,6 +595,7 @@ export default function OffersForm({
           sub_type: offer.sub_type,
           status: newStatus,
           percentage_off: offer.percentage_off,
+          amount_off: offer.amount_off,
           min_spend: offer.min_spend,
           discounted_items: offer.discounted_items && typeof offer.discounted_items === 'object' ? offer.discounted_items : null,
           qualifying_items: offer.qualifying_items && typeof offer.qualifying_items === 'object' ? offer.qualifying_items : null,
@@ -613,17 +621,20 @@ export default function OffersForm({
     }
   };
 
-  const handleDeleteOffer = async (offer: Offer) => {
-    const shouldDelete = window.confirm(
-      `Delete offer "${offer.name}"? This action cannot be undone.`,
-    );
-    if (!shouldDelete) return;
+  const handleDeleteOffer = (offer: Offer) => {
+    setOfferToDelete(offer);
+    setShowDeleteModal(true);
+  };
 
-    setDeletingOfferId(offer.offer_id);
+  const confirmDeleteOffer = async () => {
+    if (!offerToDelete) return;
+
+    setDeletingOfferId(offerToDelete.offer_id);
+    setShowDeleteModal(false);
 
     try {
       const response = await fetch(
-        `/api/offers?offer_id=${encodeURIComponent(offer.offer_id)}&restaurant_id=${encodeURIComponent(restaurantId)}`,
+        `/api/offers?offer_id=${encodeURIComponent(offerToDelete.offer_id)}&restaurant_id=${encodeURIComponent(restaurantId)}`,
         {
           method: 'DELETE',
         },
@@ -635,13 +646,19 @@ export default function OffersForm({
       }
 
       setOffers((previous) =>
-        previous.filter((entry) => entry.offer_id !== offer.offer_id),
+        previous.filter((entry) => entry.offer_id !== offerToDelete.offer_id),
       );
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete offer');
     } finally {
       setDeletingOfferId(null);
+      setOfferToDelete(null);
     }
+  };
+
+  const cancelDeleteOffer = () => {
+    setShowDeleteModal(false);
+    setOfferToDelete(null);
   };
 
   if (loading) {
@@ -992,11 +1009,11 @@ export default function OffersForm({
                           <label className="mb-1.5 block text-sm font-semibold text-gray-700">$ Amount off *</label>
                           <input
                             type="number"
-                            value={form.percentage_off}
+                            value={form.amount_off}
                             onChange={(event) =>
                               setForm((previous) => ({
                                 ...previous,
-                                percentage_off: event.target.value,
+                                amount_off: event.target.value,
                               }))
                             }
                             placeholder="5"
@@ -1069,11 +1086,11 @@ export default function OffersForm({
                           <label className="mb-1.5 block text-sm font-semibold text-gray-700">$ Amount off *</label>
                           <input
                             type="number"
-                            value={form.percentage_off}
+                            value={form.amount_off}
                             onChange={(event) =>
                               setForm((previous) => ({
                                 ...previous,
-                                percentage_off: event.target.value,
+                                amount_off: event.target.value,
                               }))
                             }
                             placeholder="2"
@@ -1556,6 +1573,47 @@ export default function OffersForm({
                 className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700"
               >
                 Add qualifying items
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && offerToDelete && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[1px]">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+            <div className="border-b border-gray-200 p-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                  <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900">Delete Offer</h3>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Delete offer "{offerToDelete.name}"? This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 p-6">
+              <button
+                type="button"
+                onClick={cancelDeleteOffer}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteOffer}
+                disabled={deletingOfferId === offerToDelete.offer_id}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {deletingOfferId === offerToDelete.offer_id ? 'Deleting...' : 'Delete Offer'}
               </button>
             </div>
           </div>

@@ -13,6 +13,7 @@ const OFFER_FIELDS = `
   sub_type
   status
   percentage_off
+  amount_off
   min_spend
   discounted_items
   qualifying_items
@@ -41,6 +42,7 @@ const INSERT_OFFER = `
     $sub_type: String
     $status: String!
     $percentage_off: numeric
+    $amount_off: numeric
     $min_spend: numeric
     $discounted_items: jsonb
     $qualifying_items: jsonb
@@ -57,6 +59,7 @@ const INSERT_OFFER = `
         sub_type: $sub_type
         status: $status
         percentage_off: $percentage_off
+        amount_off: $amount_off
         min_spend: $min_spend
         discounted_items: $discounted_items
         qualifying_items: $qualifying_items
@@ -81,6 +84,7 @@ const UPDATE_OFFER = `
     $sub_type: String
     $status: String!
     $percentage_off: numeric
+    $amount_off: numeric
     $min_spend: numeric
     $discounted_items: jsonb
     $qualifying_items: jsonb
@@ -100,6 +104,7 @@ const UPDATE_OFFER = `
         sub_type: $sub_type
         status: $status
         percentage_off: $percentage_off
+        amount_off: $amount_off
         min_spend: $min_spend
         discounted_items: $discounted_items
         qualifying_items: $qualifying_items
@@ -136,6 +141,7 @@ type OfferPayload = {
   sub_type: string | null;
   status: string;
   percentage_off: number | null;
+  amount_off: number | null;
   min_spend: number | null;
   discounted_items: any | null;
   qualifying_items: any | null;
@@ -190,6 +196,7 @@ function parseOfferPayload(raw: Record<string, unknown>) {
 
   // Parse numeric fields
   const percentageOff = raw.percentage_off ? Number(raw.percentage_off) : null;
+  const amountOff = raw.amount_off ? Number(raw.amount_off) : null;
   const minSpend = raw.min_spend ? Number(raw.min_spend) : null;
   
   // Parse discounted items (should be an object with format {category_id: [item_id, item_id]} or null)
@@ -288,6 +295,7 @@ function parseOfferPayload(raw: Record<string, unknown>) {
     sub_type: subType,
     status,
     percentage_off: percentageOff,
+    amount_off: amountOff,
     min_spend: minSpend,
     discounted_items: discountedItems,
     qualifying_items: qualifyingItems,

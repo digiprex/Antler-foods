@@ -43,6 +43,7 @@ import type {
 interface MenuPageProps {
   data: RestaurantMenuData;
 }
+const MENU_CART_OPEN_EVENT = 'menu-cart-open-request';
 
 function MenuPageContent({ data }: MenuPageProps) {
   const {
@@ -111,6 +112,17 @@ function MenuPageContent({ data }: MenuPageProps) {
       setCartOpen(true);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    const handleOpenCartRequest = () => {
+      setCartOpen(true);
+    };
+
+    window.addEventListener(MENU_CART_OPEN_EVENT, handleOpenCartRequest);
+    return () => {
+      window.removeEventListener(MENU_CART_OPEN_EVENT, handleOpenCartRequest);
+    };
+  }, []);
 
   useEffect(() => {
     const handleDocumentClick = (event: MouseEvent) => {
@@ -462,13 +474,6 @@ function MenuPageContent({ data }: MenuPageProps) {
         deliveryAddress={deliveryAddress}
         scheduleLabel={scheduleLabel}
         onClose={closeCart}
-        onModeChange={handleModeSelect}
-        onDeliveryAddressChange={setDeliveryAddress}
-        onOpenSchedule={() => {
-          setCartOpen(false);
-          setScheduleModalSource('cart');
-          setScheduleModalOpen(true);
-        }}
         onUpdateQuantity={updateItemQuantity}
         onUpdateCartNote={updateCartNote}
         onCheckout={handleCheckout}

@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  ChevronDownIcon,
   ChevronRightIcon,
   XIcon,
 } from '@/features/restaurant-menu/components/icons';
@@ -23,9 +22,6 @@ interface CartDrawerProps {
   deliveryAddress: string;
   scheduleLabel: string;
   onClose: () => void;
-  onModeChange: (mode: FulfillmentMode) => void;
-  onDeliveryAddressChange: (value: string) => void;
-  onOpenSchedule: () => void;
   onUpdateQuantity: (key: string, quantity: number) => void;
   onUpdateCartNote: (notes: string) => void;
   onCheckout: () => void;
@@ -49,9 +45,6 @@ export function CartDrawer({
   deliveryAddress,
   scheduleLabel,
   onClose,
-  onModeChange,
-  onDeliveryAddressChange,
-  onOpenSchedule,
   onUpdateQuantity,
   onUpdateCartNote,
   onCheckout,
@@ -68,126 +61,92 @@ export function CartDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-end justify-end bg-black/45 px-0 py-0 sm:items-stretch sm:px-4 sm:py-4"
+      className="fixed inset-0 z-[9999] flex items-end justify-end bg-black/50 backdrop-blur-[1.5px] px-0 py-0 sm:items-stretch sm:px-4 sm:py-4"
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
         }
       }}
     >
-      <aside className="flex h-[min(92vh,100%)] w-full max-w-full flex-col overflow-hidden rounded-t-[28px] border border-stone-200 bg-white shadow-[0_24px_64px_rgba(15,23,42,0.16)] sm:h-full sm:max-w-[560px] sm:rounded-[28px]">
-        <div className="border-b border-stone-200 px-4 pb-4 pt-4 sm:px-6 sm:pt-5">
+      <aside className="flex h-[min(92vh,100%)] w-full max-w-full flex-col overflow-hidden rounded-t-[28px] border border-stone-200 bg-white shadow-[0_28px_70px_rgba(15,23,42,0.2)] sm:h-full sm:max-w-[560px] sm:rounded-[28px]">
+        <div className="border-b border-stone-200 bg-gradient-to-b from-stone-50/70 to-white px-4 pb-4 pt-4 sm:px-6 sm:pt-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-[1.6rem] font-semibold tracking-tight text-slate-950 sm:text-[1.75rem]">
-                Cart
-              </h2>
-              <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-                {itemCount} {itemCount === 1 ? 'item' : 'items'} in your order
-              </p>
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
+                  Cart
+                </h2>
+                <div className="inline-flex items-center rounded-full border border-stone-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-600 sm:text-xs">
+                  {itemCount} {itemCount === 1 ? 'item' : 'items'} in your order
+                </div>
+              </div>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-stone-100 text-slate-500 transition hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white text-slate-500 transition hover:bg-stone-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
               aria-label="Close cart"
             >
               <XIcon className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="mt-4 rounded-[22px] bg-stone-100 p-1">
-            <div className="grid grid-cols-2 gap-1">
-              <button
-                type="button"
-                onClick={() => onModeChange('pickup')}
-                className={`h-12 rounded-[18px] text-[13px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 ${
-                  mode === 'pickup'
-                    ? 'bg-white text-slate-950 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                Pickup
-              </button>
-              <button
-                type="button"
-                onClick={() => onModeChange('delivery')}
-                className={`h-12 rounded-[18px] text-[13px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 ${
-                  mode === 'delivery'
-                    ? 'bg-white text-slate-950 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                Delivery
-              </button>
-            </div>
-          </div>
-
-          <div
-            className={`mt-3 grid gap-3 ${mode === 'delivery' ? 'sm:grid-cols-[minmax(0,1fr)_210px]' : ''}`}
-          >
-            {mode === 'delivery' ? (
-              <label className="flex h-14 items-center rounded-[18px] border border-stone-200 bg-white px-4 shadow-sm">
-                <span className="sr-only">Delivery address</span>
-                <input
-                  type="text"
-                  value={deliveryAddress}
-                  onChange={(event) =>
-                    onDeliveryAddressChange(event.target.value)
-                  }
-                  placeholder="Delivery address"
-                  className="w-full bg-transparent text-[13px] font-medium text-slate-900 outline-none placeholder:text-slate-400"
-                />
-              </label>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={onOpenSchedule}
-              className="flex h-14 items-center justify-between rounded-[18px] border border-stone-200 bg-white px-4 text-left shadow-sm transition hover:border-stone-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
-            >
-              <span className="min-w-0 truncate text-[13px] font-semibold text-slate-900 sm:text-sm">
-                {scheduleLabel}
-              </span>
-              <ChevronDownIcon className="h-4 w-4 shrink-0 text-slate-500" />
-            </button>
+          <div className="mt-4 rounded-[18px] border border-stone-200 bg-white px-4 py-3 shadow-sm">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+              Fulfillment
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-900">
+              {mode === 'pickup' ? 'Pickup' : 'Delivery'}
+            </p>
+            {mode === 'pickup' ? (
+              <p className="mt-1 text-xs text-slate-600">{scheduleLabel}</p>
+            ) : (
+              <p className="mt-1 text-xs text-slate-600">
+                {deliveryAddress.trim() || 'Delivery address not provided'}
+              </p>
+            )}
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+        <div className="flex-1 overflow-y-auto bg-stone-50/40 px-4 py-4 sm:px-6">
           {items.length ? (
             <div className="space-y-4">
               {items.map((item) => (
                 <div
                   key={item.key}
-                  className="rounded-[22px] border border-stone-200 bg-stone-50 p-4 shadow-sm"
+                  className="rounded-[16px] border border-stone-200 bg-white p-3 shadow-sm"
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-2.5">
                     <img
                       src={item.image}
                       alt={item.name}
-                      className="h-16 w-16 rounded-2xl object-cover"
+                      className="h-12 w-12 rounded-xl border border-stone-200 object-cover"
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="truncate text-base font-semibold text-slate-950 sm:text-[1.05rem]">
+                          <p className="truncate text-sm font-semibold text-slate-950 sm:text-base">
                             {item.name}
                           </p>
                           {item.selectedAddOns.length ? (
-                            <p className="mt-1 text-[11px] leading-4 text-slate-500 sm:text-xs sm:leading-5">
-                              {item.selectedAddOns
-                                .map((addOn) => addOn.name)
-                                .join(', ')}
-                            </p>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {item.selectedAddOns.map((addOn) => (
+                                <span
+                                  key={`${item.key}-${addOn.id}`}
+                                  className="inline-flex rounded-full border border-stone-200 bg-stone-50 px-1.5 py-0.5 text-[9px] font-medium text-slate-600"
+                                >
+                                  {addOn.name}
+                                </span>
+                              ))}
+                            </div>
                           ) : null}
                         </div>
-                        <p className="shrink-0 text-base font-semibold text-slate-950 sm:text-[1.05rem]">
+                        <p className="shrink-0 text-sm font-semibold text-slate-950 sm:text-base">
                           {formatPrice(getCartItemTotal(item))}
                         </p>
                       </div>
 
-                      <div className="mt-3">
+                      <div className="mt-2">
                         <CompactQuantityStepper
                           quantity={item.quantity}
                           onDecrease={() =>
@@ -203,7 +162,7 @@ export function CartDrawer({
                 </div>
               ))}
 
-              <div className="rounded-[22px] border border-stone-200 bg-stone-50 p-4 shadow-sm">
+              <div className="rounded-[22px] border border-stone-200 bg-white p-4 shadow-sm">
                 <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                   special note
                 </label>
@@ -216,7 +175,7 @@ export function CartDrawer({
               </div>
             </div>
           ) : (
-            <div className="rounded-[24px] border border-dashed border-stone-300 bg-stone-50 px-6 py-12 text-center">
+            <div className="rounded-[24px] border border-dashed border-stone-300 bg-white px-6 py-12 text-center">
               <p className="text-sm font-medium text-stone-700">
                 Your cart is empty.
               </p>
@@ -227,25 +186,30 @@ export function CartDrawer({
           )}
         </div>
 
-        <div className="border-t border-stone-200 bg-white px-4 pb-4 pt-4 sm:px-6 sm:pb-5">
-          <div className="rounded-[18px] bg-stone-100 px-4 py-3 text-center text-xs font-semibold text-slate-900 sm:text-sm">
+        <div className="border-t border-stone-200 bg-white px-4 pb-4 pt-3 sm:px-6 sm:pb-4">
+          <div className="rounded-[14px] border border-stone-200 bg-stone-50 px-3 py-2 text-center text-[11px] font-semibold text-slate-900 sm:text-xs">
             You'll earn {rewardPoints} points with this order
           </div>
 
-          <div className="mt-4 flex items-center justify-between text-slate-950">
-            <span className="text-[1.35rem] font-semibold tracking-tight sm:text-[1.5rem]">
-              Subtotal
-            </span>
-            <span className="text-[1.35rem] font-semibold tracking-tight sm:text-[1.5rem]">
-              {formatPrice(subtotal)}
-            </span>
+          <div className="mt-2.5 rounded-[14px] border border-stone-200 bg-white px-3 py-2.5">
+            <div className="flex items-center justify-between text-slate-950">
+              <span className="text-lg font-semibold tracking-tight sm:text-xl">
+                Subtotal
+              </span>
+              <span className="text-lg font-semibold tracking-tight sm:text-xl">
+                {formatPrice(subtotal)}
+              </span>
+            </div>
+            <p className="mt-0.5 text-[10px] text-slate-500">
+              Taxes and fees calculated at checkout.
+            </p>
           </div>
 
           <button
             type="button"
             onClick={onCheckout}
             disabled={checkoutDisabled}
-            className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-[18px] bg-black px-4 text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+            className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-black px-4 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(15,23,42,0.2)] transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none"
           >
             Go to checkout
             <ChevronRightIcon className="h-4 w-4" />

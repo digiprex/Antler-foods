@@ -12,7 +12,12 @@ const OFFER_FIELDS = `
   type
   sub_type
   status
-  details
+  percentage_off
+  amount_off
+  min_spend
+  discounted_items
+  qualifying_items
+  free_items
   restaurant_id
 `;
 
@@ -36,7 +41,12 @@ const INSERT_OFFER = `
     $type: String!
     $sub_type: String
     $status: String!
-    $details: String!
+    $percentage_off: numeric
+    $amount_off: numeric
+    $min_spend: numeric
+    $discounted_items: jsonb
+    $qualifying_items: jsonb
+    $free_items: jsonb
     $start_date: timestamptz!
     $end_date: timestamptz
     $is_deleted: Boolean!
@@ -48,7 +58,12 @@ const INSERT_OFFER = `
         type: $type
         sub_type: $sub_type
         status: $status
-        details: $details
+        percentage_off: $percentage_off
+        amount_off: $amount_off
+        min_spend: $min_spend
+        discounted_items: $discounted_items
+        qualifying_items: $qualifying_items
+        free_items: $free_items
         start_date: $start_date
         end_date: $end_date
         is_deleted: $is_deleted
@@ -68,7 +83,12 @@ const UPDATE_OFFER = `
     $type: String!
     $sub_type: String
     $status: String!
-    $details: String!
+    $percentage_off: numeric
+    $amount_off: numeric
+    $min_spend: numeric
+    $discounted_items: jsonb
+    $qualifying_items: jsonb
+    $free_items: jsonb
     $start_date: timestamptz!
     $end_date: timestamptz
   ) {
@@ -83,7 +103,12 @@ const UPDATE_OFFER = `
         type: $type
         sub_type: $sub_type
         status: $status
-        details: $details
+        percentage_off: $percentage_off
+        amount_off: $amount_off
+        min_spend: $min_spend
+        discounted_items: $discounted_items
+        qualifying_items: $qualifying_items
+        free_items: $free_items
         start_date: $start_date
         end_date: $end_date
       }
@@ -115,7 +140,12 @@ type OfferPayload = {
   type: string;
   sub_type: string | null;
   status: string;
-  details: string;
+  percentage_off: number | null;
+  amount_off: number | null;
+  min_spend: number | null;
+  discounted_items: any | null;
+  qualifying_items: any | null;
+  free_items: any | null;
   start_date: string;
   end_date: string | null;
   is_deleted: boolean;
@@ -160,10 +190,68 @@ function parseOfferPayload(raw: Record<string, unknown>) {
   const type = normalizeString(raw.type);
   const subType = normalizeString(raw.sub_type) || null;
   const status = normalizeString(raw.status);
-  const details = normalizeString(raw.details);
   const startDateRaw = normalizeString(raw.start_date);
   const endDateRaw = normalizeString(raw.end_date);
   const restaurantId = normalizeString(raw.restaurant_id);
+
+  // Parse numeric fields
+  const percentageOff = raw.percentage_off ? Number(raw.percentage_off) : null;
+  const amountOff = raw.amount_off ? Number(raw.amount_off) : null;
+  const minSpend = raw.min_spend ? Number(raw.min_spend) : null;
+  
+  // Parse discounted items (should be an object with format {category_id: [item_id, item_id]} or null)
+  let discountedItems = null;
+  if (raw.discounted_items) {
+    if (typeof raw.discounted_items === 'object' && !Array.isArray(raw.discounted_items)) {
+      // Already in the correct format: {category_id: [item_id, item_id]}
+      discountedItems = raw.discounted_items;
+    } else if (typeof raw.discounted_items === 'string') {
+      try {
+        const parsed = JSON.parse(raw.discounted_items);
+        if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+          discountedItems = parsed;
+        }
+      } catch {
+        discountedItems = null;
+      }
+    }
+  }
+
+  // Parse qualifying items (should be an object with format {category_id: [item_id, item_id]} or null)
+  let qualifyingItems = null;
+  if (raw.qualifying_items) {
+    if (typeof raw.qualifying_items === 'object' && !Array.isArray(raw.qualifying_items)) {
+      // Already in the correct format: {category_id: [item_id, item_id]}
+      qualifyingItems = raw.qualifying_items;
+    } else if (typeof raw.qualifying_items === 'string') {
+      try {
+        const parsed = JSON.parse(raw.qualifying_items);
+        if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+          qualifyingItems = parsed;
+        }
+      } catch {
+        qualifyingItems = null;
+      }
+    }
+  }
+
+  // Parse free items (should be an object with format {category_id: [item_id, item_id]} or null)
+  let freeItems = null;
+  if (raw.free_items) {
+    if (typeof raw.free_items === 'object' && !Array.isArray(raw.free_items)) {
+      // Already in the correct format: {category_id: [item_id, item_id]}
+      freeItems = raw.free_items;
+    } else if (typeof raw.free_items === 'string') {
+      try {
+        const parsed = JSON.parse(raw.free_items);
+        if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+          freeItems = parsed;
+        }
+      } catch {
+        freeItems = null;
+      }
+    }
+  }
 
   if (!restaurantId) {
     return { error: 'Restaurant ID is required.' };
@@ -179,10 +267,6 @@ function parseOfferPayload(raw: Record<string, unknown>) {
 
   if (!status) {
     return { error: 'Offer status is required.' };
-  }
-
-  if (!details) {
-    return { error: 'Offer details are required.' };
   }
 
   const parsedStartDate = toIsoTimestamp(startDateRaw || new Date().toISOString());
@@ -210,7 +294,12 @@ function parseOfferPayload(raw: Record<string, unknown>) {
     type,
     sub_type: subType,
     status,
-    details,
+    percentage_off: percentageOff,
+    amount_off: amountOff,
+    min_spend: minSpend,
+    discounted_items: discountedItems,
+    qualifying_items: qualifyingItems,
+    free_items: freeItems,
     start_date: parsedStartDate,
     end_date: parsedEndDate,
     is_deleted: false,
@@ -295,9 +384,12 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
     }
 
+    // Remove is_deleted from payload for UPDATE_OFFER since it doesn't accept that parameter
+    const { is_deleted, ...updatePayload } = parsed.payload;
+    
     const data = await adminGraphqlRequest<UpdateOfferResponse>(UPDATE_OFFER, {
       offer_id: offerId,
-      ...parsed.payload,
+      ...updatePayload,
     });
 
     const updated = data.update_offers?.returning?.[0];

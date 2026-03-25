@@ -56,8 +56,7 @@ export function CartDrawer({
   }
 
   const rewardPoints = Math.round(subtotal * 10);
-  const checkoutDisabled =
-    itemCount === 0 || (mode === 'delivery' && !deliveryAddress.trim());
+  const checkoutDisabled = itemCount === 0;
 
   return (
     <div

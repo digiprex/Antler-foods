@@ -114,6 +114,10 @@ function MenuPageContent({ data }: MenuPageProps) {
   }, [searchParams]);
 
   useEffect(() => {
+    router.prefetch('/menu/checkout');
+  }, [router]);
+
+  useEffect(() => {
     const handleOpenCartRequest = () => {
       setCartOpen(true);
     };

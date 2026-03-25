@@ -10,6 +10,7 @@ import { signupSchema, type SignupFormValues } from '@/lib/validation/auth';
 import {
   buildCustomerAuthHref,
   CUSTOMER_LOGIN_ROUTE,
+  resolveCustomerRestaurantId,
   resolveCustomerNextPath,
 } from '@/features/restaurant-menu/lib/customer-auth';
 import { MenuAuthInput } from '@/features/restaurant-menu/components/menu-auth-input';
@@ -28,7 +29,7 @@ export function MenuSignupForm({
   const router = useRouter();
   const searchParams = useSearchParams() ?? new URLSearchParams();
   const nextPath = resolveCustomerNextPath(searchParams.get('next'));
-  const resolvedRestaurantId = restaurantId || searchParams.get('restaurantId');
+  const resolvedRestaurantId = resolveCustomerRestaurantId(searchParams, restaurantId);
   const redirectTimeoutRef = useRef<number | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);

@@ -3,14 +3,19 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useSignInEmailPassword } from '@nhost/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { loginSchema, type LoginFormValues } from '@/lib/validation/auth';
+import { DEFAULT_AUTH_REDIRECT, getRoleDashboardRoute } from '@/lib/auth/routes';
+import { getUserRole } from '@/lib/auth/get-user-role';
+import { isNhostConfigured, nhost } from '@/lib/nhost';
 import {
   buildCustomerAuthHref,
   CUSTOMER_DEFAULT_AUTH_REDIRECT,
   CUSTOMER_FORGOT_PASSWORD_ROUTE,
   CUSTOMER_SIGNUP_ROUTE,
+  resolveCustomerRestaurantId,
   resolveCustomerNextPath,
 } from '@/features/restaurant-menu/lib/customer-auth';
 import { MenuAuthInput } from '@/features/restaurant-menu/components/menu-auth-input';
@@ -33,9 +38,10 @@ export function MenuLoginForm({
   const pathname = usePathname() ?? '';
   const searchParams = useSearchParams() ?? new URLSearchParams();
   const nextPath = resolveCustomerNextPath(searchParams.get('next'));
-  const resolvedRestaurantId = restaurantId || searchParams.get('restaurantId');
+  const resolvedRestaurantId = resolveCustomerRestaurantId(searchParams, restaurantId);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signInEmailPassword } = useSignInEmailPassword();
 
   const {
     register,
@@ -53,7 +59,31 @@ export function MenuLoginForm({
     setFormError(null);
 
     if (!resolvedRestaurantId) {
-      setFormError('Restaurant context is missing. Return to the menu and try again.');
+      if (!isNhostConfigured) {
+        setFormError('Restaurant context is missing. Return to the menu and try again.');
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        const result = await signInEmailPassword(email, password);
+
+        if (result.error) {
+          setFormError(result.error.message ?? 'Unable to sign in. Please try again.');
+          return;
+        }
+
+        const signedInUser = result.session?.user || nhost.auth.getUser();
+        const role = getUserRole(signedInUser || null);
+        const destination = role && role !== 'user'
+          ? getRoleDashboardRoute(role)
+          : DEFAULT_AUTH_REDIRECT;
+
+        router.replace(destination);
+        router.refresh();
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 

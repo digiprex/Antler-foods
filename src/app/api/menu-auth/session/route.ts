@@ -6,7 +6,9 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
-    const restaurantId = request.nextUrl.searchParams.get('restaurantId');
+    const restaurantId =
+      request.nextUrl.searchParams.get('restaurantId') ||
+      request.nextUrl.searchParams.get('restaurant_id');
     const cookieValue = request.cookies.get(getMenuCustomerSessionCookieName())?.value;
     const customer = await readMenuCustomerSession(cookieValue, restaurantId);
 

@@ -168,6 +168,7 @@ const GET_ITEMS_BY_CATEGORY_IDS = `
     ) {
       item_id
       category_id
+      parent_item_id
       name
       description
       delivery_price
@@ -455,6 +456,7 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
       return {
         id: text(item.item_id) || `${categoryId}-${slugify(itemName)}`,
         categoryId,
+        parentItemId: text(item.parent_item_id) || null,
         name: itemName,
         description: text(item.description) || '',
         price: resolvePrice(item),
@@ -469,12 +471,28 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
         modifierGroups: itemModifierGroups.length ? itemModifierGroups : undefined,
       };
     });
+    const itemMap = new Map(categoryItems.map((item) => [item.id, { ...item, variants: [] as typeof item[] }]));
+    const topLevelItems: typeof categoryItems = [];
+
+    for (const item of categoryItems) {
+      const parentItemId = item.parentItemId;
+
+      if (parentItemId && itemMap.has(parentItemId)) {
+        const parent = itemMap.get(parentItemId);
+        if (parent) {
+          parent.variants = [...(parent.variants || []), itemMap.get(item.id) || item];
+        }
+        continue;
+      }
+
+      topLevelItems.push(itemMap.get(item.id) || item);
+    }
 
     return {
       id: categoryId,
       label: text(category.name) || 'Untitled Category',
       description: text(category.description) || undefined,
-      items: categoryItems,
+      items: topLevelItems,
     };
   });
 
@@ -484,7 +502,7 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
       .map((category: any) => text(category.category_id))
       .filter((categoryId: any): categoryId is string => Boolean(categoryId)),
   );
-  const allItems = menuCategories.flatMap((category) => category.items);
+  const allItems = menuCategories.flatMap((category) => flattenMenuItems(category.items));
   const heroImage = text(restaurant.logo) || allItems.find((item) => Boolean(item.image))?.image || placeholderImage(restaurantName);
   const scheduleDays = buildScheduleDays(intervalsByDay, timeZone);
   const firstAvailableDay = scheduleDays.find((day) => day.slots.length > 0) || scheduleDays[0];
@@ -510,7 +528,7 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
       openingText: buildOpeningText(intervalsByDay, timeZone),
       infoCardLabel: firstAvailableDay?.slots.length ? `Pickup available at ${firstAvailableDay.slots[0]}` : 'Pickup time unavailable',
       hours: buildRestaurantHours(intervalsByDay, opening.profile?.is_24x7 === true),
-      trustBanner: 'Secure checkout available on all orders.',
+      trustBanner: '',
     },
     locations: [
       {
@@ -565,7 +583,7 @@ function buildEmptyMenuData(restaurantName: string): RestaurantMenuData {
       openingText: 'Hours unavailable',
       infoCardLabel: 'Pickup time unavailable',
       hours: DAYS.map((day) => ({ day: day.longLabel, hours: 'Closed' })),
-      trustBanner: 'Secure checkout available on all orders.',
+      trustBanner: '',
     },
     locations: [{ id: 'primary-location', label: 'Pickup location unavailable', street: 'Location unavailable', cityStateZip: 'Location unavailable', fullAddress: 'Location unavailable', openingText: 'Hours unavailable' }],
     serviceOptions: [
@@ -684,6 +702,10 @@ function buildScheduleSlots(intervals: Array<{ open: string; close: string }>, c
   }
 
   return Array.from(new Set(slotLabels));
+}
+
+function flattenMenuItems(items: Array<{ variants?: any[] }>) {
+  return items.flatMap((item) => [item, ...flattenMenuItems(item.variants || [])]);
 }
 
 function fallbackScheduleDay(date: Date, timeZone: string): ScheduleDay {

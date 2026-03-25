@@ -265,7 +265,7 @@ function MenuPageContent({ data }: MenuPageProps) {
       return;
     }
 
-    if (item.modifierGroups?.length || item.addOns?.length) {
+    if (item.modifierGroups?.length || item.addOns?.length || item.variants?.length) {
       setSelectedItemId(item.id);
       return;
     }
@@ -568,14 +568,16 @@ function resolveFulfillmentPrice(item: MenuItem, mode: FulfillmentMode) {
 
 function applyFulfillmentPricing(item: MenuItem, mode: FulfillmentMode): MenuItem {
   const price = resolveFulfillmentPrice(item, mode);
+  const variants = item.variants?.map((variant) => applyFulfillmentPricing(variant, mode));
 
-  if (price === item.price) {
+  if (price === item.price && !item.variants) {
     return item;
   }
 
   return {
     ...item,
     price,
+    variants,
   };
 }
 

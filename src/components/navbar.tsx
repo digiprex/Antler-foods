@@ -617,6 +617,7 @@ export default function Navbar({
               <a href="/signup" className={styles.menuAuthLink}>
                 Sign Up
               </a>
+              <div id="menu-navbar-auth-slot" className={styles.menuProfileSlot} />
               <a
                 href="/cart"
                 className={styles.menuCartLink}

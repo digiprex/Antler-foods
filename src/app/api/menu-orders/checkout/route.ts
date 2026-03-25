@@ -38,6 +38,7 @@ interface CheckoutOrderRequestBody {
   }> | null;
   tipAmount?: number;
   couponCode?: string | null;
+  giftCardCode?: string | null;
   orderNote?: string | null;
 }
 
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
       })),
       tipAmount: body?.tipAmount,
       couponCode: body?.couponCode,
+      giftCardCode: body?.giftCardCode,
       orderNote: body?.orderNote,
     });
 

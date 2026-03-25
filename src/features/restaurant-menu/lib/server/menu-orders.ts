@@ -3,6 +3,7 @@ import 'server-only';
 import { randomBytes } from 'crypto';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { validateMenuCouponCode } from '@/features/restaurant-menu/lib/server/menu-coupons';
+import { validateMenuGiftCardCode } from '@/features/restaurant-menu/lib/server/menu-gift-cards';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -194,6 +195,7 @@ interface PlaceMenuOrderInput {
   items: OrderCartItemInput[];
   tipAmount?: number;
   couponCode?: string | null;
+  giftCardCode?: string | null;
   orderNote?: string | null;
 }
 
@@ -399,6 +401,7 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
 
   const subtotal = roundCurrency(lineItems.reduce((sum, lineItem) => sum + lineItem.lineTotal, 0));
   let appliedCoupon = null;
+  let giftCardAppliedAmount = 0;
 
   if (trimText(input.couponCode)) {
     try {
@@ -417,9 +420,32 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     }
   }
 
-  const discountTotal = appliedCoupon?.discountAmount || 0;
+  const couponDiscountTotal = appliedCoupon?.discountAmount || 0;
+  const preGiftCardTotal = roundCurrency(subtotal + tipAmount - couponDiscountTotal);
+
+  if (trimText(input.giftCardCode)) {
+    try {
+      const giftCard = await validateMenuGiftCardCode({
+        restaurantId,
+        email: contact.email,
+        code: input.giftCardCode,
+      });
+      giftCardAppliedAmount = roundCurrency(
+        Math.min(giftCard.currentBalance, Math.max(preGiftCardTotal, 0)),
+      );
+    } catch (error) {
+      throw new MenuOrderError(
+        400,
+        error instanceof Error
+          ? error.message
+          : 'This gift card is not valid for the current order.',
+      );
+    }
+  }
+
+  const discountTotal = roundCurrency(couponDiscountTotal + giftCardAppliedAmount);
   const taxTotal = 0;
-  const total = roundCurrency(subtotal + tipAmount - discountTotal);
+  const total = roundCurrency(Math.max(preGiftCardTotal - giftCardAppliedAmount, 0));
   const orderNumber = buildOrderNumber(placedAt);
 
   const orderData = await adminGraphqlRequest<InsertOrderResponse>(INSERT_ORDER, {

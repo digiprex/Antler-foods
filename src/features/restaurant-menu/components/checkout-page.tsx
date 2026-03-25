@@ -54,6 +54,14 @@ interface CheckoutCouponOffer {
   isBestOffer: boolean;
 }
 
+interface CheckoutGiftCardOffer {
+  giftCardId: string;
+  code: string;
+  email: string;
+  currentBalance: number;
+  expiryDate: string;
+}
+
 type TipPreset = '10' | '15' | '20' | 'custom';
 
 function roundCurrency(value: number) {
@@ -106,6 +114,35 @@ async function requestValidateCoupon(
     ok: response.ok,
     error: payload?.error ?? null,
     coupon: payload?.coupon ?? null,
+  };
+}
+
+async function requestValidateGiftCard(
+  restaurantId: string,
+  email: string,
+  giftCardCode: string,
+) {
+  const response = await fetch('/api/menu-orders/validate-gift-card', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'same-origin',
+    body: JSON.stringify({
+      restaurantId,
+      email,
+      giftCardCode,
+    }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { error?: string; giftCard?: CheckoutGiftCardOffer }
+    | null;
+
+  return {
+    ok: response.ok,
+    error: payload?.error ?? null,
+    giftCard: payload?.giftCard ?? null,
   };
 }
 
@@ -169,7 +206,7 @@ export default function RestaurantMenuCheckoutPage({
   const [giftCardCodeInput, setGiftCardCodeInput] = useState('');
   const [isRedeemingGiftCard, setIsRedeemingGiftCard] = useState(false);
   const [giftCardError, setGiftCardError] = useState<string | null>(null);
-  const [appliedGiftCardCode, setAppliedGiftCardCode] = useState<string | null>(null);
+  const [appliedGiftCard, setAppliedGiftCard] = useState<CheckoutGiftCardOffer | null>(null);
   const brandName = data.restaurant.name.replace(' Menu', '');
 
   const openAuthSidebar = (view: MenuAuthView) => {
@@ -268,6 +305,17 @@ export default function RestaurantMenuCheckoutPage({
   };
 
   const handleRedeemGiftCard = async () => {
+    if (!restaurantId) {
+      setGiftCardError('Restaurant context is missing.');
+      return;
+    }
+
+    const normalizedEmail = contactFields.email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setGiftCardError('Enter checkout email before redeeming a gift card.');
+      return;
+    }
+
     const normalizedCode = giftCardCodeInput.trim().toUpperCase();
     if (!normalizedCode) {
       setGiftCardError('Enter a gift card code.');
@@ -278,22 +326,31 @@ export default function RestaurantMenuCheckoutPage({
     setIsRedeemingGiftCard(true);
 
     try {
-      await new Promise((resolve) => {
-        window.setTimeout(resolve, 250);
-      });
-      setAppliedGiftCardCode(normalizedCode);
+      const payload = await requestValidateGiftCard(
+        restaurantId,
+        normalizedEmail,
+        normalizedCode,
+      );
+
+      if (!payload.ok || !payload.giftCard) {
+        setAppliedGiftCard(null);
+        setGiftCardError(payload.error ?? 'Unable to validate this gift card right now.');
+        return;
+      }
+
+      setAppliedGiftCard(payload.giftCard);
       setGiftCardCodeInput('');
-      toast.success(`${normalizedCode} redeemed.`);
+      toast.success(`${payload.giftCard.code} redeemed.`);
     } finally {
       setIsRedeemingGiftCard(false);
     }
   };
 
   const handleRemoveGiftCard = () => {
-    if (appliedGiftCardCode) {
-      toast.success(`${appliedGiftCardCode} removed.`);
+    if (appliedGiftCard?.code) {
+      toast.success(`${appliedGiftCard.code} removed.`);
     }
-    setAppliedGiftCardCode(null);
+    setAppliedGiftCard(null);
     setGiftCardError(null);
     setGiftCardCodeInput('');
   };
@@ -397,6 +454,7 @@ export default function RestaurantMenuCheckoutPage({
 
   const handlePlaceOrder = async () => {
     setCheckoutError(null);
+    const normalizedCheckoutEmail = contactFields.email.trim().toLowerCase();
 
     if (!restaurantId) {
       setCheckoutError('Restaurant context is missing. Return to the menu and try again.');
@@ -411,13 +469,18 @@ export default function RestaurantMenuCheckoutPage({
     if (
       !contactFields.firstName.trim() ||
       !contactFields.lastName.trim() ||
-      !contactFields.email.trim() ||
+      !normalizedCheckoutEmail ||
       !contactFields.phone.trim()
     ) {
       setCheckoutError('Enter your first name, last name, email, and phone number before placing your order.');
       document
         .getElementById('checkout-contact-fields')
         ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    if (appliedGiftCard && appliedGiftCard.email !== normalizedCheckoutEmail) {
+      setCheckoutError('Gift card email must match checkout email.');
       return;
     }
 
@@ -452,6 +515,7 @@ export default function RestaurantMenuCheckoutPage({
           items,
           tipAmount,
           couponCode: appliedCoupon?.code || null,
+          giftCardCode: appliedGiftCard?.code || null,
           orderNote: cartNote,
         }),
       });
@@ -507,13 +571,22 @@ export default function RestaurantMenuCheckoutPage({
   const normalizedCouponInput = couponCodeInput.trim().toUpperCase();
   const normalizedGiftCardInput = giftCardCodeInput.trim().toUpperCase();
   const discountAmount = appliedCoupon?.discountAmount || 0;
+  const preGiftCardTotal = roundCurrency(subtotal + tipAmount - discountAmount);
+  const giftCardAppliedAmount = appliedGiftCard
+    ? roundCurrency(
+        Math.min(
+          appliedGiftCard.currentBalance,
+          Math.max(preGiftCardTotal, 0),
+        ),
+      )
+    : 0;
   const showAppliedCouponActions = Boolean(
     appliedCoupon && !normalizedCouponInput,
   );
   const showRedeemedGiftCardActions = Boolean(
-    appliedGiftCardCode && !normalizedGiftCardInput,
+    appliedGiftCard && !normalizedGiftCardInput,
   );
-  const total = roundCurrency(subtotal + tipAmount - discountAmount);
+  const total = roundCurrency(Math.max(preGiftCardTotal - giftCardAppliedAmount, 0));
 
   return (
     <div className="min-h-screen bg-white px-4 py-4 sm:px-6 lg:h-screen lg:overflow-hidden lg:px-8 lg:py-6">
@@ -1053,7 +1126,7 @@ export default function RestaurantMenuCheckoutPage({
                     <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
                       Gift card
                     </p>
-                    {appliedGiftCardCode ? (
+                    {appliedGiftCard ? (
                       <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
                         Redeemed
                       </span>
@@ -1099,9 +1172,9 @@ export default function RestaurantMenuCheckoutPage({
                   </form>
                   {giftCardError ? (
                     <p className="text-[11px] text-red-700">{giftCardError}</p>
-                  ) : appliedGiftCardCode ? (
+                  ) : appliedGiftCard ? (
                     <p className="text-[11px] text-emerald-700">
-                      {appliedGiftCardCode} ready to use at payment.
+                      {appliedGiftCard.code} balance {formatPrice(appliedGiftCard.currentBalance)}.
                     </p>
                   ) : null}
                 </div>
@@ -1135,6 +1208,19 @@ export default function RestaurantMenuCheckoutPage({
                       {discountAmount > 0 ? `- ${formatPrice(discountAmount)}` : formatPrice(0)}
                     </span>
                   </div>
+                  {giftCardAppliedAmount > 0 ? (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="flex items-center gap-2">
+                        <span>Gift card</span>
+                        <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                          {appliedGiftCard?.code}
+                        </span>
+                      </span>
+                      <span className="font-medium text-emerald-700">
+                        - {formatPrice(giftCardAppliedAmount)}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="flex items-center justify-between gap-4 text-[1.15rem] font-semibold text-slate-950 sm:text-[1.25rem]">
                   <span>Total</span>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AnnouncementStrip } from '@/features/restaurant-menu/components/announcement-strip';
 import { CartDrawer } from '@/features/restaurant-menu/components/cart-drawer';
@@ -88,6 +89,7 @@ function MenuPageContent({ data }: MenuPageProps) {
   const [cartOpen, setCartOpen] = useState(false);
   const [authSidebarOpen, setAuthSidebarOpen] = useState(false);
   const [authSidebarView, setAuthSidebarView] = useState<MenuAuthView>('login');
+  const [navbarAuthSlot, setNavbarAuthSlot] = useState<HTMLElement | null>(null);
   const contentContainerClass = 'mx-auto w-full max-w-[1080px] px-4 sm:px-6';
   const brandName = data.restaurant.name.replace(' Menu', '');
 
@@ -189,6 +191,11 @@ function MenuPageContent({ data }: MenuPageProps) {
     };
   }, [hasCustomerSession]);
 
+
+  useEffect(() => {
+    setNavbarAuthSlot(document.getElementById('menu-navbar-auth-slot'));
+  }, []);
+
   const selectedLocation =
     data.locations.find((location) => location.id === selectedLocationId) || data.locations[0];
   const scheduleLabel = getScheduleSummary(data.scheduleDays, selectedSchedule);
@@ -264,7 +271,10 @@ function MenuPageContent({ data }: MenuPageProps) {
       className="min-h-screen bg-white"
       style={{ paddingTop: 'var(--navbar-height, 0px)' }}
     >
-      <div className="sticky top-0 z-50 border-b border-stone-200 bg-white/95 backdrop-blur-xl">
+      <div
+        className="sticky z-40 border-b border-stone-200 bg-white/95 backdrop-blur-xl"
+        style={{ top: 'var(--navbar-height, 0px)' }}
+      >
         <AnnouncementStrip text={data.announcement} />
       </div>
 
@@ -287,8 +297,8 @@ function MenuPageContent({ data }: MenuPageProps) {
             <div className={contentContainerClass}>
               <div className="rounded-[24px] border border-stone-200 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.06)] sm:p-5">
                 <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 flex-1">
+                  <div className="flex flex-col gap-4">
+                    <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">
                         Online ordering
                       </p>
@@ -304,31 +314,6 @@ function MenuPageContent({ data }: MenuPageProps) {
                         </span>
                       </div>
                     </div>
-
-                    {!isAuthLoading && hasCustomerSession && customerProfile ? (
-                      <ProfileDropdown
-                        profile={customerProfile}
-                        isLoggingOut={isLoggingOut}
-                        onLogout={handleLogout}
-                      />
-                    ) : (
-                      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-                        <button
-                          type="button"
-                          onClick={() => openAuthSidebar('login')}
-                          className="inline-flex h-10 w-full items-center justify-center rounded-full border border-stone-200 bg-white px-4 text-sm font-semibold text-stone-900 shadow-sm transition hover:border-stone-300 hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 sm:w-auto"
-                        >
-                          Sign in
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openAuthSidebar('signup')}
-                          className="inline-flex h-10 w-full items-center justify-center rounded-full bg-stone-900 px-4 text-sm font-semibold text-stone-50 transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 sm:w-auto"
-                        >
-                          Sign up
-                        </button>
-                      </div>
-                    )}
                   </div>
 
                   <FulfillmentSelector
@@ -519,6 +504,17 @@ function MenuPageContent({ data }: MenuPageProps) {
           }
         }}
       />
+
+      {navbarAuthSlot && !isAuthLoading && hasCustomerSession && customerProfile
+        ? createPortal(
+            <ProfileDropdown
+              profile={customerProfile}
+              isLoggingOut={isLoggingOut}
+              onLogout={handleLogout}
+            />,
+            navbarAuthSlot,
+          )
+        : null}
 
       <MenuAuthSidebar
         open={authSidebarOpen}

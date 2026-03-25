@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import MenuFormModal from './menu-form-modal';
 
 interface MenuManagementFormProps {
@@ -38,6 +39,7 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
   const [showActiveMenuModal, setShowActiveMenuModal] = useState(false);
   const [pendingMenuData, setPendingMenuData] = useState<Pick<Menu, 'name' | 'varies_with_time' | 'is_active'> | null>(null);
   const [currentActiveMenu, setCurrentActiveMenu] = useState<Menu | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   const selectedMenu = useMemo(
     () => menus.find((menu) => menu.menu_id === selectedMenuId) ?? null,
@@ -83,6 +85,11 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
   useEffect(() => {
     fetchMenus();
   }, [fetchMenus]);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   const openCreateMenu = () => {
     setMenuModalMode('create');
@@ -399,8 +406,12 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
       />
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      {showDeleteModal &&
+        isMounted &&
+        typeof document !== 'undefined' &&
+        document.body &&
+        createPortal(
+        <div className="fixed inset-0 top-0 z-[100] flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -441,12 +452,18 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* Active Menu Confirmation Modal */}
-      {showActiveMenuModal && currentActiveMenu && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      {showActiveMenuModal &&
+        currentActiveMenu &&
+        isMounted &&
+        typeof document !== 'undefined' &&
+        document.body &&
+        createPortal(
+        <div className="fixed inset-0 top-0 z-[100] flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -485,7 +502,8 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

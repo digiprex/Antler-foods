@@ -26,6 +26,28 @@ const GET_ACTIVE_COUPONS = `
   }
 `;
 
+
+const GET_COUPON_BY_CODE = `
+  query GetCouponByCode($restaurant_id: uuid!, $code: String!) {
+    coupons(
+      where: {
+        restaurant_id: { _eq: $restaurant_id }
+        is_deleted: { _eq: false }
+        code: { _ilike: $code }
+      }
+      limit: 1
+    ) {
+      coupon_id
+      code
+      discount_type
+      value
+      min_spend
+      start_date
+      end_date
+    }
+  }
+`;
+
 interface CouponRecord {
   coupon_id?: string | null;
   code?: string | null;
@@ -37,6 +59,11 @@ interface CouponRecord {
 }
 
 interface GetActiveCouponsResponse {
+  coupons?: CouponRecord[];
+}
+
+
+interface GetCouponByCodeResponse {
   coupons?: CouponRecord[];
 }
 
@@ -99,13 +126,58 @@ export async function listMenuCoupons({ restaurantId, subtotal }: ListMenuCoupon
 }
 
 export async function getCouponOfferByCode({ restaurantId, subtotal, code }: ListMenuCouponsInput & { code: string | null | undefined }) {
-  const normalizedCode = normalizeCouponCode(code);
-  if (!normalizedCode) {
+  try {
+    return await validateMenuCouponCode({ restaurantId, subtotal, code });
+  } catch {
     return null;
   }
+}
 
-  const offers = await listMenuCoupons({ restaurantId, subtotal });
-  return offers.find((offer) => normalizeCouponCode(offer.code) === normalizedCode) || null;
+export async function validateMenuCouponCode({
+  restaurantId,
+  subtotal,
+  code,
+}: ListMenuCouponsInput & { code: string | null | undefined }) {
+  const normalizedRestaurantId = requireUuid(restaurantId, 'A valid restaurant id is required.');
+  const normalizedSubtotal = nonNegativeCurrency(subtotal);
+  const normalizedCode = normalizeCouponCode(code);
+
+  if (!normalizedCode) {
+    throw new Error('Enter a coupon code.');
+  }
+
+  const data = await adminGraphqlRequest<GetCouponByCodeResponse>(GET_COUPON_BY_CODE, {
+    restaurant_id: normalizedRestaurantId,
+    code: normalizedCode,
+  });
+
+  const record = Array.isArray(data.coupons) ? data.coupons[0] : null;
+  if (!record) {
+    throw new Error('Enter a valid coupon code.');
+  }
+
+  const now = new Date();
+  const startDate = parseDate(record.start_date);
+  const endDate = parseDate(record.end_date);
+
+  if (startDate && startDate.getTime() > now.getTime()) {
+    throw new Error('This coupon is not active yet.');
+  }
+
+  if (endDate && endDate.getTime() < now.getTime()) {
+    throw new Error('This coupon has expired.');
+  }
+
+  const offer = buildCouponOffer(record, normalizedSubtotal);
+  if (!offer) {
+    throw new Error('Enter a valid coupon code.');
+  }
+
+  if (!offer.isEligible) {
+    throw new Error(offer.helperText);
+  }
+
+  return offer;
 }
 
 function buildCouponOffer(record: CouponRecord, subtotal: number): MenuCouponOffer | null {
@@ -200,4 +272,15 @@ function roundCurrency(value: number) {
 
 function trimText(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+
+function parseDate(value: string | null | undefined) {
+  const normalized = trimText(value);
+  if (!normalized) {
+    return null;
+  }
+
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }

@@ -313,9 +313,11 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
     }
 
+    const { is_deleted: _unusedIsDeleted, ...updatePayload } = parsed.payload;
+
     const data = await adminGraphqlRequest<UpdateCouponResponse>(UPDATE_COUPON, {
       coupon_id: couponId,
-      ...parsed.payload,
+      ...updatePayload,
     });
 
     const updated = data.update_coupons?.returning?.[0];

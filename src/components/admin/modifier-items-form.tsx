@@ -8,6 +8,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModifierItem {
   modifier_item_id: string;
@@ -54,6 +55,7 @@ export default function ModifierItemsForm({
   const [itemPrice, setItemPrice] = useState('0');
   const [itemError, setItemError] = useState<string | null>(null);
   const [itemSearch, setItemSearch] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
 
   const normalizedItemSearch = itemSearch.trim().toLowerCase();
   const filteredItems = useMemo(() => {
@@ -117,6 +119,11 @@ export default function ModifierItemsForm({
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   const handleCreateItem = async () => {
     const name = itemName.trim();
@@ -423,8 +430,12 @@ export default function ModifierItemsForm({
         </div>
       )}
 
-      {showCreateItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+      {showCreateItem &&
+        isMounted &&
+        typeof document !== 'undefined' &&
+        document.body &&
+        createPortal(
+        <div className="fixed inset-0 top-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white">
             <div className="flex items-center justify-between border-b border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900">Add Modifier Item</h3>
@@ -489,11 +500,16 @@ export default function ModifierItemsForm({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
-      {showEditItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+      {showEditItem &&
+        isMounted &&
+        typeof document !== 'undefined' &&
+        document.body &&
+        createPortal(
+        <div className="fixed inset-0 top-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white">
             <div className="flex items-center justify-between border-b border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900">Edit Modifier Item</h3>
@@ -558,7 +574,8 @@ export default function ModifierItemsForm({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

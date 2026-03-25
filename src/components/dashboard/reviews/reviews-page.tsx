@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { PurpleDotSpinner } from '@/components/dashboard/purple-dot-spinner';
 import Toast from '@/components/ui/toast';
 
@@ -282,6 +283,7 @@ function DeleteIcon() {
 
 export default function ReviewsPage() {
   const restaurant = useRestaurantScope();
+  const [isMounted, setIsMounted] = useState(false);
 
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -305,6 +307,11 @@ export default function ReviewsPage() {
   const [avatarFileId, setAvatarFileId] = useState<string | null>(null);
 
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   const activeEditingReview = useMemo(
     () =>
@@ -932,8 +939,8 @@ export default function ReviewsPage() {
         )}
       </div>
 
-      {isModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm sm:p-5">
+      {isModalOpen && isMounted && typeof document !== 'undefined' && document.body ? createPortal(
+        <div className="fixed inset-0 top-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm sm:p-5">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={closeModal}
@@ -1113,10 +1120,10 @@ export default function ReviewsPage() {
             </form>
           </div>
         </div>
-      ) : null}
+      , document.body) : null}
 
-      {deleteCandidateReview ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-5 backdrop-blur-sm">
+      {deleteCandidateReview && isMounted && typeof document !== 'undefined' && document.body ? createPortal(
+        <div className="fixed inset-0 top-0 z-[110] flex items-center justify-center p-5 backdrop-blur-sm">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={onCancelDeleteManualReview}
@@ -1178,7 +1185,7 @@ export default function ReviewsPage() {
             </div>
           </div>
         </div>
-      ) : null}
+      , document.body) : null}
     </section>
   );
 }

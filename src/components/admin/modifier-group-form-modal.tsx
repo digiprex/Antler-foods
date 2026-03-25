@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 // Modifier group form data interface
 interface ModifierGroupFormData {
@@ -60,6 +61,12 @@ export default function ModifierGroupFormModal({
   const [newItemName, setNewItemName] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
   const [modifierItemError, setModifierItemError] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   useEffect(() => {
     if (group && mode === 'edit') {
@@ -208,10 +215,9 @@ export default function ModifierGroupFormModal({
     handleInputChange('modifier_items', newItems);
   };
 
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  if (!isOpen || !isMounted || typeof document === 'undefined' || !document.body) return null;
+  return createPortal(
+    <div className="fixed inset-0 top-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           {/* Header */}
@@ -484,7 +490,7 @@ export default function ModifierGroupFormModal({
       </div>
 
       {showAddModifierItemModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <div className="fixed inset-0 top-0 z-[110] flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-gray-200 p-5">
               <h4 className="text-base font-semibold text-gray-900">Add Modifier Item</h4>
@@ -561,6 +567,7 @@ export default function ModifierGroupFormModal({
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }

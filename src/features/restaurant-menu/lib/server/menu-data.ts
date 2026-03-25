@@ -21,8 +21,7 @@ const DAYS = [
 ] as const;
 const DAY_BY_SHORT = new Map<string, number>(DAYS.map((day) => [day.shortLabel, day.dbDay]));
 const DEFAULT_TIME_ZONE = 'UTC';
-const SLOT_STEP_MINUTES = 30;
-const MAX_SLOTS_PER_DAY = 8;
+const SLOT_STEP_MINUTES = 10;
 const UPCOMING_DAYS = 5;
 const LOOKAHEAD_DAYS = 7;
 
@@ -679,12 +678,8 @@ function buildScheduleSlots(intervals: Array<{ open: string; close: string }>, c
       minutePointer = Math.max(minutePointer, minimumMinutes);
     }
 
-    for (let current = minutePointer; current < closeMinutes && slotLabels.length < MAX_SLOTS_PER_DAY; current += SLOT_STEP_MINUTES) {
+    for (let current = minutePointer; current < closeMinutes; current += SLOT_STEP_MINUTES) {
       slotLabels.push(formatClock(minutesToTime(current)));
-    }
-
-    if (slotLabels.length >= MAX_SLOTS_PER_DAY) {
-      break;
     }
   }
 

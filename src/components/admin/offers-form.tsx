@@ -12,7 +12,11 @@ interface Offer {
   type: string;
   sub_type: string | null;
   status: string;
-  details: string;
+  percentage_off: number | null;
+  min_spend: number | null;
+  discounted_items: any | null;
+  qualifying_items: any | null;
+  free_items: any | null;
   restaurant_id: string;
 }
 
@@ -27,9 +31,26 @@ interface OfferFormState {
   name: string;
   type: string;
   sub_type: string;
-  details: string;
+  percentage_off: string;
+  min_spend: string;
+  discounted_items: any[];
+  qualifying_items: any[];
+  free_items: any[];
   start_date: string;
   end_date: string;
+}
+
+interface MenuItem {
+  id: string;
+  name: string;
+  price: number;
+  category_id: string;
+}
+
+interface MenuCategory {
+  id: string;
+  name: string;
+  items: MenuItem[];
 }
 
 function toDateTimeLocalInput(value: string | null | undefined) {
@@ -57,8 +78,12 @@ function createInitialFormState(): OfferFormState {
   return {
     name: '',
     type: 'percentage_off',
-    sub_type: '',
-    details: '',
+    sub_type: 'total_order_value', // Explicitly set the first sub-type for percentage_off
+    percentage_off: '',
+    min_spend: '',
+    discounted_items: [],
+    qualifying_items: [],
+    free_items: [],
     start_date: nowDateTimeLocalInput(),
     end_date: '',
   };
@@ -105,7 +130,7 @@ function getSubTypeOptions(type: string): { value: string; label: string; descri
         {
           value: 'total_order_value',
           label: 'Total order value',
-          description: 'E.g. 10% off your order when you spend 20 $'
+          description: 'E.g. 10% off your order when you spend $20'
         },
         {
           value: 'selected_items',
@@ -116,14 +141,14 @@ function getSubTypeOptions(type: string): { value: string; label: string; descri
     case 'amount_off':
       return [
         {
+          value: 'total_order_value',
+          label: 'Total order value',
+          description: 'E.g. 1 $ off your order when you spend $20'
+        },
+        {
           value: 'selected_items',
           label: 'Selected items',
           description: 'E.g. 1 $ off 12-inch pizzas.'
-        },
-        {
-          value: 'total_order_value',
-          label: 'Total order value',
-          description: 'E.g. 1 $ off your order when you spend 20 $'
         },
       ];
     case 'buy_1_get_1':
@@ -149,7 +174,7 @@ function getSubTypeOptions(type: string): { value: string; label: string; descri
         {
           value: 'by_spending_fixed_amount',
           label: 'By spending fixed $ amount',
-          description: 'E.g. Get a free dessert when you spend 20 $.'
+          description: 'E.g. Get a free dessert when you spend $20.'
         },
       ];
     default:
@@ -173,6 +198,49 @@ export default function OffersForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingOfferId, setDeletingOfferId] = useState<string | null>(null);
+  const [showItemSelector, setShowItemSelector] = useState(false);
+  const [showQualifyingItemSelector, setShowQualifyingItemSelector] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [expandedQualifyingCategories, setExpandedQualifyingCategories] = useState<Set<string>>(new Set());
+
+  const [menuData, setMenuData] = useState<MenuCategory[]>([]);
+  const [loadingMenuData, setLoadingMenuData] = useState(false);
+
+  const fetchMenuData = async () => {
+    try {
+      setLoadingMenuData(true);
+      
+      // Fetch categories with items
+      const response = await fetch(
+        `/api/categories?restaurant_id=${encodeURIComponent(restaurantId)}&include_items=true`,
+      );
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || 'Failed to fetch menu data');
+      }
+
+      // Transform the API response to match our MenuCategory interface
+      const transformedData: MenuCategory[] = (data.categories || []).map((category: any) => ({
+        id: category.category_id,
+        name: category.name,
+        items: (category.items || []).map((item: any) => ({
+          id: item.item_id,
+          name: item.name,
+          price: item.price || 0,
+          category_id: category.category_id,
+        })),
+      }));
+
+      setMenuData(transformedData);
+    } catch (err) {
+      console.error('Error fetching menu data:', err);
+      // Set empty array on error so the form still works
+      setMenuData([]);
+    } finally {
+      setLoadingMenuData(false);
+    }
+  };
 
   const fetchOffers = async () => {
     try {
@@ -198,14 +266,28 @@ export default function OffersForm({
 
   useEffect(() => {
     fetchOffers();
+    fetchMenuData();
   }, [restaurantId]);
+
+  // Ensure first sub-type is selected when form loads or type changes
+  useEffect(() => {
+    if (form.type && (!form.sub_type || form.sub_type === '')) {
+      const subTypeOptions = getSubTypeOptions(form.type);
+      if (subTypeOptions.length > 0) {
+        setForm((previous) => ({
+          ...previous,
+          sub_type: subTypeOptions[0].value,
+        }));
+      }
+    }
+  }, [form.type]);
 
   const filteredOffers = useMemo(() => {
     const normalized = search.trim().toLowerCase();
     if (!normalized) return offers;
 
     return offers.filter((offer) => {
-      const searchableText = `${offer.name} ${offer.details} ${offer.type} ${offer.status}`.toLowerCase();
+      const searchableText = `${offer.name} ${offer.type} ${offer.status}`.toLowerCase();
       return searchableText.includes(normalized);
     });
   }, [offers, search]);
@@ -225,7 +307,47 @@ export default function OffersForm({
       name: offer.name,
       type: offer.type,
       sub_type: offer.sub_type || '',
-      details: offer.details,
+      percentage_off: offer.percentage_off ? String(offer.percentage_off) : '',
+      min_spend: offer.min_spend ? String(offer.min_spend) : '',
+      discounted_items: offer.discounted_items && typeof offer.discounted_items === 'object'
+        ? Object.entries(offer.discounted_items).flatMap(([categoryId, itemIds]) => {
+            if (!Array.isArray(itemIds)) return [];
+            return itemIds.map(itemId => {
+              // Find the full item object from menuData using the ID
+              for (const category of menuData) {
+                const item = category.items.find(item => item.id === itemId);
+                if (item) return item;
+              }
+              return null;
+            }).filter(Boolean);
+          })
+        : [],
+      qualifying_items: offer.qualifying_items && typeof offer.qualifying_items === 'object'
+        ? Object.entries(offer.qualifying_items).flatMap(([categoryId, itemIds]) => {
+            if (!Array.isArray(itemIds)) return [];
+            return itemIds.map(itemId => {
+              // Find the full item object from menuData using the ID
+              for (const category of menuData) {
+                const item = category.items.find(item => item.id === itemId);
+                if (item) return item;
+              }
+              return null;
+            }).filter(Boolean);
+          })
+        : [],
+      free_items: offer.free_items && typeof offer.free_items === 'object'
+        ? Object.entries(offer.free_items).flatMap(([categoryId, itemIds]) => {
+            if (!Array.isArray(itemIds)) return [];
+            return itemIds.map(itemId => {
+              // Find the full item object from menuData using the ID
+              for (const category of menuData) {
+                const item = category.items.find(item => item.id === itemId);
+                if (item) return item;
+              }
+              return null;
+            }).filter(Boolean);
+          })
+        : [],
       start_date: toDateTimeLocalInput(offer.start_date),
       end_date: toDateTimeLocalInput(offer.end_date),
     });
@@ -244,7 +366,6 @@ export default function OffersForm({
   const saveOffer = async () => {
     const name = form.name.trim();
     const type = form.type.trim();
-    const details = form.details.trim();
     const startDateIso = toIsoFromDateTimeInput(form.start_date);
     const endDateIso = form.end_date.trim()
       ? toIsoFromDateTimeInput(form.end_date)
@@ -260,9 +381,101 @@ export default function OffersForm({
       return;
     }
 
-    if (!details) {
-      setFormError('Offer details are required.');
+    if (!form.sub_type) {
+      setFormError('Sub type is required.');
       return;
+    }
+
+    // Validate conditional fields for percentage off with total order value
+    if (form.type === 'percentage_off' && form.sub_type === 'total_order_value') {
+      if (!form.min_spend || Number(form.min_spend) <= 0) {
+        setFormError('Minimum spend amount is required and must be greater than 0.');
+        return;
+      }
+      if (!form.percentage_off || Number(form.percentage_off) <= 0 || Number(form.percentage_off) > 100) {
+        setFormError('Percentage discount is required and must be between 1 and 100.');
+        return;
+      }
+    }
+
+    // Validate conditional fields for amount off with total order value
+    if (form.type === 'amount_off' && form.sub_type === 'total_order_value') {
+      if (!form.min_spend || Number(form.min_spend) <= 0) {
+        setFormError('Minimum spend amount is required and must be greater than 0.');
+        return;
+      }
+      if (!form.percentage_off || Number(form.percentage_off) <= 0) {
+        setFormError('Amount off is required and must be greater than 0.');
+        return;
+      }
+    }
+
+    // Validate conditional fields for percentage off with selected items
+    if (form.type === 'percentage_off' && form.sub_type === 'selected_items') {
+      if (!Array.isArray(form.discounted_items) || form.discounted_items.length === 0) {
+        setFormError('At least one discounted item must be selected.');
+        return;
+      }
+      if (!form.percentage_off || Number(form.percentage_off) <= 0 || Number(form.percentage_off) > 100) {
+        setFormError('Percentage discount is required and must be between 1 and 100.');
+        return;
+      }
+    }
+
+    // Validate conditional fields for amount off with selected items
+    if (form.type === 'amount_off' && form.sub_type === 'selected_items') {
+      if (!Array.isArray(form.discounted_items) || form.discounted_items.length === 0) {
+        setFormError('At least one discounted item must be selected.');
+        return;
+      }
+      if (!form.percentage_off || Number(form.percentage_off) <= 0) {
+        setFormError('Amount off is required and must be greater than 0.');
+        return;
+      }
+    }
+
+    // Validate conditional fields for buy 1 get 1 free
+    if (form.type === 'buy_1_get_1' && form.sub_type === 'buy_1_get_1_free') {
+      if (!Array.isArray(form.qualifying_items) || form.qualifying_items.length === 0) {
+        setFormError('At least one qualifying item must be selected.');
+        return;
+      }
+      if (!Array.isArray(form.free_items) || form.free_items.length === 0) {
+        setFormError('At least one free item must be selected.');
+        return;
+      }
+    }
+
+    // Validate conditional fields for buy 1 get 1 half price
+    if (form.type === 'buy_1_get_1' && form.sub_type === 'buy_1_get_1_half_price') {
+      if (!Array.isArray(form.qualifying_items) || form.qualifying_items.length === 0) {
+        setFormError('At least one qualifying item must be selected.');
+        return;
+      }
+    }
+
+    // Validate conditional fields for free item with by buying another item
+    if (form.type === 'free_item' && form.sub_type === 'by_buying_another_item') {
+      if (!Array.isArray(form.qualifying_items) || form.qualifying_items.length === 0) {
+        setFormError('At least one qualifying item must be selected.');
+        return;
+      }
+      if (!Array.isArray(form.free_items) || form.free_items.length === 0) {
+        setFormError('At least one free item must be selected.');
+        return;
+      }
+    }
+
+    // Validate conditional fields for free item with by spending fixed amount
+    if (form.type === 'free_item' && form.sub_type === 'by_spending_fixed_amount') {
+      if (!form.min_spend || Number(form.min_spend) <= 0) {
+        setFormError('Minimum spend amount is required and must be greater than 0.');
+        return;
+      }
+      if (!Array.isArray(form.free_items) || form.free_items.length === 0) {
+        setFormError('At least one free item must be selected.');
+        return;
+      }
     }
 
     if (!startDateIso) {
@@ -289,7 +502,35 @@ export default function OffersForm({
         type,
         sub_type: form.sub_type || null,
         status: 'active', // Always set to active by default
-        details,
+        percentage_off: form.percentage_off ? Number(form.percentage_off) : null,
+        min_spend: form.min_spend ? Number(form.min_spend) : null,
+        discounted_items: Array.isArray(form.discounted_items) && form.discounted_items.length > 0
+          ? form.discounted_items.reduce((acc, item) => {
+              if (!acc[item.category_id]) {
+                acc[item.category_id] = [];
+              }
+              acc[item.category_id].push(item.id);
+              return acc;
+            }, {} as Record<string, string[]>)
+          : null,
+        qualifying_items: Array.isArray(form.qualifying_items) && form.qualifying_items.length > 0
+          ? form.qualifying_items.reduce((acc, item) => {
+              if (!acc[item.category_id]) {
+                acc[item.category_id] = [];
+              }
+              acc[item.category_id].push(item.id);
+              return acc;
+            }, {} as Record<string, string[]>)
+          : null,
+        free_items: Array.isArray(form.free_items) && form.free_items.length > 0
+          ? form.free_items.reduce((acc, item) => {
+              if (!acc[item.category_id]) {
+                acc[item.category_id] = [];
+              }
+              acc[item.category_id].push(item.id);
+              return acc;
+            }, {} as Record<string, string[]>)
+          : null,
         start_date: startDateIso,
         end_date: endDateIso,
         restaurant_id: restaurantId,
@@ -346,7 +587,11 @@ export default function OffersForm({
           type: offer.type,
           sub_type: offer.sub_type,
           status: newStatus,
-          details: offer.details,
+          percentage_off: offer.percentage_off,
+          min_spend: offer.min_spend,
+          discounted_items: offer.discounted_items && typeof offer.discounted_items === 'object' ? offer.discounted_items : null,
+          qualifying_items: offer.qualifying_items && typeof offer.qualifying_items === 'object' ? offer.qualifying_items : null,
+          free_items: offer.free_items && typeof offer.free_items === 'object' ? offer.free_items : null,
           start_date: offer.start_date,
           end_date: offer.end_date,
           restaurant_id: restaurantId,
@@ -456,7 +701,7 @@ export default function OffersForm({
           type="text"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search offers by name, details, type, or status..."
+          placeholder="Search offers by name, type, or status..."
           className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-10 text-sm text-gray-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
         />
         {search && (
@@ -506,7 +751,6 @@ export default function OffersForm({
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Name</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Type</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Details</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Start Date</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">End Date</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
@@ -526,7 +770,6 @@ export default function OffersForm({
                         {formatOfferStatus(offer.status)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700 max-w-xs truncate">{offer.details}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">
                       {offer.start_date ? new Date(offer.start_date).toLocaleString() : '-'}
                     </td>
@@ -617,13 +860,15 @@ export default function OffersForm({
                     <label className="mb-1.5 block text-sm font-semibold text-gray-700">Type *</label>
                     <select
                       value={form.type}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const newType = event.target.value;
+                        const subTypeOptions = getSubTypeOptions(newType);
                         setForm((previous) => ({
                           ...previous,
-                          type: event.target.value,
-                          sub_type: '', // Reset sub_type when type changes
-                        }))
-                      }
+                          type: newType,
+                          sub_type: subTypeOptions.length > 0 ? subTypeOptions[0].value : '', // Auto-select first sub-type
+                        }));
+                      }}
                       className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
                     >
                       <option value="percentage_off">Percentage off</option>
@@ -634,62 +879,342 @@ export default function OffersForm({
                   </div>
                   {form.type && getSubTypeOptions(form.type).length > 0 && (
                     <div className="mt-4">
-                      <label className="mb-3 block text-sm font-semibold text-gray-700">Sub Type</label>
+                      <label className="mb-3 block text-sm font-semibold text-gray-700">Sub Type *</label>
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                        {getSubTypeOptions(form.type).map((option) => (
-                          <div
-                            key={option.value}
-                            className={`relative cursor-pointer rounded-xl border-2 p-4 transition-all hover:border-purple-300 ${
-                              form.sub_type === option.value
-                                ? 'border-purple-500 bg-purple-50'
-                                : 'border-gray-200 bg-white'
-                            }`}
-                            onClick={() =>
-                              setForm((previous) => ({
-                                ...previous,
-                                sub_type: option.value,
-                              }))
-                            }
-                          >
-                            <div className="flex items-start gap-3">
-                              <input
-                                type="radio"
-                                name="sub_type"
-                                value={option.value}
-                                checked={form.sub_type === option.value}
-                                onChange={() =>
-                                  setForm((previous) => ({
-                                    ...previous,
-                                    sub_type: option.value,
-                                  }))
-                                }
-                                className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500"
-                              />
-                              <div className="flex-1">
-                                <h4 className="text-sm font-semibold text-gray-900">{option.label}</h4>
-                                <p className="mt-1 text-xs text-gray-600">{option.description}</p>
+                        {getSubTypeOptions(form.type).map((option) => {
+                          const isSelected = form.sub_type === option.value;
+                          return (
+                            <div
+                              key={option.value}
+                              className={`relative cursor-pointer rounded-xl border-2 p-4 transition-all hover:border-purple-300 ${
+                                isSelected
+                                  ? 'border-purple-500 bg-purple-50'
+                                  : 'border-gray-200 bg-white'
+                              }`}
+                              onClick={() =>
+                                setForm((previous) => ({
+                                  ...previous,
+                                  sub_type: option.value,
+                                }))
+                              }
+                            >
+                              <div className="flex items-start gap-3">
+                                <input
+                                  type="radio"
+                                  name="sub_type"
+                                  value={option.value}
+                                  checked={isSelected}
+                                  onChange={() =>
+                                    setForm((previous) => ({
+                                      ...previous,
+                                      sub_type: option.value,
+                                    }))
+                                  }
+                                  className="mt-1 h-4 w-4 text-purple-600 border-gray-300 focus:ring-purple-500 focus:ring-2"
+                                />
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-semibold text-gray-900">{option.label}</h4>
+                                  <p className="mt-1 text-xs text-gray-600">{option.description}</p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
-                  <div>
-                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">Details *</label>
-                    <textarea
-                      value={form.details}
-                      onChange={(event) =>
-                        setForm((previous) => ({
-                          ...previous,
-                          details: event.target.value,
-                        }))
-                      }
-                      placeholder="Get a free item when you purchase any main course. Valid for dine-in and takeaway orders."
-                      rows={3}
-                      className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
+                  
+                  {/* Conditional fields for percentage off with total order value */}
+                  {form.type === 'percentage_off' && form.sub_type === 'total_order_value' && (
+                    <div className="mt-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Minimum spend amount *</label>
+                          <input
+                            type="number"
+                            value={form.min_spend}
+                            onChange={(event) =>
+                              setForm((previous) => ({
+                                ...previous,
+                                min_spend: event.target.value,
+                              }))
+                            }
+                            placeholder="20"
+                            min="0"
+                            step="0.01"
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">% discount *</label>
+                          <input
+                            type="number"
+                            value={form.percentage_off}
+                            onChange={(event) =>
+                              setForm((previous) => ({
+                                ...previous,
+                                percentage_off: event.target.value,
+                              }))
+                            }
+                            placeholder="10"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Conditional fields for amount off with total order value */}
+                  {form.type === 'amount_off' && form.sub_type === 'total_order_value' && (
+                    <div className="mt-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Minimum spend amount *</label>
+                          <input
+                            type="number"
+                            value={form.min_spend}
+                            onChange={(event) =>
+                              setForm((previous) => ({
+                                ...previous,
+                                min_spend: event.target.value,
+                              }))
+                            }
+                            placeholder="20"
+                            min="0"
+                            step="0.01"
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">$ Amount off *</label>
+                          <input
+                            type="number"
+                            value={form.percentage_off}
+                            onChange={(event) =>
+                              setForm((previous) => ({
+                                ...previous,
+                                percentage_off: event.target.value,
+                              }))
+                            }
+                            placeholder="5"
+                            min="0"
+                            step="0.01"
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Conditional fields for percentage off with selected items */}
+                  {form.type === 'percentage_off' && form.sub_type === 'selected_items' && (
+                    <div className="mt-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Discounted items *</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowItemSelector(true)}
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-left focus:border-purple-500 focus:ring-2 focus:ring-purple-500 hover:bg-gray-50"
+                          >
+                            {Array.isArray(form.discounted_items) && form.discounted_items.length > 0
+                              ? `${form.discounted_items.length} item(s) selected`
+                              : 'Select items...'
+                            }
+                          </button>
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">% discount *</label>
+                          <input
+                            type="number"
+                            value={form.percentage_off}
+                            onChange={(event) =>
+                              setForm((previous) => ({
+                                ...previous,
+                                percentage_off: event.target.value,
+                              }))
+                            }
+                            placeholder="10"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Conditional fields for amount off with selected items */}
+                  {form.type === 'amount_off' && form.sub_type === 'selected_items' && (
+                    <div className="mt-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Discounted items *</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowItemSelector(true)}
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-left focus:border-purple-500 focus:ring-2 focus:ring-purple-500 hover:bg-gray-50"
+                          >
+                            {Array.isArray(form.discounted_items) && form.discounted_items.length > 0
+                              ? `${form.discounted_items.length} item(s) selected`
+                              : 'Select items...'
+                            }
+                          </button>
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">$ Amount off *</label>
+                          <input
+                            type="number"
+                            value={form.percentage_off}
+                            onChange={(event) =>
+                              setForm((previous) => ({
+                                ...previous,
+                                percentage_off: event.target.value,
+                              }))
+                            }
+                            placeholder="2"
+                            min="0"
+                            step="0.01"
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Conditional fields for buy 1 get 1 free */}
+                  {form.type === 'buy_1_get_1' && form.sub_type === 'buy_1_get_1_free' && (
+                    <div className="mt-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Qualifying items *</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowQualifyingItemSelector(true)}
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-left focus:border-purple-500 focus:ring-2 focus:ring-purple-500 hover:bg-gray-50"
+                          >
+                            {Array.isArray(form.qualifying_items) && form.qualifying_items.length > 0
+                              ? `${form.qualifying_items.length} qualifying item(s) selected`
+                              : 'Select qualifying items...'
+                            }
+                          </button>
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Free items *</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowItemSelector(true)}
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-left focus:border-purple-500 focus:ring-2 focus:ring-purple-500 hover:bg-gray-50"
+                          >
+                            {Array.isArray(form.free_items) && form.free_items.length > 0
+                              ? `${form.free_items.length} free item(s) selected`
+                              : 'Select free items...'
+                            }
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Conditional fields for buy 1 get 1 half price */}
+                  {form.type === 'buy_1_get_1' && form.sub_type === 'buy_1_get_1_half_price' && (
+                    <div className="mt-4">
+                      <div className="grid grid-cols-1 gap-4">
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Qualifying items *</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowQualifyingItemSelector(true)}
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-left focus:border-purple-500 focus:ring-2 focus:ring-purple-500 hover:bg-gray-50"
+                          >
+                            {Array.isArray(form.qualifying_items) && form.qualifying_items.length > 0
+                              ? `${form.qualifying_items.length} qualifying item(s) selected`
+                              : 'Select qualifying items...'
+                            }
+                          </button>
+                          <p className="mt-2 text-xs text-gray-600">
+                            Select the category that the customer must choose from to get a discounted item. Customers can select their second item from the qualifying items you've selected. The customer will get the cheapest of the two items at half price.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Conditional fields for free item with by buying another item */}
+                  {form.type === 'free_item' && form.sub_type === 'by_buying_another_item' && (
+                    <div className="mt-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Qualifying items *</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowQualifyingItemSelector(true)}
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-left focus:border-purple-500 focus:ring-2 focus:ring-purple-500 hover:bg-gray-50"
+                          >
+                            {Array.isArray(form.qualifying_items) && form.qualifying_items.length > 0
+                              ? `${form.qualifying_items.length} qualifying item(s) selected`
+                              : 'Select qualifying items...'
+                            }
+                          </button>
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Free items *</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowItemSelector(true)}
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-left focus:border-purple-500 focus:ring-2 focus:ring-purple-500 hover:bg-gray-50"
+                          >
+                            {Array.isArray(form.free_items) && form.free_items.length > 0
+                              ? `${form.free_items.length} free item(s) selected`
+                              : 'Select free items...'
+                            }
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Conditional fields for free item with by spending fixed amount */}
+                  {form.type === 'free_item' && form.sub_type === 'by_spending_fixed_amount' && (
+                    <div className="mt-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Minimum spend amount *</label>
+                          <input
+                            type="number"
+                            value={form.min_spend}
+                            onChange={(event) =>
+                              setForm((previous) => ({
+                                ...previous,
+                                min_spend: event.target.value,
+                              }))
+                            }
+                            placeholder="20"
+                            min="0"
+                            step="0.01"
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Free items *</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowItemSelector(true)}
+                            className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-left focus:border-purple-500 focus:ring-2 focus:ring-purple-500 hover:bg-gray-50"
+                          >
+                            {Array.isArray(form.free_items) && form.free_items.length > 0
+                              ? `${form.free_items.length} free item(s) selected`
+                              : 'Select free items...'
+                            }
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -760,6 +1285,277 @@ export default function OffersForm({
                 className="h-11 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:from-purple-700 hover:to-indigo-700 disabled:opacity-60"
               >
                 {isSaving ? 'Saving...' : mode === 'create' ? 'Create Offer' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Item Selector Modal */}
+      {showItemSelector && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[1px]">
+          <div className="w-full max-w-md h-[70vh] flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-200 p-4 flex-shrink-0">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {(form.type === 'free_item' || (form.type === 'buy_1_get_1' && form.sub_type === 'buy_1_get_1_free'))
+                  ? 'Select free item(s)'
+                  : 'Select discounted item(s)'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowItemSelector(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-2">
+                {menuData.map((category) => {
+                  const currentItems = (form.type === 'free_item' || (form.type === 'buy_1_get_1' && form.sub_type === 'buy_1_get_1_free'))
+                    ? form.free_items
+                    : form.discounted_items;
+                  return (
+                    <div key={category.id}>
+                      <div
+                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 rounded-lg"
+                        onClick={() => {
+                          const newExpanded = new Set(expandedCategories);
+                          if (newExpanded.has(category.id)) {
+                            newExpanded.delete(category.id);
+                          } else {
+                            newExpanded.add(category.id);
+                          }
+                          setExpandedCategories(newExpanded);
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={category.items.every(item =>
+                              currentItems.some(selected => selected.id === item.id)
+                            )}
+                            onChange={(e) => {
+                              const fieldName = (form.type === 'free_item' || (form.type === 'buy_1_get_1' && form.sub_type === 'buy_1_get_1_free'))
+                                ? 'free_items'
+                                : 'discounted_items';
+                              if (e.target.checked) {
+                                // Select all items in category
+                                const newItems = [...currentItems];
+                                category.items.forEach(item => {
+                                  if (!newItems.some(selected => selected.id === item.id)) {
+                                    newItems.push(item);
+                                  }
+                                });
+                                setForm(prev => ({ ...prev, [fieldName]: newItems }));
+                              } else {
+                                // Deselect all items in category
+                                const newItems = currentItems.filter(selected =>
+                                  !category.items.some(item => item.id === selected.id)
+                                );
+                                setForm(prev => ({ ...prev, [fieldName]: newItems }));
+                              }
+                            }}
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                          />
+                          <span className="text-sm font-medium text-gray-900">{category.name}</span>
+                        </div>
+                        <svg
+                          className={`h-4 w-4 text-gray-400 transition-transform ${
+                            expandedCategories.has(category.id) ? 'rotate-90' : ''
+                          }`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                      
+                      {expandedCategories.has(category.id) && (
+                        <div className="ml-6 space-y-1">
+                          {category.items.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={currentItems.some(selected => selected.id === item.id)}
+                                  onChange={(e) => {
+                                    const fieldName = (form.type === 'free_item' || (form.type === 'buy_1_get_1' && form.sub_type === 'buy_1_get_1_free'))
+                                      ? 'free_items'
+                                      : 'discounted_items';
+                                    if (e.target.checked) {
+                                      setForm(prev => ({
+                                        ...prev,
+                                        [fieldName]: [...currentItems, item]
+                                      }));
+                                    } else {
+                                      setForm(prev => ({
+                                        ...prev,
+                                        [fieldName]: currentItems.filter(selected => selected.id !== item.id)
+                                      }));
+                                    }
+                                  }}
+                                  className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                                />
+                                <span className="text-sm text-gray-700">{item.name}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 border-t border-gray-200 p-4 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowItemSelector(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowItemSelector(false)}
+                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700"
+              >
+                Add items
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Qualifying Item Selector Modal */}
+      {showQualifyingItemSelector && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[1px]">
+          <div className="w-full max-w-md h-[70vh] flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-200 p-4 flex-shrink-0">
+              <h3 className="text-lg font-semibold text-gray-900">Select qualifying item(s)</h3>
+              <button
+                type="button"
+                onClick={() => setShowQualifyingItemSelector(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-2">
+                {menuData.map((category) => (
+                  <div key={category.id}>
+                    <div
+                      className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 rounded-lg"
+                      onClick={() => {
+                        const newExpanded = new Set(expandedQualifyingCategories);
+                        if (newExpanded.has(category.id)) {
+                          newExpanded.delete(category.id);
+                        } else {
+                          newExpanded.add(category.id);
+                        }
+                        setExpandedQualifyingCategories(newExpanded);
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={category.items.every(item =>
+                            form.qualifying_items.some(selected => selected.id === item.id)
+                          )}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              // Select all items in category
+                              const newItems = [...form.qualifying_items];
+                              category.items.forEach(item => {
+                                if (!newItems.some(selected => selected.id === item.id)) {
+                                  newItems.push(item);
+                                }
+                              });
+                              setForm(prev => ({ ...prev, qualifying_items: newItems }));
+                            } else {
+                              // Deselect all items in category
+                              const newItems = form.qualifying_items.filter(selected =>
+                                !category.items.some(item => item.id === selected.id)
+                              );
+                              setForm(prev => ({ ...prev, qualifying_items: newItems }));
+                            }
+                          }}
+                          className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="text-sm font-medium text-gray-900">{category.name}</span>
+                      </div>
+                      <svg
+                        className={`h-4 w-4 text-gray-400 transition-transform ${
+                          expandedQualifyingCategories.has(category.id) ? 'rotate-90' : ''
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                    
+                    {expandedQualifyingCategories.has(category.id) && (
+                      <div className="ml-6 space-y-1">
+                        {category.items.map((item) => (
+                          <div key={item.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                checked={form.qualifying_items.some(selected => selected.id === item.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setForm(prev => ({
+                                      ...prev,
+                                      qualifying_items: [...prev.qualifying_items, item]
+                                    }));
+                                  } else {
+                                    setForm(prev => ({
+                                      ...prev,
+                                      qualifying_items: prev.qualifying_items.filter(selected => selected.id !== item.id)
+                                    }));
+                                  }
+                                }}
+                                className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                              />
+                              <span className="text-sm text-gray-700">{item.name}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 border-t border-gray-200 p-4 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowQualifyingItemSelector(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowQualifyingItemSelector(false)}
+                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700"
+              >
+                Add qualifying items
               </button>
             </div>
           </div>

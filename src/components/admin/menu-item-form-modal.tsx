@@ -143,11 +143,14 @@ export default function MenuItemFormModal({
       const data = await response.json();
       
       if (response.ok && data.success) {
-        // Filter out the current item if we're in edit mode
+        // Keep only top-level items (no parent_item_id) and filter out current item when editing.
         const items = data.items || [];
+        const topLevelItems = items.filter(
+          (availableItem: MenuItem) => !availableItem.parent_item_id,
+        );
         const filteredItems = item && mode === 'edit'
-          ? items.filter((availableItem: MenuItem) => availableItem.item_id !== item.item_id)
-          : items;
+          ? topLevelItems.filter((availableItem: MenuItem) => availableItem.item_id !== item.item_id)
+          : topLevelItems;
         setAvailableItems(filteredItems);
       } else {
         console.error('Failed to fetch items:', data.error);

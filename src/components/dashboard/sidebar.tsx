@@ -78,6 +78,17 @@ export function Sidebar({
             requiresDomain: true,
           },
           {
+            href: buildRestaurantScopedHref(
+              `/admin/orders`,
+              selectedRestaurant,
+            ),
+            label: 'Orders',
+            icon: <OrdersIcon />,
+            matchPrefixes: [
+              `/admin/orders`
+            ],
+          },
+          {
             href: informationBrandPath,
             label: 'Information',
             icon: <InfoIcon />,
@@ -1041,6 +1052,23 @@ function OffersIcon() {
       <circle cx="12" cy="12" r="3" />
       <path d="M8.5 8.5l7 7" />
       <path d="M15.5 8.5l-7 7" />
+    </svg>
+  );
+}
+
+function OrdersIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
     </svg>
   );
 }

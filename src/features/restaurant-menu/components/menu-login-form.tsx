@@ -73,7 +73,7 @@ export function MenuLoginForm({
           return;
         }
 
-        const signedInUser = result.session?.user || nhost.auth.getUser();
+        const signedInUser = nhost.auth.getUser();
         const role = getUserRole(signedInUser || null);
         const destination = role && role !== 'user'
           ? getRoleDashboardRoute(role)

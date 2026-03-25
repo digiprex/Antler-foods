@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   MENU_CART_STORAGE_KEY,
   MENU_CART_UPDATED_EVENT,
@@ -66,6 +66,7 @@ const DEFAULT_CTA_BUTTON: CTAButton = {
   label: 'Get Started',
   href: '#get-started',
 };
+const MENU_CART_OPEN_EVENT = 'menu-cart-open-request';
 
 // Helper function to get initials from restaurant name
 const getInitials = (name: string): string => {
@@ -107,6 +108,7 @@ export default function Navbar({
   const [isScrolled, setIsScrolled] = useState(false);
   const [menuCartCount, setMenuCartCount] = useState(bagCount);
   const pathname = usePathname() ?? '';
+  const router = useRouter();
 
   // Function to check if a nav item is active
   const isNavItemActive = (href: string): boolean => {
@@ -292,6 +294,17 @@ export default function Navbar({
   }, [bagCount, forceHamburgerMenu]);
 
   const resolvedBagCount = forceHamburgerMenu ? menuCartCount : bagCount;
+
+  const handleMenuCartClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+
+    if (pathname.startsWith('/menu')) {
+      window.dispatchEvent(new CustomEvent(MENU_CART_OPEN_EVENT));
+      return;
+    }
+
+    router.push('/menu?cart=open');
+  };
 
   // Stacked layout has a different structure
   if (layout === 'stacked') {
@@ -619,7 +632,8 @@ export default function Navbar({
               </a>
               <div id="menu-navbar-auth-slot" className={styles.menuProfileSlot} />
               <a
-                href="/cart"
+                href="/menu?cart=open"
+                onClick={handleMenuCartClick}
                 className={styles.menuCartLink}
                 aria-label={
                   resolvedBagCount > 0
@@ -750,7 +764,8 @@ export default function Navbar({
                 Sign Up
               </a>
               <a
-                href="/cart"
+                href="/menu?cart=open"
+                onClick={handleMenuCartClick}
                 className={`${styles.sidebarActionLink} ${styles.sidebarActionPrimary}`}
               >
                 Cart {resolvedBagCount > 0 ? `(${resolvedBagCount})` : ''}

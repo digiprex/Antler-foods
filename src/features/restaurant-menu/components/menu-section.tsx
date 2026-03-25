@@ -10,6 +10,23 @@ interface MenuSectionProps {
   getItemQuantity?: (itemId: string) => number;
 }
 
+function toHeadingCase(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return value;
+  }
+
+  if (trimmed !== trimmed.toUpperCase()) {
+    return value;
+  }
+
+  return trimmed
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 export function MenuSection({
   category,
   onOpenItem,
@@ -24,9 +41,9 @@ export function MenuSection({
       ref={registerRef}
       className={`scroll-mt-28 ${first ? '' : 'pt-6 sm:pt-7'}`}
     >
-      <div className="mb-4 rounded-[24px] border border-stone-200 bg-white px-4 py-4 shadow-sm sm:px-5">
-        <h2 className="text-xl font-semibold tracking-tight text-stone-950 sm:text-[1.65rem]">
-          {category.label}
+      <div className="mb-4">
+        <h2 className="mt-1 normal-case text-xl font-semibold tracking-tight text-stone-950 sm:text-[1.7rem]">
+          {toHeadingCase(category.label)}
         </h2>
         {category.description ? (
           <p className="mt-1.5 max-w-3xl text-sm leading-6 text-stone-600">

@@ -1,9 +1,10 @@
 .menuSection {
   position: relative;
   overflow: hidden;
-  padding: 5rem;
+  padding: 6rem 5rem;
   width: 100%;
   isolation: isolate;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.9) 100%);
 }
 
 .menuBackdrop {
@@ -130,7 +131,7 @@
 .twoColumnGrid,
 .tabItemsGrid {
   display: grid;
-  gap: var(--menu-grid-gap, 5rem);
+  gap: var(--menu-grid-gap, 2rem);
 }
 
 .tabItemsGrid {
@@ -147,7 +148,7 @@
 
 .singleColumnGrid {
   display: grid;
-  gap: var(--menu-card-gap, 5rem);
+  gap: var(--menu-card-gap, 1.5rem);
   justify-content: center;
 }
 
@@ -158,7 +159,7 @@
 
 .masonryGrid {
   column-count: 2;
-  column-gap: var(--menu-grid-gap, 5rem);
+  column-gap: var(--menu-grid-gap, 2rem);
 }
 
 .imageCard,
@@ -180,6 +181,12 @@
   flex-direction: column;
   overflow: hidden;
   background: var(--menu-card-bg, #f9fafb);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.imageCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
 }
 
 .imageCardOverlay {
@@ -202,8 +209,9 @@
 .cardMedia {
   position: relative;
   min-height: 250px;
-  border-radius: 0;
+  border-radius: 1rem 1rem 0 0;
   background: linear-gradient(135deg, rgba(15, 23, 42, 0.08), rgba(59, 130, 246, 0.12));
+  overflow: hidden;
 }
 
 .cardMediaLink {
@@ -212,7 +220,8 @@
   min-height: inherit;
   color: inherit;
   text-decoration: none;
-  border-radius: 0;
+  border-radius: 1rem 1rem 0 0;
+  overflow: hidden;
 }
 
 .cardMedia img,
@@ -224,7 +233,13 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  border-radius: 0;
+  border-radius: inherit;
+  transition: transform 0.3s ease;
+}
+
+.cardMedia img:hover,
+.cardMediaLink img:hover {
+  transform: scale(1.05);
 }
 
 .cardPlaceholder {
@@ -266,8 +281,9 @@
 
 .cardBody {
   display: grid;
-  gap: 0.7rem;
-  padding: var(--menu-item-padding, 1.3rem 1.25rem 1.35rem);
+  gap: 1rem;
+  padding: var(--menu-item-padding, 1.5rem 1.5rem 1.75rem);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%);
 }
 
 .cardBodyOverlay {
@@ -354,24 +370,33 @@
   min-height: 2.75rem;
   padding: 0.72rem 1.25rem;
   border: 1.5px solid transparent;
-  border-radius: var(--menu-button-radius, 0.85rem);
+  border-radius: var(--menu-button-radius, 1.25rem);
   text-decoration: none;
   font-size: var(--menu-button-font-size, 0.92rem);
   font-weight: var(--menu-button-font-weight, 700);
   line-height: 1;
   font-family: var(--menu-button-font-family, inherit);
   text-transform: var(--menu-button-text-transform, none);
+  background: linear-gradient(135deg, var(--menu-primary-button-bg, #3b82f6) 0%, var(--menu-accent, #7c3aed) 100%);
   transition:
-    transform 160ms ease,
-    box-shadow 160ms ease,
-    background-color 160ms ease,
-    border-color 160ms ease;
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    background-color 200ms ease,
+    border-color 200ms ease,
+    filter 200ms ease;
 }
 
 .itemButton:hover,
 .ctaButton:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.15);
+  filter: brightness(1.1);
+}
+
+.itemButton:active,
+.ctaButton:active {
+  transform: translateY(0);
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.1);
 }
 
 .itemButton {
@@ -391,7 +416,7 @@
 .promoGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--menu-card-gap, 5rem);
+  gap: var(--menu-card-gap, 1.5rem);
 }
 
 .promoCard {
@@ -595,7 +620,7 @@
 .accordionThumb {
   width: 84px;
   height: 84px;
-  border-radius: 0;
+  border-radius: 0.75rem;
   overflow: hidden;
   flex-shrink: 0;
   background: rgba(15, 23, 42, 0.08);
@@ -660,9 +685,15 @@
   position: relative;
   overflow: hidden;
   min-height: 260px;
-  border-radius: 0;
+  border-radius: 1.25rem;
   background: var(--menu-card-bg, #0f172a);
   scroll-snap-align: start;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.carouselCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
 }
 
 .carouselCardMedia {
@@ -719,7 +750,7 @@
 .featureGrid,
 .minimalGrid {
   display: grid;
-  gap: var(--menu-card-gap, 5rem);
+  gap: var(--menu-card-gap, 1.5rem);
 }
 
 .featureGrid {
@@ -744,7 +775,7 @@
 }
 
 .featureThumb {
-  border-radius: 0;
+  border-radius: 1rem;
 }
 
 .featureIcon {

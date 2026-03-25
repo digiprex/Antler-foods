@@ -66,6 +66,7 @@ export interface MenuModifierGroup {
 export interface MenuItem {
   id: string;
   categoryId: string;
+  parentItemId: string | null;
   name: string;
   description: string;
   price: number;
@@ -80,6 +81,7 @@ export interface MenuItem {
   inStock?: boolean;
   addOns?: MenuAddOn[];
   modifierGroups?: MenuModifierGroup[];
+  variants?: MenuItem[];
 }
 
 export interface MenuCategory {

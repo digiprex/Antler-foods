@@ -12,7 +12,6 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import ModifierGroupFormModal from '@/components/admin/modifier-group-form-modal';
 
@@ -42,9 +41,22 @@ interface ModifierItem {
   is_deleted: boolean;
 }
 
+interface ModifierGroupPayload {
+  name: string;
+  description?: string;
+  min_selection: number;
+  max_selection: number;
+  type: string;
+  is_required: boolean;
+  is_multi_select: boolean;
+  modifier_items: Array<{
+    modifier_item_id: string | undefined;
+    name: string;
+    price: number;
+  }>;
+}
+
 export default function ModifierGroupsForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams() ?? new URLSearchParams();
   const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -129,19 +141,6 @@ export default function ModifierGroupsForm() {
   const handleEditGroup = (group: ModifierGroup) => {
     setSelectedGroup(group);
     setShowEditGroup(true);
-  };
-
-  const handleManageModifierItems = (group: ModifierGroup) => {
-    const params = new URLSearchParams();
-    params.set('modifier_group_id', group.modifier_group_id);
-    params.set('modifier_group_name', group.name);
-
-    const restaurantId = searchParams.get('restaurant_id');
-    const restaurantName = searchParams.get('restaurant_name');
-    if (restaurantId) params.set('restaurant_id', restaurantId);
-    if (restaurantName) params.set('restaurant_name', restaurantName);
-
-    router.push(`/admin/modifier-items?${params.toString()}`);
   };
 
   const handleDeleteGroup = (group: ModifierGroup) => {
@@ -242,7 +241,7 @@ export default function ModifierGroupsForm() {
     }
   };
 
-  const handleSaveGroup = async (payload: Omit<ModifierGroup, 'modifier_group_id' | 'created_at' | 'updated_at' | 'is_deleted'>) => {
+  const handleSaveGroup = async (payload: ModifierGroupPayload) => {
     try {
       if (showCreateGroup) {
         // Create new modifier group
@@ -287,6 +286,12 @@ export default function ModifierGroupsForm() {
         if (!response.ok) {
           throw new Error(data.error || 'Failed to update modifier group');
         }
+
+        const syncedModifierItems = await syncModifierItems(
+          selectedGroup.modifier_items,
+          payload.modifier_items,
+          selectedGroup.modifier_group_id,
+        );
         
         // Update local state
         setModifierGroups((prevGroups) =>
@@ -295,7 +300,7 @@ export default function ModifierGroupsForm() {
               ? {
                   ...group,
                   ...data.modifier_group,
-                  modifier_items: group.modifier_items,
+                  modifier_items: syncedModifierItems,
                 }
               : group,
           ),
@@ -525,16 +530,10 @@ export default function ModifierGroupsForm() {
 
                 {/* Modifier Items Display */}
                 <div className="p-6">
-                  <div className="mb-4 flex items-center justify-between">
+                  <div className="mb-4">
                     <h4 className="text-sm font-medium text-gray-900">
                       Modifier Items ({itemCount})
                     </h4>
-                    <button
-                      onClick={() => handleManageModifierItems(group)}
-                      className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-                    >
-                      Manage Modifier Items {'\u2192'}
-                    </button>
                   </div>
                   {itemCount > 0 ? (
                     <div className="flex flex-wrap gap-2">
@@ -677,4 +676,136 @@ export default function ModifierGroupsForm() {
         )}
     </div>
   );
+}
+
+async function syncModifierItems(
+  previousValue: unknown,
+  nextValue: unknown,
+  modifierGroupId: string,
+) {
+  const previousItems = normalizeModifierItems(previousValue);
+  const nextItems = normalizeModifierItems(nextValue);
+  const previousById = new Map(
+    previousItems
+      .filter((item) => Boolean(item.modifier_item_id))
+      .map((item) => [item.modifier_item_id as string, item]),
+  );
+  const nextIds = new Set(
+    nextItems
+      .filter((item) => Boolean(item.modifier_item_id))
+      .map((item) => item.modifier_item_id as string),
+  );
+
+  for (const item of nextItems) {
+    if (!item.modifier_item_id) {
+      const createResponse = await fetch('/api/modifier-items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          modifier_group_id: modifierGroupId,
+          name: item.name,
+          price: item.price,
+        }),
+      });
+      const createData = await createResponse.json();
+      if (!createResponse.ok) {
+        throw new Error(createData.error || 'Failed to create modifier item');
+      }
+      continue;
+    }
+
+    const previous = previousById.get(item.modifier_item_id);
+    if (!previous) {
+      continue;
+    }
+
+    if (previous.name === item.name && previous.price === item.price) {
+      continue;
+    }
+
+    const updateResponse = await fetch('/api/modifier-items', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        modifier_item_id: item.modifier_item_id,
+        name: item.name,
+        price: item.price,
+      }),
+    });
+    const updateData = await updateResponse.json();
+    if (!updateResponse.ok) {
+      throw new Error(updateData.error || 'Failed to update modifier item');
+    }
+  }
+
+  for (const previous of previousItems) {
+    if (!previous.modifier_item_id) {
+      continue;
+    }
+
+    if (nextIds.has(previous.modifier_item_id)) {
+      continue;
+    }
+
+    const deleteResponse = await fetch(
+      `/api/modifier-items?modifier_item_id=${encodeURIComponent(previous.modifier_item_id)}`,
+      { method: 'DELETE' },
+    );
+    const deleteData = await deleteResponse.json();
+    if (!deleteResponse.ok) {
+      throw new Error(deleteData.error || 'Failed to delete modifier item');
+    }
+  }
+
+  const refetchResponse = await fetch(
+    `/api/modifier-items?modifier_group_id=${encodeURIComponent(modifierGroupId)}`,
+  );
+  const refetchData = await refetchResponse.json();
+  if (!refetchResponse.ok) {
+    throw new Error(refetchData.error || 'Failed to fetch updated modifier items');
+  }
+
+  return refetchData.modifier_items || [];
+}
+
+function normalizeModifierItems(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [] as Array<{ modifier_item_id: string | undefined; name: string; price: number }>;
+  }
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object') {
+        return null;
+      }
+
+      const candidate = item as Record<string, unknown>;
+      const name = typeof candidate.name === 'string' ? candidate.name.trim() : '';
+      if (!name) {
+        return null;
+      }
+
+      const rawPrice = candidate.price;
+      const parsedPrice =
+        typeof rawPrice === 'number'
+          ? rawPrice
+          : typeof rawPrice === 'string'
+            ? Number(rawPrice)
+            : 0;
+
+      return {
+        modifier_item_id:
+          typeof candidate.modifier_item_id === 'string'
+            ? candidate.modifier_item_id
+            : undefined,
+        name,
+        price: Number.isFinite(parsedPrice) ? Math.max(0, parsedPrice) : 0,
+      };
+    })
+    .filter(
+      (
+        item,
+      ): item is { modifier_item_id: string | undefined; name: string; price: number } =>
+        Boolean(item),
+    );
 }

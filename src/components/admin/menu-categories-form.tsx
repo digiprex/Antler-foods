@@ -540,7 +540,12 @@ export default function MenuCategoriesForm({
                 {category.items && category.items.length > 0 ? (
                   <div className="space-y-3">
                     {category.items.slice(0, 3).map((item) => (
-                      <div key={item.item_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div
+                        key={item.item_id}
+                        className={`flex items-center justify-between rounded-lg bg-gray-50 p-3 ${
+                          item.parent_item_id ? 'ml-5 border-l-2 border-gray-200 pl-4' : ''
+                        }`}
+                      >
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <h5 className="text-sm font-medium text-gray-900">{item.name}</h5>

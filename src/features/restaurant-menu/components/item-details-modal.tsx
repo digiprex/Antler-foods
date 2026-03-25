@@ -120,8 +120,15 @@ export function ItemDetailsModal({
 }: ItemDetailsModalProps) {
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [selectedAddOnIds, setSelectedAddOnIds] = useState<string[]>([]);
-  const modifierGroups = item ? getDisplayModifierGroups(item) : [];
+  const variants = item?.variants || [];
+  const selectedVariant =
+    variants.find((variant) => variant.id === selectedVariantId) ||
+    variants[0] ||
+    null;
+  const itemForCart = selectedVariant || item;
+  const modifierGroups = itemForCart ? getDisplayModifierGroups(itemForCart) : [];
   const modifierOptions = modifierGroups.flatMap((group) => group.items);
 
   useEffect(() => {
@@ -129,12 +136,23 @@ export function ItemDetailsModal({
       return;
     }
 
-    const nextModifierGroups = getDisplayModifierGroups(item);
+    const defaultVariantId = item.variants?.[0]?.id || null;
+    const defaultItem = item.variants?.[0] || item;
+    const nextModifierGroups = getDisplayModifierGroups(defaultItem);
 
     setQuantity(1);
     setNotes('');
+    setSelectedVariantId(defaultVariantId);
     setSelectedAddOnIds(getDefaultSelectedAddOnIds(nextModifierGroups));
   }, [item, open]);
+
+  useEffect(() => {
+    if (!itemForCart || !open) {
+      return;
+    }
+
+    setSelectedAddOnIds(getDefaultSelectedAddOnIds(getDisplayModifierGroups(itemForCart)));
+  }, [itemForCart, open]);
 
   if (!item) {
     return null;
@@ -142,7 +160,7 @@ export function ItemDetailsModal({
 
   const selectedAddOns = modifierOptions.filter((addOn) => selectedAddOnIds.includes(addOn.id));
   const addOnTotal = selectedAddOns.reduce((sum, addOn) => sum + addOn.price, 0);
-  const totalPrice = (item.price + addOnTotal) * quantity;
+  const totalPrice = ((itemForCart?.price || 0) + addOnTotal) * quantity;
   const invalidGroups = modifierGroups.filter((group) => {
     const selectedCount = getSelectedItemsForGroup(group, selectedAddOnIds).length;
     const { minRequired, maxAllowed } = getGroupConstraints(group);
@@ -184,34 +202,34 @@ export function ItemDetailsModal({
       open={open}
       onClose={onClose}
       maxWidthClassName="max-w-3xl"
-      panelClassName="border border-stone-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.14)]"
+      panelClassName="border border-stone-200 bg-white shadow-[0_28px_72px_rgba(15,23,42,0.16)]"
       showTopGlow={false}
     >
       <div className="flex max-h-[88vh] flex-col overflow-hidden bg-white">
         <div className="overflow-y-auto">
           <div className="overflow-hidden border-b border-stone-200 bg-stone-50">
-            <div className="flex items-center justify-center px-4 py-4 sm:px-5 sm:py-5">
+            <div>
               <img
-                src={item.image}
-                alt={item.name}
+                src={itemForCart?.image || item.image}
+                alt={itemForCart?.name || item.name}
                 loading="eager"
                 decoding="async"
-                className="max-h-[220px] w-auto max-w-full object-contain sm:max-h-[280px]"
+                className="h-[220px] w-full object-cover sm:h-[300px]"
               />
             </div>
           </div>
 
-          <div className="space-y-4 px-4 py-4 sm:px-5 sm:py-5">
+          <div className="space-y-5 px-4 py-4 sm:px-5 sm:py-5">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500">
                 {typeof item.likes === 'number' ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-2.5 py-1 font-medium text-stone-700">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 font-medium text-stone-700">
                     <HeartIcon className="h-3.5 w-3.5" />
                     {item.likes} likes
                   </span>
                 ) : null}
                 {typeof item.points === 'number' && item.points > 0 ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-2.5 py-1 font-medium text-stone-700">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 font-medium text-stone-700">
                     <StarIcon className="h-3.5 w-3.5 fill-current" />
                     Earn {item.points} points
                   </span>
@@ -220,36 +238,81 @@ export function ItemDetailsModal({
 
               <div className="space-y-1.5">
                 <h2 className="pr-10 text-2xl font-semibold tracking-tight text-stone-950 sm:text-[2rem]">
-                  {item.name}
+                  {itemForCart?.name || item.name}
                 </h2>
                 <p className="text-base font-semibold text-stone-900">
-                  {formatPrice(item.price)}
+                  {formatPrice(itemForCart?.price || item.price)}
                 </p>
-                {item.description ? (
+                {itemForCart?.description ? (
                   <p className="max-w-2xl text-sm leading-6 text-stone-600">
-                    {item.description}
+                    {itemForCart.description}
                   </p>
                 ) : null}
               </div>
             </div>
 
-            <div className="rounded-[18px] border border-stone-200 bg-stone-50 px-3.5 py-3 text-xs font-medium text-stone-700">
-              <span className="inline-flex items-center gap-2">
-                <ShieldIcon className="h-3.5 w-3.5" />
-                {trustBanner}
-              </span>
-            </div>
+            {variants.length ? (
+              <div className="rounded-[20px] border border-stone-200 bg-stone-50/70 p-3.5 shadow-sm sm:p-4">
+                <div className="mb-3 border-b border-stone-200 pb-2.5">
+                  <h3 className="text-lg font-semibold tracking-tight text-stone-950 sm:text-xl">
+                    Choose a variant
+                  </h3>
+                </div>
+                <div className="space-y-2">
+                  {variants.map((variant) => {
+                    const isSelected = variant.id === (selectedVariant?.id || '');
+
+                    return (
+                      <button
+                        key={variant.id}
+                        type="button"
+                        onClick={() => setSelectedVariantId(variant.id)}
+                        className={`flex w-full items-center justify-between rounded-[14px] border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 ${
+                          isSelected
+                            ? 'border-stone-900/90 bg-white shadow-sm'
+                            : 'border-stone-200 bg-white hover:border-stone-300'
+                        }`}
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-stone-950">{variant.name}</p>
+                          {variant.description ? (
+                            <p className="mt-0.5 line-clamp-1 text-xs text-stone-500">{variant.description}</p>
+                          ) : null}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-stone-900">{formatPrice(variant.price)}</p>
+                          {isSelected ? (
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-600">Selected</p>
+                          ) : null}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {trustBanner.trim() ? (
+              <div className="rounded-[18px] border border-stone-200 bg-stone-50 px-3.5 py-3 text-xs font-medium text-stone-700">
+                <span className="inline-flex items-center gap-2">
+                  <ShieldIcon className="h-3.5 w-3.5" />
+                  {trustBanner}
+                </span>
+              </div>
+            ) : null}
 
             {modifierGroups.length ? (
-              <div className="rounded-[20px] border border-stone-200 bg-white p-3.5 shadow-sm sm:p-4">
+              <div className="rounded-[20px] border border-stone-200 bg-stone-50/70 p-3.5 shadow-sm sm:p-4">
                 <div className="mb-3.5 flex flex-col gap-2 border-b border-stone-200 pb-3 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <h3 className="text-lg font-semibold tracking-tight text-stone-950 sm:text-xl">
                       Customize your order
                     </h3>
-                    <p className="mt-1 text-xs leading-5 text-stone-500">
-                      Required groups start with one option selected. Review each group before adding this item.
-                    </p>
+                    {variants.length && itemForCart ? (
+                      <p className="mt-1 text-xs font-medium uppercase tracking-[0.08em] text-stone-500">
+                        Variant: {itemForCart.name}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="inline-flex items-center rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-[11px] font-semibold text-stone-700">
                     {selectedAddOns.length} option{selectedAddOns.length === 1 ? '' : 's'} selected
@@ -267,7 +330,7 @@ export function ItemDetailsModal({
                     return (
                       <section
                         key={group.id}
-                        className="rounded-[16px] border border-stone-200 bg-white p-3 sm:p-3.5"
+                        className="rounded-[16px] border border-stone-200 bg-white p-3 shadow-sm sm:p-3.5"
                       >
                         <div className="flex flex-col gap-2 border-b border-stone-200 pb-2.5 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0">
@@ -297,7 +360,7 @@ export function ItemDetailsModal({
                           </span>
                         </div>
 
-                        <p className={`mt-3 text-xs leading-5 ${isGroupValid ? 'text-stone-500' : 'font-medium text-rose-600'}`}>
+                        <p className={`mt-3 rounded-[10px] px-2.5 py-1.5 text-xs leading-5 ${isGroupValid ? 'bg-stone-50 text-stone-500' : 'bg-rose-50 font-medium text-rose-600'}`}>
                           {helperText}
                         </p>
 
@@ -314,9 +377,9 @@ export function ItemDetailsModal({
                                 disabled={isDisabled}
                                 role={isSingleSelect ? 'radio' : 'checkbox'}
                                 aria-checked={isSelected}
-                                className={`flex w-full items-center justify-between gap-2.5 rounded-[14px] border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 sm:mr-auto sm:w-[88%] ${
+                                className={`flex w-full items-center justify-between gap-2.5 rounded-[14px] border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 ${
                                   isSelected
-                                    ? 'border-stone-900 bg-stone-50 shadow-sm'
+                                    ? 'border-stone-900/90 bg-stone-50 shadow-sm'
                                     : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50'
                                 } ${isDisabled ? 'cursor-not-allowed opacity-60' : ''}`}
                               >
@@ -363,13 +426,25 @@ export function ItemDetailsModal({
                   })}
                 </div>
               </div>
+            ) : variants.length && itemForCart ? (
+              <div className="rounded-[20px] border border-stone-200 bg-stone-50/70 p-3.5 shadow-sm sm:p-4">
+                <h3 className="text-lg font-semibold tracking-tight text-stone-950 sm:text-xl">
+                  Customize your order
+                </h3>
+                <p className="mt-1 text-xs font-medium uppercase tracking-[0.08em] text-stone-500">
+                  Variant: {itemForCart.name}
+                </p>
+                <p className="mt-3 text-sm text-stone-600">
+                  No customization options available for this variant.
+                </p>
+              </div>
             ) : null}
 
 
           </div>
         </div>
 
-        <div className="border-t border-stone-200 bg-white px-3.5 py-2.5 sm:px-4">
+        <div className="border-t border-stone-200 bg-white/95 px-3.5 py-2.5 backdrop-blur sm:px-4">
           <div className="mb-2 min-h-[1rem] text-xs sm:text-sm">
             {invalidGroups.length ? (
               <p className="font-medium text-rose-600">
@@ -396,7 +471,7 @@ export function ItemDetailsModal({
                 }
 
                 onAddToCart({
-                  item,
+                  item: itemForCart || item,
                   quantity,
                   notes,
                   selectedAddOns,

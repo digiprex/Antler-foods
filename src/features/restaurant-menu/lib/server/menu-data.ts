@@ -704,7 +704,7 @@ function buildScheduleSlots(intervals: Array<{ open: string; close: string }>, c
   return Array.from(new Set(slotLabels));
 }
 
-function flattenMenuItems(items: Array<{ variants?: any[] }>) {
+function flattenMenuItems<T extends { variants?: T[] }>(items: T[]): T[] {
   return items.flatMap((item) => [item, ...flattenMenuItems(item.variants || [])]);
 }
 

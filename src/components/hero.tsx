@@ -359,6 +359,17 @@ export default function Hero(props: HeroProps) {
   const isRenderableButton = (button?: HeroConfig['primaryButton']) =>
     Boolean(button && (button.label?.trim() || button.href?.trim()));
 
+  const getButtonLabel = (button?: HeroConfig['primaryButton']) => {
+    const label = button?.label?.trim();
+    if (label) return label;
+
+    const href = button?.href?.trim();
+    if (!href || href === '#') return 'Learn more';
+    if (href.startsWith('#')) return `Go to ${href.slice(1).replace(/[-_]+/g, ' ') || 'section'}`;
+
+    return 'Open link';
+  };
+
   const resolvedDesktopTextAlign =
     layout === 'video-background' &&
     (!textAlign?.trim() || textAlign === DEFAULT_HERO_CONFIG.textAlign)
@@ -600,6 +611,7 @@ export default function Hero(props: HeroProps) {
         {visiblePrimaryButton && (
           <a
             href={visiblePrimaryButton.href || '#'}
+            aria-label={getButtonLabel(visiblePrimaryButton)}
             className={`${styles.button} ${styles.motionItem} ${styles.buttonPrimary} ${
               visiblePrimaryButton.variant === 'outline' ? styles.buttonOutline : ''
             } ${visiblePrimaryButton.variant === 'secondary' ? styles.buttonSecondary : ''}`}
@@ -608,12 +620,13 @@ export default function Hero(props: HeroProps) {
               ...(primaryButtonStyle || {}),
             }}
           >
-            {visiblePrimaryButton.label}
+            {getButtonLabel(visiblePrimaryButton)}
           </a>
         )}
         {visibleSecondaryButton && (
           <a
             href={visibleSecondaryButton.href || '#'}
+            aria-label={getButtonLabel(visibleSecondaryButton)}
             className={`${styles.button} ${styles.motionItem} ${styles.buttonSecondary} ${
               visibleSecondaryButton.variant === 'outline' ? styles.buttonOutline : ''
             }`}
@@ -622,7 +635,7 @@ export default function Hero(props: HeroProps) {
               ...(secondaryButtonStyle || {}),
             }}
           >
-            {visibleSecondaryButton.label}
+            {getButtonLabel(visibleSecondaryButton)}
           </a>
         )}
       </div>

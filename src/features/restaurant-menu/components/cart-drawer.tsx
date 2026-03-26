@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
   ChevronRightIcon,
   XIcon,
@@ -50,13 +51,20 @@ export function CartDrawer({
   onCheckout,
 }: CartDrawerProps) {
   useScrollLock(open);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setIsCheckingOut(false);
+    }
+  }, [open]);
 
   if (!open) {
     return null;
   }
 
   const rewardPoints = Math.round(subtotal * 10);
-  const checkoutDisabled = itemCount === 0;
+  const checkoutDisabled = itemCount === 0 || isCheckingOut;
 
   return (
     <div
@@ -206,12 +214,30 @@ export function CartDrawer({
 
           <button
             type="button"
-            onClick={onCheckout}
+            onClick={() => {
+              if (checkoutDisabled) {
+                return;
+              }
+
+              setIsCheckingOut(true);
+              void Promise.resolve(onCheckout()).catch(() => {
+                setIsCheckingOut(false);
+              });
+            }}
             disabled={checkoutDisabled}
             className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-black px-4 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(15,23,42,0.2)] transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none"
           >
-            Go to checkout
-            <ChevronRightIcon className="h-4 w-4" />
+            {isCheckingOut ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/80 border-t-transparent" />
+                Opening checkout...
+              </>
+            ) : (
+              <>
+                Go to checkout
+                <ChevronRightIcon className="h-4 w-4" />
+              </>
+            )}
           </button>
         </div>
       </aside>

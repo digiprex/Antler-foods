@@ -120,10 +120,12 @@ function Button({
             ? fallbackStyle.border
             : `1px solid ${borderColor}`
           : baseStyle.border || fallbackStyle.border || `1px solid ${borderColor}`;
+  const resolvedLabel = button.label?.trim() || 'Learn more';
 
   return (
     <a
       href={button.href || '#'}
+      aria-label={resolvedLabel}
       className={`inline-flex items-center justify-center px-5 py-3 text-sm font-semibold transition-all ${
         variant === 'ghost'
           ? 'hover:bg-slate-900/[0.06]'
@@ -136,7 +138,7 @@ function Button({
         border: resolvedBorder,
       }}
     >
-      {button.label}
+      {resolvedLabel}
     </a>
   );
 }
@@ -391,6 +393,7 @@ export function CustomSectionItemCard({
       {item.ctaLabel ? (
         <a
           href={item.ctaHref || '#'}
+          aria-label={item.ctaLabel}
           className="mt-auto text-sm font-semibold"
           style={{ color: accentColor }}
         >

@@ -39,6 +39,7 @@ const GET_RESTAURANT_BY_DOMAINS = `
     ) {
       restaurant_id
       name
+      allow_tips
       address
       city
       state
@@ -57,6 +58,7 @@ const GET_RESTAURANT_BY_ID = `
     restaurants_by_pk(restaurant_id: $restaurant_id) {
       restaurant_id
       name
+      allow_tips
       address
       city
       state
@@ -509,6 +511,7 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
 
   return {
     restaurantId: text(restaurant.restaurant_id),
+    allowTips: restaurant.allow_tips !== false,
     slug: slugify(restaurantName) || slugify(menu?.name) || 'menu',
     announcement: `Order directly from ${restaurantName} for pickup and delivery.`,
     brand: {
@@ -568,6 +571,7 @@ function buildEmptyMenuData(restaurantName: string): RestaurantMenuData {
   const scheduleDays = [fallbackScheduleDay(new Date(), DEFAULT_TIME_ZONE)];
   return {
     restaurantId: null,
+    allowTips: true,
     slug: slugify(restaurantName) || 'menu',
     announcement: `Order directly from ${restaurantName}.`,
     brand: { name: restaurantName.toUpperCase(), subtitle: 'Online Ordering', accentText: restaurantName },

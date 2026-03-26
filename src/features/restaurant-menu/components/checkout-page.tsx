@@ -183,6 +183,7 @@ export default function RestaurantMenuCheckoutPage({
     : selectedTime;
   const resolvedDeliveryAddress =
     deliveryAddress?.trim() || data.defaultDeliveryAddress || '';
+  const tipsEnabled = data.allowTips !== false;
   const [tipPreset, setTipPreset] = useState<TipPreset>('20');
   const [tipAmount, setTipAmount] = useState(0);
   const [customTipInput, setCustomTipInput] = useState('0.00');
@@ -216,6 +217,11 @@ export default function RestaurantMenuCheckoutPage({
   };
 
   useEffect(() => {
+    if (!tipsEnabled) {
+      setTipAmount(0);
+      return;
+    }
+
     const nextTipAmount =
       tipPreset === '10'
         ? roundCurrency(subtotal * 0.1)
@@ -228,7 +234,7 @@ export default function RestaurantMenuCheckoutPage({
     if (tipPreset !== 'custom') {
       setTipAmount(nextTipAmount);
     }
-  }, [subtotal, tipPreset, tipAmount]);
+  }, [subtotal, tipPreset, tipAmount, tipsEnabled]);
 
   useEffect(() => {
     if (!customerProfile) {
@@ -527,7 +533,7 @@ export default function RestaurantMenuCheckoutPage({
             phone: contactFields.phone,
           },
           items,
-          tipAmount,
+          tipAmount: tipsEnabled ? tipAmount : 0,
           couponCode: appliedCoupon?.code || null,
           giftCardCode: appliedGiftCard?.code || null,
           orderNote: cartNote,
@@ -584,8 +590,9 @@ export default function RestaurantMenuCheckoutPage({
 
   const normalizedCouponInput = couponCodeInput.trim().toUpperCase();
   const normalizedGiftCardInput = giftCardCodeInput.trim().toUpperCase();
+  const effectiveTipAmount = tipsEnabled ? tipAmount : 0;
   const discountAmount = appliedCoupon?.discountAmount || 0;
-  const preGiftCardTotal = roundCurrency(subtotal + tipAmount - discountAmount);
+  const preGiftCardTotal = roundCurrency(subtotal + effectiveTipAmount - discountAmount);
   const giftCardAppliedAmount = appliedGiftCard
     ? roundCurrency(
         Math.min(
@@ -807,7 +814,7 @@ export default function RestaurantMenuCheckoutPage({
           </div>
           <div className="flex items-center justify-between gap-4">
             <span>Tip</span>
-            <span className="font-medium">{formatPrice(tipAmount)}</span>
+            <span className="font-medium">{formatPrice(effectiveTipAmount)}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <span className="flex items-center gap-2">
@@ -997,7 +1004,8 @@ export default function RestaurantMenuCheckoutPage({
               </div>
             </section>
 
-            <section className="space-y-2.5">
+            {tipsEnabled ? (
+              <section className="space-y-2.5">
               <h2
                 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]"
               >
@@ -1090,7 +1098,8 @@ export default function RestaurantMenuCheckoutPage({
                   </div>
                 </div>
               ) : null}
-            </section>
+              </section>
+            ) : null}
 
             <section id="checkout-contact-fields" className="space-y-2.5">
               <h2

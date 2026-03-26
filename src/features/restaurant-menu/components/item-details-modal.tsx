@@ -16,6 +16,7 @@ interface ItemDetailsModalProps {
   item: MenuItem | null;
   open: boolean;
   trustBanner: string;
+  addToCartDisabled?: boolean;
   onClose: () => void;
   onAddToCart: (input: AddCartItemInput) => void;
 }
@@ -115,6 +116,7 @@ export function ItemDetailsModal({
   item,
   open,
   trustBanner,
+  addToCartDisabled = false,
   onClose,
   onAddToCart,
 }: ItemDetailsModalProps) {
@@ -168,6 +170,7 @@ export function ItemDetailsModal({
     return selectedCount < minRequired || selectedCount > maxAllowed;
   });
   const canAddToCart = invalidGroups.length === 0;
+  const addToCartBlocked = addToCartDisabled || !canAddToCart;
 
   const toggleAddOn = (group: MenuModifierGroup, addOn: MenuAddOn) => {
     setSelectedAddOnIds((currentIds) => {
@@ -446,7 +449,11 @@ export function ItemDetailsModal({
 
         <div className="border-t border-stone-200 bg-white/95 px-3.5 py-2.5 backdrop-blur sm:px-4">
           <div className="mb-2 min-h-[1rem] text-xs sm:text-sm">
-            {invalidGroups.length ? (
+            {addToCartDisabled ? (
+              <p className="font-medium text-rose-600">
+                Ordering is currently unavailable for this restaurant.
+              </p>
+            ) : invalidGroups.length ? (
               <p className="font-medium text-rose-600">
                 {invalidGroups[0].name}: {getGroupInstruction(invalidGroups[0], getSelectedItemsForGroup(invalidGroups[0], selectedAddOnIds).length)}
               </p>
@@ -464,9 +471,9 @@ export function ItemDetailsModal({
             />
             <button
               type="button"
-              disabled={!canAddToCart}
+              disabled={addToCartBlocked}
               onClick={() => {
-                if (!canAddToCart) {
+                if (addToCartBlocked) {
                   return;
                 }
 

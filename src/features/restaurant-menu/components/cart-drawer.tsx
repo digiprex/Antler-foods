@@ -18,6 +18,7 @@ interface CartDrawerProps {
   items: CartItem[];
   itemCount: number;
   subtotal: number;
+  checkoutEnabled?: boolean;
   cartNote: string;
   mode: FulfillmentMode;
   deliveryAddress: string;
@@ -41,6 +42,7 @@ export function CartDrawer({
   items,
   itemCount,
   subtotal,
+  checkoutEnabled = true,
   cartNote,
   mode,
   deliveryAddress,
@@ -64,7 +66,7 @@ export function CartDrawer({
   }
 
   const rewardPoints = Math.round(subtotal * 10);
-  const checkoutDisabled = itemCount === 0 || isCheckingOut;
+  const checkoutDisabled = itemCount === 0 || isCheckingOut || !checkoutEnabled;
 
   return (
     <div
@@ -234,7 +236,7 @@ export function CartDrawer({
               </>
             ) : (
               <>
-                Go to checkout
+                {checkoutEnabled ? 'Go to checkout' : 'Ordering unavailable'}
                 <ChevronRightIcon className="h-4 w-4" />
               </>
             )}

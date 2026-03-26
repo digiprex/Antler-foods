@@ -9,16 +9,20 @@ import {
   type MenuAuthView,
 } from '@/features/restaurant-menu/components/menu-auth-sidebar';
 import {
+  ChevronDownIcon,
   ChevronLeftIcon,
   ClockIcon,
   MapPinIcon,
 } from '@/features/restaurant-menu/components/icons';
 import { CompactQuantityStepper } from '@/features/restaurant-menu/components/compact-quantity-stepper';
+import { RestaurantOffersModal } from '@/features/restaurant-menu/components/restaurant-offers-modal';
 import { useMenuCustomerAuth } from '@/features/restaurant-menu/hooks/use-menu-customer-auth';
 import { useMenuCart } from '@/features/restaurant-menu/hooks/use-menu-cart';
 import { formatPrice } from '@/features/restaurant-menu/lib/format-price';
+import { evaluateMenuOffers } from '@/features/restaurant-menu/lib/menu-offers';
 import { resolveCustomerAuthView } from '@/features/restaurant-menu/lib/customer-auth';
 import type { MenuCustomerProfile } from '@/features/restaurant-menu/lib/customer-profile';
+import { getAllMenuItems } from '@/features/restaurant-menu/lib/menu-selectors';
 import type {
   FulfillmentMode,
   RestaurantMenuData,
@@ -75,6 +79,26 @@ function getCartItemTotal(
   quantity: number,
 ) {
   return (basePrice + addOnTotal) * quantity;
+}
+
+function buildOfferCartLines(
+  items: Array<{
+    itemId: string;
+    name: string;
+    quantity: number;
+    basePrice: number;
+    selectedAddOns: Array<{ price: number }>;
+  }>,
+) {
+  return items.map((item) => ({
+    itemId: item.itemId,
+    name: item.name,
+    quantity: item.quantity,
+    unitPrice: roundCurrency(
+      item.basePrice +
+        item.selectedAddOns.reduce((sum, addOn) => sum + addOn.price, 0),
+    ),
+  }));
 }
 
 function splitName(name: string) {
@@ -205,8 +229,6 @@ export default function RestaurantMenuCheckoutPage({
     lastName: '',
     email: '',
   });
-  const [guestError, setGuestError] = useState<string | null>(null);
-  const [isSubmittingGuest, setIsSubmittingGuest] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [couponCodeInput, setCouponCodeInput] = useState('');
@@ -221,6 +243,8 @@ export default function RestaurantMenuCheckoutPage({
     useState<CheckoutGiftCardOffer | null>(null);
   const [isOrderSummaryDrawerOpen, setIsOrderSummaryDrawerOpen] =
     useState(false);
+  const [isOffersModalOpen, setIsOffersModalOpen] = useState(false);
+  const [isOffersSectionOpen, setIsOffersSectionOpen] = useState(false);
   const brandName = data.restaurant.name.replace(' Menu', '');
 
   const setAuthQueryParam = (view: MenuAuthView | null) => {
@@ -312,6 +336,43 @@ export default function RestaurantMenuCheckoutPage({
       ...current,
       [field]: value,
     }));
+  };
+
+  const ensureGuestCheckoutSession = async () => {
+    const response = await fetch('/api/menu-auth/guest', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        restaurantId,
+        firstName: contactFields.firstName,
+        lastName: contactFields.lastName,
+        email: contactFields.email,
+        phone: contactFields.phone,
+      }),
+    });
+
+    const payload = (await response.json().catch(() => null)) as {
+      error?: string;
+      customer?: MenuCustomerProfile;
+    } | null;
+
+    if (!response.ok || !payload?.customer) {
+      setCheckoutError(
+        payload?.error ?? 'Unable to continue as guest right now.',
+      );
+
+      if (response.status === 409) {
+        openAuthSidebar('login');
+      }
+
+      return null;
+    }
+
+    applyCustomerProfile(payload.customer);
+    return payload.customer;
   };
 
   const handleApplyCoupon = async () => {
@@ -477,65 +538,11 @@ export default function RestaurantMenuCheckoutPage({
     };
   }, [isOrderSummaryDrawerOpen]);
 
-  const handleContinueAsGuest = async () => {
-    setGuestError(null);
-
-    if (!restaurantId) {
-      setGuestError(
-        'Restaurant context is missing. Return to the menu and try again.',
-      );
-      return;
+  useEffect(() => {
+    if (appliedCoupon || appliedGiftCard || couponError || giftCardError) {
+      setIsOffersSectionOpen(true);
     }
-
-    if (
-      !contactFields.firstName.trim() ||
-      !contactFields.lastName.trim() ||
-      !contactFields.email.trim() ||
-      !contactFields.phone.trim()
-    ) {
-      setGuestError(
-        'Enter your first name, last name, email, and phone number before continuing as guest.',
-      );
-      document
-        .getElementById('checkout-contact-fields')
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-
-    setIsSubmittingGuest(true);
-
-    try {
-      const response = await fetch('/api/menu-auth/guest', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify({
-          restaurantId,
-          firstName: contactFields.firstName,
-          lastName: contactFields.lastName,
-          email: contactFields.email,
-          phone: contactFields.phone,
-        }),
-      });
-
-      const payload = (await response.json().catch(() => null)) as {
-        error?: string;
-        customer?: MenuCustomerProfile;
-      } | null;
-
-      if (!response.ok || !payload?.customer) {
-        setGuestError(payload?.error ?? 'Unable to continue as guest.');
-        return;
-      }
-
-      applyCustomerProfile(payload.customer);
-      toast.success('Guest checkout is ready.');
-    } finally {
-      setIsSubmittingGuest(false);
-    }
-  };
+  }, [appliedCoupon, appliedGiftCard, couponError, giftCardError]);
 
   const handleLogout = async () => {
     await logout();
@@ -550,13 +557,6 @@ export default function RestaurantMenuCheckoutPage({
     if (!restaurantId) {
       setCheckoutError(
         'Restaurant context is missing. Return to the menu and try again.',
-      );
-      return;
-    }
-
-    if (!hasCustomerSession) {
-      setCheckoutError(
-        'Sign in or continue as guest before placing your order.',
       );
       return;
     }
@@ -591,6 +591,14 @@ export default function RestaurantMenuCheckoutPage({
     setIsPlacingOrder(true);
 
     try {
+      if (!hasCustomerSession) {
+        const guestCustomer = await ensureGuestCheckoutSession();
+
+        if (!guestCustomer) {
+          return;
+        }
+      }
+
       const response = await fetch('/api/menu-orders/checkout', {
         method: 'POST',
         headers: {
@@ -622,7 +630,10 @@ export default function RestaurantMenuCheckoutPage({
       const payload = (await response.json().catch(() => null)) as {
         error?: string;
         message?: string;
-        order?: { orderNumber?: string };
+        order?: {
+          orderNumber?: string;
+          total?: number;
+        };
       } | null;
 
       if (!response.ok) {
@@ -633,13 +644,28 @@ export default function RestaurantMenuCheckoutPage({
       }
 
       clearCart();
-      toast.success(
-        payload?.message ||
-          (payload?.order?.orderNumber
-            ? `Order ${payload.order.orderNumber} placed successfully.`
-            : 'Order placed successfully.'),
+
+      const successParams = new URLSearchParams();
+      if (payload?.order?.orderNumber) {
+        successParams.set('orderNumber', payload.order.orderNumber);
+      }
+      if (typeof payload?.order?.total === 'number') {
+        successParams.set('total', payload.order.total.toFixed(2));
+      }
+      successParams.set('mode', fulfillmentMode);
+      if (scheduleLabel) {
+        successParams.set('schedule', scheduleLabel);
+      }
+      if (brandName) {
+        successParams.set('restaurant', brandName);
+      }
+
+      const successQuery = successParams.toString();
+      router.replace(
+        successQuery
+          ? '/menu/checkout/success?' + successQuery
+          : '/menu/checkout/success',
       );
-      router.replace('/menu');
       router.refresh();
     } finally {
       setIsPlacingOrder(false);
@@ -671,7 +697,28 @@ export default function RestaurantMenuCheckoutPage({
 
   const normalizedCouponInput = couponCodeInput.trim().toUpperCase();
   const normalizedGiftCardInput = giftCardCodeInput.trim().toUpperCase();
-  const discountAmount = appliedCoupon?.discountAmount || 0;
+  const menuItemNameById = new Map(
+    getAllMenuItems(data.categories).map((item) => [item.id, item.name]),
+  );
+  const restaurantOfferEvaluations = evaluateMenuOffers({
+    offers: data.offers,
+    cartLines: buildOfferCartLines(items),
+    itemNameById: menuItemNameById,
+  });
+  const restaurantOffers = restaurantOfferEvaluations.offers;
+  const restaurantOfferCount = restaurantOffers.length;
+  const activeRestaurantOffer = appliedCoupon
+    ? null
+    : restaurantOfferEvaluations.bestOffer;
+  const restaurantOffersStatus = appliedCoupon
+    ? 'Manual coupon active. Restaurant offers are paused for this order.'
+    : activeRestaurantOffer
+      ? `${activeRestaurantOffer.headline} auto-applies, saving ${formatPrice(activeRestaurantOffer.discountAmount)}.`
+      : restaurantOfferCount > 0
+        ? `${restaurantOfferCount} restaurant offer${restaurantOfferCount === 1 ? '' : 's'} available.`
+        : 'No restaurant offers available right now.';
+  const discountAmount =
+    appliedCoupon?.discountAmount || activeRestaurantOffer?.discountAmount || 0;
   const preGiftCardTotal = roundCurrency(subtotal + tipAmount - discountAmount);
   const giftCardAppliedAmount = appliedGiftCard
     ? roundCurrency(
@@ -693,9 +740,9 @@ export default function RestaurantMenuCheckoutPage({
       <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
         Order summary
       </h2>
-      <div className="mt-3 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1">
+      <div className="mt-3 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1 lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
         <div className="space-y-2.5 rounded-[16px] border border-stone-200 bg-stone-50 px-3 py-2.5">
-          <div className="max-h-[420px] space-y-2.5 overflow-y-auto pr-1">
+          <div className="max-h-[420px] space-y-2.5 overflow-y-auto pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {items.map((item) => {
               const addOnTotal = item.selectedAddOns.reduce(
                 (sum, addOn) => sum + addOn.price,
@@ -711,7 +758,7 @@ export default function RestaurantMenuCheckoutPage({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2.5">
                       <div className="flex-1">
-                        <p className="text-[13px] font-semibold leading-tight text-slate-950">
+                        <p className="truncate text-sm font-semibold leading-tight text-slate-950 sm:text-[13px]">
                           {item.name}
                         </p>
                         {item.selectedAddOns.length ? (
@@ -722,7 +769,7 @@ export default function RestaurantMenuCheckoutPage({
                           </p>
                         ) : null}
                       </div>
-                      <p className="text-[13px] font-semibold text-slate-950">
+                      <p className="shrink-0 text-sm font-semibold text-slate-950 sm:text-[13px]">
                         {formatPrice(
                           getCartItemTotal(
                             item.basePrice,
@@ -732,7 +779,7 @@ export default function RestaurantMenuCheckoutPage({
                         )}
                       </p>
                     </div>
-                    <div className="mt-2.5">
+                    <div className="mt-2 sm:mt-2.5">
                       <CompactQuantityStepper
                         quantity={item.quantity}
                         onDecrease={() =>
@@ -759,128 +806,168 @@ export default function RestaurantMenuCheckoutPage({
           </div>
         ) : null}
       </div>
-      <div className="mt-3 space-y-3 rounded-[16px] border border-stone-200 bg-stone-50 px-3.5 py-3 lg:mt-auto">
-        <div className="flex items-center justify-between gap-3">
+
+      <div className="mt-3 rounded-[16px] border border-stone-200 bg-stone-50 px-3.5 py-3 lg:mt-auto">
+        <button
+          type="button"
+          onClick={() => setIsOffersSectionOpen((current) => !current)}
+          className="flex w-full items-start justify-between gap-3 text-left"
+          aria-expanded={isOffersSectionOpen}
+        >
           <div>
             <p className="text-[13px] font-semibold text-slate-950">
               Offers and gift cards
             </p>
             <p className="mt-0.5 text-[11px] text-slate-500">
-              Apply coupon and redeem gift card separately.
+              Save on this order with your coupon or gift card.
             </p>
           </div>
-        </div>
-        <div className="space-y-2 rounded-[14px] border border-stone-200 bg-white p-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
-              Coupon
-            </p>
-            {appliedCoupon ? (
-              <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
-                Applied
-              </span>
-            ) : null}
-          </div>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void handleApplyCoupon();
-            }}
-            className="flex flex-col gap-2 sm:flex-row"
-          >
-            <input
-              type="text"
-              value={couponCodeInput}
-              onChange={(event) => {
-                setCouponCodeInput(event.target.value.toUpperCase());
-                if (couponError) {
-                  setCouponError(null);
-                }
-              }}
-              placeholder="Coupon code"
-              className="h-9 w-full rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-950 outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-black/35"
-              disabled={isApplyingCoupon}
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white text-slate-700 transition hover:border-stone-400 hover:bg-stone-100">
+            <ChevronDownIcon
+              className={`h-4 w-4 transition-transform duration-200 ${isOffersSectionOpen ? 'rotate-180' : ''}`}
             />
-            {showAppliedCouponActions ? (
+          </span>
+        </button>
+
+        {isOffersSectionOpen ? (
+          <div className="mt-3 space-y-3">
+            <div className="space-y-2 rounded-[14px] border border-stone-200 bg-white p-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
+                  Coupon
+                </p>
+                {appliedCoupon ? (
+                  <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                    Applied
+                  </span>
+                ) : null}
+              </div>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void handleApplyCoupon();
+                }}
+                className="flex flex-col gap-2 sm:flex-row"
+              >
+                <input
+                  type="text"
+                  value={couponCodeInput}
+                  onChange={(event) => {
+                    setCouponCodeInput(event.target.value.toUpperCase());
+                    if (couponError) {
+                      setCouponError(null);
+                    }
+                  }}
+                  placeholder="Coupon code"
+                  className="h-9 w-full rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-950 outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-black/35"
+                  disabled={isApplyingCoupon}
+                />
+                {showAppliedCouponActions ? (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCoupon()}
+                    className="inline-flex h-9 w-full items-center justify-center rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-auto"
+                  >
+                    Remove
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={isApplyingCoupon}
+                    className="inline-flex h-9 w-full items-center justify-center rounded-[12px] bg-black px-3 text-[12px] font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-stone-300 sm:w-auto"
+                  >
+                    {isApplyingCoupon ? 'Applying...' : 'Apply'}
+                  </button>
+                )}
+              </form>
+              {couponError ? (
+                <p className="text-[11px] text-red-700">{couponError}</p>
+              ) : null}
+            </div>
+
+            <div className="space-y-2 rounded-[14px] border border-stone-200 bg-white p-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
+                  Gift card
+                </p>
+                {appliedGiftCard ? (
+                  <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                    Redeemed
+                  </span>
+                ) : null}
+              </div>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void handleRedeemGiftCard();
+                }}
+                className="flex flex-col gap-2 sm:flex-row"
+              >
+                <input
+                  type="text"
+                  value={giftCardCodeInput}
+                  onChange={(event) => {
+                    setGiftCardCodeInput(event.target.value.toUpperCase());
+                    if (giftCardError) {
+                      setGiftCardError(null);
+                    }
+                  }}
+                  placeholder="Gift card code"
+                  className="h-9 w-full rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-950 outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-black/35"
+                  disabled={isRedeemingGiftCard}
+                />
+                {showRedeemedGiftCardActions ? (
+                  <button
+                    type="button"
+                    onClick={handleRemoveGiftCard}
+                    className="inline-flex h-9 w-full items-center justify-center rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-auto"
+                  >
+                    Remove
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={isRedeemingGiftCard}
+                    className="inline-flex h-9 w-full items-center justify-center rounded-[12px] bg-black px-3 text-[12px] font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-stone-300 sm:w-auto"
+                  >
+                    {isRedeemingGiftCard ? 'Redeeming...' : 'Redeem'}
+                  </button>
+                )}
+              </form>
+              {giftCardError ? (
+                <p className="text-[11px] text-red-700">{giftCardError}</p>
+              ) : appliedGiftCard ? (
+                <p className="text-[11px] text-emerald-700">
+                  {appliedGiftCard.code} balance{' '}
+                  {formatPrice(appliedGiftCard.currentBalance)}.
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-2.5 rounded-[14px] border border-stone-200 bg-white p-2.5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
+                  Restaurant offers
+                </p>
+                <p
+                  className={`mt-1 text-[11px] leading-5 ${appliedCoupon ? 'text-amber-700' : activeRestaurantOffer ? 'text-emerald-700' : 'text-slate-500'}`}
+                >
+                  {restaurantOffersStatus}
+                </p>
+              </div>
               <button
                 type="button"
-                onClick={() => handleRemoveCoupon()}
-                className="inline-flex h-9 items-center justify-center rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                onClick={() => setIsOffersModalOpen(true)}
+                disabled={restaurantOfferCount === 0}
+                className="inline-flex h-9 w-full shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white px-4 text-[12px] font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-100 disabled:text-stone-400 sm:w-auto"
               >
-                Remove
+                {restaurantOfferCount > 0
+                  ? `View offers (${restaurantOfferCount})`
+                  : 'No offers'}
               </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={isApplyingCoupon}
-                className="inline-flex h-9 items-center justify-center rounded-[12px] bg-black px-3 text-[12px] font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-stone-300"
-              >
-                {isApplyingCoupon ? 'Applying...' : 'Apply'}
-              </button>
-            )}
-          </form>
-          {couponError ? (
-            <p className="text-[11px] text-red-700">{couponError}</p>
-          ) : null}
-        </div>
-        <div className="space-y-2 rounded-[14px] border border-stone-200 bg-white p-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
-              Gift card
-            </p>
-            {appliedGiftCard ? (
-              <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
-                Redeemed
-              </span>
-            ) : null}
+            </div>
           </div>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void handleRedeemGiftCard();
-            }}
-            className="flex flex-col gap-2 sm:flex-row"
-          >
-            <input
-              type="text"
-              value={giftCardCodeInput}
-              onChange={(event) => {
-                setGiftCardCodeInput(event.target.value.toUpperCase());
-                if (giftCardError) {
-                  setGiftCardError(null);
-                }
-              }}
-              placeholder="Gift card code"
-              className="h-9 w-full rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-950 outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-black/35"
-              disabled={isRedeemingGiftCard}
-            />
-            {showRedeemedGiftCardActions ? (
-              <button
-                type="button"
-                onClick={handleRemoveGiftCard}
-                className="inline-flex h-9 items-center justify-center rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
-              >
-                Remove
-              </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={isRedeemingGiftCard}
-                className="inline-flex h-9 items-center justify-center rounded-[12px] bg-black px-3 text-[12px] font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-stone-300"
-              >
-                {isRedeemingGiftCard ? 'Redeeming...' : 'Redeem'}
-              </button>
-            )}
-          </form>
-          {giftCardError ? (
-            <p className="text-[11px] text-red-700">{giftCardError}</p>
-          ) : appliedGiftCard ? (
-            <p className="text-[11px] text-emerald-700">
-              {appliedGiftCard.code} balance{' '}
-              {formatPrice(appliedGiftCard.currentBalance)}.
-            </p>
-          ) : null}
-        </div>
+        ) : null}
       </div>
 
       <div className="mt-3 border-t border-stone-200 pt-3">
@@ -903,6 +990,15 @@ export default function RestaurantMenuCheckoutPage({
                   </span>
                   <span className="text-[11px] text-emerald-700">
                     {appliedCoupon.title}
+                  </span>
+                </>
+              ) : activeRestaurantOffer ? (
+                <>
+                  <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                    AUTO
+                  </span>
+                  <span className="text-[11px] text-emerald-700">
+                    {activeRestaurantOffer.headline}
                   </span>
                 </>
               ) : null}
@@ -938,8 +1034,8 @@ export default function RestaurantMenuCheckoutPage({
   );
 
   return (
-    <div className="min-h-screen bg-white px-4 py-4 pb-24 sm:px-6 lg:h-screen lg:overflow-hidden lg:px-8 lg:py-6 lg:pb-6">
-      <div className="mx-auto max-w-[1380px]">
+    <div className="min-h-screen bg-white px-4 py-4 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 sm:pb-24 lg:h-screen lg:overflow-hidden lg:px-8 lg:py-6 lg:pb-6">
+      <div className="mx-auto max-w-[1440px]">
         <Link
           href="/menu"
           className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 transition hover:text-slate-950"
@@ -948,7 +1044,7 @@ export default function RestaurantMenuCheckoutPage({
           Menu
         </Link>
 
-        <div className="mt-4 grid gap-5 lg:h-[calc(100vh-7.25rem)] lg:grid-cols-[minmax(0,680px)_360px] lg:justify-center lg:overflow-hidden lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,720px)_380px]">
+        <div className="mt-4 grid gap-5 lg:h-[calc(100vh-7.25rem)] lg:grid-cols-[minmax(0,660px)_400px] lg:justify-center lg:overflow-hidden lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,760px)_430px]">
           <div className="space-y-5 sm:space-y-6 lg:h-full lg:overflow-y-auto lg:pr-5 lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
             <div>
               <h1 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
@@ -956,72 +1052,7 @@ export default function RestaurantMenuCheckoutPage({
               </h1>
             </div>
 
-            {!hasCustomerSession ? (
-              <section className="rounded-[20px] border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
-                <div className="space-y-4">
-                  <div className="space-y-2 text-center sm:text-left">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-500">
-                      Faster checkout
-                    </p>
-                    <h2 className="text-[1.2rem] font-semibold text-slate-950 sm:text-[1.35rem]">
-                      Sign in or create an account
-                    </h2>
-                    <p className="text-sm leading-6 text-stone-600">
-                      Use your saved info to use or earn loyalty points.
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => openAuthSidebar('login')}
-                      className="inline-flex h-10 w-full items-center justify-center rounded-[14px] bg-black px-5 text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:h-11 sm:w-auto sm:min-w-[150px]"
-                    >
-                      Sign in
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openAuthSidebar('signup')}
-                      className="inline-flex h-10 w-full items-center justify-center rounded-[14px] border border-stone-300 bg-white px-5 text-sm font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:h-11 sm:w-auto sm:min-w-[150px]"
-                    >
-                      Sign up
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="h-px flex-1 bg-stone-200" />
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-stone-700">
-                      Or continue as guest
-                    </span>
-                    <span className="h-px flex-1 bg-stone-200" />
-                  </div>
-
-                  {/* <div className="rounded-[16px] border border-black/15 bg-black/[0.03] px-4 py-3.5 text-sm text-stone-800 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-stone-700">
-                          Guest checkout
-                        </p>
-                        <p className="mt-2 leading-6">
-                          Continue as guest using the contact and payment fields below.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleContinueAsGuest}
-                        className="inline-flex h-10 items-center justify-center rounded-[14px] bg-black px-4 text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-stone-300"
-                        disabled={isSubmittingGuest}
-                      >
-                        {isSubmittingGuest ? 'Starting guest checkout...' : 'Continue as guest'}
-                      </button>
-                    </div>
-                    {guestError ? (
-                      <p className="mt-3 text-sm text-red-700">{guestError}</p>
-                    ) : null}
-                  </div> */}
-                </div>
-              </section>
-            ) : customerProfile ? (
+            {customerProfile ? (
               <section className="rounded-[20px] border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -1035,12 +1066,12 @@ export default function RestaurantMenuCheckoutPage({
                       {customerProfile.email}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                     {isGuestCustomer ? (
                       <button
                         type="button"
                         onClick={() => openAuthSidebar('signup')}
-                        className="inline-flex h-10 items-center justify-center rounded-[14px] bg-black px-4 text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                        className="inline-flex h-10 w-full items-center justify-center rounded-[14px] bg-black px-4 text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-auto"
                       >
                         Create account
                       </button>
@@ -1048,7 +1079,7 @@ export default function RestaurantMenuCheckoutPage({
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="inline-flex h-10 items-center justify-center rounded-[14px] border border-stone-300 bg-white px-4 text-sm font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                      className="inline-flex h-10 w-full items-center justify-center rounded-[14px] border border-stone-300 bg-white px-4 text-sm font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-auto"
                     >
                       Log out
                     </button>
@@ -1308,14 +1339,10 @@ export default function RestaurantMenuCheckoutPage({
               <button
                 type="button"
                 onClick={handlePlaceOrder}
-                disabled={isPlacingOrder || !hasCustomerSession}
+                disabled={isPlacingOrder}
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-black text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:h-12 sm:max-w-[280px]"
               >
-                {isPlacingOrder
-                  ? 'Placing order...'
-                  : !hasCustomerSession
-                    ? 'Sign in or continue as guest'
-                    : 'Place order'}
+                {isPlacingOrder ? 'Placing order...' : 'Place order'}
               </button>
               {checkoutError ? (
                 <div className="max-w-3xl rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
@@ -1335,7 +1362,7 @@ export default function RestaurantMenuCheckoutPage({
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6 lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-white/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-6 lg:hidden">
         <button
           type="button"
           onClick={() => setIsOrderSummaryDrawerOpen(true)}
@@ -1356,12 +1383,9 @@ export default function RestaurantMenuCheckoutPage({
             className="absolute inset-0 bg-black/40"
             onClick={() => setIsOrderSummaryDrawerOpen(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-[24px] bg-stone-50 px-4 pb-6 pt-3 shadow-[0_-16px_48px_rgba(15,23,42,0.2)] sm:px-6">
+          <div className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-[24px] bg-stone-50 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-16px_48px_rgba(15,23,42,0.2)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-6">
             <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-stone-300" />
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-900">
-                Order summary
-              </p>
+            <div className="mb-3 flex justify-end">
               <button
                 type="button"
                 onClick={() => setIsOrderSummaryDrawerOpen(false)}
@@ -1374,6 +1398,13 @@ export default function RestaurantMenuCheckoutPage({
           </div>
         </div>
       ) : null}
+
+      <RestaurantOffersModal
+        open={isOffersModalOpen}
+        offers={restaurantOffers}
+        hasManualCoupon={Boolean(appliedCoupon)}
+        onClose={() => setIsOffersModalOpen(false)}
+      />
 
       <MenuAuthSidebar
         open={authSidebarOpen}

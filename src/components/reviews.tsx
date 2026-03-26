@@ -607,7 +607,7 @@ export default function Reviews({
     };
     const authorName = review.author_name?.trim() || 'customer';
     const sourceName = review.source?.trim() || 'review source';
-    const readMoreText = `Read More`;
+    const readMoreText = `Read full review by ${authorName}`;
     const readMoreAriaLabel = `Read full review by ${authorName} on ${sourceName} (opens in a new tab)`;
 
     if (review.review_url) {

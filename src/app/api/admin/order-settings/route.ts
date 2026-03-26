@@ -7,19 +7,25 @@ const GET_ORDER_SETTINGS = `
       restaurant_id
       allow_tips
       pickup_allowed
+      delivery_allowed
     }
   }
 `;
 
 const UPDATE_ORDER_SETTINGS = `
-  mutation UpdateOrderSettings($restaurant_id: uuid!, $allow_tips: Boolean!, $pickup_allowed: Boolean!) {
+  mutation UpdateOrderSettings($restaurant_id: uuid!, $allow_tips: Boolean!, $pickup_allowed: Boolean!, $delivery_allowed: Boolean!) {
     update_restaurants_by_pk(
       pk_columns: { restaurant_id: $restaurant_id }
-      _set: { allow_tips: $allow_tips, pickup_allowed: $pickup_allowed }
+      _set: {
+        allow_tips: $allow_tips
+        pickup_allowed: $pickup_allowed
+        delivery_allowed: $delivery_allowed
+      }
     ) {
       restaurant_id
       allow_tips
       pickup_allowed
+      delivery_allowed
     }
   }
 `;
@@ -29,6 +35,7 @@ interface OrderSettingsResponse {
     restaurant_id?: string | null;
     allow_tips?: boolean | null;
     pickup_allowed?: boolean | null;
+    delivery_allowed?: boolean | null;
   } | null;
 }
 
@@ -37,6 +44,7 @@ interface UpdateOrderSettingsResponse {
     restaurant_id?: string | null;
     allow_tips?: boolean | null;
     pickup_allowed?: boolean | null;
+    delivery_allowed?: boolean | null;
   } | null;
 }
 
@@ -68,6 +76,7 @@ export async function GET(request: NextRequest) {
         restaurant_id: data.restaurants_by_pk.restaurant_id,
         allow_tips: data.restaurants_by_pk.allow_tips ?? true,
         pickup_allowed: data.restaurants_by_pk.pickup_allowed ?? true,
+        delivery_allowed: data.restaurants_by_pk.delivery_allowed ?? true,
       },
     });
   } catch (error) {
@@ -82,12 +91,18 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = (await request.json().catch(() => null)) as
-      | { restaurant_id?: string; allow_tips?: boolean; pickup_allowed?: boolean }
+      | {
+          restaurant_id?: string;
+          allow_tips?: boolean;
+          pickup_allowed?: boolean;
+          delivery_allowed?: boolean;
+        }
       | null;
 
     const restaurantId = body?.restaurant_id;
     const allowTips = body?.allow_tips;
     const pickupAllowed = body?.pickup_allowed;
+    const deliveryAllowed = body?.delivery_allowed;
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -108,6 +123,12 @@ export async function PUT(request: NextRequest) {
         { status: 400 },
       );
     }
+    if (typeof deliveryAllowed !== 'boolean') {
+      return NextResponse.json(
+        { success: false, error: 'delivery_allowed must be a boolean' },
+        { status: 400 },
+      );
+    }
 
     const data = await adminGraphqlRequest<UpdateOrderSettingsResponse>(
       UPDATE_ORDER_SETTINGS,
@@ -115,6 +136,7 @@ export async function PUT(request: NextRequest) {
         restaurant_id: restaurantId,
         allow_tips: allowTips,
         pickup_allowed: pickupAllowed,
+        delivery_allowed: deliveryAllowed,
       },
     );
 
@@ -131,6 +153,7 @@ export async function PUT(request: NextRequest) {
         restaurant_id: data.update_restaurants_by_pk.restaurant_id,
         allow_tips: data.update_restaurants_by_pk.allow_tips ?? true,
         pickup_allowed: data.update_restaurants_by_pk.pickup_allowed ?? true,
+        delivery_allowed: data.update_restaurants_by_pk.delivery_allowed ?? true,
       },
     });
   } catch (error) {

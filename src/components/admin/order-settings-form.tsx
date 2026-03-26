@@ -14,6 +14,7 @@ export default function OrderSettingsForm({
 }: OrderSettingsFormProps) {
   const [allowTips, setAllowTips] = useState(true);
   const [pickupAllowed, setPickupAllowed] = useState(true);
+  const [deliveryAllowed, setDeliveryAllowed] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -29,7 +30,11 @@ export default function OrderSettingsForm({
         const payload = (await response.json().catch(() => null)) as
           | {
               success?: boolean;
-              data?: { allow_tips?: boolean; pickup_allowed?: boolean };
+              data?: {
+                allow_tips?: boolean;
+                pickup_allowed?: boolean;
+                delivery_allowed?: boolean;
+              };
               error?: string;
             }
           | null;
@@ -44,6 +49,7 @@ export default function OrderSettingsForm({
 
         setAllowTips(payload.data?.allow_tips ?? true);
         setPickupAllowed(payload.data?.pickup_allowed ?? true);
+        setDeliveryAllowed(payload.data?.delivery_allowed ?? true);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to load order settings.');
       } finally {
@@ -72,6 +78,7 @@ export default function OrderSettingsForm({
           restaurant_id: restaurantId,
           allow_tips: allowTips,
           pickup_allowed: pickupAllowed,
+          delivery_allowed: deliveryAllowed,
         }),
       });
 
@@ -106,9 +113,9 @@ export default function OrderSettingsForm({
     <div className="max-w-3xl space-y-6">
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-5">
-          <h2 className="text-lg font-semibold text-gray-900">Checkout Tips</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Ordering Preferences</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Control whether customers can add tips during checkout for {restaurantName}.
+            Manage tip and fulfillment availability for {restaurantName}.
           </p>
         </div>
 
@@ -155,6 +162,30 @@ export default function OrderSettingsForm({
             <span
               className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
                 pickupAllowed ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+
+        <div className="mt-4 flex items-start justify-between gap-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Delivery allowed</p>
+            <p className="mt-1 text-xs text-gray-600">
+              When disabled, delivery is hidden on menu, cart, and checkout.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={deliveryAllowed}
+            onClick={() => setDeliveryAllowed((current) => !current)}
+            className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+              deliveryAllowed ? 'bg-green-500' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                deliveryAllowed ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
           </button>

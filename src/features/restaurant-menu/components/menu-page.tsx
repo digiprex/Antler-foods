@@ -74,8 +74,11 @@ function MenuPageContent({ data }: MenuPageProps) {
   const pathname = usePathname() ?? '';
   const searchParams = useSearchParams() ?? new URLSearchParams();
   const pickupAllowed = data.pickupAllowed !== false;
+  const deliveryAllowed = data.deliveryAllowed !== false;
+  const orderingEnabled = pickupAllowed || deliveryAllowed;
+  const defaultMode: FulfillmentMode = pickupAllowed ? 'pickup' : 'delivery';
   const [fulfillmentMode, setFulfillmentMode] = useState<FulfillmentMode>(
-    pickupAllowed ? 'pickup' : 'delivery',
+    defaultMode,
   );
   const [selectedLocationId, setSelectedLocationId] = useState(data.locations[0]?.id || '');
   const [deliveryAddress, setDeliveryAddress] = useState(data.defaultDeliveryAddress);
@@ -88,7 +91,7 @@ function MenuPageContent({ data }: MenuPageProps) {
   });
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [locationModalMode, setLocationModalMode] = useState<FulfillmentMode>(
-    pickupAllowed ? 'pickup' : 'delivery',
+    defaultMode,
   );
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [scheduleModalSource, setScheduleModalSource] = useState<'info' | 'location' | 'cart'>('info');
@@ -119,18 +122,18 @@ function MenuPageContent({ data }: MenuPageProps) {
   }, [searchParams]);
 
   useEffect(() => {
-    if (pickupAllowed) {
+    if (pickupAllowed && deliveryAllowed) {
       return;
     }
 
-    if (fulfillmentMode !== 'delivery') {
-      setFulfillmentMode('delivery');
+    if (fulfillmentMode !== defaultMode) {
+      setFulfillmentMode(defaultMode);
     }
 
-    if (locationModalMode !== 'delivery') {
-      setLocationModalMode('delivery');
+    if (locationModalMode !== defaultMode) {
+      setLocationModalMode(defaultMode);
     }
-  }, [pickupAllowed, fulfillmentMode, locationModalMode]);
+  }, [pickupAllowed, deliveryAllowed, defaultMode, fulfillmentMode, locationModalMode]);
 
   useEffect(() => {
     router.prefetch('/menu/checkout');
@@ -256,6 +259,10 @@ function MenuPageContent({ data }: MenuPageProps) {
       return;
     }
 
+    if (!deliveryAllowed && mode === 'delivery') {
+      return;
+    }
+
     setFulfillmentMode(mode);
   };
 
@@ -300,6 +307,11 @@ function MenuPageContent({ data }: MenuPageProps) {
   };
 
   const handleQuickAdd = (item: NonNullable<typeof selectedItem>) => {
+    if (!orderingEnabled) {
+      setSelectedItemId(item.id);
+      return;
+    }
+
     if (item.inStock === false) {
       return;
     }
@@ -409,6 +421,7 @@ function MenuPageContent({ data }: MenuPageProps) {
                   <FulfillmentSelector
                     mode={fulfillmentMode}
                     pickupAllowed={pickupAllowed}
+                    deliveryAllowed={deliveryAllowed}
                     locationLabel={locationLabel}
                     deliveryAddress={deliveryAddress}
                     onModeSelect={handleModeSelect}
@@ -488,6 +501,7 @@ function MenuPageContent({ data }: MenuPageProps) {
         item={displaySelectedItem}
         open={Boolean(displaySelectedItem)}
         trustBanner={data.restaurant.trustBanner}
+        addToCartDisabled={!orderingEnabled}
         onClose={() => setSelectedItemId(null)}
         onAddToCart={(input) => addItem(input)}
       />
@@ -497,6 +511,7 @@ function MenuPageContent({ data }: MenuPageProps) {
         items={items}
         itemCount={itemCount}
         subtotal={subtotal}
+        checkoutEnabled={orderingEnabled}
         cartNote={cartNote}
         mode={fulfillmentMode}
         deliveryAddress={deliveryAddress}
@@ -512,6 +527,7 @@ function MenuPageContent({ data }: MenuPageProps) {
         restaurantName={brandName}
         locations={data.locations}
         pickupAllowed={pickupAllowed}
+        deliveryAllowed={deliveryAllowed}
         activeMode={locationModalMode}
         selectedLocationId={selectedLocationId}
         deliveryAddress={deliveryAddress}
@@ -527,7 +543,7 @@ function MenuPageContent({ data }: MenuPageProps) {
         }}
         onConfirm={() => {
           setFulfillmentMode(
-            pickupAllowed ? locationModalMode : 'delivery',
+            pickupAllowed && deliveryAllowed ? locationModalMode : defaultMode,
           );
           setLocationModalOpen(false);
         }}

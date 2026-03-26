@@ -41,6 +41,7 @@ const GET_RESTAURANT_BY_DOMAINS = `
       name
       allow_tips
       pickup_allowed
+      delivery_allowed
       address
       city
       state
@@ -61,6 +62,7 @@ const GET_RESTAURANT_BY_ID = `
       name
       allow_tips
       pickup_allowed
+      delivery_allowed
       address
       city
       state
@@ -382,6 +384,7 @@ async function loadOpeningHours(restaurantId: string) {
 function buildMenuData({ restaurant, menu, categories, items, modifierGroups, modifierItems, opening }: any): RestaurantMenuData {
   const restaurantName = text(restaurant?.name) || 'Restaurant';
   const pickupAllowed = restaurant?.pickup_allowed !== false;
+  const deliveryAllowed = restaurant?.delivery_allowed !== false;
   const addressLine = buildFullAddress(restaurant) || 'Location unavailable';
   const cityStateZip = buildCityStateZip(restaurant);
   const timeZone = resolveTimeZone(opening.profile?.timezone);
@@ -516,10 +519,14 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
     restaurantId: text(restaurant.restaurant_id),
     allowTips: restaurant.allow_tips !== false,
     pickupAllowed,
+    deliveryAllowed,
     slug: slugify(restaurantName) || slugify(menu?.name) || 'menu',
-    announcement: pickupAllowed
-      ? `Order directly from ${restaurantName} for pickup and delivery.`
-      : `Order directly from ${restaurantName} for delivery.`,
+    announcement:
+      pickupAllowed && deliveryAllowed
+        ? `Order directly from ${restaurantName} for pickup and delivery.`
+        : pickupAllowed
+          ? `Order directly from ${restaurantName} for pickup.`
+          : `Order directly from ${restaurantName} for delivery.`,
     brand: {
       name: restaurantName.toUpperCase(),
       subtitle: text(menu?.name) || 'Online Ordering',
@@ -549,12 +556,14 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
         openingText: buildOpeningText(intervalsByDay, timeZone),
       },
     ],
-    serviceOptions: pickupAllowed
+    serviceOptions: pickupAllowed && deliveryAllowed
       ? [
           { mode: 'pickup', label: 'Pickup', helperText: 'Select a pickup time' },
           { mode: 'delivery', label: 'Delivery', helperText: 'Enter your address to check availability' },
         ]
-      : [{ mode: 'delivery', label: 'Delivery', helperText: 'Enter your address to check availability' }],
+      : pickupAllowed
+        ? [{ mode: 'pickup', label: 'Pickup', helperText: 'Select a pickup time' }]
+        : [{ mode: 'delivery', label: 'Delivery', helperText: 'Enter your address to check availability' }],
     rewards: {
       iconLabel: 'Rewards',
       message: 'Earn rewards on every eligible online order.',
@@ -581,6 +590,7 @@ function buildEmptyMenuData(restaurantName: string): RestaurantMenuData {
     restaurantId: null,
     allowTips: true,
     pickupAllowed: true,
+    deliveryAllowed: true,
     slug: slugify(restaurantName) || 'menu',
     announcement: `Order directly from ${restaurantName}.`,
     brand: { name: restaurantName.toUpperCase(), subtitle: 'Online Ordering', accentText: restaurantName },

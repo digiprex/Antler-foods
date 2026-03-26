@@ -168,9 +168,13 @@ export default function RestaurantMenuCheckoutPage({
     applyCustomerProfile,
     logout,
   } = useMenuCustomerAuth(restaurantId);
+  const pickupAllowed = data.pickupAllowed !== false;
+  const deliveryAllowed = data.deliveryAllowed !== false;
   const fulfillmentMode: FulfillmentMode =
-    data.pickupAllowed === false
+    !pickupAllowed && deliveryAllowed
       ? 'delivery'
+      : pickupAllowed && !deliveryAllowed
+        ? 'pickup'
       : mode === 'delivery'
         ? 'delivery'
         : 'pickup';

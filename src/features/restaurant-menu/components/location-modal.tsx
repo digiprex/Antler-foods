@@ -14,6 +14,7 @@ interface LocationModalProps {
   restaurantName: string;
   locations: RestaurantLocation[];
   pickupAllowed?: boolean;
+  deliveryAllowed?: boolean;
   activeMode: FulfillmentMode;
   selectedLocationId: string;
   deliveryAddress: string;
@@ -31,6 +32,7 @@ export function LocationModal({
   restaurantName,
   locations,
   pickupAllowed = true,
+  deliveryAllowed = true,
   activeMode,
   selectedLocationId,
   deliveryAddress,
@@ -45,7 +47,11 @@ export function LocationModal({
   const selectedLocation =
     locations.find((location) => location.id === selectedLocationId) || locations[0];
   const resolvedActiveMode: FulfillmentMode =
-    pickupAllowed || activeMode === 'delivery' ? activeMode : 'delivery';
+    pickupAllowed && deliveryAllowed
+      ? activeMode
+      : pickupAllowed
+        ? 'pickup'
+        : 'delivery';
   const isDeliveryDisabled = !deliveryAddress.trim();
 
   return (
@@ -60,7 +66,7 @@ export function LocationModal({
           </h2>
         </div>
 
-        {pickupAllowed ? (
+        {pickupAllowed && deliveryAllowed ? (
           <div className="grid grid-cols-2 rounded-[20px] border border-stone-200 bg-stone-100 p-1">
             <button
               type="button"
@@ -90,8 +96,17 @@ export function LocationModal({
         ) : (
           <div className="rounded-[20px] border border-stone-200 bg-stone-100 p-1">
             <div className="flex h-12 items-center justify-center gap-2 rounded-[16px] bg-stone-900 text-sm font-semibold text-stone-50 shadow-[0_12px_24px_rgba(28,25,23,0.16)]">
-              <BikeIcon className="h-4 w-4" />
-              Delivery
+              {pickupAllowed ? (
+                <>
+                  <BagIcon className="h-4 w-4" />
+                  Pickup
+                </>
+              ) : (
+                <>
+                  <BikeIcon className="h-4 w-4" />
+                  Delivery
+                </>
+              )}
             </div>
           </div>
         )}

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
@@ -17,6 +17,7 @@ import { CompactQuantityStepper } from '@/features/restaurant-menu/components/co
 import { useMenuCustomerAuth } from '@/features/restaurant-menu/hooks/use-menu-customer-auth';
 import { useMenuCart } from '@/features/restaurant-menu/hooks/use-menu-cart';
 import { formatPrice } from '@/features/restaurant-menu/lib/format-price';
+import { resolveCustomerAuthView } from '@/features/restaurant-menu/lib/customer-auth';
 import type { MenuCustomerProfile } from '@/features/restaurant-menu/lib/customer-profile';
 import type {
   FulfillmentMode,
@@ -160,6 +161,8 @@ export default function RestaurantMenuCheckoutPage({
   const { items, subtotal, cartNote, isHydrated, updateItemQuantity, clearCart } =
     useMenuCart();
   const router = useRouter();
+  const pathname = usePathname() ?? '';
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantId = data.restaurantId || data.locations[0]?.id || null;
   const {
     customerProfile,
@@ -168,8 +171,16 @@ export default function RestaurantMenuCheckoutPage({
     applyCustomerProfile,
     logout,
   } = useMenuCustomerAuth(restaurantId);
+  const pickupAllowed = data.pickupAllowed !== false;
+  const deliveryAllowed = data.deliveryAllowed !== false;
   const fulfillmentMode: FulfillmentMode =
-    mode === 'delivery' ? 'delivery' : 'pickup';
+    !pickupAllowed && deliveryAllowed
+      ? 'delivery'
+      : pickupAllowed && !deliveryAllowed
+        ? 'pickup'
+      : mode === 'delivery'
+        ? 'delivery'
+        : 'pickup';
   const selectedLocation =
     data.locations.find((location) => location.id === locationId) ||
     data.locations[0];
@@ -183,6 +194,7 @@ export default function RestaurantMenuCheckoutPage({
     : selectedTime;
   const resolvedDeliveryAddress =
     deliveryAddress?.trim() || data.defaultDeliveryAddress || '';
+  const tipsEnabled = data.allowTips !== false;
   const [tipPreset, setTipPreset] = useState<TipPreset>('20');
   const [tipAmount, setTipAmount] = useState(0);
   const [customTipInput, setCustomTipInput] = useState('0.00');
@@ -210,12 +222,61 @@ export default function RestaurantMenuCheckoutPage({
   const [isOrderSummaryDrawerOpen, setIsOrderSummaryDrawerOpen] = useState(false);
   const brandName = data.restaurant.name.replace(' Menu', '');
 
+  const setAuthQueryParam = (view: MenuAuthView | null) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    if (view) {
+      nextParams.set('auth', view);
+    } else {
+      nextParams.delete('auth');
+    }
+
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  };
+
   const openAuthSidebar = (view: MenuAuthView) => {
     setAuthSidebarView(view);
     setAuthSidebarOpen(true);
   };
 
+  const closeAuthSidebar = () => {
+    setAuthSidebarOpen(false);
+
+    if (!resolveCustomerAuthView(searchParams.get('auth'))) {
+      return;
+    }
+
+    setAuthQueryParam(null);
+  };
+
+  const handleAuthSidebarViewChange = (view: MenuAuthView) => {
+    setAuthSidebarView(view);
+
+    if (!resolveCustomerAuthView(searchParams.get('auth'))) {
+      return;
+    }
+
+    setAuthQueryParam(view);
+  };
+
   useEffect(() => {
+    const requestedAuthView = resolveCustomerAuthView(searchParams.get('auth'));
+
+    if (!requestedAuthView) {
+      return;
+    }
+
+    setAuthSidebarView(requestedAuthView);
+    setAuthSidebarOpen(true);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!tipsEnabled) {
+      setTipAmount(0);
+      return;
+    }
+
     const nextTipAmount =
       tipPreset === '10'
         ? roundCurrency(subtotal * 0.1)
@@ -228,7 +289,7 @@ export default function RestaurantMenuCheckoutPage({
     if (tipPreset !== 'custom') {
       setTipAmount(nextTipAmount);
     }
-  }, [subtotal, tipPreset, tipAmount]);
+  }, [subtotal, tipPreset, tipAmount, tipsEnabled]);
 
   useEffect(() => {
     if (!customerProfile) {
@@ -463,7 +524,7 @@ export default function RestaurantMenuCheckoutPage({
   const handleLogout = async () => {
     await logout();
     applyCustomerProfile(null);
-    setAuthSidebarOpen(false);
+    closeAuthSidebar();
   };
 
   const handlePlaceOrder = async () => {
@@ -527,7 +588,7 @@ export default function RestaurantMenuCheckoutPage({
             phone: contactFields.phone,
           },
           items,
-          tipAmount,
+          tipAmount: tipsEnabled ? tipAmount : 0,
           couponCode: appliedCoupon?.code || null,
           giftCardCode: appliedGiftCard?.code || null,
           orderNote: cartNote,
@@ -584,8 +645,9 @@ export default function RestaurantMenuCheckoutPage({
 
   const normalizedCouponInput = couponCodeInput.trim().toUpperCase();
   const normalizedGiftCardInput = giftCardCodeInput.trim().toUpperCase();
+  const effectiveTipAmount = tipsEnabled ? tipAmount : 0;
   const discountAmount = appliedCoupon?.discountAmount || 0;
-  const preGiftCardTotal = roundCurrency(subtotal + tipAmount - discountAmount);
+  const preGiftCardTotal = roundCurrency(subtotal + effectiveTipAmount - discountAmount);
   const giftCardAppliedAmount = appliedGiftCard
     ? roundCurrency(
         Math.min(
@@ -807,7 +869,7 @@ export default function RestaurantMenuCheckoutPage({
           </div>
           <div className="flex items-center justify-between gap-4">
             <span>Tip</span>
-            <span className="font-medium">{formatPrice(tipAmount)}</span>
+            <span className="font-medium">{formatPrice(effectiveTipAmount)}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <span className="flex items-center gap-2">
@@ -997,7 +1059,8 @@ export default function RestaurantMenuCheckoutPage({
               </div>
             </section>
 
-            <section className="space-y-2.5">
+            {tipsEnabled ? (
+              <section className="space-y-2.5">
               <h2
                 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]"
               >
@@ -1090,7 +1153,8 @@ export default function RestaurantMenuCheckoutPage({
                   </div>
                 </div>
               ) : null}
-            </section>
+              </section>
+            ) : null}
 
             <section id="checkout-contact-fields" className="space-y-2.5">
               <h2
@@ -1295,8 +1359,8 @@ export default function RestaurantMenuCheckoutPage({
         restaurantName={brandName}
         hasCustomerSession={hasCustomerSession}
         customerProfile={customerProfile}
-        onClose={() => setAuthSidebarOpen(false)}
-        onViewChange={setAuthSidebarView}
+        onClose={closeAuthSidebar}
+        onViewChange={handleAuthSidebarViewChange}
         onAuthenticatedCustomer={applyCustomerProfile}
       />
     </div>

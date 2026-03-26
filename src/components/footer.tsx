@@ -82,6 +82,24 @@ export default function Footer(props: FooterProps) {
   const getSocialLinkLabel = (platform?: string) =>
     `Visit us on ${getSocialPlatformName(platform)}`;
 
+  const getReadableHref = (href?: string) => {
+    if (!href || href === '#') return 'link';
+    if (href.startsWith('#')) {
+      return href.slice(1).replace(/[-_]+/g, ' ').trim() || 'section';
+    }
+    if (href.startsWith('http')) {
+      try {
+        return new URL(href).hostname.replace(/^www\./, '') || 'website';
+      } catch {
+        return 'website';
+      }
+    }
+    return href.replace(/^\//, '').replace(/[-_]+/g, ' ').trim() || 'page';
+  };
+
+  const getFooterLinkText = (label?: string, href?: string) =>
+    label?.trim() || getReadableHref(href);
+
   // Show scroll to top button when scrolled down
   useEffect(() => {
     const handleScroll = () => {
@@ -262,8 +280,13 @@ export default function Footer(props: FooterProps) {
           <div className={styles.quickLinks}>
             {columns.map((column, index) =>
               column.links.map((link, linkIndex) => (
-                <a key={`${index}-${linkIndex}`} href={link.href} className={styles.quickLink}>
-                  {link.label}
+                <a
+                  key={`${index}-${linkIndex}`}
+                  href={link.href}
+                  className={styles.quickLink}
+                  aria-label={`Go to ${getFooterLinkText(link.label, link.href)}`}
+                >
+                  {getFooterLinkText(link.label, link.href)}
                 </a>
               ))
             )}
@@ -423,8 +446,12 @@ export default function Footer(props: FooterProps) {
           <ul className={styles.linkList}>
             {column.links.map((link, linkIndex) => (
               <li key={linkIndex}>
-                <a href={link.href} className={styles.footerLink}>
-                  {link.label}
+                <a
+                  href={link.href}
+                  className={styles.footerLink}
+                  aria-label={`Go to ${getFooterLinkText(link.label, link.href)}`}
+                >
+                  {getFooterLinkText(link.label, link.href)}
                 </a>
               </li>
             ))}
@@ -587,8 +614,13 @@ export default function Footer(props: FooterProps) {
         <div className={styles.restaurantNav}>
           {columns.map((column, index) => 
             column.links.map((link, linkIndex) => (
-              <a key={`${index}-${linkIndex}`} href={link.href} className={styles.navLink}>
-                {link.label}
+              <a
+                key={`${index}-${linkIndex}`}
+                href={link.href}
+                className={styles.navLink}
+                aria-label={`Go to ${getFooterLinkText(link.label, link.href)}`}
+              >
+                {getFooterLinkText(link.label, link.href)}
               </a>
             ))
           )}

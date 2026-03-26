@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * Page Details API Route
  * 

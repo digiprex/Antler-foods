@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import RestaurantMenuCheckoutPage from '@/features/restaurant-menu/components/checkout-page';
@@ -7,6 +8,8 @@ import {
   loadRestaurantMenuMetadata,
   loadRestaurantMenuPageData,
 } from '@/features/restaurant-menu/lib/server/menu-data';
+
+export const dynamic = 'force-dynamic';
 
 interface MenuCheckoutPageRouteProps {
   searchParams?: Record<string, string | string[] | undefined>;
@@ -23,6 +26,10 @@ function getRequestDomain() {
 
 function readSingleParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function MenuCheckoutFallback() {
+  return <div className="min-h-screen bg-white" />;
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -48,24 +55,28 @@ export default async function MenuCheckoutPageRoute({
     const data = await loadRestaurantMenuPageData(getRequestDomain());
 
     return (
-      <CartProvider>
-        <RestaurantMenuCheckoutPage
-          data={data}
-          locationId={readSingleParam(searchParams?.locationId)}
-          mode={readSingleParam(searchParams?.mode)}
-          scheduleDayId={readSingleParam(searchParams?.dayId)}
-          scheduleTime={readSingleParam(searchParams?.time)}
-          deliveryAddress={readSingleParam(searchParams?.deliveryAddress)}
-        />
-      </CartProvider>
+      <Suspense fallback={<MenuCheckoutFallback />}>
+        <CartProvider>
+          <RestaurantMenuCheckoutPage
+            data={data}
+            locationId={readSingleParam(searchParams?.locationId)}
+            mode={readSingleParam(searchParams?.mode)}
+            scheduleDayId={readSingleParam(searchParams?.dayId)}
+            scheduleTime={readSingleParam(searchParams?.time)}
+            deliveryAddress={readSingleParam(searchParams?.deliveryAddress)}
+          />
+        </CartProvider>
+      </Suspense>
     );
   } catch (error) {
     console.error('[Menu Checkout] Error building checkout data:', error);
 
     return (
-      <CartProvider>
-        <RestaurantMenuCheckoutPage data={getEmptyRestaurantMenuData()} />
-      </CartProvider>
+      <Suspense fallback={<MenuCheckoutFallback />}>
+        <CartProvider>
+          <RestaurantMenuCheckoutPage data={getEmptyRestaurantMenuData()} />
+        </CartProvider>
+      </Suspense>
     );
   }
 }

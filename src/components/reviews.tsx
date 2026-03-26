@@ -605,6 +605,10 @@ export default function Reviews({
       textDecoration: 'none',
       marginTop: '0.25rem',
     };
+    const authorName = review.author_name?.trim() || 'customer';
+    const sourceName = review.source?.trim() || 'review source';
+    const readMoreText = `Read More`;
+    const readMoreAriaLabel = `Read full review by ${authorName} on ${sourceName} (opens in a new tab)`;
 
     if (review.review_url) {
       return (
@@ -613,13 +617,14 @@ export default function Reviews({
           target="_blank"
           rel="noreferrer"
           style={sharedStyle}
+          aria-label={readMoreAriaLabel}
         >
-          Read more
+          {readMoreText}
         </a>
       );
     }
 
-    return <span style={sharedStyle}>Read more</span>;
+    return <span style={sharedStyle}>{readMoreText}</span>;
   };
 
   const renderGoogleCta = ({

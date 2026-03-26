@@ -149,6 +149,28 @@ export default function Navbar({
     return false;
   };
 
+  const getReadableHref = (href: string): string => {
+    if (!href || href === '#') return 'link';
+    if (href.startsWith('#')) {
+      const section = href.slice(1).replace(/[-_]+/g, ' ').trim();
+      return section || 'section';
+    }
+    if (href.startsWith('http')) {
+      try {
+        return new URL(href).hostname.replace(/^www\./, '') || 'website';
+      } catch {
+        return 'website';
+      }
+    }
+    const page = href.replace(/^\//, '').replace(/[-_]+/g, ' ').trim();
+    return page || 'page';
+  };
+
+  const getLinkText = (label: string | undefined, href: string): string => {
+    const trimmedLabel = label?.trim();
+    return trimmedLabel || getReadableHref(href);
+  };
+
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
@@ -381,7 +403,7 @@ export default function Navbar({
                   href={item.href}
                   className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
                 >
-                  {item.label}
+                  {getLinkText(item.label, item.href)}
                 </a>
               ))}
               {rightNavItems.map((item, index) => (
@@ -390,12 +412,12 @@ export default function Navbar({
                   href={item.href}
                   className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
                 >
-                  {item.label}
+                  {getLinkText(item.label, item.href)}
                 </a>
               ))}
               {showCtaButton && ctaButton && !forceHamburgerMenu && (
                 <a href={ctaButton.href} className={styles.ctaButton}>
-                  {ctaButton.label}
+                  {getLinkText(ctaButton.label, ctaButton.href)}
                 </a>
               )}
             </div>
@@ -452,14 +474,14 @@ export default function Navbar({
                   href={item.href}
                   className={styles.sidebarLink}
                 >
-                  {item.label}
+                  {getLinkText(item.label, item.href)}
                 </a>
               ))}
             </div>
 
             {showCtaButton && ctaButton && !forceHamburgerMenu && (
               <a href={ctaButton.href} className={styles.sidebarCta}>
-                {ctaButton.label}
+                {getLinkText(ctaButton.label, ctaButton.href)}
               </a>
             )}
           </div>
@@ -536,7 +558,7 @@ export default function Navbar({
                   href={item.href}
                   className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
                 >
-                  {item.label}
+                  {getLinkText(item.label, item.href)}
                 </a>
               ))}
               {rightNavItems.map((item, index) => (
@@ -545,7 +567,7 @@ export default function Navbar({
                   href={item.href}
                   className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
                 >
-                  {item.label}
+                  {getLinkText(item.label, item.href)}
                 </a>
               ))}
             </div>
@@ -559,7 +581,7 @@ export default function Navbar({
                     href={item.href}
                     className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
                   >
-                    {item.label}
+                    {getLinkText(item.label, item.href)}
                   </a>
                 ))}
                 {rightNavItems.map((item, index) => (
@@ -568,7 +590,7 @@ export default function Navbar({
                     href={item.href}
                     className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
                   >
-                    {item.label}
+                    {getLinkText(item.label, item.href)}
                   </a>
                 ))}
               </div>
@@ -592,7 +614,7 @@ export default function Navbar({
                     href={item.href}
                     className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
                   >
-                    {item.label}
+                    {getLinkText(item.label, item.href)}
                   </a>
                 ))}
                 {rightNavItems.map((item, index) => (
@@ -601,7 +623,7 @@ export default function Navbar({
                     href={item.href}
                     className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
                   >
-                    {item.label}
+                    {getLinkText(item.label, item.href)}
                   </a>
                 ))}
               </div>
@@ -637,8 +659,8 @@ export default function Navbar({
                 className={styles.menuCartLink}
                 aria-label={
                   resolvedBagCount > 0
-                    ? `Cart with ${resolvedBagCount} items`
-                    : 'Cart'
+                    ? `Open cart with ${resolvedBagCount} items`
+                    : 'Open cart'
                 }
               >
                 <svg
@@ -664,6 +686,7 @@ export default function Navbar({
                     {resolvedBagCount}
                   </span>
                 )}
+                <span className="sr-only">Open cart</span>
               </a>
             </div>
           ) : (
@@ -676,7 +699,7 @@ export default function Navbar({
                       href={item.href}
                       className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
                     >
-                      {item.label}
+                      {getLinkText(item.label, item.href)}
                     </a>
                   ))}
                   {rightNavItems.map((item, index) => (
@@ -685,7 +708,7 @@ export default function Navbar({
                       href={item.href}
                       className={`${styles.navLink} ${isNavItemActive(item.href) ? styles.navLinkActive : ''}`}
                     >
-                      {item.label}
+                      {getLinkText(item.label, item.href)}
                     </a>
                   ))}
                 </div>
@@ -695,7 +718,7 @@ export default function Navbar({
               )}
               {showCtaButton && ctaButton && !forceHamburgerMenu && (
                 <a href={ctaButton.href} className={styles.ctaButton}>
-                  {ctaButton.label}
+                  {getLinkText(ctaButton.label, ctaButton.href)}
                 </a>
               )}
             </>
@@ -750,7 +773,7 @@ export default function Navbar({
                 href={item.href}
                 className={`${styles.sidebarLink} ${isNavItemActive(item.href) ? styles.sidebarLinkActive : ''}`}
               >
-                {item.label}
+                {getLinkText(item.label, item.href)}
               </a>
             ))}
           </div>
@@ -775,7 +798,7 @@ export default function Navbar({
 
           {showCtaButton && ctaButton && !forceHamburgerMenu && (
             <a href={ctaButton.href} className={styles.sidebarCta}>
-              {ctaButton.label}
+              {getLinkText(ctaButton.label, ctaButton.href)}
             </a>
           )}
         </div>

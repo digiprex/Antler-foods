@@ -73,16 +73,6 @@ interface UseGooglePlacesAutocompleteResult {
   error: string | null;
 }
 
-declare global {
-  interface Window {
-    google?: {
-      maps?: {
-        importLibrary?: (name: string) => Promise<unknown>;
-      };
-    };
-  }
-}
-
 const GOOGLE_SCRIPT_ID = "google-maps-places-script";
 const DEFAULT_PLACEHOLDER = "Enter restaurant name";
 const NEW_PLACE_FIELDS = ["displayName", "formattedAddress", "addressComponents", "location"];

@@ -89,6 +89,17 @@ export function Sidebar({
             ],
           },
           {
+            href: buildRestaurantScopedHref(
+              `/admin/order-settings`,
+              selectedRestaurant,
+            ),
+            label: 'Order Settings',
+            icon: <OrdersIcon />,
+            matchPrefixes: [
+              `/admin/order-settings`,
+            ],
+          },
+          {
             href: informationBrandPath,
             label: 'Information',
             icon: <InfoIcon />,

@@ -24,6 +24,15 @@ function getRequestDomain() {
   );
 }
 
+function getRequestOrigin() {
+  const requestHeaders = headers();
+  const host = getRequestDomain();
+  const protocol =
+    requestHeaders.get('x-forwarded-proto') ||
+    (host.includes('localhost') ? 'http' : 'https');
+  return `${protocol}://${host}`;
+}
+
 function readSingleParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -33,17 +42,24 @@ function MenuCheckoutFallback() {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  const canonical = `${getRequestOrigin()}/menu/checkout`;
   try {
     const metadata = await loadRestaurantMenuMetadata(getRequestDomain());
     return {
       title: `${metadata.title.replace(' | Online Ordering', '')} | Checkout`,
       description: metadata.description,
+      alternates: {
+        canonical,
+      },
     };
   } catch (error) {
     console.error('[Menu Checkout] Error generating metadata:', error);
     return {
       title: 'Checkout',
       description: 'Complete your online order.',
+      alternates: {
+        canonical,
+      },
     };
   }
 }

@@ -37,6 +37,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       requestHeaders.get('x-forwarded-proto') ||
       (domain.includes('localhost') ? 'http' : 'https');
     const appOrigin = `${protocol}://${domain}`;
+    const canonicalPath = `/${slug}`;
+    const canonicalUrl = `${appOrigin}${canonicalPath}`;
 
     // Fetch page details
     const pageResponse = await fetch(
@@ -45,13 +47,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     );
 
     if (!pageResponse.ok) {
-      return generateSEOMetadata();
+      const fallbackMetadata = generateSEOMetadata();
+      fallbackMetadata.metadataBase = new URL(appOrigin);
+      fallbackMetadata.alternates = {
+        ...(fallbackMetadata.alternates || {}),
+        canonical: canonicalUrl,
+      };
+      return fallbackMetadata;
     }
 
     const pageResponseData = await pageResponse.json();
 
     if (!pageResponseData.success || !pageResponseData.data) {
-      return generateSEOMetadata();
+      const fallbackMetadata = generateSEOMetadata();
+      fallbackMetadata.metadataBase = new URL(appOrigin);
+      fallbackMetadata.alternates = {
+        ...(fallbackMetadata.alternates || {}),
+        canonical: canonicalUrl,
+      };
+      return fallbackMetadata;
     }
 
     const pageMetaTitle = pageResponseData.data?.page?.meta_title?.trim() || '';
@@ -100,6 +114,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
           shortcut: iconUrl,
           apple: iconUrl,
         };
+        metadata.alternates = {
+          ...(metadata.alternates || {}),
+          canonical: canonicalUrl,
+        };
 
         return metadata;
       }
@@ -123,6 +141,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       if (metadata.openGraph) metadata.openGraph.description = pageMetaDescription;
       if (metadata.twitter) metadata.twitter.description = pageMetaDescription;
     }
+    metadata.alternates = {
+      ...(metadata.alternates || {}),
+      canonical: canonicalUrl,
+    };
 
     return metadata;
 

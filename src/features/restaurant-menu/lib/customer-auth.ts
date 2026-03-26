@@ -13,6 +13,9 @@ const CUSTOMER_AUTH_ROUTES = new Set([
   CUSTOMER_RESET_PASSWORD_ROUTE,
 ]);
 const CUSTOMER_RESTAURANT_ID_STORAGE_KEY = 'menu_customer_restaurant_id';
+const CUSTOMER_AUTH_REDIRECT_ORIGIN = 'http://menu.local';
+
+export type CustomerAuthView = 'login' | 'signup' | 'forgot-password';
 
 export function resolveCustomerNextPath(value: string | null | undefined) {
   if (!value || !value.startsWith('/') || value.startsWith('//')) {
@@ -26,6 +29,31 @@ export function resolveCustomerNextPath(value: string | null | undefined) {
   }
 
   return value;
+}
+
+export function resolveCustomerAuthView(value: string | null | undefined): CustomerAuthView | null {
+  if (value === 'login' || value === 'signup' || value === 'forgot-password') {
+    return value;
+  }
+
+  return null;
+}
+
+export function buildCustomerAuthRedirectPath(
+  view: CustomerAuthView,
+  nextPath: string | null | undefined,
+  restaurantId?: string | null,
+) {
+  const resolvedNextPath = resolveCustomerNextPath(nextPath);
+  const url = new URL(resolvedNextPath, CUSTOMER_AUTH_REDIRECT_ORIGIN);
+
+  url.searchParams.set('auth', view);
+
+  if (restaurantId && restaurantId.trim()) {
+    url.searchParams.set('restaurantId', restaurantId.trim());
+  }
+
+  return `${url.pathname}${url.search}${url.hash}`;
 }
 
 export function buildCustomerAuthHref(

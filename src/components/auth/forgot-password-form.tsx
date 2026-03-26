@@ -6,7 +6,7 @@ import { useResetPassword } from '@nhost/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { AuthInput } from './auth-input';
-import { LOGIN_ROUTE } from '@/lib/auth/routes';
+import { LOGIN_ROUTE, RESET_PASSWORD_ROUTE } from '@/lib/auth/routes';
 import { isNhostConfigured } from '@/lib/nhost';
 import { forgotPasswordSchema, type ForgotPasswordFormValues } from '@/lib/validation/auth';
 
@@ -37,7 +37,10 @@ export function ForgotPasswordForm() {
       return;
     }
 
-    const result = await resetPassword(email);
+    const redirectTo = new URL(RESET_PASSWORD_ROUTE, window.location.origin).toString();
+    const result = await resetPassword(email, {
+      redirectTo,
+    });
 
     if (result.error) {
       setFormError(
@@ -115,7 +118,7 @@ export function ForgotPasswordForm() {
             {/* Instructions */}
             <div className="bg-slate-50 rounded-lg p-3">
               <p className="text-xs text-slate-600">
-                Enter the email address associated with your account, and we'll send you a link to reset your password.
+                Enter the email address associated with your admin or owner account, and we'll send you a link to reset your password.
               </p>
             </div>
 
@@ -181,3 +184,4 @@ export function ForgotPasswordForm() {
     </div>
   );
 }
+

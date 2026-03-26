@@ -25,6 +25,7 @@ import {
   CUSTOMER_FORGOT_PASSWORD_ROUTE,
   CUSTOMER_LOGIN_ROUTE,
   CUSTOMER_SIGNUP_ROUTE,
+  resolveCustomerAuthView,
 } from '@/features/restaurant-menu/lib/customer-auth';
 import { formatPrice } from '@/features/restaurant-menu/lib/format-price';
 import {
@@ -95,17 +96,61 @@ function MenuPageContent({ data }: MenuPageProps) {
   const contentContainerClass = 'mx-auto w-full max-w-[1080px] px-4 sm:px-6';
   const brandName = data.restaurant.name.replace(' Menu', '');
 
+  const setAuthQueryParam = (view: MenuAuthView | null) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    if (view) {
+      nextParams.set('auth', view);
+    } else {
+      nextParams.delete('auth');
+    }
+
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  };
+
   const openAuthSidebar = (view: MenuAuthView) => {
     setAuthSidebarView(view);
     setAuthSidebarOpen(true);
   };
 
+  const closeAuthSidebar = () => {
+    setAuthSidebarOpen(false);
+
+    if (!resolveCustomerAuthView(searchParams.get('auth'))) {
+      return;
+    }
+
+    setAuthQueryParam(null);
+  };
+
+  const handleAuthSidebarViewChange = (view: MenuAuthView) => {
+    setAuthSidebarView(view);
+
+    if (!resolveCustomerAuthView(searchParams.get('auth'))) {
+      return;
+    }
+
+    setAuthQueryParam(view);
+  };
+
   const handleLogout = async () => {
     await logout();
-    setAuthSidebarOpen(false);
+    closeAuthSidebar();
     setAuthSidebarView('login');
     router.refresh();
   };
+
+  useEffect(() => {
+    const requestedAuthView = resolveCustomerAuthView(searchParams.get('auth'));
+
+    if (!requestedAuthView) {
+      return;
+    }
+
+    setAuthSidebarView(requestedAuthView);
+    setAuthSidebarOpen(true);
+  }, [searchParams]);
 
   useEffect(() => {
     if (searchParams.get('cart') === 'open') {
@@ -189,7 +234,7 @@ function MenuPageContent({ data }: MenuPageProps) {
 
   useEffect(() => {
     const authLinks = Array.from(
-      document.querySelectorAll<HTMLAnchorElement>('a[href="/customer-login"], a[href="/signup"]'),
+      document.querySelectorAll<HTMLAnchorElement>('a[href="/login"], a[href="/signup"]'),
     );
 
     authLinks.forEach((link) => {
@@ -210,7 +255,24 @@ function MenuPageContent({ data }: MenuPageProps) {
 
 
   useEffect(() => {
-    setNavbarAuthSlot(document.getElementById('menu-navbar-auth-slot'));
+    const syncNavbarAuthSlot = () => {
+      setNavbarAuthSlot(document.getElementById('menu-navbar-auth-slot'));
+    };
+
+    syncNavbarAuthSlot();
+
+    const observer = new MutationObserver(() => {
+      syncNavbarAuthSlot();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   const selectedLocation =
@@ -556,8 +618,8 @@ function MenuPageContent({ data }: MenuPageProps) {
         restaurantName={brandName}
         hasCustomerSession={hasCustomerSession}
         customerProfile={customerProfile}
-        onClose={() => setAuthSidebarOpen(false)}
-        onViewChange={setAuthSidebarView}
+        onClose={closeAuthSidebar}
+        onViewChange={handleAuthSidebarViewChange}
         onAuthenticatedCustomer={applyCustomerProfile}
       />
     </div>

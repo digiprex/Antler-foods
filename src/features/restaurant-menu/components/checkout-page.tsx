@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
@@ -17,6 +17,7 @@ import { CompactQuantityStepper } from '@/features/restaurant-menu/components/co
 import { useMenuCustomerAuth } from '@/features/restaurant-menu/hooks/use-menu-customer-auth';
 import { useMenuCart } from '@/features/restaurant-menu/hooks/use-menu-cart';
 import { formatPrice } from '@/features/restaurant-menu/lib/format-price';
+import { resolveCustomerAuthView } from '@/features/restaurant-menu/lib/customer-auth';
 import type { MenuCustomerProfile } from '@/features/restaurant-menu/lib/customer-profile';
 import type {
   FulfillmentMode,
@@ -160,6 +161,8 @@ export default function RestaurantMenuCheckoutPage({
   const { items, subtotal, cartNote, isHydrated, updateItemQuantity, clearCart } =
     useMenuCart();
   const router = useRouter();
+  const pathname = usePathname() ?? '';
+  const searchParams = useSearchParams() ?? new URLSearchParams();
   const restaurantId = data.restaurantId || data.locations[0]?.id || null;
   const {
     customerProfile,
@@ -210,10 +213,54 @@ export default function RestaurantMenuCheckoutPage({
   const [isOrderSummaryDrawerOpen, setIsOrderSummaryDrawerOpen] = useState(false);
   const brandName = data.restaurant.name.replace(' Menu', '');
 
+  const setAuthQueryParam = (view: MenuAuthView | null) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    if (view) {
+      nextParams.set('auth', view);
+    } else {
+      nextParams.delete('auth');
+    }
+
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  };
+
   const openAuthSidebar = (view: MenuAuthView) => {
     setAuthSidebarView(view);
     setAuthSidebarOpen(true);
   };
+
+  const closeAuthSidebar = () => {
+    setAuthSidebarOpen(false);
+
+    if (!resolveCustomerAuthView(searchParams.get('auth'))) {
+      return;
+    }
+
+    setAuthQueryParam(null);
+  };
+
+  const handleAuthSidebarViewChange = (view: MenuAuthView) => {
+    setAuthSidebarView(view);
+
+    if (!resolveCustomerAuthView(searchParams.get('auth'))) {
+      return;
+    }
+
+    setAuthQueryParam(view);
+  };
+
+  useEffect(() => {
+    const requestedAuthView = resolveCustomerAuthView(searchParams.get('auth'));
+
+    if (!requestedAuthView) {
+      return;
+    }
+
+    setAuthSidebarView(requestedAuthView);
+    setAuthSidebarOpen(true);
+  }, [searchParams]);
 
   useEffect(() => {
     const nextTipAmount =
@@ -463,7 +510,7 @@ export default function RestaurantMenuCheckoutPage({
   const handleLogout = async () => {
     await logout();
     applyCustomerProfile(null);
-    setAuthSidebarOpen(false);
+    closeAuthSidebar();
   };
 
   const handlePlaceOrder = async () => {
@@ -1295,8 +1342,8 @@ export default function RestaurantMenuCheckoutPage({
         restaurantName={brandName}
         hasCustomerSession={hasCustomerSession}
         customerProfile={customerProfile}
-        onClose={() => setAuthSidebarOpen(false)}
-        onViewChange={setAuthSidebarView}
+        onClose={closeAuthSidebar}
+        onViewChange={handleAuthSidebarViewChange}
         onAuthenticatedCustomer={applyCustomerProfile}
       />
     </div>

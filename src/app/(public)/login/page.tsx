@@ -1,27 +1,67 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { MenuAuthLayout } from '@/features/restaurant-menu/components/menu-auth-layout';
-import { MenuLoginForm } from '@/features/restaurant-menu/components/menu-login-form';
+import { redirect } from 'next/navigation';
+import { AuthLayout } from '@/components/auth/auth-layout';
+import { LoginForm } from '@/components/auth/login-form';
+import { buildCustomerAuthRedirectPath } from '@/features/restaurant-menu/lib/customer-auth';
 import { generateMetadata as generateSEOMetadata, getPageSEO } from '@/lib/seo';
+import { resolveRestaurantIdForAuthRequest } from '@/lib/server/auth-route-context';
 
-export const metadata: Metadata = generateSEOMetadata(
-  getPageSEO('login', {
-    title: 'Sign In - Online Ordering',
-    description: 'Sign in to continue your online ordering experience.',
-  }),
-);
+interface LoginPageProps {
+  searchParams?: Record<string, string | string[] | undefined>;
+}
 
-export default function LoginPage() {
+function readSearchParam(
+  searchParams: LoginPageProps['searchParams'],
+  key: string,
+) {
+  const value = searchParams?.[key];
+  return typeof value === 'string' ? value : null;
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const restaurantId = await resolveRestaurantIdForAuthRequest();
+  const isRestaurantDomain = Boolean(restaurantId);
+
+  return generateSEOMetadata(
+    getPageSEO('login', isRestaurantDomain
+      ? {
+          title: 'Sign In - Online Ordering',
+          description: 'Sign in to continue your online ordering experience.',
+        }
+      : {
+          title: 'Admin Sign In - Antler Foods',
+          description: 'Sign in to your Antler Foods staff account.',
+        }),
+  );
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const restaurantId = await resolveRestaurantIdForAuthRequest();
+  const isRestaurantDomain = Boolean(restaurantId);
+
+  if (isRestaurantDomain) {
+    const nextPath = readSearchParam(searchParams, 'next');
+    const requestedRestaurantId =
+      readSearchParam(searchParams, 'restaurantId') ||
+      readSearchParam(searchParams, 'restaurant_id') ||
+      restaurantId;
+
+    redirect(
+      buildCustomerAuthRedirectPath('login', nextPath, requestedRestaurantId),
+    );
+  }
+
   return (
-    <MenuAuthLayout
-      title="Sign in to your account"
-      subtitle="Continue with your saved details, checkout faster, and manage future orders."
+    <AuthLayout
+      title="Run your restaurant from anywhere"
+      subtitle="Login to your existing staff account."
     >
       <Suspense
-        fallback={<p className="rounded-lg bg-white px-4 py-3 text-sm text-slate-700">Loading sign in...</p>}
+        fallback={<p className="rounded-lg bg-white px-4 py-3 text-sm">Loading login form...</p>}
       >
-        <MenuLoginForm />
+        <LoginForm />
       </Suspense>
-    </MenuAuthLayout>
+    </AuthLayout>
   );
 }

@@ -1,27 +1,62 @@
-import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { MenuAuthLayout } from '@/features/restaurant-menu/components/menu-auth-layout';
-import { MenuSignupForm } from '@/features/restaurant-menu/components/menu-signup-form';
+import { redirect } from 'next/navigation';
+import { AuthLayout } from '@/components/auth/auth-layout';
+import { SignupForm } from '@/components/auth/signup-form';
+import { buildCustomerAuthRedirectPath } from '@/features/restaurant-menu/lib/customer-auth';
 import { generateMetadata as generateSEOMetadata, getPageSEO } from '@/lib/seo';
+import { resolveRestaurantIdForAuthRequest } from '@/lib/server/auth-route-context';
 
-export const metadata: Metadata = generateSEOMetadata(
-  getPageSEO('signup', {
-    title: 'Sign Up - Online Ordering',
-    description: 'Create your account for faster online ordering and checkout.',
-  }),
-);
+interface SignupPageProps {
+  searchParams?: Record<string, string | string[] | undefined>;
+}
 
-export default function SignupPage() {
+function readSearchParam(
+  searchParams: SignupPageProps['searchParams'],
+  key: string,
+) {
+  const value = searchParams?.[key];
+  return typeof value === 'string' ? value : null;
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const restaurantId = await resolveRestaurantIdForAuthRequest();
+  const isRestaurantDomain = Boolean(restaurantId);
+
+  return generateSEOMetadata(
+    getPageSEO('signup', isRestaurantDomain
+      ? {
+          title: 'Sign Up - Online Ordering',
+          description: 'Create your account for faster online ordering and checkout.',
+        }
+      : {
+          title: 'Admin Sign Up - Antler Foods',
+          description: 'Create your Antler Foods staff account.',
+        }),
+  );
+}
+
+export default async function SignupPage({ searchParams }: SignupPageProps) {
+  const restaurantId = await resolveRestaurantIdForAuthRequest();
+  const isRestaurantDomain = Boolean(restaurantId);
+
+  if (isRestaurantDomain) {
+    const nextPath = readSearchParam(searchParams, 'next');
+    const requestedRestaurantId =
+      readSearchParam(searchParams, 'restaurantId') ||
+      readSearchParam(searchParams, 'restaurant_id') ||
+      restaurantId;
+
+    redirect(
+      buildCustomerAuthRedirectPath('signup', nextPath, requestedRestaurantId),
+    );
+  }
+
   return (
-    <MenuAuthLayout
-      title="Create your account"
-      subtitle="Save your details, speed up checkout, and keep ordering simple."
+    <AuthLayout
+      title="Run your restaurant from anywhere"
+      subtitle="Create your staff account to launch and manage operations."
     >
-      <Suspense
-        fallback={<p className="rounded-lg bg-white px-4 py-3 text-sm text-slate-700">Loading sign up...</p>}
-      >
-        <MenuSignupForm />
-      </Suspense>
-    </MenuAuthLayout>
+      <SignupForm />
+    </AuthLayout>
   );
 }

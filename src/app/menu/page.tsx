@@ -19,22 +19,38 @@ function getRequestDomain() {
   );
 }
 
+function getRequestOrigin() {
+  const requestHeaders = headers();
+  const host = getRequestDomain();
+  const protocol =
+    requestHeaders.get('x-forwarded-proto') ||
+    (host.includes('localhost') ? 'http' : 'https');
+  return `${protocol}://${host}`;
+}
+
 function MenuPageFallback() {
   return <div className="min-h-screen bg-stone-50" />;
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  const canonical = `${getRequestOrigin()}/menu`;
   try {
     const metadata = await loadRestaurantMenuMetadata(getRequestDomain());
     return {
       title: metadata.title,
       description: metadata.description,
+      alternates: {
+        canonical,
+      },
     };
   } catch (error) {
     console.error('[Menu Page] Error generating metadata:', error);
     return {
       title: 'Online Ordering',
       description: 'Order pickup or delivery online.',
+      alternates: {
+        canonical,
+      },
     };
   }
 }

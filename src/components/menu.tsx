@@ -1722,7 +1722,7 @@ export default function Menu(rawProps: MenuProps) {
         )}
         style={{
           backgroundColor: resolvedCardBgColor,
-          borderRadius: 0,
+          borderRadius: resolvedCardRadius,
           boxShadow: resolvedCardShadow,
           textAlign: resolvedItemTextAlign as CSSProperties['textAlign'],
         }}
@@ -1822,7 +1822,7 @@ export default function Menu(rawProps: MenuProps) {
         className={styles.imageCard}
         style={{
           backgroundColor: resolvedCardBgColor,
-          borderRadius: 0,
+          borderRadius: resolvedCardRadius,
           boxShadow: resolvedCardShadow,
           display: 'grid',
           gridTemplateColumns:
@@ -2142,7 +2142,7 @@ export default function Menu(rawProps: MenuProps) {
                         key={`${item.categoryName}-${item.name}-${index}`}
                         className={styles.carouselCard}
                         style={{
-                          borderRadius: 0,
+                          borderRadius: resolvedCardRadius,
                           boxShadow: resolvedCardShadow,
                           aspectRatio: carouselAspectRatio,
                           minHeight: viewport === 'mobile' ? '210px' : '260px',
@@ -2275,7 +2275,7 @@ export default function Menu(rawProps: MenuProps) {
                   headerImage
                     ? {
                         backgroundImage: `linear-gradient(180deg, rgba(15,23,42,0.32) 0%, rgba(15,23,42,0.78) 100%), url(${headerImage})`,
-                        borderRadius: 0,
+                        borderRadius: resolvedCardRadius,
                         boxShadow: resolvedCardShadow,
                       }
                     : {

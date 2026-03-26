@@ -43,6 +43,7 @@ import type {
 interface MenuPageProps {
   data: RestaurantMenuData;
 }
+const MENU_CART_OPEN_EVENT = 'menu-cart-open-request';
 
 function MenuPageContent({ data }: MenuPageProps) {
   const {
@@ -75,8 +76,9 @@ function MenuPageContent({ data }: MenuPageProps) {
   const [fulfillmentMode, setFulfillmentMode] = useState<FulfillmentMode>('pickup');
   const [selectedLocationId, setSelectedLocationId] = useState(data.locations[0]?.id || '');
   const [deliveryAddress, setDeliveryAddress] = useState(data.defaultDeliveryAddress);
-  const initialScheduleDay =
-    data.scheduleDays.find((day) => day.slots.length > 0) || data.scheduleDays[0];
+  const pickupScheduleDays = data.scheduleDays.filter((day) => day.slots.length > 0);
+  const effectiveScheduleDays = pickupScheduleDays.length > 0 ? pickupScheduleDays : data.scheduleDays;
+  const initialScheduleDay = effectiveScheduleDays[0];
   const [selectedSchedule, setSelectedSchedule] = useState<ScheduleSelection>({
     dayId: initialScheduleDay?.id || '',
     time: initialScheduleDay?.slots[0] || '',
@@ -110,6 +112,21 @@ function MenuPageContent({ data }: MenuPageProps) {
       setCartOpen(true);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    router.prefetch('/menu/checkout');
+  }, [router]);
+
+  useEffect(() => {
+    const handleOpenCartRequest = () => {
+      setCartOpen(true);
+    };
+
+    window.addEventListener(MENU_CART_OPEN_EVENT, handleOpenCartRequest);
+    return () => {
+      window.removeEventListener(MENU_CART_OPEN_EVENT, handleOpenCartRequest);
+    };
+  }, []);
 
   useEffect(() => {
     const handleDocumentClick = (event: MouseEvent) => {
@@ -172,7 +189,7 @@ function MenuPageContent({ data }: MenuPageProps) {
 
   useEffect(() => {
     const authLinks = Array.from(
-      document.querySelectorAll<HTMLAnchorElement>('a[href="/login"], a[href="/signup"]'),
+      document.querySelectorAll<HTMLAnchorElement>('a[href="/customer-login"], a[href="/signup"]'),
     );
 
     authLinks.forEach((link) => {
@@ -198,7 +215,7 @@ function MenuPageContent({ data }: MenuPageProps) {
 
   const selectedLocation =
     data.locations.find((location) => location.id === selectedLocationId) || data.locations[0];
-  const scheduleLabel = getScheduleSummary(data.scheduleDays, selectedSchedule);
+  const scheduleLabel = getScheduleSummary(effectiveScheduleDays, selectedSchedule);
   const pricedCategories = applyFulfillmentPricingToCategories(filteredCategories, fulfillmentMode);
   const popularItems = getPopularItems(data).map((item) => applyFulfillmentPricing(item, fulfillmentMode));
   const hasVisibleItems = pricedCategories.some((category) => category.items.length > 0);
@@ -218,6 +235,29 @@ function MenuPageContent({ data }: MenuPageProps) {
   const handleModeSelect = (mode: FulfillmentMode) => {
     setFulfillmentMode(mode);
   };
+
+  useEffect(() => {
+    if (fulfillmentMode !== 'pickup') {
+      return;
+    }
+
+    const dayForSelection =
+      effectiveScheduleDays.find((day) => day.id === selectedSchedule.dayId) ||
+      effectiveScheduleDays[0];
+
+    if (!dayForSelection) {
+      return;
+    }
+
+    if (selectedSchedule.time && dayForSelection.slots.includes(selectedSchedule.time)) {
+      return;
+    }
+
+    setSelectedSchedule({
+      dayId: dayForSelection.id,
+      time: dayForSelection.slots[0] || '',
+    });
+  }, [effectiveScheduleDays, fulfillmentMode, selectedSchedule.dayId, selectedSchedule.time]);
 
   const openCart = () => {
     setCartOpen(true);
@@ -241,7 +281,7 @@ function MenuPageContent({ data }: MenuPageProps) {
       return;
     }
 
-    if (item.modifierGroups?.length || item.addOns?.length) {
+    if (item.modifierGroups?.length || item.addOns?.length || item.variants?.length) {
       setSelectedItemId(item.id);
       return;
     }
@@ -272,9 +312,36 @@ function MenuPageContent({ data }: MenuPageProps) {
       style={{ paddingTop: 'var(--navbar-height, 0px)' }}
     >
       <div
-        className="sticky z-40 border-b border-stone-200 bg-white/95 backdrop-blur-xl"
+        className="sticky z-30 border-b border-stone-200 bg-white/95 px-4 py-3 backdrop-blur-xl lg:hidden sm:px-6"
         style={{ top: 'var(--navbar-height, 0px)' }}
       >
+        <div className="space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+            Browse categories
+          </p>
+          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            {filteredCategories.map((category) => {
+              const isActive = category.id === activeCategoryId;
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => scrollToCategory(category.id)}
+                  className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
+                    isActive
+                      ? 'bg-stone-900 text-stone-50 shadow-sm'
+                      : 'bg-stone-100 text-stone-700 hover:bg-stone-200 hover:text-stone-900'
+                  }`}
+                >
+                  {category.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="border-b border-stone-200 bg-white/95 backdrop-blur-xl">
         <AnnouncementStrip text={data.announcement} />
       </div>
 
@@ -328,33 +395,6 @@ function MenuPageContent({ data }: MenuPageProps) {
                     onDeliveryAddressChange={setDeliveryAddress}
                   />
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-b border-stone-200 bg-white px-4 py-3 lg:hidden sm:px-6">
-            <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-                Browse categories
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {filteredCategories.map((category) => {
-                  const isActive = category.id === activeCategoryId;
-                  return (
-                    <button
-                      key={category.id}
-                      type="button"
-                      onClick={() => scrollToCategory(category.id)}
-                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
-                        isActive
-                          ? 'bg-stone-900 text-stone-50 shadow-sm'
-                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200 hover:text-stone-900'
-                      }`}
-                    >
-                      {category.label}
-                    </button>
-                  );
-                })}
               </div>
             </div>
           </div>
@@ -438,13 +478,6 @@ function MenuPageContent({ data }: MenuPageProps) {
         deliveryAddress={deliveryAddress}
         scheduleLabel={scheduleLabel}
         onClose={closeCart}
-        onModeChange={handleModeSelect}
-        onDeliveryAddressChange={setDeliveryAddress}
-        onOpenSchedule={() => {
-          setCartOpen(false);
-          setScheduleModalSource('cart');
-          setScheduleModalOpen(true);
-        }}
         onUpdateQuantity={updateItemQuantity}
         onUpdateCartNote={updateCartNote}
         onCheckout={handleCheckout}
@@ -475,7 +508,7 @@ function MenuPageContent({ data }: MenuPageProps) {
 
       <ScheduleOrderModal
         open={scheduleModalOpen}
-        days={data.scheduleDays}
+        days={effectiveScheduleDays}
         currentSelection={selectedSchedule}
         onClose={() => setScheduleModalOpen(false)}
         onBack={() => {
@@ -544,14 +577,16 @@ function resolveFulfillmentPrice(item: MenuItem, mode: FulfillmentMode) {
 
 function applyFulfillmentPricing(item: MenuItem, mode: FulfillmentMode): MenuItem {
   const price = resolveFulfillmentPrice(item, mode);
+  const variants = item.variants?.map((variant) => applyFulfillmentPricing(variant, mode));
 
-  if (price === item.price) {
+  if (price === item.price && !item.variants) {
     return item;
   }
 
   return {
     ...item,
     price,
+    variants,
   };
 }
 

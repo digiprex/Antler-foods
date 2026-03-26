@@ -53,6 +53,7 @@ export default function DynamicNavbar({
   const [config, setConfig] = useState<NavbarConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const resolvedPosition = forceHamburgerMenu ? 'fixed' : config?.position;
 
   useEffect(() => {
     // If override config is provided, use it directly
@@ -110,14 +111,14 @@ export default function DynamicNavbar({
 
   // Set CSS variable when navbar position changes
   useEffect(() => {
-    if (config?.position === 'fixed' || config?.position === 'absolute') {
+    if (resolvedPosition === 'fixed' || resolvedPosition === 'absolute') {
       document.documentElement.style.setProperty('--navbar-is-fixed', '1');
       document.documentElement.style.setProperty('--navbar-height', '80px'); // Standard navbar height
     } else {
       document.documentElement.style.setProperty('--navbar-is-fixed', '0');
       document.documentElement.style.setProperty('--navbar-height', '0px');
     }
-  }, [config?.position]);
+  }, [resolvedPosition]);
 
   // Loading state
   if (loading) {
@@ -158,7 +159,7 @@ export default function DynamicNavbar({
       ctaButton={config.ctaButton}
       showCtaButton={config.showCtaButton}
       layout={mappedLayout}
-      position={config.position}
+      position={resolvedPosition}
       zIndex={config.zIndex}
       bgColor={config.bgColor}
       textColor={config.textColor}

@@ -153,8 +153,7 @@ export function Sidebar({
           label: 'Modifiers',
           icon: <ModifierGroupsIcon />,
           matchPrefixes: [
-            `/admin/modifier-groups`,
-            `/admin/modifier-items`
+            `/admin/modifier-groups`
           ],
         },
       ]

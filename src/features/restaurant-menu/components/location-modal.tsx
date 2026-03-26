@@ -13,6 +13,7 @@ interface LocationModalProps {
   open: boolean;
   restaurantName: string;
   locations: RestaurantLocation[];
+  pickupAllowed?: boolean;
   activeMode: FulfillmentMode;
   selectedLocationId: string;
   deliveryAddress: string;
@@ -29,6 +30,7 @@ export function LocationModal({
   open,
   restaurantName,
   locations,
+  pickupAllowed = true,
   activeMode,
   selectedLocationId,
   deliveryAddress,
@@ -42,6 +44,8 @@ export function LocationModal({
 }: LocationModalProps) {
   const selectedLocation =
     locations.find((location) => location.id === selectedLocationId) || locations[0];
+  const resolvedActiveMode: FulfillmentMode =
+    pickupAllowed || activeMode === 'delivery' ? activeMode : 'delivery';
   const isDeliveryDisabled = !deliveryAddress.trim();
 
   return (
@@ -56,35 +60,44 @@ export function LocationModal({
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 rounded-[20px] border border-stone-200 bg-stone-100 p-1">
-          <button
-            type="button"
-            onClick={() => onModeChange('pickup')}
-            className={`flex h-12 items-center justify-center gap-2 rounded-[16px] text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 ${
-              activeMode === 'pickup'
-                ? 'bg-stone-900 text-stone-50 shadow-[0_12px_24px_rgba(28,25,23,0.16)]'
-                : 'text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            <BagIcon className="h-4 w-4" />
-            Pickup
-          </button>
-          <button
-            type="button"
-            onClick={() => onModeChange('delivery')}
-            className={`flex h-12 items-center justify-center gap-2 rounded-[16px] text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 ${
-              activeMode === 'delivery'
-                ? 'bg-stone-900 text-stone-50 shadow-[0_12px_24px_rgba(28,25,23,0.16)]'
-                : 'text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            <BikeIcon className="h-4 w-4" />
-            Delivery
-          </button>
-        </div>
+        {pickupAllowed ? (
+          <div className="grid grid-cols-2 rounded-[20px] border border-stone-200 bg-stone-100 p-1">
+            <button
+              type="button"
+              onClick={() => onModeChange('pickup')}
+              className={`flex h-12 items-center justify-center gap-2 rounded-[16px] text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 ${
+                resolvedActiveMode === 'pickup'
+                  ? 'bg-stone-900 text-stone-50 shadow-[0_12px_24px_rgba(28,25,23,0.16)]'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <BagIcon className="h-4 w-4" />
+              Pickup
+            </button>
+            <button
+              type="button"
+              onClick={() => onModeChange('delivery')}
+              className={`flex h-12 items-center justify-center gap-2 rounded-[16px] text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 ${
+                resolvedActiveMode === 'delivery'
+                  ? 'bg-stone-900 text-stone-50 shadow-[0_12px_24px_rgba(28,25,23,0.16)]'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <BikeIcon className="h-4 w-4" />
+              Delivery
+            </button>
+          </div>
+        ) : (
+          <div className="rounded-[20px] border border-stone-200 bg-stone-100 p-1">
+            <div className="flex h-12 items-center justify-center gap-2 rounded-[16px] bg-stone-900 text-sm font-semibold text-stone-50 shadow-[0_12px_24px_rgba(28,25,23,0.16)]">
+              <BikeIcon className="h-4 w-4" />
+              Delivery
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 flex-1 overflow-y-auto pb-6">
-          {activeMode === 'pickup' ? (
+          {resolvedActiveMode === 'pickup' ? (
             <div className="space-y-4">
               <div className="rounded-[24px] border border-stone-200 bg-white p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
@@ -154,10 +167,10 @@ export function LocationModal({
         <button
           type="button"
           onClick={onConfirm}
-          disabled={activeMode === 'delivery' && isDeliveryDisabled}
+          disabled={resolvedActiveMode === 'delivery' && isDeliveryDisabled}
           className="mt-2 flex h-12 items-center justify-center rounded-[18px] bg-stone-900 text-sm font-semibold text-stone-50 shadow-[0_16px_32px_rgba(15,23,42,0.16)] transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-500"
         >
-          {activeMode === 'pickup' ? 'View menu' : 'Next'}
+          {resolvedActiveMode === 'pickup' ? 'View menu' : 'Next'}
         </button>
       </div>
     </ModalShell>

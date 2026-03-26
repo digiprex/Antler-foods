@@ -73,7 +73,10 @@ function MenuPageContent({ data }: MenuPageProps) {
   const router = useRouter();
   const pathname = usePathname() ?? '';
   const searchParams = useSearchParams() ?? new URLSearchParams();
-  const [fulfillmentMode, setFulfillmentMode] = useState<FulfillmentMode>('pickup');
+  const pickupAllowed = data.pickupAllowed !== false;
+  const [fulfillmentMode, setFulfillmentMode] = useState<FulfillmentMode>(
+    pickupAllowed ? 'pickup' : 'delivery',
+  );
   const [selectedLocationId, setSelectedLocationId] = useState(data.locations[0]?.id || '');
   const [deliveryAddress, setDeliveryAddress] = useState(data.defaultDeliveryAddress);
   const pickupScheduleDays = data.scheduleDays.filter((day) => day.slots.length > 0);
@@ -84,7 +87,9 @@ function MenuPageContent({ data }: MenuPageProps) {
     time: initialScheduleDay?.slots[0] || '',
   });
   const [locationModalOpen, setLocationModalOpen] = useState(false);
-  const [locationModalMode, setLocationModalMode] = useState<FulfillmentMode>('pickup');
+  const [locationModalMode, setLocationModalMode] = useState<FulfillmentMode>(
+    pickupAllowed ? 'pickup' : 'delivery',
+  );
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [scheduleModalSource, setScheduleModalSource] = useState<'info' | 'location' | 'cart'>('info');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -112,6 +117,20 @@ function MenuPageContent({ data }: MenuPageProps) {
       setCartOpen(true);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (pickupAllowed) {
+      return;
+    }
+
+    if (fulfillmentMode !== 'delivery') {
+      setFulfillmentMode('delivery');
+    }
+
+    if (locationModalMode !== 'delivery') {
+      setLocationModalMode('delivery');
+    }
+  }, [pickupAllowed, fulfillmentMode, locationModalMode]);
 
   useEffect(() => {
     router.prefetch('/menu/checkout');
@@ -233,6 +252,10 @@ function MenuPageContent({ data }: MenuPageProps) {
         : 'Add delivery address';
 
   const handleModeSelect = (mode: FulfillmentMode) => {
+    if (!pickupAllowed && mode === 'pickup') {
+      return;
+    }
+
     setFulfillmentMode(mode);
   };
 
@@ -385,6 +408,7 @@ function MenuPageContent({ data }: MenuPageProps) {
 
                   <FulfillmentSelector
                     mode={fulfillmentMode}
+                    pickupAllowed={pickupAllowed}
                     locationLabel={locationLabel}
                     deliveryAddress={deliveryAddress}
                     onModeSelect={handleModeSelect}
@@ -487,6 +511,7 @@ function MenuPageContent({ data }: MenuPageProps) {
         open={locationModalOpen}
         restaurantName={brandName}
         locations={data.locations}
+        pickupAllowed={pickupAllowed}
         activeMode={locationModalMode}
         selectedLocationId={selectedLocationId}
         deliveryAddress={deliveryAddress}
@@ -501,7 +526,9 @@ function MenuPageContent({ data }: MenuPageProps) {
           setScheduleModalOpen(true);
         }}
         onConfirm={() => {
-          setFulfillmentMode(locationModalMode);
+          setFulfillmentMode(
+            pickupAllowed ? locationModalMode : 'delivery',
+          );
           setLocationModalOpen(false);
         }}
       />

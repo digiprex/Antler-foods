@@ -107,6 +107,7 @@ export interface ServiceOption {
 export interface RestaurantMenuData {
   restaurantId?: string | null;
   allowTips?: boolean;
+  pickupAllowed?: boolean;
   slug: string;
   announcement: string;
   brand: RestaurantBrand;

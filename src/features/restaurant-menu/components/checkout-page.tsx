@@ -169,7 +169,11 @@ export default function RestaurantMenuCheckoutPage({
     logout,
   } = useMenuCustomerAuth(restaurantId);
   const fulfillmentMode: FulfillmentMode =
-    mode === 'delivery' ? 'delivery' : 'pickup';
+    data.pickupAllowed === false
+      ? 'delivery'
+      : mode === 'delivery'
+        ? 'delivery'
+        : 'pickup';
   const selectedLocation =
     data.locations.find((location) => location.id === locationId) ||
     data.locations[0];

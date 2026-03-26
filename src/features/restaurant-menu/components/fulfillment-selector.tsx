@@ -9,6 +9,7 @@ import type { FulfillmentMode } from '@/features/restaurant-menu/types/restauran
 
 interface FulfillmentSelectorProps {
   mode: FulfillmentMode;
+  pickupAllowed?: boolean;
   locationLabel?: string;
   deliveryAddress: string;
   onModeSelect: (mode: FulfillmentMode) => void;
@@ -18,12 +19,31 @@ interface FulfillmentSelectorProps {
 
 export function FulfillmentSelector({
   mode,
+  pickupAllowed = true,
   locationLabel,
   deliveryAddress,
   onModeSelect,
   onOpenSchedule,
   onDeliveryAddressChange,
 }: FulfillmentSelectorProps) {
+  if (!pickupAllowed) {
+    return (
+      <section className="space-y-3">
+        <div className="rounded-[20px] border border-stone-200 bg-stone-100 p-1">
+          <div className="flex h-11 items-center justify-center gap-2 rounded-[16px] bg-stone-900 text-sm font-semibold text-stone-50 shadow-sm">
+            <BikeIcon className="h-4 w-4" />
+            Delivery
+          </div>
+        </div>
+
+        <DeliveryAddressInput
+          value={deliveryAddress}
+          onChange={onDeliveryAddressChange || (() => {})}
+        />
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-3">
       <div className="grid grid-cols-2 rounded-[20px] border border-stone-200 bg-stone-100 p-1">

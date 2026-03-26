@@ -13,6 +13,7 @@ export default function OrderSettingsForm({
   restaurantName,
 }: OrderSettingsFormProps) {
   const [allowTips, setAllowTips] = useState(true);
+  const [pickupAllowed, setPickupAllowed] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -26,7 +27,11 @@ export default function OrderSettingsForm({
           `/api/admin/order-settings?restaurant_id=${encodeURIComponent(restaurantId)}`,
         );
         const payload = (await response.json().catch(() => null)) as
-          | { success?: boolean; data?: { allow_tips?: boolean }; error?: string }
+          | {
+              success?: boolean;
+              data?: { allow_tips?: boolean; pickup_allowed?: boolean };
+              error?: string;
+            }
           | null;
 
         if (!response.ok || !payload?.success) {
@@ -38,6 +43,7 @@ export default function OrderSettingsForm({
         }
 
         setAllowTips(payload.data?.allow_tips ?? true);
+        setPickupAllowed(payload.data?.pickup_allowed ?? true);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to load order settings.');
       } finally {
@@ -65,6 +71,7 @@ export default function OrderSettingsForm({
         body: JSON.stringify({
           restaurant_id: restaurantId,
           allow_tips: allowTips,
+          pickup_allowed: pickupAllowed,
         }),
       });
 
@@ -124,6 +131,30 @@ export default function OrderSettingsForm({
             <span
               className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
                 allowTips ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+
+        <div className="mt-4 flex items-start justify-between gap-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Pickup allowed</p>
+            <p className="mt-1 text-xs text-gray-600">
+              When disabled, pickup is hidden on menu, cart, and checkout.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={pickupAllowed}
+            onClick={() => setPickupAllowed((current) => !current)}
+            className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+              pickupAllowed ? 'bg-green-500' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                pickupAllowed ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
           </button>

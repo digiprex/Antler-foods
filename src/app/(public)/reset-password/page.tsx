@@ -1,64 +1,66 @@
-import { Suspense } from 'react';
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { ResetPasswordForm } from '@/components/auth/reset-password-form';
-import { MenuAuthLayout } from '@/features/restaurant-menu/components/menu-auth-layout';
-import { MenuResetPasswordForm } from '@/features/restaurant-menu/components/menu-reset-password-form';
+import { CUSTOMER_RESET_PASSWORD_ROUTE } from '@/lib/auth/routes';
 import { generateMetadata as generateSEOMetadata, getPageSEO } from '@/lib/seo';
-import { resolveRestaurantIdForAuthRequest } from '@/lib/server/auth-route-context';
 
-export async function generateMetadata(): Promise<Metadata> {
-  const restaurantId = await resolveRestaurantIdForAuthRequest();
-  const isRestaurantDomain = Boolean(restaurantId);
-
-  return {
-    ...generateSEOMetadata(
-      getPageSEO('forgot-password', isRestaurantDomain
-        ? {
-            title: 'Set New Password - Online Ordering',
-            description: 'Set a new password for your online ordering account.',
-          }
-        : {
-            title: 'Reset Password - Antler Foods',
-            description: 'Set a new password for your Antler Foods admin or owner account.',
-          }),
-    ),
-    robots: {
-      index: false,
-      follow: false,
-    },
-  };
+interface ResetPasswordPageProps {
+  searchParams?: Record<string, string | string[] | undefined>;
 }
 
-export default async function ResetPasswordPage() {
-  const restaurantId = await resolveRestaurantIdForAuthRequest();
-  const isRestaurantDomain = Boolean(restaurantId);
+function readSearchParam(
+  searchParams: ResetPasswordPageProps['searchParams'],
+  key: string,
+) {
+  const value = searchParams?.[key];
+  return typeof value === 'string' ? value : null;
+}
 
-  if (!isRestaurantDomain) {
-    return (
-      <AuthLayout
-        title="Set a new password"
-        subtitle="Choose a new password for your admin or owner account."
-      >
-        <ResetPasswordForm />
-      </AuthLayout>
-    );
+export const metadata: Metadata = {
+  ...generateSEOMetadata(
+    getPageSEO('forgot-password', {
+      title: 'Reset Password - Antler Foods',
+      description: 'Set a new password for your Antler Foods admin or owner account.',
+    }),
+  ),
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
+export default function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
+  const customerResetToken = readSearchParam(searchParams, 'token');
+
+  if (customerResetToken) {
+    const params = new URLSearchParams();
+
+    Object.entries(searchParams || {}).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        params.set(key, value);
+        return;
+      }
+
+      if (Array.isArray(value)) {
+        value.forEach((item) => {
+          if (typeof item === 'string') {
+            params.append(key, item);
+          }
+        });
+      }
+    });
+
+    const query = params.toString();
+    redirect(query ? `${CUSTOMER_RESET_PASSWORD_ROUTE}?${query}` : CUSTOMER_RESET_PASSWORD_ROUTE);
   }
 
   return (
-    <MenuAuthLayout
+    <AuthLayout
       title="Set a new password"
-      subtitle="Choose a new password for your online ordering account."
+      subtitle="Choose a new password for your admin or owner account."
     >
-      <Suspense
-        fallback={
-          <div className="rounded-[24px] border border-stone-200 bg-white/95 px-5 py-4 text-sm font-medium text-slate-700 shadow-sm">
-            Loading reset form...
-          </div>
-        }
-      >
-        <MenuResetPasswordForm />
-      </Suspense>
-    </MenuAuthLayout>
+      <ResetPasswordForm />
+    </AuthLayout>
   );
 }

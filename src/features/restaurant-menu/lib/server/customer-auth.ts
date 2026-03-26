@@ -547,13 +547,10 @@ export async function resetMenuCustomerPassword({
   const normalizedPassword = requirePassword(password);
   const passwordHash = bcrypt.hashSync(normalizedPassword, 10);
 
-  await updateCustomerPassword(context.customerId, passwordHash);
+  const updatedCustomer = await updateCustomerPassword(context.customerId, passwordHash);
   await invalidatePasswordResetTokens(context.customerId);
 
-  return {
-    email: context.email,
-    restaurantId: context.restaurantId,
-  };
+  return toMenuCustomerSession(updatedCustomer);
 }
 
 export async function readMenuCustomerSession(

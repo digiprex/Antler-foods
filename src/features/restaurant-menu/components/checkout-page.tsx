@@ -107,9 +107,10 @@ async function requestValidateCoupon(
     }),
   });
 
-  const payload = (await response.json().catch(() => null)) as
-    | { error?: string; coupon?: CheckoutCouponOffer }
-    | null;
+  const payload = (await response.json().catch(() => null)) as {
+    error?: string;
+    coupon?: CheckoutCouponOffer;
+  } | null;
 
   return {
     ok: response.ok,
@@ -136,9 +137,10 @@ async function requestValidateGiftCard(
     }),
   });
 
-  const payload = (await response.json().catch(() => null)) as
-    | { error?: string; giftCard?: CheckoutGiftCardOffer }
-    | null;
+  const payload = (await response.json().catch(() => null)) as {
+    error?: string;
+    giftCard?: CheckoutGiftCardOffer;
+  } | null;
 
   return {
     ok: response.ok,
@@ -158,8 +160,14 @@ export default function RestaurantMenuCheckoutPage({
   scheduleTime,
   deliveryAddress,
 }: RestaurantMenuCheckoutPageProps) {
-  const { items, subtotal, cartNote, isHydrated, updateItemQuantity, clearCart } =
-    useMenuCart();
+  const {
+    items,
+    subtotal,
+    cartNote,
+    isHydrated,
+    updateItemQuantity,
+    clearCart,
+  } = useMenuCart();
   const router = useRouter();
   const pathname = usePathname() ?? '';
   const searchParams = useSearchParams() ?? new URLSearchParams();
@@ -190,8 +198,7 @@ export default function RestaurantMenuCheckoutPage({
   const [tipAmount, setTipAmount] = useState(0);
   const [customTipInput, setCustomTipInput] = useState('0.00');
   const [authSidebarOpen, setAuthSidebarOpen] = useState(false);
-  const [authSidebarView, setAuthSidebarView] =
-    useState<MenuAuthView>('login');
+  const [authSidebarView, setAuthSidebarView] = useState<MenuAuthView>('login');
   const [contactFields, setContactFields] = useState<CheckoutContactFields>({
     phone: '',
     firstName: '',
@@ -205,12 +212,15 @@ export default function RestaurantMenuCheckoutPage({
   const [couponCodeInput, setCouponCodeInput] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
-  const [appliedCoupon, setAppliedCoupon] = useState<CheckoutCouponOffer | null>(null);
+  const [appliedCoupon, setAppliedCoupon] =
+    useState<CheckoutCouponOffer | null>(null);
   const [giftCardCodeInput, setGiftCardCodeInput] = useState('');
   const [isRedeemingGiftCard, setIsRedeemingGiftCard] = useState(false);
   const [giftCardError, setGiftCardError] = useState<string | null>(null);
-  const [appliedGiftCard, setAppliedGiftCard] = useState<CheckoutGiftCardOffer | null>(null);
-  const [isOrderSummaryDrawerOpen, setIsOrderSummaryDrawerOpen] = useState(false);
+  const [appliedGiftCard, setAppliedGiftCard] =
+    useState<CheckoutGiftCardOffer | null>(null);
+  const [isOrderSummaryDrawerOpen, setIsOrderSummaryDrawerOpen] =
+    useState(false);
   const brandName = data.restaurant.name.replace(' Menu', '');
 
   const setAuthQueryParam = (view: MenuAuthView | null) => {
@@ -223,7 +233,9 @@ export default function RestaurantMenuCheckoutPage({
     }
 
     const nextQuery = nextParams.toString();
-    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+      scroll: false,
+    });
   };
 
   const openAuthSidebar = (view: MenuAuthView) => {
@@ -326,7 +338,9 @@ export default function RestaurantMenuCheckoutPage({
 
       if (!payload.ok || !payload.coupon) {
         setAppliedCoupon(null);
-        setCouponError(payload.error ?? 'Unable to validate this coupon right now.');
+        setCouponError(
+          payload.error ?? 'Unable to validate this coupon right now.',
+        );
         return;
       }
 
@@ -338,7 +352,10 @@ export default function RestaurantMenuCheckoutPage({
     }
   };
 
-  const handleRemoveCoupon = (options?: { showToast?: boolean; clearInput?: boolean }) => {
+  const handleRemoveCoupon = (options?: {
+    showToast?: boolean;
+    clearInput?: boolean;
+  }) => {
     const currentCode = appliedCoupon?.code;
     setAppliedCoupon(null);
     setCouponError(null);
@@ -382,7 +399,9 @@ export default function RestaurantMenuCheckoutPage({
 
       if (!payload.ok || !payload.giftCard) {
         setAppliedGiftCard(null);
-        setGiftCardError(payload.error ?? 'Unable to validate this gift card right now.');
+        setGiftCardError(
+          payload.error ?? 'Unable to validate this gift card right now.',
+        );
         return;
       }
 
@@ -423,8 +442,14 @@ export default function RestaurantMenuCheckoutPage({
 
       if (!payload.ok || !payload.coupon) {
         setAppliedCoupon(null);
-        setCouponError(payload.error ?? 'This coupon no longer applies to the current order.');
-        toast.error(payload.error ?? 'Coupon removed because the current subtotal no longer qualifies.');
+        setCouponError(
+          payload.error ??
+            'This coupon no longer applies to the current order.',
+        );
+        toast.error(
+          payload.error ??
+            'Coupon removed because the current subtotal no longer qualifies.',
+        );
         return;
       }
 
@@ -456,7 +481,9 @@ export default function RestaurantMenuCheckoutPage({
     setGuestError(null);
 
     if (!restaurantId) {
-      setGuestError('Restaurant context is missing. Return to the menu and try again.');
+      setGuestError(
+        'Restaurant context is missing. Return to the menu and try again.',
+      );
       return;
     }
 
@@ -466,7 +493,9 @@ export default function RestaurantMenuCheckoutPage({
       !contactFields.email.trim() ||
       !contactFields.phone.trim()
     ) {
-      setGuestError('Enter your first name, last name, email, and phone number before continuing as guest.');
+      setGuestError(
+        'Enter your first name, last name, email, and phone number before continuing as guest.',
+      );
       document
         .getElementById('checkout-contact-fields')
         ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -491,9 +520,10 @@ export default function RestaurantMenuCheckoutPage({
         }),
       });
 
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string; customer?: MenuCustomerProfile }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        customer?: MenuCustomerProfile;
+      } | null;
 
       if (!response.ok || !payload?.customer) {
         setGuestError(payload?.error ?? 'Unable to continue as guest.');
@@ -518,12 +548,16 @@ export default function RestaurantMenuCheckoutPage({
     const normalizedCheckoutEmail = contactFields.email.trim().toLowerCase();
 
     if (!restaurantId) {
-      setCheckoutError('Restaurant context is missing. Return to the menu and try again.');
+      setCheckoutError(
+        'Restaurant context is missing. Return to the menu and try again.',
+      );
       return;
     }
 
     if (!hasCustomerSession) {
-      setCheckoutError('Sign in or continue as guest before placing your order.');
+      setCheckoutError(
+        'Sign in or continue as guest before placing your order.',
+      );
       return;
     }
 
@@ -533,7 +567,9 @@ export default function RestaurantMenuCheckoutPage({
       !normalizedCheckoutEmail ||
       !contactFields.phone.trim()
     ) {
-      setCheckoutError('Enter your first name, last name, email, and phone number before placing your order.');
+      setCheckoutError(
+        'Enter your first name, last name, email, and phone number before placing your order.',
+      );
       document
         .getElementById('checkout-contact-fields')
         ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -546,7 +582,9 @@ export default function RestaurantMenuCheckoutPage({
     }
 
     if (fulfillmentMode === 'delivery' && !resolvedDeliveryAddress.trim()) {
-      setCheckoutError('Enter a delivery address before placing a delivery order.');
+      setCheckoutError(
+        'Enter a delivery address before placing a delivery order.',
+      );
       return;
     }
 
@@ -581,12 +619,16 @@ export default function RestaurantMenuCheckoutPage({
         }),
       });
 
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string; message?: string; order?: { orderNumber?: string } }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        message?: string;
+        order?: { orderNumber?: string };
+      } | null;
 
       if (!response.ok) {
-        setCheckoutError(payload?.error ?? 'Unable to place your order right now.');
+        setCheckoutError(
+          payload?.error ?? 'Unable to place your order right now.',
+        );
         return;
       }
 
@@ -612,9 +654,7 @@ export default function RestaurantMenuCheckoutPage({
     return (
       <div className="min-h-screen bg-white px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl rounded-[24px] border border-stone-200 bg-white p-6 text-center shadow-sm sm:p-10">
-          <h1
-            className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]"
-          >
+          <h1 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
             Checkout
           </h1>
           <p className="mt-3 text-sm text-slate-600">Your cart is empty.</p>
@@ -635,10 +675,7 @@ export default function RestaurantMenuCheckoutPage({
   const preGiftCardTotal = roundCurrency(subtotal + tipAmount - discountAmount);
   const giftCardAppliedAmount = appliedGiftCard
     ? roundCurrency(
-        Math.min(
-          appliedGiftCard.currentBalance,
-          Math.max(preGiftCardTotal, 0),
-        ),
+        Math.min(appliedGiftCard.currentBalance, Math.max(preGiftCardTotal, 0)),
       )
     : 0;
   const showAppliedCouponActions = Boolean(
@@ -647,13 +684,13 @@ export default function RestaurantMenuCheckoutPage({
   const showRedeemedGiftCardActions = Boolean(
     appliedGiftCard && !normalizedGiftCardInput,
   );
-  const total = roundCurrency(Math.max(preGiftCardTotal - giftCardAppliedAmount, 0));
+  const total = roundCurrency(
+    Math.max(preGiftCardTotal - giftCardAppliedAmount, 0),
+  );
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const orderSummaryPanel = (
     <div className="rounded-[18px] border border-stone-200 bg-white p-3.5 shadow-sm sm:p-4 lg:sticky lg:top-0 lg:z-10 lg:flex lg:h-[calc(100vh-_-0.8rem)] lg:flex-col lg:rounded-t-[30px] lg:rounded-b-none lg:border-b-0">
-      <h2
-        className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]"
-      >
+      <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
         Order summary
       </h2>
       <div className="mt-3 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1">
@@ -665,10 +702,7 @@ export default function RestaurantMenuCheckoutPage({
                 0,
               );
               return (
-                <div
-                  key={item.key}
-                  className="flex items-start gap-2.5"
-                >
+                <div key={item.key} className="flex items-start gap-2.5">
                   <img
                     src={item.image}
                     alt={item.name}
@@ -728,7 +762,9 @@ export default function RestaurantMenuCheckoutPage({
       <div className="mt-3 space-y-3 rounded-[16px] border border-stone-200 bg-stone-50 px-3.5 py-3 lg:mt-auto">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[13px] font-semibold text-slate-950">Offers and gift cards</p>
+            <p className="text-[13px] font-semibold text-slate-950">
+              Offers and gift cards
+            </p>
             <p className="mt-0.5 text-[11px] text-slate-500">
               Apply coupon and redeem gift card separately.
             </p>
@@ -840,7 +876,8 @@ export default function RestaurantMenuCheckoutPage({
             <p className="text-[11px] text-red-700">{giftCardError}</p>
           ) : appliedGiftCard ? (
             <p className="text-[11px] text-emerald-700">
-              {appliedGiftCard.code} balance {formatPrice(appliedGiftCard.currentBalance)}.
+              {appliedGiftCard.code} balance{' '}
+              {formatPrice(appliedGiftCard.currentBalance)}.
             </p>
           ) : null}
         </div>
@@ -870,8 +907,12 @@ export default function RestaurantMenuCheckoutPage({
                 </>
               ) : null}
             </span>
-            <span className={`font-medium ${discountAmount > 0 ? 'text-emerald-700' : 'text-slate-500'}`}>
-              {discountAmount > 0 ? `- ${formatPrice(discountAmount)}` : formatPrice(0)}
+            <span
+              className={`font-medium ${discountAmount > 0 ? 'text-emerald-700' : 'text-slate-500'}`}
+            >
+              {discountAmount > 0
+                ? `- ${formatPrice(discountAmount)}`
+                : formatPrice(0)}
             </span>
           </div>
           {giftCardAppliedAmount > 0 ? (
@@ -910,9 +951,7 @@ export default function RestaurantMenuCheckoutPage({
         <div className="mt-4 grid gap-5 lg:h-[calc(100vh-7.25rem)] lg:grid-cols-[minmax(0,680px)_360px] lg:justify-center lg:overflow-hidden lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,720px)_380px]">
           <div className="space-y-5 sm:space-y-6 lg:h-full lg:overflow-y-auto lg:pr-5 lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
             <div>
-              <h1
-                className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]"
-              >
+              <h1 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
                 Checkout
               </h1>
             </div>
@@ -1019,9 +1058,7 @@ export default function RestaurantMenuCheckoutPage({
             ) : null}
 
             <section className="space-y-2.5">
-              <h2
-                className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]"
-              >
+              <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
                 {fulfillmentMode === 'pickup'
                   ? 'Pickup details'
                   : 'Delivery details'}
@@ -1045,9 +1082,7 @@ export default function RestaurantMenuCheckoutPage({
             </section>
 
             <section className="space-y-2.5">
-              <h2
-                className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]"
-              >
+              <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
                 Tip
               </h2>
               <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
@@ -1093,7 +1128,9 @@ export default function RestaurantMenuCheckoutPage({
                   type="button"
                   onClick={() => {
                     setTipPreset('custom');
-                    setCustomTipInput(tipAmount ? tipAmount.toFixed(2) : '0.00');
+                    setCustomTipInput(
+                      tipAmount ? tipAmount.toFixed(2) : '0.00',
+                    );
                   }}
                   className={`min-h-[4.85rem] w-full rounded-[16px] border px-4 py-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-[150px] ${
                     tipPreset === 'custom'
@@ -1115,7 +1152,9 @@ export default function RestaurantMenuCheckoutPage({
                     Enter custom tip amount
                   </label>
                   <div className="relative mt-1.5">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+                      $
+                    </span>
                     <input
                       type="number"
                       min="0"
@@ -1140,9 +1179,7 @@ export default function RestaurantMenuCheckoutPage({
             </section>
 
             <section id="checkout-contact-fields" className="space-y-2.5">
-              <h2
-                className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]"
-              >
+              <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
                 Your information
               </h2>
               <div className="space-y-4">
@@ -1171,7 +1208,10 @@ export default function RestaurantMenuCheckoutPage({
                       className={fieldClassName}
                       value={contactFields.firstName}
                       onChange={(event) =>
-                        handleContactFieldChange('firstName', event.target.value)
+                        handleContactFieldChange(
+                          'firstName',
+                          event.target.value,
+                        )
                       }
                     />
                   </label>
@@ -1225,9 +1265,7 @@ export default function RestaurantMenuCheckoutPage({
             </section>
 
             <section className="space-y-2.5">
-              <h2
-                className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]"
-              >
+              <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
                 Payment
               </h2>
               <div className="space-y-4">
@@ -1321,7 +1359,9 @@ export default function RestaurantMenuCheckoutPage({
           <div className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-[24px] bg-stone-50 px-4 pb-6 pt-3 shadow-[0_-16px_48px_rgba(15,23,42,0.2)] sm:px-6">
             <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-stone-300" />
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-900">Order summary</p>
+              <p className="text-sm font-semibold text-slate-900">
+                Order summary
+              </p>
               <button
                 type="button"
                 onClick={() => setIsOrderSummaryDrawerOpen(false)}
@@ -1349,5 +1389,3 @@ export default function RestaurantMenuCheckoutPage({
     </div>
   );
 }
-
-

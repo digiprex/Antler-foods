@@ -18,6 +18,7 @@ const GET_ORDER_BY_NUMBER = `
       sub_total
       cart_total
       coupon_used
+      gift_card_used
       fulfillment_type
       payment_status
       payment_method

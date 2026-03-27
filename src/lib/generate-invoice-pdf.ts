@@ -12,13 +12,16 @@ export interface InvoiceItem {
 }
 
 export interface InvoiceOffer {
-  type: 'coupon' | 'auto_offer';
+  type: 'auto_offer';
   code?: string | null;
-  title: string;
+  title?: string | null;
+  name?: string | null;
+  headline?: string | null;
+  offerName?: string | null;
   description?: string | null;
-  discountType: 'percent' | 'amount';
-  value: number;
-  discountAmount: number;
+  discountType?: 'percent' | 'amount';
+  value?: number;
+  discountAmount?: number;
 }
 
 export interface InvoiceData {
@@ -38,12 +41,22 @@ export interface InvoiceData {
   tip: number | null;
   tax: number | null;
   offerApplied: InvoiceOffer | null;
+  couponCode: string;
+  giftCardCode: string;
   orderNote: string;
 }
 
 function fmt(n: number | null | undefined): string {
   if (n == null) return '$0.00';
   return `$${Number(n).toFixed(2)}`;
+}
+
+function resolveOfferTitle(offer: InvoiceOffer): string {
+  const candidates = [offer.title, offer.name, offer.headline, offer.offerName, offer.code];
+  const resolved = candidates.find(
+    (value): value is string => typeof value === 'string' && value.trim().length > 0,
+  );
+  return resolved || 'Promotion';
 }
 
 export function generateInvoicePDF(data: InvoiceData): jsPDF {
@@ -185,16 +198,27 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
     doc.text('Discount', 14, y);
     doc.text(`-${fmt(data.discount)}`, pageWidth - 14, y, { align: 'right' });
     y += 5;
+    doc.setFontSize(8);
     if (data.offerApplied) {
-      doc.setFontSize(8);
-      const offerLabel = data.offerApplied.type === 'coupon' ? 'Coupon' : 'Offer';
-      const offerDetail = `${offerLabel}: ${data.offerApplied.title}${data.offerApplied.discountType === 'percent' ? ` (${data.offerApplied.value}% off)` : ''}${data.offerApplied.code ? ` — code: ${data.offerApplied.code}` : ''}`;
+      const discountSuffix =
+        data.offerApplied.discountType === 'percent' &&
+        typeof data.offerApplied.value === 'number'
+          ? ` (${data.offerApplied.value}% off)`
+          : '';
+      const offerDetail = `Offer Applied: ${resolveOfferTitle(data.offerApplied)}${discountSuffix}`;
       doc.text(offerDetail, 14, y);
-      y += 5;
-      doc.setFontSize(10);
-    } else {
-      y += 1;
+      y += 4;
     }
+    if (data.couponCode) {
+      doc.text(`Coupon: ${data.couponCode}`, 14, y);
+      y += 4;
+    }
+    if (data.giftCardCode) {
+      doc.text(`Gift Card: ${data.giftCardCode}`, 14, y);
+      y += 4;
+    }
+    doc.setFontSize(10);
+    y += 1;
     doc.setTextColor(15, 23, 42);
   }
   if (typeof data.tip === 'number' && data.tip > 0) {

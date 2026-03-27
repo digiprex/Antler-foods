@@ -16,6 +16,7 @@ export interface Order {
   sub_total: number;
   cart_total: number;
   coupon_used?: string | null;
+  gift_card_used?: string | null;
   fulfillment_type?: string | null;
   payment_status?: string | null;
   contact_first_name?: string | null;
@@ -37,7 +38,7 @@ export interface Order {
 }
 
 export interface OfferApplied {
-  type: 'coupon' | 'auto_offer';
+  type: 'auto_offer';
   code?: string | null;
   title: string;
   description?: string | null;
@@ -121,6 +122,7 @@ export interface CreateOrderRequest {
   sub_total: number;
   cart_total: number;
   coupon_used?: string;
+  gift_card_used?: string;
   fulfillment_type?: FulfillmentType;
   payment_status?: PaymentStatus;
   contact_first_name?: string;

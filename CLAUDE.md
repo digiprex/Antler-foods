@@ -55,6 +55,54 @@ All GraphQL queries live in `src/lib/graphql/queries.ts`.
 
 Tailwind CSS + SCSS modules. Custom Tailwind colors: `surface`, `ink`, `accent`, `accentDark`. Base font: Poppins. Auth components use layered Tailwind `@layer` classes (`.auth-input-modern`, `.menu-auth-primary-btn`, etc.) defined in `globals.css`.
 
+## Integrations
+
+**Stripe:** Payment processing via `src/lib/server/stripe.ts`. Webhook handler at `src/app/api/webhooks/stripe/route.ts` verifies events with `STRIPE_WEBHOOK_SECRET`.
+
+**Vercel Domains:** Dynamic domain management (`src/lib/server/vercel-domains.ts`) and deploy hooks (`src/lib/server/vercel-deploy.ts`) for multi-tenant domain provisioning.
+
+**AWS Bedrock:** AI content generation (e.g., footer content) via `src/app/api/generate-footer-content/route.ts`.
+
+**Google Maps:** Location autocomplete via `src/hooks/useGooglePlacesAutocomplete.ts`.
+
 ## Environment
 
-Required env vars (see `.env.example`): Nhost subdomain/region, Google Analytics service account, Umami analytics URL/token. Auth storage prefix: `antler-foods`.
+Core required variables:
+```bash
+# Nhost backend
+NEXT_PUBLIC_NHOST_SUBDOMAIN=
+NEXT_PUBLIC_NHOST_REGION=
+HASURA_ADMIN_SECRET=
+
+# Menu customer auth
+MENU_CUSTOMER_SESSION_SECRET=
+MENU_CUSTOMER_PASSWORD_RESET_SECRET=
+
+# Stripe payments
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+
+# Google services
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
+GOOGLE_SERVICE_ACCOUNT_EMAIL=
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
+GOOGLE_ANALYTICS_ACCOUNT_ID=
+
+# Analytics (Umami)
+UMAMI_URL=
+UMAMI_API_TOKEN=
+NEXT_PUBLIC_UMAMI_SCRIPT_URL=
+
+# Optional: Vercel domain/deploy automation
+VERCEL_API_TOKEN=
+VERCEL_PROJECT_ID=
+VERCEL_TEAM_ID=
+VERCEL_DEPLOY_HOOK_URL=
+
+# Optional: AWS Bedrock for AI content
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_REGION=
+```
+
+See `.env.example` and `.env.local.example` for complete documentation. Auth storage prefix: `antler-foods`.

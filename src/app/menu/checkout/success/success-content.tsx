@@ -30,6 +30,7 @@ interface OrderData {
   sub_total: number;
   cart_total: number;
   coupon_used: string | null;
+  gift_card_used: string | null;
   fulfillment_type: string;
   payment_status: string;
   payment_method: string | null;
@@ -46,7 +47,7 @@ interface OrderData {
   placed_at: string | null;
   restaurant_name: string;
   offer_applied: {
-    type: 'coupon' | 'auto_offer';
+    type: 'auto_offer';
     code?: string | null;
     title: string;
     description?: string | null;
@@ -139,6 +140,8 @@ export default function MenuCheckoutSuccessContent() {
       tip,
       tax,
       offerApplied,
+      couponCode: order?.coupon_used || '',
+      giftCardCode: order?.gift_card_used || '',
       orderNote,
     });
     doc.save(`invoice-${orderNumber}.pdf`);
@@ -165,6 +168,71 @@ export default function MenuCheckoutSuccessContent() {
       setIsSendingEmail(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[linear-gradient(180deg,#fafaf9_0%,#ffffff_100%)] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+        <div className="mx-auto max-w-3xl">
+          <div className="overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_24px_64px_rgba(15,23,42,0.08)]">
+            {/* Skeleton header */}
+            <div className="border-b border-stone-200 bg-[linear-gradient(180deg,#ffffff_0%,#fafaf9_100%)] px-6 py-8 sm:px-8 sm:py-10">
+              <div className="h-14 w-14 animate-pulse rounded-full bg-stone-200" />
+              <div className="mt-6 h-3 w-28 animate-pulse rounded bg-stone-200" />
+              <div className="mt-4 h-9 w-72 animate-pulse rounded-lg bg-stone-200 sm:w-96" />
+              <div className="mt-4 h-4 w-80 animate-pulse rounded bg-stone-100 sm:w-[28rem]" />
+            </div>
+
+            <div className="px-6 py-6 sm:px-8 sm:py-8">
+              {/* Skeleton info cards */}
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="rounded-[20px] border border-stone-200 bg-stone-50 px-5 py-4">
+                    <div className="h-2.5 w-20 animate-pulse rounded bg-stone-200" />
+                    <div className="mt-3 h-6 w-32 animate-pulse rounded bg-stone-200" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Skeleton items */}
+              <div className="mt-5 rounded-[20px] border border-stone-200 bg-stone-50 px-5 py-4">
+                <div className="mb-4 h-2.5 w-24 animate-pulse rounded bg-stone-200" />
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-40 animate-pulse rounded bg-stone-200" />
+                        <div className="h-3 w-28 animate-pulse rounded bg-stone-100" />
+                      </div>
+                      <div className="h-4 w-14 animate-pulse rounded bg-stone-200" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Skeleton breakdown */}
+              <div className="mt-5 rounded-[20px] border border-stone-200 bg-stone-50 px-5 py-4">
+                <div className="mb-4 h-2.5 w-28 animate-pulse rounded bg-stone-200" />
+                <div className="space-y-3">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <div className="h-3.5 w-16 animate-pulse rounded bg-stone-200" />
+                      <div className="h-3.5 w-14 animate-pulse rounded bg-stone-200" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Skeleton actions */}
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <div className="h-12 w-36 animate-pulse rounded-[16px] bg-stone-200" />
+                <div className="h-12 w-44 animate-pulse rounded-[16px] bg-stone-100" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#fafaf9_0%,#ffffff_100%)] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
@@ -271,11 +339,7 @@ export default function MenuCheckoutSuccessContent() {
             </div>
 
             {/* Order items */}
-            {isLoading ? (
-              <div className="mt-5 rounded-[20px] border border-stone-200 bg-stone-50 px-5 py-6 text-center text-sm text-stone-500">
-                Loading order details...
-              </div>
-            ) : items.length > 0 ? (
+            {items.length > 0 ? (
               <div className="mt-5 rounded-[20px] border border-stone-200 bg-stone-50 px-5 py-4">
                 <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
                   Items ordered
@@ -353,9 +417,18 @@ export default function MenuCheckoutSuccessContent() {
                       </div>
                       {offerApplied ? (
                         <p className="mt-0.5 text-xs text-emerald-600">
-                          {offerApplied.type === 'coupon' ? 'Coupon' : 'Offer'}: {offerApplied.title}
+                          Offer Applied: {offerApplied.title}
                           {offerApplied.discountType === 'percent' ? ` (${offerApplied.value}% off)` : ''}
-                          {offerApplied.code ? ` — code: ${offerApplied.code}` : ''}
+                        </p>
+                      ) : null}
+                      {order?.coupon_used ? (
+                        <p className="mt-0.5 text-xs text-emerald-600">
+                          Coupon: {order.coupon_used}
+                        </p>
+                      ) : null}
+                      {order?.gift_card_used ? (
+                        <p className="mt-0.5 text-xs text-emerald-600">
+                          Gift Card: {order.gift_card_used}
                         </p>
                       ) : null}
                     </div>

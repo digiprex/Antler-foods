@@ -257,6 +257,7 @@ export default function RestaurantMenuCheckoutPage({
   const [isOffersModalOpen, setIsOffersModalOpen] = useState(false);
   const [isOffersSectionOpen, setIsOffersSectionOpen] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<{
     orderNumber: string;
     total: number;
@@ -775,7 +776,7 @@ export default function RestaurantMenuCheckoutPage({
     ? null
     : restaurantOfferEvaluations.bestOffer;
   const restaurantOffersStatus = appliedCoupon
-    ? 'Manual coupon active. Restaurant offers are paused for this order.'
+    ? 'Your custom discount is active. Please note that restaurant promotional offers cannot be combined with this discount.'
     : activeRestaurantOffer
       ? `${activeRestaurantOffer.headline} auto-applies, saving ${formatPrice(activeRestaurantOffer.discountAmount)}.`
       : restaurantOfferCount > 0
@@ -1378,6 +1379,7 @@ export default function RestaurantMenuCheckoutPage({
                     )
                   }
                   onError={(message) => setCheckoutError(message)}
+                  onProcessingChange={setIsPaymentProcessing}
                 />
               </StripePaymentProvider>
             ) : (
@@ -1468,6 +1470,26 @@ export default function RestaurantMenuCheckoutPage({
         onViewChange={handleAuthSidebarViewChange}
         onAuthenticatedCustomer={applyCustomerProfile}
       />
+
+      {/* Full-page processing overlay */}
+      {(isPlacingOrder || isPaymentProcessing) ? (
+        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-5">
+            <div className="relative h-12 w-12">
+              <div className="absolute inset-0 rounded-full border-[3px] border-stone-200" />
+              <div className="absolute inset-0 animate-spin rounded-full border-[3px] border-transparent border-t-black" />
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-semibold tracking-tight text-slate-950">
+                {isPaymentProcessing ? 'Processing payment...' : 'Placing your order...'}
+              </p>
+              <p className="mt-1.5 text-sm text-stone-500">
+                Please do not close or refresh this page.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

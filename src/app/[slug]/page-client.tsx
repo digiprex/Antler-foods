@@ -8,22 +8,24 @@
  */
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { notFound } from 'next/navigation';
-import DynamicHero from '@/components/dynamic-hero';
-import DynamicMenu from '@/components/dynamic-menu';
-import DynamicCustomCode from '@/components/dynamic-custom-code';
-import DynamicFAQ from '@/components/dynamic-faq';
-import DynamicGallery from '@/components/dynamic-gallery';
-import DynamicReviews from '@/components/dynamic-reviews';
-import DynamicLocation from '@/components/dynamic-location';
-import DynamicScrollingText from '@/components/dynamic-scrolling-text';
-import DynamicTimeline from '@/components/dynamic-timeline';
-import DynamicForm from '@/components/dynamic-form';
-import Popup from '@/components/popup';
-import YouTubeSection from '@/components/youtube-section';
-import CustomSection from '@/components/custom-section';
 import UmamiAnalytics from '@/components/umami-analytics';
 import { CUSTOM_SECTION_LAYOUT_VALUES } from '@/types/custom-section.types';
+
+const DynamicHero = dynamic(() => import('@/components/dynamic-hero'));
+const DynamicMenu = dynamic(() => import('@/components/dynamic-menu'));
+const DynamicCustomCode = dynamic(() => import('@/components/dynamic-custom-code'));
+const DynamicFAQ = dynamic(() => import('@/components/dynamic-faq'));
+const DynamicGallery = dynamic(() => import('@/components/dynamic-gallery'), { ssr: false });
+const DynamicReviews = dynamic(() => import('@/components/dynamic-reviews'));
+const DynamicLocation = dynamic(() => import('@/components/dynamic-location'), { ssr: false });
+const DynamicScrollingText = dynamic(() => import('@/components/dynamic-scrolling-text'));
+const DynamicTimeline = dynamic(() => import('@/components/dynamic-timeline'));
+const DynamicForm = dynamic(() => import('@/components/dynamic-form'));
+const Popup = dynamic(() => import('@/components/popup'), { ssr: false });
+const YouTubeSection = dynamic(() => import('@/components/youtube-section'), { ssr: false });
+const CustomSection = dynamic(() => import('@/components/custom-section'));
 
 interface DynamicPageClientProps {
   slug: string;
@@ -59,9 +61,11 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
     // Calculate initially
     calculateSpacing();
 
-    // Recalculate when CSS variables change (debounced)
+    // Recalculate when CSS variables change (debounced via rAF)
+    let rafId = 0;
     const observer = new MutationObserver(() => {
-      setTimeout(calculateSpacing, 100);
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(calculateSpacing);
     });
 
     observer.observe(document.documentElement, {
@@ -69,7 +73,10 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
       attributeFilter: ['style']
     });
 
-    return () => observer.disconnect();
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -132,14 +139,19 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
   // Show loading state
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#ffffff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-      }}>
+      <div
+        role="status"
+        aria-live="polite"
+        aria-label="Loading page content"
+        style={{
+          minHeight: '100vh',
+          background: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+        }}
+      >
         <style>{`
           @keyframes basicSpinner {
             0% { transform: rotate(0deg); }
@@ -165,7 +177,7 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
         `}</style>
 
         <div className="basic-loader">
-          <div className="basic-loader-spinner" />
+          <div className="basic-loader-spinner" aria-hidden="true" />
           <div className="basic-loader-text">
             Loading your restaurant site...
           </div>
@@ -177,14 +189,18 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
   // Show error state
   if (error || !pageData || !restaurantId) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        backgroundColor: '#f9fafb',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px'
-      }}>
+      <main
+        role="alert"
+        aria-live="assertive"
+        style={{
+          minHeight: '100vh',
+          backgroundColor: '#f9fafb',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}
+      >
         <div style={{
           textAlign: 'center',
           maxWidth: '600px',
@@ -196,13 +212,13 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
           <div style={{
             fontSize: '48px',
             marginBottom: '20px'
-          }}>⚠️</div>
-          <h2 style={{
+          }} aria-hidden="true">⚠️</div>
+          <h1 style={{
             color: '#111827',
             marginBottom: '16px',
             fontSize: '24px',
             fontWeight: '600'
-          }}>Unable to Load Page</h2>
+          }}>Unable to Load Page</h1>
           <p style={{
             color: '#6b7280',
             marginBottom: '24px',
@@ -261,13 +277,12 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
             </div>
           )}
         </div>
-      </div>
+      </main>
     );
   }
 
-  // Get templates array and sort by order_index
-  const templates = pageData?.data?.templates || [];
-  const sortedTemplates = templates.sort((a: any, b: any) => (a.order_index ?? 999) - (b.order_index ?? 999));
+  // Get templates array and sort by order_index (spread to avoid mutating original)
+  const sortedTemplates = [...(pageData?.data?.templates || [])].sort((a: any, b: any) => (a.order_index ?? 999) - (b.order_index ?? 999));
 
   // Render component based on category
   const renderSection = (template: any) => {
@@ -465,7 +480,7 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
+    <main style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       <UmamiAnalytics websiteId={umamiWebsiteId} />
       {/* Navbar is automatically rendered by ConditionalNavbar in root layout */}
 
@@ -478,7 +493,11 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
 
         {/* Render sections in order based on order_index */}
         {sortedTemplates.length > 0 ? (
-          sortedTemplates.map((template: any) => renderSection(template))
+          sortedTemplates.map((template: any) => (
+            <section key={template.template_id || `${template.category}-${template.order_index || 0}`} style={{ contentVisibility: 'auto' }}>
+              {renderSection(template)}
+            </section>
+          ))
         ) : (
           <div style={{
             padding: '60px 40px',
@@ -488,15 +507,15 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
             borderRadius: '12px',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
           }}>
-            <div style={{ fontSize: '48px', marginBottom: '20px' }}>📝</div>
-            <h3 style={{
+            <div style={{ fontSize: '48px', marginBottom: '20px' }} aria-hidden="true">📝</div>
+            <h1 style={{
               fontSize: '24px',
               fontWeight: '600',
               color: '#111827',
               marginBottom: '12px'
             }}>
               Page Content Coming Soon
-            </h3>
+            </h1>
             <p style={{
               fontSize: '16px',
               color: '#6b7280',
@@ -515,7 +534,7 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }
 

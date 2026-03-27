@@ -97,6 +97,7 @@ const GET_ORDERS_QUERY = `
       order_number
       payment_method
       payment_reference
+      offer_applied
     }
   }
 `;

@@ -731,11 +731,9 @@ export default function RestaurantMenuCheckoutPage({
       : restaurantOfferCount > 0
         ? `${restaurantOfferCount} restaurant offer${restaurantOfferCount === 1 ? '' : 's'} available.`
         : 'No restaurant offers available right now.';
+  const effectiveTipAmount = tipsEnabled ? tipAmount : 0;
   const discountAmount =
     appliedCoupon?.discountAmount || activeRestaurantOffer?.discountAmount || 0;
-  const preGiftCardTotal = roundCurrency(subtotal + tipAmount - discountAmount);
-  const effectiveTipAmount = tipsEnabled ? tipAmount : 0;
-  const discountAmount = appliedCoupon?.discountAmount || 0;
   const preGiftCardTotal = roundCurrency(subtotal + effectiveTipAmount - discountAmount);
   const giftCardAppliedAmount = appliedGiftCard
     ? roundCurrency(
@@ -1129,106 +1127,102 @@ export default function RestaurantMenuCheckoutPage({
               </div>
             </section>
 
-            <section className="space-y-2.5">
-              <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
             {tipsEnabled ? (
               <section className="space-y-2.5">
-              <h2
-                className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]"
-              >
-                Tip
-              </h2>
-              <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
-                {[
-                  {
-                    key: '10',
-                    percent: '10%',
-                    amount: roundCurrency(subtotal * 0.1),
-                  },
-                  {
-                    key: '15',
-                    percent: '15%',
-                    amount: roundCurrency(subtotal * 0.15),
-                  },
-                  {
-                    key: '20',
-                    percent: '20%',
-                    amount: roundCurrency(subtotal * 0.2),
-                  },
-                ].map((preset) => {
-                  const selected = tipPreset === preset.key;
-                  return (
-                    <button
-                      key={preset.key}
-                      type="button"
-                      onClick={() => setTipPreset(preset.key as TipPreset)}
-                      className={`min-h-[4.85rem] w-full rounded-[16px] border px-4 py-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-[150px] ${
-                        selected
-                          ? 'border-black/60 bg-white text-slate-950 shadow-sm'
-                          : 'border-black/10 bg-white text-slate-700 hover:border-black/20'
-                      }`}
-                    >
-                      <div className="text-base font-semibold sm:text-lg">
-                        {formatPrice(preset.amount)}
-                      </div>
-                      <div className="mt-1 text-xs text-slate-600">
-                        {preset.percent}
-                      </div>
-                    </button>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTipPreset('custom');
-                    setCustomTipInput(
-                      tipAmount ? tipAmount.toFixed(2) : '0.00',
+                <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
+                  Tip
+                </h2>
+                <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
+                  {[
+                    {
+                      key: '10',
+                      percent: '10%',
+                      amount: roundCurrency(subtotal * 0.1),
+                    },
+                    {
+                      key: '15',
+                      percent: '15%',
+                      amount: roundCurrency(subtotal * 0.15),
+                    },
+                    {
+                      key: '20',
+                      percent: '20%',
+                      amount: roundCurrency(subtotal * 0.2),
+                    },
+                  ].map((preset) => {
+                    const selected = tipPreset === preset.key;
+                    return (
+                      <button
+                        key={preset.key}
+                        type="button"
+                        onClick={() => setTipPreset(preset.key as TipPreset)}
+                        className={`min-h-[4.85rem] w-full rounded-[16px] border px-4 py-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-[150px] ${
+                          selected
+                            ? 'border-black/60 bg-white text-slate-950 shadow-sm'
+                            : 'border-black/10 bg-white text-slate-700 hover:border-black/20'
+                        }`}
+                      >
+                        <div className="text-base font-semibold sm:text-lg">
+                          {formatPrice(preset.amount)}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-600">
+                          {preset.percent}
+                        </div>
+                      </button>
                     );
-                  }}
-                  className={`min-h-[4.85rem] w-full rounded-[16px] border px-4 py-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-[150px] ${
-                    tipPreset === 'custom'
-                      ? 'border-black/60 bg-white text-slate-950 shadow-sm'
-                      : 'border-black/10 bg-white text-slate-700 hover:border-black/20'
-                  }`}
-                >
-                  <div className="text-base font-semibold sm:text-lg">
-                    {tipPreset === 'custom' ? formatPrice(tipAmount) : 'Custom'}
-                  </div>
-                  <div className="mt-1 text-xs text-slate-600">
-                    {tipPreset === 'custom' ? 'Custom tip' : 'Set amount'}
-                  </div>
-                </button>
-              </div>
-              {tipPreset === 'custom' ? (
-                <div className="max-w-[320px]">
-                  <label className="block text-xs font-medium uppercase tracking-[0.12em] text-slate-600">
-                    Enter custom tip amount
-                  </label>
-                  <div className="relative mt-1.5">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
-                      $
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={customTipInput}
-                      onChange={(event) => {
-                        const inputValue = event.target.value;
-                        setCustomTipInput(inputValue);
-                        const parsed = Number.parseFloat(inputValue);
-                        setTipAmount(
-                          Number.isFinite(parsed) && parsed >= 0
-                            ? roundCurrency(parsed)
-                            : 0,
-                        );
-                      }}
-                      className="h-11 w-full rounded-[14px] border border-black/15 bg-white pl-8 pr-3 text-sm text-slate-900 outline-none transition focus:border-black/35 focus:ring-2 focus:ring-black/10"
-                      placeholder="0.00"
-                    />
-                  </div>
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTipPreset('custom');
+                      setCustomTipInput(
+                        tipAmount ? tipAmount.toFixed(2) : '0.00',
+                      );
+                    }}
+                    className={`min-h-[4.85rem] w-full rounded-[16px] border px-4 py-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-[150px] ${
+                      tipPreset === 'custom'
+                        ? 'border-black/60 bg-white text-slate-950 shadow-sm'
+                        : 'border-black/10 bg-white text-slate-700 hover:border-black/20'
+                    }`}
+                  >
+                    <div className="text-base font-semibold sm:text-lg">
+                      {tipPreset === 'custom' ? formatPrice(tipAmount) : 'Custom'}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-600">
+                      {tipPreset === 'custom' ? 'Custom tip' : 'Set amount'}
+                    </div>
+                  </button>
                 </div>
-              ) : null}
+                {tipPreset === 'custom' ? (
+                  <div className="max-w-[320px]">
+                    <label className="block text-xs font-medium uppercase tracking-[0.12em] text-slate-600">
+                      Enter custom tip amount
+                    </label>
+                    <div className="relative mt-1.5">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+                        $
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={customTipInput}
+                        onChange={(event) => {
+                          const inputValue = event.target.value;
+                          setCustomTipInput(inputValue);
+                          const parsed = Number.parseFloat(inputValue);
+                          setTipAmount(
+                            Number.isFinite(parsed) && parsed >= 0
+                              ? roundCurrency(parsed)
+                              : 0,
+                          );
+                        }}
+                        className="h-11 w-full rounded-[14px] border border-black/15 bg-white pl-8 pr-3 text-sm text-slate-900 outline-none transition focus:border-black/35 focus:ring-2 focus:ring-black/10"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                ) : null}
               </section>
             ) : null}
 

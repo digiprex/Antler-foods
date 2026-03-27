@@ -6,11 +6,13 @@ import {
   XIcon,
 } from '@/features/restaurant-menu/components/icons';
 import { CompactQuantityStepper } from '@/features/restaurant-menu/components/compact-quantity-stepper';
+import { CartRecommendationsRail } from '@/features/restaurant-menu/components/cart-recommendations-rail';
 import { useScrollLock } from '@/features/restaurant-menu/hooks/use-scroll-lock';
 import { formatPrice } from '@/features/restaurant-menu/lib/format-price';
 import type {
   CartItem,
   FulfillmentMode,
+  MenuItem,
 } from '@/features/restaurant-menu/types/restaurant-menu.types';
 
 interface CartDrawerProps {
@@ -23,9 +25,13 @@ interface CartDrawerProps {
   mode: FulfillmentMode;
   deliveryAddress: string;
   scheduleLabel: string;
+  recommendedItems: MenuItem[];
   onClose: () => void;
   onUpdateQuantity: (key: string, quantity: number) => void;
   onUpdateCartNote: (notes: string) => void;
+  onOpenRecommendedItem: (itemId: string) => void;
+  onQuickAddRecommendedItem: (item: MenuItem) => void;
+  getRecommendedItemQuantity: (itemId: string) => number;
   onCheckout: () => void;
 }
 
@@ -47,9 +53,13 @@ export function CartDrawer({
   mode,
   deliveryAddress,
   scheduleLabel,
+  recommendedItems,
   onClose,
   onUpdateQuantity,
   onUpdateCartNote,
+  onOpenRecommendedItem,
+  onQuickAddRecommendedItem,
+  getRecommendedItemQuantity,
   onCheckout,
 }: CartDrawerProps) {
   useScrollLock(open);
@@ -174,6 +184,15 @@ export function CartDrawer({
                   </div>
                 </div>
               ))}
+
+              {recommendedItems.length ? (
+                <CartRecommendationsRail
+                  items={recommendedItems}
+                  onOpenItem={onOpenRecommendedItem}
+                  onQuickAdd={onQuickAddRecommendedItem}
+                  getItemQuantity={getRecommendedItemQuantity}
+                />
+              ) : null}
 
               <div className="rounded-[22px] border border-stone-200 bg-white p-4 shadow-sm">
                 <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">

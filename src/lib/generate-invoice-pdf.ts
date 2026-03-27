@@ -193,11 +193,22 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
     doc.text(fmt(data.subtotal), pageWidth - 14, y, { align: 'right' });
     y += 6;
   }
+  const hasOfferOrCodeDetails = Boolean(
+    data.offerApplied ||
+    (typeof data.couponCode === 'string' && data.couponCode.trim()) ||
+    (typeof data.giftCardCode === 'string' && data.giftCardCode.trim()),
+  );
+
   if (typeof data.discount === 'number' && data.discount > 0) {
     doc.setTextColor(5, 150, 105);
     doc.text('Discount', 14, y);
     doc.text(`-${fmt(data.discount)}`, pageWidth - 14, y, { align: 'right' });
     y += 5;
+    doc.setTextColor(15, 23, 42);
+  }
+
+  if (hasOfferOrCodeDetails) {
+    doc.setTextColor(5, 150, 105);
     doc.setFontSize(8);
     if (data.offerApplied) {
       const discountSuffix =
@@ -209,12 +220,12 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
       doc.text(offerDetail, 14, y);
       y += 4;
     }
-    if (data.couponCode) {
-      doc.text(`Coupon: ${data.couponCode}`, 14, y);
+    if (typeof data.couponCode === 'string' && data.couponCode.trim()) {
+      doc.text(`Coupon: ${data.couponCode.trim()}`, 14, y);
       y += 4;
     }
-    if (data.giftCardCode) {
-      doc.text(`Gift Card: ${data.giftCardCode}`, 14, y);
+    if (typeof data.giftCardCode === 'string' && data.giftCardCode.trim()) {
+      doc.text(`Gift Card: ${data.giftCardCode.trim()}`, 14, y);
       y += 4;
     }
     doc.setFontSize(10);

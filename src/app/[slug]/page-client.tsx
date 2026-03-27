@@ -80,11 +80,10 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
         // Get current domain (includes port for localhost, e.g., localhost:3000)
         const domain = window.location.host;
         const encodedDomain = encodeURIComponent(domain);
-        console.log('[Page Client] 🌐 Resolving restaurant from domain:', domain);
-        console.log('[Page Client] 📄 Page slug:', slug);
         // Fetch page details directly by domain + slug (single request path)
         const pageResponse = await fetch(
-          `/api/page-details?domain=${encodedDomain}&url_slug=${encodeURIComponent(slug)}`
+          `/api/page-details?domain=${encodedDomain}&url_slug=${encodeURIComponent(slug)}`,
+          { cache: 'force-cache' }
         );
 
         if (pageResponse.status === 404) {
@@ -270,12 +269,6 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
   const templates = pageData?.data?.templates || [];
   const sortedTemplates = templates.sort((a: any, b: any) => (a.order_index ?? 999) - (b.order_index ?? 999));
 
-  // Debug: Log section ordering
-  console.log('[Page Client] 📋 Section ordering for page:', slug);
-  sortedTemplates.forEach((template: any, index: number) => {
-    console.log(`[Page Client] ${index + 1}. ${template.category} (order_index: ${template.order_index ?? 'undefined'}, template_id: ${template.template_id})`);
-  });
-
   // Render component based on category
   const renderSection = (template: any) => {
     const pageId = pageData?.data?.page?.page_id;
@@ -422,16 +415,6 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
           showLoading={true}
         />;
       case 'form':
-        // Debug logging for form templates
-        console.log('[Page Client] 📝 Rendering form section:', {
-          template_id: template.template_id,
-          category: template.category,
-          name: template.name,
-          config: template.config,
-          restaurantId,
-          pageId
-        });
-        
         // Transform template data to match Form config format (similar to other sections)
         const formConfigData = template.config ? {
           ...template.config,

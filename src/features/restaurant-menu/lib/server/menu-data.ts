@@ -1,5 +1,6 @@
 
 import 'server-only';
+import { unstable_cache } from 'next/cache';
 
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { loadActiveMenuOffers } from '@/features/restaurant-menu/lib/server/menu-offers';
@@ -264,7 +265,8 @@ const GET_OPENING_HOUR_SLOTS = `
   }
 `;
 
-export async function loadRestaurantMenuMetadata(domain: string) {
+const loadRestaurantMenuMetadataCached = unstable_cache(
+async (domain: string) => {
   const restaurant = (await loadRestaurantByDomain(domain)) || (await loadRestaurantForLatestMenu());
   const restaurantName = text(restaurant?.name);
 
@@ -274,13 +276,21 @@ export async function loadRestaurantMenuMetadata(domain: string) {
       ? `Order pickup or delivery from ${restaurantName}.`
       : 'Order pickup or delivery online.',
   };
+},
+['restaurant-menu-metadata'],
+{ revalidate: 120 },
+);
+
+export async function loadRestaurantMenuMetadata(domain: string) {
+  return loadRestaurantMenuMetadataCached(domain);
 }
 
 export function getEmptyRestaurantMenuData(restaurantName = 'Restaurant') {
   return buildEmptyMenuData(restaurantName);
 }
 
-export async function loadRestaurantMenuPageData(domain: string): Promise<RestaurantMenuData> {
+const loadRestaurantMenuPageDataCached = unstable_cache(
+async (domain: string): Promise<RestaurantMenuData> => {
   let restaurant = await loadRestaurantByDomain(domain);
   let menu = restaurant?.restaurant_id ? await loadPreferredMenu(restaurant.restaurant_id) : null;
 
@@ -319,6 +329,13 @@ export async function loadRestaurantMenuPageData(domain: string): Promise<Restau
     : [];
 
   return buildMenuData({ restaurant, menu, categories, items, modifierGroups, modifierItems, opening, offers });
+},
+['restaurant-menu-page-data'],
+{ revalidate: 60 },
+);
+
+export async function loadRestaurantMenuPageData(domain: string): Promise<RestaurantMenuData> {
+  return loadRestaurantMenuPageDataCached(domain);
 }
 async function loadRestaurantByDomain(domain: string) {
   const normalizedDomain = text(domain?.split(',')[0]);

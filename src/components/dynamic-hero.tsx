@@ -46,15 +46,11 @@ export default function DynamicHero({
   showLoading = true,
   previewMode,
 }: DynamicHeroProps) {
-  console.log('[DynamicHero] Component rendered with configData:', configData);
-
   const { config, loading, error } = useHeroConfig({
     restaurantId,
     fetchOnMount: !configData, // Skip fetch if config data is provided
     overrideConfig: configData, // Use provided config if available
   });
-
-  console.log('[DynamicHero] Hook returned - config:', config, 'loading:', loading, 'error:', error);
 
   // Show loading state
   if (loading && showLoading) {

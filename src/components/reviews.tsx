@@ -452,6 +452,10 @@ export default function Reviews({
         <img
           src={review.avatar_url}
           alt={review.author_name || 'User'}
+          width={size}
+          height={size}
+          loading="lazy"
+          decoding="async"
           style={{
             width: `${size}px`,
             height: `${size}px`,
@@ -930,6 +934,10 @@ export default function Reviews({
         <img
           src={spotlightImage}
           alt={`${title || 'Review spotlight'} feature`}
+          width={1200}
+          height={760}
+          loading="lazy"
+          decoding="async"
           style={{
             display: 'block',
             width: '100%',
@@ -1703,6 +1711,10 @@ export default function Reviews({
                           <img
                             src={avatarPreview}
                             alt="Avatar preview"
+                            width={44}
+                            height={44}
+                            loading="lazy"
+                            decoding="async"
                             style={{
                               width: '44px',
                               height: '44px',

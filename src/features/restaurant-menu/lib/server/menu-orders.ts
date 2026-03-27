@@ -2,8 +2,10 @@ import 'server-only';
 
 import { randomBytes } from 'crypto';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { evaluateMenuOffers } from '@/features/restaurant-menu/lib/menu-offers';
 import { validateMenuCouponCode } from '@/features/restaurant-menu/lib/server/menu-coupons';
 import { validateMenuGiftCardCode } from '@/features/restaurant-menu/lib/server/menu-gift-cards';
+import { loadActiveMenuOffers } from '@/features/restaurant-menu/lib/server/menu-offers';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -400,7 +402,14 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
   });
 
   const subtotal = roundCurrency(lineItems.reduce((sum, lineItem) => sum + lineItem.lineTotal, 0));
+  const offerCartLines = lineItems.map((lineItem) => ({
+    itemId: lineItem.itemId,
+    name: lineItem.itemName,
+    quantity: lineItem.quantity,
+    unitPrice: roundCurrency(lineItem.baseItemPrice + lineItem.modifierTotal),
+  }));
   let appliedCoupon = null;
+  let appliedAutoOffer = null;
   let giftCardAppliedAmount = 0;
 
   if (trimText(input.couponCode)) {
@@ -420,8 +429,17 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     }
   }
 
-  const couponDiscountTotal = appliedCoupon?.discountAmount || 0;
-  const preGiftCardTotal = roundCurrency(subtotal + tipAmount - couponDiscountTotal);
+  if (!appliedCoupon) {
+    const activeOffers = await loadActiveMenuOffers(restaurantId);
+    appliedAutoOffer = evaluateMenuOffers({
+      offers: activeOffers,
+      cartLines: offerCartLines,
+    }).bestOffer;
+  }
+
+  const orderDiscountTotal =
+    appliedCoupon?.discountAmount || appliedAutoOffer?.discountAmount || 0;
+  const preGiftCardTotal = roundCurrency(subtotal + tipAmount - orderDiscountTotal);
 
   if (trimText(input.giftCardCode)) {
     try {
@@ -443,7 +461,7 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     }
   }
 
-  const discountTotal = roundCurrency(couponDiscountTotal + giftCardAppliedAmount);
+  const discountTotal = roundCurrency(orderDiscountTotal + giftCardAppliedAmount);
   const taxTotal = 0;
   const total = roundCurrency(Math.max(preGiftCardTotal - giftCardAppliedAmount, 0));
   const orderNumber = buildOrderNumber(placedAt);

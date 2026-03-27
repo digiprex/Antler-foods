@@ -8,7 +8,7 @@ export const ADMIN_RESET_PASSWORD_ROUTE = "/reset-password";
 export const CUSTOMER_LOGIN_ROUTE = "/login";
 export const CUSTOMER_SIGNUP_ROUTE = "/signup";
 export const CUSTOMER_FORGOT_PASSWORD_ROUTE = "/forgot-password";
-export const CUSTOMER_RESET_PASSWORD_ROUTE = "/reset-password";
+export const CUSTOMER_RESET_PASSWORD_ROUTE = "/customer-reset-password";
 export const CUSTOMER_DEFAULT_AUTH_REDIRECT = "/menu";
 
 export const LOGIN_ROUTE = ADMIN_LOGIN_ROUTE;

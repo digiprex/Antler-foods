@@ -104,6 +104,57 @@ export interface ServiceOption {
   helperText: string;
 }
 
+export type MenuOfferType =
+  | 'percentage_off'
+  | 'amount_off'
+  | 'buy_1_get_1'
+  | 'free_item';
+
+export interface MenuOfferItemMap {
+  [categoryId: string]: string[];
+}
+
+export interface MenuOffer {
+  id: string;
+  name: string;
+  type: MenuOfferType;
+  subType: string | null;
+  status: string;
+  startDate: string;
+  endDate: string | null;
+  percentageOff: number | null;
+  amountOff: number | null;
+  minSpend: number | null;
+  discountedItems: MenuOfferItemMap | null;
+  qualifyingItems: MenuOfferItemMap | null;
+  freeItems: MenuOfferItemMap | null;
+}
+
+export interface MenuOfferCartLine {
+  itemId: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface MenuOfferEvaluation {
+  offerId: string;
+  offerName: string;
+  headline: string;
+  description: string;
+  helperText: string;
+  statusLabel: string;
+  discountAmount: number;
+  isEligible: boolean;
+  isBestOffer: boolean;
+  matchedItemIds: string[];
+}
+
+export interface MenuOffersEvaluationResult {
+  offers: MenuOfferEvaluation[];
+  bestOffer: MenuOfferEvaluation | null;
+}
+
 export interface RestaurantMenuData {
   restaurantId?: string | null;
   allowTips?: boolean;
@@ -117,6 +168,7 @@ export interface RestaurantMenuData {
   locations: RestaurantLocation[];
   serviceOptions: ServiceOption[];
   rewards: RestaurantRewards;
+  offers: MenuOffer[];
   categories: MenuCategory[];
   popularItemIds: string[];
   scheduleDays: ScheduleDay[];
@@ -146,5 +198,3 @@ export interface AddCartItemInput {
   notes?: string;
   selectedAddOns?: MenuAddOn[];
 }
-
-

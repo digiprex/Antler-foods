@@ -11,6 +11,7 @@ import {
 } from '@/lib/validation/auth';
 import {
   buildCustomerAuthHref,
+  CUSTOMER_DEFAULT_AUTH_REDIRECT,
   CUSTOMER_FORGOT_PASSWORD_ROUTE,
   CUSTOMER_LOGIN_ROUTE,
   resolveCustomerRestaurantId,
@@ -130,6 +131,7 @@ export function MenuResetPasswordForm() {
     nextPath,
     resolvedRestaurantId,
   );
+  const postResetHref = nextPath || CUSTOMER_DEFAULT_AUTH_REDIRECT;
 
   const onSubmit = handleSubmit(async ({ password }) => {
     setFormError(null);
@@ -171,11 +173,7 @@ export function MenuResetPasswordForm() {
         window.clearTimeout(redirectTimeoutRef.current);
       }
 
-      const destination = buildCustomerAuthHref(
-        CUSTOMER_LOGIN_ROUTE,
-        nextPath,
-        payload.restaurantId || resolvedRestaurantId,
-      );
+      const destination = postResetHref;
 
       redirectTimeoutRef.current = window.setTimeout(() => {
         router.replace(destination);
@@ -190,11 +188,11 @@ export function MenuResetPasswordForm() {
     return (
       <div className="rounded-[20px] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[16px] bg-gradient-to-br from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/20">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[16px] bg-[#211d1a] text-white shadow-sm">
             <SpinnerIcon />
           </div>
           <div className="space-y-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-600/70">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
               Secure verification
             </p>
             <h3 className="text-base font-semibold tracking-[-0.03em] text-slate-950">
@@ -234,15 +232,15 @@ export function MenuResetPasswordForm() {
         <div className="grid gap-2.5 sm:grid-cols-2">
           <Link
             href={forgotPasswordHref}
-            className="auth-primary-btn-modern w-full px-5 text-[13px] sm:w-auto"
+            className="menu-auth-primary-btn w-full px-5 text-[13px] sm:w-auto"
           >
             Request new reset link
           </Link>
           <Link
-            href={loginHref}
-            className="inline-flex h-10.5 w-full items-center justify-center rounded-[16px] border border-violet-200 bg-white px-5 text-[13px] font-semibold text-violet-700 transition hover:border-violet-300 hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/20 sm:w-auto"
+            href={successMessage ? postResetHref : loginHref}
+            className="menu-auth-secondary-btn h-10.5 w-full px-5 text-[13px] sm:w-auto"
           >
-            Return to Sign In
+            {successMessage ? 'Continue to menu' : 'Return to Sign In'}
           </Link>
         </div>
       </div>
@@ -253,15 +251,15 @@ export function MenuResetPasswordForm() {
     <div className="space-y-3.5">
       <div className="rounded-[20px] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] p-3.5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[16px] bg-gradient-to-br from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/20">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[16px] bg-[#211d1a] text-white shadow-sm">
             <MailIcon />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-600/70">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                 Verified account
               </p>
-              <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-violet-700">
+              <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-700">
                 Secure
               </span>
             </div>
@@ -301,7 +299,7 @@ export function MenuResetPasswordForm() {
             {PASSWORD_GUIDANCE.map((tip) => (
               <span
                 key={tip}
-                className="inline-flex items-center rounded-full border border-violet-200 bg-white px-2.5 py-1 text-[11px] font-medium text-violet-700"
+                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800"
               >
                 {tip}
               </span>
@@ -324,7 +322,7 @@ export function MenuResetPasswordForm() {
         <div className="flex flex-col gap-2.5 pt-0.5">
           <button
             type="submit"
-            className="auth-primary-btn-modern w-full"
+            className="menu-auth-primary-btn w-full"
             disabled={isSubmitting || Boolean(successMessage)}
           >
             {isSubmitting
@@ -336,7 +334,7 @@ export function MenuResetPasswordForm() {
 
           <Link
             href={loginHref}
-            className="inline-flex h-11.5 w-full items-center justify-center rounded-[16px] border border-violet-200 bg-white px-5 text-[13px] font-semibold text-violet-700 transition hover:border-violet-300 hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/20"
+            className="menu-auth-secondary-btn h-11.5 w-full px-5 text-[13px]"
           >
             Return to Sign In
           </Link>

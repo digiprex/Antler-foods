@@ -2,6 +2,7 @@
 import 'server-only';
 
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { loadActiveMenuOffers } from '@/features/restaurant-menu/lib/server/menu-offers';
 import type {
   MenuAddOn,
   MenuCategory,
@@ -296,8 +297,9 @@ export async function loadRestaurantMenuPageData(domain: string): Promise<Restau
   }
 
   const opening = await loadOpeningHours(restaurant.restaurant_id || '');
+  const offers = await loadActiveMenuOffers(restaurant.restaurant_id || '');
   if (!menu?.menu_id) {
-    return buildMenuData({ restaurant, menu: null, categories: [], items: [], modifierGroups: [], modifierItems: [], opening });
+    return buildMenuData({ restaurant, menu: null, categories: [], items: [], modifierGroups: [], modifierItems: [], opening, offers });
   }
 
   const categories = await gql(GET_CATEGORIES_BY_MENU, { menu_id: menu.menu_id }).then((data: any) => data.categories || []);
@@ -316,7 +318,7 @@ export async function loadRestaurantMenuPageData(domain: string): Promise<Restau
     ).then((data: any) => data.modifier_items || [])
     : [];
 
-  return buildMenuData({ restaurant, menu, categories, items, modifierGroups, modifierItems, opening });
+  return buildMenuData({ restaurant, menu, categories, items, modifierGroups, modifierItems, opening, offers });
 }
 async function loadRestaurantByDomain(domain: string) {
   const normalizedDomain = text(domain?.split(',')[0]);
@@ -381,7 +383,7 @@ async function loadOpeningHours(restaurantId: string) {
   return { profile, slots };
 }
 
-function buildMenuData({ restaurant, menu, categories, items, modifierGroups, modifierItems, opening }: any): RestaurantMenuData {
+function buildMenuData({ restaurant, menu, categories, items, modifierGroups, modifierItems, opening, offers }: any): RestaurantMenuData {
   const restaurantName = text(restaurant?.name) || 'Restaurant';
   const pickupAllowed = restaurant?.pickup_allowed !== false;
   const deliveryAllowed = restaurant?.delivery_allowed !== false;
@@ -569,6 +571,7 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
       message: 'Earn rewards on every eligible online order.',
       ctaLabel: 'Sign In / Sign Up',
     },
+    offers: Array.isArray(offers) ? offers : [],
     categories: menuCategories,
     popularItemIds: allItems
       .filter((item) => favoriteCategoryIds.has(item.categoryId) && item.isBestSeller === true)
@@ -614,6 +617,7 @@ function buildEmptyMenuData(restaurantName: string): RestaurantMenuData {
       { mode: 'delivery', label: 'Delivery', helperText: 'Enter your address to check availability' },
     ],
     rewards: { iconLabel: 'Rewards', message: 'Earn rewards on every eligible online order.', ctaLabel: 'Sign In / Sign Up' },
+    offers: [],
     categories: [{ id: 'empty-menu', label: 'Menu', description: 'No items found', items: [] }],
     popularItemIds: [],
     scheduleDays,

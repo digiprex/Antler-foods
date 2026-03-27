@@ -24,6 +24,7 @@ export default function ConditionalNavbar() {
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/forgot-password') ||
     pathname?.startsWith('/reset-password') ||
+    pathname?.startsWith('/customer-reset-password') ||
     isMenuCheckoutPage;
 
   if (hideNavbar) {
@@ -37,3 +38,4 @@ export default function ConditionalNavbar() {
     />
   );
 }
+

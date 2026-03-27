@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
+  attachMenuCustomerSession,
   getMenuCustomerPasswordResetContext,
   MenuCustomerAuthError,
   resetMenuCustomerPassword,
@@ -37,17 +38,19 @@ export async function POST(request: NextRequest) {
         }
       | null;
 
-    const result = await resetMenuCustomerPassword({
+    const session = await resetMenuCustomerPassword({
       token: body?.token || '',
       password: body?.password || '',
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
-      message: 'Password updated successfully. Please sign in with your new password.',
-      email: result.email,
-      restaurantId: result.restaurantId,
+      message: 'Password updated successfully. Signing you in now.',
+      email: session.email,
+      restaurantId: session.restaurantId,
     });
+    attachMenuCustomerSession(response, session);
+    return response;
   } catch (error) {
     if (error instanceof MenuCustomerAuthError) {
       return NextResponse.json({ success: false, error: error.message }, { status: error.status });

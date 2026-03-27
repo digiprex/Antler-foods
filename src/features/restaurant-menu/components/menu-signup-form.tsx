@@ -202,7 +202,7 @@ export function MenuSignupForm({
 
         <button
           type="submit"
-          className="auth-primary-btn-modern w-full"
+          className="menu-auth-primary-btn w-full"
           disabled={isSubmitting || Boolean(successMessage)}
         >
           {isSubmitting
@@ -220,12 +220,12 @@ export function MenuSignupForm({
             <button
               type="button"
               onClick={onRequestLogin}
-              className="auth-link-modern"
+              className="menu-auth-link"
             >
               Sign in
             </button>
           ) : (
-            <Link href={loginHref} className="auth-link-modern">
+            <Link href={loginHref} className="menu-auth-link">
               Sign in
             </Link>
           )}

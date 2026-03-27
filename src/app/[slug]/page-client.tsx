@@ -8,22 +8,24 @@
  */
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { notFound } from 'next/navigation';
-import DynamicHero from '@/components/dynamic-hero';
-import DynamicMenu from '@/components/dynamic-menu';
-import DynamicCustomCode from '@/components/dynamic-custom-code';
-import DynamicFAQ from '@/components/dynamic-faq';
-import DynamicGallery from '@/components/dynamic-gallery';
-import DynamicReviews from '@/components/dynamic-reviews';
-import DynamicLocation from '@/components/dynamic-location';
-import DynamicScrollingText from '@/components/dynamic-scrolling-text';
-import DynamicTimeline from '@/components/dynamic-timeline';
-import DynamicForm from '@/components/dynamic-form';
-import Popup from '@/components/popup';
-import YouTubeSection from '@/components/youtube-section';
-import CustomSection from '@/components/custom-section';
 import UmamiAnalytics from '@/components/umami-analytics';
 import { CUSTOM_SECTION_LAYOUT_VALUES } from '@/types/custom-section.types';
+
+const DynamicHero = dynamic(() => import('@/components/dynamic-hero'));
+const DynamicMenu = dynamic(() => import('@/components/dynamic-menu'));
+const DynamicCustomCode = dynamic(() => import('@/components/dynamic-custom-code'));
+const DynamicFAQ = dynamic(() => import('@/components/dynamic-faq'));
+const DynamicGallery = dynamic(() => import('@/components/dynamic-gallery'));
+const DynamicReviews = dynamic(() => import('@/components/dynamic-reviews'));
+const DynamicLocation = dynamic(() => import('@/components/dynamic-location'));
+const DynamicScrollingText = dynamic(() => import('@/components/dynamic-scrolling-text'));
+const DynamicTimeline = dynamic(() => import('@/components/dynamic-timeline'));
+const DynamicForm = dynamic(() => import('@/components/dynamic-form'));
+const Popup = dynamic(() => import('@/components/popup'));
+const YouTubeSection = dynamic(() => import('@/components/youtube-section'));
+const CustomSection = dynamic(() => import('@/components/custom-section'));
 
 interface DynamicPageClientProps {
   slug: string;
@@ -265,9 +267,8 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
     );
   }
 
-  // Get templates array and sort by order_index
-  const templates = pageData?.data?.templates || [];
-  const sortedTemplates = templates.sort((a: any, b: any) => (a.order_index ?? 999) - (b.order_index ?? 999));
+  // Get templates array and sort by order_index (spread to avoid mutating original)
+  const sortedTemplates = [...(pageData?.data?.templates || [])].sort((a: any, b: any) => (a.order_index ?? 999) - (b.order_index ?? 999));
 
   // Render component based on category
   const renderSection = (template: any) => {

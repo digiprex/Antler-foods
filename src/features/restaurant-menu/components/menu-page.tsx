@@ -31,6 +31,7 @@ import { formatPrice } from '@/features/restaurant-menu/lib/format-price';
 import {
   findMenuItemById,
   getPopularItems,
+  getRecommendedItems,
   getScheduleSummary,
 } from '@/features/restaurant-menu/lib/menu-selectors';
 import type {
@@ -97,6 +98,7 @@ function MenuPageContent({ data }: MenuPageProps) {
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [scheduleModalSource, setScheduleModalSource] = useState<'info' | 'location' | 'cart'>('info');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [cartRecommendedItem, setCartRecommendedItem] = useState<MenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [authSidebarOpen, setAuthSidebarOpen] = useState(false);
   const [authSidebarView, setAuthSidebarView] = useState<MenuAuthView>('login');
@@ -300,14 +302,24 @@ function MenuPageContent({ data }: MenuPageProps) {
   const selectedLocation =
     data.locations.find((location) => location.id === selectedLocationId) || data.locations[0];
   const scheduleLabel = getScheduleSummary(effectiveScheduleDays, selectedSchedule);
+  const pricedMenuCategories = applyFulfillmentPricingToCategories(data.categories, fulfillmentMode);
   const pricedCategories = applyFulfillmentPricingToCategories(filteredCategories, fulfillmentMode);
   const popularItems = getPopularItems(data).map((item) => applyFulfillmentPricing(item, fulfillmentMode));
+  const recommendedItems = getRecommendedItems(pricedMenuCategories);
   const hasVisibleItems = pricedCategories.some((category) => category.items.length > 0);
-  const selectedItem = selectedItemId
+  const activeRecommendedItem =
+    cartRecommendedItem?.id === selectedItemId ? cartRecommendedItem : null;
+  const foundItem = selectedItemId
     ? findMenuItemById(data.categories, selectedItemId)
     : null;
+  const selectedItem = foundItem ?? activeRecommendedItem;
   const displaySelectedItem = selectedItem
-    ? applyFulfillmentPricing(selectedItem, fulfillmentMode)
+    ? applyFulfillmentPricing(
+        !selectedItem.image && activeRecommendedItem?.image
+          ? { ...selectedItem, image: activeRecommendedItem.image }
+          : selectedItem,
+        fulfillmentMode,
+      )
     : null;
   const locationLabel =
     fulfillmentMode === 'pickup'
@@ -559,15 +571,6 @@ function MenuPageContent({ data }: MenuPageProps) {
         </button>
       ) : null}
 
-      <ItemDetailsModal
-        item={displaySelectedItem}
-        open={Boolean(displaySelectedItem)}
-        trustBanner={data.restaurant.trustBanner}
-        addToCartDisabled={!orderingEnabled}
-        onClose={() => setSelectedItemId(null)}
-        onAddToCart={(input) => addItem(input)}
-      />
-
       <CartDrawer
         open={cartOpen}
         items={items}
@@ -578,10 +581,32 @@ function MenuPageContent({ data }: MenuPageProps) {
         mode={fulfillmentMode}
         deliveryAddress={deliveryAddress}
         scheduleLabel={scheduleLabel}
+        recommendedItems={recommendedItems}
         onClose={closeCart}
         onUpdateQuantity={updateItemQuantity}
         onUpdateCartNote={updateCartNote}
+        onOpenRecommendedItem={(itemId) => {
+          setCartRecommendedItem(recommendedItems.find((r) => r.id === itemId) || null);
+          setSelectedItemId(itemId);
+        }}
+        onQuickAddRecommendedItem={(item) => {
+          setCartRecommendedItem(item);
+          handleQuickAdd(item);
+        }}
+        getRecommendedItemQuantity={getItemQuantity}
         onCheckout={handleCheckout}
+      />
+
+      <ItemDetailsModal
+        item={displaySelectedItem}
+        open={Boolean(displaySelectedItem)}
+        trustBanner={data.restaurant.trustBanner}
+        addToCartDisabled={!orderingEnabled}
+        onClose={() => {
+          setSelectedItemId(null);
+          setCartRecommendedItem(null);
+        }}
+        onAddToCart={(input) => addItem(input)}
       />
 
       <LocationModal

@@ -204,26 +204,26 @@ export function ItemDetailsModal({
     <ModalShell
       open={open}
       onClose={onClose}
-      maxWidthClassName="max-w-3xl"
+      maxWidthClassName="max-w-xl"
       panelClassName="border border-stone-200 bg-white shadow-[0_28px_72px_rgba(15,23,42,0.16)]"
       showTopGlow={false}
     >
       <div className="flex max-h-[88vh] flex-col overflow-hidden bg-white">
         <div className="overflow-y-auto">
-          <div className="overflow-hidden border-b border-stone-200 bg-stone-50">
-            <div>
+          {(item.image || itemForCart?.image) ? (
+            <div className="relative overflow-hidden border-b border-stone-200 bg-stone-100">
               <img
-                src={itemForCart?.image || item.image}
+                src={item.image || itemForCart?.image}
                 alt={itemForCart?.name || item.name}
                 loading="eager"
                 decoding="async"
-                className="h-[220px] w-full object-cover sm:h-[300px]"
+                className="h-[200px] w-full object-cover sm:h-[260px]"
               />
             </div>
-          </div>
+          ) : null}
 
-          <div className="space-y-5 px-4 py-4 sm:px-5 sm:py-5">
-            <div className="space-y-3">
+          <div className="space-y-4 px-4 py-4 sm:px-5 sm:py-5">
+            <div className="space-y-2.5">
               <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500">
                 {typeof item.likes === 'number' ? (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 font-medium text-stone-700">
@@ -239,15 +239,15 @@ export function ItemDetailsModal({
                 ) : null}
               </div>
 
-              <div className="space-y-1.5">
-                <h2 className="pr-10 text-2xl font-semibold tracking-tight text-stone-950 sm:text-[2rem]">
+              <div className="space-y-1">
+                <h2 className="pr-10 text-xl font-semibold tracking-tight text-stone-950 sm:text-2xl">
                   {itemForCart?.name || item.name}
                 </h2>
-                <p className="text-base font-semibold text-stone-900">
+                <p className="text-sm font-semibold text-stone-900 sm:text-base">
                   {formatPrice(itemForCart?.price || item.price)}
                 </p>
                 {itemForCart?.description ? (
-                  <p className="max-w-2xl text-sm leading-6 text-stone-600">
+                  <p className="text-sm leading-6 text-stone-600">
                     {itemForCart.description}
                   </p>
                 ) : null}
@@ -447,23 +447,25 @@ export function ItemDetailsModal({
           </div>
         </div>
 
-        <div className="border-t border-stone-200 bg-white/95 px-3.5 py-2.5 backdrop-blur sm:px-4">
-          <div className="mb-2 min-h-[1rem] text-xs sm:text-sm">
-            {addToCartDisabled ? (
-              <p className="font-medium text-rose-600">
-                Ordering is currently unavailable for this restaurant.
-              </p>
-            ) : invalidGroups.length ? (
-              <p className="font-medium text-rose-600">
-                {invalidGroups[0].name}: {getGroupInstruction(invalidGroups[0], getSelectedItemsForGroup(invalidGroups[0], selectedAddOnIds).length)}
-              </p>
-            ) : modifierGroups.length ? (
-              <p className="text-stone-500">
-                {selectedAddOns.length} modifier option{selectedAddOns.length === 1 ? '' : 's'} selected.
-              </p>
-            ) : null}
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="border-t border-stone-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-5">
+          {(addToCartDisabled || invalidGroups.length > 0 || modifierGroups.length > 0) ? (
+            <div className="mb-2.5 text-xs sm:text-sm">
+              {addToCartDisabled ? (
+                <p className="font-medium text-rose-600">
+                  Ordering is currently unavailable for this restaurant.
+                </p>
+              ) : invalidGroups.length ? (
+                <p className="font-medium text-rose-600">
+                  {invalidGroups[0].name}: {getGroupInstruction(invalidGroups[0], getSelectedItemsForGroup(invalidGroups[0], selectedAddOnIds).length)}
+                </p>
+              ) : (
+                <p className="text-stone-500">
+                  {selectedAddOns.length} modifier option{selectedAddOns.length === 1 ? '' : 's'} selected.
+                </p>
+              )}
+            </div>
+          ) : null}
+          <div className="flex items-center gap-3">
             <QuantityStepper
               quantity={quantity}
               onDecrease={() => setQuantity((current) => Math.max(1, current - 1))}
@@ -485,7 +487,7 @@ export function ItemDetailsModal({
                 });
                 onClose();
               }}
-              className="flex h-10 w-full items-center justify-between rounded-[16px] bg-stone-900 px-4 text-sm font-semibold text-stone-50 shadow-[0_14px_28px_rgba(15,23,42,0.16)] transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none sm:w-auto sm:min-w-[240px]"
+              className="flex h-10 flex-1 items-center justify-between rounded-[14px] bg-stone-900 px-4 text-sm font-semibold text-stone-50 shadow-[0_14px_28px_rgba(15,23,42,0.16)] transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none"
             >
               <span>Add to cart</span>
               <span>{formatPrice(totalPrice)}</span>

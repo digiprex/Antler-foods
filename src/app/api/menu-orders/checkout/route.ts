@@ -17,6 +17,23 @@ interface CheckoutOrderRequestBody {
   scheduleDayId?: string | null;
   scheduleTime?: string | null;
   deliveryAddress?: string | null;
+  deliveryAddressData?: {
+    formattedAddress?: string;
+    placeId?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    countryCode?: string;
+    latitude?: number;
+    longitude?: number;
+    houseFlatFloor?: string;
+    landmark?: string;
+    instructions?: string;
+    label?: string;
+    source?: string;
+  } | null;
   contact?: {
     firstName?: string;
     lastName?: string;
@@ -69,6 +86,7 @@ export async function POST(request: NextRequest) {
       scheduleDayId: body?.scheduleDayId,
       scheduleTime: body?.scheduleTime,
       deliveryAddress: body?.deliveryAddress,
+      deliveryAddressData: body?.deliveryAddressData,
       contact: {
         firstName: body?.contact?.firstName || '',
         lastName: body?.contact?.lastName || '',

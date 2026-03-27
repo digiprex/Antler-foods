@@ -29,6 +29,21 @@ export interface Order {
   discount_total?: number | null;
   order_note?: string | null;
   delivery_address?: string | null;
+  // Structured delivery address fields
+  delivery_place_id?: string | null;
+  delivery_address_line1?: string | null;
+  delivery_address_line2?: string | null;
+  delivery_city?: string | null;
+  delivery_state?: string | null;
+  delivery_postal_code?: string | null;
+  delivery_country_code?: string | null;
+  delivery_latitude?: number | null;
+  delivery_longitude?: number | null;
+  delivery_house_flat_floor?: string | null;
+  delivery_landmark?: string | null;
+  delivery_instructions?: string | null;
+  delivery_address_label?: string | null;
+  delivery_address_source?: string | null;
   placed_at?: string | null;
   order_number?: string | null;
   payment_method?: string | null;
@@ -239,3 +254,22 @@ export const formatOrderTotal = (order: Order): number => {
 export const formatOrderItemsCount = (order: Order): number => {
   return order.order_items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
 };
+
+// Delivery address types
+export interface DeliveryAddressInput {
+  formattedAddress: string;
+  placeId?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  countryCode?: string;
+  latitude?: number;
+  longitude?: number;
+  houseFlatFloor?: string;
+  landmark?: string;
+  instructions?: string;
+  label?: string;
+  source?: string;
+}

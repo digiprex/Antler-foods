@@ -5,6 +5,7 @@ import {
   MapPinIcon,
 } from '@/features/restaurant-menu/components/icons';
 import { DeliveryAddressInput } from '@/features/restaurant-menu/components/delivery-address-input';
+import type { SelectedGooglePlace } from '@/hooks/useGooglePlacesAutocomplete';
 import type { FulfillmentMode } from '@/features/restaurant-menu/types/restaurant-menu.types';
 
 interface FulfillmentSelectorProps {
@@ -16,6 +17,7 @@ interface FulfillmentSelectorProps {
   onModeSelect: (mode: FulfillmentMode) => void;
   onOpenSchedule?: () => void;
   onDeliveryAddressChange?: (address: string) => void;
+  onDeliveryAddressPlaceSelected?: (place: SelectedGooglePlace) => void;
 }
 
 export function FulfillmentSelector({
@@ -27,6 +29,7 @@ export function FulfillmentSelector({
   onModeSelect,
   onOpenSchedule,
   onDeliveryAddressChange,
+  onDeliveryAddressPlaceSelected,
 }: FulfillmentSelectorProps) {
   if (!pickupAllowed && !deliveryAllowed) {
     return null;
@@ -45,6 +48,7 @@ export function FulfillmentSelector({
         <DeliveryAddressInput
           value={deliveryAddress}
           onChange={onDeliveryAddressChange || (() => {})}
+          onPlaceSelected={onDeliveryAddressPlaceSelected}
         />
       </section>
     );
@@ -142,6 +146,7 @@ export function FulfillmentSelector({
         <DeliveryAddressInput
           value={deliveryAddress}
           onChange={onDeliveryAddressChange || (() => {})}
+          onPlaceSelected={onDeliveryAddressPlaceSelected}
         />
       ) : null}
     </section>

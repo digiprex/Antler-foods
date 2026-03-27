@@ -49,6 +49,7 @@ export interface SelectedGooglePlace {
   name: string;
   placeId: string;
   address: string;
+  formattedAddress: string;
   city: string;
   postalCode: string;
   country: string;
@@ -262,11 +263,25 @@ function toSelectedPlace(place: GooglePlaceResult): SelectedGooglePlace {
   const locality = getAddressPart(place, "locality");
   const postalTown = getAddressPart(place, "postal_town");
   const fallbackCity = getAddressPart(place, "administrative_area_level_2");
+  const streetAddress = formatStreetAddress(place);
+  const formattedAddress =
+    place.formattedAddress ??
+    [
+      streetAddress,
+      locality || postalTown || fallbackCity,
+      getAddressPart(place, "administrative_area_level_1", true),
+      getAddressPart(place, "postal_code"),
+      getAddressPart(place, "country", true) ||
+        getAddressPart(place, "country"),
+    ]
+      .filter(Boolean)
+      .join(", ");
 
   return {
     name: getPlaceName(place),
     placeId: place.id ?? place.place_id ?? "",
-    address: formatStreetAddress(place),
+    address: streetAddress,
+    formattedAddress,
     city: locality || postalTown || fallbackCity,
     postalCode: getAddressPart(place, "postal_code"),
     country: getAddressPart(place, "country", true) || getAddressPart(place, "country"),

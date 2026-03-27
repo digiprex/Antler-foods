@@ -21,6 +21,8 @@ import { useActiveCategory } from '@/features/restaurant-menu/hooks/use-active-c
 import { useMenuCart } from '@/features/restaurant-menu/hooks/use-menu-cart';
 import { useMenuSearch } from '@/features/restaurant-menu/hooks/use-menu-search';
 import { useMenuCustomerAuth } from '@/features/restaurant-menu/hooks/use-menu-customer-auth';
+import type { SelectedGooglePlace } from '@/hooks/useGooglePlacesAutocomplete';
+import type { DeliveryAddressInput } from '@/types/orders.types';
 import {
   CUSTOMER_FORGOT_PASSWORD_ROUTE,
   CUSTOMER_LOGIN_ROUTE,
@@ -46,6 +48,141 @@ interface MenuPageProps {
   data: RestaurantMenuData;
 }
 const MENU_CART_OPEN_EVENT = 'menu-cart-open-request';
+const DELIVERY_ADDRESS_STORAGE_KEY = 'restaurant-menu-delivery-address-v1';
+
+function trimDeliveryAddressText(value: string | null | undefined) {
+  return typeof value === 'string' && value.trim() ? value.trim() : '';
+}
+
+function buildDeliveryAddressText(parts: Array<string | null | undefined>) {
+  return parts
+    .map((part) => trimDeliveryAddressText(part))
+    .filter(Boolean)
+    .join(', ');
+}
+
+function createManualDeliveryAddress(formattedAddress = ''): DeliveryAddressInput {
+  const normalizedAddress = trimDeliveryAddressText(formattedAddress);
+  return {
+    formattedAddress: normalizedAddress,
+    addressLine1: normalizedAddress || undefined,
+    source: normalizedAddress ? 'manual' : undefined,
+  };
+}
+
+function createDeliveryAddressFromProfile(
+  profile:
+    | {
+        address: string | null;
+        city: string | null;
+        state: string | null;
+        country: string | null;
+        postalCode: string | null;
+      }
+    | null
+    | undefined,
+): DeliveryAddressInput | null {
+  const addressLine1 = trimDeliveryAddressText(profile?.address);
+  if (!addressLine1) {
+    return null;
+  }
+
+  const city = trimDeliveryAddressText(profile?.city) || undefined;
+  const state = trimDeliveryAddressText(profile?.state) || undefined;
+  const postalCode = trimDeliveryAddressText(profile?.postalCode) || undefined;
+  const countryCode = trimDeliveryAddressText(profile?.country) || undefined;
+
+  return {
+    formattedAddress: buildDeliveryAddressText([
+      addressLine1,
+      city,
+      state,
+      postalCode,
+      countryCode,
+    ]),
+    addressLine1,
+    city,
+    state,
+    postalCode,
+    countryCode,
+    source: 'profile',
+  };
+}
+
+function createDeliveryAddressFromPlace(place: SelectedGooglePlace): DeliveryAddressInput {
+  const addressLine1 = trimDeliveryAddressText(place.address) || undefined;
+  const city = trimDeliveryAddressText(place.city) || undefined;
+  const state = trimDeliveryAddressText(place.state) || undefined;
+  const postalCode = trimDeliveryAddressText(place.postalCode) || undefined;
+  const countryCode = trimDeliveryAddressText(place.country) || undefined;
+
+  return {
+    formattedAddress:
+      trimDeliveryAddressText(place.formattedAddress) ||
+      buildDeliveryAddressText([addressLine1, city, state, postalCode, countryCode]) ||
+      trimDeliveryAddressText(place.name),
+    placeId: place.placeId || undefined,
+    addressLine1,
+    city,
+    state,
+    postalCode,
+    countryCode,
+    latitude: place.lat ?? undefined,
+    longitude: place.lng ?? undefined,
+    source: 'google_autocomplete',
+  };
+}
+
+function readStoredDeliveryAddress(restaurantId: string | null) {
+  if (typeof window === 'undefined' || !restaurantId) {
+    return null;
+  }
+
+  try {
+    const rawValue = window.sessionStorage.getItem(DELIVERY_ADDRESS_STORAGE_KEY);
+    if (!rawValue) {
+      return null;
+    }
+
+    const payload = JSON.parse(rawValue) as {
+      restaurantId?: string;
+      address?: DeliveryAddressInput;
+    };
+
+    if (payload.restaurantId !== restaurantId || !payload.address?.formattedAddress) {
+      return null;
+    }
+
+    return payload.address;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredDeliveryAddress(
+  restaurantId: string | null,
+  address: DeliveryAddressInput,
+) {
+  if (typeof window === 'undefined' || !restaurantId) {
+    return;
+  }
+
+  if (!trimDeliveryAddressText(address.formattedAddress)) {
+    window.sessionStorage.removeItem(DELIVERY_ADDRESS_STORAGE_KEY);
+    return;
+  }
+
+  window.sessionStorage.setItem(
+    DELIVERY_ADDRESS_STORAGE_KEY,
+    JSON.stringify({
+      restaurantId,
+      address: {
+        ...address,
+        formattedAddress: trimDeliveryAddressText(address.formattedAddress),
+      },
+    }),
+  );
+}
 
 function MenuPageContent({ data }: MenuPageProps) {
   const {
@@ -84,6 +221,9 @@ function MenuPageContent({ data }: MenuPageProps) {
   );
   const [selectedLocationId, setSelectedLocationId] = useState(data.locations[0]?.id || '');
   const [deliveryAddress, setDeliveryAddress] = useState(data.defaultDeliveryAddress);
+  const [deliveryAddressData, setDeliveryAddressData] = useState<DeliveryAddressInput>(
+    createManualDeliveryAddress(data.defaultDeliveryAddress),
+  );
   const pickupScheduleDays = data.scheduleDays.filter((day) => day.slots.length > 0);
   const effectiveScheduleDays = pickupScheduleDays.length > 0 ? pickupScheduleDays : data.scheduleDays;
   const initialScheduleDay = effectiveScheduleDays[0];
@@ -186,6 +326,74 @@ function MenuPageContent({ data }: MenuPageProps) {
     router.prefetch('/menu/checkout');
   }, [router]);
 
+  useEffect(() => {
+    const storedDeliveryAddress = readStoredDeliveryAddress(restaurantId);
+    if (!storedDeliveryAddress?.formattedAddress) {
+      return;
+    }
+
+    setDeliveryAddress(storedDeliveryAddress.formattedAddress);
+    setDeliveryAddressData(storedDeliveryAddress);
+  }, [restaurantId]);
+
+  useEffect(() => {
+    writeStoredDeliveryAddress(restaurantId, deliveryAddressData);
+  }, [restaurantId, deliveryAddressData]);
+
+  useEffect(() => {
+    const storedDeliveryAddress = readStoredDeliveryAddress(restaurantId);
+    if (storedDeliveryAddress?.formattedAddress) {
+      return;
+    }
+
+    const profileDeliveryAddress = createDeliveryAddressFromProfile(customerProfile);
+    if (!profileDeliveryAddress) {
+      return;
+    }
+
+    const currentDeliveryAddress = trimDeliveryAddressText(
+      deliveryAddressData.formattedAddress,
+    );
+    const defaultDeliveryAddress = trimDeliveryAddressText(
+      data.defaultDeliveryAddress,
+    );
+
+    if (
+      currentDeliveryAddress &&
+      currentDeliveryAddress !== defaultDeliveryAddress
+    ) {
+      return;
+    }
+
+    setDeliveryAddress(profileDeliveryAddress.formattedAddress);
+    setDeliveryAddressData(profileDeliveryAddress);
+  }, [
+    customerProfile,
+    data.defaultDeliveryAddress,
+    deliveryAddressData.formattedAddress,
+    restaurantId,
+  ]);
+
+  const handleDeliveryAddressChange = (nextAddress: string) => {
+    const normalizedAddress = trimDeliveryAddressText(nextAddress);
+    setDeliveryAddress(nextAddress);
+    setDeliveryAddressData((current) => {
+      if (normalizedAddress && normalizedAddress === current.formattedAddress) {
+        return {
+          ...current,
+          formattedAddress: normalizedAddress,
+        };
+      }
+
+      return createManualDeliveryAddress(nextAddress);
+    });
+  };
+
+  const handleDeliveryAddressPlaceSelected = (place: SelectedGooglePlace) => {
+    const nextAddress = createDeliveryAddressFromPlace(place);
+    setDeliveryAddress(nextAddress.formattedAddress);
+    setDeliveryAddressData(nextAddress);
+  };
   useEffect(() => {
     const handleOpenCartRequest = () => {
       setCartOpen(true);
@@ -408,8 +616,19 @@ function MenuPageContent({ data }: MenuPageProps) {
     nextParams.set('dayId', selectedSchedule.dayId);
     nextParams.set('time', selectedSchedule.time);
 
-    if (deliveryAddress.trim()) {
-      nextParams.set('deliveryAddress', deliveryAddress.trim());
+    const formattedDeliveryAddress = trimDeliveryAddressText(
+      deliveryAddressData.formattedAddress || deliveryAddress,
+    );
+
+    if (formattedDeliveryAddress) {
+      nextParams.set('deliveryAddress', formattedDeliveryAddress);
+    }
+
+    if (fulfillmentMode === 'delivery') {
+      writeStoredDeliveryAddress(restaurantId, {
+        ...deliveryAddressData,
+        formattedAddress: formattedDeliveryAddress,
+      });
     }
 
     router.push(`/menu/checkout?${nextParams.toString()}`);
@@ -503,7 +722,8 @@ function MenuPageContent({ data }: MenuPageProps) {
                       setScheduleModalSource('info');
                       setScheduleModalOpen(true);
                     }}
-                    onDeliveryAddressChange={setDeliveryAddress}
+                    onDeliveryAddressChange={handleDeliveryAddressChange}
+                    onDeliveryAddressPlaceSelected={handleDeliveryAddressPlaceSelected}
                   />
                 </div>
               </div>
@@ -622,7 +842,7 @@ function MenuPageContent({ data }: MenuPageProps) {
         onClose={() => setLocationModalOpen(false)}
         onModeChange={setLocationModalMode}
         onLocationChange={setSelectedLocationId}
-        onDeliveryAddressChange={setDeliveryAddress}
+        onDeliveryAddressChange={handleDeliveryAddressChange}
         onScheduleClick={() => {
           setLocationModalOpen(false);
           setScheduleModalSource('location');
@@ -737,6 +957,10 @@ export default function MenuPage({ data }: MenuPageProps) {
     </CartProvider>
   );
 }
+
+
+
+
 
 
 

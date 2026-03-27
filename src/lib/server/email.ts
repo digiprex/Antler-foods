@@ -494,6 +494,212 @@ If you did not request a password reset, you can safely ignore this email.
   });
 }
 
+export interface OrderInvoiceEmailData {
+  order: Record<string, unknown>;
+  items: Array<Record<string, unknown>>;
+  restaurantName: string;
+}
+
+function formatCurrency(value: unknown): string {
+  const num = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(num) ? `$${num.toFixed(2)}` : '$0.00';
+}
+
+function formatModifiers(modifiers: unknown): string {
+  if (!Array.isArray(modifiers) || modifiers.length === 0) return '';
+  return modifiers
+    .map((m: Record<string, unknown>) => {
+      const name = m.name || 'Option';
+      const price = typeof m.price === 'number' && m.price > 0 ? ` (+${formatCurrency(m.price)})` : '';
+      return `${name}${price}`;
+    })
+    .join(', ');
+}
+
+export async function sendOrderInvoiceEmail(
+  to: string,
+  data: OrderInvoiceEmailData,
+): Promise<void> {
+  const transporter = createTransporter();
+  const { order, items, restaurantName } = data;
+
+  const orderNumber = order.order_number || 'N/A';
+  const placedAt = order.placed_at
+    ? new Date(order.placed_at as string).toLocaleString('en-US', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      })
+    : '';
+  const customerName = [order.contact_first_name, order.contact_last_name]
+    .filter(Boolean)
+    .join(' ');
+  const fulfillment = order.fulfillment_type === 'delivery' ? 'Delivery' : 'Pickup';
+  const deliveryAddress = order.delivery_address || '';
+
+  const offerApplied = order.offer_applied as {
+    type: string;
+    code?: string | null;
+    title: string;
+    description?: string | null;
+    discountType: string;
+    value: number;
+    discountAmount: number;
+  } | null;
+
+  const itemRowsHtml = items
+    .map((item) => {
+      const basePrice = typeof item.base_item_price === 'number' ? formatCurrency(item.base_item_price) : '';
+      const modifierTotal = typeof item.modifier_total === 'number' && (item.modifier_total as number) > 0
+        ? `<br/><span style="color:#78716c;font-size:12px;">Modifier total: ${formatCurrency(item.modifier_total)}</span>`
+        : '';
+      const modifiers = Array.isArray(item.selected_modifiers) && item.selected_modifiers.length > 0
+        ? item.selected_modifiers.map((m: Record<string, unknown>) => {
+            const name = m.name || 'Option';
+            const price = typeof m.price === 'number' && m.price > 0 ? ` (+${formatCurrency(m.price)})` : '';
+            return `<span style="display:inline-block;margin-right:6px;">• ${name}${price}</span>`;
+          }).join('')
+        : '';
+      const modHtml = modifiers ? `<br/><span style="color:#78716c;font-size:12px;">${modifiers}</span>${modifierTotal}` : '';
+      const basePriceHtml = basePrice ? `<br/><span style="color:#78716c;font-size:12px;">Base: ${basePrice} each</span>` : '';
+      const noteText = item.item_note ? `<br/><span style="color:#78716c;font-size:12px;">Note: ${item.item_note}</span>` : '';
+      return `
+        <tr>
+          <td style="padding:10px 0;border-bottom:1px solid #e7e5e4;font-size:14px;">
+            <strong>${item.item_name}</strong>${basePriceHtml}${modHtml}${noteText}
+          </td>
+          <td style="padding:10px 0;border-bottom:1px solid #e7e5e4;font-size:14px;text-align:center;">${item.quantity}</td>
+          <td style="padding:10px 0;border-bottom:1px solid #e7e5e4;font-size:14px;text-align:right;">${formatCurrency(item.line_total)}</td>
+        </tr>`;
+    })
+    .join('');
+
+  const subtotal = formatCurrency(order.sub_total);
+  const offerDetailHtml = offerApplied
+    ? `<tr><td colspan="3" style="padding:0 0 4px;font-size:12px;color:#059669;">${offerApplied.type === 'coupon' ? 'Coupon' : 'Offer'}: ${offerApplied.title}${offerApplied.discountType === 'percent' ? ` (${offerApplied.value}% off)` : ''}${offerApplied.code ? ` — code: ${offerApplied.code}` : ''}</td></tr>`
+    : '';
+  const discount = typeof order.discount_total === 'number' && order.discount_total > 0
+    ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;color:#059669;">Discount</td><td style="padding:4px 0;font-size:14px;text-align:right;color:#059669;">-${formatCurrency(order.discount_total)}</td></tr>${offerDetailHtml}`
+    : '';
+  const tip = typeof order.tip_total === 'number' && order.tip_total > 0
+    ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;">Tip</td><td style="padding:4px 0;font-size:14px;text-align:right;">${formatCurrency(order.tip_total)}</td></tr>`
+    : '';
+  const tax = typeof order.tax_total === 'number' && order.tax_total > 0
+    ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;">Tax</td><td style="padding:4px 0;font-size:14px;text-align:right;">${formatCurrency(order.tax_total)}</td></tr>`
+    : '';
+  const total = formatCurrency(order.cart_total);
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fafaf9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e7e5e4;overflow:hidden;">
+      <div style="padding:32px 24px;border-bottom:1px solid #e7e5e4;">
+        <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;color:#0f172a;">Order Invoice</h1>
+        <p style="margin:0;font-size:13px;color:#78716c;">${restaurantName || 'Restaurant'}</p>
+      </div>
+      <div style="padding:24px;">
+        <table style="width:100%;margin-bottom:20px;font-size:14px;color:#1e293b;">
+          <tr>
+            <td style="padding:4px 0;"><strong>Order #</strong></td>
+            <td style="padding:4px 0;">${orderNumber}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;"><strong>Date</strong></td>
+            <td style="padding:4px 0;">${placedAt}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;"><strong>Customer</strong></td>
+            <td style="padding:4px 0;">${customerName}</td>
+          </tr>
+          ${order.contact_email ? `<tr><td style="padding:4px 0;"><strong>Email</strong></td><td style="padding:4px 0;">${order.contact_email}</td></tr>` : ''}
+          ${order.contact_phone ? `<tr><td style="padding:4px 0;"><strong>Phone</strong></td><td style="padding:4px 0;">${order.contact_phone}</td></tr>` : ''}
+          <tr>
+            <td style="padding:4px 0;"><strong>Fulfillment</strong></td>
+            <td style="padding:4px 0;">${fulfillment}</td>
+          </tr>
+          ${deliveryAddress ? `<tr><td style="padding:4px 0;"><strong>Address</strong></td><td style="padding:4px 0;">${deliveryAddress}</td></tr>` : ''}
+        </table>
+
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:2px solid #0f172a;">
+              <th style="padding:8px 0;text-align:left;font-size:13px;font-weight:600;color:#0f172a;">Item</th>
+              <th style="padding:8px 0;text-align:center;font-size:13px;font-weight:600;color:#0f172a;">Qty</th>
+              <th style="padding:8px 0;text-align:right;font-size:13px;font-weight:600;color:#0f172a;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemRowsHtml}
+          </tbody>
+        </table>
+
+        <table style="width:100%;margin-top:16px;">
+          <tr>
+            <td colspan="2" style="padding:4px 0;font-size:14px;">Subtotal</td>
+            <td style="padding:4px 0;font-size:14px;text-align:right;">${subtotal}</td>
+          </tr>
+          ${discount}
+          ${tip}
+          ${tax}
+          <tr style="border-top:2px solid #0f172a;">
+            <td colspan="2" style="padding:8px 0;font-size:16px;font-weight:700;">Total</td>
+            <td style="padding:8px 0;font-size:16px;font-weight:700;text-align:right;">${total}</td>
+          </tr>
+        </table>
+
+        ${order.payment_method ? `<p style="margin:16px 0 0;font-size:13px;color:#78716c;">Paid via ${order.payment_method}</p>` : ''}
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const textLines = [
+    `Order Invoice - ${restaurantName || 'Restaurant'}`,
+    `Order #: ${orderNumber}`,
+    `Date: ${placedAt}`,
+    `Customer: ${customerName}`,
+    order.contact_email ? `Email: ${order.contact_email}` : '',
+    order.contact_phone ? `Phone: ${order.contact_phone}` : '',
+    `Fulfillment: ${fulfillment}`,
+    deliveryAddress ? `Address: ${deliveryAddress}` : '',
+    '',
+    'Items:',
+    ...items.flatMap((item) => {
+      const lines = [`  ${item.item_name} x${item.quantity} - ${formatCurrency(item.line_total)}`];
+      const basePrice = typeof item.base_item_price === 'number' ? formatCurrency(item.base_item_price) : '';
+      if (basePrice) lines.push(`    Base: ${basePrice} each`);
+      if (Array.isArray(item.selected_modifiers) && item.selected_modifiers.length > 0) {
+        for (const m of item.selected_modifiers) {
+          const name = (m as Record<string, unknown>).name || 'Option';
+          const price = typeof (m as Record<string, unknown>).price === 'number' && ((m as Record<string, unknown>).price as number) > 0
+            ? ` (+${formatCurrency((m as Record<string, unknown>).price)})`
+            : '';
+          lines.push(`    + ${name}${price}`);
+        }
+      }
+      if (item.item_note) lines.push(`    Note: ${item.item_note}`);
+      return lines;
+    }),
+    '',
+    `Subtotal: ${subtotal}`,
+    typeof order.discount_total === 'number' && order.discount_total > 0 ? `Discount: -${formatCurrency(order.discount_total)}` : '',
+    offerApplied ? `  ${offerApplied.type === 'coupon' ? 'Coupon' : 'Offer'}: ${offerApplied.title}${offerApplied.code ? ` (code: ${offerApplied.code})` : ''}` : '',
+    typeof order.tip_total === 'number' && order.tip_total > 0 ? `Tip: ${formatCurrency(order.tip_total)}` : '',
+    `Total: ${total}`,
+  ].filter(Boolean);
+
+  await transporter.sendMail({
+    from: DEFAULT_FROM,
+    to,
+    subject: `Invoice for Order ${orderNumber}${restaurantName ? ` - ${restaurantName}` : ''}`,
+    text: textLines.join('\n'),
+    html: htmlContent,
+  });
+}
+
 export async function verifyEmailConfig(): Promise<boolean> {
   try {
     const transporter = createTransporter();

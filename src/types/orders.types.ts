@@ -32,7 +32,18 @@ export interface Order {
   order_number?: string | null;
   payment_method?: string | null;
   payment_reference?: string | null;
+  offer_applied?: OfferApplied | null;
   order_items?: OrderItem[];
+}
+
+export interface OfferApplied {
+  type: 'coupon' | 'auto_offer';
+  code?: string | null;
+  title: string;
+  description?: string | null;
+  discountType: 'percent' | 'amount';
+  value: number;
+  discountAmount: number;
 }
 
 export interface OrderItem {

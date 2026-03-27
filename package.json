@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 1000",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -15,6 +15,8 @@
     "@nhost/nextjs": "^2.3.1",
     "@nhost/nhost-js": "^3.3.1",
     "@nhost/react": "^3.11.2",
+    "@stripe/react-stripe-js": "^6.0.0",
+    "@stripe/stripe-js": "^9.0.0",
     "@types/fluent-ffmpeg": "^2.1.28",
     "@types/qrcode": "^1.5.6",
     "bcryptjs": "^3.0.3",
@@ -30,6 +32,7 @@
     "react-hot-toast": "^2.6.0",
     "sass": "^1.97.3",
     "sharp": "^0.34.5",
+    "stripe": "^21.0.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {

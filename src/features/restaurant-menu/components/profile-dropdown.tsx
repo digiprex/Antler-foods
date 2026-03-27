@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDownIcon } from '@/features/restaurant-menu/components/icons';
 import type { MenuCustomerProfile } from '@/features/restaurant-menu/lib/customer-profile';
@@ -93,6 +94,27 @@ export function ProfileDropdown({
         </div>
 
         <div className="mt-2">
+          <Link
+            href="/menu/orders"
+            onClick={() => setIsOpen(false)}
+            className="flex w-full items-center justify-between rounded-[16px] px-3.5 py-2.5 text-sm font-semibold text-stone-700 transition hover:bg-stone-100 hover:text-stone-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
+          >
+            <span>Order history</span>
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </Link>
+
           <button
             type="button"
             onClick={() => {

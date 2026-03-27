@@ -6,7 +6,9 @@ import {
 import {
   MenuOrderError,
   placeMenuOrder,
+  updateOrderPaymentIntent,
 } from '@/features/restaurant-menu/lib/server/menu-orders';
+import { getStripe } from '@/lib/server/stripe';
 
 interface CheckoutOrderRequestBody {
   restaurantId?: string;
@@ -88,10 +90,24 @@ export async function POST(request: NextRequest) {
       orderNote: body?.orderNote,
     });
 
+    const paymentIntent = await getStripe().paymentIntents.create({
+      amount: Math.round(result.total * 100),
+      currency: 'usd',
+      metadata: {
+        restaurant_id: restaurantId,
+        order_id: result.orderId,
+        order_number: result.orderNumber,
+      },
+      automatic_payment_methods: { enabled: true },
+    });
+
+    await updateOrderPaymentIntent(result.orderId, paymentIntent.id);
+
     return NextResponse.json({
       success: true,
-      message: `Order ${result.orderNumber} placed successfully.`,
+      message: `Order ${result.orderNumber} created. Complete payment to confirm.`,
       order: result,
+      clientSecret: paymentIntent.client_secret,
     });
   } catch (error) {
     if (error instanceof MenuOrderError) {

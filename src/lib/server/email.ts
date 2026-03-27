@@ -536,15 +536,38 @@ export async function sendOrderInvoiceEmail(
   const fulfillment = order.fulfillment_type === 'delivery' ? 'Delivery' : 'Pickup';
   const deliveryAddress = order.delivery_address || '';
 
-  const offerApplied = order.offer_applied as {
-    type: string;
-    code?: string | null;
-    title: string;
-    description?: string | null;
-    discountType: string;
-    value: number;
-    discountAmount: number;
-  } | null;
+  const resolveOfferTitle = (o: Record<string, unknown>): string => {
+    for (const key of ['title', 'name', 'headline', 'offerName', 'code']) {
+      const v = o[key];
+      if (typeof v === 'string' && v.trim()) return v.trim();
+    }
+    return 'Promotion';
+  };
+
+  const offerApplied = (() => {
+    const raw = order.offer_applied;
+    if (!raw) return null;
+    try {
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (parsed && typeof parsed === 'object' && 'type' in parsed) {
+        return parsed as {
+          type: string;
+          code?: string | null;
+          title?: string | null;
+          name?: string | null;
+          headline?: string | null;
+          offerName?: string | null;
+          description?: string | null;
+          discountType: string;
+          value: number;
+          discountAmount: number;
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  })();
 
   const itemRowsHtml = items
     .map((item) => {
@@ -574,11 +597,21 @@ export async function sendOrderInvoiceEmail(
     .join('');
 
   const subtotal = formatCurrency(order.sub_total);
-  const offerDetailHtml = offerApplied
-    ? `<tr><td colspan="3" style="padding:0 0 4px;font-size:12px;color:#059669;">${offerApplied.type === 'coupon' ? 'Coupon' : 'Offer'}: ${offerApplied.title}${offerApplied.discountType === 'percent' ? ` (${offerApplied.value}% off)` : ''}${offerApplied.code ? ` — code: ${offerApplied.code}` : ''}</td></tr>`
-    : '';
+  const couponCode = typeof order.coupon_used === 'string' && order.coupon_used.trim() ? order.coupon_used.trim() : '';
+  const giftCardCode = typeof order.gift_card_used === 'string' && (order.gift_card_used as string).trim() ? (order.gift_card_used as string).trim() : '';
+  const discountDetailsRows: string[] = [];
+  if (offerApplied) {
+    const pctSuffix = offerApplied.discountType === 'percent' ? ` (${offerApplied.value}% off)` : '';
+    discountDetailsRows.push(`<tr><td colspan="3" style="padding:0 0 4px;font-size:12px;color:#059669;">Offer Applied: ${resolveOfferTitle(offerApplied as unknown as Record<string, unknown>)}${pctSuffix}</td></tr>`);
+  }
+  if (couponCode) {
+    discountDetailsRows.push(`<tr><td colspan="3" style="padding:0 0 4px;font-size:12px;color:#059669;">Coupon: ${couponCode}</td></tr>`);
+  }
+  if (giftCardCode) {
+    discountDetailsRows.push(`<tr><td colspan="3" style="padding:0 0 4px;font-size:12px;color:#059669;">Gift Card: ${giftCardCode}</td></tr>`);
+  }
   const discount = typeof order.discount_total === 'number' && order.discount_total > 0
-    ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;color:#059669;">Discount</td><td style="padding:4px 0;font-size:14px;text-align:right;color:#059669;">-${formatCurrency(order.discount_total)}</td></tr>${offerDetailHtml}`
+    ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;color:#059669;">Discount</td><td style="padding:4px 0;font-size:14px;text-align:right;color:#059669;">-${formatCurrency(order.discount_total)}</td></tr>${discountDetailsRows.join('')}`
     : '';
   const tip = typeof order.tip_total === 'number' && order.tip_total > 0
     ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;">Tip</td><td style="padding:4px 0;font-size:14px;text-align:right;">${formatCurrency(order.tip_total)}</td></tr>`
@@ -686,7 +719,9 @@ export async function sendOrderInvoiceEmail(
     '',
     `Subtotal: ${subtotal}`,
     typeof order.discount_total === 'number' && order.discount_total > 0 ? `Discount: -${formatCurrency(order.discount_total)}` : '',
-    offerApplied ? `  ${offerApplied.type === 'coupon' ? 'Coupon' : 'Offer'}: ${offerApplied.title}${offerApplied.code ? ` (code: ${offerApplied.code})` : ''}` : '',
+    offerApplied ? `  Offer Applied: ${resolveOfferTitle(offerApplied as unknown as Record<string, unknown>)}${offerApplied.discountType === 'percent' ? ` (${offerApplied.value}% off)` : ''}` : '',
+    couponCode ? `  Coupon: ${couponCode}` : '',
+    giftCardCode ? `  Gift Card: ${giftCardCode}` : '',
     typeof order.tip_total === 'number' && order.tip_total > 0 ? `Tip: ${formatCurrency(order.tip_total)}` : '',
     `Total: ${total}`,
   ].filter(Boolean);

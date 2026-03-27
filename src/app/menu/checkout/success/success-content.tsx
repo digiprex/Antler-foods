@@ -1,10 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import { formatPrice } from '@/features/restaurant-menu/lib/format-price';
+import { useMenuCustomerAuth } from '@/features/restaurant-menu/hooks/use-menu-customer-auth';
+import { ProfileDropdown } from '@/features/restaurant-menu/components/profile-dropdown';
 import { generateInvoicePDF } from '@/lib/generate-invoice-pdf';
 
 interface OrderItem {
@@ -30,6 +33,7 @@ interface OrderData {
   sub_total: number;
   cart_total: number;
   coupon_used: string | null;
+  gift_card_used: string | null;
   fulfillment_type: string;
   payment_status: string;
   payment_method: string | null;
@@ -44,9 +48,10 @@ interface OrderData {
   order_note: string | null;
   delivery_address: string | null;
   placed_at: string | null;
+  restaurant_id: string | null;
   restaurant_name: string;
   offer_applied: {
-    type: 'coupon' | 'auto_offer';
+    type: 'auto_offer';
     code?: string | null;
     title: string;
     description?: string | null;
@@ -76,7 +81,17 @@ function formatDate(value: string | null) {
   });
 }
 
+function formatStatus(value: string | null | undefined) {
+  if (!value) return 'Pending';
+  return value
+    .replace(/_/g, ' ')
+    .split(' ')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 export default function MenuCheckoutSuccessContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const orderNumber = searchParams?.get('orderNumber') || '';
   const restaurantNameParam = searchParams?.get('restaurant') || '';
@@ -85,6 +100,64 @@ export default function MenuCheckoutSuccessContent() {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [isLoading, setIsLoading] = useState(!!orderNumber);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [navbarAuthSlot, setNavbarAuthSlot] = useState<HTMLElement | null>(null);
+
+  const restaurantId = order?.restaurant_id || null;
+  const {
+    customerProfile,
+    hasCustomerSession,
+    isLoading: isAuthLoading,
+    isLoggingOut,
+    logout,
+  } = useMenuCustomerAuth(restaurantId);
+
+  const handleLogout = async () => {
+    await logout();
+    router.refresh();
+  };
+
+  useEffect(() => {
+    const syncNavbarAuthSlot = () => {
+      setNavbarAuthSlot(document.getElementById('menu-navbar-auth-slot'));
+    };
+
+    syncNavbarAuthSlot();
+
+    const observer = new MutationObserver(() => {
+      syncNavbarAuthSlot();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  // Hide navbar sign-in/sign-up links when customer is logged in
+  useEffect(() => {
+    const authLinks = Array.from(
+      document.querySelectorAll<HTMLAnchorElement>('a[href="/login"], a[href="/signup"]'),
+    );
+
+    authLinks.forEach((link) => {
+      if (!('menuAuthOriginalDisplay' in link.dataset)) {
+        link.dataset.menuAuthOriginalDisplay = link.style.display || '';
+      }
+
+      link.style.display = hasCustomerSession ? 'none' : link.dataset.menuAuthOriginalDisplay || '';
+    });
+
+    return () => {
+      authLinks.forEach((link) => {
+        link.style.display = link.dataset.menuAuthOriginalDisplay || '';
+        delete link.dataset.menuAuthOriginalDisplay;
+      });
+    };
+  }, [hasCustomerSession]);
 
   useEffect(() => {
     if (!orderNumber) return;
@@ -139,6 +212,8 @@ export default function MenuCheckoutSuccessContent() {
       tip,
       tax,
       offerApplied,
+      couponCode: order?.coupon_used || '',
+      giftCardCode: order?.gift_card_used || '',
       orderNote,
     });
     doc.save(`invoice-${orderNumber}.pdf`);
@@ -166,12 +241,80 @@ export default function MenuCheckoutSuccessContent() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div
+        className="min-h-screen bg-[linear-gradient(180deg,#fafaf9_0%,#ffffff_100%)] px-4 pb-6 sm:px-6 sm:pb-8 lg:px-8 lg:pb-10"
+        style={{ paddingTop: 'calc(var(--navbar-height, 0px) + 2.5rem)' }}
+      >
+        <div className="mx-auto max-w-5xl space-y-5">
+          {/* Skeleton header */}
+          <div className="rounded-[24px] border border-stone-200 bg-[linear-gradient(180deg,#ffffff_0%,#fafaf9_100%)] px-6 py-8 shadow-sm sm:px-8 sm:py-10">
+            <div className="h-14 w-14 animate-pulse rounded-full bg-stone-200" />
+            <div className="mt-6 h-3 w-28 animate-pulse rounded bg-stone-200" />
+            <div className="mt-4 h-9 w-72 animate-pulse rounded-lg bg-stone-200 sm:w-96" />
+            <div className="mt-4 h-4 w-80 animate-pulse rounded bg-stone-100 sm:w-[28rem]" />
+          </div>
+
+          <div className="px-1 sm:px-2">
+            {/* Skeleton info cards */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="rounded-[20px] border border-stone-200 bg-stone-50 px-5 py-4">
+                  <div className="h-2.5 w-20 animate-pulse rounded bg-stone-200" />
+                  <div className="mt-3 h-6 w-32 animate-pulse rounded bg-stone-200" />
+                </div>
+              ))}
+            </div>
+
+            {/* Skeleton items */}
+            <div className="mt-5 rounded-[20px] border border-stone-200 bg-stone-50 px-5 py-4">
+              <div className="mb-4 h-2.5 w-24 animate-pulse rounded bg-stone-200" />
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-40 animate-pulse rounded bg-stone-200" />
+                      <div className="h-3 w-28 animate-pulse rounded bg-stone-100" />
+                    </div>
+                    <div className="h-4 w-14 animate-pulse rounded bg-stone-200" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Skeleton breakdown */}
+            <div className="mt-5 rounded-[20px] border border-stone-200 bg-stone-50 px-5 py-4">
+              <div className="mb-4 h-2.5 w-28 animate-pulse rounded bg-stone-200" />
+              <div className="space-y-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="h-3.5 w-16 animate-pulse rounded bg-stone-200" />
+                    <div className="h-3.5 w-14 animate-pulse rounded bg-stone-200" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Skeleton actions */}
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <div className="h-12 w-36 animate-pulse rounded-[16px] bg-stone-200" />
+              <div className="h-12 w-44 animate-pulse rounded-[16px] bg-stone-100" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#fafaf9_0%,#ffffff_100%)] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-      <div className="mx-auto max-w-3xl">
-        <div className="overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_24px_64px_rgba(15,23,42,0.08)]">
+    <div
+      className="min-h-screen bg-[radial-gradient(circle_at_top,#f5f7ff_0%,#f8fafc_38%,#ffffff_78%)] px-4 pb-6 sm:px-6 sm:pb-8 lg:px-10 lg:pb-10"
+      style={{ paddingTop: 'calc(var(--navbar-height, 0px) + 2.5rem)' }}
+    >
+      <div className="mx-auto max-w-5xl space-y-5">
           {/* Header */}
-          <div className="border-b border-stone-200 bg-[linear-gradient(180deg,#ffffff_0%,#fafaf9_100%)] px-6 py-8 sm:px-8 sm:py-10">
+          <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-6 py-8 shadow-sm sm:px-8 sm:py-10">
             <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 shadow-sm">
               <svg
                 aria-hidden="true"
@@ -198,11 +341,26 @@ export default function MenuCheckoutSuccessContent() {
                 ? `We have sent your order to ${restaurantName}. The restaurant will take it from here.`
                 : 'We have received your order and the restaurant will take it from here.'}
             </p>
+            {(customerName || email || phone) ? (
+              <div className="mt-4 w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
+                {customerName ? <p className="font-semibold text-slate-950">{customerName}</p> : null}
+                {email ? <p>{email}</p> : null}
+                {phone ? <p>{phone}</p> : null}
+              </div>
+            ) : null}
+            <div className="mt-5 flex flex-wrap gap-2">
+              <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
+                Status: {formatStatus(order?.status)}
+              </span>
+              <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
+                Payment: {formatStatus(order?.payment_status)}
+              </span>
+            </div>
           </div>
 
-          <div className="px-6 py-6 sm:px-8 sm:py-8">
+          <div className="px-1 py-1 sm:px-2">
             {/* Order info cards */}
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {orderNumber ? (
                 <div className="rounded-[20px] border border-stone-200 bg-stone-50 px-5 py-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
@@ -271,143 +429,131 @@ export default function MenuCheckoutSuccessContent() {
             </div>
 
             {/* Order items */}
-            {isLoading ? (
-              <div className="mt-5 rounded-[20px] border border-stone-200 bg-stone-50 px-5 py-6 text-center text-sm text-stone-500">
-                Loading order details...
-              </div>
-            ) : items.length > 0 ? (
-              <div className="mt-5 rounded-[20px] border border-stone-200 bg-stone-50 px-5 py-4">
+            {items.length > 0 ? (
+              <div className="mt-5 overflow-hidden rounded-[20px] border border-slate-200 bg-slate-50/60">
                 <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
-                  Items ordered
+                  <span className="px-5 pt-4 inline-block">Items ordered</span>
                 </p>
-                <div className="divide-y divide-stone-200">
-                  {items.map((item) => (
-                    <div
-                      key={item.order_item_id}
-                      className="py-3 first:pt-0 last:pb-0"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-slate-950">
-                            {item.item_name}
-                            <span className="ml-2 text-stone-500">x{item.quantity}</span>
-                          </p>
-                        </div>
-                        <p className="whitespace-nowrap text-sm font-medium text-slate-950">
-                          {formatPrice(item.line_total)}
-                        </p>
-                      </div>
-                      <div className="mt-1 space-y-0.5 pl-0.5">
-                        <p className="text-xs text-stone-500">
-                          Base price: {formatPrice(item.base_item_price)} each
-                        </p>
-                        {item.selected_modifiers && item.selected_modifiers.length > 0 ? (
-                          <div className="text-xs text-stone-500">
-                            <span className="font-medium text-stone-600">Modifiers: </span>
-                            {item.selected_modifiers.map((m, i) => (
-                              <span key={m.name}>
-                                {i > 0 ? ', ' : ''}
-                                {m.name}
-                                {m.price > 0 ? (
-                                  <span className="text-stone-400"> +{formatPrice(m.price)}</span>
-                                ) : null}
-                              </span>
-                            ))}
-                            {item.modifier_total > 0 ? (
-                              <span className="ml-1 text-stone-400">
-                                (modifier total: {formatPrice(item.modifier_total)})
-                              </span>
-                            ) : null}
-                          </div>
-                        ) : null}
-                        {item.item_note ? (
-                          <p className="text-xs text-stone-500">
-                            Note: {item.item_note}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  ))}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead className="border-y border-slate-200 bg-white/80">
+                      <tr>
+                        <th className="px-5 py-2.5 text-left font-semibold text-slate-700">Item</th>
+                        <th className="px-5 py-2.5 text-right font-semibold text-slate-700">Qty</th>
+                        <th className="px-5 py-2.5 text-right font-semibold text-slate-700">Unit</th>
+                        <th className="px-5 py-2.5 text-right font-semibold text-slate-700">Line total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200/80">
+                      {items.map((item) => {
+                        const qty = item.quantity > 0 ? item.quantity : 1;
+                        const unit = item.line_total / qty;
+                        return (
+                          <tr key={item.order_item_id} className="align-top">
+                            <td className="px-5 py-3">
+                              <p className="font-medium text-slate-950">{item.item_name}</p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                Base: {formatPrice(item.base_item_price)} each
+                              </p>
+                              {item.selected_modifiers?.length ? (
+                                <div className="mt-1 space-y-0.5">
+                                  {item.selected_modifiers.map((modifier, index) => (
+                                    <p key={`${item.order_item_id}-m-${index}`} className="text-xs text-slate-500">
+                                      + {modifier.name}
+                                      {modifier.price > 0 ? ` (${formatPrice(modifier.price)})` : ''}
+                                    </p>
+                                  ))}
+                                  {item.modifier_total > 0 ? (
+                                    <p className="text-xs text-slate-500">
+                                      Modifier total: {formatPrice(item.modifier_total)}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                              {item.item_note ? (
+                                <p className="mt-1 text-xs italic text-slate-500">Note: {item.item_note}</p>
+                              ) : null}
+                            </td>
+                            <td className="px-5 py-3 text-right text-slate-600">{qty}</td>
+                            <td className="px-5 py-3 text-right text-slate-600">{formatPrice(unit)}</td>
+                            <td className="px-5 py-3 text-right font-semibold text-slate-900">
+                              {formatPrice(item.line_total)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             ) : null}
 
             {/* Order breakdown */}
             {(typeof subtotal === 'number' || typeof tip === 'number' || typeof discount === 'number') ? (
-              <div className="mt-5 rounded-[20px] border border-stone-200 bg-stone-50 px-5 py-4">
+              <div className="mt-5 overflow-hidden rounded-[20px] border border-slate-200 bg-slate-50/60">
                 <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
-                  Order breakdown
+                  <span className="px-5 pt-4 inline-block">Order breakdown</span>
                 </p>
-                <div className="space-y-2 text-sm">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <tbody className="divide-y divide-slate-200/80">
                   {typeof subtotal === 'number' ? (
-                    <div className="flex items-center justify-between">
-                      <span className="text-stone-600">Subtotal</span>
-                      <span className="font-medium text-slate-950">{formatPrice(subtotal)}</span>
-                    </div>
+                      <tr>
+                        <td className="px-5 py-2.5 text-slate-600">Subtotal</td>
+                        <td className="px-5 py-2.5 text-right font-medium text-slate-950">{formatPrice(subtotal)}</td>
+                      </tr>
                   ) : null}
                   {typeof discount === 'number' && discount > 0 ? (
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-emerald-700">Discount</span>
-                        <span className="font-medium text-emerald-700">-{formatPrice(discount)}</span>
-                      </div>
-                      {offerApplied ? (
-                        <p className="mt-0.5 text-xs text-emerald-600">
-                          {offerApplied.type === 'coupon' ? 'Coupon' : 'Offer'}: {offerApplied.title}
-                          {offerApplied.discountType === 'percent' ? ` (${offerApplied.value}% off)` : ''}
-                          {offerApplied.code ? ` — code: ${offerApplied.code}` : ''}
-                        </p>
-                      ) : null}
-                    </div>
+                      <tr>
+                        <td className="px-5 py-2.5 align-top text-emerald-700">
+                          <p>Discount</p>
+                          {offerApplied ? (
+                            <p className="mt-0.5 text-xs text-emerald-600">
+                              Offer: {offerApplied.title}
+                              {offerApplied.discountType === 'percent' ? ` (${offerApplied.value}% off)` : ''}
+                            </p>
+                          ) : null}
+                          {order?.coupon_used ? (
+                            <p className="mt-0.5 text-xs text-emerald-600">Coupon: {order.coupon_used}</p>
+                          ) : null}
+                          {order?.gift_card_used ? (
+                            <p className="mt-0.5 text-xs text-emerald-600">Gift Card: {order.gift_card_used}</p>
+                          ) : null}
+                        </td>
+                        <td className="px-5 py-2.5 text-right font-medium text-emerald-700">-{formatPrice(discount)}</td>
+                      </tr>
                   ) : null}
                   {typeof tip === 'number' && tip > 0 ? (
-                    <div className="flex items-center justify-between">
-                      <span className="text-stone-600">Tip</span>
-                      <span className="font-medium text-slate-950">{formatPrice(tip)}</span>
-                    </div>
+                      <tr>
+                        <td className="px-5 py-2.5 text-slate-600">Tip</td>
+                        <td className="px-5 py-2.5 text-right font-medium text-slate-950">{formatPrice(tip)}</td>
+                      </tr>
                   ) : null}
                   {typeof tax === 'number' && tax > 0 ? (
-                    <div className="flex items-center justify-between">
-                      <span className="text-stone-600">Tax</span>
-                      <span className="font-medium text-slate-950">{formatPrice(tax)}</span>
-                    </div>
+                      <tr>
+                        <td className="px-5 py-2.5 text-slate-600">Tax</td>
+                        <td className="px-5 py-2.5 text-right font-medium text-slate-950">{formatPrice(tax)}</td>
+                      </tr>
                   ) : null}
                   {typeof total === 'number' ? (
-                    <div className="flex items-center justify-between border-t border-stone-200 pt-2">
-                      <span className="font-semibold text-slate-950">Total</span>
-                      <span className="font-semibold text-slate-950">{formatPrice(total)}</span>
-                    </div>
+                      <tr className="bg-slate-900 text-white">
+                        <td className="px-5 py-2.5 font-semibold">Total</td>
+                        <td className="px-5 py-2.5 text-right font-semibold">{formatPrice(total)}</td>
+                      </tr>
                   ) : null}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             ) : null}
 
-            {/* Order note */}
             {orderNote ? (
-              <div className="mt-5 rounded-[20px] border border-stone-200 bg-white px-5 py-4">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
+              <div className="mt-5 rounded-[20px] border border-slate-200 bg-white px-5 py-4">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
                   Order note
                 </p>
-                <p className="text-sm text-slate-950">{orderNote}</p>
-              </div>
-            ) : null}
-
-            {/* Contact details */}
-            {(customerName || email || phone) ? (
-              <div className="mt-5 rounded-[20px] border border-stone-200 bg-white px-5 py-4">
-                <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
-                  Contact details
-                </p>
-                <div className="space-y-1.5 text-sm text-slate-950">
-                  {customerName ? (
-                    <p className="font-medium">{customerName}</p>
-                  ) : null}
-                  {email ? (
-                    <p className="text-stone-600">{email}</p>
-                  ) : null}
-                  {phone ? (
-                    <p className="text-stone-600">{phone}</p>
-                  ) : null}
+                <div className="rounded-[14px] border border-slate-200 bg-slate-50/60 px-4 py-3">
+                  <p className="text-sm leading-6 text-slate-800">{orderNote}</p>
                 </div>
               </div>
             ) : null}
@@ -415,10 +561,10 @@ export default function MenuCheckoutSuccessContent() {
             {/* Actions */}
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/menu"
-                className="inline-flex h-12 items-center justify-center rounded-[16px] bg-black px-6 text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                href="/menu/orders"
+                className="inline-flex h-12 items-center justify-center rounded-[16px] bg-slate-900 px-6 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
               >
-                Back to menu
+                Back to order history
               </Link>
               {items.length > 0 ? (
                 <button
@@ -468,8 +614,18 @@ export default function MenuCheckoutSuccessContent() {
               ) : null}
             </div>
           </div>
-        </div>
       </div>
+
+      {navbarAuthSlot && !isAuthLoading && hasCustomerSession && customerProfile
+        ? createPortal(
+            <ProfileDropdown
+              profile={customerProfile}
+              isLoggingOut={isLoggingOut}
+              onLogout={handleLogout}
+            />,
+            navbarAuthSlot,
+          )
+        : null}
     </div>
   );
 }

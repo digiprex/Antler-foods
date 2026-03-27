@@ -280,12 +280,17 @@ Subtotal: ${formatCurrency(order.sub_total)}`;
     }
     
     if (order.discount_total != null && order.discount_total > 0) {
+      receiptContent += `\nDiscount: -${formatCurrency(order.discount_total)}`;
       const _offer = parseOfferApplied(order.offer_applied);
       if (_offer) {
         const offerType = _offer.discountType === 'percent' ? `${_offer.value}% off` : `$${_offer.value.toFixed(2)} off`;
-        receiptContent += `\nDiscount (${_offer.title} — ${offerType}${_offer.code ? `, code: ${_offer.code}` : ''}): -${formatCurrency(order.discount_total)}`;
-      } else {
-        receiptContent += `\nDiscount: -${formatCurrency(order.discount_total)}`;
+        receiptContent += `\n  Offer Applied: ${_offer.title} (${offerType})`;
+      }
+      if (order.coupon_used) {
+        receiptContent += `\n  Coupon: ${order.coupon_used}`;
+      }
+      if (order.gift_card_used) {
+        receiptContent += `\n  Gift Card: ${order.gift_card_used}`;
       }
     }
 
@@ -495,16 +500,22 @@ Generated on: ${new Date().toLocaleString()}
         </div>` : ''}
         ${order.discount_total != null && order.discount_total > 0 ? (() => {
           const _offer = parseOfferApplied(order.offer_applied);
-          let discountLabel = 'Discount';
+          let details = '';
           if (_offer) {
             const offerType = _offer.discountType === 'percent' ? `${_offer.value}% off` : `$${_offer.value.toFixed(2)} off`;
-            discountLabel = `Discount — ${_offer.title} (${offerType})${_offer.code ? ` [${_offer.code}]` : ''}`;
+            details += `<div style="font-size:11px;color:#059669;margin-left:10px;">Offer Applied: ${_offer.title} (${offerType})</div>`;
+          }
+          if (order.coupon_used) {
+            details += `<div style="font-size:11px;color:#059669;margin-left:10px;">Coupon: ${order.coupon_used}</div>`;
+          }
+          if (order.gift_card_used) {
+            details += `<div style="font-size:11px;color:#059669;margin-left:10px;">Gift Card: ${order.gift_card_used}</div>`;
           }
           return `
         <div class="total-line" style="color: #059669;">
-            <span>${discountLabel}</span>
+            <span>Discount</span>
             <span>-${formatCurrency(order.discount_total)}</span>
-        </div>`;
+        </div>${details}`;
         })() : ''}
         <div class="total-line grand-total">
             <span>TOTAL:</span>
@@ -594,6 +605,8 @@ Generated on: ${new Date().toLocaleString()}
       tip: order.tip_total ?? null,
       tax: order.tax_total ?? null,
       offerApplied: offer,
+      couponCode: order.coupon_used || '',
+      giftCardCode: order.gift_card_used || '',
       orderNote: order.order_note || '',
     });
 
@@ -825,27 +838,28 @@ Generated on: ${new Date().toLocaleString()}
                   </div>
                 </div>
 
-                {/* Offer / Discount Info */}
+                {/* Offer Applied (auto offers only) */}
                 {(() => {
                   const offer = parseOfferApplied(order.offer_applied);
                   return offer ? (
                     <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex flex-wrap items-center gap-2">
-                      <span className="text-green-700 font-medium text-sm">{offer.title}</span>
+                      <span className="text-green-700 font-medium text-sm">Offer Applied: {offer.title}</span>
                       <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800">
                         {offer.discountType === 'percent' ? `${offer.value}% off` : `$${offer.value.toFixed(2)} off`}
                       </span>
-                      {offer.code && (
-                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-mono bg-gray-100 text-gray-700">
-                          {offer.code}
-                        </span>
-                      )}
-                      {order.discount_total != null && Number(order.discount_total) > 0 && (
+                      {typeof offer.discountAmount === 'number' && offer.discountAmount > 0 && (
                         <span className="text-green-800 text-xs font-semibold ml-auto">
-                          −{formatCurrency(Number(order.discount_total))}
+                          −{formatCurrency(offer.discountAmount)}
                         </span>
                       )}
                     </div>
-                  ) : order.discount_total != null && Number(order.discount_total) > 0 ? (
+                  ) : null;
+                })()}
+
+                {/* Discount total (when no offer but discount exists, e.g. coupon/gift card) */}
+                {(() => {
+                  const offer = parseOfferApplied(order.offer_applied);
+                  return !offer && order.discount_total != null && Number(order.discount_total) > 0 ? (
                     <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
                       <span className="text-green-700 font-medium text-sm">Discount Applied</span>
                       <span className="text-green-800 text-xs font-semibold ml-auto">
@@ -861,6 +875,16 @@ Generated on: ${new Date().toLocaleString()}
                     <span className="text-purple-700 font-medium text-sm">Coupon Used:</span>
                     <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-mono bg-purple-100 text-purple-800">
                       {order.coupon_used}
+                    </span>
+                  </div>
+                )}
+
+                {/* Gift Card Code */}
+                {order.gift_card_used && (
+                  <div className="mt-2 p-3 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center gap-2">
+                    <span className="text-indigo-700 font-medium text-sm">Gift Card Used:</span>
+                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-mono bg-indigo-100 text-indigo-800">
+                      {order.gift_card_used}
                     </span>
                   </div>
                 )}
@@ -1050,36 +1074,18 @@ Generated on: ${new Date().toLocaleString()}
                           <p className="text-sm text-gray-900 mt-1 font-mono">{selectedOrder.coupon_used}</p>
                         </div>
                       )}
-                      {(() => {
-                        const offer = parseOfferApplied(selectedOrder.offer_applied);
-                        if (!offer) return null;
-                        return (
-                          <div>
-                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                              {offer.type === 'coupon' ? 'Coupon Applied' : 'Offer Applied'}
-                            </p>
-                            <div className="mt-1.5 rounded-lg border border-green-200 bg-green-50 p-3 space-y-1">
-                              <p className="text-sm font-semibold text-green-800">{offer.title}</p>
-                              {offer.description && (
-                                <p className="text-xs text-green-700">{offer.description}</p>
-                              )}
-                              <div className="flex flex-wrap gap-2 pt-1">
-                                <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                                  {offer.discountType === 'percent' ? `${offer.value}% off` : `$${offer.value} off`}
-                                </span>
-                                <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                                  Saved {formatCurrency(offer.discountAmount)}
-                                </span>
-                                {offer.code && (
-                                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-mono font-medium text-gray-700">
-                                    {offer.code}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
+                      {selectedOrder.gift_card_used && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Gift Card Used</p>
+                          <p className="text-sm text-gray-900 mt-1 font-mono">{selectedOrder.gift_card_used}</p>
+                        </div>
+                      )}
+                      {/* {selectedOrder.offer_applied && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Offer Applied</p>
+                          <p className="text-sm text-gray-900 mt-1 font-mono">{selectedOrder.offer_applied}</p>
+                        </div>
+                      )} */}
                     </div>
                   </div>
                 </div>
@@ -1239,15 +1245,23 @@ Generated on: ${new Date().toLocaleString()}
                         </div>
                         {(() => {
                           const offer = parseOfferApplied(selectedOrder.offer_applied);
-                          if (!offer) return null;
-                          return (
+                          return offer ? (
                             <p className="text-xs text-green-600 mt-0.5">
-                              {offer.type === 'coupon' ? 'Coupon' : 'Offer'}: {offer.title}
+                              Offer Applied: {offer.title}
                               {offer.discountType === 'percent' ? ` (${offer.value}% off)` : ''}
-                              {offer.code ? ` — ${offer.code}` : ''}
                             </p>
-                          );
+                          ) : null;
                         })()}
+                        {selectedOrder.coupon_used && (
+                          <p className="text-xs text-green-600 mt-0.5">
+                            Coupon: {selectedOrder.coupon_used}
+                          </p>
+                        )}
+                        {selectedOrder.gift_card_used && (
+                          <p className="text-xs text-green-600 mt-0.5">
+                            Gift Card: {selectedOrder.gift_card_used}
+                          </p>
+                        )}
                       </div>
                     )}
                     <div className="border-t border-gray-200 pt-3">

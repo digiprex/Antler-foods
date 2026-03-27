@@ -17,6 +17,7 @@ const GET_ORDER_BY_NUMBER = `
       sub_total
       cart_total
       coupon_used
+      gift_card_used
       fulfillment_type
       payment_status
       payment_method
@@ -102,10 +103,23 @@ export async function GET(request: NextRequest) {
       restaurantName = restData.restaurants_by_pk?.name || '';
     }
 
+    // Parse offer_applied JSON string to object
+    let parsedOfferApplied = null;
+    if (order.offer_applied) {
+      try {
+        parsedOfferApplied = typeof order.offer_applied === 'string'
+          ? JSON.parse(order.offer_applied)
+          : order.offer_applied;
+      } catch {
+        parsedOfferApplied = null;
+      }
+    }
+
     return NextResponse.json({
       order: {
         ...order,
         restaurant_name: restaurantName,
+        offer_applied: parsedOfferApplied,
       },
       items: itemsData.order_items || [],
     });

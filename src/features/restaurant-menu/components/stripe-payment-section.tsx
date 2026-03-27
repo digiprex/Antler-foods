@@ -12,21 +12,28 @@ interface StripePaymentSectionProps {
   total: number;
   onSuccess: () => void;
   onError: (message: string) => void;
+  onProcessingChange?: (isProcessing: boolean) => void;
 }
 
 export function StripePaymentSection({
   total,
   onSuccess,
   onError,
+  onProcessingChange,
 }: StripePaymentSectionProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const updateProcessing = (value: boolean) => {
+    setIsProcessing(value);
+    onProcessingChange?.(value);
+  };
+
   const handleSubmit = async () => {
     if (!stripe || !elements) return;
 
-    setIsProcessing(true);
+    updateProcessing(true);
 
     const { error } = await stripe.confirmPayment({
       elements,
@@ -38,7 +45,7 @@ export function StripePaymentSection({
 
     if (error) {
       onError(error.message || 'Payment failed. Please try again.');
-      setIsProcessing(false);
+      updateProcessing(false);
     } else {
       onSuccess();
     }

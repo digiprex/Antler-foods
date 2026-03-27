@@ -81,6 +81,7 @@ const GET_ORDERS_QUERY = `
       sub_total
       cart_total
       coupon_used
+      gift_card_used
       fulfillment_type
       payment_status
       contact_first_name

@@ -225,7 +225,7 @@ export interface PlaceMenuOrderResult {
   discountTotal: number;
   total: number;
   offerApplied: {
-    type: 'coupon' | 'auto_offer';
+    type: 'auto_offer';
     code: string | null;
     title: string;
     description: string | null;
@@ -461,31 +461,34 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     }).bestOffer;
   }
 
-  const offerApplied = appliedCoupon
+  const offerApplied = appliedAutoOffer
     ? {
-        type: 'coupon' as const,
-        code: appliedCoupon.code,
-        title: appliedCoupon.title || appliedCoupon.code,
-        description: appliedCoupon.description || null,
-        discountType: appliedCoupon.discountType,
-        value: appliedCoupon.value,
-        discountAmount: appliedCoupon.discountAmount,
+        type: 'auto_offer' as const,
+        code: null,
+        title: appliedAutoOffer.offerName || appliedAutoOffer.headline,
+        description: appliedAutoOffer.description || null,
+        discountType: 'amount' as const,
+        value: appliedAutoOffer.discountAmount,
+        discountAmount: appliedAutoOffer.discountAmount,
       }
-    : appliedAutoOffer
-      ? {
-          type: 'auto_offer' as const,
-          code: null,
-          title: appliedAutoOffer.offerName || appliedAutoOffer.headline,
-          description: appliedAutoOffer.description || null,
-          discountType: 'amount' as const,
-          value: appliedAutoOffer.discountAmount,
-          discountAmount: appliedAutoOffer.discountAmount,
-        }
-      : null;
+    : null;
 
   const orderDiscountTotal =
     appliedCoupon?.discountAmount || appliedAutoOffer?.discountAmount || 0;
   const preGiftCardTotal = roundCurrency(subtotal + tipAmount - orderDiscountTotal);
+
+  // Only store auto offers in offer_applied (not coupons or gift cards)
+  const storedOfferApplied = appliedAutoOffer
+    ? {
+        type: 'auto_offer' as const,
+        code: null,
+        title: appliedAutoOffer.offerName || appliedAutoOffer.headline,
+        description: appliedAutoOffer.description || null,
+        discountType: 'amount' as const,
+        value: appliedAutoOffer.discountAmount,
+        discountAmount: appliedAutoOffer.discountAmount,
+      }
+    : null;
 
   if (trimText(input.giftCardCode)) {
     try {
@@ -521,7 +524,9 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       sub_total: subtotal,
       cart_total: total,
       coupon_used: appliedCoupon?.code || null,
-      offer_applied: offerApplied ? JSON.stringify(offerApplied) : null,
+      gift_card_used: giftCardAppliedAmount > 0 ? trimText(input.giftCardCode) : null,
+      // Only persist auto offer metadata (not coupons or gift cards)
+      offer_applied: storedOfferApplied ? JSON.stringify(storedOfferApplied) : null,
       fulfillment_type: fulfillmentType,
       payment_status: 'processing',
       contact_first_name: contact.firstName,

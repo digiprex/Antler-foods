@@ -14,9 +14,11 @@ import DynamicNavbar from './dynamic-navbar';
 
 export default function ConditionalNavbar() {
   const pathname = usePathname() ?? '';
+  const isProfilePage = pathname === '/profile';
+  const isOrdersPage = pathname === '/orders';
   const isMenuCheckoutSuccessPage = pathname === '/menu/checkout/success';
   const isMenuCheckoutPage = pathname?.startsWith('/menu/checkout') && !isMenuCheckoutSuccessPage;
-  const isMenuPage = pathname?.startsWith('/menu') && !isMenuCheckoutPage;
+  const isMenuPage = (pathname?.startsWith('/menu') && !isMenuCheckoutPage) || isProfilePage || isOrdersPage;
 
   const hideNavbar =
     pathname?.startsWith('/admin') ||

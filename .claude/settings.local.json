@@ -18,7 +18,8 @@
       "Bash(find C:/Users/natas/Desktop/Antler-foods -name *database* -o -name *schema* -o -name *migration*)",
       "Bash(grep -E \"\\\\.\\(ts|sql\\)$\")",
       "Bash(npx tsc:*)",
-      "Bash(find /c/Users/natas/Desktop/Antler-foods/src -type f -name *profile* -o -name *order*history*)"
+      "Bash(find /c/Users/natas/Desktop/Antler-foods/src -type f -name *profile* -o -name *order*history*)",
+      "Bash(find /c/Users/natas/Desktop/Antler-foods -type f -name *customer*profile*)"
     ]
   }
 }

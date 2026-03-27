@@ -336,11 +336,6 @@ export default function MenuCheckoutSuccessContent() {
             <h1 className="mt-3 text-[2rem] font-semibold tracking-tight text-slate-950 sm:text-[2.4rem]">
               Thanks, your order is in.
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-600 sm:text-[15px]">
-              {restaurantName
-                ? `We have sent your order to ${restaurantName}. The restaurant will take it from here.`
-                : 'We have received your order and the restaurant will take it from here.'}
-            </p>
             {(customerName || email || phone) ? (
               <div className="mt-4 w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
                 {customerName ? <p className="font-semibold text-slate-950">{customerName}</p> : null}
@@ -348,6 +343,11 @@ export default function MenuCheckoutSuccessContent() {
                 {phone ? <p>{phone}</p> : null}
               </div>
             ) : null}
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-600 sm:text-[15px]">
+              {restaurantName
+                ? `We have sent your order to ${restaurantName}. The restaurant will take it from here.`
+                : 'We have received your order and the restaurant will take it from here.'}
+            </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
                 Status: {formatStatus(order?.status)}
@@ -561,7 +561,7 @@ export default function MenuCheckoutSuccessContent() {
             {/* Actions */}
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/menu/orders"
+                href="/orders"
                 className="inline-flex h-12 items-center justify-center rounded-[16px] bg-slate-900 px-6 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
               >
                 Back to order history

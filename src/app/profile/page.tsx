@@ -1,6 +1,11 @@
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
-import OrderHistoryPage from '@/features/restaurant-menu/components/order-history-page';
+import { cookies, headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import CustomerProfilePage from '@/features/restaurant-menu/components/customer-profile-page';
+import {
+  getMenuCustomerSessionCookieName,
+  readMenuCustomerSession,
+} from '@/features/restaurant-menu/lib/server/customer-auth';
 import {
   getEmptyRestaurantMenuData,
   loadRestaurantMenuMetadata,
@@ -28,22 +33,22 @@ function getRequestOrigin() {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const canonical = `${getRequestOrigin()}/menu/orders`;
+  const canonical = `${getRequestOrigin()}/profile`;
   try {
     const metadata = await loadRestaurantMenuMetadata(getRequestDomain());
     const titlePrefix = metadata.title.replace(' | Online Ordering', '');
     return {
-      title: `${titlePrefix} | Order History`,
-      description: 'Review your recent orders and receipts.',
+      title: `${titlePrefix} | My Profile`,
+      description: 'Manage your profile and account settings.',
       alternates: {
         canonical,
       },
     };
   } catch (error) {
-    console.error('[Menu Orders] Error generating metadata:', error);
+    console.error('[Menu Profile] Error generating metadata:', error);
     return {
-      title: 'Order History',
-      description: 'Review your recent online orders.',
+      title: 'My Profile',
+      description: 'Manage your profile and account settings.',
       alternates: {
         canonical,
       },
@@ -51,22 +56,42 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function MenuOrdersPageRoute() {
+export default async function MenuProfilePageRoute() {
   try {
     const data = await loadRestaurantMenuPageData(getRequestDomain());
+    const cookieStore = cookies();
+    const cookieValue = cookieStore.get(getMenuCustomerSessionCookieName())?.value;
+    const customerSession = await readMenuCustomerSession(
+      cookieValue,
+      data.restaurantId || undefined,
+    );
+
+    if (!customerSession) {
+      redirect('/menu');
+    }
 
     return (
-      <OrderHistoryPage
+      <CustomerProfilePage
         restaurantId={data.restaurantId}
         restaurantName={data.restaurant.name || 'Restaurant'}
       />
     );
   } catch (error) {
-    console.error('[Menu Orders] Error loading menu context:', error);
+    console.error('[Menu Profile] Error loading menu context:', error);
     const fallbackData = getEmptyRestaurantMenuData();
+    const cookieStore = cookies();
+    const cookieValue = cookieStore.get(getMenuCustomerSessionCookieName())?.value;
+    const customerSession = await readMenuCustomerSession(
+      cookieValue,
+      fallbackData.restaurantId || undefined,
+    );
+
+    if (!customerSession) {
+      redirect('/menu');
+    }
 
     return (
-      <OrderHistoryPage
+      <CustomerProfilePage
         restaurantId={fallbackData.restaurantId}
         restaurantName={fallbackData.restaurant.name || 'Restaurant'}
       />

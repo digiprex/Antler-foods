@@ -27,6 +27,8 @@ import type {
   FulfillmentMode,
   RestaurantMenuData,
 } from '@/features/restaurant-menu/types/restaurant-menu.types';
+import { StripePaymentProvider } from '@/features/restaurant-menu/components/stripe-provider';
+import { StripePaymentSection } from '@/features/restaurant-menu/components/stripe-payment-section';
 
 interface RestaurantMenuCheckoutPageProps {
   data: RestaurantMenuData;
@@ -254,6 +256,12 @@ export default function RestaurantMenuCheckoutPage({
     useState(false);
   const [isOffersModalOpen, setIsOffersModalOpen] = useState(false);
   const [isOffersSectionOpen, setIsOffersSectionOpen] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [pendingOrderData, setPendingOrderData] = useState<{
+    orderNumber: string;
+    total: number;
+  } | null>(null);
   const brandName = data.restaurant.name.replace(' Menu', '');
 
   const setAuthQueryParam = (view: MenuAuthView | null) => {
@@ -564,6 +572,60 @@ export default function RestaurantMenuCheckoutPage({
     closeAuthSidebar();
   };
 
+  const navigateToSuccess = (orderNumber?: string, orderTotal?: number) => {
+    const successParams = new URLSearchParams();
+    if (orderNumber) {
+      successParams.set('orderNumber', orderNumber);
+    }
+    if (typeof orderTotal === 'number') {
+      successParams.set('total', orderTotal.toFixed(2));
+    }
+    successParams.set('mode', fulfillmentMode);
+    if (scheduleLabel) {
+      successParams.set('schedule', scheduleLabel);
+    }
+    if (brandName) {
+      successParams.set('restaurant', brandName);
+    }
+    if (subtotal > 0) {
+      successParams.set('subtotal', subtotal.toFixed(2));
+    }
+    if (tipsEnabled && tipAmount > 0) {
+      successParams.set('tip', tipAmount.toFixed(2));
+    }
+    const discountAmount =
+      appliedCoupon?.discountAmount || activeRestaurantOffer?.discountAmount || 0;
+    if (discountAmount > 0) {
+      successParams.set('discount', discountAmount.toFixed(2));
+    }
+    if (contactFields.firstName.trim()) {
+      successParams.set(
+        'name',
+        `${contactFields.firstName.trim()} ${contactFields.lastName.trim()}`.trim(),
+      );
+    }
+    if (contactFields.email.trim()) {
+      successParams.set('email', contactFields.email.trim());
+    }
+    if (contactFields.phone.trim()) {
+      successParams.set('phone', contactFields.phone.trim());
+    }
+    if (fulfillmentMode === 'delivery' && resolvedDeliveryAddress.trim()) {
+      successParams.set('address', resolvedDeliveryAddress.trim());
+    }
+    successParams.set('payment', 'card');
+
+    clearCart();
+
+    const successQuery = successParams.toString();
+    router.replace(
+      successQuery
+        ? '/menu/checkout/success?' + successQuery
+        : '/menu/checkout/success',
+    );
+    router.refresh();
+  };
+
   const handlePlaceOrder = async () => {
     setCheckoutError(null);
     const normalizedCheckoutEmail = contactFields.email.trim().toLowerCase();
@@ -644,6 +706,7 @@ export default function RestaurantMenuCheckoutPage({
       const payload = (await response.json().catch(() => null)) as {
         error?: string;
         message?: string;
+        clientSecret?: string;
         order?: {
           orderNumber?: string;
           total?: number;
@@ -657,30 +720,18 @@ export default function RestaurantMenuCheckoutPage({
         return;
       }
 
-      clearCart();
-
-      const successParams = new URLSearchParams();
-      if (payload?.order?.orderNumber) {
-        successParams.set('orderNumber', payload.order.orderNumber);
+      if (payload?.clientSecret) {
+        setClientSecret(payload.clientSecret);
+        setPendingOrderData({
+          orderNumber: payload.order?.orderNumber || '',
+          total: payload.order?.total ?? 0,
+        });
+      } else {
+        navigateToSuccess(
+          payload?.order?.orderNumber,
+          payload?.order?.total,
+        );
       }
-      if (typeof payload?.order?.total === 'number') {
-        successParams.set('total', payload.order.total.toFixed(2));
-      }
-      successParams.set('mode', fulfillmentMode);
-      if (scheduleLabel) {
-        successParams.set('schedule', scheduleLabel);
-      }
-      if (brandName) {
-        successParams.set('restaurant', brandName);
-      }
-
-      const successQuery = successParams.toString();
-      router.replace(
-        successQuery
-          ? '/menu/checkout/success?' + successQuery
-          : '/menu/checkout/success',
-      );
-      router.refresh();
     } finally {
       setIsPlacingOrder(false);
     }
@@ -690,7 +741,7 @@ export default function RestaurantMenuCheckoutPage({
     return <div className="min-h-screen bg-white" />;
   }
 
-  if (!items.length) {
+  if (!items.length && !clientSecret) {
     return (
       <div className="min-h-screen bg-white px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl rounded-[24px] border border-stone-200 bg-white p-6 text-center shadow-sm sm:p-10">
@@ -725,7 +776,7 @@ export default function RestaurantMenuCheckoutPage({
     ? null
     : restaurantOfferEvaluations.bestOffer;
   const restaurantOffersStatus = appliedCoupon
-    ? 'Manual coupon active. Restaurant offers are paused for this order.'
+    ? 'Your custom discount is active. Please note that restaurant promotional offers cannot be combined with this discount.'
     : activeRestaurantOffer
       ? `${activeRestaurantOffer.headline} auto-applies, saving ${formatPrice(activeRestaurantOffer.discountAmount)}.`
       : restaurantOfferCount > 0
@@ -1309,6 +1360,7 @@ export default function RestaurantMenuCheckoutPage({
                 <label className="flex items-start gap-3 text-[13px] text-slate-900 sm:text-sm">
                   <input
                     type="checkbox"
+                    defaultChecked
                     className="mt-0.5 h-5 w-5 rounded-full border-black accent-black"
                   />
                   <span>Get promotional texts from {data.restaurant.name}</span>
@@ -1316,60 +1368,40 @@ export default function RestaurantMenuCheckoutPage({
               </div>
             </section>
 
-            <section className="space-y-2.5">
-              <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
-                Payment
-              </h2>
-              <div className="space-y-4">
-                <label className="block text-sm font-medium text-slate-900">
-                  <span className="mb-2 block text-[13px] sm:text-sm">
-                    Card number
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="0000 0000 0000 0000"
-                    className={fieldClassName}
-                  />
-                </label>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block text-sm font-medium text-slate-900">
-                    <span className="mb-2 block text-[13px] sm:text-sm">
-                      Expiry date
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="MM / YY"
-                      className={fieldClassName}
-                    />
-                  </label>
-                  <label className="block text-sm font-medium text-slate-900">
-                    <span className="mb-2 block text-[13px] sm:text-sm">
-                      Security code
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="CVC"
-                      className={fieldClassName}
-                    />
-                  </label>
-                </div>
-              </div>
-            </section>
-
-            <div className="space-y-4 pb-10">
-              <button
-                type="button"
-                onClick={handlePlaceOrder}
-                disabled={isPlacingOrder}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-black text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:h-12 sm:max-w-[280px]"
-              >
-                {isPlacingOrder ? 'Placing order...' : 'Place order'}
+            {clientSecret ? (
+              <StripePaymentProvider clientSecret={clientSecret}>
+                <StripePaymentSection
+                  total={pendingOrderData?.total ?? total}
+                  onSuccess={() =>
+                    navigateToSuccess(
+                      pendingOrderData?.orderNumber,
+                      pendingOrderData?.total,
+                    )
+                  }
+                  onError={(message) => setCheckoutError(message)}
+                  onProcessingChange={setIsPaymentProcessing}
+                />
+              </StripePaymentProvider>
+            ) : (
+              <div className="space-y-4 pb-10">
+                <button
+                  type="button"
+                  onClick={handlePlaceOrder}
+                  disabled={isPlacingOrder}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-black text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:h-12 sm:max-w-[280px]"
+                >
+                  {isPlacingOrder ? 'Placing order...' : 'Continue to payment'}
               </button>
-              {checkoutError ? (
-                <div className="max-w-3xl rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
-                  {checkoutError}
-                </div>
-              ) : null}
+              </div>
+            )}
+
+            {checkoutError ? (
+              <div className="max-w-3xl rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+                {checkoutError}
+              </div>
+            ) : null}
+
+            <div className="pb-10">
               <p className="max-w-3xl text-xs leading-6 text-slate-700 sm:text-sm">
                 By signing up, you agree to receive email marketing
                 communications and transactional order updates.
@@ -1438,6 +1470,26 @@ export default function RestaurantMenuCheckoutPage({
         onViewChange={handleAuthSidebarViewChange}
         onAuthenticatedCustomer={applyCustomerProfile}
       />
+
+      {/* Full-page processing overlay */}
+      {(isPlacingOrder || isPaymentProcessing) ? (
+        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-5">
+            <div className="relative h-12 w-12">
+              <div className="absolute inset-0 rounded-full border-[3px] border-stone-200" />
+              <div className="absolute inset-0 animate-spin rounded-full border-[3px] border-transparent border-t-black" />
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-semibold tracking-tight text-slate-950">
+                {isPaymentProcessing ? 'Processing payment...' : 'Placing your order...'}
+              </p>
+              <p className="mt-1.5 text-sm text-stone-500">
+                Please do not close or refresh this page.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -25,14 +25,23 @@ import {
   getOrderStatusColor,
   getPaymentStatusColor,
   formatOrderTotal,
-  formatOrderItemsCount
+  formatOrderItemsCount,
+  type OfferApplied,
 } from '@/types/orders.types';
+import { generateInvoicePDF } from '@/lib/generate-invoice-pdf';
 
-// Dynamic import for jsPDF to avoid SSR issues
-const loadJsPDF = async () => {
-  const { jsPDF } = await import('jspdf');
-  return jsPDF;
-};
+function parseOfferApplied(value: unknown): OfferApplied | null {
+  if (!value) return null;
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    if (parsed && typeof parsed === 'object' && 'type' in parsed && 'title' in parsed) {
+      return parsed as OfferApplied;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 interface OrdersFormProps {
   restaurantId: string;
@@ -272,6 +281,17 @@ Subtotal: ${formatCurrency(order.sub_total)}`;
     
     if (order.discount_total != null && order.discount_total > 0) {
       receiptContent += `\nDiscount: -${formatCurrency(order.discount_total)}`;
+      const _offer = parseOfferApplied(order.offer_applied);
+      if (_offer) {
+        const offerType = _offer.discountType === 'percent' ? `${_offer.value}% off` : `$${_offer.value.toFixed(2)} off`;
+        receiptContent += `\n  Offer Applied: ${_offer.title} (${offerType})`;
+      }
+      if (order.coupon_used) {
+        receiptContent += `\n  Coupon: ${order.coupon_used}`;
+      }
+      if (order.gift_card_used) {
+        receiptContent += `\n  Gift Card: ${order.gift_card_used}`;
+      }
     }
 
     receiptContent += `\n${'='.repeat(50)}
@@ -478,11 +498,25 @@ Generated on: ${new Date().toLocaleString()}
             <span>Tip:</span>
             <span>${formatCurrency(order.tip_total)}</span>
         </div>` : ''}
-        ${order.discount_total != null && order.discount_total > 0 ? `
-        <div class="total-line">
-            <span>Discount:</span>
+        ${order.discount_total != null && order.discount_total > 0 ? (() => {
+          const _offer = parseOfferApplied(order.offer_applied);
+          let details = '';
+          if (_offer) {
+            const offerType = _offer.discountType === 'percent' ? `${_offer.value}% off` : `$${_offer.value.toFixed(2)} off`;
+            details += `<div style="font-size:11px;color:#059669;margin-left:10px;">Offer Applied: ${_offer.title} (${offerType})</div>`;
+          }
+          if (order.coupon_used) {
+            details += `<div style="font-size:11px;color:#059669;margin-left:10px;">Coupon: ${order.coupon_used}</div>`;
+          }
+          if (order.gift_card_used) {
+            details += `<div style="font-size:11px;color:#059669;margin-left:10px;">Gift Card: ${order.gift_card_used}</div>`;
+          }
+          return `
+        <div class="total-line" style="color: #059669;">
+            <span>Discount</span>
             <span>-${formatCurrency(order.discount_total)}</span>
-        </div>` : ''}
+        </div>${details}`;
+        })() : ''}
         <div class="total-line grand-total">
             <span>TOTAL:</span>
             <span>${formatCurrency(order.cart_total)}</span>
@@ -514,264 +548,69 @@ Generated on: ${new Date().toLocaleString()}
     printWindow.print();
   };
 
-  // Generate professional PDF receipt matching the image format
-  const generatePDFReceipt = async (order: Order) => {
-    try {
-      const jsPDF = await loadJsPDF();
-      const doc = new jsPDF();
-      
-      const customerName = order.contact_first_name || order.contact_last_name
-        ? `${order.contact_first_name || ''} ${order.contact_last_name || ''}`.trim()
-        : 'N/A';
-      
-      const orderDate = formatDate(order.created_at);
-      const orderNumber = order.order_number || order.order_id;
-      
-      // Page setup
-      const pageWidth = doc.internal.pageSize.width;
-      const pageHeight = doc.internal.pageSize.height;
-      const margin = 20;
-      const footerHeight = 24;
-      const bottomContentLimit = pageHeight - footerHeight - 8;
-      let yPos = 30;
+  // Generate PDF invoice (same format as customer-facing invoice)
+  const generatePDFReceipt = (order: Order) => {
+    const customerName = order.contact_first_name || order.contact_last_name
+      ? `${order.contact_first_name || ''} ${order.contact_last_name || ''}`.trim()
+      : 'N/A';
+    const orderNumber = order.order_number || order.order_id;
+    const offer = parseOfferApplied(order.offer_applied);
 
-      const ensureSpace = (requiredHeight = 12) => {
-        if (yPos + requiredHeight > bottomContentLimit) {
-          doc.addPage();
-          yPos = 30;
-        }
-      };
-      
-      // Header - Receipt Title
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Receipt', margin, yPos);
-      yPos += 15;
-      
-      // Invoice description
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Here is the invoice for your order at ${restaurantName}:`, margin, yPos);
-      yPos += 15;
-      
-      // Invoice details
-      doc.setFontSize(9);
-      doc.text(`Invoice: ${orderNumber}`, margin, yPos);
-      yPos += 5;
-      doc.text(`Paid: ${orderDate}`, margin, yPos);
-      yPos += 5;
-      doc.text(`Due: ${orderDate}`, margin, yPos);
-      yPos += 5;
-      
-      // Restaurant address (you can customize this)
-      doc.text(`${restaurantName}`, margin, yPos);
-      yPos += 5;
-      doc.text('123 Main St, 12345 Your City, United States of America', margin, yPos);
-      yPos += 15;
-      
-      // Horizontal line
-      doc.setLineWidth(0.5);
-      doc.line(margin, yPos, pageWidth - margin, yPos);
-      yPos += 15;
-      
-      // Recipient details section
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Recipient details', margin, yPos);
-      yPos += 10;
-      
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.text(customerName, margin, yPos);
-      yPos += 5;
-      if (order.contact_email) {
-        doc.text(`Email: ${order.contact_email}`, margin, yPos);
-        yPos += 5;
-      }
-      if (order.delivery_address) {
-        doc.text(order.delivery_address, margin, yPos);
-        yPos += 5;
-      }
-      yPos += 10;
-      
-      // Horizontal line
-      doc.line(margin, yPos, pageWidth - margin, yPos);
-      yPos += 15;
-      
-      // Order details section
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Order details', margin, yPos);
-      yPos += 15;
-      
-      // Order items
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      
-      order.order_items?.forEach((item) => {
-        ensureSpace(28);
-        const quantity = item.quantity || 1;
-        const itemTotal = item.line_total || (item.item_price * quantity);
-        
-        // Item name and quantity
-        doc.text(`${quantity}x ${item.item_name}`, margin, yPos);
-        doc.text(formatCurrency(itemTotal), pageWidth - margin - 30, yPos, { align: 'right' });
-        yPos += 5;
-        
-        // Modifiers if any
-        if (item.selected_modifiers) {
-          try {
-            const modifiers = typeof item.selected_modifiers === 'string'
-              ? JSON.parse(item.selected_modifiers)
-              : item.selected_modifiers;
-            
-            if (Array.isArray(modifiers)) {
-              modifiers.forEach((modifier: any) => {
-                ensureSpace(8);
-                const modifierName = modifier.name || modifier.modifierGroupName || 'Modifier';
-                doc.setFont('helvetica', 'italic');
-                doc.text(`  ${modifierName}`, margin + 5, yPos);
-                yPos += 4;
-              });
-              doc.setFont('helvetica', 'normal');
-            }
-          } catch (e) {
-            // Ignore parsing errors
+    // Normalize order items to match the shared invoice format
+    const items = (order.order_items || []).map((item) => {
+      let modifiers: Array<{ name: string; price: number }> | null = null;
+      if (item.selected_modifiers) {
+        try {
+          const raw = typeof item.selected_modifiers === 'string'
+            ? JSON.parse(item.selected_modifiers)
+            : item.selected_modifiers;
+          if (Array.isArray(raw)) {
+            modifiers = raw.map((m: any) => ({
+              name: m.name || m.modifierGroupName || 'Modifier',
+              price: Number(m.price) || 0,
+            }));
           }
+        } catch {
+          // ignore
         }
-        
-        // Special instructions
-        if (item.item_note) {
-          ensureSpace(8);
-          doc.setFont('helvetica', 'italic');
-          doc.text(`  Note: ${item.item_note}`, margin + 5, yPos);
-          yPos += 4;
-          doc.setFont('helvetica', 'normal');
-        }
-        
-        yPos += 5;
-      });
-      
-      yPos += 5;
-      
-      // Horizontal line before totals
-      ensureSpace(70);
-      doc.line(margin, yPos, pageWidth - margin, yPos);
-      yPos += 15;
-      
-      // Price details section
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Price details', margin, yPos);
-      yPos += 15;
-      
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      
-      // Subtotal
-      doc.text('Subtotal', margin, yPos);
-      doc.text(formatCurrency(order.sub_total), pageWidth - margin - 30, yPos, { align: 'right' });
-      yPos += 8;
-      
-      // Online processing fee (if applicable)
-      if (order.tax_total && order.tax_total > 0) {
-        doc.text('Tax', margin, yPos);
-        doc.text(formatCurrency(order.tax_total), pageWidth - margin - 30, yPos, { align: 'right' });
-        yPos += 8;
       }
-      
-      // Tip
-      if (order.tip_total && order.tip_total > 0) {
-        doc.text('Tip', margin, yPos);
-        doc.text(formatCurrency(order.tip_total), pageWidth - margin - 30, yPos, { align: 'right' });
-        yPos += 8;
-      }
-      
-      // Discount
-      if (order.discount_total && order.discount_total > 0) {
-        doc.text('Discount', margin, yPos);
-        doc.text(`-${formatCurrency(order.discount_total)}`, pageWidth - margin - 30, yPos, { align: 'right' });
-        yPos += 8;
-      }
-      
-      // Total line
-      doc.setFont('helvetica', 'bold');
-      doc.text('Total', margin, yPos);
-      doc.text(formatCurrency(order.cart_total), pageWidth - margin - 30, yPos, { align: 'right' });
-      yPos += 10;
-      
-      // Payment method
-      doc.setFont('helvetica', 'normal');
-      if (order.payment_method) {
-        const paymentText = `Payment method: ${order.payment_method.replace('_', ' ')}`;
-        const maskedRef = order.payment_reference ? ` **** ${order.payment_reference.slice(-4)}` : '';
-        doc.text(`${paymentText}${maskedRef}`, margin, yPos);
-        yPos += 10;
-      }
-      
-      yPos += 20;
-      
-      // Tax breakdown table (if applicable)
-      if (order.tax_total && order.tax_total > 0) {
-        ensureSpace(28);
-        // Table header
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Description', margin, yPos);
-        doc.text('Net', margin + 60, yPos);
-        doc.text('Tax %', margin + 90, yPos);
-        doc.text('Tax', margin + 120, yPos);
-        doc.text('Total', pageWidth - margin - 30, yPos, { align: 'right' });
-        yPos += 8;
-        
-        // Table row
-        doc.setFont('helvetica', 'normal');
-        doc.text('Food and drinks', margin, yPos);
-        doc.text(formatCurrency(order.sub_total), margin + 60, yPos);
-        doc.text('7%', margin + 90, yPos);
-        doc.text(formatCurrency(order.tax_total), margin + 120, yPos);
-        doc.text(formatCurrency(order.sub_total + (order.tax_total || 0)), pageWidth - margin - 30, yPos, { align: 'right' });
-        yPos += 10;
-      }
-      
-      // Footer
-      const footerStartY = pageHeight - footerHeight;
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${restaurantName}`, pageWidth / 2, footerStartY, { align: 'center' });
-      doc.text('123 Main St, 12345 Your City, United States of America', pageWidth / 2, footerStartY + 5, { align: 'center' });
-      doc.text('+1 (555) 123-4567', pageWidth / 2, footerStartY + 10, { align: 'center' });
-      
-      // Save the PDF
-      doc.save(`receipt-${orderNumber}.pdf`);
-      
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      // Fallback to a minimal PDF so download remains PDF-only
-      try {
-        const jsPDF = await loadJsPDF();
-        const fallbackDoc = new jsPDF();
-        const orderNumber = order.order_number || order.order_id;
-        const customerName = order.contact_first_name || order.contact_last_name
-          ? `${order.contact_first_name || ''} ${order.contact_last_name || ''}`.trim()
-          : 'N/A';
+      return {
+        item_name: item.item_name,
+        item_price: item.item_price,
+        quantity: item.quantity || 1,
+        line_total: item.line_total || item.item_price * (item.quantity || 1),
+        selected_modifiers: modifiers,
+        base_item_price: item.base_item_price ?? item.item_price,
+        modifier_total: item.modifier_total ?? 0,
+        item_note: item.item_note || null,
+      };
+    });
 
-        fallbackDoc.setFontSize(16);
-        fallbackDoc.setFont('helvetica', 'bold');
-        fallbackDoc.text('Order Receipt', 20, 24);
-        fallbackDoc.setFontSize(10);
-        fallbackDoc.setFont('helvetica', 'normal');
-        fallbackDoc.text(`Restaurant: ${restaurantName}`, 20, 36);
-        fallbackDoc.text(`Order: ${orderNumber}`, 20, 44);
-        fallbackDoc.text(`Customer: ${customerName}`, 20, 52);
-        fallbackDoc.text(`Total: ${formatCurrency(order.cart_total)}`, 20, 60);
-        fallbackDoc.text(`Generated: ${new Date().toLocaleString()}`, 20, 68);
-        fallbackDoc.save(`receipt-${orderNumber}.pdf`);
-      } catch (fallbackError) {
-        console.error('Fallback PDF generation failed:', fallbackError);
-        alert('Unable to generate PDF receipt right now. Please try again.');
-      }
-    }
+    const doc = generateInvoicePDF({
+      orderNumber,
+      restaurantName,
+      customerName,
+      email: order.contact_email || '',
+      phone: order.contact_phone || '',
+      fulfillmentLabel: order.fulfillment_type
+        ? order.fulfillment_type.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+        : 'N/A',
+      address: order.delivery_address || '',
+      paymentMethod: order.payment_method?.replace('_', ' ') || '',
+      placedAt: order.placed_at ? formatDate(order.placed_at) : formatDate(order.created_at),
+      items,
+      subtotal: order.sub_total,
+      total: order.cart_total,
+      discount: order.discount_total ?? null,
+      tip: order.tip_total ?? null,
+      tax: order.tax_total ?? null,
+      offerApplied: offer,
+      couponCode: order.coupon_used || '',
+      giftCardCode: order.gift_card_used || '',
+      orderNote: order.order_note || '',
+    });
+
+    doc.save(`invoice-${orderNumber}.pdf`);
   };
 
   if (loading && orders.length === 0) {
@@ -999,9 +838,60 @@ Generated on: ${new Date().toLocaleString()}
                   </div>
                 </div>
 
+                {/* Offer Applied (auto offers only) */}
+                {(() => {
+                  const offer = parseOfferApplied(order.offer_applied);
+                  return offer ? (
+                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex flex-wrap items-center gap-2">
+                      <span className="text-green-700 font-medium text-sm">Offer Applied: {offer.title}</span>
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800">
+                        {offer.discountType === 'percent' ? `${offer.value}% off` : `$${offer.value.toFixed(2)} off`}
+                      </span>
+                      {typeof offer.discountAmount === 'number' && offer.discountAmount > 0 && (
+                        <span className="text-green-800 text-xs font-semibold ml-auto">
+                          −{formatCurrency(offer.discountAmount)}
+                        </span>
+                      )}
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Discount total (when no offer but discount exists, e.g. coupon/gift card) */}
+                {(() => {
+                  const offer = parseOfferApplied(order.offer_applied);
+                  return !offer && order.discount_total != null && Number(order.discount_total) > 0 ? (
+                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+                      <span className="text-green-700 font-medium text-sm">Discount Applied</span>
+                      <span className="text-green-800 text-xs font-semibold ml-auto">
+                        −{formatCurrency(Number(order.discount_total))}
+                      </span>
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Coupon Code */}
+                {order.coupon_used && (
+                  <div className="mt-2 p-3 bg-purple-50 border border-purple-200 rounded-lg flex items-center gap-2">
+                    <span className="text-purple-700 font-medium text-sm">Coupon Used:</span>
+                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-mono bg-purple-100 text-purple-800">
+                      {order.coupon_used}
+                    </span>
+                  </div>
+                )}
+
+                {/* Gift Card Code */}
+                {order.gift_card_used && (
+                  <div className="mt-2 p-3 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center gap-2">
+                    <span className="text-indigo-700 font-medium text-sm">Gift Card Used:</span>
+                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-mono bg-indigo-100 text-indigo-800">
+                      {order.gift_card_used}
+                    </span>
+                  </div>
+                )}
+
                 {/* Order Note */}
                 {order.order_note && (
-                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <p className="text-sm text-yellow-800">
                       <span className="font-medium">Note:</span> {order.order_note}
                     </p>
@@ -1181,9 +1071,21 @@ Generated on: ${new Date().toLocaleString()}
                       {selectedOrder.coupon_used && (
                         <div>
                           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Coupon Used</p>
-                          <p className="text-sm text-gray-900 mt-1">{selectedOrder.coupon_used}</p>
+                          <p className="text-sm text-gray-900 mt-1 font-mono">{selectedOrder.coupon_used}</p>
                         </div>
                       )}
+                      {selectedOrder.gift_card_used && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Gift Card Used</p>
+                          <p className="text-sm text-gray-900 mt-1 font-mono">{selectedOrder.gift_card_used}</p>
+                        </div>
+                      )}
+                      {/* {selectedOrder.offer_applied && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Offer Applied</p>
+                          <p className="text-sm text-gray-900 mt-1 font-mono">{selectedOrder.offer_applied}</p>
+                        </div>
+                      )} */}
                     </div>
                   </div>
                 </div>
@@ -1336,9 +1238,30 @@ Generated on: ${new Date().toLocaleString()}
                       </div>
                     )}
                     {selectedOrder.discount_total != null && selectedOrder.discount_total > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Discount:</span>
-                        <span className="font-medium text-red-600">-{formatCurrency(selectedOrder.discount_total)}</span>
+                      <div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Discount:</span>
+                          <span className="font-medium text-green-600">-{formatCurrency(selectedOrder.discount_total)}</span>
+                        </div>
+                        {(() => {
+                          const offer = parseOfferApplied(selectedOrder.offer_applied);
+                          return offer ? (
+                            <p className="text-xs text-green-600 mt-0.5">
+                              Offer Applied: {offer.title}
+                              {offer.discountType === 'percent' ? ` (${offer.value}% off)` : ''}
+                            </p>
+                          ) : null;
+                        })()}
+                        {selectedOrder.coupon_used && (
+                          <p className="text-xs text-green-600 mt-0.5">
+                            Coupon: {selectedOrder.coupon_used}
+                          </p>
+                        )}
+                        {selectedOrder.gift_card_used && (
+                          <p className="text-xs text-green-600 mt-0.5">
+                            Gift Card: {selectedOrder.gift_card_used}
+                          </p>
+                        )}
                       </div>
                     )}
                     <div className="border-t border-gray-200 pt-3">

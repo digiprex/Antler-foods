@@ -19,6 +19,10 @@ export function getPopularItems(data: RestaurantMenuData) {
     .filter((item): item is MenuItem => Boolean(item));
 }
 
+export function getRecommendedItems(categories: MenuCategory[]) {
+  return getAllMenuItems(categories).filter((item) => item.isRecommended === true);
+}
+
 export function findMenuItemById(
   categories: MenuCategory[],
   itemId: string,

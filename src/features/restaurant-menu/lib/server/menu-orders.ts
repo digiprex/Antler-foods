@@ -84,6 +84,21 @@ const INSERT_ORDER = `
   }
 `;
 
+const UPDATE_ORDER_PAYMENT = `
+  mutation UpdateOrderPayment($order_id: uuid!, $payment_reference: String!, $payment_method: String!, $payment_status: String!) {
+    update_orders_by_pk(
+      pk_columns: { order_id: $order_id },
+      _set: {
+        payment_reference: $payment_reference,
+        payment_method: $payment_method,
+        payment_status: $payment_status,
+      }
+    ) {
+      order_id
+    }
+  }
+`;
+
 const INSERT_ORDER_ITEMS = `
   mutation InsertOrderItems($objects: [order_items_insert_input!]!) {
     insert_order_items(objects: $objects) {
@@ -209,6 +224,15 @@ export interface PlaceMenuOrderResult {
   tipTotal: number;
   discountTotal: number;
   total: number;
+  offerApplied: {
+    type: 'auto_offer';
+    code: string | null;
+    title: string;
+    description: string | null;
+    discountType: 'percent' | 'amount';
+    value: number;
+    discountAmount: number;
+  } | null;
 }
 
 interface NormalizedModifier {
@@ -437,9 +461,34 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     }).bestOffer;
   }
 
+  const offerApplied = appliedAutoOffer
+    ? {
+        type: 'auto_offer' as const,
+        code: null,
+        title: appliedAutoOffer.offerName || appliedAutoOffer.headline,
+        description: appliedAutoOffer.description || null,
+        discountType: 'amount' as const,
+        value: appliedAutoOffer.discountAmount,
+        discountAmount: appliedAutoOffer.discountAmount,
+      }
+    : null;
+
   const orderDiscountTotal =
     appliedCoupon?.discountAmount || appliedAutoOffer?.discountAmount || 0;
   const preGiftCardTotal = roundCurrency(subtotal + tipAmount - orderDiscountTotal);
+
+  // Only store auto offers in offer_applied (not coupons or gift cards)
+  const storedOfferApplied = appliedAutoOffer
+    ? {
+        type: 'auto_offer' as const,
+        code: null,
+        title: appliedAutoOffer.offerName || appliedAutoOffer.headline,
+        description: appliedAutoOffer.description || null,
+        discountType: 'amount' as const,
+        value: appliedAutoOffer.discountAmount,
+        discountAmount: appliedAutoOffer.discountAmount,
+      }
+    : null;
 
   if (trimText(input.giftCardCode)) {
     try {
@@ -475,8 +524,11 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       sub_total: subtotal,
       cart_total: total,
       coupon_used: appliedCoupon?.code || null,
+      gift_card_used: giftCardAppliedAmount > 0 ? trimText(input.giftCardCode) : null,
+      // Only persist auto offer metadata (not coupons or gift cards)
+      offer_applied: storedOfferApplied ? JSON.stringify(storedOfferApplied) : null,
       fulfillment_type: fulfillmentType,
-      payment_status: 'pending',
+      payment_status: 'processing',
       contact_first_name: contact.firstName,
       contact_last_name: contact.lastName,
       contact_email: contact.email,
@@ -525,7 +577,20 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     tipTotal: tipAmount,
     discountTotal,
     total,
+    offerApplied,
   };
+}
+
+export async function updateOrderPaymentIntent(
+  orderId: string,
+  paymentIntentId: string,
+): Promise<void> {
+  await adminGraphqlRequest(UPDATE_ORDER_PAYMENT, {
+    order_id: orderId,
+    payment_reference: paymentIntentId,
+    payment_method: 'card',
+    payment_status: 'processing',
+  });
 }
 
 function normalizeContact(contact: OrderContactInput) {

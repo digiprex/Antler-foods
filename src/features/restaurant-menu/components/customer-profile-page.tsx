@@ -332,6 +332,34 @@ export default function CustomerProfilePage({
           ) : null}
         </div>
 
+        {/* Tabs */}
+        {!isGuest ? (
+          <div className="mt-5 flex gap-1 rounded-[16px] border border-slate-200 bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab('profile')}
+              className={`flex-1 rounded-[12px] px-4 py-2.5 text-sm font-semibold transition ${
+                activeTab === 'profile'
+                  ? 'bg-white text-slate-950 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Profile
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('password')}
+              className={`flex-1 rounded-[12px] px-4 py-2.5 text-sm font-semibold transition ${
+                activeTab === 'password'
+                  ? 'bg-white text-slate-950 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Change Password
+            </button>
+          </div>
+        ) : null}
+
         {/* Content */}
         <div className="mt-5 px-1 sm:px-2">
           {isGuest ? (
@@ -349,7 +377,7 @@ export default function CustomerProfilePage({
                 <p className="mt-1.5 text-sm font-medium text-slate-950">{customerProfile?.phone || '-'}</p>
               </div>
             </div>
-          ) : (
+          ) : activeTab === 'profile' ? (
             <form onSubmit={handleSave}>
               <h2 className="text-base font-semibold text-slate-950">Personal information</h2>
 
@@ -533,124 +561,82 @@ export default function CustomerProfilePage({
                 </button>
               </div>
             </form>
-          )}
-
-          {/* Change password */}
-          {!isGuest ? (
-            <div className="mt-8 border-t border-slate-200 pt-6">
+          ) : (
+            <form onSubmit={handleChangePassword} className="max-w-md space-y-4">
               <h2 className="text-base font-semibold text-slate-950">Change password</h2>
-              <form onSubmit={handleChangePassword} className="mt-4 max-w-md space-y-4">
-                <div>
-                  <label
-                    htmlFor="profile-current-password"
-                    className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
-                  >
-                    Current password
-                  </label>
-                  <input
-                    id="profile-current-password"
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => { setCurrentPassword(e.target.value); setPasswordMessage(null); }}
-                    className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
-                    placeholder="Enter current password"
-                    autoComplete="current-password"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="profile-new-password"
-                    className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
-                  >
-                    New password
-                  </label>
-                  <input
-                    id="profile-new-password"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => { setNewPassword(e.target.value); setPasswordMessage(null); }}
-                    className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
-                    placeholder="At least 8 characters"
-                    autoComplete="new-password"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="profile-confirm-password"
-                    className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
-                  >
-                    Confirm new password
-                  </label>
-                  <input
-                    id="profile-confirm-password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => { setConfirmPassword(e.target.value); setPasswordMessage(null); }}
-                    className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
-                    placeholder="Repeat new password"
-                    autoComplete="new-password"
-                  />
-                </div>
-
-                {passwordMessage ? (
-                  <div
-                    className={`rounded-[14px] border px-4 py-3 text-sm ${
-                      passwordMessage.type === 'success'
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                        : 'border-red-200 bg-red-50 text-red-700'
-                    }`}
-                  >
-                    {passwordMessage.text}
-                  </div>
-                ) : null}
-
-                <button
-                  type="submit"
-                  disabled={isChangingPassword || (!currentPassword && !newPassword && !confirmPassword)}
-                  className="inline-flex h-12 items-center justify-center rounded-[14px] bg-slate-900 px-6 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+              <div>
+                <label
+                  htmlFor="profile-current-password"
+                  className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
                 >
-                  {isChangingPassword ? 'Updating...' : 'Update password'}
-                </button>
-              </form>
-            </div>
-          ) : null}
-
-          {/* Quick links */}
-          <div className="mt-8 border-t border-slate-200 pt-6">
-            <h2 className="text-base font-semibold text-slate-950">Quick links</h2>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {!isGuest ? (
-                <Link
-                  href="/orders"
-                  className="flex items-center justify-between rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-950"
+                  Current password
+                </label>
+                <input
+                  id="profile-current-password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => { setCurrentPassword(e.target.value); setPasswordMessage(null); }}
+                  className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
+                  placeholder="Enter current password"
+                  autoComplete="current-password"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="profile-new-password"
+                  className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
                 >
-                  <span className="flex items-center gap-2.5">
-                    <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Order history
-                  </span>
-                  <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
+                  New password
+                </label>
+                <input
+                  id="profile-new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => { setNewPassword(e.target.value); setPasswordMessage(null); }}
+                  className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
+                  placeholder="At least 8 characters"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="profile-confirm-password"
+                  className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
+                >
+                  Confirm new password
+                </label>
+                <input
+                  id="profile-confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => { setConfirmPassword(e.target.value); setPasswordMessage(null); }}
+                  className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
+                  placeholder="Repeat new password"
+                  autoComplete="new-password"
+                />
+              </div>
+
+              {passwordMessage ? (
+                <div
+                  className={`rounded-[14px] border px-4 py-3 text-sm ${
+                    passwordMessage.type === 'success'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      : 'border-red-200 bg-red-50 text-red-700'
+                  }`}
+                >
+                  {passwordMessage.text}
+                </div>
               ) : null}
 
               <button
-                type="button"
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="flex w-full items-center justify-between rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                type="submit"
+                disabled={isChangingPassword || (!currentPassword && !newPassword && !confirmPassword)}
+                className="inline-flex h-12 items-center justify-center rounded-[14px] bg-slate-900 px-6 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
               >
-                <span className="flex items-center gap-2.5">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H9m8 4v1a3 3 0 01-3 3H7a3 3 0 01-3-3V8a3 3 0 013-3h7a3 3 0 013 3v1" />
-                  </svg>
-                  {isLoggingOut ? 'Logging out...' : 'Log out'}
-                </span>
+                {isChangingPassword ? 'Updating...' : 'Update password'}
               </button>
-            </div>
-          </div>
+            </form>
+          )}
         </div>
       </div>
 

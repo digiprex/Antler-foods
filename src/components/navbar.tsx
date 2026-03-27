@@ -189,6 +189,11 @@ export default function Navbar({
     <img
       src={logoUrl}
       alt={restaurantName}
+      width={Math.max(80, Math.round(logoSize * 2))}
+      height={Math.max(80, Math.round(logoSize * 2))}
+      loading="eager"
+      fetchPriority="high"
+      decoding="async"
       className={styles.logoImage}
       style={{ height: `${logoSize}px`, width: 'auto' }}
     />

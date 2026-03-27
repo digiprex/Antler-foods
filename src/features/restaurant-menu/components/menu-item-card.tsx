@@ -47,7 +47,15 @@ export function MenuItemCard({
         </div>
 
         <div className="relative overflow-hidden rounded-[18px] bg-stone-100">
-          <img src={item.image} alt={item.name} className="h-32 w-full object-cover transition duration-500 group-hover:scale-105" />
+          <img
+            src={item.image}
+            alt={item.name}
+            width={264}
+            height={128}
+            loading="lazy"
+            decoding="async"
+            className="h-32 w-full object-cover transition duration-500 group-hover:scale-105"
+          />
           {item.inStock !== false ? (
             <button
               type="button"

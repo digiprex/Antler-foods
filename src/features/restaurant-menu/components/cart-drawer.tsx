@@ -129,6 +129,10 @@ export function CartDrawer({
                     <img
                       src={item.image}
                       alt={item.name}
+                      width={48}
+                      height={48}
+                      loading="lazy"
+                      decoding="async"
                       className="h-12 w-12 rounded-xl border border-stone-200 object-cover"
                     />
                     <div className="min-w-0 flex-1">

@@ -142,6 +142,10 @@ export async function GET(request: Request) {
         is_published: restaurant.is_published,
         is_deleted: restaurant.is_deleted,
       },
+    }, {
+      headers: {
+        'Cache-Control': 'public, max-age=120, stale-while-revalidate=600',
+      },
     });
   } catch (error) {
     console.error('Error fetching restaurant info:', error);

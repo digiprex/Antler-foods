@@ -33,6 +33,15 @@ function resolveIconUrl(iconUrl: string, appOrigin: string): string {
   return `${appOrigin}${iconUrl.startsWith("/") ? "" : "/"}${iconUrl}`;
 }
 
+function isDynamicServerUsageError(error: unknown) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'digest' in error &&
+    (error as { digest?: string }).digest === 'DYNAMIC_SERVER_USAGE'
+  );
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const baseMetadata = generateSEOMetadata();
 
@@ -82,7 +91,9 @@ export async function generateMetadata(): Promise<Metadata> {
       },
     };
   } catch (error) {
-    console.error("Error generating dynamic favicon metadata:", error);
+    if (!isDynamicServerUsageError(error)) {
+      console.error("Error generating dynamic favicon metadata:", error);
+    }
     return baseMetadata;
   }
 }

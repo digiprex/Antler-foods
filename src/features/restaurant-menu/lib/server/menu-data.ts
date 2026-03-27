@@ -1,7 +1,9 @@
 
 import 'server-only';
+import { unstable_cache } from 'next/cache';
 
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { loadActiveMenuOffers } from '@/features/restaurant-menu/lib/server/menu-offers';
 import type {
   MenuAddOn,
   MenuCategory,
@@ -263,7 +265,8 @@ const GET_OPENING_HOUR_SLOTS = `
   }
 `;
 
-export async function loadRestaurantMenuMetadata(domain: string) {
+const loadRestaurantMenuMetadataCached = unstable_cache(
+async (domain: string) => {
   const restaurant = (await loadRestaurantByDomain(domain)) || (await loadRestaurantForLatestMenu());
   const restaurantName = text(restaurant?.name);
 
@@ -273,13 +276,21 @@ export async function loadRestaurantMenuMetadata(domain: string) {
       ? `Order pickup or delivery from ${restaurantName}.`
       : 'Order pickup or delivery online.',
   };
+},
+['restaurant-menu-metadata'],
+{ revalidate: 120 },
+);
+
+export async function loadRestaurantMenuMetadata(domain: string) {
+  return loadRestaurantMenuMetadataCached(domain);
 }
 
 export function getEmptyRestaurantMenuData(restaurantName = 'Restaurant') {
   return buildEmptyMenuData(restaurantName);
 }
 
-export async function loadRestaurantMenuPageData(domain: string): Promise<RestaurantMenuData> {
+const loadRestaurantMenuPageDataCached = unstable_cache(
+async (domain: string): Promise<RestaurantMenuData> => {
   let restaurant = await loadRestaurantByDomain(domain);
   let menu = restaurant?.restaurant_id ? await loadPreferredMenu(restaurant.restaurant_id) : null;
 
@@ -296,8 +307,9 @@ export async function loadRestaurantMenuPageData(domain: string): Promise<Restau
   }
 
   const opening = await loadOpeningHours(restaurant.restaurant_id || '');
+  const offers = await loadActiveMenuOffers(restaurant.restaurant_id || '');
   if (!menu?.menu_id) {
-    return buildMenuData({ restaurant, menu: null, categories: [], items: [], modifierGroups: [], modifierItems: [], opening });
+    return buildMenuData({ restaurant, menu: null, categories: [], items: [], modifierGroups: [], modifierItems: [], opening, offers });
   }
 
   const categories = await gql(GET_CATEGORIES_BY_MENU, { menu_id: menu.menu_id }).then((data: any) => data.categories || []);
@@ -316,7 +328,14 @@ export async function loadRestaurantMenuPageData(domain: string): Promise<Restau
     ).then((data: any) => data.modifier_items || [])
     : [];
 
-  return buildMenuData({ restaurant, menu, categories, items, modifierGroups, modifierItems, opening });
+  return buildMenuData({ restaurant, menu, categories, items, modifierGroups, modifierItems, opening, offers });
+},
+['restaurant-menu-page-data'],
+{ revalidate: 60 },
+);
+
+export async function loadRestaurantMenuPageData(domain: string): Promise<RestaurantMenuData> {
+  return loadRestaurantMenuPageDataCached(domain);
 }
 async function loadRestaurantByDomain(domain: string) {
   const normalizedDomain = text(domain?.split(',')[0]);
@@ -381,7 +400,7 @@ async function loadOpeningHours(restaurantId: string) {
   return { profile, slots };
 }
 
-function buildMenuData({ restaurant, menu, categories, items, modifierGroups, modifierItems, opening }: any): RestaurantMenuData {
+function buildMenuData({ restaurant, menu, categories, items, modifierGroups, modifierItems, opening, offers }: any): RestaurantMenuData {
   const restaurantName = text(restaurant?.name) || 'Restaurant';
   const pickupAllowed = restaurant?.pickup_allowed !== false;
   const deliveryAllowed = restaurant?.delivery_allowed !== false;
@@ -569,6 +588,7 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
       message: 'Earn rewards on every eligible online order.',
       ctaLabel: 'Sign In / Sign Up',
     },
+    offers: Array.isArray(offers) ? offers : [],
     categories: menuCategories,
     popularItemIds: allItems
       .filter((item) => favoriteCategoryIds.has(item.categoryId) && item.isBestSeller === true)
@@ -614,6 +634,7 @@ function buildEmptyMenuData(restaurantName: string): RestaurantMenuData {
       { mode: 'delivery', label: 'Delivery', helperText: 'Enter your address to check availability' },
     ],
     rewards: { iconLabel: 'Rewards', message: 'Earn rewards on every eligible online order.', ctaLabel: 'Sign In / Sign Up' },
+    offers: [],
     categories: [{ id: 'empty-menu', label: 'Menu', description: 'No items found', items: [] }],
     popularItemIds: [],
     scheduleDays,

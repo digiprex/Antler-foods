@@ -164,12 +164,12 @@ export function MenuLoginForm({
             <button
               type="button"
               onClick={onRequestForgotPassword}
-              className="auth-link-modern text-sm"
+              className="menu-auth-link text-sm"
             >
               Forgot password?
             </button>
           ) : (
-            <Link href={forgotPasswordHref} className="auth-link-modern text-sm">
+            <Link href={forgotPasswordHref} className="menu-auth-link text-sm">
               Forgot password?
             </Link>
           )}
@@ -183,7 +183,7 @@ export function MenuLoginForm({
 
         <button
           type="submit"
-          className="auth-primary-btn-modern w-full"
+          className="menu-auth-primary-btn w-full"
           disabled={isSubmitting}
         >
           {isSubmitting ? 'Signing in...' : 'Sign In'}
@@ -197,12 +197,12 @@ export function MenuLoginForm({
             <button
               type="button"
               onClick={onRequestSignup}
-              className="auth-link-modern"
+              className="menu-auth-link"
             >
               Create an account
             </button>
           ) : (
-            <Link href={signupHref} className="auth-link-modern">
+            <Link href={signupHref} className="menu-auth-link">
               Create an account
             </Link>
           )}

@@ -98,14 +98,14 @@ export function MenuForgotPasswordForm({
     <button
       type="button"
       onClick={onRequestLogin}
-      className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-violet-200 bg-white px-5 text-sm font-semibold text-violet-700 transition hover:border-violet-300 hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/20"
+      className="menu-auth-secondary-btn w-full"
     >
       Return to Sign In
     </button>
   ) : (
     <Link
       href={loginHref}
-      className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-violet-200 bg-white px-5 text-sm font-semibold text-violet-700 transition hover:border-violet-300 hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/20"
+      className="menu-auth-secondary-btn w-full"
     >
       Return to Sign In
     </Link>
@@ -146,7 +146,7 @@ export function MenuForgotPasswordForm({
 
         <button
           type="submit"
-          className="auth-primary-btn-modern w-full"
+          className="menu-auth-primary-btn w-full"
           disabled={isSubmitting}
         >
           {isSubmitting ? 'Sending reset link...' : 'Send reset link'}

@@ -89,7 +89,15 @@ export function PopularItemsCarousel({
                     {item.badge}
                   </div>
                 ) : null}
-                <img src={item.image} alt={item.name} className="h-40 w-full object-cover transition duration-500 group-hover:scale-105" />
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  width={240}
+                  height={160}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-40 w-full object-cover transition duration-500 group-hover:scale-105"
+                />
                 {item.inStock !== false ? (
                   <button
                     type="button"

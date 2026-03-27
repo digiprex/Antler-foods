@@ -19,7 +19,7 @@ export const MenuAuthInput = forwardRef<HTMLInputElement, MenuAuthInputProps>(
     const resolvedId = id ?? label.toLowerCase().replace(/\s+/g, '-');
 
     const inputClassName = [
-      'auth-input-modern h-12 rounded-[16px]',
+      'menu-auth-input',
       isPasswordField ? 'pr-11' : '',
       error ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' : '',
       className ?? '',
@@ -32,7 +32,7 @@ export const MenuAuthInput = forwardRef<HTMLInputElement, MenuAuthInputProps>(
         <label
           htmlFor={resolvedId}
           className={`block text-sm font-semibold tracking-[-0.01em] transition-colors duration-200 ${
-            error ? 'text-red-700' : isFocused ? 'text-violet-700' : 'text-slate-700'
+            error ? 'text-red-700' : isFocused ? 'text-slate-950' : 'text-slate-700'
           }`}
         >
           {label}
@@ -54,7 +54,7 @@ export const MenuAuthInput = forwardRef<HTMLInputElement, MenuAuthInputProps>(
               aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
               aria-pressed={isPasswordVisible}
               onClick={() => setIsPasswordVisible((previous) => !previous)}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/15"
             >
               {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
             </button>
@@ -62,7 +62,9 @@ export const MenuAuthInput = forwardRef<HTMLInputElement, MenuAuthInputProps>(
 
           <div
             className={`pointer-events-none absolute inset-0 rounded-[16px] border-2 border-transparent transition-all duration-200 ${
-              isFocused && !error ? 'border-violet-500/25 shadow-lg shadow-violet-500/10' : ''
+              isFocused && !error
+                ? 'border-slate-900/10 shadow-[0_10px_24px_rgba(15,23,42,0.06)]'
+                : ''
             }`}
           />
         </div>

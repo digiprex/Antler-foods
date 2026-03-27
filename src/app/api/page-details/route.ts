@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * Page Details API Route
  * 
@@ -331,7 +333,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response, {
       headers: {
-        'Cache-Control': 'public, max-age=5, stale-while-revalidate=60',
+        'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
       },
     });
   } catch (error: any) {

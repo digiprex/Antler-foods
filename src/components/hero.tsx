@@ -678,14 +678,12 @@ export default function Hero(props: HeroProps) {
         <img
           src={activeImage.url}
           alt={activeImage.alt}
+          width={1440}
+          height={900}
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
           className={styles.heroImage}
-          onError={(event) => {
-            console.error('Hero image failed to load:', activeImage.url);
-            console.error('Image error event:', event);
-          }}
-          onLoad={() => {
-            console.log('Hero image loaded successfully:', activeImage.url);
-          }}
         />
       </div>
     );
@@ -819,6 +817,10 @@ export default function Hero(props: HeroProps) {
                     <img
                       src={minimalLayoutImages.primary.url}
                       alt={minimalLayoutImages.primary.alt}
+                      width={900}
+                      height={600}
+                      loading="lazy"
+                      decoding="async"
                       className={styles.minimalImageLarge}
                     />
                   ) : null}
@@ -827,6 +829,10 @@ export default function Hero(props: HeroProps) {
                       <img
                         src={minimalLayoutImages.secondaryTop.url}
                         alt={minimalLayoutImages.secondaryTop.alt}
+                        width={480}
+                        height={320}
+                        loading="lazy"
+                        decoding="async"
                         className={styles.minimalImageSmall}
                       />
                     ) : null}
@@ -834,6 +840,10 @@ export default function Hero(props: HeroProps) {
                       <img
                         src={minimalLayoutImages.secondaryBottom.url}
                         alt={minimalLayoutImages.secondaryBottom.alt}
+                        width={480}
+                        height={320}
+                        loading="lazy"
+                        decoding="async"
                         className={styles.minimalImageSmall}
                       />
                     ) : null}
@@ -858,6 +868,10 @@ export default function Hero(props: HeroProps) {
                   <img
                     src={sideBySideLayoutImages.left.url}
                     alt={sideBySideLayoutImages.left.alt}
+                    width={520}
+                    height={680}
+                    loading="lazy"
+                    decoding="async"
                     className={styles.sideBySideImage}
                   />
                 ) : null}
@@ -865,6 +879,10 @@ export default function Hero(props: HeroProps) {
                   <img
                     src={sideBySideLayoutImages.center.url}
                     alt={sideBySideLayoutImages.center.alt}
+                    width={520}
+                    height={680}
+                    loading="lazy"
+                    decoding="async"
                     className={styles.sideBySideImage}
                   />
                 ) : null}
@@ -872,6 +890,10 @@ export default function Hero(props: HeroProps) {
                   <img
                     src={sideBySideLayoutImages.right.url}
                     alt={sideBySideLayoutImages.right.alt}
+                    width={520}
+                    height={680}
+                    loading="lazy"
+                    decoding="async"
                     className={styles.sideBySideImage}
                   />
                 ) : null}
@@ -919,11 +941,19 @@ export default function Hero(props: HeroProps) {
                   <img
                     src={activeImage.url}
                     alt={activeImage.alt}
+                    width={900}
+                    height={620}
+                    loading="lazy"
+                    decoding="async"
                     className={styles.collageImagePrimary}
                   />
                   <img
                     src={activeImage.url}
                     alt={activeImage.alt}
+                    width={680}
+                    height={500}
+                    loading="lazy"
+                    decoding="async"
                     className={styles.collageImageSecondary}
                   />
                 </>

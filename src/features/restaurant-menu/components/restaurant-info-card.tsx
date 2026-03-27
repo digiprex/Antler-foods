@@ -89,6 +89,11 @@ export function RestaurantInfoCard({
           <img
             src={restaurant.heroImage}
             alt={restaurant.name}
+            width={720}
+            height={432}
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
             className="h-72 w-full object-cover"
           />
         </div>

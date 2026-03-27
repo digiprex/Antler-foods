@@ -16,18 +16,18 @@ export function CompactQuantityStepper({
       <button
         type="button"
         onClick={onDecrease}
-        className="flex h-8 w-8 items-center justify-center rounded-l-xl text-slate-500 transition hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+        className="flex h-9 w-9 items-center justify-center rounded-l-xl text-slate-500 transition hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:h-8 sm:w-8"
         aria-label="Decrease quantity"
       >
         <MinusIcon className="h-3 w-3" />
       </button>
-      <span className="min-w-[2rem] text-center text-xs font-semibold text-slate-950">
+      <span className="min-w-[2.25rem] text-center text-[13px] font-semibold text-slate-950 sm:min-w-[2rem] sm:text-xs">
         {quantity}
       </span>
       <button
         type="button"
         onClick={onIncrease}
-        className="flex h-8 w-8 items-center justify-center rounded-r-xl text-slate-500 transition hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+        className="flex h-9 w-9 items-center justify-center rounded-r-xl text-slate-500 transition hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:h-8 sm:w-8"
         aria-label="Increase quantity"
       >
         <PlusIcon className="h-3 w-3" />

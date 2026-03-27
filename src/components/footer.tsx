@@ -241,7 +241,15 @@ export default function Footer(props: FooterProps) {
       {/* Left Section: Logo, About, Social Media */}
       <div className={styles.leftSection}>
         {logoUrl ? (
-          <img src={logoUrl} alt={restaurantName} className={styles.logo} />
+          <img
+            src={logoUrl}
+            alt={restaurantName}
+            width={180}
+            height={90}
+            loading="lazy"
+            decoding="async"
+            className={styles.logo}
+          />
         ) : (
           <h3 className={styles.brandName}>{restaurantName}</h3>
         )}
@@ -331,7 +339,15 @@ export default function Footer(props: FooterProps) {
     <div className={styles.centeredLayout}>
       <div className={styles.centeredContent}>
         {logoUrl ? (
-          <img src={logoUrl} alt={restaurantName} className={styles.logoCentered} />
+          <img
+            src={logoUrl}
+            alt={restaurantName}
+            width={180}
+            height={90}
+            loading="lazy"
+            decoding="async"
+            className={styles.logoCentered}
+          />
         ) : (
           <h3 className={styles.brandNameCentered}>{restaurantName}</h3>
         )}
@@ -407,7 +423,15 @@ export default function Footer(props: FooterProps) {
       {/* Brand Column */}
       <div className={styles.brandColumn}>
         {logoUrl ? (
-          <img src={logoUrl} alt={restaurantName} className={styles.logo} />
+          <img
+            src={logoUrl}
+            alt={restaurantName}
+            width={180}
+            height={90}
+            loading="lazy"
+            decoding="async"
+            className={styles.logo}
+          />
         ) : (
           <h3 className={styles.brandName}>{restaurantName}</h3>
         )}
@@ -528,7 +552,15 @@ export default function Footer(props: FooterProps) {
         {/* Left Section: Brand, About, Social Media */}
         <div className={styles.restaurantBrand}>
           {logoUrl ? (
-            <img src={logoUrl} alt={restaurantName} className={styles.logo} />
+            <img
+              src={logoUrl}
+              alt={restaurantName}
+              width={180}
+              height={90}
+              loading="lazy"
+              decoding="async"
+              className={styles.logo}
+            />
           ) : (
             <h3 className={styles.brandName}>{restaurantName}</h3>
           )}

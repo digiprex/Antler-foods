@@ -16,8 +16,7 @@ interface PageProps {
   params: { slug: string };
 }
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 60;
 
 /**
  * Generate metadata for the page based on slug
@@ -43,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     // Fetch page details
     const pageResponse = await fetch(
       `${appOrigin}/api/page-details?domain=${encodeURIComponent(domain)}&url_slug=${encodeURIComponent(slug)}`,
-      { cache: 'no-store' }
+      { cache: 'force-cache', next: { revalidate: 60 } }
     );
 
     if (!pageResponse.ok) {
@@ -81,7 +80,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     try {
       const restaurantResponse = await fetch(
         `${appOrigin}/api/restaurant-info?restaurant_id=${resolvedRestaurantId}`,
-        { cache: 'no-store' }
+        { cache: 'force-cache', next: { revalidate: 120 } }
       );
       
       if (restaurantResponse.ok) {

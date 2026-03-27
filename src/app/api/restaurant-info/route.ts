@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * Restaurant Info API
  *
@@ -139,6 +141,10 @@ export async function GET(request: Request) {
         staging_domain: restaurant.staging_domain,
         is_published: restaurant.is_published,
         is_deleted: restaurant.is_deleted,
+      },
+    }, {
+      headers: {
+        'Cache-Control': 'public, max-age=120, stale-while-revalidate=600',
       },
     });
   } catch (error) {

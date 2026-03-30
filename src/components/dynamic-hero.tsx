@@ -102,7 +102,7 @@ export default function DynamicHero({
         secondaryButton={{
           label: 'Book a Table',
           href: '/reservations',
-          variant: 'outline'
+          variant: 'secondary'
         }}
         layout="centered-large"
         bgColor="#ffffff"

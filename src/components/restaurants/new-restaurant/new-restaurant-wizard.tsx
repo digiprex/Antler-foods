@@ -102,6 +102,18 @@ function debugLog(label: string, data?: unknown) {
   console.info(`[restaurant-wizard] ${label}`, data);
 }
 
+function shouldKeepStepOnePanelOpen(options: {
+  currentStep: WizardStep;
+  primaryRestaurantId: string | null;
+  isStepOneComplete: boolean;
+}) {
+  if (options.currentStep !== 1) {
+    return false;
+  }
+
+  return Boolean(options.primaryRestaurantId) || options.isStepOneComplete;
+}
+
 export function NewRestaurantWizard() {
   const router = useRouter();
   const pathname = usePathname() ?? '';
@@ -136,6 +148,8 @@ export function NewRestaurantWizard() {
   const [saveElapsedSeconds, setSaveElapsedSeconds] = useState(0);
   const [isHydratingDraft, setIsHydratingDraft] = useState(true);
   const hasInitializedFromRouteRef = useRef(false);
+  const wizardContainerRef = useRef<HTMLDivElement | null>(null);
+  const shouldScrollAfterStepChangeRef = useRef(false);
   const createdToastTimeoutsRef = useRef<Array<ReturnType<typeof setTimeout>>>(
     [],
   );
@@ -334,6 +348,13 @@ export function NewRestaurantWizard() {
           setCurrentStep(stepParam);
           setFranchiseId(routeFranchiseId || null);
           setWizardMode(routeMode);
+          setIsStepOneRegistrationOpen(
+            shouldKeepStepOnePanelOpen({
+              currentStep: stepParam,
+              primaryRestaurantId: null,
+              isStepOneComplete: false,
+            }),
+          );
           if (routeMode) {
             setValue('ownerProfileMode', routeMode, {
               shouldDirty: false,
@@ -378,6 +399,13 @@ export function NewRestaurantWizard() {
         setFranchiseId(hydratedFranchiseId || null);
         setWizardMode(hydratedMode);
         setCurrentStep(stepParam);
+        setIsStepOneRegistrationOpen(
+          shouldKeepStepOnePanelOpen({
+            currentStep: stepParam,
+            primaryRestaurantId: draft.id,
+            isStepOneComplete: true,
+          }),
+        );
 
         reset({
           ...DEFAULT_FORM_VALUES,
@@ -442,6 +470,23 @@ export function NewRestaurantWizard() {
     syncWizardRoute,
     wizardMode,
   ]);
+
+  useEffect(() => {
+    if (!shouldScrollAfterStepChangeRef.current) {
+      return;
+    }
+
+    shouldScrollAfterStepChangeRef.current = false;
+
+    const scrollTarget = wizardContainerRef.current;
+
+    if (scrollTarget) {
+      scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStep]);
 
   useEffect(() => {
     void refreshRecentlyCreatedRestaurants();
@@ -546,10 +591,63 @@ export function NewRestaurantWizard() {
     };
   };
 
+  const transitionToStep = useCallback(
+    (nextStep: WizardStep) => {
+      if (nextStep === currentStep) {
+        return;
+      }
+
+      shouldScrollAfterStepChangeRef.current = true;
+      setCurrentStep(nextStep);
+    },
+    [currentStep],
+  );
+
   const saveStepOneAndContinue = async () => {
     const values = getValues();
+    let effectiveValues = values;
+    let effectiveGooglePlaceId = values.googlePlaceId.trim();
     const activeMode = values.ownerProfileMode;
     let activeFranchiseId = franchiseId;
+
+    if (!effectiveGooglePlaceId) {
+      try {
+        const matchedPlace = await resolveGooglePlaceMatchForRestaurant(values);
+        if (matchedPlace?.placeId) {
+          effectiveGooglePlaceId = matchedPlace.placeId;
+          effectiveValues = {
+            ...values,
+            googlePlaceId: matchedPlace.placeId,
+            googlePlaceName: matchedPlace.name || values.restaurantName,
+            googleLat: matchedPlace.latitude ?? values.googleLat,
+            googleLng: matchedPlace.longitude ?? values.googleLng,
+          };
+
+          setValue('googlePlaceId', matchedPlace.placeId, {
+            shouldDirty: false,
+            shouldValidate: false,
+          });
+          setValue('googlePlaceName', matchedPlace.name || values.restaurantName, {
+            shouldDirty: false,
+            shouldValidate: false,
+          });
+          setValue('googleLat', matchedPlace.latitude ?? null, {
+            shouldDirty: false,
+            shouldValidate: false,
+          });
+          setValue('googleLng', matchedPlace.longitude ?? null, {
+            shouldDirty: false,
+            shouldValidate: false,
+          });
+        }
+      } catch (caughtError) {
+        debugLog('google-place:resolve-failed', {
+          restaurantName: values.restaurantName,
+          reason:
+            caughtError instanceof Error ? caughtError.message : 'Unknown error',
+        });
+      }
+    }
 
     if (activeMode === 'create') {
       const franchiseName = values.restaurantName.trim();
@@ -576,12 +674,12 @@ export function NewRestaurantWizard() {
 
     let restaurantId = primaryRestaurantId;
     if (restaurantId) {
-      const payload = buildRestaurantPayload(values, activeFranchiseId, {
+      const payload = buildRestaurantPayload(effectiveValues, activeFranchiseId, {
         includeDefaultStagingDomain: false,
       });
       await updateRestaurant(restaurantId, payload);
     } else {
-      const payload = buildRestaurantPayload(values, activeFranchiseId, {
+      const payload = buildRestaurantPayload(effectiveValues, activeFranchiseId, {
         includeDefaultStagingDomain: true,
       });
       const inserted = await insertRestaurant(payload);
@@ -602,28 +700,48 @@ export function NewRestaurantWizard() {
       shouldValidate: false,
     });
 
-    const trimmedGooglePlaceId = values.googlePlaceId.trim();
-    if (trimmedGooglePlaceId) {
-      try {
-        const currentUser = nhost.auth.getUser();
-        await syncGoogleReviewsForRestaurant({
+    if (effectiveGooglePlaceId) {
+      const currentUser = nhost.auth.getUser();
+      const [reviewsResult, socialLinksResult] = await Promise.allSettled([
+        syncGoogleReviewsForRestaurant({
           restaurantId,
-          placeId: trimmedGooglePlaceId,
+          placeId: effectiveGooglePlaceId,
           createdByUserId: currentUser?.id ?? null,
-        });
-      } catch (caughtError) {
+        }),
+        syncOfficialSocialLinksForRestaurant({
+          restaurantId,
+          placeId: effectiveGooglePlaceId,
+        }),
+      ]);
+
+      if (reviewsResult.status === 'rejected') {
         const reason =
-          caughtError instanceof Error ? caughtError.message : 'Unknown error';
+          reviewsResult.reason instanceof Error
+            ? reviewsResult.reason.message
+            : 'Unknown error';
         debugLog('reviews:sync-failed', {
           restaurantId,
-          placeId: trimmedGooglePlaceId,
+          placeId: effectiveGooglePlaceId,
+          reason,
+        });
+      }
+
+      if (socialLinksResult.status === 'rejected') {
+        const reason =
+          socialLinksResult.reason instanceof Error
+            ? socialLinksResult.reason.message
+            : 'Unknown error';
+        debugLog('social-links:sync-failed', {
+          restaurantId,
+          placeId: effectiveGooglePlaceId,
           reason,
         });
       }
     }
 
     setSuccessMessage('Restaurant step 1 details saved.');
-    setCurrentStep(2);
+    setIsStepOneRegistrationOpen(true);
+    transitionToStep(2);
   };
 
   const saveStepTwoAndContinue = async () => {
@@ -788,7 +906,16 @@ export function NewRestaurantWizard() {
     }
 
     if (nextStep < currentStep) {
-      setCurrentStep(nextStep);
+      if (
+        shouldKeepStepOnePanelOpen({
+          currentStep: nextStep,
+          primaryRestaurantId,
+          isStepOneComplete,
+        })
+      ) {
+        setIsStepOneRegistrationOpen(true);
+      }
+      transitionToStep(nextStep);
       return;
     }
 
@@ -804,13 +931,13 @@ export function NewRestaurantWizard() {
 
       if (!validation.isValid) {
         if (currentStep !== stepToValidate) {
-          setCurrentStep(stepToValidate);
+          transitionToStep(stepToValidate);
         }
         return;
       }
     }
 
-    setCurrentStep(nextStep);
+    transitionToStep(nextStep);
   };
 
   const onBack = () => {
@@ -820,12 +947,34 @@ export function NewRestaurantWizard() {
 
     setSuccessMessage(null);
     setErrorMessage(null);
-    setCurrentStep((step) => (step > 1 ? ((step - 1) as WizardStep) : step));
+    const previousStep =
+      currentStep > 1 ? ((currentStep - 1) as WizardStep) : currentStep;
+
+    if (
+      shouldKeepStepOnePanelOpen({
+        currentStep: previousStep,
+        primaryRestaurantId,
+        isStepOneComplete,
+      })
+    ) {
+      setIsStepOneRegistrationOpen(true);
+    }
+
+    transitionToStep(previousStep);
   };
 
   const onBackToStepOne = () => {
     setErrorMessage(null);
-    setCurrentStep(1);
+    if (
+      shouldKeepStepOnePanelOpen({
+        currentStep: 1,
+        primaryRestaurantId,
+        isStepOneComplete,
+      })
+    ) {
+      setIsStepOneRegistrationOpen(true);
+    }
+    transitionToStep(1);
   };
 
   const showBackButton = currentStep > 1;
@@ -905,7 +1054,10 @@ export function NewRestaurantWizard() {
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-3xl border border-[#d7e2e6] bg-white">
+      <div
+        ref={wizardContainerRef}
+        className="overflow-hidden rounded-3xl border border-[#d7e2e6] bg-white"
+      >
       <div className="border-b border-[#d8e3e7] px-8 py-5">
         <h2 className="text-[28px] font-semibold text-[#111827]">
           New restaurant
@@ -935,6 +1087,7 @@ export function NewRestaurantWizard() {
             register={register}
             setValue={setValue}
             errors={errors}
+            isRegistrationPanelOpen={isStepOneRegistrationOpen}
             onRegistrationPanelOpenChange={setIsStepOneRegistrationOpen}
           />
         ) : null}
@@ -1284,6 +1437,96 @@ type GooglePlaceReviewPayload = {
   published_at?: unknown;
 };
 
+type GooglePlaceSocialLinksPayload = {
+  success?: unknown;
+  data?: {
+    websiteUrl?: unknown;
+    googleBusinessLink?: unknown;
+    facebookLink?: unknown;
+    instagramLink?: unknown;
+    xLink?: unknown;
+    linkedinLink?: unknown;
+    tiktokLink?: unknown;
+    youtubeLink?: unknown;
+    yelpLink?: unknown;
+    ubereatsLink?: unknown;
+    grubhubLink?: unknown;
+    doordashLink?: unknown;
+  } | null;
+  error?: unknown;
+  message?: unknown;
+} | null;
+
+type GooglePlaceMatchPayload = {
+  success?: unknown;
+  data?: {
+    placeId?: unknown;
+    name?: unknown;
+    formattedAddress?: unknown;
+    googleMapsUri?: unknown;
+    websiteUri?: unknown;
+    latitude?: unknown;
+    longitude?: unknown;
+  } | null;
+  error?: unknown;
+  message?: unknown;
+} | null;
+
+async function resolveGooglePlaceMatchForRestaurant(
+  values: NewRestaurantFormValues,
+) {
+  const restaurantName = values.restaurantName.trim();
+  if (!restaurantName) {
+    return null;
+  }
+
+  const response = await fetchWithSessionAuth('/api/google/place-match', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: restaurantName,
+      address: values.address.trim(),
+      city: values.city.trim(),
+      state: values.state.trim(),
+      postalCode: values.postalCode.trim(),
+      country: values.country.trim(),
+    }),
+    cache: 'no-store',
+  });
+
+  const payload = (await safeParseJson(response)) as GooglePlaceMatchPayload;
+
+  if (!response.ok || payload?.success !== true) {
+    const message =
+      (payload &&
+        (typeof payload.error === 'string'
+          ? payload.error
+          : typeof payload.message === 'string'
+            ? payload.message
+            : null)) ||
+      `Failed to resolve Google place for ${restaurantName}.`;
+    throw new Error(message);
+  }
+
+  const data = payload?.data;
+  const placeId =
+    data && typeof data.placeId === 'string' ? data.placeId.trim() : '';
+  if (!placeId) {
+    return null;
+  }
+
+  return {
+    placeId,
+    name: typeof data?.name === 'string' ? data.name.trim() : '',
+    googleMapsUri:
+      typeof data?.googleMapsUri === 'string' ? data.googleMapsUri.trim() : '',
+    latitude: typeof data?.latitude === 'number' ? data.latitude : null,
+    longitude: typeof data?.longitude === 'number' ? data.longitude : null,
+  };
+}
+
 async function syncGoogleReviewsForRestaurant({
   restaurantId,
   placeId,
@@ -1384,6 +1627,62 @@ async function syncGoogleReviewsForRestaurant({
   }
 
   await replaceRestaurantGoogleReviews(restaurantId, filteredReviews);
+}
+
+async function syncOfficialSocialLinksForRestaurant({
+  restaurantId,
+  placeId,
+}: {
+  restaurantId: string;
+  placeId: string;
+}) {
+  const response = await fetchWithSessionAuth('/api/google/place-social-links', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ placeId }),
+    cache: 'no-store',
+  });
+
+  const payload = (await safeParseJson(response)) as GooglePlaceSocialLinksPayload;
+
+  if (!response.ok || payload?.success !== true) {
+    const message =
+      (payload &&
+        (typeof payload.error === 'string'
+          ? payload.error
+          : typeof payload.message === 'string'
+            ? payload.message
+            : null)) ||
+      `Failed to fetch social links for place id ${placeId}.`;
+    throw new Error(message);
+  }
+
+  const data = payload?.data;
+  if (!data) {
+    return;
+  }
+
+  const socialLinksPayload = buildSocialLinksUpdatePayload({
+    facebookLink: normalizeOptionalLink(data.facebookLink),
+    instagramLink: normalizeOptionalLink(data.instagramLink),
+    xLink: normalizeOptionalLink(data.xLink),
+    linkedinLink: normalizeOptionalLink(data.linkedinLink),
+    tiktokLink: normalizeOptionalLink(data.tiktokLink),
+    youtubeLink: normalizeOptionalLink(data.youtubeLink),
+    googleBusinessLink: normalizeOptionalLink(data.googleBusinessLink),
+    yelpLink: normalizeOptionalLink(data.yelpLink),
+    ubereatsLink: normalizeOptionalLink(data.ubereatsLink),
+    grubhubLink: normalizeOptionalLink(data.grubhubLink),
+    doordashLink: normalizeOptionalLink(data.doordashLink),
+  });
+
+  if (!Object.keys(socialLinksPayload).length) {
+    return;
+  }
+
+  await updateRestaurant(restaurantId, socialLinksPayload);
 }
 
 // COMMENTED OUT: Page creation removed from flow
@@ -1582,6 +1881,97 @@ async function safeParseJson(response: Response) {
   } catch {
     return null;
   }
+}
+
+function buildSocialLinksUpdatePayload({
+  facebookLink,
+  instagramLink,
+  xLink,
+  linkedinLink,
+  tiktokLink,
+  youtubeLink,
+  googleBusinessLink,
+  yelpLink,
+  ubereatsLink,
+  grubhubLink,
+  doordashLink,
+}: {
+  facebookLink?: string | null;
+  instagramLink?: string | null;
+  xLink?: string | null;
+  linkedinLink?: string | null;
+  tiktokLink?: string | null;
+  youtubeLink?: string | null;
+  googleBusinessLink?: string | null;
+  yelpLink?: string | null;
+  ubereatsLink?: string | null;
+  grubhubLink?: string | null;
+  doordashLink?: string | null;
+}) {
+  const payload: Record<string, string> = {};
+
+  if (facebookLink) {
+    payload.fb_link = facebookLink;
+    payload.facebook_link = facebookLink;
+    payload.facebook_url = facebookLink;
+  }
+
+  if (instagramLink) {
+    payload.insta_link = instagramLink;
+    payload.instagram_link = instagramLink;
+    payload.instagram_url = instagramLink;
+  }
+
+  if (xLink) {
+    payload.x_link = xLink;
+    payload.x_url = xLink;
+    payload.twitter_link = xLink;
+    payload.twitter_url = xLink;
+  }
+
+  if (linkedinLink) {
+    payload.linkedin_link = linkedinLink;
+    payload.linkedin_url = linkedinLink;
+    payload.li_link = linkedinLink;
+  }
+
+  if (tiktokLink) {
+    payload.tiktok_link = tiktokLink;
+    payload.tiktok_url = tiktokLink;
+  }
+
+  if (youtubeLink) {
+    payload.yt_link = youtubeLink;
+    payload.youtube_link = youtubeLink;
+    payload.youtube_url = youtubeLink;
+  }
+
+  if (googleBusinessLink) {
+    payload.gmb_link = googleBusinessLink;
+    payload.google_business_link = googleBusinessLink;
+  }
+
+  if (yelpLink) {
+    payload.yelp_link = yelpLink;
+  }
+
+  if (ubereatsLink) {
+    payload.ubereats_link = ubereatsLink;
+  }
+
+  if (grubhubLink) {
+    payload.grubhub_link = grubhubLink;
+  }
+
+  if (doordashLink) {
+    payload.doordash_link = doordashLink;
+  }
+
+  return payload;
+}
+
+function normalizeOptionalLink(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
 function optionalString(value: string | undefined | null) {

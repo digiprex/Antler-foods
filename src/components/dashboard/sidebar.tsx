@@ -319,7 +319,9 @@ export function Sidebar({
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen border-r border-gray-200 bg-white shadow-sm transition-all duration-200 ease-in-out overflow-y-auto overflow-x-hidden scrollbar-hide ${
+      className={`fixed left-0 top-0 z-40 h-screen border-r border-gray-200 bg-white shadow-sm transition-all duration-200 ease-in-out overflow-y-auto scrollbar-hide ${
+        isOpen ? 'overflow-x-hidden' : 'overflow-x-visible'
+      } ${
         isOpen ? 'w-[260px]' : 'w-20'
       }`}
       style={{

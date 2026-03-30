@@ -8,7 +8,7 @@ const GET_RESTAURANT_REVIEWS = `
         restaurant_id: { _eq: $restaurant_id }
         is_deleted: { _neq: true }
       }
-      order_by: [{ created_at: desc }]
+      order_by: [{ published_at: desc_nulls_last }, { created_at: desc }]
     ) {
       review_id
       restaurant_id

@@ -172,6 +172,20 @@ export default function NavbarSettingsForm() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
+  const previewInitials = useMemo(() => {
+    const sourceName = config?.restaurantName || 'Restaurant';
+    return sourceName
+      .split(' ')
+      .map((word) => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 3);
+  }, [config?.restaurantName]);
+  const previewInitialsFontSize = Math.max(
+    10,
+    Math.round(logoSize * (previewInitials.length > 2 ? 0.34 : 0.4)),
+  );
+
 
   // Load Google Fonts dynamically (excluding Poppins since it's already loaded globally)
   useEffect(() => {
@@ -756,15 +770,16 @@ export default function NavbarSettingsForm() {
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center rounded bg-purple-100 px-3 py-2 text-sm font-bold text-purple-700">
-                    {config?.restaurantName
-                      ? config.restaurantName
-                        .split(' ')
-                        .map(word => word[0])
-                        .join('')
-                        .toUpperCase()
-                        .slice(0, 3)
-                      : 'R'}
+                  <div
+                    className="flex items-center justify-center rounded bg-purple-100 font-bold text-purple-700"
+                    style={{
+                      width: `${logoSize}px`,
+                      height: `${logoSize}px`,
+                      minWidth: `${logoSize}px`,
+                      fontSize: `${previewInitialsFontSize}px`,
+                    }}
+                  >
+                    {previewInitials}
                   </div>
                   <span className="text-sm font-medium text-gray-700">
                     {config?.restaurantName || 'Restaurant'} (Initials)

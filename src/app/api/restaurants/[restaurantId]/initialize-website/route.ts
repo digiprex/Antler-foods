@@ -1774,7 +1774,7 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
         secondaryButton: sectionConfig.secondaryButton || {
           label: 'Book a Table',
           href: '#reservations',
-          variant: 'outline',
+          variant: 'secondary',
         },
         primaryButtonEnabled: sectionConfig.primaryButtonEnabled !== undefined ? sectionConfig.primaryButtonEnabled : true,
         secondaryButtonEnabled: sectionConfig.secondaryButtonEnabled !== undefined ? sectionConfig.secondaryButtonEnabled : false,
@@ -2984,7 +2984,7 @@ Please call ahead for holiday hour updates.`;
             secondaryButton: {
               label: 'Book a Table',
               href: '#reservations',
-              variant: 'outline',
+              variant: 'secondary',
             },
             primaryButtonEnabled: false,
             secondaryButtonEnabled: false,

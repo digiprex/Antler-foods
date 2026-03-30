@@ -186,6 +186,12 @@ export default function Navbar({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const brandInitials = getInitials(restaurantName);
+  const logoInitialsFontSize = Math.max(
+    10,
+    Math.round(logoSize * (brandInitials.length > 2 ? 0.34 : 0.4)),
+  );
+
   const brandDisplay = logoUrl ? (
     <img
       src={logoUrl}
@@ -199,7 +205,17 @@ export default function Navbar({
       style={{ height: `${logoSize}px`, width: 'auto' }}
     />
   ) : (
-    <span className={styles.logoInitials}>{getInitials(restaurantName)}</span>
+    <span
+      className={styles.logoInitials}
+      style={{
+        width: `${logoSize}px`,
+        height: `${logoSize}px`,
+        minWidth: `${logoSize}px`,
+        fontSize: `${logoInitialsFontSize}px`,
+      }}
+    >
+      {brandInitials}
+    </span>
   );
 
   useEffect(() => {

@@ -28,6 +28,7 @@ interface StepRestaurantInfoProps {
   register: UseFormRegister<NewRestaurantFormValues>;
   setValue: UseFormSetValue<NewRestaurantFormValues>;
   errors: FieldErrors<NewRestaurantFormValues>;
+  isRegistrationPanelOpen: boolean;
   openRegistrationPanelToken?: number;
   onRegistrationPanelOpenChange?: (isOpen: boolean) => void;
 }
@@ -38,7 +39,6 @@ const COUNTRY_OPTIONS = [
   { value: 'United Kingdom', label: 'United Kingdom' },
   { value: 'India', label: 'India' },
 ];
-
 const ENABLE_EXISTING_FRANCHISE = false;
 
 export function StepRestaurantInfo({
@@ -46,6 +46,7 @@ export function StepRestaurantInfo({
   register,
   setValue,
   errors,
+  isRegistrationPanelOpen,
   openRegistrationPanelToken = 0,
   onRegistrationPanelOpenChange,
 }: StepRestaurantInfoProps) {
@@ -61,7 +62,6 @@ export function StepRestaurantInfo({
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
   >({});
-  const [isRegistrationPanelOpen, setIsRegistrationPanelOpen] = useState(false);
 
   const mode =
     useWatch({
@@ -108,6 +108,8 @@ export function StepRestaurantInfo({
   const googleMapsApiKey =
     process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ?? '';
   const hasGoogleMapsApiKey = googleMapsApiKey.length > 0;
+  const [googleInputContainer, setGoogleInputContainer] =
+    useState<HTMLDivElement | null>(null);
 
   const applySelectedPlaceToForm = useCallback(
     (place: SelectedGooglePlace) => {
@@ -220,6 +222,14 @@ export function StepRestaurantInfo({
       clearSelectedPlace();
     },
   });
+
+  const setGoogleAutocompleteContainer = useCallback(
+    (element: HTMLDivElement | null) => {
+      setGoogleInputContainer(element);
+      setContainerElement(element);
+    },
+    [setContainerElement],
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -337,12 +347,8 @@ export function StepRestaurantInfo({
       return;
     }
 
-    setIsRegistrationPanelOpen(true);
+    onRegistrationPanelOpenChange?.(true);
   }, [openRegistrationPanelToken]);
-
-  useEffect(() => {
-    onRegistrationPanelOpenChange?.(isRegistrationPanelOpen);
-  }, [isRegistrationPanelOpen, onRegistrationPanelOpenChange]);
 
   useEffect(() => {
     if (
@@ -426,6 +432,8 @@ export function StepRestaurantInfo({
       : undefined;
 
   const restaurantNameRegistration = register('restaurantName');
+  const canUseGoogleAutocomplete =
+    hasGoogleMapsApiKey && !Boolean(googlePlacesError);
 
   const onChooseCreateRestaurant = () => {
     setValue('ownerProfileMode', 'create', {
@@ -436,7 +444,7 @@ export function StepRestaurantInfo({
       shouldDirty: true,
       shouldValidate: true,
     });
-    setIsRegistrationPanelOpen(true);
+    onRegistrationPanelOpenChange?.(true);
   };
 
   const onChooseExistingRestaurant = () => {
@@ -444,7 +452,7 @@ export function StepRestaurantInfo({
       shouldDirty: true,
       shouldValidate: true,
     });
-    setIsRegistrationPanelOpen(false);
+    onRegistrationPanelOpenChange?.(false);
   };
 
   const onCuisineTypeToggle = (cuisineTypeId: string) => {
@@ -480,20 +488,6 @@ export function StepRestaurantInfo({
     });
   };
 
-  const onResetPlaceCategories = () => {
-    setValue('selectedCuisineTypeIds', [], {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
-
-    setValue('selectedCuisineTypeLabels', [], {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
-
-    setSearchTerm('');
-  };
-
   const onManualRestaurantNameChange = (value: string) => {
     setValue('restaurantName', value, {
       shouldDirty: true,
@@ -505,6 +499,53 @@ export function StepRestaurantInfo({
     setValue('googleLat', null);
     setValue('googleLng', null);
   };
+
+  useEffect(() => {
+    if (!googleInputContainer || !canUseGoogleAutocomplete) {
+      return;
+    }
+
+    const syncDisplayedValue = () => {
+      const placeElement = googleInputContainer.querySelector(
+        'gmp-place-autocomplete',
+      ) as
+        | (HTMLElement & { value?: string; shadowRoot?: ShadowRoot | null })
+        | null;
+
+      if (!placeElement) {
+        return false;
+      }
+
+      if (
+        typeof placeElement.value === 'string' &&
+        placeElement.value !== restaurantNameValue
+      ) {
+        placeElement.value = restaurantNameValue;
+      }
+
+      const shadowInputElement = placeElement.shadowRoot?.querySelector('input');
+      if (
+        shadowInputElement instanceof HTMLInputElement &&
+        shadowInputElement.value !== restaurantNameValue
+      ) {
+        shadowInputElement.value = restaurantNameValue;
+      }
+
+      return true;
+    };
+
+    if (syncDisplayedValue()) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      syncDisplayedValue();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [canUseGoogleAutocomplete, googleInputContainer, isGooglePlacesReady, restaurantNameValue]);
 
   const onFranchiseChange = (franchiseId: string) => {
     setValue('selectedFranchiseId', franchiseId, {
@@ -536,17 +577,15 @@ export function StepRestaurantInfo({
     <div className="space-y-6">
       <div className="space-y-3">
         <h3 className="text-[22px] font-semibold tracking-tight text-[#111827]">
-            Restaurant Setup
-          </h3>
+          Restaurant Setup
+        </h3>
         {ENABLE_EXISTING_FRANCHISE ? (
           <HelperCallout>
             Choose whether you are creating a new franchise with its first
             restaurant or adding this restaurant to an existing franchise.
           </HelperCallout>
         ) : (
-          <HelperCallout>
-            Create a new restaurant.
-          </HelperCallout>
+          <HelperCallout>Create a new restaurant.</HelperCallout>
         )}
       </div>
 
@@ -562,8 +601,18 @@ export function StepRestaurantInfo({
                 : 'border-gray-300 bg-white text-gray-700 hover:border-purple-300 hover:bg-purple-50',
             )}
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 4v16m8-8H4"
+              />
             </svg>
             Add new restaurant
           </button>
@@ -578,8 +627,18 @@ export function StepRestaurantInfo({
                   : 'border-gray-300 bg-white text-gray-700 hover:border-purple-300 hover:bg-purple-50',
               )}
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                />
               </svg>
               Existing franchise
             </button>
@@ -646,7 +705,7 @@ export function StepRestaurantInfo({
 
             <button
               type="button"
-              onClick={() => setIsRegistrationPanelOpen(true)}
+              onClick={() => onRegistrationPanelOpenChange?.(true)}
               className="inline-flex rounded-lg border border-[#d3e0e6] bg-white px-3 py-1.5 text-sm font-medium text-[#334155] hover:bg-[#f7fafc]"
             >
               Open restaurant registration panel
@@ -660,8 +719,18 @@ export function StepRestaurantInfo({
           <div className="flex items-center justify-between border-b border-gray-200 pb-5">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 shadow-md">
-                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                <svg
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                  />
                 </svg>
               </div>
               <h4 className="text-xl font-bold tracking-tight text-gray-900">
@@ -670,7 +739,7 @@ export function StepRestaurantInfo({
             </div>
             <button
               type="button"
-              onClick={() => setIsRegistrationPanelOpen(false)}
+              onClick={() => onRegistrationPanelOpenChange?.(false)}
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition hover:bg-gray-50 hover:text-gray-900"
               aria-label="Close add restaurant form"
             >
@@ -682,8 +751,18 @@ export function StepRestaurantInfo({
             <div className="space-y-5">
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
-                  <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg
+                    className="h-4 w-4 text-purple-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                 </div>
                 <div className="flex-1">
@@ -702,7 +781,7 @@ export function StepRestaurantInfo({
                   Restaurant name
                 </label>
                 <input type="hidden" {...restaurantNameRegistration} />
-                {hasGoogleMapsApiKey && !googlePlacesError ? (
+                {canUseGoogleAutocomplete ? (
                   <div
                     className={cx(
                       'flex min-h-12 items-center rounded-xl border bg-transparent px-3 py-2',
@@ -714,7 +793,23 @@ export function StepRestaurantInfo({
                     <div className="mr-3 flex items-center gap-2 border-r border-[#d6e0e5] pr-3">
                       <StoreIcon />
                     </div>
-                    <div ref={setContainerElement} className="w-full" />
+                    <div className="w-full">
+                      <div
+                        ref={setGoogleAutocompleteContainer}
+                        className={cx('w-full', !isGooglePlacesReady && 'hidden')}
+                      />
+                      {!isGooglePlacesReady ? (
+                        <input
+                          type="text"
+                          value={restaurantNameValue}
+                          onChange={(event) =>
+                            onManualRestaurantNameChange(event.target.value)
+                          }
+                          placeholder="Search Google listing or enter restaurant name"
+                          className="w-full bg-transparent py-3 text-[16px] text-[#111827] placeholder:text-[#8ea0af] focus:outline-none"
+                        />
+                      ) : null}
+                    </div>
                   </div>
                 ) : (
                   <div
@@ -747,22 +842,36 @@ export function StepRestaurantInfo({
               </div>
 
               <div className="rounded-lg border border-purple-100 bg-purple-50 px-4 py-3">
-                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
-                  <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="font-medium">Can&apos;t find the place?</span>
-                  <button
-                    type="button"
-                    onClick={onResetPlaceCategories}
-                    className="font-semibold text-purple-600 hover:text-purple-700 hover:underline"
-                  >
-                    Reset categories
-                  </button>
-                </div>
                 <div className="mt-2 space-y-2 text-sm">
-                  {hasGoogleMapsApiKey ? (
+                  {canUseGoogleAutocomplete ? (
                     <>
+                      <div className="flex items-center gap-2 text-purple-700">
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          <>
+                            <span>
+                              Search Google to autofill details. If the restaurant is
+                              not listed, keep typing and complete the remaining
+                              fields manually.
+                            </span>
+                            <span className="sr-only">
+                            Search Google to autofill details. If the restaurant is
+                            not listed, keep typing and complete the remaining
+                            it’s not listed.
+                            </span>
+                          </>
+                        </div>
                       {/* {isGooglePlacesReady && !googlePlacesError ? (
                         <div className="flex items-center gap-2 text-purple-700">
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -773,19 +882,48 @@ export function StepRestaurantInfo({
                       ) : null} */}
                       {!isGooglePlacesReady && !googlePlacesError ? (
                         <div className="flex items-center gap-2 text-gray-600">
-                          <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          <svg
+                            className="h-4 w-4 animate-spin"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
                           </svg>
-                          <span>Loading Google Places...</span>
+                          <span>
+                            Loading Google suggestions in the background.
+                          </span>
                         </div>
                       ) : null}
                       {googlePlacesError ? (
                         <div className="flex items-center gap-2 text-amber-700">
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                            />
                           </svg>
-                          <span>Google Places unavailable. Enter details manually.</span>
+                          <span>
+                            Google Places unavailable. Enter details manually.
+                          </span>
                         </div>
                       ) : null}
                       {/* {selectedPlace ? (
@@ -800,10 +938,22 @@ export function StepRestaurantInfo({
                     </>
                   ) : (
                     <div className="flex items-center gap-2 text-amber-700">
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        />
                       </svg>
-                      <span>Google Places disabled. Enter details manually.</span>
+                      <span>
+                        Google Places disabled. Enter details manually.
+                      </span>
                     </div>
                   )}
                 </div>
@@ -861,8 +1011,18 @@ export function StepRestaurantInfo({
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
-                  <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                  <svg
+                    className="h-4 w-4 text-purple-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
                   </svg>
                 </div>
                 <div className="flex-1">
@@ -870,7 +1030,8 @@ export function StepRestaurantInfo({
                     Food Categories &amp; Cuisine Types
                   </h5>
                   <p className="text-sm text-gray-600">
-                    Select all food categories and cuisine types that apply to this restaurant.
+                    Select all food categories and cuisine types that apply to
+                    this restaurant.
                   </p>
                 </div>
               </div>
@@ -986,8 +1147,18 @@ export function StepRestaurantInfo({
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
-                  <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  <svg
+                    className="h-4 w-4 text-purple-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                    />
                   </svg>
                 </div>
                 <div className="flex-1">
@@ -995,7 +1166,8 @@ export function StepRestaurantInfo({
                     Restaurant Type &amp; Service Model
                   </h5>
                   <p className="text-sm text-gray-600">
-                    Choose the format that best describes this restaurant&apos;s service style.
+                    Choose the format that best describes this restaurant&apos;s
+                    service style.
                   </p>
                 </div>
               </div>

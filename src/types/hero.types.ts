@@ -177,7 +177,7 @@ export const DEFAULT_HERO_CONFIG: HeroConfig = {
   secondaryButton: {
     label: 'Book a Table',
     href: '#reservations',
-    variant: 'outline',
+    variant: 'secondary',
   },
   secondaryButtonEnabled: true,
   layout: 'centered-large',

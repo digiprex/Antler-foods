@@ -200,6 +200,24 @@ interface OrderCartItemInput {
   selectedAddOns?: OrderModifierInput[];
 }
 
+interface DeliveryAddressData {
+  formattedAddress?: string;
+  placeId?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  countryCode?: string;
+  latitude?: number;
+  longitude?: number;
+  houseFlatFloor?: string;
+  landmark?: string;
+  instructions?: string;
+  label?: string;
+  source?: string;
+}
+
 interface PlaceMenuOrderInput {
   customerId: string;
   restaurantId: string;
@@ -208,6 +226,7 @@ interface PlaceMenuOrderInput {
   scheduleDayId?: string | null;
   scheduleTime?: string | null;
   deliveryAddress?: string | null;
+  deliveryAddressData?: DeliveryAddressData | null;
   contact: OrderContactInput;
   items: OrderCartItemInput[];
   tipAmount?: number;
@@ -515,6 +534,7 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
   const total = roundCurrency(Math.max(preGiftCardTotal - giftCardAppliedAmount, 0));
   const orderNumber = buildOrderNumber(placedAt);
 
+  const deliveryData = input.deliveryAddressData;
   const orderData = await adminGraphqlRequest<InsertOrderResponse>(INSERT_ORDER, {
     object: {
       customer_id: customerId,
@@ -539,6 +559,27 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       discount_total: discountTotal,
       order_note: orderNote,
       delivery_address: fulfillmentType === 'delivery' ? deliveryAddress : null,
+      // Structured delivery address fields
+      delivery_place_id: fulfillmentType === 'delivery' && deliveryData?.placeId ? deliveryData.placeId : null,
+      delivery_address_line1: fulfillmentType === 'delivery' && deliveryData?.addressLine1 ? deliveryData.addressLine1 : null,
+      delivery_address_line2: fulfillmentType === 'delivery' && deliveryData?.addressLine2 ? deliveryData.addressLine2 : null,
+      delivery_city: fulfillmentType === 'delivery' && deliveryData?.city ? deliveryData.city : null,
+      delivery_state: fulfillmentType === 'delivery' && deliveryData?.state ? deliveryData.state : null,
+      delivery_postal_code: fulfillmentType === 'delivery' && deliveryData?.postalCode ? deliveryData.postalCode : null,
+      delivery_country_code: fulfillmentType === 'delivery' && deliveryData?.countryCode ? deliveryData.countryCode : null,
+      delivery_latitude:
+        fulfillmentType === 'delivery' && typeof deliveryData?.latitude === 'number'
+          ? deliveryData.latitude
+          : null,
+      delivery_longitude:
+        fulfillmentType === 'delivery' && typeof deliveryData?.longitude === 'number'
+          ? deliveryData.longitude
+          : null,
+      delivery_house_flat_floor: fulfillmentType === 'delivery' && deliveryData?.houseFlatFloor ? deliveryData.houseFlatFloor : null,
+      delivery_landmark: fulfillmentType === 'delivery' && deliveryData?.landmark ? deliveryData.landmark : null,
+      delivery_instructions: fulfillmentType === 'delivery' && deliveryData?.instructions ? deliveryData.instructions : null,
+      delivery_address_label: fulfillmentType === 'delivery' && deliveryData?.label ? deliveryData.label : null,
+      delivery_address_source: fulfillmentType === 'delivery' && deliveryData?.source ? deliveryData.source : null,
       placed_at: placedAt.toISOString(),
       order_number: orderNumber,
     },
@@ -785,3 +826,6 @@ function roundCurrency(value: number) {
 function trimText(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
+
+
+

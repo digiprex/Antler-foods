@@ -107,6 +107,7 @@ export default function Navbar({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [menuCartCount, setMenuCartCount] = useState(bagCount);
+  const [hasMountedMenuProfile, setHasMountedMenuProfile] = useState(false);
   const pathname = usePathname() ?? '';
   const router = useRouter();
 
@@ -319,6 +320,38 @@ export default function Navbar({
       window.removeEventListener('storage', readMenuCartCount);
     };
   }, [bagCount, forceHamburgerMenu]);
+
+  useEffect(() => {
+    if (!forceHamburgerMenu) {
+      setHasMountedMenuProfile(false);
+      return;
+    }
+
+    const slot = document.getElementById('menu-navbar-auth-slot');
+    if (!slot) {
+      setHasMountedMenuProfile(false);
+      return;
+    }
+
+    const syncMountedProfileState = () => {
+      setHasMountedMenuProfile(slot.childElementCount > 0);
+    };
+
+    syncMountedProfileState();
+
+    const observer = new MutationObserver(() => {
+      syncMountedProfileState();
+    });
+
+    observer.observe(slot, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [forceHamburgerMenu]);
 
   const resolvedBagCount = forceHamburgerMenu ? menuCartCount : bagCount;
 
@@ -651,12 +684,16 @@ export default function Navbar({
         <div className={styles.rightSection}>
           {forceHamburgerMenu ? (
             <div className={styles.menuPageActions}>
-              <a href="/login" className={styles.menuAuthLink}>
-                Sign In
-              </a>
-              <a href="/signup" className={styles.menuAuthLink}>
-                Sign Up
-              </a>
+              {!hasMountedMenuProfile ? (
+                <>
+                  <a href="/login" className={styles.menuAuthLink}>
+                    Sign In
+                  </a>
+                  <a href="/signup" className={styles.menuAuthLink}>
+                    Sign Up
+                  </a>
+                </>
+              ) : null}
               <div id="menu-navbar-auth-slot" className={styles.menuProfileSlot} />
               <a
                 href="/menu?cart=open"
@@ -785,12 +822,16 @@ export default function Navbar({
 
           {forceHamburgerMenu && (
             <div className={styles.sidebarActions}>
-              <a href="/login" className={styles.sidebarActionLink}>
-                Sign In
-              </a>
-              <a href="/signup" className={styles.sidebarActionLink}>
-                Sign Up
-              </a>
+              {!hasMountedMenuProfile ? (
+                <>
+                  <a href="/login" className={styles.sidebarActionLink}>
+                    Sign In
+                  </a>
+                  <a href="/signup" className={styles.sidebarActionLink}>
+                    Sign Up
+                  </a>
+                </>
+              ) : null}
               <a
                 href="/menu?cart=open"
                 onClick={handleMenuCartClick}

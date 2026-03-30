@@ -19,7 +19,19 @@ import type { SectionStyleConfig } from '@/types/section-style.types';
 
 interface FormField {
   field_id: string;
-  type: 'text' | 'email' | 'phone' | 'textarea' | 'select' | 'checkbox' | 'radio';
+  id?: string;
+  type:
+    | 'text'
+    | 'email'
+    | 'phone'
+    | 'tel'
+    | 'textarea'
+    | 'select'
+    | 'checkbox'
+    | 'radio'
+    | 'number'
+    | 'date'
+    | 'file';
   label: string;
   placeholder?: string;
   required: boolean;
@@ -30,6 +42,7 @@ interface FormField {
 interface FormDefinition {
   form_id: string;
   name: string;
+  title?: string;
   fields: FormField[];
 }
 
@@ -169,6 +182,38 @@ function normalizeFormLayout(layout: string | undefined) {
   }
 }
 
+function normalizeFormField(
+  field: Partial<FormField> & { id?: string },
+  index: number,
+): FormField {
+  return {
+    field_id: field.field_id || field.id || `field-${index}`,
+    id: field.id || field.field_id || `field-${index}`,
+    type: field.type || 'text',
+    label: field.label || `Field ${index + 1}`,
+    placeholder: field.placeholder,
+    required: field.required ?? false,
+    order: field.order ?? index,
+    options: field.options,
+  };
+}
+
+function normalizeFormDefinition(
+  formDefinition: FormDefinition | null | undefined,
+): FormDefinition | null {
+  if (!formDefinition) {
+    return null;
+  }
+
+  return {
+    ...formDefinition,
+    name: formDefinition.name || formDefinition.title || 'Untitled form',
+    fields: (formDefinition.fields || []).map((field, index) =>
+      normalizeFormField(field, index),
+    ),
+  };
+}
+
 export default function DynamicForm({
   restaurantId,
   pageId,
@@ -182,7 +227,9 @@ export default function DynamicForm({
   const [config, setConfig] = useState<FormConfig | null>(
     configData ? { ...DEFAULT_FORM_CONFIG, ...configData } : null,
   );
-  const [form, setForm] = useState<FormDefinition | null>(previewForm || null);
+  const [form, setForm] = useState<FormDefinition | null>(
+    normalizeFormDefinition(previewForm),
+  );
   const [loading, setLoading] = useState(!configData);
   const [formData, setFormData] = useState<Record<string, string | string[]>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -201,7 +248,7 @@ export default function DynamicForm({
 
   useEffect(() => {
     if (previewForm) {
-      setForm(previewForm);
+      setForm(normalizeFormDefinition(previewForm));
     }
   }, [previewForm]);
 
@@ -233,7 +280,7 @@ export default function DynamicForm({
 
             if (formData) {
               console.log('[DynamicForm] ✅ Form definition loaded:', formData);
-              setForm(formData);
+              setForm(normalizeFormDefinition(formData));
             } else {
               console.log('[DynamicForm] ❌ No form data found:', formPayload);
             }
@@ -292,7 +339,7 @@ export default function DynamicForm({
           const formData = formPayload.success ? (Array.isArray(formPayload.data) ? formPayload.data[0] : formPayload.data) : null;
 
           if (formData) {
-            setForm(formData);
+            setForm(normalizeFormDefinition(formData));
           }
         }
       } catch (fetchError) {
@@ -316,7 +363,7 @@ export default function DynamicForm({
 
   const displayForm = useMemo<FormDefinition>(() => {
     if (previewForm) {
-      return previewForm;
+      return normalizeFormDefinition(previewForm) || SAMPLE_FORM;
     }
 
     if (form) {
@@ -875,7 +922,7 @@ function FieldRenderer({
         </div>
       ) : (
         <input
-          type={field.type === 'phone' ? 'tel' : field.type}
+          type={field.type === 'phone' || field.type === 'tel' ? 'tel' : field.type}
           className={baseInputClassName}
           value={typeof value === 'string' ? value : ''}
           onChange={(event) => onChange(event.target.value)}

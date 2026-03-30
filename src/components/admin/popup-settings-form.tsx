@@ -49,7 +49,9 @@ export default function PopupSettingsForm() {
     setLoading(true);
     try {
       const url = `/api/popup-config?restaurant_id=${restaurantId}`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        cache: 'no-store',
+      });
       const data = await response.json();
 
       if (data.success && data.data) {

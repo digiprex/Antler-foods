@@ -292,9 +292,10 @@ export function getEmptyRestaurantMenuData(restaurantName = 'Restaurant') {
 const loadRestaurantMenuPageDataCached = unstable_cache(
 async (domain: string): Promise<RestaurantMenuData> => {
   let restaurant = await loadRestaurantByDomain(domain);
+  // Only fall back to the global latest menu when we cannot resolve a restaurant
+  // for the current domain. If a restaurant exists but has no menu yet, keep it empty.
   let menu = restaurant?.restaurant_id ? await loadPreferredMenu(restaurant.restaurant_id) : null;
-
-  if (!menu) {
+  if (!restaurant && !menu) {
     menu = await loadLatestMenu();
   }
 
@@ -536,6 +537,7 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
 
   return {
     restaurantId: text(restaurant.restaurant_id),
+    hasMenu: !!menu?.menu_id,
     allowTips: restaurant.allow_tips !== false,
     pickupAllowed,
     deliveryAllowed,
@@ -608,6 +610,7 @@ function buildEmptyMenuData(restaurantName: string): RestaurantMenuData {
   const scheduleDays = [fallbackScheduleDay(new Date(), DEFAULT_TIME_ZONE)];
   return {
     restaurantId: null,
+    hasMenu: false,
     allowTips: true,
     pickupAllowed: true,
     deliveryAllowed: true,

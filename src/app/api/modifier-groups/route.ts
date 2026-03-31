@@ -13,12 +13,13 @@ import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
 // GraphQL queries and mutations
 const GET_MODIFIER_GROUPS = `
-  query GetModifierGroups {
+  query GetModifierGroups($restaurant_id: uuid!) {
     modifier_groups(
-      where: { is_deleted: { _eq: false } }
+      where: { is_deleted: { _eq: false }, restaurant_id: { _eq: $restaurant_id } }
       order_by: { created_at: asc }
     ) {
       modifier_group_id
+      restaurant_id
       name
       description
       min_selection
@@ -35,6 +36,7 @@ const GET_MODIFIER_GROUPS = `
 
 const INSERT_MODIFIER_GROUP = `
   mutation InsertModifierGroup(
+    $restaurant_id: uuid!
     $name: String!
     $description: String
     $min_selection: numeric!
@@ -45,6 +47,7 @@ const INSERT_MODIFIER_GROUP = `
   ) {
     insert_modifier_groups_one(
       object: {
+        restaurant_id: $restaurant_id
         name: $name
         description: $description
         min_selection: $min_selection
@@ -55,6 +58,7 @@ const INSERT_MODIFIER_GROUP = `
       }
     ) {
       modifier_group_id
+      restaurant_id
       name
       description
       min_selection
@@ -72,6 +76,7 @@ const INSERT_MODIFIER_GROUP = `
 const UPDATE_MODIFIER_GROUP = `
   mutation UpdateModifierGroup(
     $modifier_group_id: uuid!
+    $restaurant_id: uuid!
     $name: String!
     $description: String
     $min_selection: numeric!
@@ -83,6 +88,7 @@ const UPDATE_MODIFIER_GROUP = `
     update_modifier_groups_by_pk(
       pk_columns: { modifier_group_id: $modifier_group_id }
       _set: {
+        restaurant_id: $restaurant_id
         name: $name
         description: $description
         min_selection: $min_selection
@@ -94,6 +100,7 @@ const UPDATE_MODIFIER_GROUP = `
       }
     ) {
       modifier_group_id
+      restaurant_id
       name
       description
       min_selection
@@ -144,8 +151,19 @@ interface DeleteModifierGroupResponse {
  */
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const restaurantId = searchParams.get('restaurant_id');
+
+    if (!restaurantId) {
+      return NextResponse.json(
+        { success: false, error: 'restaurant_id is required' },
+        { status: 400 }
+      );
+    }
+
     const data = await adminGraphqlRequest<GetModifierGroupsResponse>(
-      GET_MODIFIER_GROUPS
+      GET_MODIFIER_GROUPS,
+      { restaurant_id: restaurantId }
     );
 
     return NextResponse.json({
@@ -156,9 +174,9 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching modifier groups:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch modifier groups' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch modifier groups'
       },
       { status: 500 }
     );
@@ -172,6 +190,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const {
+      restaurant_id,
       name,
       description,
       min_selection = 0,
@@ -182,6 +201,13 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validation
+    if (!restaurant_id) {
+      return NextResponse.json(
+        { success: false, error: 'restaurant_id is required' },
+        { status: 400 }
+      );
+    }
+
     if (!name) {
       return NextResponse.json(
         { success: false, error: 'Name is required' },
@@ -192,6 +218,7 @@ export async function POST(request: NextRequest) {
     const data = await adminGraphqlRequest<InsertModifierGroupResponse>(
       INSERT_MODIFIER_GROUP,
       {
+        restaurant_id,
         name,
         description,
         min_selection: Number(min_selection),
@@ -234,6 +261,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const {
       modifier_group_id,
+      restaurant_id,
       name,
       description,
       min_selection = 0,
@@ -251,10 +279,18 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    if (!restaurant_id) {
+      return NextResponse.json(
+        { success: false, error: 'restaurant_id is required' },
+        { status: 400 }
+      );
+    }
+
     const data = await adminGraphqlRequest<UpdateModifierGroupResponse>(
       UPDATE_MODIFIER_GROUP,
       {
         modifier_group_id,
+        restaurant_id,
         name,
         description,
         min_selection: Number(min_selection),

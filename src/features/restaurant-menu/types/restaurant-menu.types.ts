@@ -157,9 +157,12 @@ export interface MenuOffersEvaluationResult {
 
 export interface RestaurantMenuData {
   restaurantId?: string | null;
+  hasMenu?: boolean;
   allowTips?: boolean;
   pickupAllowed?: boolean;
   deliveryAllowed?: boolean;
+  variesWithTime?: boolean;
+  isCurrentlyOpen?: boolean;
   slug: string;
   announcement: string;
   brand: RestaurantBrand;

@@ -64,6 +64,12 @@ interface MenuCategoriesFormProps {
   menuName: string;
 }
 
+const TEMP_ID_PREFIX = 'temp-';
+
+function isTemporaryCategoryId(value: string | null | undefined) {
+  return typeof value === 'string' && value.startsWith(TEMP_ID_PREFIX);
+}
+
 export default function MenuCategoriesForm({ 
   restaurantId, 
   restaurantName, 
@@ -214,6 +220,11 @@ export default function MenuCategoriesForm({
   };
 
   const handleManageItems = (category: Category) => {
+    if (isTemporaryCategoryId(category.category_id)) {
+      alert('Category is still being created. Please wait a moment and try again.');
+      return;
+    }
+
     const params = new URLSearchParams({
       restaurant_id: restaurantId,
       restaurant_name: restaurantName,
@@ -531,7 +542,17 @@ export default function MenuCategoriesForm({
                   </h4>
                   <button
                     onClick={() => handleManageItems(category)}
-                    className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                    className={`text-sm font-medium ${
+                      isTemporaryCategoryId(category.category_id)
+                        ? 'cursor-not-allowed text-gray-400'
+                        : 'text-purple-600 hover:text-purple-700'
+                    }`}
+                    disabled={isTemporaryCategoryId(category.category_id)}
+                    title={
+                      isTemporaryCategoryId(category.category_id)
+                        ? 'Category is being created. Please wait.'
+                        : 'Manage items'
+                    }
                   >
                     Manage Items {'\u2192'}
                   </button>
@@ -591,7 +612,17 @@ export default function MenuCategoriesForm({
                       <div className="text-center pt-2">
                         <button
                           onClick={() => handleManageItems(category)}
-                          className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                          className={`text-sm font-medium ${
+                            isTemporaryCategoryId(category.category_id)
+                              ? 'cursor-not-allowed text-gray-400'
+                              : 'text-purple-600 hover:text-purple-700'
+                          }`}
+                          disabled={isTemporaryCategoryId(category.category_id)}
+                          title={
+                            isTemporaryCategoryId(category.category_id)
+                              ? 'Category is being created. Please wait.'
+                              : 'View all items'
+                          }
                         >
                           View all {category.items_count ?? category.items.length} items {'\u2192'}
                         </button>

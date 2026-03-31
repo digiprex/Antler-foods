@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'next/navigation';
 
 interface ModifierItem {
   modifier_item_id: string;
@@ -43,6 +44,8 @@ export default function ModifierItemsForm({
   modifierGroupId,
   modifierGroupName,
 }: ModifierItemsFormProps) {
+  const searchParams = useSearchParams();
+  const restaurantId = searchParams?.get('restaurant_id') || '';
   const [group, setGroup] = useState<ModifierGroup | null>(null);
   const [items, setItems] = useState<ModifierItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +72,7 @@ export default function ModifierItemsForm({
     try {
       setError(null);
 
-      const response = await fetch('/api/modifier-groups');
+      const response = await fetch(`/api/modifier-groups?restaurant_id=${encodeURIComponent(restaurantId)}`);
       const data = await response.json();
 
       if (!response.ok) {

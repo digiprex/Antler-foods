@@ -36,6 +36,26 @@ function resolveButtonEnabled(
   return fallback;
 }
 
+function normalizeSecondaryHeroButton(
+  button: HeroButton | undefined,
+): HeroButton | undefined {
+  if (!button) {
+    return button;
+  }
+
+  // Legacy hero configs stored the second CTA as `outline`, but the hero editor
+  // does not expose variant controls. Promote it to the dedicated secondary slot
+  // so global secondary button styles apply consistently on live sites.
+  if (button.variant === 'outline') {
+    return {
+      ...button,
+      variant: 'secondary',
+    };
+  }
+
+  return button;
+}
+
 export function mergeHeroConfig(
   sourceConfig?: Partial<HeroConfig> | null,
 ): HeroConfig {
@@ -54,7 +74,7 @@ export function mergeHeroConfig(
     ...DEFAULT_HERO_CONFIG,
     ...source,
     primaryButton,
-    secondaryButton,
+    secondaryButton: normalizeSecondaryHeroButton(secondaryButton),
     primaryButtonEnabled: resolveButtonEnabled(
       source.primaryButtonEnabled,
       source.primaryButton as HeroButton | null | undefined,

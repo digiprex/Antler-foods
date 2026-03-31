@@ -974,14 +974,7 @@ function formatDate(value: string | null) {
 }
 
 function hasExistingOwner(restaurant: RestaurantListItem) {
-  const ownerName = restaurant.ownerName.trim();
-  const ownerEmail = restaurant.ownerEmail.trim();
-  const hasNamedOwner =
-    ownerName.length > 0 && ownerName.toLowerCase() !== 'n/a';
-  const hasOwnerEmail =
-    ownerEmail.length > 0 && ownerEmail.toLowerCase() !== 'n/a';
-
-  return Boolean(restaurant.pocUserId || (hasNamedOwner && hasOwnerEmail));
+  return Boolean(restaurant.pocUserId);
 }
 
 function TrashIcon() {

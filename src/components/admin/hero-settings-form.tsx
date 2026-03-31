@@ -92,7 +92,7 @@ const DEFAULT_PRIMARY_BUTTON = DEFAULT_HERO_CONFIG.primaryButton
   : { label: 'View Menu', href: '/menu', variant: 'primary' as const };
 const DEFAULT_SECONDARY_BUTTON = DEFAULT_HERO_CONFIG.secondaryButton
   ? { ...DEFAULT_HERO_CONFIG.secondaryButton }
-  : { label: 'Book a Table', href: '#reservations', variant: 'outline' as const };
+  : { label: 'Book a Table', href: '#reservations', variant: 'secondary' as const };
 
 const svgToDataUri = (svg: string) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 
@@ -618,7 +618,7 @@ const getPreviewHeroConfig = (
             ...DEFAULT_SECONDARY_BUTTON,
             label: HERO_PREVIEW_COPY.secondaryCta,
             href: '#reservations',
-            variant: 'outline',
+            variant: 'secondary',
           } satisfies HeroButton)),
     image: previewHeroImage || undefined,
     minimalImages: previewMinimalImages,

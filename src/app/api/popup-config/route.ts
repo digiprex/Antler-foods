@@ -11,6 +11,9 @@ import { DEFAULT_POPUP_CONFIG } from '@/types/popup.types';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { resolveRestaurantIdByDomain } from '@/lib/server/domain-resolver';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface PopupTemplate {
   category: string;
   config: any;
@@ -151,6 +154,15 @@ async function graphqlRequest<T>(query: string, variables?: Record<string, unkno
   return adminGraphqlRequest<T>(query, variables);
 }
 
+function getNoStoreHeaders() {
+  return {
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
+    'Surrogate-Control': 'no-store',
+  };
+}
+
 /**
  * GET endpoint to fetch popup configuration
  */
@@ -186,9 +198,7 @@ export async function GET(request: Request) {
         data: DEFAULT_POPUP_CONFIG,
       };
       return NextResponse.json(response, {
-        headers: {
-          'Cache-Control': 'public, max-age=10, stale-while-revalidate=120',
-        },
+        headers: getNoStoreHeaders(),
       });
     }
 
@@ -205,9 +215,7 @@ export async function GET(request: Request) {
     };
 
     return NextResponse.json(response, {
-      headers: {
-        'Cache-Control': 'public, max-age=10, stale-while-revalidate=120',
-      },
+      headers: getNoStoreHeaders(),
     });
   } catch (error) {
     console.error('[Popup Config] Error:', error);

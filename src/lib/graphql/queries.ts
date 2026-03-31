@@ -57,6 +57,7 @@ export interface RestaurantDraftItem {
   facebookLink: string;
   instagramLink: string;
   xLink: string;
+  linkedinLink: string;
   tiktokLink: string;
   youtubeLink: string;
   yelpLink: string;
@@ -423,6 +424,135 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
   {
     idField: "restaurant_id",
     query: `
+      query GetRestaurantDraftByRestaurantIdWithLinkedInLinkAndFavicon($restaurantId: uuid!) {
+        restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
+          restaurant_id
+          franchise_id
+          name
+          address
+          city
+          state
+          country
+          postal_code
+          business_type
+          service_model
+          cuisine_types
+          phone_number
+          email
+          sms_name
+          poc_name
+          poc_phone_number
+          poc_email
+          google_place_id
+          gmb_link
+          fb_link
+          insta_link
+          x_link
+          linkedin_link
+          yt_link
+          tiktok_link
+          yelp_link
+          ubereats_link
+          grubhub_link
+          doordash_link
+          logo
+          logo_file_id
+          favicon_url
+          favicon_file_id
+          is_deleted
+        }
+      }
+    `,
+  },
+  {
+    idField: "restaurant_id",
+    query: `
+      query GetRestaurantDraftByRestaurantIdWithLinkedInUrlAndFavicon($restaurantId: uuid!) {
+        restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
+          restaurant_id
+          franchise_id
+          name
+          address
+          city
+          state
+          country
+          postal_code
+          business_type
+          service_model
+          cuisine_types
+          phone_number
+          email
+          sms_name
+          poc_name
+          poc_phone_number
+          poc_email
+          google_place_id
+          gmb_link
+          fb_link
+          insta_link
+          x_link
+          linkedin_url
+          yt_link
+          tiktok_link
+          yelp_link
+          ubereats_link
+          grubhub_link
+          doordash_link
+          logo
+          logo_file_id
+          favicon_url
+          favicon_file_id
+          is_deleted
+        }
+      }
+    `,
+  },
+  {
+    idField: "restaurant_id",
+    query: `
+      query GetRestaurantDraftByRestaurantIdWithLiLinkAndFavicon($restaurantId: uuid!) {
+        restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
+          restaurant_id
+          franchise_id
+          name
+          address
+          city
+          state
+          country
+          postal_code
+          business_type
+          service_model
+          cuisine_types
+          phone_number
+          email
+          sms_name
+          poc_name
+          poc_phone_number
+          poc_email
+          google_place_id
+          gmb_link
+          fb_link
+          insta_link
+          x_link
+          li_link
+          yt_link
+          tiktok_link
+          yelp_link
+          ubereats_link
+          grubhub_link
+          doordash_link
+          logo
+          logo_file_id
+          favicon_url
+          favicon_file_id
+          is_deleted
+        }
+      }
+    `,
+  },
+  {
+    idField: "restaurant_id",
+    query: `
       query GetRestaurantDraftByRestaurantIdWithFavicon($restaurantId: uuid!) {
         restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
           restaurant_id
@@ -446,6 +576,7 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           gmb_link
           fb_link
           insta_link
+          x_link
           yt_link
           tiktok_link
           yelp_link
@@ -487,6 +618,7 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           gmb_link
           fb_link
           insta_link
+          x_link
           yt_link
           tiktok_link
           yelp_link
@@ -527,6 +659,7 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           gmb_link
           fb_link
           insta_link
+          x_link
           yt_link
           tiktok_link
           yelp_link
@@ -566,6 +699,7 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           gmb_link
           fb_link
           insta_link
+          x_link
           yt_link
           tiktok_link
           yelp_link
@@ -573,6 +707,122 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           grubhub_link
           doordash_link
           logo
+          is_deleted
+        }
+      }
+    `,
+  },
+  {
+    idField: "restaurant_id",
+    query: `
+      query GetRestaurantDraftCoreByRestaurantIdWithLogoAndSocials($restaurantId: uuid!) {
+        restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
+          restaurant_id
+          franchise_id
+          name
+          address
+          city
+          state
+          country
+          postal_code
+          business_type
+          service_model
+          cuisine_types
+          phone_number
+          email
+          sms_name
+          poc_name
+          poc_phone_number
+          poc_email
+          google_place_id
+          gmb_link
+          fb_link
+          insta_link
+          yt_link
+          logo
+          is_deleted
+        }
+      }
+    `,
+  },
+  {
+    idField: "restaurant_id",
+    query: `
+      query GetRestaurantDraftCoreByRestaurantIdWithSocials($restaurantId: uuid!) {
+        restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
+          restaurant_id
+          franchise_id
+          name
+          address
+          city
+          state
+          country
+          postal_code
+          business_type
+          service_model
+          cuisine_types
+          phone_number
+          email
+          sms_name
+          poc_name
+          poc_phone_number
+          poc_email
+          google_place_id
+          gmb_link
+          fb_link
+          insta_link
+          yt_link
+          is_deleted
+        }
+      }
+    `,
+  },
+  {
+    idField: "restaurant_id",
+    query: `
+      query GetRestaurantDraftCoreByRestaurantId($restaurantId: uuid!) {
+        restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
+          restaurant_id
+          franchise_id
+          name
+          address
+          city
+          state
+          country
+          postal_code
+          business_type
+          service_model
+          cuisine_types
+          phone_number
+          email
+          sms_name
+          poc_name
+          poc_phone_number
+          poc_email
+          google_place_id
+          gmb_link
+          is_deleted
+        }
+      }
+    `,
+  },
+  {
+    idField: "restaurant_id",
+    query: `
+      query GetRestaurantDraftGoogleProfileCoreByRestaurantId($restaurantId: uuid!) {
+        restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
+          restaurant_id
+          franchise_id
+          name
+          address
+          city
+          state
+          country
+          postal_code
+          phone_number
+          email
+          google_place_id
+          gmb_link
           is_deleted
         }
       }
@@ -1077,6 +1327,11 @@ function parseRestaurants(rows: Array<Record<string, unknown>>, idField: string)
         return null;
       }
 
+      const pocUserId =
+        typeof row.poc_user_id === "string" && row.poc_user_id.trim()
+          ? row.poc_user_id.trim()
+          : null;
+
       return {
         id: rawId,
         franchiseId:
@@ -1084,12 +1339,12 @@ function parseRestaurants(rows: Array<Record<string, unknown>>, idField: string)
             ? row.franchise_id.trim()
             : null,
         name: normalizeText(row.name, "Unnamed restaurant"),
-        ownerName: normalizeTextFromFieldCandidates(row, ["poc_name", "owner_name"]),
-        ownerEmail: normalizeTextFromFieldCandidates(row, [
-          "poc_email",
-          "owner_email",
-          "email",
-        ]),
+        ownerName: pocUserId
+          ? normalizeTextFromFieldCandidates(row, ["owner_name", "poc_name"])
+          : "",
+        ownerEmail: pocUserId
+          ? normalizeTextFromFieldCandidates(row, ["owner_email", "poc_email"])
+          : "",
         customDomain: normalizeTextFromFieldCandidates(row, [
           "custom_domain",
           "customer_domain",
@@ -1102,7 +1357,7 @@ function parseRestaurants(rows: Array<Record<string, unknown>>, idField: string)
         email: normalizeText(row.email, ""),
         createdAt: typeof row.created_at === "string" ? row.created_at : null,
         isDeleted: typeof row.is_deleted === "boolean" ? row.is_deleted : null,
-        pocUserId: typeof row.poc_user_id === "string" && row.poc_user_id.trim() ? row.poc_user_id.trim() : null,
+        pocUserId,
       } satisfies RestaurantListItem;
     })
     .filter((item): item is RestaurantListItem => Boolean(item));
@@ -1157,6 +1412,11 @@ function parseRestaurantDraft(rows: Array<Record<string, unknown>>, idField: str
       "x_url",
       "twitter_link",
       "twitter_url",
+    ]),
+    linkedinLink: normalizeTextFromFieldCandidates(firstRow, [
+      "linkedin_link",
+      "linkedin_url",
+      "li_link",
     ]),
     tiktokLink: normalizeTextFromFieldCandidates(firstRow, [
       "tiktok_link",

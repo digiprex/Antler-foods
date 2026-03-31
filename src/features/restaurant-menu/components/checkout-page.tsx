@@ -29,6 +29,9 @@ import type {
 } from '@/features/restaurant-menu/types/restaurant-menu.types';
 import { StripePaymentProvider } from '@/features/restaurant-menu/components/stripe-provider';
 import { StripePaymentSection } from '@/features/restaurant-menu/components/stripe-payment-section';
+import { DeliveryAddressInput as DeliveryAddressInputField } from '@/features/restaurant-menu/components/delivery-address-input';
+import type { SelectedGooglePlace } from '@/hooks/useGooglePlacesAutocomplete';
+import type { DeliveryAddressInput } from '@/types/orders.types';
 
 interface RestaurantMenuCheckoutPageProps {
   data: RestaurantMenuData;
@@ -113,6 +116,153 @@ function splitName(name: string) {
     firstName: parts[0] || '',
     lastName: parts.slice(1).join(' '),
   };
+}
+
+const DELIVERY_ADDRESS_STORAGE_KEY = 'restaurant-menu-delivery-address-v1';
+
+function trimDeliveryAddressText(value: string | null | undefined) {
+  return typeof value === 'string' && value.trim() ? value.trim() : '';
+}
+
+function buildDeliveryAddressText(parts: Array<string | null | undefined>) {
+  return parts
+    .map((part) => trimDeliveryAddressText(part))
+    .filter(Boolean)
+    .join(', ');
+}
+
+function buildStructuredDeliveryAddressText(address: DeliveryAddressInput) {
+  return buildDeliveryAddressText([
+    address.addressLine1,
+    address.addressLine2,
+    address.city,
+    address.state,
+    address.postalCode,
+    address.countryCode,
+  ]);
+}
+
+function createManualDeliveryAddress(formattedAddress = ''): DeliveryAddressInput {
+  const normalizedAddress = trimDeliveryAddressText(formattedAddress);
+  return {
+    formattedAddress: normalizedAddress,
+    addressLine1: normalizedAddress || undefined,
+    source: normalizedAddress ? 'manual' : undefined,
+  };
+}
+
+function createDeliveryAddressFromProfile(
+  profile:
+    | {
+        address: string | null;
+        city: string | null;
+        state: string | null;
+        country: string | null;
+        postalCode: string | null;
+      }
+    | null
+    | undefined,
+): DeliveryAddressInput | null {
+  const addressLine1 = trimDeliveryAddressText(profile?.address);
+  if (!addressLine1) {
+    return null;
+  }
+
+  const city = trimDeliveryAddressText(profile?.city) || undefined;
+  const state = trimDeliveryAddressText(profile?.state) || undefined;
+  const postalCode = trimDeliveryAddressText(profile?.postalCode) || undefined;
+  const countryCode = trimDeliveryAddressText(profile?.country) || undefined;
+
+  return {
+    formattedAddress: buildDeliveryAddressText([
+      addressLine1,
+      city,
+      state,
+      postalCode,
+      countryCode,
+    ]),
+    addressLine1,
+    city,
+    state,
+    postalCode,
+    countryCode,
+    source: 'profile',
+  };
+}
+
+function createDeliveryAddressFromPlace(place: SelectedGooglePlace): DeliveryAddressInput {
+  const addressLine1 = trimDeliveryAddressText(place.address) || undefined;
+  const city = trimDeliveryAddressText(place.city) || undefined;
+  const state = trimDeliveryAddressText(place.state) || undefined;
+  const postalCode = trimDeliveryAddressText(place.postalCode) || undefined;
+  const countryCode = trimDeliveryAddressText(place.country) || undefined;
+
+  return {
+    formattedAddress:
+      trimDeliveryAddressText(place.formattedAddress) ||
+      buildDeliveryAddressText([addressLine1, city, state, postalCode, countryCode]) ||
+      trimDeliveryAddressText(place.name),
+    placeId: place.placeId || undefined,
+    addressLine1,
+    city,
+    state,
+    postalCode,
+    countryCode,
+    latitude: place.lat ?? undefined,
+    longitude: place.lng ?? undefined,
+    source: 'google_autocomplete',
+  };
+}
+
+function readStoredDeliveryAddress(restaurantId: string | null) {
+  if (typeof window === 'undefined' || !restaurantId) {
+    return null;
+  }
+
+  try {
+    const rawValue = window.sessionStorage.getItem(DELIVERY_ADDRESS_STORAGE_KEY);
+    if (!rawValue) {
+      return null;
+    }
+
+    const payload = JSON.parse(rawValue) as {
+      restaurantId?: string;
+      address?: DeliveryAddressInput;
+    };
+
+    if (payload.restaurantId !== restaurantId || !payload.address?.formattedAddress) {
+      return null;
+    }
+
+    return payload.address;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredDeliveryAddress(
+  restaurantId: string | null,
+  address: DeliveryAddressInput,
+) {
+  if (typeof window === 'undefined' || !restaurantId) {
+    return;
+  }
+
+  if (!trimDeliveryAddressText(address.formattedAddress)) {
+    window.sessionStorage.removeItem(DELIVERY_ADDRESS_STORAGE_KEY);
+    return;
+  }
+
+  window.sessionStorage.setItem(
+    DELIVERY_ADDRESS_STORAGE_KEY,
+    JSON.stringify({
+      restaurantId,
+      address: {
+        ...address,
+        formattedAddress: trimDeliveryAddressText(address.formattedAddress),
+      },
+    }),
+  );
 }
 
 async function requestValidateCoupon(
@@ -256,12 +406,23 @@ export default function RestaurantMenuCheckoutPage({
     useState(false);
   const [isOffersModalOpen, setIsOffersModalOpen] = useState(false);
   const [isOffersSectionOpen, setIsOffersSectionOpen] = useState(false);
+  const [isDeliveryDetailsSectionOpen, setIsDeliveryDetailsSectionOpen] =
+    useState(true);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<{
     orderNumber: string;
     total: number;
   } | null>(null);
+  const [deliveryAddressData, setDeliveryAddressData] = useState<DeliveryAddressInput>(
+    createManualDeliveryAddress(resolvedDeliveryAddress),
+  );
+  const [isEditingDeliveryAddress, setIsEditingDeliveryAddress] = useState(
+    !resolvedDeliveryAddress.trim(),
+  );
+  const isDeliveryAddressValid = Boolean(
+    trimDeliveryAddressText(deliveryAddressData.formattedAddress),
+  );
   const brandName = data.restaurant.name.replace(' Menu', '');
 
   const setAuthQueryParam = (view: MenuAuthView | null) => {
@@ -566,6 +727,143 @@ export default function RestaurantMenuCheckoutPage({
     }
   }, [appliedCoupon, appliedGiftCard, couponError, giftCardError]);
 
+  useEffect(() => {
+    const storedDeliveryAddress = readStoredDeliveryAddress(restaurantId);
+
+    if (storedDeliveryAddress?.formattedAddress) {
+      setDeliveryAddressData(storedDeliveryAddress);
+      setIsEditingDeliveryAddress(false);
+      return;
+    }
+
+    if (resolvedDeliveryAddress.trim()) {
+      setDeliveryAddressData((current) => {
+        if (trimDeliveryAddressText(current.formattedAddress)) {
+          return current;
+        }
+
+        return createManualDeliveryAddress(resolvedDeliveryAddress);
+      });
+      setIsEditingDeliveryAddress(false);
+    }
+  }, [restaurantId, resolvedDeliveryAddress]);
+
+  useEffect(() => {
+    const storedDeliveryAddress = readStoredDeliveryAddress(restaurantId);
+    if (storedDeliveryAddress?.formattedAddress) {
+      return;
+    }
+
+    const profileDeliveryAddress = createDeliveryAddressFromProfile(customerProfile);
+    if (!profileDeliveryAddress) {
+      return;
+    }
+
+    const currentDeliveryAddress = trimDeliveryAddressText(
+      deliveryAddressData.formattedAddress,
+    );
+    const defaultDeliveryAddress = trimDeliveryAddressText(
+      data.defaultDeliveryAddress,
+    );
+
+    if (
+      currentDeliveryAddress &&
+      currentDeliveryAddress !== defaultDeliveryAddress
+    ) {
+      return;
+    }
+
+    setDeliveryAddressData((current) => ({
+      ...profileDeliveryAddress,
+      houseFlatFloor: current.houseFlatFloor,
+      landmark: current.landmark,
+      instructions: current.instructions,
+      label: current.label,
+    }));
+    setIsEditingDeliveryAddress(false);
+  }, [
+    customerProfile,
+    data.defaultDeliveryAddress,
+    deliveryAddressData.formattedAddress,
+    restaurantId,
+  ]);
+
+  useEffect(() => {
+    writeStoredDeliveryAddress(restaurantId, deliveryAddressData);
+  }, [restaurantId, deliveryAddressData]);
+
+  useEffect(() => {
+    if (!trimDeliveryAddressText(deliveryAddressData.formattedAddress)) {
+      setIsEditingDeliveryAddress(true);
+    }
+  }, [deliveryAddressData.formattedAddress]);
+
+  const handleDeliveryAddressChange = (nextAddress: string) => {
+    const normalizedAddress = trimDeliveryAddressText(nextAddress);
+    setIsEditingDeliveryAddress(true);
+    setDeliveryAddressData((current) => {
+      if (normalizedAddress && normalizedAddress === trimDeliveryAddressText(current.formattedAddress)) {
+        return {
+          ...current,
+          formattedAddress: normalizedAddress,
+        };
+      }
+
+      return {
+        ...createManualDeliveryAddress(nextAddress),
+        houseFlatFloor: current.houseFlatFloor,
+        landmark: current.landmark,
+        instructions: current.instructions,
+        label: current.label,
+      };
+    });
+  };
+
+  const handleDeliveryAddressPlaceSelected = (place: SelectedGooglePlace) => {
+    setDeliveryAddressData((current) => ({
+      ...current,
+      ...createDeliveryAddressFromPlace(place),
+    }));
+    setIsEditingDeliveryAddress(false);
+  };
+
+  const handleDeliveryAddressFieldChange = (
+    field:
+      | 'addressLine1'
+      | 'addressLine2'
+      | 'city'
+      | 'state'
+      | 'postalCode'
+      | 'countryCode',
+    fieldValue: string,
+  ) => {
+    setDeliveryAddressData((current) => {
+      const nextDeliveryAddress = {
+        ...current,
+        [field]: fieldValue.trim() ? fieldValue.trim() : undefined,
+      } satisfies DeliveryAddressInput;
+      const formattedAddress = buildStructuredDeliveryAddressText(
+        nextDeliveryAddress,
+      );
+
+      return {
+        ...nextDeliveryAddress,
+        formattedAddress:
+          formattedAddress || trimDeliveryAddressText(current.formattedAddress),
+      };
+    });
+  };
+
+  const handleDeliveryAddressMetaChange = (
+    field: 'houseFlatFloor' | 'landmark' | 'instructions' | 'label',
+    fieldValue: string,
+  ) => {
+    setDeliveryAddressData((current) => ({
+      ...current,
+      [field]: fieldValue.trim() ? fieldValue.trim() : undefined,
+    }));
+  };
+
   const handleLogout = async () => {
     await logout();
     applyCustomerProfile(null);
@@ -610,8 +908,8 @@ export default function RestaurantMenuCheckoutPage({
     if (contactFields.phone.trim()) {
       successParams.set('phone', contactFields.phone.trim());
     }
-    if (fulfillmentMode === 'delivery' && resolvedDeliveryAddress.trim()) {
-      successParams.set('address', resolvedDeliveryAddress.trim());
+    if (fulfillmentMode === 'delivery' && trimDeliveryAddressText(deliveryAddressData.formattedAddress)) {
+      successParams.set('address', trimDeliveryAddressText(deliveryAddressData.formattedAddress));
     }
     successParams.set('payment', 'card');
 
@@ -657,10 +955,14 @@ export default function RestaurantMenuCheckoutPage({
       return;
     }
 
-    if (fulfillmentMode === 'delivery' && !resolvedDeliveryAddress.trim()) {
+    if (fulfillmentMode === 'delivery' && !isDeliveryAddressValid) {
+      setIsDeliveryDetailsSectionOpen(true);
       setCheckoutError(
-        'Enter a delivery address before placing a delivery order.',
+        'Enter a valid delivery address before placing a delivery order.',
       );
+      document
+        .getElementById('delivery-address-section')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
 
@@ -688,7 +990,11 @@ export default function RestaurantMenuCheckoutPage({
           scheduleDayId: selectedDay?.id || scheduleDayId || null,
           scheduleTime: selectedTime,
           deliveryAddress:
-            fulfillmentMode === 'delivery' ? resolvedDeliveryAddress : null,
+            fulfillmentMode === 'delivery'
+              ? trimDeliveryAddressText(deliveryAddressData.formattedAddress)
+              : null,
+          deliveryAddressData:
+            fulfillmentMode === 'delivery' ? deliveryAddressData : null,
           contact: {
             firstName: contactFields.firstName,
             lastName: contactFields.lastName,
@@ -785,7 +1091,9 @@ export default function RestaurantMenuCheckoutPage({
   const effectiveTipAmount = tipsEnabled ? tipAmount : 0;
   const discountAmount =
     appliedCoupon?.discountAmount || activeRestaurantOffer?.discountAmount || 0;
-  const preGiftCardTotal = roundCurrency(subtotal + effectiveTipAmount - discountAmount);
+  const preGiftCardTotal = roundCurrency(
+    subtotal + effectiveTipAmount - discountAmount,
+  );
   const giftCardAppliedAmount = appliedGiftCard
     ? roundCurrency(
         Math.min(appliedGiftCard.currentBalance, Math.max(preGiftCardTotal, 0)),
@@ -835,7 +1143,7 @@ export default function RestaurantMenuCheckoutPage({
                           <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
                             {item.selectedAddOns
                               .map((addOn) => addOn.name)
-                              .join(', ')}
+                              .join(' | ')}
                           </p>
                         ) : null}
                       </div>
@@ -1158,29 +1466,310 @@ export default function RestaurantMenuCheckoutPage({
               </section>
             ) : null}
 
-            <section className="space-y-2.5">
-              <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
-                {fulfillmentMode === 'pickup'
-                  ? 'Pickup details'
-                  : 'Delivery details'}
-              </h2>
-              <div className="rounded-[18px] border border-stone-200 bg-white px-4 py-4 shadow-sm sm:px-5 sm:py-4">
-                <div className="space-y-3">
-                  <p className="flex items-start gap-3 text-sm leading-6 text-slate-900">
-                    <MapPinIcon className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>
-                      {fulfillmentMode === 'pickup'
-                        ? `Pick up from ${selectedLocation?.fullAddress || 'Location unavailable'}`
-                        : resolvedDeliveryAddress || 'Delivery address not set'}
-                    </span>
-                  </p>
-                  <p className="flex items-start gap-3 text-sm leading-6 text-slate-900">
-                    <ClockIcon className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>{scheduleLabel}</span>
-                  </p>
+            {fulfillmentMode === 'pickup' ? (
+              <section className="space-y-2.5">
+                <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
+                  Pickup details
+                </h2>
+                <div className="rounded-[18px] border border-stone-200 bg-white px-4 py-4 shadow-sm sm:px-5 sm:py-4">
+                  <div className="space-y-3">
+                    <p className="flex items-start gap-3 text-sm leading-6 text-slate-900">
+                      <MapPinIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>
+                        {`Pick up from ${selectedLocation?.fullAddress || 'Location unavailable'}`}
+                      </span>
+                    </p>
+                    <p className="flex items-start gap-3 text-sm leading-6 text-slate-900">
+                      <ClockIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>{scheduleLabel}</span>
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            ) : (
+              <section id="delivery-address-section" className="space-y-2.5">
+                <div className="rounded-[18px] border border-stone-200 bg-white shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setIsDeliveryDetailsSectionOpen((current) => !current)
+                    }
+                    className="flex w-full items-start justify-between gap-3 px-4 py-4 text-left sm:px-5 sm:py-4"
+                    aria-expanded={isDeliveryDetailsSectionOpen}
+                    aria-controls="delivery-details-panel"
+                  >
+                    <div>
+                      <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
+                        Delivery details
+                      </h2>
+                      <p className="mt-1 text-sm text-stone-600">
+                        {isDeliveryAddressValid
+                          ? deliveryAddressData.formattedAddress
+                          : 'Add your drop-off address and last-mile instructions.'}
+                      </p>
+                    </div>
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white text-slate-700 transition hover:border-stone-400 hover:bg-stone-100">
+                      <ChevronDownIcon
+                        className={`h-4 w-4 transition-transform duration-200 ${isDeliveryDetailsSectionOpen ? 'rotate-180' : ''}`}
+                      />
+                    </span>
+                  </button>
+
+                  {isDeliveryDetailsSectionOpen ? (
+                    <div
+                      id="delivery-details-panel"
+                      className="space-y-4 border-t border-stone-200 px-4 py-4 sm:px-5 sm:py-4"
+                    >
+                    {isDeliveryAddressValid && !isEditingDeliveryAddress ? (
+                      <div className="rounded-[18px] border border-stone-200 bg-stone-50 p-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="space-y-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                              Selected address
+                            </p>
+                            <p className="text-sm font-semibold leading-6 text-slate-950">
+                              {deliveryAddressData.formattedAddress}
+                            </p>
+                            {deliveryAddressData.houseFlatFloor || deliveryAddressData.landmark ? (
+                              <p className="text-sm leading-6 text-stone-600">
+                                {[deliveryAddressData.houseFlatFloor, deliveryAddressData.landmark]
+                                  .filter(Boolean)
+                                  .join(' | ')}
+                              </p>
+                            ) : (
+                              <p className="text-sm leading-6 text-stone-500">
+                                Add flat, landmark, and instructions below.
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingDeliveryAddress(true)}
+                            className="inline-flex h-10 shrink-0 items-center justify-center rounded-[12px] border border-stone-300 bg-white px-3.5 text-sm font-medium text-slate-900 transition hover:border-stone-400 hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                          >
+                            Change address
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <DeliveryAddressInputField
+                          value={deliveryAddressData.formattedAddress}
+                          onChange={handleDeliveryAddressChange}
+                          onPlaceSelected={handleDeliveryAddressPlaceSelected}
+                        />
+                        {isDeliveryAddressValid ? (
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setIsEditingDeliveryAddress(false)}
+                              className="inline-flex h-10 items-center justify-center rounded-[12px] border border-stone-300 bg-stone-50 px-3.5 text-sm font-medium text-slate-900 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                            >
+                              Use this address
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {isDeliveryAddressValid ? (
+                      <div className="rounded-[18px] border border-stone-200 bg-stone-50 p-4 sm:p-5">
+                        <div className="flex flex-col gap-4">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-slate-950">Exact delivery details</p>
+                              <p className="mt-1 text-sm text-stone-600">
+                                Add the last-mile notes your courier will need.
+                              </p>
+                            </div>
+                            {deliveryAddressData.label ? (
+                              <span className="inline-flex h-9 items-center rounded-full border border-stone-300 bg-white px-3 text-xs font-semibold uppercase tracking-[0.16em] text-stone-700">
+                                {deliveryAddressData.label.charAt(0).toUpperCase() + deliveryAddressData.label.slice(1)}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <label className="block text-sm font-medium text-slate-900 sm:col-span-2">
+                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                Street address
+                              </span>
+                              <input
+                                type="text"
+                                value={deliveryAddressData.addressLine1 || ''}
+                                onChange={(event) =>
+                                  handleDeliveryAddressFieldChange('addressLine1', event.target.value)
+                                }
+                                placeholder="House number, street, road"
+                                className={fieldClassName}
+                              />
+                            </label>
+                            <label className="block text-sm font-medium text-slate-900 sm:col-span-2">
+                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                Address line 2
+                              </span>
+                              <input
+                                type="text"
+                                value={deliveryAddressData.addressLine2 || ''}
+                                onChange={(event) =>
+                                  handleDeliveryAddressFieldChange('addressLine2', event.target.value)
+                                }
+                                placeholder="Apartment, suite, area, or building"
+                                className={fieldClassName}
+                              />
+                            </label>
+                            <label className="block text-sm font-medium text-slate-900">
+                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                City
+                              </span>
+                              <input
+                                type="text"
+                                value={deliveryAddressData.city || ''}
+                                onChange={(event) =>
+                                  handleDeliveryAddressFieldChange('city', event.target.value)
+                                }
+                                placeholder="City"
+                                className={fieldClassName}
+                              />
+                            </label>
+                            <label className="block text-sm font-medium text-slate-900">
+                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                State
+                              </span>
+                              <input
+                                type="text"
+                                value={deliveryAddressData.state || ''}
+                                onChange={(event) =>
+                                  handleDeliveryAddressFieldChange('state', event.target.value)
+                                }
+                                placeholder="State"
+                                className={fieldClassName}
+                              />
+                            </label>
+                            <label className="block text-sm font-medium text-slate-900">
+                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                Postal code
+                              </span>
+                              <input
+                                type="text"
+                                value={deliveryAddressData.postalCode || ''}
+                                onChange={(event) =>
+                                  handleDeliveryAddressFieldChange('postalCode', event.target.value)
+                                }
+                                placeholder="Postal code"
+                                className={fieldClassName}
+                              />
+                            </label>
+                            <label className="block text-sm font-medium text-slate-900">
+                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                Country
+                              </span>
+                              <input
+                                type="text"
+                                value={deliveryAddressData.countryCode || ''}
+                                onChange={(event) =>
+                                  handleDeliveryAddressFieldChange('countryCode', event.target.value)
+                                }
+                                placeholder="Country"
+                                className={fieldClassName}
+                              />
+                            </label>
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <label className="block text-sm font-medium text-slate-900">
+                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                House / Flat / Floor
+                              </span>
+                              <input
+                                type="text"
+                                value={deliveryAddressData.houseFlatFloor || ''}
+                                onChange={(event) =>
+                                  handleDeliveryAddressMetaChange('houseFlatFloor', event.target.value)
+                                }
+                                placeholder="e.g., Apt 4B, Floor 2"
+                                className={fieldClassName}
+                              />
+                            </label>
+                            <label className="block text-sm font-medium text-slate-900">
+                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                Nearby landmark
+                              </span>
+                              <input
+                                type="text"
+                                value={deliveryAddressData.landmark || ''}
+                                onChange={(event) =>
+                                  handleDeliveryAddressMetaChange('landmark', event.target.value)
+                                }
+                                placeholder="e.g., Near City Mall"
+                                className={fieldClassName}
+                              />
+                            </label>
+                          </div>
+
+                          <label className="block text-sm font-medium text-slate-900">
+                            <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                              Delivery instructions
+                            </span>
+                            <textarea
+                              value={deliveryAddressData.instructions || ''}
+                              onChange={(event) =>
+                                handleDeliveryAddressMetaChange('instructions', event.target.value)
+                              }
+                              placeholder="Any special instructions for delivery?"
+                              rows={3}
+                              className="w-full rounded-[14px] border border-stone-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-black/35 sm:rounded-[16px]"
+                            />
+                          </label>
+
+                          <div>
+                            <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                              Save address as
+                            </span>
+                            <div className="flex flex-wrap gap-2">
+                              {['home', 'work', 'other'].map((labelOption) => {
+                                const isSelected = deliveryAddressData.label === labelOption;
+                                return (
+                                  <button
+                                    key={labelOption}
+                                    type="button"
+                                    onClick={() =>
+                                      handleDeliveryAddressMetaChange(
+                                        'label',
+                                        isSelected ? '' : labelOption,
+                                      )
+                                    }
+                                    className={`h-10 rounded-[12px] border px-4 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 ${
+                                      isSelected
+                                        ? 'border-black/60 bg-black text-white'
+                                        : 'border-stone-300 bg-white text-slate-900 hover:border-stone-400 hover:bg-stone-50'
+                                    }`}
+                                  >
+                                    {labelOption.charAt(0).toUpperCase() + labelOption.slice(1)}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-[16px] border border-dashed border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-600">
+                        Search your delivery address above, then add the exact drop-off details.
+                      </div>
+                    )}
+
+                    <div className="border-t border-stone-200 pt-4">
+                      <p className="flex items-start gap-3 text-sm leading-6 text-slate-900">
+                        <ClockIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>{scheduleLabel}</span>
+                      </p>
+                    </div>
+                  </div>
+                  ) : null}
+                </div>
+              </section>
+            )}
 
             {tipsEnabled ? (
               <section className="space-y-2.5">
@@ -1493,3 +2082,16 @@ export default function RestaurantMenuCheckoutPage({
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

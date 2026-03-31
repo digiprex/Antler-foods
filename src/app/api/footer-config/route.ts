@@ -60,6 +60,7 @@ const GET_FOOTER_CONFIG = `
       postal_code
       insta_link
       fb_link
+      x_link
       yt_link
       tiktok_link
       gmb_link

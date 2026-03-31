@@ -114,7 +114,11 @@ function formatDateTime(value: string | null) {
   return date.toLocaleString();
 }
 
-function toDateTimeLocalValue(value: string | null) {
+function getReviewDisplayDate(review: ReviewItem) {
+  return review.published_at || review.created_at;
+}
+
+function toDateInputValue(value: string | null) {
   if (!value) {
     return '';
   }
@@ -124,18 +128,34 @@ function toDateTimeLocalValue(value: string | null) {
     return '';
   }
 
-  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
-function parseDateTimeLocalValue(value: string) {
+function parseDateInputValue(value: string) {
   const trimmed = value.trim();
   if (!trimmed) {
     return null;
   }
 
-  const date = new Date(trimmed);
-  if (Number.isNaN(date.getTime())) {
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  const date = new Date(year, monthIndex, day, 12, 0, 0, 0);
+
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== monthIndex ||
+    date.getDate() !== day
+  ) {
     return null;
   }
 
@@ -409,7 +429,7 @@ export default function ReviewsPage() {
     setAuthorName(review.author_name || '');
     setReviewText(review.review_text || '');
     setRating(String(review.rating || 5));
-    setPublishedAtInput(toDateTimeLocalValue(review.published_at));
+    setPublishedAtInput(toDateInputValue(review.published_at));
     setAvatarUrl(review.avatar_url || null);
     setAvatarFileId(review.avatar_file_id || null);
     setIsModalOpen(true);
@@ -494,7 +514,7 @@ export default function ReviewsPage() {
     const normalizedAuthorName = authorName.trim();
     const normalizedReviewText = reviewText.trim();
     const normalizedRating = Number.parseInt(rating, 10);
-    const publishedAt = parseDateTimeLocalValue(publishedAtInput);
+    const publishedAt = parseDateInputValue(publishedAtInput);
 
     if (!normalizedAuthorName) {
       setNotice({
@@ -870,7 +890,7 @@ export default function ReviewsPage() {
                         {review.review_text || '-'}
                       </td>
                       <td className="px-4 py-4 align-top text-xs text-gray-600">
-                        {formatDateTime(review.created_at)}
+                        {formatDateTime(getReviewDisplayDate(review))}
                       </td>
                       <td className="px-4 py-4 align-top">
                         <div className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2.5 py-1 text-sm font-bold text-yellow-700">
@@ -1077,10 +1097,10 @@ export default function ReviewsPage() {
 
               <label className="flex flex-col gap-2">
                 <span className="text-sm font-semibold text-gray-700">
-                  <span className="text-red-500">*</span> Published Time
+                  <span className="text-red-500">*</span> Published Date
                 </span>
                 <input
-                  type="datetime-local"
+                  type="date"
                   value={publishedAtInput}
                   onChange={(event) => setPublishedAtInput(event.target.value)}
                   required

@@ -55,6 +55,7 @@ const GET_ANNOUNCEMENT_BAR_CONFIG = `
       email
       fb_link
       insta_link
+      x_link
       yt_link
       tiktok_link
       gmb_link
@@ -215,14 +216,17 @@ export async function GET(request: Request) {
     if (restaurant?.insta_link) {
       socialMediaIcons.push({ platform: 'instagram' as const, url: restaurant.insta_link, order: 1 });
     }
+    if (restaurant?.x_link) {
+      socialMediaIcons.push({ platform: 'twitter' as const, url: restaurant.x_link, order: 2 });
+    }
     if (restaurant?.yt_link) {
-      socialMediaIcons.push({ platform: 'youtube' as const, url: restaurant.yt_link, order: 2 });
+      socialMediaIcons.push({ platform: 'youtube' as const, url: restaurant.yt_link, order: 3 });
     }
     if (restaurant?.tiktok_link) {
-      socialMediaIcons.push({ platform: 'tiktok' as const, url: restaurant.tiktok_link, order: 3 });
+      socialMediaIcons.push({ platform: 'tiktok' as const, url: restaurant.tiktok_link, order: 4 });
     }
     if (restaurant?.gmb_link) {
-      socialMediaIcons.push({ platform: 'gmb' as const, url: restaurant.gmb_link, order: 4 });
+      socialMediaIcons.push({ platform: 'gmb' as const, url: restaurant.gmb_link, order: 5 });
     }
 
     if (!data.templates || data.templates.length === 0) {
@@ -390,14 +394,17 @@ export async function POST(request: Request) {
     if (restaurant?.insta_link) {
       socialMediaIcons.push({ platform: 'instagram' as const, url: restaurant.insta_link, order: 1 });
     }
+    if (restaurant?.x_link) {
+      socialMediaIcons.push({ platform: 'twitter' as const, url: restaurant.x_link, order: 2 });
+    }
     if (restaurant?.yt_link) {
-      socialMediaIcons.push({ platform: 'youtube' as const, url: restaurant.yt_link, order: 2 });
+      socialMediaIcons.push({ platform: 'youtube' as const, url: restaurant.yt_link, order: 3 });
     }
     if (restaurant?.tiktok_link) {
-      socialMediaIcons.push({ platform: 'tiktok' as const, url: restaurant.tiktok_link, order: 3 });
+      socialMediaIcons.push({ platform: 'tiktok' as const, url: restaurant.tiktok_link, order: 4 });
     }
     if (restaurant?.gmb_link) {
-      socialMediaIcons.push({ platform: 'gmb' as const, url: restaurant.gmb_link, order: 4 });
+      socialMediaIcons.push({ platform: 'gmb' as const, url: restaurant.gmb_link, order: 5 });
     }
     
     // Transform back to AnnouncementBarConfig

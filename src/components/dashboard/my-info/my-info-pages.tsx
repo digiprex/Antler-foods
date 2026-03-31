@@ -146,6 +146,53 @@ interface GoogleProfileDetailsApiResponse {
   error?: string;
 }
 
+type GooglePlaceMatchApiResponse = {
+  success?: unknown;
+  data?: {
+    placeId?: unknown;
+    name?: unknown;
+    formattedAddress?: unknown;
+    googleMapsUri?: unknown;
+    websiteUri?: unknown;
+    latitude?: unknown;
+    longitude?: unknown;
+  } | null;
+  error?: unknown;
+  message?: unknown;
+} | null;
+
+type GooglePlaceSocialLinksApiResponse = {
+  success?: unknown;
+  data?: {
+    websiteUrl?: unknown;
+    googleBusinessLink?: unknown;
+    facebookLink?: unknown;
+    instagramLink?: unknown;
+    xLink?: unknown;
+    linkedinLink?: unknown;
+    tiktokLink?: unknown;
+    youtubeLink?: unknown;
+    yelpLink?: unknown;
+    ubereatsLink?: unknown;
+    grubhubLink?: unknown;
+    doordashLink?: unknown;
+  } | null;
+  error?: unknown;
+  message?: unknown;
+} | null;
+
+type GooglePlaceReviewPayload = {
+  source?: unknown;
+  external_review_id?: unknown;
+  rating?: unknown;
+  author_name?: unknown;
+  review_text?: unknown;
+  author_url?: unknown;
+  review_url?: unknown;
+  avatar_url?: unknown;
+  published_at?: unknown;
+};
+
 type OpeningHoursProfileRecord = {
   opening_hour_id: string;
   source: 'google' | 'manual';
@@ -723,6 +770,7 @@ export function MyInfoBrandPage() {
   const [facebookLink, setFacebookLink] = useState('');
   const [instagramLink, setInstagramLink] = useState('');
   const [xLink, setXLink] = useState('');
+  const [linkedinLink, setLinkedinLink] = useState('');
   const [tiktokLink, setTiktokLink] = useState('');
   const [youtubeLink, setYoutubeLink] = useState('');
   const [googleBusinessLink, setGoogleBusinessLink] = useState('');
@@ -764,6 +812,7 @@ export function MyInfoBrandPage() {
     setFacebookLink(draft.facebookLink || '');
     setInstagramLink(draft.instagramLink || '');
     setXLink(draft.xLink || '');
+    setLinkedinLink(draft.linkedinLink || '');
     setTiktokLink(draft.tiktokLink || '');
     setYoutubeLink(draft.youtubeLink || '');
     setGoogleBusinessLink(draft.gmbLink || '');
@@ -1108,6 +1157,7 @@ export function MyInfoBrandPage() {
       facebookLink,
       instagramLink,
       xLink,
+      linkedinLink,
       tiktokLink,
       youtubeLink,
       googleBusinessLink,
@@ -1580,6 +1630,11 @@ export function MyInfoBrandPage() {
             label="X (Twitter) link"
             value={xLink}
             onChange={setXLink}
+          />
+          <FormField
+            label="LinkedIn link"
+            value={linkedinLink}
+            onChange={setLinkedinLink}
           />
           <FormField
             label="TikTok link"
@@ -2996,6 +3051,9 @@ export function MyInfoGoogleProfilePage() {
     useState<GoogleProfileDetailsRecord | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [isRepairingConnection, setIsRepairingConnection] = useState(false);
+  const [hasAttemptedConnectionRepair, setHasAttemptedConnectionRepair] =
+    useState(false);
 
   const fetchWithAuth = useCallback(
     async (input: RequestInfo | URL, init: RequestInit = {}) => {
@@ -3023,6 +3081,91 @@ export function MyInfoGoogleProfilePage() {
     setGooglePlaceId(draft.googlePlaceId);
     setGoogleBusinessLink(draft.gmbLink);
   }, [draft]);
+
+  useEffect(() => {
+    setHasAttemptedConnectionRepair(false);
+    setIsRepairingConnection(false);
+  }, [restaurant?.id]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const repairGoogleConnection = async () => {
+      if (
+        !restaurant?.id ||
+        !draft ||
+        draft.googlePlaceId.trim() ||
+        hasAttemptedConnectionRepair
+      ) {
+        return;
+      }
+
+      setHasAttemptedConnectionRepair(true);
+      setIsRepairingConnection(true);
+      setProfileError(null);
+
+      try {
+        const matchedPlace =
+          (await resolveGooglePlaceMatchFromDraft(fetchWithAuth, draft)) || null;
+
+        if (!matchedPlace?.placeId) {
+          return;
+        }
+
+        const nextGoogleBusinessLink =
+          matchedPlace.googleMapsUri ||
+          buildGoogleMapsPlaceUrlFromPlaceId(matchedPlace.placeId) ||
+          '';
+
+        await updateRestaurant(restaurant.id, {
+          google_place_id: matchedPlace.placeId,
+          gmb_link: nextGoogleBusinessLink || null,
+        });
+
+        if (!isActive) {
+          return;
+        }
+
+        setGooglePlaceId(matchedPlace.placeId);
+        setGoogleBusinessLink(nextGoogleBusinessLink);
+
+        void syncGoogleConnectionBackfill({
+          restaurantId: restaurant.id,
+          placeId: matchedPlace.placeId,
+          fetchWithAuth,
+        }).finally(() => {
+          void reload();
+        });
+      } catch (caughtError) {
+        if (!isActive) {
+          return;
+        }
+
+        const message =
+          caughtError instanceof Error
+            ? caughtError.message
+            : 'Failed to connect Google profile automatically.';
+        setProfileError(message);
+      } finally {
+        if (isActive) {
+          setIsRepairingConnection(false);
+        }
+      }
+    };
+
+    void repairGoogleConnection();
+
+    return () => {
+      isActive = false;
+    };
+  }, [
+    draft,
+    fetchWithAuth,
+    googlePlaceId,
+    hasAttemptedConnectionRepair,
+    reload,
+    restaurant?.id,
+  ]);
 
   useEffect(() => {
     let isActive = true;
@@ -3172,6 +3315,15 @@ export function MyInfoGoogleProfilePage() {
           <div className="rounded-2xl border border-dashed border-[#d9e3ec] bg-[#f8fafc] p-4 text-sm text-[#5f6c78]">
             Add a Google Place ID in restaurant data to load live Google profile
             details.
+          </div>
+        ) : null}
+
+        {isRepairingConnection ? (
+          <div className="flex items-center gap-3 rounded-2xl border border-[#dbe6ef] bg-[#f7fbff] p-4 text-[#5f6c78]">
+            <PurpleDotSpinner size="sm" />
+            <span>
+              Matching this restaurant with Google and syncing available details...
+            </span>
           </div>
         ) : null}
 
@@ -3338,6 +3490,253 @@ export function MyInfoGoogleProfilePage() {
   );
 }
 
+async function resolveGooglePlaceMatchFromDraft(
+  fetchWithAuth: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  draft: RestaurantDraftItem,
+) {
+  const derivedPlaceId = extractGooglePlaceIdFromGoogleMapsLink(draft.gmbLink);
+  if (derivedPlaceId) {
+    return {
+      placeId: derivedPlaceId,
+      name: draft.name,
+      googleMapsUri: draft.gmbLink,
+    };
+  }
+
+  const response = await fetchWithAuth('/api/google/place-match', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: draft.name,
+      address: draft.address,
+      city: draft.city,
+      state: draft.state,
+      postalCode: draft.postalCode,
+      country: draft.country,
+    }),
+    cache: 'no-store',
+  });
+
+  const payload = (await safeParseJsonResponse(response)) as GooglePlaceMatchApiResponse;
+  if (!response.ok || payload?.success !== true) {
+    const message =
+      (payload &&
+        (typeof payload.error === 'string'
+          ? payload.error
+          : typeof payload.message === 'string'
+            ? payload.message
+            : null)) ||
+      'Unable to match this restaurant to a Google listing.';
+    throw new Error(message);
+  }
+
+  const data = payload?.data;
+  const placeId = typeof data?.placeId === 'string' ? data.placeId.trim() : '';
+  if (!placeId) {
+    return null;
+  }
+
+  return {
+    placeId,
+    name: typeof data?.name === 'string' ? data.name.trim() : draft.name,
+    googleMapsUri:
+      typeof data?.googleMapsUri === 'string' ? data.googleMapsUri.trim() : '',
+  };
+}
+
+async function syncGoogleConnectionBackfill({
+  restaurantId,
+  placeId,
+  fetchWithAuth,
+}: {
+  restaurantId: string;
+  placeId: string;
+  fetchWithAuth: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+}) {
+  await Promise.allSettled([
+    syncGoogleSocialLinksAfterConnection({
+      restaurantId,
+      placeId,
+      fetchWithAuth,
+    }),
+    syncGoogleOpeningHoursAfterConnection({
+      restaurantId,
+      fetchWithAuth,
+    }),
+    importAllGoogleMediaAfterConnection({
+      restaurantId,
+      fetchWithAuth,
+    }),
+  ]);
+}
+
+async function syncGoogleSocialLinksAfterConnection({
+  restaurantId,
+  placeId,
+  fetchWithAuth,
+}: {
+  restaurantId: string;
+  placeId: string;
+  fetchWithAuth: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+}) {
+  const response = await fetchWithAuth('/api/google/place-social-links', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ placeId }),
+    cache: 'no-store',
+  });
+
+  const payload = (await safeParseJsonResponse(response)) as GooglePlaceSocialLinksApiResponse;
+  if (!response.ok || payload?.success !== true) {
+    return;
+  }
+
+  const data = payload?.data;
+  const socialLinksPayload = buildSocialLinksUpdatePayload({
+    facebookLink: typeof data?.facebookLink === 'string' ? data.facebookLink : '',
+    instagramLink: typeof data?.instagramLink === 'string' ? data.instagramLink : '',
+    xLink: typeof data?.xLink === 'string' ? data.xLink : '',
+    linkedinLink: typeof data?.linkedinLink === 'string' ? data.linkedinLink : '',
+    tiktokLink: typeof data?.tiktokLink === 'string' ? data.tiktokLink : '',
+    youtubeLink: typeof data?.youtubeLink === 'string' ? data.youtubeLink : '',
+    googleBusinessLink:
+      typeof data?.googleBusinessLink === 'string' ? data.googleBusinessLink : '',
+    yelpLink: typeof data?.yelpLink === 'string' ? data.yelpLink : '',
+    ubereatsLink: typeof data?.ubereatsLink === 'string' ? data.ubereatsLink : '',
+    grubhubLink: typeof data?.grubhubLink === 'string' ? data.grubhubLink : '',
+    doordashLink: typeof data?.doordashLink === 'string' ? data.doordashLink : '',
+  });
+
+  if (!Object.keys(socialLinksPayload).length) {
+    return;
+  }
+
+  await updateRestaurant(restaurantId, socialLinksPayload);
+}
+
+async function syncGoogleOpeningHoursAfterConnection({
+  restaurantId,
+  fetchWithAuth,
+}: {
+  restaurantId: string;
+  fetchWithAuth: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+}) {
+  const response = await fetchWithAuth(
+    `/api/restaurants/${encodeURIComponent(restaurantId)}/opening-hours`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'sync_google',
+      }),
+      cache: 'no-store',
+    },
+  );
+
+  const payload = (await safeParseJsonResponse(response)) as {
+    success?: unknown;
+    error?: unknown;
+    message?: unknown;
+  } | null;
+
+  if (!response.ok || payload?.success !== true) {
+    throw new Error(
+      (payload &&
+        (typeof payload.error === 'string'
+          ? payload.error
+          : typeof payload.message === 'string'
+            ? payload.message
+            : null)) ||
+        'Failed to sync opening hours from Google.',
+    );
+  }
+}
+
+async function importAllGoogleMediaAfterConnection({
+  restaurantId,
+  fetchWithAuth,
+}: {
+  restaurantId: string;
+  fetchWithAuth: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+}) {
+  const photosResponse = await fetchWithAuth(
+    `/api/restaurants/${encodeURIComponent(restaurantId)}/google-photos`,
+    {
+      cache: 'no-store',
+    },
+  );
+
+  const photosPayload = (await safeParseJsonResponse(photosResponse)) as {
+    success?: unknown;
+    data?: unknown;
+    error?: unknown;
+    message?: unknown;
+  } | null;
+
+  if (!photosResponse.ok || photosPayload?.success !== true) {
+    throw new Error(
+      (photosPayload &&
+        (typeof photosPayload.error === 'string'
+          ? photosPayload.error
+          : typeof photosPayload.message === 'string'
+            ? photosPayload.message
+            : null)) ||
+        'Failed to fetch Google media.',
+    );
+  }
+
+  const mediaIds = Array.from(
+    new Set(
+      (Array.isArray(photosPayload?.data) ? photosPayload?.data : [])
+        .map((item) => {
+          const record = item as { media_id?: unknown };
+          return typeof record.media_id === 'string' ? record.media_id.trim() : '';
+        })
+        .filter(Boolean),
+    ),
+  );
+
+  for (const mediaId of mediaIds) {
+    const importResponse = await fetchWithAuth(
+      `/api/restaurants/${encodeURIComponent(restaurantId)}/google-photos/import`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mediaId,
+        }),
+        cache: 'no-store',
+      },
+    );
+
+    const importPayload = (await safeParseJsonResponse(importResponse)) as {
+      success?: unknown;
+      error?: unknown;
+      message?: unknown;
+    } | null;
+
+    if (!importResponse.ok || importPayload?.success !== true) {
+      continue;
+    }
+  }
+}
+
+async function safeParseJsonResponse(response: Response) {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
 function buildGoogleMapsPlaceUrlFromPlaceId(placeId: string) {
   const normalized = placeId.trim();
   if (!normalized) {
@@ -3353,6 +3752,15 @@ function buildGoogleReviewsUrlFromPlaceId(placeId: string | null | undefined) {
   }
 
   return `https://search.google.com/local/reviews?placeid=${encodeURIComponent(normalized)}`;
+}
+
+function extractGooglePlaceIdFromGoogleMapsLink(gmbLink: string) {
+  if (!gmbLink) {
+    return '';
+  }
+
+  const match = gmbLink.match(/place_id:([^&]+)/i);
+  return match?.[1]?.trim() || '';
 }
 
 function buildAddressSummaryFromDraft(draft: RestaurantDraftItem) {
@@ -4064,6 +4472,7 @@ function buildSocialLinksUpdatePayload({
   facebookLink,
   instagramLink,
   xLink,
+  linkedinLink,
   tiktokLink,
   youtubeLink,
   googleBusinessLink,
@@ -4075,6 +4484,7 @@ function buildSocialLinksUpdatePayload({
   facebookLink: string;
   instagramLink: string;
   xLink: string;
+  linkedinLink: string;
   tiktokLink: string;
   youtubeLink: string;
   googleBusinessLink: string;
@@ -4087,6 +4497,7 @@ function buildSocialLinksUpdatePayload({
   const facebook = facebookLink.trim();
   const instagram = instagramLink.trim();
   const x = xLink.trim();
+  const linkedin = linkedinLink.trim();
   const tiktok = tiktokLink.trim();
   const youtube = youtubeLink.trim();
   const gmb = googleBusinessLink.trim();
@@ -4110,6 +4521,11 @@ function buildSocialLinksUpdatePayload({
     payload.x_url = x;
     payload.twitter_link = x;
     payload.twitter_url = x;
+  }
+  if (linkedin) {
+    payload.linkedin_link = linkedin;
+    payload.linkedin_url = linkedin;
+    payload.li_link = linkedin;
   }
   if (tiktok) {
     payload.tiktok_link = tiktok;

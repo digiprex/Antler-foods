@@ -3,7 +3,9 @@ import {
   BikeIcon,
   MapPinIcon,
 } from '@/features/restaurant-menu/components/icons';
+import { DeliveryAddressInput } from '@/features/restaurant-menu/components/delivery-address-input';
 import { ModalShell } from '@/features/restaurant-menu/components/modal-shell';
+import type { SelectedGooglePlace } from '@/hooks/useGooglePlacesAutocomplete';
 import type {
   FulfillmentMode,
   RestaurantLocation,
@@ -23,6 +25,7 @@ interface LocationModalProps {
   onModeChange: (mode: FulfillmentMode) => void;
   onLocationChange: (locationId: string) => void;
   onDeliveryAddressChange: (value: string) => void;
+  onDeliveryAddressPlaceSelected?: (place: SelectedGooglePlace) => void;
   onScheduleClick: () => void;
   onConfirm: () => void;
 }
@@ -41,6 +44,7 @@ export function LocationModal({
   onModeChange,
   onLocationChange,
   onDeliveryAddressChange,
+  onDeliveryAddressPlaceSelected,
   onScheduleClick,
   onConfirm,
 }: LocationModalProps) {
@@ -162,19 +166,11 @@ export function LocationModal({
             </div>
           ) : (
             <div className="space-y-4">
-              <label className="block">
-                <span className="sr-only">Delivery address</span>
-                <div className="flex min-h-[4rem] items-center gap-3 rounded-[20px] border border-stone-200 bg-white px-4 py-3.5 shadow-sm">
-                  <MapPinIcon className="h-5 w-5 text-stone-400" />
-                  <input
-                    type="text"
-                    value={deliveryAddress}
-                    onChange={(event) => onDeliveryAddressChange(event.target.value)}
-                    placeholder="Search your delivery address"
-                    className="w-full bg-transparent text-base text-stone-900 outline-none placeholder:text-stone-400"
-                  />
-                </div>
-              </label>
+              <DeliveryAddressInput
+                value={deliveryAddress}
+                onChange={onDeliveryAddressChange}
+                onPlaceSelected={onDeliveryAddressPlaceSelected}
+              />
             </div>
           )}
         </div>

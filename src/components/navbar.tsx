@@ -107,6 +107,7 @@ export default function Navbar({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [menuCartCount, setMenuCartCount] = useState(bagCount);
+  const [hasMountedMenuProfile, setHasMountedMenuProfile] = useState(false);
   const pathname = usePathname() ?? '';
   const router = useRouter();
 
@@ -185,6 +186,12 @@ export default function Navbar({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const brandInitials = getInitials(restaurantName);
+  const logoInitialsFontSize = Math.max(
+    10,
+    Math.round(logoSize * (brandInitials.length > 2 ? 0.34 : 0.4)),
+  );
+
   const brandDisplay = logoUrl ? (
     <img
       src={logoUrl}
@@ -198,7 +205,17 @@ export default function Navbar({
       style={{ height: `${logoSize}px`, width: 'auto' }}
     />
   ) : (
-    <span className={styles.logoInitials}>{getInitials(restaurantName)}</span>
+    <span
+      className={styles.logoInitials}
+      style={{
+        width: `${logoSize}px`,
+        height: `${logoSize}px`,
+        minWidth: `${logoSize}px`,
+        fontSize: `${logoInitialsFontSize}px`,
+      }}
+    >
+      {brandInitials}
+    </span>
   );
 
   useEffect(() => {
@@ -319,6 +336,38 @@ export default function Navbar({
       window.removeEventListener('storage', readMenuCartCount);
     };
   }, [bagCount, forceHamburgerMenu]);
+
+  useEffect(() => {
+    if (!forceHamburgerMenu) {
+      setHasMountedMenuProfile(false);
+      return;
+    }
+
+    const slot = document.getElementById('menu-navbar-auth-slot');
+    if (!slot) {
+      setHasMountedMenuProfile(false);
+      return;
+    }
+
+    const syncMountedProfileState = () => {
+      setHasMountedMenuProfile(slot.childElementCount > 0);
+    };
+
+    syncMountedProfileState();
+
+    const observer = new MutationObserver(() => {
+      syncMountedProfileState();
+    });
+
+    observer.observe(slot, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [forceHamburgerMenu]);
 
   const resolvedBagCount = forceHamburgerMenu ? menuCartCount : bagCount;
 
@@ -651,12 +700,16 @@ export default function Navbar({
         <div className={styles.rightSection}>
           {forceHamburgerMenu ? (
             <div className={styles.menuPageActions}>
-              <a href="/login" className={styles.menuAuthLink}>
-                Sign In
-              </a>
-              <a href="/signup" className={styles.menuAuthLink}>
-                Sign Up
-              </a>
+              {!hasMountedMenuProfile ? (
+                <>
+                  <a href="/login" className={styles.menuAuthLink}>
+                    Sign In
+                  </a>
+                  <a href="/signup" className={styles.menuAuthLink}>
+                    Sign Up
+                  </a>
+                </>
+              ) : null}
               <div id="menu-navbar-auth-slot" className={styles.menuProfileSlot} />
               <a
                 href="/menu?cart=open"
@@ -785,12 +838,16 @@ export default function Navbar({
 
           {forceHamburgerMenu && (
             <div className={styles.sidebarActions}>
-              <a href="/login" className={styles.sidebarActionLink}>
-                Sign In
-              </a>
-              <a href="/signup" className={styles.sidebarActionLink}>
-                Sign Up
-              </a>
+              {!hasMountedMenuProfile ? (
+                <>
+                  <a href="/login" className={styles.sidebarActionLink}>
+                    Sign In
+                  </a>
+                  <a href="/signup" className={styles.sidebarActionLink}>
+                    Sign Up
+                  </a>
+                </>
+              ) : null}
               <a
                 href="/menu?cart=open"
                 onClick={handleMenuCartClick}

@@ -306,9 +306,35 @@ export default function SelectThemeForm() {
       }
       updateStepStatus(0, 'completed');
 
-      // Step 2-6: Initialize website with detailed progress tracking
+      // Step 2-6: Initialize website with simulated progress tracking
+      // The API call handles steps 1-5 in one request, so we simulate
+      // step progression on the UI side to keep the user informed.
       updateStepStatus(1, 'loading');
-      
+
+      const stepDelays = [3000, 4000, 5000, 4000]; // delays before advancing to steps 2,3,4,5
+      let stepTimers: ReturnType<typeof setTimeout>[] = [];
+      let currentSimStep = 1;
+
+      const simulateProgress = () => {
+        stepDelays.forEach((delay, i) => {
+          const targetStep = i + 2; // steps 2,3,4,5
+          const cumulativeDelay = stepDelays.slice(0, i + 1).reduce((a, b) => a + b, 0);
+          const timer = setTimeout(() => {
+            currentSimStep = targetStep;
+            // Mark previous step completed, mark current step loading
+            setStepStatus(prev => prev.map((s, idx) => {
+              if (idx < targetStep) return 'completed';
+              if (idx === targetStep) return 'loading';
+              return s;
+            }));
+            setCurrentStep(targetStep);
+          }, cumulativeDelay);
+          stepTimers.push(timer);
+        });
+      };
+
+      simulateProgress();
+
       const response = await fetch(`/api/restaurants/${encodeURIComponent(restaurantId)}/initialize-website`, {
         method: 'POST',
         headers: {
@@ -320,14 +346,16 @@ export default function SelectThemeForm() {
         }),
       });
 
+      // Clear any pending step timers
+      stepTimers.forEach(t => clearTimeout(t));
+
       const data = await response.json();
 
       if (!response.ok) {
-        updateStepStatus(1, 'error');
+        updateStepStatus(currentSimStep, 'error');
         throw new Error(data.error || 'Failed to initialize website');
       }
 
-      updateStepStatus(1, 'completed');
       setCurrentStep(initializationSteps.length - 1);
       setStepStatus(initializationSteps.map(() => 'completed'));
 

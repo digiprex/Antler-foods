@@ -210,7 +210,7 @@ export default function SelectThemeForm() {
         textTransform: 'none'
       },
       subheading: {
-        color: primaryColor,
+        color: getContrastColor(backgroundColor) === '#ffffff' ? textColor : primaryColor,
         fontSize: '1.5rem',
         fontFamily: fontFamily,
         fontWeight: 600,

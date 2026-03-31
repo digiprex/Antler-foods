@@ -76,6 +76,9 @@ export function NavItem({ href, label, icon, active = false, collapsed = false }
           onFocus={updateTooltipPosition}
           onBlur={hideTooltip}
           aria-label={label}
+          aria-current={active ? 'page' : undefined}
+          data-sidebar-item="true"
+          data-sidebar-active={active ? 'true' : undefined}
           className={`relative inline-flex items-center justify-center rounded-lg px-2 py-2.5 text-sm transition-all ${
             active
               ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
@@ -102,8 +105,12 @@ export function NavItem({ href, label, icon, active = false, collapsed = false }
 
   return (
     <Link
+      ref={linkRef}
       href={href}
       onClick={onNavigate}
+      aria-current={active ? 'page' : undefined}
+      data-sidebar-item="true"
+      data-sidebar-active={active ? 'true' : undefined}
       className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
         active
           ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'

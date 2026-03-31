@@ -8,6 +8,7 @@ import { CartDrawer } from '@/features/restaurant-menu/components/cart-drawer';
 import { CartIcon } from '@/features/restaurant-menu/components/icons';
 import { SidebarNavigation } from '@/features/restaurant-menu/components/sidebar-navigation';
 import { FulfillmentSelector } from '@/features/restaurant-menu/components/fulfillment-selector';
+import { ClosedRestaurantModal } from '@/features/restaurant-menu/components/closed-restaurant-modal';
 import { ItemDetailsModal } from '@/features/restaurant-menu/components/item-details-modal';
 import { LocationModal } from '@/features/restaurant-menu/components/location-modal';
 import { MenuAuthSidebar, type MenuAuthView } from '@/features/restaurant-menu/components/menu-auth-sidebar';
@@ -237,13 +238,15 @@ function MenuPageContent({ data }: MenuPageProps) {
   );
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [scheduleModalSource, setScheduleModalSource] = useState<'info' | 'location' | 'cart'>('info');
+  const showClosedPopup = data.variesWithTime === true && data.isCurrentlyOpen === false;
+  const [closedModalOpen, setClosedModalOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [cartRecommendedItem, setCartRecommendedItem] = useState<MenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [authSidebarOpen, setAuthSidebarOpen] = useState(false);
   const [authSidebarView, setAuthSidebarView] = useState<MenuAuthView>('login');
   const [navbarAuthSlot, setNavbarAuthSlot] = useState<HTMLElement | null>(null);
-  const contentContainerClass = 'mx-auto w-full max-w-[1080px] px-4 sm:px-6';
+  const contentContainerClass = 'mx-auto w-full max-w-[1080px] px-4 sm:px-6 lg:px-6';
   const brandName = data.restaurant.name.replace(' Menu', '');
 
   const setAuthQueryParam = (view: MenuAuthView | null) => {
@@ -321,6 +324,12 @@ function MenuPageContent({ data }: MenuPageProps) {
       setLocationModalMode(defaultMode);
     }
   }, [pickupAllowed, deliveryAllowed, defaultMode, fulfillmentMode, locationModalMode]);
+
+  useEffect(() => {
+    if (showClosedPopup) {
+      setClosedModalOpen(true);
+    }
+  }, [showClosedPopup]);
 
   useEffect(() => {
     router.prefetch('/menu/checkout');
@@ -665,6 +674,10 @@ function MenuPageContent({ data }: MenuPageProps) {
       className="min-h-screen bg-white"
       style={{ paddingTop: 'var(--navbar-height, 0px)' }}
     >
+      <div className="border-b border-stone-200 bg-white/95 backdrop-blur-xl">
+        <AnnouncementStrip text={data.announcement} />
+      </div>
+
       <div
         className="sticky z-30 border-b border-stone-200 bg-white/95 px-4 py-3 backdrop-blur-xl lg:hidden sm:px-6"
         style={{ top: 'var(--navbar-height, 0px)' }}
@@ -693,10 +706,6 @@ function MenuPageContent({ data }: MenuPageProps) {
             })}
           </div>
         </div>
-      </div>
-
-      <div className="border-b border-stone-200 bg-white/95 backdrop-blur-xl">
-        <AnnouncementStrip text={data.announcement} />
       </div>
 
       <div className="mx-auto flex w-full max-w-[1440px]">
@@ -911,6 +920,18 @@ function MenuPageContent({ data }: MenuPageProps) {
           if (scheduleModalSource === 'cart') {
             setCartOpen(true);
           }
+        }}
+      />
+
+      <ClosedRestaurantModal
+        open={closedModalOpen}
+        restaurantName={brandName}
+        openingText={data.restaurant.openingText}
+        onClose={() => setClosedModalOpen(false)}
+        onScheduleOrder={() => {
+          setClosedModalOpen(false);
+          setScheduleModalSource('info');
+          setScheduleModalOpen(true);
         }}
       />
 

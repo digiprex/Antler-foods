@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'next/navigation';
 import ModifierGroupFormModal from '@/components/admin/modifier-group-form-modal';
 
 // Modifier group interface matching the database schema
@@ -57,6 +58,8 @@ interface ModifierGroupPayload {
 }
 
 export default function ModifierGroupsForm() {
+  const searchParams = useSearchParams();
+  const restaurantId = searchParams?.get('restaurant_id') || '';
   const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +89,7 @@ export default function ModifierGroupsForm() {
       setError(null);
 
       const [groupsResponse, itemsResponse] = await Promise.all([
-        fetch('/api/modifier-groups'),
+        fetch(`/api/modifier-groups?restaurant_id=${encodeURIComponent(restaurantId)}`),
         fetch('/api/modifier-items'),
       ]);
       const [groupsData, itemsData] = await Promise.all([
@@ -125,8 +128,10 @@ export default function ModifierGroupsForm() {
 
   // Load modifier groups on component mount
   useEffect(() => {
-    fetchModifierGroups();
-  }, []);
+    if (restaurantId) {
+      fetchModifierGroups();
+    }
+  }, [restaurantId]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -206,6 +211,7 @@ export default function ModifierGroupsForm() {
         },
         body: JSON.stringify({
           modifier_group_id: group.modifier_group_id,
+          restaurant_id: restaurantId,
           name: group.name,
           description: group.description,
           min_selection: group.min_selection,
@@ -250,7 +256,7 @@ export default function ModifierGroupsForm() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ ...payload, restaurant_id: restaurantId }),
         });
         
         const data = await response.json();
@@ -276,8 +282,9 @@ export default function ModifierGroupsForm() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            modifier_group_id: selectedGroup.modifier_group_id,
             ...payload,
+            modifier_group_id: selectedGroup.modifier_group_id,
+            restaurant_id: restaurantId,
           }),
         });
         
@@ -554,7 +561,7 @@ export default function ModifierGroupsForm() {
                       }
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500">No modifier items defined</p>
+                    <p className="text-sm text-gray-500">No modifier items defined, edit to add items</p>
                   )}
                 </div>
               </div>

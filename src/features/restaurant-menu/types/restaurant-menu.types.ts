@@ -161,6 +161,8 @@ export interface RestaurantMenuData {
   allowTips?: boolean;
   pickupAllowed?: boolean;
   deliveryAllowed?: boolean;
+  variesWithTime?: boolean;
+  isCurrentlyOpen?: boolean;
   slug: string;
   announcement: string;
   brand: RestaurantBrand;

@@ -61,9 +61,11 @@ Tailwind CSS + SCSS modules. Custom Tailwind colors: `surface`, `ink`, `accent`,
 
 **Vercel Domains:** Dynamic domain management (`src/lib/server/vercel-domains.ts`) and deploy hooks (`src/lib/server/vercel-deploy.ts`) for multi-tenant domain provisioning.
 
-**AWS Bedrock:** AI content generation (e.g., footer content) via `src/app/api/generate-footer-content/route.ts`.
+**AI Content Generation:** Fallback chain: Amazon Bedrock → OpenAI → Vertex AI. Each provider is tried only when the previous one errors. Used for footer content (`src/app/api/generate-footer-content/route.ts`) and website initialization (`src/app/api/restaurants/[restaurantId]/initialize-website/route.ts`).
 
 **Google Maps:** Location autocomplete via `src/hooks/useGooglePlacesAutocomplete.ts`.
+
+**Google Business:** Place matching, reviews, photos import, and social links extraction via `src/app/api/google/` routes.
 
 ## Environment
 
@@ -106,3 +108,9 @@ AWS_REGION=
 ```
 
 See `.env.example` and `.env.local.example` for complete documentation. Auth storage prefix: `antler-foods`.
+
+## Notable Config
+
+- `reactStrictMode: false` in `next.config.mjs` — intentionally disabled.
+- Dev server runs on port 1000 (not default 3000).
+- TypeScript strict mode is enabled.

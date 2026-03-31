@@ -65,7 +65,8 @@ export default function DynamicFooter({
 
         // Fetch footer config using domain (API will resolve restaurant_id)
         const footerResponse = await fetch(
-          `${apiEndpoint}?domain=${encodeURIComponent(domain)}`
+          `${apiEndpoint}?domain=${encodeURIComponent(domain)}`,
+          { cache: 'no-store' }
         );
 
         // Treat 404 as "no footer template" - don't render footer
@@ -130,6 +131,7 @@ export default function DynamicFooter({
 
   return (
     <Footer
+      restaurant_id={config.restaurant_id}
       restaurantName={config.restaurantName}
       logoUrl={config.logoUrl}
       aboutContent={config.aboutContent}

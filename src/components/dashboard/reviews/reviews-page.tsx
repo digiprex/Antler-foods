@@ -101,7 +101,7 @@ function resolveAvatarUrl(review: ReviewItem) {
   return null;
 }
 
-function formatDateTime(value: string | null) {
+function formatReviewDate(value: string | null) {
   if (!value) {
     return '-';
   }
@@ -111,7 +111,7 @@ function formatDateTime(value: string | null) {
     return '-';
   }
 
-  return date.toLocaleString();
+  return date.toLocaleDateString();
 }
 
 function getReviewDisplayDate(review: ReviewItem) {
@@ -890,7 +890,7 @@ export default function ReviewsPage() {
                         {review.review_text || '-'}
                       </td>
                       <td className="px-4 py-4 align-top text-xs text-gray-600">
-                        {formatDateTime(getReviewDisplayDate(review))}
+                        {formatReviewDate(getReviewDisplayDate(review))}
                       </td>
                       <td className="px-4 py-4 align-top">
                         <div className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2.5 py-1 text-sm font-bold text-yellow-700">

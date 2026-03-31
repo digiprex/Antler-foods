@@ -184,7 +184,7 @@ Generate only the about text content (2 sentences), no additional formatting or 
     // Try Bedrock first
     if (hasBedrockConfig) {
       try {
-        const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
+        const modelId = 'global.anthropic.claude-sonnet-4-5-20250929-v1:0';
         const requestBody = {
           anthropic_version: 'bedrock-2023-05-31',
           max_tokens: 150,

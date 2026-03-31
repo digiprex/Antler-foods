@@ -1026,12 +1026,6 @@ async function generateCustomSectionContent(
   contentContext?: string
 ) {
   try {
-    // Check if Bedrock is configured
-    if (!process.env.AWS_BEARER_TOKEN_BEDROCK) {
-      console.log('AWS Bedrock not configured, skipping AI content generation');
-      return null;
-    }
-
     // Fetch restaurant details
     const restaurant = await getRestaurantDetails(restaurantId);
     if (!restaurant) {
@@ -1083,111 +1077,95 @@ Generate the content in JSON format:
   "description": "..."
 }`;
 
-    try {
-      // Prepare the request for Claude 3 Haiku
-      const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
-
-      const requestBody = {
-        anthropic_version: 'bedrock-2023-05-31',
-        max_tokens: 300,
-        temperature: 0.7,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      };
-
-      // Invoke the model
-      const command = new InvokeModelCommand({
-        modelId,
-        body: JSON.stringify(requestBody),
-        contentType: 'application/json',
-        accept: 'application/json',
-      });
-
-      const response = await bedrockClient.send(command);
-
-      // Parse the response
-      const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-
-      if (!responseBody.content || !responseBody.content[0] || !responseBody.content[0].text) {
-        throw new Error('Invalid response from Bedrock model');
-      }
-
-      const generatedText = responseBody.content[0].text.trim();
-
-      // Extract JSON from the response with better error handling
-      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Could not extract JSON from Bedrock response');
-      }
-
-      let generatedContent;
+    // Fallback chain: Bedrock → OpenAI → Vertex AI
+    // Try Bedrock first
+    if (process.env.AWS_BEARER_TOKEN_BEDROCK) {
       try {
-        generatedContent = JSON.parse(jsonMatch[0]);
-      } catch (parseError) {
-        console.error('JSON parse error in custom section generation:', parseError);
-        console.error('Raw JSON string:', jsonMatch[0]);
-        
-        // Try to clean up common JSON issues
-        let cleanedJson = jsonMatch[0]
-          .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
-          .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Add quotes to unquoted keys
-          .replace(/:\s*'([^']*)'/g, ': "$1"') // Replace single quotes with double quotes
-          .replace(/\n/g, ' ') // Remove newlines
-          .replace(/\s+/g, ' '); // Normalize whitespace
-        
+        const modelId = 'global.anthropic.claude-sonnet-4-5-20250929-v1:0';
+
+        const requestBody = {
+          anthropic_version: 'bedrock-2023-05-31',
+          max_tokens: 300,
+          temperature: 0.7,
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+        };
+
+        const command = new InvokeModelCommand({
+          modelId,
+          body: JSON.stringify(requestBody),
+          contentType: 'application/json',
+          accept: 'application/json',
+        });
+
+        const response = await bedrockClient.send(command);
+        const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+
+        if (!responseBody.content || !responseBody.content[0] || !responseBody.content[0].text) {
+          throw new Error('Invalid response from Bedrock model');
+        }
+
+        const generatedText = responseBody.content[0].text.trim();
+        const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('Could not extract JSON from Bedrock response');
+        }
+
+        let generatedContent;
         try {
+          generatedContent = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error('JSON parse error in custom section generation:', parseError);
+          let cleanedJson = jsonMatch[0]
+            .replace(/,(\s*[}\]])/g, '$1')
+            .replace(/([{,]\s*)(\w+):/g, '$1"$2":')
+            .replace(/:\s*'([^']*)'/g, ': "$1"')
+            .replace(/\n/g, ' ')
+            .replace(/\s+/g, ' ');
           generatedContent = JSON.parse(cleanedJson);
           console.log('✅ Successfully parsed cleaned JSON for custom section');
-        } catch (secondParseError) {
-          console.error('Failed to parse even cleaned JSON:', secondParseError);
-          throw new Error('Could not parse JSON from Bedrock response');
         }
-      }
 
-      console.log(`✅ Generated AI content for ${sectionName} custom section on ${pageName} page`);
-
-      return {
-        headline: generatedContent.headline || sectionName,
-        subheadline: generatedContent.subheadline || '',
-        description: generatedContent.description || '',
-      };
-
-    } catch (error) {
-      console.error('Error generating custom section content with Bedrock:', error);
-
-      // Try OpenAI as fallback
-      console.log('Attempting OpenAI fallback for custom section content generation...');
-      const openaiResult = await generateContentWithOpenAI(prompt, 300);
-
-      if (openaiResult) {
+        console.log(`✅ Generated AI content for ${sectionName} custom section on ${pageName} page`);
         return {
-          headline: openaiResult.headline || sectionName,
-          subheadline: openaiResult.subheadline || '',
-          description: openaiResult.description || '',
+          headline: generatedContent.headline || sectionName,
+          subheadline: generatedContent.subheadline || '',
+          description: generatedContent.description || '',
         };
+      } catch (error) {
+        console.error('Error generating custom section content with Bedrock:', error);
       }
-
-      // Try Vertex AI as final fallback
-      console.log('Attempting Vertex AI fallback for custom section content generation...');
-      const vertexResult = await generateContentWithVertexAI(prompt, 300);
-
-      if (vertexResult) {
-        return {
-          headline: vertexResult.headline || sectionName,
-          subheadline: vertexResult.subheadline || '',
-          description: vertexResult.description || '',
-        };
-      }
-
-      return null;
     }
 
+    // Try OpenAI as fallback
+    console.log('Attempting OpenAI fallback for custom section content generation...');
+    const openaiResult = await generateContentWithOpenAI(prompt, 300);
+    if (openaiResult) {
+      return {
+        headline: openaiResult.headline || sectionName,
+        subheadline: openaiResult.subheadline || '',
+        description: openaiResult.description || '',
+      };
+    }
+
+    // Try Vertex AI as final fallback
+    console.log('Attempting Vertex AI fallback for custom section content generation...');
+    const vertexResult = await generateContentWithVertexAI(prompt, 300);
+    if (vertexResult) {
+      return {
+        headline: vertexResult.headline || sectionName,
+        subheadline: vertexResult.subheadline || '',
+        description: vertexResult.description || '',
+      };
+    }
+
+    return null;
   } catch (error) {
-    console.error('Error generating custom section content with Bedrock:', error);
+    console.error('Error generating custom section content:', error);
     return null;
   }
 }
@@ -1204,12 +1182,6 @@ async function generateHeroContent(
   layoutId: string
 ) {
   try {
-    // Check if Bedrock is configured
-    if (!process.env.AWS_BEARER_TOKEN_BEDROCK) {
-      console.log('AWS Bedrock not configured, skipping AI content generation');
-      return null;
-    }
-
     // Fetch restaurant details
     const restaurant = await getRestaurantDetails(restaurantId);
     if (!restaurant) {
@@ -1334,111 +1306,95 @@ JSON format:
 
     const prompt = pagePrompts[pageName] || pagePrompts['home'];
 
-    try {
-      // Prepare the request for Claude 3 Haiku
-      const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
-
-      const requestBody = {
-        anthropic_version: 'bedrock-2023-05-31',
-        max_tokens: 300,
-        temperature: 0.7,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      };
-
-      // Invoke the model
-      const command = new InvokeModelCommand({
-        modelId,
-        body: JSON.stringify(requestBody),
-        contentType: 'application/json',
-        accept: 'application/json',
-      });
-
-      const response = await bedrockClient.send(command);
-
-      // Parse the response
-      const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-
-      if (!responseBody.content || !responseBody.content[0] || !responseBody.content[0].text) {
-        throw new Error('Invalid response from Bedrock model');
-      }
-
-      const generatedText = responseBody.content[0].text.trim();
-
-      // Extract JSON from the response with better error handling
-      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Could not extract JSON from Bedrock response');
-      }
-
-      let generatedContent;
+    // Fallback chain: Bedrock → OpenAI → Vertex AI
+    // Try Bedrock first
+    if (process.env.AWS_BEARER_TOKEN_BEDROCK) {
       try {
-        generatedContent = JSON.parse(jsonMatch[0]);
-      } catch (parseError) {
-        console.error('JSON parse error in hero generation:', parseError);
-        console.error('Raw JSON string:', jsonMatch[0]);
-        
-        // Try to clean up common JSON issues
-        let cleanedJson = jsonMatch[0]
-          .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
-          .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Add quotes to unquoted keys
-          .replace(/:\s*'([^']*)'/g, ': "$1"') // Replace single quotes with double quotes
-          .replace(/\n/g, ' ') // Remove newlines
-          .replace(/\s+/g, ' '); // Normalize whitespace
-        
+        const modelId = 'global.anthropic.claude-sonnet-4-5-20250929-v1:0';
+
+        const requestBody = {
+          anthropic_version: 'bedrock-2023-05-31',
+          max_tokens: 300,
+          temperature: 0.7,
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+        };
+
+        const command = new InvokeModelCommand({
+          modelId,
+          body: JSON.stringify(requestBody),
+          contentType: 'application/json',
+          accept: 'application/json',
+        });
+
+        const response = await bedrockClient.send(command);
+        const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+
+        if (!responseBody.content || !responseBody.content[0] || !responseBody.content[0].text) {
+          throw new Error('Invalid response from Bedrock model');
+        }
+
+        const generatedText = responseBody.content[0].text.trim();
+        const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('Could not extract JSON from Bedrock response');
+        }
+
+        let generatedContent;
         try {
+          generatedContent = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error('JSON parse error in hero generation:', parseError);
+          let cleanedJson = jsonMatch[0]
+            .replace(/,(\s*[}\]])/g, '$1')
+            .replace(/([{,]\s*)(\w+):/g, '$1"$2":')
+            .replace(/:\s*'([^']*)'/g, ': "$1"')
+            .replace(/\n/g, ' ')
+            .replace(/\s+/g, ' ');
           generatedContent = JSON.parse(cleanedJson);
           console.log('✅ Successfully parsed cleaned JSON for hero content');
-        } catch (secondParseError) {
-          console.error('Failed to parse even cleaned JSON:', secondParseError);
-          throw new Error('Could not parse JSON from Bedrock response');
         }
-      }
 
-      console.log(`✅ Generated AI content for ${pageName} page hero`);
-
-      return {
-        headline: generatedContent.headline || `Welcome to ${restaurant.name}`,
-        subheadline: generatedContent.subheadline || '',
-        description: generatedContent.description || '',
-      };
-
-    } catch (error) {
-      console.error('Error generating hero content with Bedrock:', error);
-
-      // Try OpenAI as fallback
-      console.log(`Attempting OpenAI fallback for hero content generation on ${pageName} page...`);
-      const openaiResult = await generateContentWithOpenAI(prompt, 300);
-
-      if (openaiResult) {
+        console.log(`✅ Generated AI content for ${pageName} page hero`);
         return {
-          headline: openaiResult.headline || `Welcome to ${restaurant.name}`,
-          subheadline: openaiResult.subheadline || '',
-          description: openaiResult.description || '',
+          headline: generatedContent.headline || `Welcome to ${restaurant.name}`,
+          subheadline: generatedContent.subheadline || '',
+          description: generatedContent.description || '',
         };
+      } catch (error) {
+        console.error('Error generating hero content with Bedrock:', error);
       }
-
-      // Try Vertex AI as final fallback
-      console.log(`Attempting Vertex AI fallback for hero content generation on ${pageName} page...`);
-      const vertexResult = await generateContentWithVertexAI(prompt, 300);
-
-      if (vertexResult) {
-        return {
-          headline: vertexResult.headline || `Welcome to ${restaurant.name}`,
-          subheadline: vertexResult.subheadline || '',
-          description: vertexResult.description || '',
-        };
-      }
-
-      return null;
     }
 
+    // Try OpenAI as fallback
+    console.log(`Attempting OpenAI fallback for hero content generation on ${pageName} page...`);
+    const openaiResult = await generateContentWithOpenAI(prompt, 300);
+    if (openaiResult) {
+      return {
+        headline: openaiResult.headline || `Welcome to ${restaurant.name}`,
+        subheadline: openaiResult.subheadline || '',
+        description: openaiResult.description || '',
+      };
+    }
+
+    // Try Vertex AI as final fallback
+    console.log(`Attempting Vertex AI fallback for hero content generation on ${pageName} page...`);
+    const vertexResult = await generateContentWithVertexAI(prompt, 300);
+    if (vertexResult) {
+      return {
+        headline: vertexResult.headline || `Welcome to ${restaurant.name}`,
+        subheadline: vertexResult.subheadline || '',
+        description: vertexResult.description || '',
+      };
+    }
+
+    return null;
   } catch (error) {
-    console.error('Error generating hero content with Bedrock:', error);
+    console.error('Error generating hero content:', error);
     return null;
   }
 }
@@ -1966,12 +1922,6 @@ async function generateSectionContent(
   layoutId?: string
 ) {
   try {
-    // Check if Bedrock is configured
-    if (!process.env.AWS_BEARER_TOKEN_BEDROCK) {
-      console.log(`AWS Bedrock not configured, skipping ${sectionType} content generation`);
-      return null;
-    }
-
     // Fetch restaurant details
     const restaurant = await getRestaurantDetails(restaurantId);
     if (!restaurant) {
@@ -2073,111 +2023,95 @@ JSON format (return only valid JSON, no markdown):
   "description": "..."
 }`;
 
-    try {
-      // Use Claude 3 Haiku for content generation
-      const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
-
-      const requestBody = {
-        anthropic_version: 'bedrock-2023-05-31',
-        max_tokens: 1000,
-        temperature: 0.7,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      };
-
-      // Invoke the model
-      const command = new InvokeModelCommand({
-        modelId,
-        body: JSON.stringify(requestBody),
-        contentType: 'application/json',
-        accept: 'application/json',
-      });
-
-      const response = await bedrockClient.send(command);
-
-      // Parse the response
-      const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-
-      if (!responseBody.content || !responseBody.content[0] || !responseBody.content[0].text) {
-        throw new Error('Invalid response from Bedrock model');
-      }
-
-      const generatedText = responseBody.content[0].text.trim();
-
-      // Extract JSON from the response with better error handling
-      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Could not extract JSON from Bedrock response');
-      }
-
-      let generatedContent;
+    // Fallback chain: Bedrock → OpenAI → Vertex AI
+    // Try Bedrock first
+    if (process.env.AWS_BEARER_TOKEN_BEDROCK) {
       try {
-        generatedContent = JSON.parse(jsonMatch[0]);
-      } catch (parseError) {
-        console.error('JSON parse error in section generation:', parseError);
-        console.error('Raw JSON string:', jsonMatch[0]);
-        
-        // Try to clean up common JSON issues
-        let cleanedJson = jsonMatch[0]
-          .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
-          .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Add quotes to unquoted keys
-          .replace(/:\s*'([^']*)'/g, ': "$1"') // Replace single quotes with double quotes
-          .replace(/\n/g, ' ') // Remove newlines
-          .replace(/\s+/g, ' '); // Normalize whitespace
-        
+        const modelId = 'global.anthropic.claude-sonnet-4-5-20250929-v1:0';
+
+        const requestBody = {
+          anthropic_version: 'bedrock-2023-05-31',
+          max_tokens: 1000,
+          temperature: 0.7,
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+        };
+
+        const command = new InvokeModelCommand({
+          modelId,
+          body: JSON.stringify(requestBody),
+          contentType: 'application/json',
+          accept: 'application/json',
+        });
+
+        const response = await bedrockClient.send(command);
+        const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+
+        if (!responseBody.content || !responseBody.content[0] || !responseBody.content[0].text) {
+          throw new Error('Invalid response from Bedrock model');
+        }
+
+        const generatedText = responseBody.content[0].text.trim();
+        const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('Could not extract JSON from Bedrock response');
+        }
+
+        let generatedContent;
         try {
+          generatedContent = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error('JSON parse error in section generation:', parseError);
+          let cleanedJson = jsonMatch[0]
+            .replace(/,(\s*[}\]])/g, '$1')
+            .replace(/([{,]\s*)(\w+):/g, '$1"$2":')
+            .replace(/:\s*'([^']*)'/g, ': "$1"')
+            .replace(/\n/g, ' ')
+            .replace(/\s+/g, ' ');
           generatedContent = JSON.parse(cleanedJson);
           console.log('✅ Successfully parsed cleaned JSON for section content');
-        } catch (secondParseError) {
-          console.error('Failed to parse even cleaned JSON:', secondParseError);
-          throw new Error('Could not parse JSON from Bedrock response');
         }
-      }
 
-      console.log(`✅ Generated ${sectionType} content for ${pageName} page`);
-
-      return {
-        title: generatedContent.title || `Our ${sectionType}`,
-        subtitle: generatedContent.subtitle || '',
-        description: generatedContent.description || '',
-      };
-
-    } catch (error) {
-      console.error(`Error generating ${sectionType} content with Bedrock:`, error);
-
-      // Try OpenAI as fallback
-      console.log(`Attempting OpenAI fallback for ${sectionType} content generation...`);
-      const openaiResult = await generateContentWithOpenAI(prompt, 1000);
-
-      if (openaiResult) {
+        console.log(`✅ Generated ${sectionType} content for ${pageName} page`);
         return {
-          title: openaiResult.title || `Our ${sectionType}`,
-          subtitle: openaiResult.subtitle || '',
-          description: openaiResult.description || '',
+          title: generatedContent.title || `Our ${sectionType}`,
+          subtitle: generatedContent.subtitle || '',
+          description: generatedContent.description || '',
         };
+      } catch (error) {
+        console.error(`Error generating ${sectionType} content with Bedrock:`, error);
       }
-
-      // Try Vertex AI as final fallback
-      console.log(`Attempting Vertex AI fallback for ${sectionType} content generation...`);
-      const vertexResult = await generateContentWithVertexAI(prompt, 1000);
-
-      if (vertexResult) {
-        return {
-          title: vertexResult.title || `Our ${sectionType}`,
-          subtitle: vertexResult.subtitle || '',
-          description: vertexResult.description || '',
-        };
-      }
-
-      return null;
     }
 
+    // Try OpenAI as fallback
+    console.log(`Attempting OpenAI fallback for ${sectionType} content generation...`);
+    const openaiResult = await generateContentWithOpenAI(prompt, 1000);
+    if (openaiResult) {
+      return {
+        title: openaiResult.title || `Our ${sectionType}`,
+        subtitle: openaiResult.subtitle || '',
+        description: openaiResult.description || '',
+      };
+    }
+
+    // Try Vertex AI as final fallback
+    console.log(`Attempting Vertex AI fallback for ${sectionType} content generation...`);
+    const vertexResult = await generateContentWithVertexAI(prompt, 1000);
+    if (vertexResult) {
+      return {
+        title: vertexResult.title || `Our ${sectionType}`,
+        subtitle: vertexResult.subtitle || '',
+        description: vertexResult.description || '',
+      };
+    }
+
+    return null;
   } catch (error) {
-    console.error(`Error generating ${sectionType} content with Bedrock:`, error);
+    console.error(`Error generating ${sectionType} content:`, error);
     return null;
   }
 }
@@ -2188,12 +2122,6 @@ async function generateFAQContent(
   pageName: string
 ) {
   try {
-    // Check if Bedrock is configured
-    if (!process.env.AWS_BEARER_TOKEN_BEDROCK) {
-      console.log('AWS Bedrock not configured, skipping FAQ generation');
-      return null;
-    }
-
     // Fetch restaurant details
     const restaurant = await getRestaurantDetails(restaurantId);
     if (!restaurant) {
@@ -2246,120 +2174,101 @@ JSON format (return only valid JSON, no markdown):
   ]
 }`;
 
-    try {
-      // Use Claude 3 Haiku for FAQ generation
-      const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
-
-      const requestBody = {
-        anthropic_version: 'bedrock-2023-05-31',
-        max_tokens: 2000,
-        temperature: 0.7,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      };
-
-      // Invoke the model
-      const command = new InvokeModelCommand({
-        modelId,
-        body: JSON.stringify(requestBody),
-        contentType: 'application/json',
-        accept: 'application/json',
-      });
-
-      const response = await bedrockClient.send(command);
-
-      // Parse the response
-      const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-
-      if (!responseBody.content || !responseBody.content[0] || !responseBody.content[0].text) {
-        throw new Error('Invalid response from Bedrock model');
-      }
-
-      const generatedText = responseBody.content[0].text.trim();
-
-      // Extract JSON from the response with better error handling
-      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Could not extract JSON from Bedrock response');
-      }
-
-      let generatedContent;
+    // Fallback chain: Bedrock → OpenAI → Vertex AI
+    // Try Bedrock first
+    if (process.env.AWS_BEARER_TOKEN_BEDROCK) {
       try {
-        generatedContent = JSON.parse(jsonMatch[0]);
-      } catch (parseError) {
-        console.error('JSON parse error in FAQ generation:', parseError);
-        console.error('Raw JSON string:', jsonMatch[0]);
-        
-        // Try to clean up common JSON issues
-        let cleanedJson = jsonMatch[0]
-          .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
-          .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Add quotes to unquoted keys
-          .replace(/:\s*'([^']*)'/g, ': "$1"') // Replace single quotes with double quotes
-          .replace(/\n/g, ' ') // Remove newlines
-          .replace(/\s+/g, ' '); // Normalize whitespace
-        
+        const modelId = 'global.anthropic.claude-sonnet-4-5-20250929-v1:0';
+
+        const requestBody = {
+          anthropic_version: 'bedrock-2023-05-31',
+          max_tokens: 2000,
+          temperature: 0.7,
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+        };
+
+        const command = new InvokeModelCommand({
+          modelId,
+          body: JSON.stringify(requestBody),
+          contentType: 'application/json',
+          accept: 'application/json',
+        });
+
+        const response = await bedrockClient.send(command);
+        const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+
+        if (!responseBody.content || !responseBody.content[0] || !responseBody.content[0].text) {
+          throw new Error('Invalid response from Bedrock model');
+        }
+
+        const generatedText = responseBody.content[0].text.trim();
+        const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('Could not extract JSON from Bedrock response');
+        }
+
+        let generatedContent;
         try {
+          generatedContent = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error('JSON parse error in FAQ generation:', parseError);
+          let cleanedJson = jsonMatch[0]
+            .replace(/,(\s*[}\]])/g, '$1')
+            .replace(/([{,]\s*)(\w+):/g, '$1"$2":')
+            .replace(/:\s*'([^']*)'/g, ': "$1"')
+            .replace(/\n/g, ' ')
+            .replace(/\s+/g, ' ');
           generatedContent = JSON.parse(cleanedJson);
           console.log('✅ Successfully parsed cleaned JSON for FAQ generation');
-        } catch (secondParseError) {
-          console.error('Failed to parse even cleaned JSON:', secondParseError);
-          throw new Error('Could not parse JSON from Bedrock response');
         }
-      }
 
-      // Add unique IDs to each FAQ
-      const faqsWithIds = (generatedContent.faqs || []).map((faq: any, index: number) => ({
+        const faqsWithIds = (generatedContent.faqs || []).map((faq: any, index: number) => ({
+          id: `faq-${Date.now()}-${index}`,
+          question: faq.question || '',
+          answer: faq.answer || '',
+        }));
+
+        console.log(`✅ Generated ${faqsWithIds.length} FAQs for ${pageName} page`);
+        return faqsWithIds;
+      } catch (error) {
+        console.error('Error generating FAQ content with Bedrock:', error);
+      }
+    }
+
+    // Try OpenAI as fallback
+    console.log(`Attempting OpenAI fallback for FAQ content generation on ${pageName} page...`);
+    const openaiResult = await generateContentWithOpenAI(prompt, 2000);
+    if (openaiResult && openaiResult.faqs) {
+      const faqsWithIds = openaiResult.faqs.map((faq: any, index: number) => ({
         id: `faq-${Date.now()}-${index}`,
         question: faq.question || '',
         answer: faq.answer || '',
       }));
-
-      console.log(`✅ Generated ${faqsWithIds.length} FAQs for ${pageName} page`);
-
+      console.log(`✅ Generated ${faqsWithIds.length} FAQs using OpenAI fallback for ${pageName} page`);
       return faqsWithIds;
-
-    } catch (error) {
-      console.error('Error generating FAQ content with Bedrock:', error);
-
-      // Try OpenAI as fallback
-      console.log(`Attempting OpenAI fallback for FAQ content generation on ${pageName} page...`);
-      const openaiResult = await generateContentWithOpenAI(prompt, 2000);
-
-      if (openaiResult && openaiResult.faqs) {
-        const faqsWithIds = openaiResult.faqs.map((faq: any, index: number) => ({
-          id: `faq-${Date.now()}-${index}`,
-          question: faq.question || '',
-          answer: faq.answer || '',
-        }));
-
-        console.log(`✅ Generated ${faqsWithIds.length} FAQs using OpenAI fallback for ${pageName} page`);
-        return faqsWithIds;
-      }
-
-      // Try Vertex AI as final fallback
-      console.log(`Attempting Vertex AI fallback for FAQ content generation on ${pageName} page...`);
-      const vertexResult = await generateContentWithVertexAI(prompt, 2000);
-
-      if (vertexResult && vertexResult.faqs) {
-        const faqsWithIds = vertexResult.faqs.map((faq: any, index: number) => ({
-          id: `faq-${Date.now()}-${index}`,
-          question: faq.question || '',
-          answer: faq.answer || '',
-        }));
-
-        console.log(`✅ Generated ${faqsWithIds.length} FAQs using Vertex AI fallback for ${pageName} page`);
-        return faqsWithIds;
-      }
-
-      return null;
     }
 
+    // Try Vertex AI as final fallback
+    console.log(`Attempting Vertex AI fallback for FAQ content generation on ${pageName} page...`);
+    const vertexResult = await generateContentWithVertexAI(prompt, 2000);
+    if (vertexResult && vertexResult.faqs) {
+      const faqsWithIds = vertexResult.faqs.map((faq: any, index: number) => ({
+        id: `faq-${Date.now()}-${index}`,
+        question: faq.question || '',
+        answer: faq.answer || '',
+      }));
+      console.log(`✅ Generated ${faqsWithIds.length} FAQs using Vertex AI fallback for ${pageName} page`);
+      return faqsWithIds;
+    }
+
+    return null;
   } catch (error) {
-    console.error('Error generating FAQ content with Bedrock:', error);
+    console.error('Error generating FAQ content:', error);
     return null;
   }
 }

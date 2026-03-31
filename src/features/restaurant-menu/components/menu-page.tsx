@@ -8,6 +8,7 @@ import { CartDrawer } from '@/features/restaurant-menu/components/cart-drawer';
 import { CartIcon } from '@/features/restaurant-menu/components/icons';
 import { SidebarNavigation } from '@/features/restaurant-menu/components/sidebar-navigation';
 import { FulfillmentSelector } from '@/features/restaurant-menu/components/fulfillment-selector';
+import { ClosedRestaurantModal } from '@/features/restaurant-menu/components/closed-restaurant-modal';
 import { ItemDetailsModal } from '@/features/restaurant-menu/components/item-details-modal';
 import { LocationModal } from '@/features/restaurant-menu/components/location-modal';
 import { MenuAuthSidebar, type MenuAuthView } from '@/features/restaurant-menu/components/menu-auth-sidebar';
@@ -237,13 +238,15 @@ function MenuPageContent({ data }: MenuPageProps) {
   );
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [scheduleModalSource, setScheduleModalSource] = useState<'info' | 'location' | 'cart'>('info');
+  const showClosedPopup = data.variesWithTime === true && data.isCurrentlyOpen === false;
+  const [closedModalOpen, setClosedModalOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [cartRecommendedItem, setCartRecommendedItem] = useState<MenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [authSidebarOpen, setAuthSidebarOpen] = useState(false);
   const [authSidebarView, setAuthSidebarView] = useState<MenuAuthView>('login');
   const [navbarAuthSlot, setNavbarAuthSlot] = useState<HTMLElement | null>(null);
-  const contentContainerClass = 'mx-auto w-full max-w-[1080px] px-4 sm:px-6';
+  const contentContainerClass = 'mx-auto w-full max-w-[1080px] px-4 sm:px-6 lg:px-6';
   const brandName = data.restaurant.name.replace(' Menu', '');
 
   const setAuthQueryParam = (view: MenuAuthView | null) => {
@@ -321,6 +324,12 @@ function MenuPageContent({ data }: MenuPageProps) {
       setLocationModalMode(defaultMode);
     }
   }, [pickupAllowed, deliveryAllowed, defaultMode, fulfillmentMode, locationModalMode]);
+
+  useEffect(() => {
+    if (showClosedPopup) {
+      setClosedModalOpen(true);
+    }
+  }, [showClosedPopup]);
 
   useEffect(() => {
     router.prefetch('/menu/checkout');
@@ -634,11 +643,41 @@ function MenuPageContent({ data }: MenuPageProps) {
     router.push(`/menu/checkout?${nextParams.toString()}`);
   };
 
+  if (!data.hasMenu) {
+    return (
+      <div
+        className="flex min-h-screen flex-col items-center justify-center bg-white px-4"
+        style={{ paddingTop: 'var(--navbar-height, 0px)' }}
+      >
+        <div className="mx-auto max-w-md text-center">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-stone-100">
+            <svg className="h-10 w-10 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-stone-900 sm:text-3xl">
+            Menu Coming Soon
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-stone-500 sm:text-base">
+            We&apos;re putting the finishing touches on our menu. Check back soon to place your order!
+          </p>
+          <p className="mt-6 text-xs font-medium uppercase tracking-widest text-stone-400">
+            {data.restaurant.name}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="min-h-screen bg-white"
       style={{ paddingTop: 'var(--navbar-height, 0px)' }}
     >
+      <div className="border-b border-stone-200 bg-white/95 backdrop-blur-xl">
+        <AnnouncementStrip text={data.announcement} />
+      </div>
+
       <div
         className="sticky z-30 border-b border-stone-200 bg-white/95 px-4 py-3 backdrop-blur-xl lg:hidden sm:px-6"
         style={{ top: 'var(--navbar-height, 0px)' }}
@@ -667,10 +706,6 @@ function MenuPageContent({ data }: MenuPageProps) {
             })}
           </div>
         </div>
-      </div>
-
-      <div className="border-b border-stone-200 bg-white/95 backdrop-blur-xl">
-        <AnnouncementStrip text={data.announcement} />
       </div>
 
       <div className="mx-auto flex w-full max-w-[1440px]">
@@ -885,6 +920,18 @@ function MenuPageContent({ data }: MenuPageProps) {
           if (scheduleModalSource === 'cart') {
             setCartOpen(true);
           }
+        }}
+      />
+
+      <ClosedRestaurantModal
+        open={closedModalOpen}
+        restaurantName={brandName}
+        openingText={data.restaurant.openingText}
+        onClose={() => setClosedModalOpen(false)}
+        onScheduleOrder={() => {
+          setClosedModalOpen(false);
+          setScheduleModalSource('info');
+          setScheduleModalOpen(true);
         }}
       />
 

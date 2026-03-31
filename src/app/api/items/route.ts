@@ -11,6 +11,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string | null | undefined) {
+  return typeof value === 'string' && UUID_REGEX.test(value.trim());
+}
+
 // GraphQL queries and mutations
 const GET_ITEMS_BY_CATEGORY = `
   query GetItemsByCategory($category_id: uuid!) {
@@ -197,6 +203,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (!isUuid(categoryId)) {
+      return NextResponse.json(
+        { success: false, error: 'Category ID must be a valid UUID' },
+        { status: 400 }
+      );
+    }
+
     const data = await adminGraphqlRequest<GetItemsResponse>(
       GET_ITEMS_BY_CATEGORY,
       { category_id: categoryId }
@@ -249,6 +262,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!isUuid(category_id)) {
+      return NextResponse.json(
+        { success: false, error: 'category_id must be a valid UUID' },
+        { status: 400 }
+      );
+    }
+
     if (delivery_price === undefined || pickup_price === undefined) {
       return NextResponse.json(
         { success: false, error: 'Both delivery_price and pickup_price are required' },
@@ -274,6 +294,12 @@ export async function POST(request: NextRequest) {
 
     // Only include parent_item_id if it's a non-empty string (valid UUID)
     if (parent_item_id && parent_item_id.trim() !== '') {
+      if (!isUuid(parent_item_id)) {
+        return NextResponse.json(
+          { success: false, error: 'parent_item_id must be a valid UUID' },
+          { status: 400 }
+        );
+      }
       variables.parent_item_id = parent_item_id;
     }
 
@@ -336,6 +362,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    if (!isUuid(item_id)) {
+      return NextResponse.json(
+        { success: false, error: 'item_id must be a valid UUID' },
+        { status: 400 }
+      );
+    }
+
     if (delivery_price === undefined || pickup_price === undefined) {
       return NextResponse.json(
         { success: false, error: 'Both delivery_price and pickup_price are required' },
@@ -361,6 +394,12 @@ export async function PUT(request: NextRequest) {
 
     // Only include parent_item_id if it's a non-empty string (valid UUID)
     if (parent_item_id && parent_item_id.trim() !== '') {
+      if (!isUuid(parent_item_id)) {
+        return NextResponse.json(
+          { success: false, error: 'parent_item_id must be a valid UUID' },
+          { status: 400 }
+        );
+      }
       variables.parent_item_id = parent_item_id;
     }
 
@@ -404,6 +443,13 @@ export async function DELETE(request: NextRequest) {
     if (!itemId) {
       return NextResponse.json(
         { success: false, error: 'Item ID is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!isUuid(itemId)) {
+      return NextResponse.json(
+        { success: false, error: 'Item ID must be a valid UUID' },
         { status: 400 }
       );
     }

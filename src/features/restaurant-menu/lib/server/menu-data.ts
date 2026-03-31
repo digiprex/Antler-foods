@@ -200,6 +200,7 @@ const GET_MODIFIER_GROUPS_BY_IDS = `
       order_by: [{ created_at: asc }]
     ) {
       modifier_group_id
+      restaurant_id
       name
       description
       min_selection
@@ -292,9 +293,10 @@ export function getEmptyRestaurantMenuData(restaurantName = 'Restaurant') {
 const loadRestaurantMenuPageDataCached = unstable_cache(
 async (domain: string): Promise<RestaurantMenuData> => {
   let restaurant = await loadRestaurantByDomain(domain);
+  // Only fall back to the global latest menu when we cannot resolve a restaurant
+  // for the current domain. If a restaurant exists but has no menu yet, keep it empty.
   let menu = restaurant?.restaurant_id ? await loadPreferredMenu(restaurant.restaurant_id) : null;
-
-  if (!menu) {
+  if (!restaurant && !menu) {
     menu = await loadLatestMenu();
   }
 
@@ -400,6 +402,20 @@ async function loadOpeningHours(restaurantId: string) {
   return { profile, slots };
 }
 
+function isRestaurantCurrentlyOpen(intervalsByDay: Map<number, Array<{ open: string; close: string }>>, timeZone: string): boolean {
+  const now = new Date();
+  const parts = zonedParts(now, timeZone);
+  const todayDbDay = DAY_BY_SHORT.get(parts.weekdayShort) || 1;
+  const todaysIntervals = intervalsByDay.get(todayDbDay) || [];
+  const currentMinutes = parts.minutesOfDay;
+
+  return todaysIntervals.some((interval) => {
+    const openMinutes = timeToMinutes(interval.open);
+    const closeMinutes = timeToMinutes(interval.close);
+    return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+  });
+}
+
 function buildMenuData({ restaurant, menu, categories, items, modifierGroups, modifierItems, opening, offers }: any): RestaurantMenuData {
   const restaurantName = text(restaurant?.name) || 'Restaurant';
   const pickupAllowed = restaurant?.pickup_allowed !== false;
@@ -408,6 +424,8 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
   const cityStateZip = buildCityStateZip(restaurant);
   const timeZone = resolveTimeZone(opening.profile?.timezone);
   const intervalsByDay = buildIntervalsByDay(opening);
+  const variesWithTime = menu?.varies_with_time === true;
+  const isCurrentlyOpen = isRestaurantCurrentlyOpen(intervalsByDay, timeZone);
   const modifierItemsByGroupId = new Map<string, any[]>();
 
   for (const modifierItem of modifierItems) {
@@ -536,9 +554,12 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
 
   return {
     restaurantId: text(restaurant.restaurant_id),
+    hasMenu: !!menu?.menu_id,
     allowTips: restaurant.allow_tips !== false,
     pickupAllowed,
     deliveryAllowed,
+    variesWithTime,
+    isCurrentlyOpen,
     slug: slugify(restaurantName) || slugify(menu?.name) || 'menu',
     announcement:
       pickupAllowed && deliveryAllowed
@@ -608,6 +629,7 @@ function buildEmptyMenuData(restaurantName: string): RestaurantMenuData {
   const scheduleDays = [fallbackScheduleDay(new Date(), DEFAULT_TIME_ZONE)];
   return {
     restaurantId: null,
+    hasMenu: false,
     allowTips: true,
     pickupAllowed: true,
     deliveryAllowed: true,
@@ -689,17 +711,34 @@ function buildOpeningText(intervalsByDay: Map<number, Array<{ open: string; clos
   const today = zonedParts(now, timeZone);
   const todayDbDay = DAY_BY_SHORT.get(today.weekdayShort) || 1;
   const todaysIntervals = intervalsByDay.get(todayDbDay) || [];
-  if (todaysIntervals.length > 0) {
-    return `Open today until ${formatClock(todaysIntervals[todaysIntervals.length - 1].close)}`;
+  const currentMinutes = today.minutesOfDay;
+
+  // Check if currently within an open interval today
+  const activeInterval = todaysIntervals.find((interval) => {
+    const openMin = timeToMinutes(interval.open);
+    const closeMin = timeToMinutes(interval.close);
+    return currentMinutes >= openMin && currentMinutes < closeMin;
+  });
+
+  if (activeInterval) {
+    return `Open today ${formatClock(activeInterval.open)} - ${formatClock(activeInterval.close)}`;
   }
 
+  // Check if there's a later interval today
+  const nextTodayInterval = todaysIntervals.find((interval) => timeToMinutes(interval.open) > currentMinutes);
+  if (nextTodayInterval) {
+    return `Opens today at ${formatClock(nextTodayInterval.open)} - ${formatClock(nextTodayInterval.close)}`;
+  }
+
+  // Look ahead to future days
   for (let offset = 1; offset <= LOOKAHEAD_DAYS; offset += 1) {
     const nextDate = new Date(now.getTime() + offset * 24 * 60 * 60 * 1000);
     const nextDay = zonedParts(nextDate, timeZone);
     const dbDay = DAY_BY_SHORT.get(nextDay.weekdayShort) || 1;
     const nextIntervals = intervalsByDay.get(dbDay) || [];
     if (nextIntervals.length > 0) {
-      return `Opens ${offset === 1 ? 'tomorrow' : nextDay.weekdayShort} at ${formatClock(nextIntervals[0].open)}`;
+      const dayLabel = offset === 1 ? 'tomorrow' : nextDay.weekdayShort;
+      return `Opens ${dayLabel} ${formatClock(nextIntervals[0].open)} - ${formatClock(nextIntervals[nextIntervals.length - 1].close)}`;
     }
   }
 

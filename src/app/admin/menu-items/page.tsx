@@ -50,6 +50,13 @@ function MenuItemsContent() {
   const menuName = searchParams?.get('menu_name') || null;
   const categoryId = searchParams?.get('category_id') || null;
   const categoryName = searchParams?.get('category_name') || null;
+  const isValidUuid = (value: string | null) =>
+    Boolean(
+      value &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          value,
+        ),
+    );
 
   const handleBack = () => {
     const params = new URLSearchParams();
@@ -62,7 +69,13 @@ function MenuItemsContent() {
 
   return (
     <DashboardLayout>
-      {restaurantId && restaurantName && menuId && menuName && categoryId && categoryName ? (
+      {restaurantId &&
+      restaurantName &&
+      menuId &&
+      menuName &&
+      categoryId &&
+      categoryName &&
+      isValidUuid(categoryId) ? (
         <>
           <div className="mb-6 flex items-center justify-between">
             <div>
@@ -90,6 +103,26 @@ function MenuItemsContent() {
             categoryName={categoryName}
           />
         </>
+      ) : restaurantId && restaurantName && menuId && menuName && categoryId && categoryName ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-12 text-center shadow-sm">
+            <h2 className="mb-2 text-xl font-bold text-amber-900">
+              Category Still Syncing
+            </h2>
+            <p className="mx-auto max-w-md text-sm text-amber-800">
+              This category does not have a valid ID yet. Please go back to Categories and try again in a moment.
+            </p>
+            <button
+              onClick={handleBack}
+              className="mt-5 inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Categories
+            </button>
+          </div>
+        </div>
       ) : (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-12 text-center shadow-sm">

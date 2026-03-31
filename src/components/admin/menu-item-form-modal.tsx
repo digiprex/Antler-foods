@@ -120,7 +120,7 @@ export default function MenuItemFormModal({
   const fetchModifierGroups = async () => {
     try {
       setLoadingModifiers(true);
-      const response = await fetch('/api/modifier-groups');
+      const response = await fetch(`/api/modifier-groups?restaurant_id=${encodeURIComponent(restaurantId || '')}`);
       const data = await response.json();
       
       if (response.ok && data.success) {

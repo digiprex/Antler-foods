@@ -29,6 +29,7 @@ interface Theme {
     textColor?: string;
     gradient?: string;
     navbarStyle?: string;
+    navbarTextColor?: string;
     buttonStyle?: string;
     fontStyle?: string;
   };
@@ -209,13 +210,13 @@ export default function SelectThemeForm() {
         textTransform: 'none'
       },
       subheading: {
-        color: textColor,
+        color: getContrastColor(backgroundColor) === '#ffffff' ? textColor : primaryColor,
         fontSize: '1.5rem',
         fontFamily: fontFamily,
         fontWeight: 600,
         lineHeight: '1.3',
         letterSpacing: '-0.015em',
-        textTransform: 'none'
+        textTransform: 'uppercase'
       },
       paragraph: {
         color: '#6b7280',
@@ -256,7 +257,9 @@ export default function SelectThemeForm() {
       secondaryColor: secondaryColor,
       accentColor: accentColor,
       backgroundColor: backgroundColor,
-      textColor: textColor
+      textColor: textColor,
+      navbarTextColor: (style.navbarStyle === 'transparent') ? '#ffffff' : (style.navbarTextColor || getContrastColor(primaryColor)),
+      navbarStyle: style.navbarStyle || 'solid'
     };
   };
 
@@ -306,9 +309,35 @@ export default function SelectThemeForm() {
       }
       updateStepStatus(0, 'completed');
 
-      // Step 2-6: Initialize website with detailed progress tracking
+      // Step 2-6: Initialize website with simulated progress tracking
+      // The API call handles steps 1-5 in one request, so we simulate
+      // step progression on the UI side to keep the user informed.
       updateStepStatus(1, 'loading');
-      
+
+      const stepDelays = [3000, 4000, 5000, 4000]; // delays before advancing to steps 2,3,4,5
+      let stepTimers: ReturnType<typeof setTimeout>[] = [];
+      let currentSimStep = 1;
+
+      const simulateProgress = () => {
+        stepDelays.forEach((delay, i) => {
+          const targetStep = i + 2; // steps 2,3,4,5
+          const cumulativeDelay = stepDelays.slice(0, i + 1).reduce((a, b) => a + b, 0);
+          const timer = setTimeout(() => {
+            currentSimStep = targetStep;
+            // Mark previous step completed, mark current step loading
+            setStepStatus(prev => prev.map((s, idx) => {
+              if (idx < targetStep) return 'completed';
+              if (idx === targetStep) return 'loading';
+              return s;
+            }));
+            setCurrentStep(targetStep);
+          }, cumulativeDelay);
+          stepTimers.push(timer);
+        });
+      };
+
+      simulateProgress();
+
       const response = await fetch(`/api/restaurants/${encodeURIComponent(restaurantId)}/initialize-website`, {
         method: 'POST',
         headers: {
@@ -320,14 +349,16 @@ export default function SelectThemeForm() {
         }),
       });
 
+      // Clear any pending step timers
+      stepTimers.forEach(t => clearTimeout(t));
+
       const data = await response.json();
 
       if (!response.ok) {
-        updateStepStatus(1, 'error');
+        updateStepStatus(currentSimStep, 'error');
         throw new Error(data.error || 'Failed to initialize website');
       }
 
-      updateStepStatus(1, 'completed');
       setCurrentStep(initializationSteps.length - 1);
       setStepStatus(initializationSteps.map(() => 'completed'));
 
@@ -1116,46 +1147,6 @@ export default function SelectThemeForm() {
                           <p className="text-xs font-medium text-gray-600 mb-2">Font Style</p>
                           <p className="text-sm font-bold text-gray-900 capitalize">{style.fontStyle || 'Modern'}</p>
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Navbar Layout Selection */}
-                    <div>
-                      <h3 className="mb-4 text-lg font-bold text-gray-900">Navbar Layout</h3>
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                        {navbarLayouts.map((layout) => (
-                          <button
-                            key={layout.id}
-                            type="button"
-                            className={`group relative cursor-pointer rounded-lg border-2 p-3 text-left transition-all ${
-                              previewNavbarLayout === layout.id
-                                ? 'border-purple-500 bg-purple-50 shadow-md'
-                                : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50'
-                            }`}
-                            onClick={() => setPreviewNavbarLayout(layout.id as NavbarLayoutId)}
-                          >
-                            <div className={`mb-2 rounded bg-gray-50 p-1.5 ${layout.preview.bordered ? 'border-2 border-gray-300' : 'border border-gray-300'}`}>
-                              <div className={`flex items-center gap-1 ${
-                                layout.preview.direction === 'column' ? 'flex-col' : ''
-                              } ${
-                                layout.preview.justify === 'center' ? 'justify-center' :
-                                layout.preview.justify === 'between' ? 'justify-between' : ''
-                              }`}>
-                                {layout.preview.items.map((item, idx) => (
-                                  <PreviewItem key={idx} item={item} />
-                                ))}
-                              </div>
-                            </div>
-                            <div className="text-xs font-semibold text-gray-900">{layout.name}</div>
-                            {previewNavbarLayout === layout.id && (
-                              <div className="absolute right-1 top-1">
-                                <svg className="h-4 w-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                            )}
-                          </button>
-                        ))}
                       </div>
                     </div>
 

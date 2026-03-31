@@ -10,6 +10,16 @@ import type { CustomSectionLayout } from '@/types/custom-section.types';
 
 const DEFAULT_STAGING_DOMAIN_SUFFIX = '.vercel.app';
 
+// Returns white or black based on which has better contrast against the given background color
+function getContrastColor(hexColor: string): string {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? '#000000' : '#ffffff';
+}
+
 // Initialize Bedrock client
 const bedrockClient = new BedrockRuntimeClient({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -1480,9 +1490,19 @@ async function createNavbarFromTheme(restaurantId: string, themeId: string) {
 
   // Build config based on global styles with navbar section overrides
   // Priority: globalStyles > navbarSection.style > defaults
+  const navBgColor = (globalStyles as any)?.primaryColor || navbarSection.style?.bgColor || '#4a90e2';
+  const navbarStyleType = (globalStyles as any)?.navbarStyle || navbarSection.style?.navbarStyle || 'solid';
+
+  // For transparent/glass navbars, text must contrast against the hero/page background (typically dark imagery),
+  // so we use the stored navbarTextColor or compute contrast against the navbar bgColor.
+  // For solid navbars, compute contrast against the actual navbar background color.
+  const navTextColor = navbarStyleType === 'transparent'
+    ? ((globalStyles as any)?.navbarTextColor || getContrastColor(navBgColor))
+    : ((globalStyles as any)?.navbarTextColor || getContrastColor(navBgColor));
+
   const config = {
-    bgColor: (globalStyles as any)?.primaryColor || navbarSection.style?.bgColor || '#4a90e2',
-    textColor: (globalStyles as any)?.navbarTextColor || globalStyles?.title?.color || navbarSection.style?.textColor || '#2c3e50',
+    bgColor: navBgColor,
+    textColor: navTextColor,
     buttonBgColor: (globalStyles as any)?.accentColor || globalStyles?.primaryButton?.backgroundColor || navbarSection.style?.buttonBgColor || '#000000',
     buttonTextColor: globalStyles?.primaryButton?.color || navbarSection.style?.buttonTextColor || '#ffffff',
     buttonBorderRadius: globalStyles?.primaryButton?.borderRadius || navbarSection.style?.buttonBorderRadius || '0.5rem',
@@ -1623,16 +1643,14 @@ async function createFooterFromTheme(restaurantId: string, themeId: string) {
 
   // Build config based on global styles with footer section overrides
   // Priority: AI-generated content > globalStyles > footerSection.style > defaults
-  const resolvedFooterTextColor =
-    (globalStyles as any)?.textColor ||
-    globalStyles?.paragraph?.color ||
-    footerSection.style?.textColor ||
-    '#ffffff';
+  const footerBgColor = (globalStyles as any)?.primaryColor || footerSection.style?.bgColor || '#4a90e2';
+  // Footer text color should contrast against the footer background, not use the page text color
+  const resolvedFooterTextColor = getContrastColor(footerBgColor);
 
   const config = {
-    bgColor: (globalStyles as any)?.primaryColor || footerSection.style?.bgColor || '#4a90e2',
+    bgColor: footerBgColor,
     textColor: resolvedFooterTextColor,
-    linkColor: (globalStyles as any)?.textColor || footerSection.style?.linkColor || resolvedFooterTextColor,
+    linkColor: footerSection.style?.linkColor || resolvedFooterTextColor,
     copyrightBgColor: (globalStyles as any)?.accentColor || footerSection.style?.copyrightBgColor || '#ffca58',
     copyrightTextColor: footerSection.style?.copyrightTextColor || '#ffffff',
     fontFamily: globalStyles?.paragraph?.fontFamily || footerSection.style?.fontFamily || 'Poppins, sans-serif',
@@ -1758,11 +1776,13 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
     const isCustomSection = section.type.toLowerCase() === 'customsection';
     if (isHeroSection) {
       console.log(`  ⚡ Generating AI content for home page hero (layout: ${section.id})...`);
-      const aiContent = await generateHeroContent(restaurantId, 'home', section.id);
 
-      // Default fallback content for home page with SEO optimization
-      // Fetch restaurant details for SEO-optimized fallback content
-      const restaurant = await getRestaurantDetails(restaurantId);
+      // Generate AI content, fetch restaurant details, and media in parallel
+      const [aiContent, restaurant, mediaImage] = await Promise.all([
+        generateHeroContent(restaurantId, 'home', section.id),
+        getRestaurantDetails(restaurantId),
+        getRestaurantMedia(restaurantId),
+      ]);
       const locationInfo = restaurant ? [restaurant.city, restaurant.state, restaurant.country].filter(Boolean).join(', ') : '';
       const cuisineType = restaurant?.cuisine_types && Array.isArray(restaurant.cuisine_types) && restaurant.cuisine_types.length > 0
         ? restaurant.cuisine_types[0]
@@ -1776,9 +1796,6 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
 
       // Use AI content if available, otherwise use defaults
       const content = aiContent || defaultContent;
-
-      // Check if layout requires an image and fetch from media table
-      const mediaImage = await getRestaurantMedia(restaurantId);
 
       // Build enhanced config using global_styles for CSS/styling and AI/default content for dynamic text
       sectionConfig = {
@@ -2516,8 +2533,9 @@ Please call ahead for holiday hour updates.`;
 
   const globalStyles = restaurantData.restaurants_by_pk?.global_styles || {};
 
-  // Process each page configuration in other_page_sections
+  // Process all pages in parallel for faster initialization
   // Format: [{ "about": [...sections] }, { "contact": [...sections] }]
+  const pageProcessingTasks: Promise<void>[] = [];
   for (const pageConfig of otherPageSections) {
     for (const [rawPageName, sections] of Object.entries(pageConfig)) {
       const pageName = rawPageName.trim().toLowerCase();
@@ -2525,12 +2543,13 @@ Please call ahead for holiday hour updates.`;
         continue;
       }
 
+      pageProcessingTasks.push((async () => {
       // Get page ID by slug (e.g., "about" -> about page ID)
       const pageId = await getPageIdBySlug(restaurantId, pageName);
 
       if (!pageId) {
         console.log(`Page "${pageName}" not found, skipping sections`);
-        continue;
+        return;
       }
 
       // Create contact-style form if this is the contact/catering page
@@ -2680,8 +2699,11 @@ Please call ahead for holiday hour updates.`;
         if (isFAQSection && !section.config) {
           console.log(`  ⚡ Generating AI FAQ content for ${pageName} page (layout: ${section.id})...`);
 
-          // Generate FAQ questions and answers
-          const aiGeneratedFAQs = await generateFAQContent(restaurantId, pageName);
+          // Generate FAQ questions/answers and section content in parallel
+          const [aiGeneratedFAQs, aiSectionContent] = await Promise.all([
+            generateFAQContent(restaurantId, pageName),
+            generateSectionContent(restaurantId, pageName, 'FAQ', section.id),
+          ]);
 
           // Default fallback FAQs if AI generation fails
           const defaultFAQs = [
@@ -2703,9 +2725,6 @@ Please call ahead for holiday hour updates.`;
           ];
 
           const faqs = aiGeneratedFAQs || defaultFAQs;
-
-          // Generate section title, subtitle, and description
-          const aiSectionContent = await generateSectionContent(restaurantId, pageName, 'FAQ', section.id);
           const defaultSectionContent = {
             title: 'Frequently Asked Questions',
             subtitle: 'Find answers to common questions',
@@ -2766,13 +2785,15 @@ Please call ahead for holiday hour updates.`;
 
         // For Review sections without full config, fetch reviews from database and generate section content
         if (isReviewSection && !section.config) {
-          console.log(`  ⚡ Fetching reviews from database for ${pageName} page (layout: ${section.id})...`);
-          const dbReviews = await getRestaurantReviews(restaurantId, 6);
-          const galleryImagesForReviews = await getRestaurantGalleryImages(restaurantId, 1);
-          const reviewHighlightImageUrl = galleryImagesForReviews[0]?.url || '';
+          console.log(`  ⚡ Fetching reviews and generating content for ${pageName} page (layout: ${section.id})...`);
 
-          // Generate section title, subtitle, and description
-          const aiSectionContent = await generateSectionContent(restaurantId, pageName, 'Reviews', section.id);
+          // Fetch reviews, gallery image, and AI content in parallel
+          const [dbReviews, galleryImagesForReviews, aiSectionContent] = await Promise.all([
+            getRestaurantReviews(restaurantId, 6),
+            getRestaurantGalleryImages(restaurantId, 1),
+            generateSectionContent(restaurantId, pageName, 'Reviews', section.id),
+          ]);
+          const reviewHighlightImageUrl = galleryImagesForReviews[0]?.url || '';
           const defaultSectionContent = {
             title: 'Customer Reviews',
             subtitle: 'What Our Guests Say',
@@ -2842,8 +2863,12 @@ Please call ahead for holiday hour updates.`;
         // For Gallery sections without full config, generate AI content for title, subtitle, and description
         if (isGallerySection && !section.config) {
           console.log(`  ⚡ Generating AI Gallery content for ${pageName} page (layout: ${section.id})...`);
-          const aiGeneratedContent = await generateSectionContent(restaurantId, pageName, 'Gallery', section.id);
-          const galleryImages = await getRestaurantGalleryImages(restaurantId);
+
+          // Generate AI content and fetch gallery images in parallel
+          const [aiGeneratedContent, galleryImages] = await Promise.all([
+            generateSectionContent(restaurantId, pageName, 'Gallery', section.id),
+            getRestaurantGalleryImages(restaurantId),
+          ]);
 
           // Default fallback content if AI generation fails
           const defaultContent = {
@@ -2915,11 +2940,13 @@ Please call ahead for holiday hour updates.`;
         // For Hero sections without full config, generate AI content and merge with global styles
         if (isHeroSection && !section.config) {
           console.log(`  ⚡ Generating AI content for ${pageName} page hero (layout: ${section.id})...`);
-          const aiContent = await generateHeroContent(restaurantId, pageName, section.id);
 
-          // Default fallback content if AI generation fails (page-specific)
-          // Fetch restaurant details for SEO-optimized fallback content
-          const restaurant = await getRestaurantDetails(restaurantId);
+          // Generate AI content, fetch restaurant details, and media in parallel
+          const [aiContent, restaurant, mediaImage] = await Promise.all([
+            generateHeroContent(restaurantId, pageName, section.id),
+            getRestaurantDetails(restaurantId),
+            getRestaurantMedia(restaurantId),
+          ]);
           const locationInfo = restaurant ? [restaurant.city, restaurant.state, restaurant.country].filter(Boolean).join(', ') : '';
           const cuisineType = restaurant?.cuisine_types && Array.isArray(restaurant.cuisine_types) && restaurant.cuisine_types.length > 0
             ? restaurant.cuisine_types[0]
@@ -2966,9 +2993,6 @@ Please call ahead for holiday hour updates.`;
 
           // Use AI content if available, otherwise use defaults
           const content = aiContent || defaultContent;
-
-          // Check if layout requires an image and fetch from media table
-          const mediaImage = await getRestaurantMedia(restaurantId);
 
           // Build config using global_styles for CSS/styling and AI/default content for dynamic text
           sectionConfig = {
@@ -3068,19 +3092,8 @@ Please call ahead for holiday hour updates.`;
         // For Custom sections without full config, generate AI content and merge with global styles
         if (isCustomSection && !section.config) {
           console.log(`  ⚡ Generating AI content for ${pageName} page custom section (name: ${section.name || section.id}, content: ${section.content || 'default'})...`);
-          const aiContent = await generateCustomSectionContent(restaurantId, pageName, section.name || section.id, section.content);
 
-          // Default fallback content for custom sections
-          const defaultCustomContent = {
-            headline: section.name || 'Our Values',
-            subheadline: 'What Matters Most',
-            description: 'We believe in creating exceptional experiences through attention to detail, quality ingredients, and genuine hospitality. Every aspect of our restaurant reflects our commitment to excellence, from the carefully curated menu to the warm, welcoming atmosphere. Our dedication to these principles ensures that every visit becomes a memorable dining experience that exceeds expectations.',
-          };
-
-          // Use AI content if available, otherwise use defaults
-          const content = aiContent || defaultCustomContent;
-
-          // Resolve layout media requirements and map random media images only for supported slots
+          // Resolve layout media requirements synchronously first
           const rawLayoutId = (section.id || 'layout-1') as CustomSectionLayout;
           const layoutDefinition = getCustomSectionLayoutDefinition(rawLayoutId);
           const layoutId = layoutDefinition.value;
@@ -3100,10 +3113,22 @@ Please call ahead for holiday hour updates.`;
             layoutDefinition.defaultItemCount || 0,
             12,
           );
-          const mediaImagePool = await getRestaurantGalleryImages(
-            restaurantId,
-            imagePoolLimit,
-          );
+
+          // Generate AI content and fetch gallery images in parallel
+          const [aiContent, mediaImagePool] = await Promise.all([
+            generateCustomSectionContent(restaurantId, pageName, section.name || section.id, section.content),
+            getRestaurantGalleryImages(restaurantId, imagePoolLimit),
+          ]);
+
+          // Default fallback content for custom sections
+          const defaultCustomContent = {
+            headline: section.name || 'Our Values',
+            subheadline: 'What Matters Most',
+            description: 'We believe in creating exceptional experiences through attention to detail, quality ingredients, and genuine hospitality. Every aspect of our restaurant reflects our commitment to excellence, from the carefully curated menu to the warm, welcoming atmosphere. Our dedication to these principles ensures that every visit becomes a memorable dining experience that exceeds expectations.',
+          };
+
+          // Use AI content if available, otherwise use defaults
+          const content = aiContent || defaultCustomContent;
 
           const randomImages = imageSlots.length > 0
             ? getRandomMediaSelection(
@@ -3353,8 +3378,12 @@ Please call ahead for holiday hour updates.`;
       }
 
       console.log(`✅ Created ${sortedSections.length} section(s) for "${pageName}" page`);
+      })());
     }
   }
+
+  // Wait for all pages to be processed in parallel
+  await Promise.all(pageProcessingTasks);
 }
 
 export async function POST(
@@ -3390,14 +3419,24 @@ export async function POST(
 
     console.log('✅ Starting website initialization process...');
 
-    // Generate staging domain (Vercel subdomain)
-    console.log('🌐 Step 1: Generating staging domain...');
-    const defaultStagingDomain = buildDefaultStagingDomain(restaurantName);
-    console.log(`✅ Generated staging domain: ${defaultStagingDomain}`);
+    // Generate staging domain and add to Vercel, retrying with suffix if already taken
+    console.log('🌐 Step 1+2: Generating staging domain and adding to Vercel...');
+    const baseDomain = buildDefaultStagingDomain(restaurantName);
+    let defaultStagingDomain = baseDomain;
+    let vercelResult = await addVercelDomain(defaultStagingDomain);
 
-    // Add domain to Vercel project via API
-    console.log('🔗 Step 2: Adding domain to Vercel...');
-    const vercelResult = await addVercelDomain(defaultStagingDomain);
+    if (!vercelResult.success && vercelResult.error?.includes('already assigned')) {
+      const maxRetries = 10;
+      for (let i = 1; i <= maxRetries; i++) {
+        defaultStagingDomain = baseDomain.replace(
+          DEFAULT_STAGING_DOMAIN_SUFFIX,
+          `-${i}${DEFAULT_STAGING_DOMAIN_SUFFIX}`,
+        );
+        console.log(`⚠️ Domain taken, trying: ${defaultStagingDomain}`);
+        vercelResult = await addVercelDomain(defaultStagingDomain);
+        if (vercelResult.success || !vercelResult.error?.includes('already assigned')) break;
+      }
+    }
 
     if (!vercelResult.success) {
       console.error('❌ Failed to add domain to Vercel:', vercelResult.error);
@@ -3409,15 +3448,17 @@ export async function POST(
         { status: 500 }
       );
     }
-    console.log('✅ Domain added to Vercel successfully');
+    console.log(`✅ Domain added to Vercel: ${defaultStagingDomain}`);
 
-    // Update restaurant with staging domain
-    console.log('🏪 Step 3: Updating restaurant data...');
-    await updateRestaurantData(restaurantId, defaultStagingDomain);
-    console.log('✅ Restaurant data updated');
+    // Run restaurant data update and system page creation in parallel
+    console.log('🏪 Step 3+4: Updating restaurant data and creating pages in parallel...');
+    await Promise.all([
+      updateRestaurantData(restaurantId, defaultStagingDomain),
+      ensureDefaultSystemPagesForRestaurant(restaurantId, restaurantName),
+    ]);
+    console.log('✅ Restaurant data updated and default system pages created');
 
-    // Ensure Umami website exists for the new restaurant domain.
-    // This runs in the background so analytics provisioning does not delay site creation.
+    // Ensure Umami website exists (fire-and-forget)
     void ensureUmamiWebsiteForDomain(
       defaultStagingDomain,
       `${restaurantName} (${defaultStagingDomain})`,
@@ -3433,34 +3474,22 @@ export async function POST(
         console.error('Umami setup failed; continuing initialization:', umamiError);
       });
 
-    // Create default system pages
-    console.log('📄 Step 4: Creating default system pages...');
-    await ensureDefaultSystemPagesForRestaurant(restaurantId, restaurantName);
-    console.log('✅ Default system pages process completed');
-
     // Create theme sections if templateId is provided
     if (templateId) {
-      console.log(`🎨 Step 5: Creating theme sections with templateId: ${templateId}`);
+      console.log(`🎨 Step 5: Creating navbar, footer, and page sections in parallel...`);
 
-      // Create navbar and footer from theme (global templates)
-      console.log('🧭 Step 5a/5b: Creating navbar and footer from theme...');
+      // Run navbar, footer, and all page sections in parallel
       await Promise.all([
         createNavbarFromTheme(restaurantId, templateId),
         createFooterFromTheme(restaurantId, templateId),
+        createOtherPageSectionsFromTheme(restaurantId, templateId),
       ]);
-      console.log('✅ Navbar and footer creation completed');
-
-
-      // Create sections for all pages (including home, about, contact, etc.) from theme's other_page_sections
-      console.log('📑 Step 5c: Creating other page sections from theme...');
-      await createOtherPageSectionsFromTheme(restaurantId, templateId);
-      console.log('✅ Other page sections creation completed');
+      console.log('✅ Navbar, footer, and page sections created');
 
       // Fallback: If home page sections weren't created from other_page_sections, use theme.sections for home page
       console.log('🏠 Step 5d: Checking home page sections fallback...');
       const homePageId = await getHomePageId(restaurantId);
       if (homePageId) {
-        // Check if home page already has sections from other_page_sections
         const hasHomeSections = await checkIfPageHasSections(restaurantId, homePageId);
         if (!hasHomeSections) {
           console.log('⚠️ No home page sections found in other_page_sections, falling back to theme.sections');

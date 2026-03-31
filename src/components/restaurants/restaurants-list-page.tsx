@@ -191,9 +191,15 @@ export function RestaurantsListPage() {
       setErrorMessage(null);
       setSuccessMessage(null);
 
-      await updateRestaurant(restaurantPendingDelete.id, {
-        is_deleted: true,
-      });
+      const response = await fetch(
+        `/api/restaurants/${encodeURIComponent(restaurantPendingDelete.id)}/delete`,
+        { method: 'POST' },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete restaurant.');
+      }
 
       setRestaurants((previous) =>
         previous.filter((item) => item.id !== restaurantPendingDelete.id),

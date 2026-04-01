@@ -90,7 +90,7 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
         // Fetch page details directly by domain + slug (single request path)
         const pageResponse = await fetch(
           `/api/page-details?domain=${encodedDomain}&url_slug=${encodeURIComponent(slug)}`,
-          { cache: 'force-cache' }
+          { cache: 'no-store' }
         );
 
         if (pageResponse.status === 404) {

@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     // Fetch page details
     const pageResponse = await fetch(
       `${appOrigin}/api/page-details?domain=${encodeURIComponent(domain)}&url_slug=${encodeURIComponent(slug)}`,
-      { cache: 'force-cache', next: { revalidate: 60 } }
+      { next: { revalidate: 60 } }
     );
 
     if (!pageResponse.ok) {
@@ -80,7 +80,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     try {
       const restaurantResponse = await fetch(
         `${appOrigin}/api/restaurant-info?restaurant_id=${resolvedRestaurantId}`,
-        { cache: 'force-cache', next: { revalidate: 120 } }
+        { next: { revalidate: 120 } }
       );
       
       if (restaurantResponse.ok) {

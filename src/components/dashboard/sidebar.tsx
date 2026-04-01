@@ -1,6 +1,7 @@
 import { NavItem } from './nav-item';
 import { SearchBox, type RestaurantSearchSelection } from './search-box';
 import type { DashboardRailTab } from './icon-rail';
+import { useEffect, useMemo, useRef } from 'react';
 import {
   buildRestaurantInformationPath,
   buildRestaurantMediaPath,
@@ -25,9 +26,15 @@ export function Sidebar({
   selectedRestaurant,
   onRestaurantSelect,
 }: SidebarProps) {
+  const sidebarRef = useRef<HTMLElement | null>(null);
   const isWebsiteTab = activeTab === 'website';
   const hasRestaurantSelection = Boolean(selectedRestaurant);
   const roleSegment = dashboardBasePath.split('/')[2] || 'admin';
+  const sidebarScrollStorageKey = useMemo(() => {
+    const restaurantScope = selectedRestaurant?.id || 'no-restaurant';
+    const sidebarMode = isOpen ? 'open' : 'collapsed';
+    return `dashboard-sidebar-scroll:${roleSegment}:${restaurantScope}:${sidebarMode}`;
+  }, [isOpen, roleSegment, selectedRestaurant?.id]);
 
   // Add style to hide scrollbar globally
   if (typeof document !== 'undefined') {
@@ -317,8 +324,88 @@ export function Sidebar({
       ]
     : [];
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const sidebar = sidebarRef.current;
+    if (!sidebar) {
+      return;
+    }
+
+    const persistScrollPosition = () => {
+      window.sessionStorage.setItem(
+        sidebarScrollStorageKey,
+        String(sidebar.scrollTop),
+      );
+    };
+
+    sidebar.addEventListener('scroll', persistScrollPosition, {
+      passive: true,
+    });
+
+    return () => {
+      sidebar.removeEventListener('scroll', persistScrollPosition);
+    };
+  }, [sidebarScrollStorageKey]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const sidebar = sidebarRef.current;
+    if (!sidebar) {
+      return;
+    }
+
+    let frameId = 0;
+
+    const restoreScrollPosition = () => {
+      const storedValue = window.sessionStorage.getItem(sidebarScrollStorageKey);
+      const parsedScrollTop = storedValue ? Number.parseFloat(storedValue) : NaN;
+      const hasStoredScrollTop = Number.isFinite(parsedScrollTop);
+
+      if (hasStoredScrollTop) {
+        sidebar.scrollTop = parsedScrollTop;
+      }
+
+      const activeItem = sidebar.querySelector<HTMLElement>(
+        '[data-sidebar-active="true"]',
+      );
+
+      if (!activeItem) {
+        return;
+      }
+
+      const itemTop = activeItem.offsetTop;
+      const itemBottom = itemTop + activeItem.offsetHeight;
+      const viewportTop = sidebar.scrollTop;
+      const viewportBottom = viewportTop + sidebar.clientHeight;
+      const itemIsVisible =
+        itemTop >= viewportTop && itemBottom <= viewportBottom;
+
+      if (!hasStoredScrollTop || !itemIsVisible) {
+        activeItem.scrollIntoView({
+          block: 'nearest',
+          inline: 'nearest',
+        });
+      }
+    };
+
+    frameId = window.requestAnimationFrame(() => {
+      restoreScrollPosition();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [pathname, sidebarScrollStorageKey]);
+
   return (
     <aside
+      ref={sidebarRef}
       className={`fixed left-0 top-0 z-40 h-screen border-r border-gray-200 bg-white shadow-sm transition-all duration-200 ease-in-out overflow-y-auto scrollbar-hide ${
         isOpen ? 'overflow-x-hidden' : 'overflow-x-visible'
       } ${

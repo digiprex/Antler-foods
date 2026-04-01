@@ -183,6 +183,9 @@ export default function SelectThemeForm() {
                         buttonStyle === 'pill' ? '9999px' :
                         '0.5rem'; // rounded
 
+    // Detect dark mode based on background luminance
+    const isDarkMode = getContrastColor(backgroundColor) === '#ffffff';
+
     // Get contrasting colors for buttons
     const primaryButtonColor = getContrastColor(accentColor);
     const secondaryButtonColor = textColor;
@@ -210,7 +213,7 @@ export default function SelectThemeForm() {
         textTransform: 'none'
       },
       subheading: {
-        color: getContrastColor(backgroundColor) === '#ffffff' ? textColor : primaryColor,
+        color: isDarkMode ? textColor : accentColor,
         fontSize: '1.5rem',
         fontFamily: fontFamily,
         fontWeight: 600,
@@ -219,7 +222,7 @@ export default function SelectThemeForm() {
         textTransform: 'uppercase'
       },
       paragraph: {
-        color: '#6b7280',
+        color: isDarkMode ? '#a1a1aa' : '#374151',
         fontSize: '1rem',
         fontFamily: fontFamily,
         fontWeight: 400,
@@ -242,11 +245,11 @@ export default function SelectThemeForm() {
       },
       secondaryButton: {
         size: 'medium',
-        color: secondaryButtonColor,
-        backgroundColor: backgroundColor,
+        color: isDarkMode ? textColor : secondaryButtonColor,
+        backgroundColor: isDarkMode ? 'transparent' : backgroundColor,
         hoverBackgroundColor: secondaryColor,
         hoverColor: textColor,
-        border: `1px solid ${secondaryColor}`,
+        border: isDarkMode ? `1px solid ${textColor}` : `1px solid ${secondaryColor}`,
         borderRadius: buttonRadius,
         fontSize: '1rem',
         fontFamily: fontFamily,

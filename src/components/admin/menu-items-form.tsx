@@ -172,6 +172,48 @@ export default function MenuItemsForm({
     setShowEditItem(true);
   };
 
+  const handleDuplicateItem = async (item: MenuItem) => {
+    try {
+      // Parse modifiers if stored as a JSON string, otherwise use as-is
+      let modifiers = item.modifiers;
+      if (typeof modifiers === 'string') {
+        try { modifiers = JSON.parse(modifiers); } catch { /* keep as-is */ }
+      }
+
+      const response = await fetch('/api/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: `${item.name} (Copy)`,
+          description: item.description || '',
+          delivery_price: item.delivery_price,
+          pickup_price: item.pickup_price,
+          image_url: item.image_url || '',
+          is_recommended: item.is_recommended,
+          is_best_seller: item.is_best_seller,
+          category_id: item.category_id,
+          is_available: item.is_available,
+          in_stock: item.in_stock,
+          modifiers: modifiers || null,
+          has_variants: false,
+          parent_item_id: item.parent_item_id || null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to duplicate item');
+      }
+
+      // Refetch all items to ensure correct data from DB
+      await fetchItems();
+    } catch (err) {
+      console.error('Duplicate item error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to duplicate item');
+    }
+  };
+
   const handleDeleteItem = (item: MenuItem) => {
     setItemToDelete(item);
     setShowDeleteConfirm(true);
@@ -603,6 +645,15 @@ export default function MenuItemsForm({
                           </label>
                         </div>
                         <button
+                          onClick={() => handleDuplicateItem(item)}
+                          className="rounded p-2 text-gray-400 hover:text-purple-600"
+                          title="Duplicate item"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                        <button
                           onClick={() => handleEditItem(item)}
                           className="rounded p-2 text-gray-400 hover:text-gray-600"
                           title="Edit item"
@@ -763,8 +814,17 @@ export default function MenuItemsForm({
                                 </label>
                               </div>
                               
-                              {/* Edit/Delete Controls */}
+                              {/* Duplicate/Edit/Delete Controls */}
                               <div className="flex flex-col gap-1 ml-2">
+                                <button
+                                  onClick={() => handleDuplicateItem(variant)}
+                                  className="rounded p-1.5 text-gray-400 hover:text-purple-600"
+                                  title="Duplicate variant"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                                </button>
                                 <button
                                   onClick={() => handleEditItem(variant)}
                                   className="rounded p-1.5 text-gray-400 hover:text-gray-600"

@@ -1810,6 +1810,12 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
         // Dynamic image from media table if layout supports it
         ...(mediaImage && { backgroundImage: mediaImage.url }),
 
+        // Add overlay when there's a background image for readability
+        ...(mediaImage ? {
+          overlayColor: getContrastColor(globalStyles?.backgroundColor || '#ffffff') === '#ffffff' ? '#000000' : '#000000',
+          overlayOpacity: getContrastColor(globalStyles?.backgroundColor || '#ffffff') === '#ffffff' ? 0.45 : 0.3,
+        } : {}),
+
         // CSS/Styling from global_styles (same as other pages)
         bgColor: globalStyles?.backgroundColor || sectionConfig.bgColor || '#ffffff',
         mobileBgColor: sectionConfig.mobileBgColor || '',
@@ -1868,9 +1874,13 @@ async function createThemeSections(restaurantId: string, themeId: string, pageId
         is_custom: sectionConfig.is_custom !== undefined ? sectionConfig.is_custom : false,
         buttonStyleVariant: sectionConfig.buttonStyleVariant || 'primary',
 
-        // Content panels
-        defaultContentPanelEnabled: sectionConfig.defaultContentPanelEnabled !== undefined ? sectionConfig.defaultContentPanelEnabled : false,
-        defaultContentPanelBackgroundColor: sectionConfig.defaultContentPanelBackgroundColor || '#ffffff',
+        // Content panels — enable white panel behind content for light themes with bg image
+        defaultContentPanelEnabled: sectionConfig.defaultContentPanelEnabled !== undefined
+          ? sectionConfig.defaultContentPanelEnabled
+          : true,
+        defaultContentPanelBackgroundColor: getContrastColor(globalStyles?.backgroundColor || '#ffffff') === '#ffffff'
+          ? 'rgba(0, 0, 0, 0.55)'
+          : (sectionConfig.defaultContentPanelBackgroundColor || 'rgba(255, 255, 255, 0.92)'),
         defaultContentPanelMobileBackgroundColor: sectionConfig.defaultContentPanelMobileBackgroundColor || '',
         defaultContentPanelBorderRadius: sectionConfig.defaultContentPanelBorderRadius || '2rem',
         defaultContentPanelMobileBorderRadius: sectionConfig.defaultContentPanelMobileBorderRadius || '',
@@ -3006,6 +3016,12 @@ Please call ahead for holiday hour updates.`;
             // Dynamic image from media table if layout supports it
             ...(mediaImage && { backgroundImage: mediaImage.url }),
 
+            // Add overlay when there's a background image for readability
+            ...(mediaImage ? {
+              overlayColor: '#000000',
+              overlayOpacity: getContrastColor(globalStyles?.backgroundColor || '#ffffff') === '#ffffff' ? 0.45 : 0.3,
+            } : {}),
+
             // CSS/Styling from global_styles
             bgColor: globalStyles?.backgroundColor || '#ffffff',
             mobileBgColor: '',
@@ -3064,9 +3080,11 @@ Please call ahead for holiday hour updates.`;
             is_custom: false,
             buttonStyleVariant: 'primary',
 
-            // Content panels
-            defaultContentPanelEnabled: false,
-            defaultContentPanelBackgroundColor: '#ffffff',
+            // Content panels — enable white panel behind content for light themes with bg image
+            defaultContentPanelEnabled: true,
+            defaultContentPanelBackgroundColor: getContrastColor(globalStyles?.backgroundColor || '#ffffff') === '#ffffff'
+              ? 'rgba(0, 0, 0, 0.55)'
+              : 'rgba(255, 255, 255, 0.92)',
             defaultContentPanelMobileBackgroundColor: '',
             defaultContentPanelBorderRadius: '2rem',
             defaultContentPanelMobileBorderRadius: '',

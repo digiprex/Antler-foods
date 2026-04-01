@@ -29,6 +29,7 @@ import {
   type OfferApplied,
 } from '@/types/orders.types';
 import { generateInvoicePDF } from '@/lib/generate-invoice-pdf';
+import { generateKitchenTicketPDF } from '@/lib/generate-kitchen-ticket-pdf';
 
 function parseOfferApplied(value: unknown): OfferApplied | null {
   if (!value) return null;
@@ -613,6 +614,50 @@ Generated on: ${new Date().toLocaleString()}
     doc.save(`invoice-${orderNumber}.pdf`);
   };
 
+  // Generate kitchen ticket PDF (items + modifiers + notes, no pricing)
+  const downloadKitchenTicket = (order: Order) => {
+    const orderNumber = order.order_number || order.order_id;
+
+    const items = (order.order_items || []).map((item) => {
+      let modifiers: Array<{ name: string }> | null = null;
+      if (item.selected_modifiers) {
+        try {
+          const raw = typeof item.selected_modifiers === 'string'
+            ? JSON.parse(item.selected_modifiers)
+            : item.selected_modifiers;
+          if (Array.isArray(raw)) {
+            modifiers = raw
+              .map((m: any) => ({
+                name: m.name || m.modifierGroupName || 'Modifier',
+              }))
+              .filter((m) => m.name);
+          }
+        } catch {
+          // ignore
+        }
+      }
+      return {
+        item_name: item.item_name,
+        quantity: item.quantity || 1,
+        selected_modifiers: modifiers && modifiers.length > 0 ? modifiers : null,
+        item_note: item.item_note || null,
+      };
+    });
+
+    const doc = generateKitchenTicketPDF({
+      orderNumber,
+      restaurantName,
+      fulfillmentLabel: order.fulfillment_type
+        ? order.fulfillment_type.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+        : 'Pickup',
+      placedAt: order.placed_at ? formatDate(order.placed_at) : formatDate(order.created_at),
+      items,
+      orderNote: order.order_note || '',
+    });
+
+    doc.save(`kitchen-ticket-${orderNumber}.pdf`);
+  };
+
   if (loading && orders.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -772,6 +817,17 @@ Generated on: ${new Date().toLocaleString()}
                         </option>
                       ))}
                     </select>
+
+                    <button
+                      onClick={() => downloadKitchenTicket(order)}
+                      className="w-full sm:w-auto rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
+                      title="Download Kitchen Ticket"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                      </svg>
+                      Kitchen Ticket
+                    </button>
 
                     <button
                       onClick={() => handleViewOrder(order)}
@@ -974,6 +1030,18 @@ Generated on: ${new Date().toLocaleString()}
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     Download PDF
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => downloadKitchenTicket(selectedOrder)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    title="Download Kitchen Ticket"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                    Kitchen Ticket
                   </button>
                 </div>
                 

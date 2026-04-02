@@ -6,11 +6,6 @@ export interface MenuCustomerProfile {
   name: string;
   email: string;
   phone: string | null;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-  country: string | null;
-  postalCode: string | null;
   initials: string;
   isGuest?: boolean;
 }
@@ -21,11 +16,6 @@ interface CreateMenuCustomerProfileInput {
   name?: string | null;
   email?: string | null;
   phone?: string | null;
-  address?: string | null;
-  city?: string | null;
-  state?: string | null;
-  country?: string | null;
-  postalCode?: string | null;
   isGuest?: boolean;
 }
 
@@ -62,11 +52,6 @@ export function createMenuCustomerProfile({
   name,
   email,
   phone = null,
-  address = null,
-  city = null,
-  state = null,
-  country = null,
-  postalCode = null,
   isGuest = false,
 }: CreateMenuCustomerProfileInput): MenuCustomerProfile {
   const resolvedEmail = readString(email) || '';
@@ -81,11 +66,6 @@ export function createMenuCustomerProfile({
     name: resolvedName,
     email: resolvedEmail,
     phone: readString(phone),
-    address: readString(address),
-    city: readString(city),
-    state: readString(state),
-    country: readString(country),
-    postalCode: readString(postalCode),
     initials: getInitials(resolvedName, resolvedEmail || 'CU'),
     isGuest,
   };

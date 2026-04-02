@@ -45,12 +45,6 @@ function normalizeText(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-function toTimestamptz(epochSeconds: number | null | undefined): string | null {
-  if (typeof epochSeconds !== 'number' || !Number.isFinite(epochSeconds) || epochSeconds <= 0) {
-    return null;
-  }
-  return new Date(epochSeconds * 1000).toISOString();
-}
 
 function buildFormattedAddress(restaurant: {
   address?: string | null;
@@ -172,7 +166,7 @@ export async function POST(request: NextRequest) {
             eta_minutes: quote.etaMinutes,
             delivery_address: formattedAddress,
             delivery_place_id: placeId,
-            expires_at: toTimestamptz(quote.expiresAt),
+            expires_at: quote.expiresAt != null ? new Date(quote.expiresAt * 1000).toISOString() : null,
             raw_response: quote.rawPayload,
           },
         });

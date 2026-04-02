@@ -38,11 +38,6 @@ const GET_CUSTOMER_BY_EMAIL = `
       email
       phone
       display_name
-      address
-      city
-      state
-      country
-      postal_code
       password_hash
       is_guest
       is_deleted
@@ -58,11 +53,6 @@ const GET_CUSTOMER_BY_ID = `
       email
       phone
       display_name
-      address
-      city
-      state
-      country
-      postal_code
       password_hash
       is_guest
       is_deleted
@@ -117,11 +107,6 @@ const UPDATE_CUSTOMER = `
     $email: String!
     $phone: String
     $display_name: String!
-    $address: String
-    $city: String
-    $state: String
-    $country: String
-    $postal_code: String
     $password_hash: String
     $is_guest: Boolean!
   ) {
@@ -131,11 +116,6 @@ const UPDATE_CUSTOMER = `
         email: $email
         phone: $phone
         display_name: $display_name
-        address: $address
-        city: $city
-        state: $state
-        country: $country
-        postal_code: $postal_code
         password_hash: $password_hash
         is_guest: $is_guest
       }
@@ -145,11 +125,6 @@ const UPDATE_CUSTOMER = `
       email
       phone
       display_name
-      address
-      city
-      state
-      country
-      postal_code
       password_hash
       is_guest
       is_deleted
@@ -251,11 +226,6 @@ interface CustomerRecord {
   email?: string | null;
   phone?: string | null;
   display_name?: string | null;
-  address?: string | null;
-  city?: string | null;
-  state?: string | null;
-  country?: string | null;
-  postal_code?: string | null;
   password_hash?: string | null;
   is_guest?: boolean | null;
   is_deleted?: boolean | null;
@@ -462,22 +432,12 @@ export async function updateMenuCustomerProfile({
   firstName,
   lastName,
   phone,
-  address,
-  city,
-  state,
-  country,
-  postalCode,
 }: {
   customerId: string;
   restaurantId: string;
   firstName: string;
   lastName: string;
   phone: string;
-  address?: string | null;
-  city?: string | null;
-  state?: string | null;
-  country?: string | null;
-  postalCode?: string | null;
 }) {
   if (!UUID_REGEX.test(customerId)) {
     throw new MenuCustomerAuthError(400, 'Invalid customer id.');
@@ -499,11 +459,6 @@ export async function updateMenuCustomerProfile({
     email: text(customer.email) || '',
     phone: normalizedPhone,
     displayName,
-    address: text(address),
-    city: text(city),
-    state: text(state),
-    country: text(country),
-    postalCode: text(postalCode),
     passwordHash: text(customer.password_hash),
     isGuest: customer.is_guest === true,
   });
@@ -830,22 +785,12 @@ async function updateCustomer(
     email,
     phone,
     displayName,
-    address,
-    city,
-    state,
-    country,
-    postalCode,
     passwordHash,
     isGuest,
   }: {
     email: string;
     phone: string;
     displayName: string;
-    address?: string | null;
-    city?: string | null;
-    state?: string | null;
-    country?: string | null;
-    postalCode?: string | null;
     passwordHash: string | null;
     isGuest: boolean;
   },
@@ -861,11 +806,6 @@ async function updateCustomer(
       email,
       phone,
       display_name: displayName,
-      address: address || null,
-      city: city || null,
-      state: state || null,
-      country: country || null,
-      postal_code: postalCode || null,
       password_hash: passwordHash,
       is_guest: isGuest,
     },
@@ -970,11 +910,6 @@ function toMenuCustomerSession(record: CustomerRecord): MenuCustomerSession {
       name: text(record.display_name),
       email,
       phone: text(record.phone),
-      address: text(record.address),
-      city: text(record.city),
-      state: text(record.state),
-      country: text(record.country),
-      postalCode: text(record.postal_code),
       isGuest: record.is_guest === true,
     }),
     customerId,

@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { firstName, lastName, phone, address, city, state, country, postalCode } = body as Record<string, unknown>;
+    const { firstName, lastName, phone } = body as Record<string, unknown>;
 
     if (typeof firstName !== 'string' || !firstName.trim()) {
       return NextResponse.json(
@@ -59,19 +59,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const optionalString = (val: unknown) => (typeof val === 'string' ? val.trim() || null : null);
-
     const updatedSession = await updateMenuCustomerProfile({
       customerId: session.customerId,
       restaurantId: session.restaurantId,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       phone: phone.trim(),
-      address: optionalString(address),
-      city: optionalString(city),
-      state: optionalString(state),
-      country: optionalString(country),
-      postalCode: optionalString(postalCode),
     });
 
     const response = NextResponse.json({

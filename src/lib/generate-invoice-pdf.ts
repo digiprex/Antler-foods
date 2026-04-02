@@ -32,6 +32,7 @@ export interface InvoiceData {
   phone: string;
   fulfillmentLabel: string;
   address: string;
+  pickupAddress?: string | null;
   paymentMethod: string;
   placedAt: string;
   items: InvoiceItem[];
@@ -86,7 +87,8 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
     data.email ? ['Email', data.email] : null,
     data.phone ? ['Phone', data.phone] : null,
     ['Fulfillment', data.fulfillmentLabel],
-    data.address ? ['Address', data.address] : null,
+    data.address ? ['Delivery address', data.address] : null,
+    data.pickupAddress ? ['Pickup from', data.pickupAddress] : null,
     data.paymentMethod ? ['Payment', data.paymentMethod] : null,
   ].filter(Boolean) as [string, string][];
 
@@ -94,8 +96,10 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
     doc.setFont('helvetica', 'bold');
     doc.text(label + ':', 14, y);
     doc.setFont('helvetica', 'normal');
-    doc.text(value, 55, y);
-    y += 6;
+    const maxValueWidth = pageWidth - 55 - 14;
+    const valueLines = doc.splitTextToSize(value, maxValueWidth);
+    doc.text(valueLines, 55, y);
+    y += 6 * valueLines.length;
   }
   y += 6;
 

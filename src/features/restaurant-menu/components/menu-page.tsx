@@ -72,42 +72,10 @@ function createManualDeliveryAddress(formattedAddress = ''): DeliveryAddressInpu
 }
 
 function createDeliveryAddressFromProfile(
-  profile:
-    | {
-        address: string | null;
-        city: string | null;
-        state: string | null;
-        country: string | null;
-        postalCode: string | null;
-      }
-    | null
-    | undefined,
+  _profile: unknown,
 ): DeliveryAddressInput | null {
-  const addressLine1 = trimDeliveryAddressText(profile?.address);
-  if (!addressLine1) {
-    return null;
-  }
-
-  const city = trimDeliveryAddressText(profile?.city) || undefined;
-  const state = trimDeliveryAddressText(profile?.state) || undefined;
-  const postalCode = trimDeliveryAddressText(profile?.postalCode) || undefined;
-  const countryCode = trimDeliveryAddressText(profile?.country) || undefined;
-
-  return {
-    formattedAddress: buildDeliveryAddressText([
-      addressLine1,
-      city,
-      state,
-      postalCode,
-      countryCode,
-    ]),
-    addressLine1,
-    city,
-    state,
-    postalCode,
-    countryCode,
-    source: 'profile',
-  };
+  // Address fields have been moved to customer_delivery_addresses table
+  return null;
 }
 
 function createDeliveryAddressFromPlace(place: SelectedGooglePlace): DeliveryAddressInput {
@@ -246,6 +214,22 @@ function MenuPageContent({ data }: MenuPageProps) {
   const [authSidebarOpen, setAuthSidebarOpen] = useState(false);
   const [authSidebarView, setAuthSidebarView] = useState<MenuAuthView>('login');
   const [navbarAuthSlot, setNavbarAuthSlot] = useState<HTMLElement | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<Array<{
+    id: string;
+    address: string;
+    street: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+    zip_code: string | null;
+    house_no: string | null;
+    saved_as: string | null;
+    nearby_landmark: string | null;
+    is_default: boolean;
+  }>>([]);
+  const [savedAddressesLoaded, setSavedAddressesLoaded] = useState(false);
+  const [showSavedAddressPicker, setShowSavedAddressPicker] = useState(false);
+  const [hasConfirmedAddress, setHasConfirmedAddress] = useState(false);
   const contentContainerClass = 'mx-auto w-full max-w-[1080px] px-4 sm:px-6 lg:px-6';
   const brandName = data.restaurant.name.replace(' Menu', '');
 
@@ -383,6 +367,59 @@ function MenuPageContent({ data }: MenuPageProps) {
     restaurantId,
   ]);
 
+  // Fetch saved addresses for logged-in users in delivery mode
+  useEffect(() => {
+    if (!hasCustomerSession || fulfillmentMode !== 'delivery' || savedAddressesLoaded) {
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/menu-auth/addresses', { credentials: 'same-origin' });
+        if (!res.ok || cancelled) return;
+        const json = await res.json();
+        const addrs = json.addresses || [];
+        if (cancelled) return;
+        setSavedAddresses(addrs);
+        setSavedAddressesLoaded(true);
+
+        // Auto-pick default address if no address is set yet
+        const storedDeliveryAddress = readStoredDeliveryAddress(restaurantId);
+        if (storedDeliveryAddress?.formattedAddress) {
+          setHasConfirmedAddress(true);
+          return;
+        }
+
+        const currentAddr = trimDeliveryAddressText(deliveryAddressData.formattedAddress);
+        const defaultAddr = trimDeliveryAddressText(data.defaultDeliveryAddress);
+        if (currentAddr && currentAddr !== defaultAddr) {
+          setHasConfirmedAddress(true);
+          return;
+        }
+
+        const defaultSaved = addrs.find((a: { is_default: boolean }) => a.is_default) || addrs[0];
+        if (!defaultSaved) return;
+
+        const nextAddress: DeliveryAddressInput = {
+          formattedAddress: defaultSaved.address || '',
+          addressLine1: defaultSaved.address || undefined,
+          city: defaultSaved.city || undefined,
+          state: defaultSaved.state || undefined,
+          postalCode: defaultSaved.zip_code || undefined,
+          countryCode: defaultSaved.country || undefined,
+          source: 'saved',
+        };
+        setDeliveryAddress(nextAddress.formattedAddress);
+        setDeliveryAddressData(nextAddress);
+        setHasConfirmedAddress(true);
+      } catch {
+        // silent
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [hasCustomerSession, fulfillmentMode, savedAddressesLoaded, restaurantId, data.defaultDeliveryAddress, deliveryAddressData.formattedAddress]);
+
   const handleDeliveryAddressChange = (nextAddress: string) => {
     const normalizedAddress = trimDeliveryAddressText(nextAddress);
     setDeliveryAddress(nextAddress);
@@ -402,6 +439,24 @@ function MenuPageContent({ data }: MenuPageProps) {
     const nextAddress = createDeliveryAddressFromPlace(place);
     setDeliveryAddress(nextAddress.formattedAddress);
     setDeliveryAddressData(nextAddress);
+    setHasConfirmedAddress(true);
+    setShowSavedAddressPicker(false);
+  };
+
+  const handleSelectSavedAddress = (addr: typeof savedAddresses[number]) => {
+    const nextAddress: DeliveryAddressInput = {
+      formattedAddress: addr.address || '',
+      addressLine1: addr.address || undefined,
+      city: addr.city || undefined,
+      state: addr.state || undefined,
+      postalCode: addr.zip_code || undefined,
+      countryCode: addr.country || undefined,
+      source: 'saved',
+    };
+    setDeliveryAddress(nextAddress.formattedAddress);
+    setDeliveryAddressData(nextAddress);
+    setHasConfirmedAddress(true);
+    setShowSavedAddressPicker(false);
   };
   useEffect(() => {
     const handleOpenCartRequest = () => {
@@ -761,6 +816,22 @@ function MenuPageContent({ data }: MenuPageProps) {
                     }}
                     onDeliveryAddressChange={handleDeliveryAddressChange}
                     onDeliveryAddressPlaceSelected={handleDeliveryAddressPlaceSelected}
+                    savedAddresses={savedAddresses}
+                    showSavedAddressPicker={showSavedAddressPicker}
+                    hasConfirmedAddress={hasConfirmedAddress}
+                    onSelectSavedAddress={handleSelectSavedAddress}
+                    onShowSavedAddresses={() => {
+                      setShowSavedAddressPicker(true);
+                      setHasConfirmedAddress(false);
+                    }}
+                    onEnterNewAddress={() => {
+                      setShowSavedAddressPicker(false);
+                      setHasConfirmedAddress(false);
+                    }}
+                    onChangeAddress={() => {
+                      setHasConfirmedAddress(false);
+                      setShowSavedAddressPicker(false);
+                    }}
                   />
                 </div>
               </div>

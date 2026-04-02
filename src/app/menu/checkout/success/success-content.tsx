@@ -50,6 +50,7 @@ interface OrderData {
   placed_at: string | null;
   restaurant_id: string | null;
   restaurant_name: string;
+  pickup_address: string | null;
   delivery_provider: string | null;
   delivery_tracking_url: string | null;
   delivery_dispatch_status: string | null;
@@ -197,6 +198,7 @@ export default function MenuCheckoutSuccessContent() {
   const placedAt = formatDate(order?.placed_at ?? null);
   const orderNote = order?.order_note || '';
   const isDeliveryOrder = fulfillmentLabel === 'Delivery';
+  const pickupAddress = order?.pickup_address || null;
   const deliveryTrackingUrl = order?.delivery_tracking_url || null;
 
   const handleDownloadInvoice = () => {
@@ -208,6 +210,7 @@ export default function MenuCheckoutSuccessContent() {
       phone,
       fulfillmentLabel,
       address,
+      pickupAddress,
       paymentMethod,
       placedAt,
       items,
@@ -383,73 +386,69 @@ export default function MenuCheckoutSuccessContent() {
               </div>
             ) : null}
           <div className="px-1 py-1 sm:px-2">
-            {/* Order info cards */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {orderNumber ? (
-                <div className="rounded-[20px] border border-stone-200 bg-stone-50 px-5 py-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
-                    Order number
-                  </p>
-                  <p className="mt-2 text-[1.35rem] font-semibold tracking-tight text-slate-950">
-                    {orderNumber}
-                  </p>
-                </div>
-              ) : null}
+            {/* Order info */}
+            <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden">
+              {/* Top row: order number + total */}
+              <div className="flex items-stretch divide-x divide-stone-200 border-b border-stone-200">
+                {orderNumber ? (
+                  <div className="flex-1 px-5 py-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400">
+                      Order number
+                    </p>
+                    <p className="mt-1.5 text-sm font-bold tracking-tight text-slate-950 sm:text-base">
+                      {orderNumber}
+                    </p>
+                  </div>
+                ) : null}
+                {typeof total === 'number' ? (
+                  <div className="flex-1 px-5 py-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400">
+                      Total paid
+                    </p>
+                    <p className="mt-1.5 text-sm font-bold tracking-tight text-slate-950 sm:text-base">
+                      {formatPrice(total)}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
 
-              {typeof total === 'number' ? (
-                <div className="rounded-[20px] border border-stone-200 bg-stone-50 px-5 py-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
-                    Total paid
-                  </p>
-                  <p className="mt-2 text-[1.35rem] font-semibold tracking-tight text-slate-950">
-                    {formatPrice(total)}
-                  </p>
-                </div>
-              ) : null}
+              {/* Detail rows */}
+              <div className="divide-y divide-stone-100">
+                {fulfillmentLabel ? (
+                  <div className="flex items-center justify-between px-5 py-3">
+                    <span className="text-sm text-stone-500">Fulfillment</span>
+                    <span className="text-sm font-semibold text-slate-950">{fulfillmentLabel}</span>
+                  </div>
+                ) : null}
 
-              {fulfillmentLabel ? (
-                <div className="rounded-[20px] border border-stone-200 bg-white px-5 py-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
-                    Fulfillment
-                  </p>
-                  <p className="mt-2 text-base font-semibold text-slate-950">
-                    {fulfillmentLabel}
-                  </p>
-                </div>
-              ) : null}
+                {schedule ? (
+                  <div className="flex items-center justify-between px-5 py-3">
+                    <span className="text-sm text-stone-500">Scheduled for</span>
+                    <span className="text-sm font-semibold text-slate-950">{schedule}</span>
+                  </div>
+                ) : null}
 
-              {schedule ? (
-                <div className="rounded-[20px] border border-stone-200 bg-white px-5 py-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
-                    Scheduled for
-                  </p>
-                  <p className="mt-2 text-base font-semibold text-slate-950">
-                    {schedule}
-                  </p>
-                </div>
-              ) : null}
+                {paymentMethod ? (
+                  <div className="flex items-center justify-between px-5 py-3">
+                    <span className="text-sm text-stone-500">Payment</span>
+                    <span className="text-sm font-semibold capitalize text-slate-950">{paymentMethod}</span>
+                  </div>
+                ) : null}
 
-              {paymentMethod ? (
-                <div className="rounded-[20px] border border-stone-200 bg-white px-5 py-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
-                    Payment method
-                  </p>
-                  <p className="mt-2 text-base font-semibold capitalize text-slate-950">
-                    {paymentMethod}
-                  </p>
-                </div>
-              ) : null}
+                {address ? (
+                  <div className="px-5 py-3">
+                    <p className="text-sm text-stone-500">Delivery address</p>
+                    <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-950">{address}</p>
+                  </div>
+                ) : null}
 
-              {address ? (
-                <div className="rounded-[20px] border border-stone-200 bg-white px-5 py-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
-                    Delivery address
-                  </p>
-                  <p className="mt-2 text-sm font-medium text-slate-950">
-                    {address}
-                  </p>
-                </div>
-              ) : null}
+                {pickupAddress ? (
+                  <div className="px-5 py-3">
+                    <p className="text-sm text-stone-500">Pickup from</p>
+                    <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-950">{pickupAddress}</p>
+                  </div>
+                ) : null}
+              </div>
             </div>
 
             {/* Order items */}
@@ -585,10 +584,10 @@ export default function MenuCheckoutSuccessContent() {
             {/* Actions */}
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/orders"
+                href="/menu"
                 className="inline-flex h-12 items-center justify-center rounded-[16px] bg-slate-900 px-6 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
               >
-                Back to order history
+                Back to menu
               </Link>
               {items.length > 0 ? (
                 <button

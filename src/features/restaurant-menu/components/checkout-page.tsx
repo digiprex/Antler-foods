@@ -165,42 +165,10 @@ function createManualDeliveryAddress(formattedAddress = ''): DeliveryAddressInpu
 }
 
 function createDeliveryAddressFromProfile(
-  profile:
-    | {
-        address: string | null;
-        city: string | null;
-        state: string | null;
-        country: string | null;
-        postalCode: string | null;
-      }
-    | null
-    | undefined,
+  _profile: unknown,
 ): DeliveryAddressInput | null {
-  const addressLine1 = trimDeliveryAddressText(profile?.address);
-  if (!addressLine1) {
-    return null;
-  }
-
-  const city = trimDeliveryAddressText(profile?.city) || undefined;
-  const state = trimDeliveryAddressText(profile?.state) || undefined;
-  const postalCode = trimDeliveryAddressText(profile?.postalCode) || undefined;
-  const countryCode = trimDeliveryAddressText(profile?.country) || undefined;
-
-  return {
-    formattedAddress: buildDeliveryAddressText([
-      addressLine1,
-      city,
-      state,
-      postalCode,
-      countryCode,
-    ]),
-    addressLine1,
-    city,
-    state,
-    postalCode,
-    countryCode,
-    source: 'profile',
-  };
+  // Address fields have been moved to customer_delivery_addresses table
+  return null;
 }
 
 function createDeliveryAddressFromPlace(place: SelectedGooglePlace): DeliveryAddressInput {
@@ -488,6 +456,21 @@ export default function RestaurantMenuCheckoutPage({
   const isDeliveryAddressValid = Boolean(
     trimDeliveryAddressText(deliveryAddressData.formattedAddress),
   );
+  const [savedAddresses, setSavedAddresses] = useState<Array<{
+    id: string;
+    address: string;
+    street: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+    zip_code: string | null;
+    house_no: string | null;
+    saved_as: string | null;
+    nearby_landmark: string | null;
+    is_default: boolean;
+  }>>([]);
+  const [savedAddressesLoaded, setSavedAddressesLoaded] = useState(false);
+  const [showSavedAddressPicker, setShowSavedAddressPicker] = useState(false);
   const brandName = data.restaurant.name.replace(' Menu', '');
 
   const setAuthQueryParam = (view: MenuAuthView | null) => {
@@ -880,45 +863,54 @@ export default function RestaurantMenuCheckoutPage({
     }
   }, [restaurantId, resolvedDeliveryAddress]);
 
+  // Fetch saved addresses for logged-in users in delivery mode
   useEffect(() => {
-    const storedDeliveryAddress = readStoredDeliveryAddress(restaurantId);
-    if (storedDeliveryAddress?.formattedAddress) {
+    if (!hasCustomerSession || isGuestCustomer || fulfillmentMode !== 'delivery' || savedAddressesLoaded) {
       return;
     }
 
-    const profileDeliveryAddress = createDeliveryAddressFromProfile(customerProfile);
-    if (!profileDeliveryAddress) {
-      return;
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/menu-auth/addresses', { credentials: 'same-origin' });
+        if (!res.ok || cancelled) return;
+        const json = await res.json();
+        const addrs = json.addresses || [];
+        if (cancelled) return;
+        setSavedAddresses(addrs);
+        setSavedAddressesLoaded(true);
 
-    const currentDeliveryAddress = trimDeliveryAddressText(
-      deliveryAddressData.formattedAddress,
-    );
-    const defaultDeliveryAddress = trimDeliveryAddressText(
-      data.defaultDeliveryAddress,
-    );
+        // Auto-pick default address if no address is set yet
+        const storedDeliveryAddress = readStoredDeliveryAddress(restaurantId);
+        if (storedDeliveryAddress?.formattedAddress) return;
 
-    if (
-      currentDeliveryAddress &&
-      currentDeliveryAddress !== defaultDeliveryAddress
-    ) {
-      return;
-    }
+        const currentAddr = trimDeliveryAddressText(deliveryAddressData.formattedAddress);
+        const defaultAddr = trimDeliveryAddressText(data.defaultDeliveryAddress);
+        if (currentAddr && currentAddr !== defaultAddr) return;
 
-    setDeliveryAddressData((current) => ({
-      ...profileDeliveryAddress,
-      houseFlatFloor: current.houseFlatFloor,
-      landmark: current.landmark,
-      instructions: current.instructions,
-      label: current.label,
-    }));
-    setIsEditingDeliveryAddress(false);
-  }, [
-    customerProfile,
-    data.defaultDeliveryAddress,
-    deliveryAddressData.formattedAddress,
-    restaurantId,
-  ]);
+        const defaultSaved = addrs.find((a: { is_default: boolean }) => a.is_default) || addrs[0];
+        if (!defaultSaved) return;
+
+        setDeliveryAddressData({
+          formattedAddress: defaultSaved.address || '',
+          addressLine1: defaultSaved.address || undefined,
+          addressLine2: defaultSaved.street || undefined,
+          city: defaultSaved.city || undefined,
+          state: defaultSaved.state || undefined,
+          postalCode: defaultSaved.zip_code || undefined,
+          countryCode: defaultSaved.country || undefined,
+          houseFlatFloor: defaultSaved.house_no || undefined,
+          landmark: defaultSaved.nearby_landmark || undefined,
+          label: defaultSaved.saved_as || undefined,
+          source: 'saved',
+        });
+        setIsEditingDeliveryAddress(false);
+      } catch {
+        // silent
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [hasCustomerSession, isGuestCustomer, fulfillmentMode, savedAddressesLoaded, restaurantId, data.defaultDeliveryAddress, deliveryAddressData.formattedAddress]);
 
   useEffect(() => {
     writeStoredDeliveryAddress(restaurantId, deliveryAddressData);
@@ -1029,6 +1021,24 @@ export default function RestaurantMenuCheckoutPage({
       ...createDeliveryAddressFromPlace(place),
     }));
     setIsEditingDeliveryAddress(false);
+  };
+
+  const handleSelectSavedAddress = (addr: typeof savedAddresses[number]) => {
+    setDeliveryAddressData({
+      formattedAddress: addr.address || '',
+      addressLine1: addr.address || undefined,
+      addressLine2: addr.street || undefined,
+      city: addr.city || undefined,
+      state: addr.state || undefined,
+      postalCode: addr.zip_code || undefined,
+      countryCode: addr.country || undefined,
+      houseFlatFloor: addr.house_no || undefined,
+      landmark: addr.nearby_landmark || undefined,
+      label: addr.saved_as || undefined,
+      source: 'saved',
+    });
+    setIsEditingDeliveryAddress(false);
+    setShowSavedAddressPicker(false);
   };
 
   const handleDeliveryAddressFieldChange = (
@@ -1594,21 +1604,30 @@ export default function RestaurantMenuCheckoutPage({
             <span className="font-medium">{formatPrice(subtotal)}</span>
           </div>
           {fulfillmentMode === 'delivery' ? (
-            <div className="flex items-center justify-between gap-4">
-              <span className="flex flex-col">
-                <span>Delivery</span>
-                {deliveryQuote && deliveryQuote.etaMinutes !== null ? (
-                  <span className="text-[11px] text-slate-500">
-                    Uber Direct est. {deliveryQuote.etaMinutes} min
-                  </span>
-                ) : null}
-              </span>
-              <span className="font-medium">
-                {isCheckingDeliveryQuote
-                  ? 'Calculating...'
-                  : formatPrice(deliveryFeeAmount)}
-              </span>
-            </div>
+            <>
+              <div className="flex items-center justify-between gap-4">
+                <span className="flex flex-col">
+                  <span>Delivery</span>
+                  {deliveryQuote && deliveryQuote.etaMinutes !== null ? (
+                    <span className="text-[11px] text-slate-500">
+                      Uber Direct est. {deliveryQuote.etaMinutes} min
+                    </span>
+                  ) : null}
+                </span>
+                <span className="font-medium">
+                  {isCheckingDeliveryQuote
+                    ? 'Calculating...'
+                    : deliveryQuoteError
+                      ? '--'
+                      : formatPrice(deliveryFeeAmount)}
+                </span>
+              </div>
+              {deliveryQuoteError && !isCheckingDeliveryQuote ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                  {deliveryQuoteError} Please try again later.
+                </div>
+              ) : null}
+            </>
           ) : null}
           <div className="flex items-center justify-between gap-4">
             <span>Tip</span>
@@ -1807,12 +1826,17 @@ export default function RestaurantMenuCheckoutPage({
                       id="delivery-details-panel"
                       className="space-y-4 border-t border-stone-200 px-4 py-4 sm:px-5 sm:py-4"
                     >
-                    {isDeliveryAddressValid && !isEditingDeliveryAddress ? (
+                    {isDeliveryAddressValid && !isEditingDeliveryAddress && !showSavedAddressPicker ? (
                       <div className="rounded-[18px] border border-stone-200 bg-stone-50 p-4">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                           <div className="space-y-2">
                             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
                               Selected address
+                              {deliveryAddressData.label ? (
+                                <span className="ml-2 rounded-full bg-stone-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-stone-600">
+                                  {deliveryAddressData.label}
+                                </span>
+                              ) : null}
                             </p>
                             <p className="text-sm font-semibold leading-6 text-slate-950">
                               {deliveryAddressData.formattedAddress}
@@ -1831,15 +1855,106 @@ export default function RestaurantMenuCheckoutPage({
                           </div>
                           <button
                             type="button"
-                            onClick={() => setIsEditingDeliveryAddress(true)}
+                            onClick={() => {
+                              if (hasCustomerSession && !isGuestCustomer && savedAddresses.length > 0) {
+                                setShowSavedAddressPicker(true);
+                              } else {
+                                setIsEditingDeliveryAddress(true);
+                              }
+                            }}
                             className="inline-flex h-10 shrink-0 items-center justify-center rounded-[12px] border border-stone-300 bg-white px-3.5 text-sm font-medium text-slate-900 transition hover:border-stone-400 hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
                           >
                             Change address
                           </button>
                         </div>
                       </div>
+                    ) : showSavedAddressPicker && savedAddresses.length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                            Saved addresses
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowSavedAddressPicker(false);
+                              setIsEditingDeliveryAddress(true);
+                            }}
+                            className="text-xs font-semibold text-slate-900 underline underline-offset-2 transition hover:text-slate-700"
+                          >
+                            Enter new address
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {savedAddresses.map((addr) => {
+                            const isSelected = trimDeliveryAddressText(deliveryAddressData.formattedAddress) === trimDeliveryAddressText(addr.address);
+                            return (
+                              <button
+                                key={addr.id}
+                                type="button"
+                                onClick={() => handleSelectSavedAddress(addr)}
+                                className={`w-full rounded-[14px] border p-3.5 text-left transition ${
+                                  isSelected
+                                    ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900/10'
+                                    : 'border-stone-200 bg-white hover:border-stone-300'
+                                }`}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                                    isSelected ? 'border-slate-900' : 'border-stone-300'
+                                  }`}>
+                                    {isSelected ? (
+                                      <span className="h-2.5 w-2.5 rounded-full bg-slate-900" />
+                                    ) : null}
+                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-sm font-semibold text-slate-950 truncate">{addr.address}</p>
+                                      {addr.is_default ? (
+                                        <span className="shrink-0 rounded-full bg-slate-900 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white">
+                                          Default
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    {(addr.saved_as || addr.house_no || addr.nearby_landmark) ? (
+                                      <p className="mt-0.5 text-xs text-stone-500">
+                                        {[addr.saved_as ? addr.saved_as.charAt(0).toUpperCase() + addr.saved_as.slice(1) : null, addr.house_no, addr.nearby_landmark].filter(Boolean).join(' - ')}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {isDeliveryAddressValid ? (
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setShowSavedAddressPicker(false)}
+                              className="inline-flex h-10 items-center justify-center rounded-[12px] border border-stone-300 bg-stone-50 px-3.5 text-sm font-medium text-slate-900 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                            >
+                              Done
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
                     ) : (
                       <div className="space-y-3">
+                        {hasCustomerSession && !isGuestCustomer && savedAddresses.length > 0 ? (
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsEditingDeliveryAddress(false);
+                                setShowSavedAddressPicker(true);
+                              }}
+                              className="text-xs font-semibold text-slate-900 underline underline-offset-2 transition hover:text-slate-700"
+                            >
+                              Choose from saved addresses
+                            </button>
+                          </div>
+                        ) : null}
                         <DeliveryAddressInputField
                           value={deliveryAddressData.formattedAddress}
                           onChange={handleDeliveryAddressChange}
@@ -1849,7 +1964,7 @@ export default function RestaurantMenuCheckoutPage({
                           <div className="flex justify-end">
                             <button
                               type="button"
-                              onClick={() => setIsEditingDeliveryAddress(false)}
+                              onClick={() => { setIsEditingDeliveryAddress(false); setShowSavedAddressPicker(false); }}
                               className="inline-flex h-10 items-center justify-center rounded-[12px] border border-stone-300 bg-stone-50 px-3.5 text-sm font-medium text-slate-900 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
                             >
                               Use this address
@@ -1993,21 +2108,6 @@ export default function RestaurantMenuCheckoutPage({
                               />
                             </label>
                           </div>
-
-                          <label className="block text-sm font-medium text-slate-900">
-                            <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                              Delivery instructions
-                            </span>
-                            <textarea
-                              value={deliveryAddressData.instructions || ''}
-                              onChange={(event) =>
-                                handleDeliveryAddressMetaChange('instructions', event.target.value)
-                              }
-                              placeholder="Any special instructions for delivery?"
-                              rows={3}
-                              className="w-full rounded-[14px] border border-stone-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-black/35 sm:rounded-[16px]"
-                            />
-                          </label>
 
                           <div>
                             <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
@@ -2267,7 +2367,9 @@ export default function RestaurantMenuCheckoutPage({
                   ? 'Preparing checkout...'
                   : fulfillmentMode === 'delivery' && isCheckingDeliveryQuote
                     ? 'Checking delivery...'
-                    : `Continue to payment \u00B7 ${formatPrice(total)}`}
+                    : fulfillmentMode === 'delivery' && deliveryQuoteError
+                      ? 'Delivery unavailable'
+                      : `Continue to payment \u00B7 ${formatPrice(total)}`}
               </button>
               <p className="max-w-sm text-xs leading-5 text-stone-400">
                 By placing your order you agree to receive transactional order updates and marketing communications.

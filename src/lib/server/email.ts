@@ -498,6 +498,7 @@ export interface OrderInvoiceEmailData {
   order: Record<string, unknown>;
   items: Array<Record<string, unknown>>;
   restaurantName: string;
+  pickupAddress?: string | null;
 }
 
 function formatCurrency(value: unknown): string {
@@ -521,7 +522,7 @@ export async function sendOrderInvoiceEmail(
   data: OrderInvoiceEmailData,
 ): Promise<void> {
   const transporter = createTransporter();
-  const { order, items, restaurantName } = data;
+  const { order, items, restaurantName, pickupAddress } = data;
 
   const orderNumber = order.order_number || 'N/A';
   const placedAt = order.placed_at
@@ -652,7 +653,8 @@ export async function sendOrderInvoiceEmail(
             <td style="padding:4px 0;"><strong>Fulfillment</strong></td>
             <td style="padding:4px 0;">${fulfillment}</td>
           </tr>
-          ${deliveryAddress ? `<tr><td style="padding:4px 0;"><strong>Address</strong></td><td style="padding:4px 0;">${deliveryAddress}</td></tr>` : ''}
+          ${deliveryAddress ? `<tr><td style="padding:4px 0;"><strong>Delivery address</strong></td><td style="padding:4px 0;">${deliveryAddress}</td></tr>` : ''}
+          ${order.fulfillment_type === 'pickup' && pickupAddress ? `<tr><td style="padding:4px 0;"><strong>Pickup from</strong></td><td style="padding:4px 0;">${pickupAddress}</td></tr>` : ''}
         </table>
 
         <table style="width:100%;border-collapse:collapse;">
@@ -697,7 +699,8 @@ export async function sendOrderInvoiceEmail(
     order.contact_email ? `Email: ${order.contact_email}` : '',
     order.contact_phone ? `Phone: ${order.contact_phone}` : '',
     `Fulfillment: ${fulfillment}`,
-    deliveryAddress ? `Address: ${deliveryAddress}` : '',
+    deliveryAddress ? `Delivery address: ${deliveryAddress}` : '',
+    order.fulfillment_type === 'pickup' && pickupAddress ? `Pickup from: ${pickupAddress}` : '',
     '',
     'Items:',
     ...items.flatMap((item) => {

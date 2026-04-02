@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useMenuCustomerAuth } from '@/features/restaurant-menu/hooks/use-menu-customer-auth';
 import { ProfileDropdown } from '@/features/restaurant-menu/components/profile-dropdown';
+import { DeliveryAddressInput as DeliveryAddressInputField } from '@/features/restaurant-menu/components/delivery-address-input';
+import type { SelectedGooglePlace } from '@/hooks/useGooglePlacesAutocomplete';
 
 interface CustomerProfilePageProps {
   restaurantId?: string | null;
@@ -31,17 +33,12 @@ export default function CustomerProfilePage({
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [country, setCountry] = useState('');
-  const [postalCode, setPostalCode] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isFormDirty, setIsFormDirty] = useState(false);
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'addresses' | 'password'>('profile');
 
   // Password state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -49,6 +46,197 @@ export default function CustomerProfilePage({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Address state
+  interface SavedAddress {
+    id: string;
+    address: string;
+    street: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+    zip_code: string | null;
+    house_no: string | null;
+    saved_as: string | null;
+    nearby_landmark: string | null;
+    is_default: boolean;
+    created_at: string;
+  }
+  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
+  const [addressError, setAddressError] = useState<string | null>(null);
+  const [deletingAddressId, setDeletingAddressId] = useState<string | null>(null);
+  const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null);
+  // Shared modal state for add / edit
+  const [addrModalMode, setAddrModalMode] = useState<'add' | 'edit' | null>(null);
+  const [addrModalId, setAddrModalId] = useState<string | null>(null);
+  const [isSavingModal, setIsSavingModal] = useState(false);
+  const [modalAddr, setModalAddr] = useState('');
+  const [modalLine1, setModalLine1] = useState('');
+  const [modalLine2, setModalLine2] = useState('');
+  const [modalCity, setModalCity] = useState('');
+  const [modalState, setModalState] = useState('');
+  const [modalPostal, setModalPostal] = useState('');
+  const [modalCountry, setModalCountry] = useState('');
+  const [modalHouseNo, setModalHouseNo] = useState('');
+  const [modalLandmark, setModalLandmark] = useState('');
+  const [modalLabel, setModalLabel] = useState('');
+
+  const fetchAddresses = async () => {
+    setIsLoadingAddresses(true);
+    setAddressError(null);
+    try {
+      const res = await fetch('/api/menu-auth/addresses', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (res.ok) {
+        setAddresses(data.addresses || []);
+      } else {
+        setAddressError(data.error || 'Failed to load addresses.');
+      }
+    } catch {
+      setAddressError('Failed to load addresses.');
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'addresses' && hasCustomerSession && !customerProfile?.isGuest) {
+      fetchAddresses();
+    }
+  }, [activeTab, hasCustomerSession, customerProfile?.isGuest]);
+
+  const handleDeleteAddress = async (id: string) => {
+    setDeletingAddressId(id);
+    try {
+      const res = await fetch(`/api/menu-auth/addresses?id=${id}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+      });
+      if (res.ok) {
+        setAddresses((prev) => prev.filter((a) => a.id !== id));
+      }
+    } catch {
+      // silent
+    } finally {
+      setDeletingAddressId(null);
+    }
+  };
+
+  const handleSetDefault = async (id: string) => {
+    setSettingDefaultId(id);
+    try {
+      const res = await fetch('/api/menu-auth/addresses', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ id, is_default: true }),
+      });
+      if (res.ok) {
+        setAddresses((prev) =>
+          prev.map((a) => ({ ...a, is_default: a.id === id })),
+        );
+      }
+    } catch {
+      // silent
+    } finally {
+      setSettingDefaultId(null);
+    }
+  };
+
+  const openAddModal = () => {
+    setAddrModalMode('add');
+    setAddrModalId(null);
+    setModalAddr('');
+    setModalLine1('');
+    setModalLine2('');
+    setModalCity('');
+    setModalState('');
+    setModalPostal('');
+    setModalCountry('');
+    setModalHouseNo('');
+    setModalLandmark('');
+    setModalLabel('');
+  };
+
+  const openEditModal = (addr: SavedAddress) => {
+    setAddrModalMode('edit');
+    setAddrModalId(addr.id);
+    setModalAddr(addr.address || '');
+    setModalLine1(addr.address || '');
+    setModalLine2(addr.street || '');
+    setModalCity(addr.city || '');
+    setModalState(addr.state || '');
+    setModalPostal(addr.zip_code || '');
+    setModalCountry(addr.country || '');
+    setModalHouseNo(addr.house_no || '');
+    setModalLandmark(addr.nearby_landmark || '');
+    setModalLabel(addr.saved_as || '');
+  };
+
+  const closeAddrModal = () => {
+    setAddrModalMode(null);
+    setAddrModalId(null);
+  };
+
+  const handleModalPlaceSelected = useCallback((place: SelectedGooglePlace) => {
+    const t = (v: string) => (v && v.trim() ? v.trim() : '');
+    setModalAddr(t(place.formattedAddress) || t(place.address) || t(place.name));
+    setModalLine1(t(place.address));
+    setModalCity(t(place.city));
+    setModalState(t(place.state));
+    setModalPostal(t(place.postalCode));
+    setModalCountry(t(place.country));
+  }, []);
+
+  const handleSaveAddrModal = async () => {
+    if (!modalAddr.trim()) return;
+    setIsSavingModal(true);
+    const str = (v: string) => (v.trim() || null);
+    const payload = {
+      address: modalAddr.trim(),
+      street: str(modalLine1),
+      city: str(modalCity),
+      state: str(modalState),
+      country: str(modalCountry),
+      zip_code: str(modalPostal),
+      house_no: str(modalHouseNo),
+      nearby_landmark: str(modalLandmark),
+      saved_as: str(modalLabel),
+    };
+
+    try {
+      if (addrModalMode === 'edit' && addrModalId) {
+        const res = await fetch('/api/menu-auth/addresses', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ id: addrModalId, ...payload }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAddresses((prev) => prev.map((a) => a.id === addrModalId ? { ...a, ...data.address } : a));
+          closeAddrModal();
+        }
+      } else {
+        const res = await fetch('/api/menu-auth/addresses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAddresses((prev) => [data.address, ...prev]);
+          closeAddrModal();
+        }
+      }
+    } catch {
+      // silent
+    } finally {
+      setIsSavingModal(false);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -63,11 +251,6 @@ export default function CustomerProfilePage({
     setFirstName(nameParts[0] || '');
     setLastName(nameParts.slice(1).join(' ') || '');
     setPhone(customerProfile.phone || '');
-    setAddress(customerProfile.address || '');
-    setCity(customerProfile.city || '');
-    setState(customerProfile.state || '');
-    setCountry(customerProfile.country || '');
-    setPostalCode(customerProfile.postalCode || '');
     setIsFormDirty(false);
   }, [customerProfile]);
 
@@ -151,11 +334,6 @@ export default function CustomerProfilePage({
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           phone: phone.trim(),
-          address: address.trim() || null,
-          city: city.trim() || null,
-          state: state.trim() || null,
-          country: country.trim() || null,
-          postalCode: postalCode.trim() || null,
         }),
       });
 
@@ -348,6 +526,17 @@ export default function CustomerProfilePage({
             </button>
             <button
               type="button"
+              onClick={() => setActiveTab('addresses')}
+              className={`flex-1 rounded-[12px] px-4 py-2.5 text-sm font-semibold transition ${
+                activeTab === 'addresses'
+                  ? 'bg-white text-slate-950 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Addresses
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveTab('password')}
               className={`flex-1 rounded-[12px] px-4 py-2.5 text-sm font-semibold transition ${
                 activeTab === 'password'
@@ -355,7 +544,7 @@ export default function CustomerProfilePage({
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              Change Password
+              Password
             </button>
           </div>
         ) : null}
@@ -376,6 +565,337 @@ export default function CustomerProfilePage({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Phone</p>
                 <p className="mt-1.5 text-sm font-medium text-slate-950">{customerProfile?.phone || '-'}</p>
               </div>
+            </div>
+          ) : activeTab === 'addresses' ? (
+            <div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-slate-950">Saved addresses</h2>
+                  <p className="mt-1 text-sm text-slate-500">Manage your delivery addresses.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={openAddModal}
+                  className="inline-flex items-center gap-1.5 rounded-[12px] bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  Add address
+                </button>
+              </div>
+
+              {/* Add address modal */}
+              {addrModalMode ? (
+                <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                  <div className="relative mx-4 flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-stone-200 bg-white shadow-2xl">
+                    {/* Modal header */}
+                    <div className="flex items-center justify-between border-b border-stone-200 px-6 py-4">
+                      <h3 className="text-base font-semibold text-slate-950">
+                        {addrModalMode === 'edit' ? 'Edit address' : 'Add new address'}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={closeAddrModal}
+                        className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Modal body - scrollable */}
+                    <div className="flex-1 overflow-y-auto px-6 py-5">
+                      <div className="space-y-4">
+                        {/* Google Places autocomplete */}
+                        <div>
+                          <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                            Search address
+                          </span>
+                          <DeliveryAddressInputField
+                            value={modalAddr}
+                            onChange={setModalAddr}
+                            onPlaceSelected={handleModalPlaceSelected}
+                          />
+                        </div>
+
+                        {modalAddr.trim() ? (
+                          <>
+                            {/* Address detail fields */}
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <label className="block text-sm font-medium text-slate-900 sm:col-span-2">
+                                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                  Street address
+                                </span>
+                                <input
+                                  type="text"
+                                  value={modalLine1}
+                                  onChange={(e) => setModalLine1(e.target.value)}
+                                  placeholder="House number, street, road"
+                                  className="h-12 w-full rounded-xl border border-stone-200 bg-stone-50/60 px-4 text-sm text-slate-900 outline-none placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:bg-white focus:ring-1 focus:ring-stone-900/10"
+                                />
+                              </label>
+                              <label className="block text-sm font-medium text-slate-900 sm:col-span-2">
+                                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                  Address line 2
+                                </span>
+                                <input
+                                  type="text"
+                                  value={modalLine2}
+                                  onChange={(e) => setModalLine2(e.target.value)}
+                                  placeholder="Apartment, suite, area, or building"
+                                  className="h-12 w-full rounded-xl border border-stone-200 bg-stone-50/60 px-4 text-sm text-slate-900 outline-none placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:bg-white focus:ring-1 focus:ring-stone-900/10"
+                                />
+                              </label>
+                              <label className="block text-sm font-medium text-slate-900">
+                                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                  City
+                                </span>
+                                <input
+                                  type="text"
+                                  value={modalCity}
+                                  onChange={(e) => setModalCity(e.target.value)}
+                                  placeholder="City"
+                                  className="h-12 w-full rounded-xl border border-stone-200 bg-stone-50/60 px-4 text-sm text-slate-900 outline-none placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:bg-white focus:ring-1 focus:ring-stone-900/10"
+                                />
+                              </label>
+                              <label className="block text-sm font-medium text-slate-900">
+                                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                  State
+                                </span>
+                                <input
+                                  type="text"
+                                  value={modalState}
+                                  onChange={(e) => setModalState(e.target.value)}
+                                  placeholder="State"
+                                  className="h-12 w-full rounded-xl border border-stone-200 bg-stone-50/60 px-4 text-sm text-slate-900 outline-none placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:bg-white focus:ring-1 focus:ring-stone-900/10"
+                                />
+                              </label>
+                              <label className="block text-sm font-medium text-slate-900">
+                                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                  Postal code
+                                </span>
+                                <input
+                                  type="text"
+                                  value={modalPostal}
+                                  onChange={(e) => setModalPostal(e.target.value)}
+                                  placeholder="Postal code"
+                                  className="h-12 w-full rounded-xl border border-stone-200 bg-stone-50/60 px-4 text-sm text-slate-900 outline-none placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:bg-white focus:ring-1 focus:ring-stone-900/10"
+                                />
+                              </label>
+                              <label className="block text-sm font-medium text-slate-900">
+                                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                  Country
+                                </span>
+                                <input
+                                  type="text"
+                                  value={modalCountry}
+                                  onChange={(e) => setModalCountry(e.target.value)}
+                                  placeholder="Country"
+                                  className="h-12 w-full rounded-xl border border-stone-200 bg-stone-50/60 px-4 text-sm text-slate-900 outline-none placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:bg-white focus:ring-1 focus:ring-stone-900/10"
+                                />
+                              </label>
+                            </div>
+
+                            {/* Extra delivery fields */}
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <label className="block text-sm font-medium text-slate-900">
+                                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                  House / Flat / Floor
+                                </span>
+                                <input
+                                  type="text"
+                                  value={modalHouseNo}
+                                  onChange={(e) => setModalHouseNo(e.target.value)}
+                                  placeholder="e.g., Apt 4B, Floor 2"
+                                  className="h-12 w-full rounded-xl border border-stone-200 bg-stone-50/60 px-4 text-sm text-slate-900 outline-none placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:bg-white focus:ring-1 focus:ring-stone-900/10"
+                                />
+                              </label>
+                              <label className="block text-sm font-medium text-slate-900">
+                                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                  Nearby landmark
+                                </span>
+                                <input
+                                  type="text"
+                                  value={modalLandmark}
+                                  onChange={(e) => setModalLandmark(e.target.value)}
+                                  placeholder="e.g., Near City Mall"
+                                  className="h-12 w-full rounded-xl border border-stone-200 bg-stone-50/60 px-4 text-sm text-slate-900 outline-none placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:bg-white focus:ring-1 focus:ring-stone-900/10"
+                                />
+                              </label>
+                            </div>
+
+                            {/* Save as label */}
+                            <div>
+                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                Save address as
+                              </span>
+                              <div className="flex flex-wrap gap-2">
+                                {['home', 'work', 'other'].map((labelOption) => {
+                                  const isSelected = modalLabel === labelOption;
+                                  return (
+                                    <button
+                                      key={labelOption}
+                                      type="button"
+                                      onClick={() => setModalLabel(isSelected ? '' : labelOption)}
+                                      className={`h-10 rounded-[12px] border px-4 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 ${
+                                        isSelected
+                                          ? 'border-black/60 bg-black text-white'
+                                          : 'border-stone-300 bg-white text-slate-900 hover:border-stone-400 hover:bg-stone-50'
+                                      }`}
+                                    >
+                                      {labelOption.charAt(0).toUpperCase() + labelOption.slice(1)}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="rounded-[16px] border border-dashed border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-600">
+                            Search your address above, then fill in the details.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Modal footer */}
+                    <div className="flex items-center justify-end gap-2 border-t border-stone-200 px-6 py-4">
+                      <button
+                        type="button"
+                        onClick={closeAddrModal}
+                        className="h-11 rounded-[12px] px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveAddrModal}
+                        disabled={isSavingModal || !modalAddr.trim()}
+                        className="h-11 rounded-[12px] bg-slate-900 px-6 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isSavingModal ? 'Saving...' : addrModalMode === 'edit' ? 'Update address' : 'Save address'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {isLoadingAddresses ? (
+                <div className="mt-5 space-y-3">
+                  {[...Array(2)].map((_, i) => (
+                    <div key={i} className="rounded-[16px] border border-slate-200 bg-slate-50 px-5 py-4">
+                      <div className="h-3 w-16 animate-pulse rounded bg-slate-200" />
+                      <div className="mt-2 h-4 w-64 animate-pulse rounded bg-slate-200" />
+                      <div className="mt-1.5 h-3 w-40 animate-pulse rounded bg-slate-100" />
+                    </div>
+                  ))}
+                </div>
+              ) : addressError ? (
+                <div className="mt-5 rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {addressError}
+                </div>
+              ) : addresses.length === 0 ? (
+                <div className="mt-5 rounded-[16px] border border-dashed border-slate-300 bg-slate-50/50 px-6 py-10 text-center">
+                  <svg className="mx-auto h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                  </svg>
+                  <p className="mt-3 text-sm font-medium text-slate-600">No saved addresses</p>
+                  <p className="mt-1 text-xs text-slate-400">Add an address or it will be saved automatically when you place a delivery order.</p>
+                </div>
+              ) : addresses.length > 0 ? (
+                <div className="mt-5 space-y-3">
+                  {addresses.map((addr) => (
+                    <div
+                      key={addr.id}
+                      className={`rounded-[16px] border bg-white px-5 py-4 transition hover:border-slate-300 ${
+                        addr.is_default ? 'border-slate-900/20 ring-1 ring-slate-900/10' : 'border-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {addr.saved_as ? (
+                              <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">
+                                {addr.saved_as}
+                              </span>
+                            ) : null}
+                            {addr.is_default ? (
+                              <span className="inline-flex rounded-full bg-slate-900 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white">
+                                Default
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className={`text-sm font-semibold text-slate-950 ${addr.saved_as || addr.is_default ? 'mt-1.5' : ''}`}>{addr.address}</p>
+                          {(addr.house_no || addr.nearby_landmark) ? (
+                            <p className="mt-0.5 text-xs text-slate-500">
+                              {[addr.house_no, addr.nearby_landmark].filter(Boolean).join(' - ')}
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(addr)}
+                            className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                            title="Edit address"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAddress(addr.id)}
+                            disabled={deletingAddressId === addr.id}
+                            className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                            title="Delete address"
+                          >
+                            {deletingAddressId === addr.id ? (
+                              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            ) : (
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Default toggle */}
+                      <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+                        <span className="text-xs font-medium text-slate-500">Default address</span>
+                        <button
+                          type="button"
+                          onClick={() => handleSetDefault(addr.id)}
+                          disabled={addr.is_default || settingDefaultId === addr.id}
+                          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 disabled:cursor-default disabled:opacity-70"
+                          style={{ backgroundColor: addr.is_default ? '#0f172a' : '#cbd5e1' }}
+                        >
+                          {settingDefaultId === addr.id ? (
+                            <span className="absolute inset-0 flex items-center justify-center">
+                              <svg className="h-3.5 w-3.5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            </span>
+                          ) : (
+                            <span
+                              className="inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200"
+                              style={{ transform: addr.is_default ? 'translateX(22px)' : 'translateX(4px)' }}
+                            />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : activeTab === 'profile' ? (
             <form onSubmit={handleSave}>
@@ -450,94 +970,6 @@ export default function CustomerProfilePage({
                 />
               </div>
 
-              <h2 className="mt-8 text-base font-semibold text-slate-950">Address</h2>
-
-              <div className="mt-4">
-                <label
-                  htmlFor="profile-address"
-                  className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
-                >
-                  Street address
-                </label>
-                <input
-                  id="profile-address"
-                  type="text"
-                  value={address}
-                  onChange={handleFieldChange(setAddress)}
-                  className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
-                  placeholder="123 Main St"
-                />
-              </div>
-
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="profile-city"
-                    className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
-                  >
-                    City
-                  </label>
-                  <input
-                    id="profile-city"
-                    type="text"
-                    value={city}
-                    onChange={handleFieldChange(setCity)}
-                    className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
-                    placeholder="New York"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="profile-state"
-                    className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
-                  >
-                    State / Province
-                  </label>
-                  <input
-                    id="profile-state"
-                    type="text"
-                    value={state}
-                    onChange={handleFieldChange(setState)}
-                    className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
-                    placeholder="NY"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="profile-postal-code"
-                    className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
-                  >
-                    Postal code
-                  </label>
-                  <input
-                    id="profile-postal-code"
-                    type="text"
-                    value={postalCode}
-                    onChange={handleFieldChange(setPostalCode)}
-                    className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
-                    placeholder="10001"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="profile-country"
-                    className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
-                  >
-                    Country
-                  </label>
-                  <input
-                    id="profile-country"
-                    type="text"
-                    value={country}
-                    onChange={handleFieldChange(setCountry)}
-                    className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
-                    placeholder="United States"
-                  />
-                </div>
-              </div>
 
               {saveMessage ? (
                 <div

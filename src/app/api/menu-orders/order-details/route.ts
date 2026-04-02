@@ -68,10 +68,15 @@ const GET_ORDER_ITEMS = `
   }
 `;
 
-const GET_RESTAURANT_NAME = `
-  query GetRestaurantName($restaurant_id: uuid!) {
+const GET_RESTAURANT_DETAILS = `
+  query GetRestaurantDetails($restaurant_id: uuid!) {
     restaurants_by_pk(restaurant_id: $restaurant_id) {
       name
+      address
+      city
+      state
+      country
+      postal_code
     }
   }
 `;
@@ -104,11 +109,26 @@ export async function GET(request: NextRequest) {
     }>(GET_ORDER_ITEMS, { order_id: order.order_id });
 
     let restaurantName = '';
+    let pickupAddress: string | null = null;
     if (order.restaurant_id) {
       const restData = await adminGraphqlRequest<{
-        restaurants_by_pk: { name: string } | null;
-      }>(GET_RESTAURANT_NAME, { restaurant_id: order.restaurant_id });
-      restaurantName = restData.restaurants_by_pk?.name || '';
+        restaurants_by_pk: {
+          name?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          country?: string;
+          postal_code?: string;
+        } | null;
+      }>(GET_RESTAURANT_DETAILS, { restaurant_id: order.restaurant_id });
+      const rest = restData.restaurants_by_pk;
+      restaurantName = rest?.name || '';
+      if (order.fulfillment_type === 'pickup') {
+        pickupAddress = [rest?.address, rest?.city, rest?.state, rest?.postal_code, rest?.country]
+          .map((v) => (typeof v === 'string' && v.trim() ? v.trim() : null))
+          .filter(Boolean)
+          .join(', ') || null;
+      }
     }
 
     // Parse offer_applied JSON string to object
@@ -127,6 +147,7 @@ export async function GET(request: NextRequest) {
       order: {
         ...order,
         restaurant_name: restaurantName,
+        pickup_address: pickupAddress,
         offer_applied: parsedOfferApplied,
       },
       items: itemsData.order_items || [],

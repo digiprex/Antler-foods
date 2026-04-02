@@ -751,6 +751,8 @@ function MenuPageContent({ data }: MenuPageProps) {
                     pickupAllowed={pickupAllowed}
                     deliveryAllowed={deliveryAllowed}
                     locationLabel={locationLabel}
+                    pickupLocationName={selectedLocation?.fullAddress || selectedLocation?.label || 'Select pickup location'}
+                    pickupScheduleLabel={scheduleLabel}
                     deliveryAddress={deliveryAddress}
                     onModeSelect={handleModeSelect}
                     onOpenSchedule={() => {

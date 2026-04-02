@@ -297,18 +297,16 @@ export function DeliveryAddressInput({ value, onChange, onPlaceSelected }: Deliv
   if (!hasGoogleMapsApiKey || error) {
     return (
       <div className="rounded-[20px] border border-stone-200 bg-white px-4 py-3 shadow-sm">
-        <label htmlFor="delivery-address" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-          Delivery address
-        </label>
         <div className="flex items-center gap-2">
+          <svg className="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
           <div className="relative flex-1">
             <input
               id="delivery-address"
               type="text"
               value={value}
               onChange={(e) => onChange(e.target.value)}
-              placeholder="Enter your delivery address"
-              className="w-full rounded-xl border border-stone-200 px-3 py-2.5 pr-11 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-500 focus:outline-none focus:ring-1 focus:ring-stone-500"
+              placeholder="Search for your delivery address"
+              className="w-full rounded-xl border border-stone-200 px-3 py-2.5 pr-11 text-sm font-semibold text-stone-900 placeholder:font-normal placeholder:text-stone-400 focus:border-stone-500 focus:outline-none focus:ring-1 focus:ring-stone-500"
             />
             {clearAddressButton}
           </div>
@@ -328,14 +326,12 @@ export function DeliveryAddressInput({ value, onChange, onPlaceSelected }: Deliv
 
   return (
     <div className="rounded-[20px] border border-stone-200 bg-white px-4 py-3 shadow-sm">
-      <label htmlFor="delivery-address" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-        Delivery address
-      </label>
       <div className="flex items-center gap-2">
+        <svg className="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
         <div className="relative flex-1">
           <div
             ref={containerRef}
-            className="w-full [&>gmp-place-autocomplete]:w-full [&>gmp-place-autocomplete>input]:w-full [&>gmp-place-autocomplete>input]:rounded-xl [&>gmp-place-autocomplete>input]:border [&>gmp-place-autocomplete>input]:border-stone-200 [&>gmp-place-autocomplete>input]:px-3 [&>gmp-place-autocomplete>input]:py-2.5 [&>gmp-place-autocomplete>input]:pr-11 [&>gmp-place-autocomplete>input]:text-sm [&>gmp-place-autocomplete>input]:text-stone-900 [&>gmp-place-autocomplete>input]:placeholder:text-stone-400 [&>gmp-place-autocomplete>input]:focus:border-stone-500 [&>gmp-place-autocomplete>input]:focus:outline-none [&>gmp-place-autocomplete>input]:focus:ring-1 [&>gmp-place-autocomplete>input]:focus:ring-stone-500"
+            className="w-full [&>gmp-place-autocomplete]:w-full [&>gmp-place-autocomplete>input]:w-full [&>gmp-place-autocomplete>input]:rounded-xl [&>gmp-place-autocomplete>input]:border [&>gmp-place-autocomplete>input]:border-stone-200 [&>gmp-place-autocomplete>input]:px-3 [&>gmp-place-autocomplete>input]:py-2.5 [&>gmp-place-autocomplete>input]:pr-11 [&>gmp-place-autocomplete>input]:text-sm [&>gmp-place-autocomplete>input]:font-semibold [&>gmp-place-autocomplete>input]:text-stone-900 [&>gmp-place-autocomplete>input]:placeholder:font-normal [&>gmp-place-autocomplete>input]:placeholder:text-stone-400 [&>gmp-place-autocomplete>input]:focus:border-stone-500 [&>gmp-place-autocomplete>input]:focus:outline-none [&>gmp-place-autocomplete>input]:focus:ring-1 [&>gmp-place-autocomplete>input]:focus:ring-stone-500"
           />
           {clearAddressButton}
         </div>

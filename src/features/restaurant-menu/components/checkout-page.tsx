@@ -9,10 +9,13 @@ import {
   type MenuAuthView,
 } from '@/features/restaurant-menu/components/menu-auth-sidebar';
 import {
+  BagIcon,
+  BikeIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   ClockIcon,
   MapPinIcon,
+  ShieldIcon,
 } from '@/features/restaurant-menu/components/icons';
 import { CompactQuantityStepper } from '@/features/restaurant-menu/components/compact-quantity-stepper';
 import { RestaurantOffersModal } from '@/features/restaurant-menu/components/restaurant-offers-modal';
@@ -382,7 +385,7 @@ async function requestValidateGiftCard(
 }
 
 const fieldClassName =
-  'h-11 w-full rounded-[14px] border border-stone-300 bg-white px-4 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-black/35 sm:h-12 sm:rounded-[16px]';
+  'h-12 w-full rounded-xl border border-stone-200 bg-stone-50/60 px-4 text-sm text-slate-900 outline-none placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:bg-white focus:ring-1 focus:ring-stone-900/10 sm:h-[3.25rem]';
 
 export default function RestaurantMenuCheckoutPage({
   data,
@@ -1198,17 +1201,22 @@ export default function RestaurantMenuCheckoutPage({
 
   if (!items.length && !clientSecret) {
     return (
-      <div className="min-h-screen bg-white px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-4xl rounded-[24px] border border-stone-200 bg-white p-6 text-center shadow-sm sm:p-10">
-          <h1 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
-            Checkout
+      <div className="flex min-h-screen items-center justify-center bg-stone-50 px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-md text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-stone-100">
+            <BagIcon className="h-7 w-7 text-stone-400" />
+          </div>
+          <h1 className="mt-5 text-xl font-semibold tracking-tight text-slate-950">
+            Your cart is empty
           </h1>
-          <p className="mt-3 text-sm text-slate-600">Your cart is empty.</p>
+          <p className="mt-2 text-sm leading-relaxed text-stone-500">
+            Looks like you haven&apos;t added anything yet. Head back to the menu to start your order.
+          </p>
           <Link
             href="/menu"
-            className="mt-6 inline-flex rounded-[16px] bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-800"
+            className="mt-6 inline-flex h-12 items-center justify-center rounded-xl bg-slate-900 px-7 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 active:scale-[0.98]"
           >
-            Back to menu
+            Browse menu
           </Link>
         </div>
       </div>
@@ -1261,44 +1269,48 @@ export default function RestaurantMenuCheckoutPage({
   );
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const orderSummaryPanel = (
-    <div className="rounded-[18px] border border-stone-200 bg-white p-3.5 shadow-sm sm:p-4 lg:sticky lg:top-0 lg:z-10 lg:flex lg:h-[calc(100vh-_-0.8rem)] lg:flex-col lg:rounded-t-[30px] lg:rounded-b-none lg:border-b-0">
-      <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
-        Order summary
-      </h2>
-      <div className="mt-3 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1 lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
-        <div className="space-y-2.5 rounded-[16px] border border-stone-200 bg-stone-50 px-3 py-2.5">
-          <div className="max-h-[420px] space-y-2.5 overflow-y-auto pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="p-4 sm:p-5 lg:sticky lg:top-0 lg:z-10 lg:flex lg:h-full lg:flex-col">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold tracking-tight text-slate-950">
+          Order summary
+        </h2>
+        <span className="rounded-full bg-slate-900 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+          {itemCount} {itemCount === 1 ? 'item' : 'items'}
+        </span>
+      </div>
+      <div className="mt-4 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1 lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
+        <div className="space-y-0 divide-y divide-stone-100">
             {items.map((item) => {
               const addOnTotal = item.selectedAddOns.reduce(
                 (sum, addOn) => sum + addOn.price,
                 0,
               );
               return (
-                <div key={item.key} className="flex items-start gap-2.5">
+                <div key={item.key} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
                   <img
                     src={item.image}
                     alt={item.name}
-                    width={48}
-                    height={48}
+                    width={56}
+                    height={56}
                     loading="lazy"
                     decoding="async"
-                    className="h-12 w-12 rounded-[12px] object-cover"
+                    className="h-14 w-14 rounded-xl object-cover"
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
-                        <p className="truncate text-sm font-semibold leading-tight text-slate-950 sm:text-[13px]">
+                        <p className="truncate text-sm font-semibold text-slate-950">
                           {item.name}
                         </p>
                         {item.selectedAddOns.length ? (
-                          <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
+                          <p className="mt-0.5 text-[11px] leading-4 text-stone-400">
                             {item.selectedAddOns
                               .map((addOn) => addOn.name)
-                              .join(' | ')}
+                              .join(', ')}
                           </p>
                         ) : null}
                       </div>
-                      <p className="shrink-0 text-sm font-semibold text-slate-950 sm:text-[13px]">
+                      <p className="shrink-0 text-sm font-semibold text-slate-950">
                         {formatPrice(
                           getCartItemTotal(
                             item.basePrice,
@@ -1308,7 +1320,7 @@ export default function RestaurantMenuCheckoutPage({
                         )}
                       </p>
                     </div>
-                    <div className="mt-2 sm:mt-2.5">
+                    <div className="mt-2">
                       <CompactQuantityStepper
                         quantity={item.quantity}
                         onDecrease={() =>
@@ -1323,184 +1335,228 @@ export default function RestaurantMenuCheckoutPage({
                 </div>
               );
             })}
-          </div>
         </div>
 
         {cartNote.trim() ? (
-          <div className="rounded-[14px] border border-stone-200 bg-stone-50 px-3 py-2.5 text-[12px] text-slate-700">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-              special note
+          <div className="rounded-xl bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-600">
+              Note
             </p>
-            <p className="mt-1.5 leading-5">{cartNote.trim()}</p>
+            <p className="mt-1 leading-5">{cartNote.trim()}</p>
           </div>
         ) : null}
       </div>
 
-      <div className="mt-3 rounded-[16px] border border-stone-200 bg-stone-50 px-3.5 py-3 lg:mt-auto">
+      {/* Offers & gift cards */}
+      <div className="mt-5 lg:mt-auto">
         <button
           type="button"
           onClick={() => setIsOffersSectionOpen((current) => !current)}
-          className="flex w-full items-start justify-between gap-3 text-left"
+          className="group flex w-full items-center gap-3 text-left"
           aria-expanded={isOffersSectionOpen}
         >
-          <div>
-            <p className="text-[13px] font-semibold text-slate-950">
-              Offers and gift cards
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50">
+            <svg className="h-4 w-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 12H16c-.7 2-2 3-4 3s-3.3-1-4-3H2.5"/><path d="M5.5 5.1L2 12v6c0 1.1.9 2 2 2h16a2 2 0 002-2v-6l-3.4-6.9A2 2 0 0016.8 4H7.2a2 2 0 00-1.8 1.1z"/></svg>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-slate-900">
+              Offers & gift cards
             </p>
-            <p className="mt-0.5 text-[11px] text-slate-500">
-              Save on this order with your coupon or gift card.
+            <p className="mt-0.5 truncate text-xs text-stone-400">
+              {appliedCoupon
+                ? `Coupon ${appliedCoupon.code} applied`
+                : appliedGiftCard
+                  ? `Gift card ${appliedGiftCard.code} redeemed`
+                  : activeRestaurantOffer
+                    ? activeRestaurantOffer.headline
+                    : 'Have a promo code or gift card?'}
             </p>
           </div>
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white text-slate-700 transition hover:border-stone-400 hover:bg-stone-100">
-            <ChevronDownIcon
-              className={`h-4 w-4 transition-transform duration-200 ${isOffersSectionOpen ? 'rotate-180' : ''}`}
-            />
-          </span>
+          {(appliedCoupon || appliedGiftCard || activeRestaurantOffer) ? (
+            <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+              Saving {formatPrice(discountAmount + giftCardAppliedAmount)}
+            </span>
+          ) : null}
+          <ChevronDownIcon
+            className={`h-4 w-4 shrink-0 text-stone-400 transition-transform duration-200 ${isOffersSectionOpen ? 'rotate-180' : ''}`}
+          />
         </button>
 
         {isOffersSectionOpen ? (
-          <div className="mt-3 space-y-3">
-            <div className="space-y-2 rounded-[14px] border border-stone-200 bg-white p-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
-                  Coupon
-                </p>
-                {appliedCoupon ? (
-                  <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
-                    Applied
-                  </span>
-                ) : null}
+          <div className="mt-3 space-y-3 rounded-xl border border-stone-200 bg-white p-4">
+            {/* Coupon input */}
+            {appliedCoupon && !normalizedCouponInput ? (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
+                    <svg className="h-5 w-5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                        {appliedCoupon.code}
+                      </span>
+                      <span className="text-xs font-semibold text-emerald-800">{appliedCoupon.title}</span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-emerald-700">
+                      You save {formatPrice(appliedCoupon.discountAmount)} on this order
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCoupon()}
+                  className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 active:scale-95"
+                >
+                  Remove
+                </button>
               </div>
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void handleApplyCoupon();
-                }}
-                className="flex flex-col gap-2 sm:flex-row"
-              >
-                <input
-                  type="text"
-                  value={couponCodeInput}
-                  onChange={(event) => {
-                    setCouponCodeInput(event.target.value.toUpperCase());
-                    if (couponError) {
-                      setCouponError(null);
-                    }
+            ) : (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-stone-500">Coupon code</label>
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handleApplyCoupon();
                   }}
-                  placeholder="Coupon code"
-                  className="h-9 w-full rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-950 outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-black/35"
-                  disabled={isApplyingCoupon}
-                />
-                {showAppliedCouponActions ? (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveCoupon()}
-                    className="inline-flex h-9 w-full items-center justify-center rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-auto"
-                  >
-                    Remove
-                  </button>
-                ) : (
+                  className="flex gap-2"
+                >
+                  <input
+                    type="text"
+                    value={couponCodeInput}
+                    onChange={(event) => {
+                      setCouponCodeInput(event.target.value.toUpperCase());
+                      if (couponError) {
+                        setCouponError(null);
+                      }
+                    }}
+                    placeholder="Enter code"
+                    className="h-10 flex-1 rounded-lg border border-stone-200 bg-stone-50/60 px-3.5 text-sm font-medium uppercase tracking-wider text-slate-900 outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:bg-white focus:ring-1 focus:ring-stone-900/10"
+                    disabled={isApplyingCoupon}
+                  />
                   <button
                     type="submit"
-                    disabled={isApplyingCoupon}
-                    className="inline-flex h-9 w-full items-center justify-center rounded-[12px] bg-black px-3 text-[12px] font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-stone-300 sm:w-auto"
+                    disabled={isApplyingCoupon || !couponCodeInput.trim()}
+                    className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:bg-stone-200 disabled:text-stone-400 active:scale-[0.97]"
                   >
                     {isApplyingCoupon ? 'Applying...' : 'Apply'}
                   </button>
-                )}
-              </form>
-              {couponError ? (
-                <p className="text-[11px] text-red-700">{couponError}</p>
-              ) : null}
-            </div>
-
-            <div className="space-y-2 rounded-[14px] border border-stone-200 bg-white p-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
-                  Gift card
-                </p>
-                {appliedGiftCard ? (
-                  <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
-                    Redeemed
-                  </span>
+                </form>
+                {couponError ? (
+                  <p className="mt-1.5 text-xs text-red-600">{couponError}</p>
                 ) : null}
               </div>
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void handleRedeemGiftCard();
-                }}
-                className="flex flex-col gap-2 sm:flex-row"
-              >
-                <input
-                  type="text"
-                  value={giftCardCodeInput}
-                  onChange={(event) => {
-                    setGiftCardCodeInput(event.target.value.toUpperCase());
-                    if (giftCardError) {
-                      setGiftCardError(null);
-                    }
+            )}
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-100" /></div>
+              <div className="relative flex justify-center"><span className="bg-white px-3 text-[10px] font-medium uppercase tracking-widest text-stone-300">or</span></div>
+            </div>
+
+            {/* Gift card input */}
+            {appliedGiftCard && !normalizedGiftCardInput ? (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50/60 p-3.5">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100">
+                    <svg className="h-5 w-5 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 010-5A4.8 8 0 0112 8a4.8 8 0 014.5-5 2.5 2.5 0 010 5"/></svg>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded bg-violet-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                        {appliedGiftCard.code}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-violet-700">
+                      Balance {formatPrice(appliedGiftCard.currentBalance)} &middot; Applying {formatPrice(giftCardAppliedAmount)}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveGiftCard}
+                  className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-100 active:scale-95"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-stone-500">Gift card</label>
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handleRedeemGiftCard();
                   }}
-                  placeholder="Gift card code"
-                  className="h-9 w-full rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-950 outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-black/35"
-                  disabled={isRedeemingGiftCard}
-                />
-                {showRedeemedGiftCardActions ? (
-                  <button
-                    type="button"
-                    onClick={handleRemoveGiftCard}
-                    className="inline-flex h-9 w-full items-center justify-center rounded-[12px] border border-stone-300 bg-white px-3 text-[12px] font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-auto"
-                  >
-                    Remove
-                  </button>
-                ) : (
+                  className="flex gap-2"
+                >
+                  <input
+                    type="text"
+                    value={giftCardCodeInput}
+                    onChange={(event) => {
+                      setGiftCardCodeInput(event.target.value.toUpperCase());
+                      if (giftCardError) {
+                        setGiftCardError(null);
+                      }
+                    }}
+                    placeholder="Enter gift card code"
+                    className="h-10 flex-1 rounded-lg border border-stone-200 bg-stone-50/60 px-3.5 text-sm font-medium uppercase tracking-wider text-slate-900 outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:bg-white focus:ring-1 focus:ring-stone-900/10"
+                    disabled={isRedeemingGiftCard}
+                  />
                   <button
                     type="submit"
-                    disabled={isRedeemingGiftCard}
-                    className="inline-flex h-9 w-full items-center justify-center rounded-[12px] bg-black px-3 text-[12px] font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-stone-300 sm:w-auto"
+                    disabled={isRedeemingGiftCard || !giftCardCodeInput.trim()}
+                    className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:bg-stone-200 disabled:text-stone-400 active:scale-[0.97]"
                   >
                     {isRedeemingGiftCard ? 'Redeeming...' : 'Redeem'}
                   </button>
-                )}
-              </form>
-              {giftCardError ? (
-                <p className="text-[11px] text-red-700">{giftCardError}</p>
-              ) : appliedGiftCard ? (
-                <p className="text-[11px] text-emerald-700">
-                  {appliedGiftCard.code} balance{' '}
-                  {formatPrice(appliedGiftCard.currentBalance)}.
-                </p>
-              ) : null}
-            </div>
-
-            <div className="flex flex-col gap-2.5 rounded-[14px] border border-stone-200 bg-white p-2.5 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
-                  Restaurant offers
-                </p>
-                <p
-                  className={`mt-1 text-[11px] leading-5 ${appliedCoupon ? 'text-amber-700' : activeRestaurantOffer ? 'text-emerald-700' : 'text-slate-500'}`}
-                >
-                  {restaurantOffersStatus}
-                </p>
+                </form>
+                {giftCardError ? (
+                  <p className="mt-1.5 text-xs text-red-600">{giftCardError}</p>
+                ) : null}
               </div>
-              <button
-                type="button"
-                onClick={() => setIsOffersModalOpen(true)}
-                disabled={restaurantOfferCount === 0}
-                className="inline-flex h-9 w-full shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white px-4 text-[12px] font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-100 disabled:text-stone-400 sm:w-auto"
-              >
-                {restaurantOfferCount > 0
-                  ? `View offers (${restaurantOfferCount})`
-                  : 'No offers'}
-              </button>
-            </div>
+            )}
+
+            {/* Restaurant offers */}
+            {restaurantOfferCount > 0 ? (
+              <>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-100" /></div>
+                </div>
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50">
+                      <svg className="h-4 w-4 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-900">
+                        {restaurantOfferCount} {restaurantOfferCount === 1 ? 'offer' : 'offers'} available
+                      </p>
+                      <p className={`truncate text-[11px] ${appliedCoupon ? 'text-amber-600' : activeRestaurantOffer ? 'text-emerald-600' : 'text-stone-400'}`}>
+                        {appliedCoupon
+                          ? 'Cannot combine with coupon'
+                          : activeRestaurantOffer
+                            ? `${activeRestaurantOffer.headline} \u2013 saving ${formatPrice(activeRestaurantOffer.discountAmount)}`
+                            : 'Check available restaurant promotions'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsOffersModalOpen(true)}
+                    className="shrink-0 rounded-lg border border-stone-200 px-3.5 py-1.5 text-xs font-semibold text-slate-900 transition hover:bg-stone-50 active:scale-[0.97]"
+                  >
+                    View
+                  </button>
+                </div>
+              </>
+            ) : null}
           </div>
         ) : null}
       </div>
 
-      <div className="mt-3 border-t border-stone-200 pt-3">
-        <div className="mb-2.5 space-y-2 text-[13px] text-slate-900">
+      <div className="mt-4 border-t border-stone-200 pt-4">
+        <div className="mb-3 space-y-2.5 text-sm text-stone-600">
           <div className="flex items-center justify-between gap-4">
             <span>Subtotal</span>
             <span className="font-medium">{formatPrice(subtotal)}</span>
@@ -1571,53 +1627,70 @@ export default function RestaurantMenuCheckoutPage({
             </div>
           ) : null}
         </div>
-        <div className="flex items-center justify-between gap-4 text-[1.15rem] font-semibold text-slate-950 sm:text-[1.25rem]">
-          <span>Total</span>
-          <span>{formatPrice(total)}</span>
+        <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-900 px-4 py-3 text-white">
+          <span className="text-sm font-semibold">Total</span>
+          <span className="text-lg font-bold">{formatPrice(total)}</span>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-white px-4 py-4 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 sm:pb-24 lg:h-screen lg:overflow-hidden lg:px-8 lg:py-6 lg:pb-6">
-      <div className="mx-auto max-w-[1440px]">
-        <Link
-          href="/menu"
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 transition hover:text-slate-950"
-        >
-          <ChevronLeftIcon className="h-4 w-4" />
-          Menu
-        </Link>
+    <div className="min-h-screen bg-stone-50 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:pb-24 lg:h-screen lg:overflow-hidden lg:pb-0">
+      {/* Top navigation bar */}
+      <header className="sticky top-0 z-30 border-b border-stone-200/80 bg-white/80 backdrop-blur-lg">
+        <div className="mx-auto flex h-14 max-w-[1440px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
+          <Link
+            href="/menu"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-stone-600 transition hover:text-slate-950"
+          >
+            <ChevronLeftIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Back to menu</span>
+            <span className="sm:hidden">Menu</span>
+          </Link>
+          <h1 className="text-sm font-semibold tracking-tight text-slate-950 sm:text-base">
+            {brandName}
+          </h1>
+          <div className="flex items-center gap-1.5 text-xs text-stone-500">
+            <ShieldIcon className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Secure checkout</span>
+          </div>
+        </div>
+      </header>
 
-        <div className="mt-4 grid gap-5 lg:h-[calc(100vh-7.25rem)] lg:grid-cols-[minmax(0,660px)_400px] lg:justify-center lg:overflow-hidden lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,760px)_430px]">
-          <div className="space-y-5 sm:space-y-6 lg:h-full lg:overflow-y-auto lg:pr-5 lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
+      <div className="mx-auto max-w-[1440px] px-4 pt-5 sm:px-6 sm:pt-6 lg:px-8 lg:pt-6">
+        <div className="grid gap-6 lg:h-[calc(100vh-7rem)] lg:grid-cols-[minmax(0,660px)_420px] lg:justify-center lg:overflow-hidden lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,720px)_440px]">
+          <div className="space-y-6 lg:h-full lg:overflow-y-auto lg:pr-5 lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
             <div>
-              <h1 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-[1.75rem]">
                 Checkout
-              </h1>
+              </h2>
+              <p className="mt-1 text-sm text-stone-500">
+                Complete your order details below
+              </p>
             </div>
 
             {customerProfile ? (
-              <section className="rounded-[20px] border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
+              <section className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-500">
-                      {isGuestCustomer ? 'Guest checkout active' : 'Signed in'}
-                    </p>
-                    <h2 className="mt-1 text-[1.15rem] font-semibold text-slate-950 sm:text-[1.3rem]">
-                      {customerProfile.name}
-                    </h2>
-                    <p className="mt-1 text-sm text-stone-600">
-                      {customerProfile.email}
-                    </p>
+                  <div className="flex items-center gap-3.5">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">
+                      {(customerProfile.name?.[0] || 'G').toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-400">
+                        {isGuestCustomer ? 'Guest' : 'Signed in'}
+                      </p>
+                      <p className="text-sm font-semibold text-slate-950">{customerProfile.name}</p>
+                      <p className="text-xs text-stone-500">{customerProfile.email}</p>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                  <div className="flex gap-2">
                     {isGuestCustomer ? (
                       <button
                         type="button"
                         onClick={() => openAuthSidebar('signup')}
-                        className="inline-flex h-10 w-full items-center justify-center rounded-[14px] bg-black px-4 text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-auto"
+                        className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-900 px-4 text-xs font-semibold text-white transition hover:bg-slate-800 active:scale-[0.97]"
                       >
                         Create account
                       </button>
@@ -1625,7 +1698,7 @@ export default function RestaurantMenuCheckoutPage({
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="inline-flex h-10 w-full items-center justify-center rounded-[14px] border border-stone-300 bg-white px-4 text-sm font-semibold text-slate-950 transition hover:border-stone-400 hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-auto"
+                      className="inline-flex h-9 items-center justify-center rounded-lg border border-stone-200 bg-white px-4 text-xs font-semibold text-stone-600 transition hover:bg-stone-50 active:scale-[0.97]"
                     >
                       Log out
                     </button>
@@ -1635,48 +1708,75 @@ export default function RestaurantMenuCheckoutPage({
             ) : null}
 
             {fulfillmentMode === 'pickup' ? (
-              <section className="space-y-2.5">
-                <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
-                  Pickup details
-                </h2>
-                <div className="rounded-[18px] border border-stone-200 bg-white px-4 py-4 shadow-sm sm:px-5 sm:py-4">
-                  <div className="space-y-3">
-                    <p className="flex items-start gap-3 text-sm leading-6 text-slate-900">
-                      <MapPinIcon className="mt-0.5 h-4 w-4 shrink-0" />
-                      <span>
-                        {`Pick up from ${selectedLocation?.fullAddress || 'Location unavailable'}`}
-                      </span>
-                    </p>
-                    <p className="flex items-start gap-3 text-sm leading-6 text-slate-900">
-                      <ClockIcon className="mt-0.5 h-4 w-4 shrink-0" />
-                      <span>{scheduleLabel}</span>
-                    </p>
+              <section className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">1</span>
+                  <h2 className="text-lg font-semibold tracking-tight text-slate-950">
+                    Pickup details
+                  </h2>
+                </div>
+                <div className="ml-3.5 border-l-2 border-stone-200 pl-6">
+                  <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
+                    <div className="space-y-3.5">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-100">
+                          <MapPinIcon className="h-4 w-4 text-stone-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wider text-stone-400">Pickup from</p>
+                          <p className="mt-0.5 text-sm font-medium text-slate-900">
+                            {selectedLocation?.fullAddress || 'Location unavailable'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-100">
+                          <ClockIcon className="h-4 w-4 text-stone-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wider text-stone-400">Schedule</p>
+                          <p className="mt-0.5 text-sm font-medium text-slate-900">{scheduleLabel}</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </section>
             ) : (
-              <section id="delivery-address-section" className="space-y-2.5">
-                <div className="rounded-[18px] border border-stone-200 bg-white shadow-sm">
+              <section id="delivery-address-section" className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">1</span>
+                  <h2 className="text-lg font-semibold tracking-tight text-slate-950">
+                    Delivery details
+                  </h2>
+                </div>
+                <div className="ml-3.5 border-l-2 border-stone-200 pl-6">
+                <div className="rounded-2xl border border-stone-200 bg-white shadow-sm">
                   <button
                     type="button"
                     onClick={() =>
                       setIsDeliveryDetailsSectionOpen((current) => !current)
                     }
-                    className="flex w-full items-start justify-between gap-3 px-4 py-4 text-left sm:px-5 sm:py-4"
+                    className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
                     aria-expanded={isDeliveryDetailsSectionOpen}
                     aria-controls="delivery-details-panel"
                   >
-                    <div>
-                      <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
-                        Delivery details
-                      </h2>
-                      <p className="mt-1 text-sm text-stone-600">
-                        {isDeliveryAddressValid
-                          ? deliveryAddressData.formattedAddress
-                          : 'Add your drop-off address and last-mile instructions.'}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-100">
+                        <BikeIcon className="h-4 w-4 text-stone-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-950">
+                          {isDeliveryAddressValid ? 'Delivery address' : 'Add delivery address'}
+                        </p>
+                        <p className="mt-0.5 text-xs text-stone-500">
+                          {isDeliveryAddressValid
+                            ? deliveryAddressData.formattedAddress
+                            : 'Enter your drop-off address and instructions'}
+                        </p>
+                      </div>
                     </div>
-                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white text-slate-700 transition hover:border-stone-400 hover:bg-stone-100">
+                    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-stone-400 transition hover:bg-stone-100">
                       <ChevronDownIcon
                         className={`h-4 w-4 transition-transform duration-200 ${isDeliveryDetailsSectionOpen ? 'rotate-180' : ''}`}
                       />
@@ -1927,41 +2027,6 @@ export default function RestaurantMenuCheckoutPage({
                       </div>
                     )}
 
-                    <div className="rounded-[16px] border border-stone-200 bg-white px-4 py-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                            Uber Direct estimate
-                          </p>
-                          {isCheckingDeliveryQuote ? (
-                            <p className="mt-1.5 text-sm text-stone-600">
-                              Checking delivery availability and ETA...
-                            </p>
-                          ) : deliveryQuote ? (
-                            <>
-                              <p className="mt-1.5 text-sm font-semibold text-slate-950">
-                                Delivery fee {formatPrice(deliveryFeeAmount)}
-                              </p>
-                              <p className="mt-1 text-sm text-stone-600">
-                                {deliveryQuote.etaMinutes !== null
-                                  ? `Estimated arrival in about ${deliveryQuote.etaMinutes} minutes once dispatched.`
-                                  : 'Uber Direct is available for this address.'}
-                              </p>
-                            </>
-                          ) : (
-                            <p className="mt-1.5 text-sm text-red-700">
-                              {deliveryQuoteError || 'Enter a serviceable address to check delivery availability.'}
-                            </p>
-                          )}
-                        </div>
-                        {deliveryQuote ? (
-                          <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
-                            Available
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-
                     <div className="border-t border-stone-200 pt-4">
                       <p className="flex items-start gap-3 text-sm leading-6 text-slate-900">
                         <ClockIcon className="mt-0.5 h-4 w-4 shrink-0" />
@@ -1971,15 +2036,19 @@ export default function RestaurantMenuCheckoutPage({
                   </div>
                   ) : null}
                 </div>
+                </div>
               </section>
             )}
 
             {tipsEnabled ? (
-              <section className="space-y-2.5">
-                <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
-                  Tip
-                </h2>
-                <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
+              <section className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">{fulfillmentMode === 'delivery' ? '2' : '2'}</span>
+                  <h2 className="text-lg font-semibold tracking-tight text-slate-950">
+                    Add a tip
+                  </h2>
+                </div>
+                <div className="grid grid-cols-4 gap-2.5 sm:gap-3">
                   {[
                     {
                       key: '10',
@@ -2003,17 +2072,15 @@ export default function RestaurantMenuCheckoutPage({
                         key={preset.key}
                         type="button"
                         onClick={() => setTipPreset(preset.key as TipPreset)}
-                        className={`min-h-[4.85rem] w-full rounded-[16px] border px-4 py-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-[150px] ${
+                        className={`group relative rounded-xl border-2 px-3 py-3 text-center transition-all active:scale-[0.97] ${
                           selected
-                            ? 'border-black/60 bg-white text-slate-950 shadow-sm'
-                            : 'border-black/10 bg-white text-slate-700 hover:border-black/20'
+                            ? 'border-slate-900 bg-slate-900 text-white shadow-md'
+                            : 'border-stone-200 bg-white text-slate-700 hover:border-stone-300'
                         }`}
                       >
-                        <div className="text-base font-semibold sm:text-lg">
+                        <div className="text-xs font-bold tracking-wide">{preset.percent}</div>
+                        <div className={`mt-0.5 text-sm font-semibold ${selected ? 'text-white' : 'text-slate-950'}`}>
                           {formatPrice(preset.amount)}
-                        </div>
-                        <div className="mt-1 text-xs text-slate-600">
-                          {preset.percent}
                         </div>
                       </button>
                     );
@@ -2026,17 +2093,15 @@ export default function RestaurantMenuCheckoutPage({
                         tipAmount ? tipAmount.toFixed(2) : '0.00',
                       );
                     }}
-                    className={`min-h-[4.85rem] w-full rounded-[16px] border px-4 py-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 sm:w-[150px] ${
+                    className={`group relative rounded-xl border-2 px-3 py-3 text-center transition-all active:scale-[0.97] ${
                       tipPreset === 'custom'
-                        ? 'border-black/60 bg-white text-slate-950 shadow-sm'
-                        : 'border-black/10 bg-white text-slate-700 hover:border-black/20'
+                        ? 'border-slate-900 bg-slate-900 text-white shadow-md'
+                        : 'border-stone-200 bg-white text-slate-700 hover:border-stone-300'
                     }`}
                   >
-                    <div className="text-base font-semibold sm:text-lg">
-                      {tipPreset === 'custom' ? formatPrice(tipAmount) : 'Custom'}
-                    </div>
-                    <div className="mt-1 text-xs text-slate-600">
-                      {tipPreset === 'custom' ? 'Custom tip' : 'Set amount'}
+                    <div className="text-xs font-bold tracking-wide">Other</div>
+                    <div className={`mt-0.5 text-sm font-semibold ${tipPreset === 'custom' ? 'text-white' : 'text-slate-950'}`}>
+                      {tipPreset === 'custom' ? formatPrice(tipAmount) : '...'}
                     </div>
                   </button>
                 </div>
@@ -2073,92 +2138,103 @@ export default function RestaurantMenuCheckoutPage({
               </section>
             ) : null}
 
-            <section id="checkout-contact-fields" className="space-y-2.5">
-              <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
-                Your information
-              </h2>
-              <div className="space-y-4">
-                <label className="block text-sm font-medium text-slate-900">
-                  <span className="mb-2 block text-[13px] sm:text-sm">
-                    Mobile number
-                  </span>
-                  <input
-                    type="tel"
-                    placeholder="(555) 555-5555"
-                    className={fieldClassName}
-                    value={contactFields.phone}
-                    onChange={(event) =>
-                      handleContactFieldChange('phone', event.target.value)
-                    }
-                  />
-                </label>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block text-sm font-medium text-slate-900">
-                    <span className="mb-2 block text-[13px] sm:text-sm">
-                      First name
+            <section id="checkout-contact-fields" className="space-y-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">{tipsEnabled ? '3' : '2'}</span>
+                <h2 className="text-lg font-semibold tracking-tight text-slate-950">
+                  Your information
+                </h2>
+              </div>
+              <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
+                <div className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-medium text-stone-500">
+                        First name
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="John"
+                        className={fieldClassName}
+                        value={contactFields.firstName}
+                        onChange={(event) =>
+                          handleContactFieldChange(
+                            'firstName',
+                            event.target.value,
+                          )
+                        }
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-medium text-stone-500">
+                        Last name
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="Doe"
+                        className={fieldClassName}
+                        value={contactFields.lastName}
+                        onChange={(event) =>
+                          handleContactFieldChange('lastName', event.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-medium text-stone-500">
+                      Email address
                     </span>
                     <input
-                      type="text"
-                      placeholder="First name"
+                      type="email"
+                      placeholder="john@example.com"
                       className={fieldClassName}
-                      value={contactFields.firstName}
+                      value={contactFields.email}
                       onChange={(event) =>
-                        handleContactFieldChange(
-                          'firstName',
-                          event.target.value,
-                        )
+                        handleContactFieldChange('email', event.target.value)
                       }
                     />
                   </label>
-                  <label className="block text-sm font-medium text-slate-900">
-                    <span className="mb-2 block text-[13px] sm:text-sm">
-                      Last name
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-medium text-stone-500">
+                      Mobile number
                     </span>
                     <input
-                      type="text"
-                      placeholder="Last name"
+                      type="tel"
+                      placeholder="(555) 555-5555"
                       className={fieldClassName}
-                      value={contactFields.lastName}
+                      value={contactFields.phone}
                       onChange={(event) =>
-                        handleContactFieldChange('lastName', event.target.value)
+                        handleContactFieldChange('phone', event.target.value)
                       }
                     />
                   </label>
+                  <div className="space-y-2.5 pt-1">
+                    <label className="flex items-center gap-3 text-sm text-stone-600">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        className="h-4 w-4 rounded border-stone-300 accent-slate-900"
+                      />
+                      Get promotional emails from {data.restaurant.name}
+                    </label>
+                    <label className="flex items-center gap-3 text-sm text-stone-600">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        className="h-4 w-4 rounded border-stone-300 accent-slate-900"
+                      />
+                      Get promotional texts from {data.restaurant.name}
+                    </label>
+                  </div>
                 </div>
-                <label className="block text-sm font-medium text-slate-900">
-                  <span className="mb-2 block text-[13px] sm:text-sm">
-                    Email address
-                  </span>
-                  <input
-                    type="email"
-                    placeholder="Email address"
-                    className={fieldClassName}
-                    value={contactFields.email}
-                    onChange={(event) =>
-                      handleContactFieldChange('email', event.target.value)
-                    }
-                  />
-                </label>
-                <label className="flex items-start gap-3 text-[13px] text-slate-900 sm:text-sm">
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="mt-0.5 h-5 w-5 rounded-full border-black accent-black"
-                  />
-                  <span>
-                    Get promotional emails from {data.restaurant.name}
-                  </span>
-                </label>
-                <label className="flex items-start gap-3 text-[13px] text-slate-900 sm:text-sm">
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="mt-0.5 h-5 w-5 rounded-full border-black accent-black"
-                  />
-                  <span>Get promotional texts from {data.restaurant.name}</span>
-                </label>
               </div>
             </section>
+
+            {checkoutError ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-800">
+                {checkoutError}
+              </div>
+            ) : null}
 
             {clientSecret ? (
               <StripePaymentProvider clientSecret={clientSecret}>
@@ -2180,47 +2256,39 @@ export default function RestaurantMenuCheckoutPage({
                   type="button"
                   onClick={handlePlaceOrder}
                   disabled={isPlacingOrder || (fulfillmentMode === 'delivery' && (isCheckingDeliveryQuote || !deliveryQuote))}
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-black text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:h-12 sm:max-w-[280px]"
+                  className="relative flex h-[3.25rem] w-full items-center justify-center gap-2.5 rounded-xl bg-slate-900 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none active:scale-[0.98] sm:max-w-xs"
                 >
+                  <ShieldIcon className="h-4 w-4" />
                   {isPlacingOrder
                     ? 'Placing order...'
                     : fulfillmentMode === 'delivery' && isCheckingDeliveryQuote
                       ? 'Checking delivery...'
-                      : 'Continue to payment'}
-              </button>
+                      : `Continue to payment \u00B7 ${formatPrice(total)}`}
+                </button>
+                <p className="max-w-sm text-xs leading-5 text-stone-400">
+                  By placing your order you agree to receive transactional order updates and marketing communications.
+                </p>
               </div>
             )}
-
-            {checkoutError ? (
-              <div className="max-w-3xl rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
-                {checkoutError}
-              </div>
-            ) : null}
-
-            <div className="pb-10">
-              <p className="max-w-3xl text-xs leading-6 text-slate-700 sm:text-sm">
-                By signing up, you agree to receive email marketing
-                communications and transactional order updates.
-              </p>
-            </div>
           </div>
 
-          <aside className="hidden space-y-3.5 lg:block lg:h-full lg:overflow-y-auto lg:rounded-[30px] lg:border lg:border-stone-200 lg:bg-stone-50 lg:p-0 lg:shadow-[0_24px_64px_rgba(15,23,42,0.08)] lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
+          <aside className="hidden lg:block lg:h-full lg:overflow-y-auto lg:rounded-2xl lg:border lg:border-stone-200 lg:bg-white lg:shadow-sm lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
             {orderSummaryPanel}
           </aside>
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-white/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-6 lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200/80 bg-white/90 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-lg sm:px-6 lg:hidden">
         <button
           type="button"
           onClick={() => setIsOrderSummaryDrawerOpen(true)}
-          className="flex w-full items-center justify-between rounded-[14px] bg-black px-4 py-3 text-left text-white"
+          className="flex w-full items-center justify-between rounded-xl bg-slate-900 px-5 py-3.5 text-white shadow-lg shadow-slate-900/20 active:scale-[0.98]"
         >
-          <span className="text-sm font-semibold">
-            Order summary ({itemCount} {itemCount === 1 ? 'item' : 'items'})
-          </span>
-          <span className="text-sm font-semibold">{formatPrice(total)}</span>
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/20 text-xs font-bold">{itemCount}</span>
+            <span className="text-sm font-semibold">View order</span>
+          </div>
+          <span className="text-sm font-bold">{formatPrice(total)}</span>
         </button>
       </div>
 
@@ -2232,13 +2300,13 @@ export default function RestaurantMenuCheckoutPage({
             className="absolute inset-0 bg-black/40"
             onClick={() => setIsOrderSummaryDrawerOpen(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-[24px] bg-stone-50 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-16px_48px_rgba(15,23,42,0.2)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-6">
-            <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-stone-300" />
+          <div className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-3xl bg-white px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-16px_48px_rgba(15,23,42,0.15)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-6">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-stone-200" />
             <div className="mb-3 flex justify-end">
               <button
                 type="button"
                 onClick={() => setIsOrderSummaryDrawerOpen(false)}
-                className="rounded-[10px] border border-stone-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700"
+                className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-semibold text-stone-600 transition hover:bg-stone-100"
               >
                 Close
               </button>

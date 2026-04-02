@@ -72,42 +72,10 @@ function createManualDeliveryAddress(formattedAddress = ''): DeliveryAddressInpu
 }
 
 function createDeliveryAddressFromProfile(
-  profile:
-    | {
-        address: string | null;
-        city: string | null;
-        state: string | null;
-        country: string | null;
-        postalCode: string | null;
-      }
-    | null
-    | undefined,
+  _profile: unknown,
 ): DeliveryAddressInput | null {
-  const addressLine1 = trimDeliveryAddressText(profile?.address);
-  if (!addressLine1) {
-    return null;
-  }
-
-  const city = trimDeliveryAddressText(profile?.city) || undefined;
-  const state = trimDeliveryAddressText(profile?.state) || undefined;
-  const postalCode = trimDeliveryAddressText(profile?.postalCode) || undefined;
-  const countryCode = trimDeliveryAddressText(profile?.country) || undefined;
-
-  return {
-    formattedAddress: buildDeliveryAddressText([
-      addressLine1,
-      city,
-      state,
-      postalCode,
-      countryCode,
-    ]),
-    addressLine1,
-    city,
-    state,
-    postalCode,
-    countryCode,
-    source: 'profile',
-  };
+  // Address fields have been moved to customer_delivery_addresses table
+  return null;
 }
 
 function createDeliveryAddressFromPlace(place: SelectedGooglePlace): DeliveryAddressInput {

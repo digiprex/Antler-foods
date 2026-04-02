@@ -165,42 +165,10 @@ function createManualDeliveryAddress(formattedAddress = ''): DeliveryAddressInpu
 }
 
 function createDeliveryAddressFromProfile(
-  profile:
-    | {
-        address: string | null;
-        city: string | null;
-        state: string | null;
-        country: string | null;
-        postalCode: string | null;
-      }
-    | null
-    | undefined,
+  _profile: unknown,
 ): DeliveryAddressInput | null {
-  const addressLine1 = trimDeliveryAddressText(profile?.address);
-  if (!addressLine1) {
-    return null;
-  }
-
-  const city = trimDeliveryAddressText(profile?.city) || undefined;
-  const state = trimDeliveryAddressText(profile?.state) || undefined;
-  const postalCode = trimDeliveryAddressText(profile?.postalCode) || undefined;
-  const countryCode = trimDeliveryAddressText(profile?.country) || undefined;
-
-  return {
-    formattedAddress: buildDeliveryAddressText([
-      addressLine1,
-      city,
-      state,
-      postalCode,
-      countryCode,
-    ]),
-    addressLine1,
-    city,
-    state,
-    postalCode,
-    countryCode,
-    source: 'profile',
-  };
+  // Address fields have been moved to customer_delivery_addresses table
+  return null;
 }
 
 function createDeliveryAddressFromPlace(place: SelectedGooglePlace): DeliveryAddressInput {
@@ -1993,21 +1961,6 @@ export default function RestaurantMenuCheckoutPage({
                               />
                             </label>
                           </div>
-
-                          <label className="block text-sm font-medium text-slate-900">
-                            <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                              Delivery instructions
-                            </span>
-                            <textarea
-                              value={deliveryAddressData.instructions || ''}
-                              onChange={(event) =>
-                                handleDeliveryAddressMetaChange('instructions', event.target.value)
-                              }
-                              placeholder="Any special instructions for delivery?"
-                              rows={3}
-                              className="w-full rounded-[14px] border border-stone-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-black/35 sm:rounded-[16px]"
-                            />
-                          </label>
 
                           <div>
                             <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">

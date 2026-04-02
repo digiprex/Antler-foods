@@ -281,6 +281,70 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// POST - Duplicate a template
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { template_id } = body;
+
+    if (!template_id) {
+      return NextResponse.json(
+        { success: false, error: 'Template ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Fetch the source template
+    const sourceData = await adminGraphqlRequest(CHECK_TEMPLATE_STATUS, {
+      template_id,
+    });
+
+    const source = (sourceData as any).templates_by_pk;
+    if (!source) {
+      return NextResponse.json(
+        { success: false, error: 'Template not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get current max order_index for this page to place the duplicate at the end
+    const templatesData = await adminGraphqlRequest(GET_PAGE_TEMPLATES_ALL, {
+      restaurant_id: source.restaurant_id,
+      page_id: source.page_id,
+    });
+
+    const templates = (templatesData as any).templates || [];
+    const maxOrder = templates.reduce(
+      (max: number, t: any) => Math.max(max, t.order_index ?? 0),
+      0
+    );
+
+    // Insert the duplicate
+    const insertResult = await adminGraphqlRequest(INSERT_TEMPLATE, {
+      restaurant_id: source.restaurant_id,
+      name: source.name,
+      category: source.category,
+      config: source.config,
+      menu_items: source.menu_items || [],
+      page_id: source.page_id,
+      order_index: maxOrder + 1,
+      is_published: false,
+      ref_template_id: null,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: (insertResult as any).insert_templates_one,
+    });
+  } catch (error) {
+    console.error('Page Templates API POST error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 // PATCH - Update template order with versioning support
 export async function PATCH(request: NextRequest) {
   try {

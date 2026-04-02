@@ -24,6 +24,7 @@ export function StripePaymentSection({
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPaymentComplete, setIsPaymentComplete] = useState(false);
 
   const updateProcessing = (value: boolean) => {
     setIsProcessing(value);
@@ -52,19 +53,22 @@ export function StripePaymentSection({
   };
 
   return (
-    <section className="space-y-4">
-      <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950 sm:text-[1.5rem]">
-        Payment
-      </h2>
-      <PaymentElement />
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={!stripe || isProcessing}
-        className="flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-black text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:h-12 sm:max-w-[280px]"
-      >
-        {isProcessing ? 'Processing payment...' : `Pay ${formatPrice(total)}`}
-      </button>
-    </section>
+    <>
+      <div className="flex-1 overflow-y-auto px-6 py-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <PaymentElement
+          onChange={(event) => setIsPaymentComplete(event.complete)}
+        />
+      </div>
+      <div className="shrink-0 border-t border-stone-200 px-6 py-4">
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!stripe || !isPaymentComplete || isProcessing}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-400 active:scale-[0.98]"
+        >
+          {isProcessing ? 'Processing payment...' : `Pay ${formatPrice(total)}`}
+        </button>
+      </div>
+    </>
   );
 }

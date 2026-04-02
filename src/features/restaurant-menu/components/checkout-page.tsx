@@ -2341,8 +2341,8 @@ export default function RestaurantMenuCheckoutPage({
       {/* Payment modal */}
       {clientSecret ? (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative mx-4 w-full max-w-md rounded-2xl border border-stone-200 bg-white shadow-2xl">
-            <div className="border-b border-stone-200 px-6 py-4">
+          <div className="relative mx-4 flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl border border-stone-200 bg-white shadow-2xl">
+            <div className="shrink-0 border-b border-stone-200 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-bold tracking-tight text-slate-950">Payment</h3>
@@ -2363,21 +2363,19 @@ export default function RestaurantMenuCheckoutPage({
                 </button>
               </div>
             </div>
-            <div className="px-6 py-5">
-              <StripePaymentProvider clientSecret={clientSecret}>
-                <StripePaymentSection
-                  total={pendingOrderData?.total ?? total}
-                  onSuccess={() =>
-                    navigateToSuccess(
-                      pendingOrderData?.orderNumber,
-                      pendingOrderData?.total,
-                    )
-                  }
-                  onError={(message) => setCheckoutError(message)}
-                  onProcessingChange={setIsPaymentProcessing}
-                />
-              </StripePaymentProvider>
-            </div>
+            <StripePaymentProvider clientSecret={clientSecret}>
+              <StripePaymentSection
+                total={pendingOrderData?.total ?? total}
+                onSuccess={() =>
+                  navigateToSuccess(
+                    pendingOrderData?.orderNumber,
+                    pendingOrderData?.total,
+                  )
+                }
+                onError={(message) => setCheckoutError(message)}
+                onProcessingChange={setIsPaymentProcessing}
+              />
+            </StripePaymentProvider>
           </div>
         </div>
       ) : null}

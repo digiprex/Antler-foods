@@ -99,6 +99,25 @@ const UPDATE_ORDER_PAYMENT = `
   }
 `;
 
+const UPDATE_DELIVERY_QUOTE_CUSTOMER = `
+  mutation UpdateDeliveryQuoteCustomer($delivery_quote_id: uuid!, $customer_id: uuid!) {
+    update_delivery_quotes_by_pk(
+      pk_columns: { delivery_quote_id: $delivery_quote_id },
+      _set: { customer_id: $customer_id }
+    ) {
+      delivery_quote_id
+    }
+  }
+`;
+
+const INSERT_CUSTOMER_DELIVERY_ADDRESS = `
+  mutation InsertCustomerDeliveryAddress($object: customer_delivery_addresses_insert_input!) {
+    insert_customer_delivery_addresses_one(object: $object) {
+      id
+    }
+  }
+`;
+
 const INSERT_ORDER_ITEMS = `
   mutation InsertOrderItems($objects: [order_items_insert_input!]!) {
     insert_order_items(objects: $objects) {
@@ -630,6 +649,40 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
 
   if (!insertOrderItemsData.insert_order_items?.affected_rows) {
     throw new MenuOrderError(500, 'Order items could not be created.');
+  }
+
+  if (deliveryQuoteId && customerId) {
+    try {
+      await adminGraphqlRequest(UPDATE_DELIVERY_QUOTE_CUSTOMER, {
+        delivery_quote_id: deliveryQuoteId,
+        customer_id: customerId,
+      });
+    } catch (err) {
+      console.error('[Menu Orders] Failed to update delivery quote customer_id:', err);
+    }
+  }
+
+  if (fulfillmentType === 'delivery' && customerId && deliveryAddress) {
+    const deliveryData = input.deliveryAddressData;
+    try {
+      await adminGraphqlRequest(INSERT_CUSTOMER_DELIVERY_ADDRESS, {
+        object: {
+          customer_id: customerId,
+          restaurant_id: restaurantId,
+          address: deliveryAddress,
+          street: trimText(deliveryData?.addressLine1) || null,
+          city: trimText(deliveryData?.city) || null,
+          state: trimText(deliveryData?.state) || null,
+          country: trimText(deliveryData?.countryCode) || null,
+          house_no: trimText(deliveryData?.houseFlatFloor) || null,
+          zip_code: trimText(deliveryData?.postalCode) || null,
+          saved_as: trimText(deliveryData?.label) || null,
+          nearby_landmark: trimText(deliveryData?.landmark) || null,
+        },
+      });
+    } catch (err) {
+      console.error('[Menu Orders] Failed to save customer delivery address:', err);
+    }
   }
 
   return {

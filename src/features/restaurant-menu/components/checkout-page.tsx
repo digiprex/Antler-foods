@@ -1726,14 +1726,15 @@ export default function RestaurantMenuCheckoutPage({
                       >
                         Create account
                       </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="inline-flex h-9 items-center justify-center rounded-lg border border-stone-200 bg-white px-4 text-xs font-semibold text-stone-600 transition hover:bg-stone-50 active:scale-[0.97]"
-                    >
-                      Log out
-                    </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-stone-200 bg-white px-4 text-xs font-semibold text-stone-600 transition hover:bg-stone-50 active:scale-[0.97]"
+                      >
+                        Log out
+                      </button>
+                    )}
                   </div>
                 </div>
               </section>
@@ -1749,27 +1750,13 @@ export default function RestaurantMenuCheckoutPage({
                 </div>
                 <div className="ml-3.5 border-l-2 border-stone-200 pl-6">
                   <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="space-y-3.5">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-100">
-                          <MapPinIcon className="h-4 w-4 text-stone-600" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium uppercase tracking-wider text-stone-400">Pickup from</p>
-                          <p className="mt-0.5 text-sm font-medium text-slate-900">
-                            {selectedLocation?.fullAddress || 'Location unavailable'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-100">
-                          <ClockIcon className="h-4 w-4 text-stone-600" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium uppercase tracking-wider text-stone-400">Schedule</p>
-                          <p className="mt-0.5 text-sm font-medium text-slate-900">{scheduleLabel}</p>
-                        </div>
-                      </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-900">
+                      <MapPinIcon className="h-4 w-4 shrink-0 text-stone-400" />
+                      <span className="font-medium">{selectedLocation?.fullAddress || 'Location unavailable'}</span>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2 text-sm text-slate-900">
+                      <ClockIcon className="h-4 w-4 shrink-0 text-stone-400" />
+                      <span className="font-medium">{scheduleLabel}</span>
                     </div>
                   </div>
                 </div>
@@ -2268,40 +2255,24 @@ export default function RestaurantMenuCheckoutPage({
               </div>
             ) : null}
 
-            {clientSecret ? (
-              <StripePaymentProvider clientSecret={clientSecret}>
-                <StripePaymentSection
-                  total={pendingOrderData?.total ?? total}
-                  onSuccess={() =>
-                    navigateToSuccess(
-                      pendingOrderData?.orderNumber,
-                      pendingOrderData?.total,
-                    )
-                  }
-                  onError={(message) => setCheckoutError(message)}
-                  onProcessingChange={setIsPaymentProcessing}
-                />
-              </StripePaymentProvider>
-            ) : (
-              <div className="space-y-4 pb-10">
-                <button
-                  type="button"
-                  onClick={handlePlaceOrder}
-                  disabled={isPlacingOrder || (fulfillmentMode === 'delivery' && (isCheckingDeliveryQuote || !deliveryQuote))}
-                  className="relative flex h-[3.25rem] w-full items-center justify-center gap-2.5 rounded-xl bg-slate-900 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none active:scale-[0.98] sm:max-w-xs"
-                >
-                  <ShieldIcon className="h-4 w-4" />
-                  {isPlacingOrder
-                    ? 'Placing order...'
-                    : fulfillmentMode === 'delivery' && isCheckingDeliveryQuote
-                      ? 'Checking delivery...'
-                      : `Continue to payment \u00B7 ${formatPrice(total)}`}
-                </button>
-                <p className="max-w-sm text-xs leading-5 text-stone-400">
-                  By placing your order you agree to receive transactional order updates and marketing communications.
-                </p>
-              </div>
-            )}
+            <div className="space-y-4 pb-10">
+              <button
+                type="button"
+                onClick={handlePlaceOrder}
+                disabled={isPlacingOrder || (fulfillmentMode === 'delivery' && (isCheckingDeliveryQuote || !deliveryQuote))}
+                className="relative flex h-[3.25rem] w-full items-center justify-center gap-2.5 rounded-xl bg-slate-900 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none active:scale-[0.98] sm:max-w-xs"
+              >
+                <ShieldIcon className="h-4 w-4" />
+                {isPlacingOrder
+                  ? 'Preparing checkout...'
+                  : fulfillmentMode === 'delivery' && isCheckingDeliveryQuote
+                    ? 'Checking delivery...'
+                    : `Continue to payment \u00B7 ${formatPrice(total)}`}
+              </button>
+              <p className="max-w-sm text-xs leading-5 text-stone-400">
+                By placing your order you agree to receive transactional order updates and marketing communications.
+              </p>
+            </div>
           </div>
 
           <aside className="hidden lg:block lg:h-full lg:overflow-y-auto lg:rounded-2xl lg:border lg:border-stone-200 lg:bg-white lg:shadow-sm lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
@@ -2367,6 +2338,48 @@ export default function RestaurantMenuCheckoutPage({
         onAuthenticatedCustomer={applyCustomerProfile}
       />
 
+      {/* Payment modal */}
+      {clientSecret ? (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="relative mx-4 flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl border border-stone-200 bg-white shadow-2xl">
+            <div className="shrink-0 border-b border-stone-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold tracking-tight text-slate-950">Payment</h3>
+                  <p className="mt-0.5 text-sm text-stone-500">
+                    Order {pendingOrderData?.orderNumber ? `#${pendingOrderData.orderNumber}` : ''} &middot; {formatPrice(pendingOrderData?.total ?? total)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClientSecret(null);
+                    setPendingOrderData(null);
+                  }}
+                  disabled={isPaymentProcessing}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-stone-400 transition hover:bg-stone-100 hover:text-stone-600 disabled:opacity-50"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+            <StripePaymentProvider clientSecret={clientSecret}>
+              <StripePaymentSection
+                total={pendingOrderData?.total ?? total}
+                onSuccess={() =>
+                  navigateToSuccess(
+                    pendingOrderData?.orderNumber,
+                    pendingOrderData?.total,
+                  )
+                }
+                onError={(message) => setCheckoutError(message)}
+                onProcessingChange={setIsPaymentProcessing}
+              />
+            </StripePaymentProvider>
+          </div>
+        </div>
+      ) : null}
+
       {/* Full-page processing overlay */}
       {(isPlacingOrder || isPaymentProcessing) ? (
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
@@ -2377,7 +2390,7 @@ export default function RestaurantMenuCheckoutPage({
             </div>
             <div className="text-center">
               <p className="text-lg font-semibold tracking-tight text-slate-950">
-                {isPaymentProcessing ? 'Processing payment...' : 'Placing your order...'}
+                {isPaymentProcessing ? 'Processing payment...' : 'Preparing checkout...'}
               </p>
               <p className="mt-1.5 text-sm text-stone-500">
                 Please do not close or refresh this page.

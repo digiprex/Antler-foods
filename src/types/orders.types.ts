@@ -44,6 +44,14 @@ export interface Order {
   delivery_instructions?: string | null;
   delivery_address_label?: string | null;
   delivery_address_source?: string | null;
+  delivery_provider?: string | null;
+  delivery_provider_delivery_id?: string | null;
+  delivery_tracking_url?: string | null;
+  delivery_dispatch_status?: string | null;
+  delivery_dispatched_at?: string | null;
+  delivery_last_status_at?: string | null;
+  delivery_error?: string | null;
+  delivery_quote?: string | null;
   placed_at?: string | null;
   order_number?: string | null;
   payment_method?: string | null;

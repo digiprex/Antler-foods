@@ -1,6 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/server/stripe';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { sendOrderInvoiceEmail } from '@/lib/server/email';
+
+const GET_ORDER_FOR_INVOICE = `
+  query GetOrderForInvoice($order_id: uuid!) {
+    orders_by_pk(order_id: $order_id) {
+      order_id
+      order_number
+      created_at
+      status
+      sub_total
+      cart_total
+      coupon_used
+      gift_card_used
+      fulfillment_type
+      payment_status
+      payment_method
+      contact_first_name
+      contact_last_name
+      contact_email
+      contact_phone
+      scheduled_for
+      tax_total
+      tip_total
+      discount_total
+      order_note
+      delivery_address
+      placed_at
+      restaurant_id
+      offer_applied
+    }
+  }
+`;
+
+const GET_ORDER_ITEMS_FOR_INVOICE = `
+  query GetOrderItemsForInvoice($order_id: uuid!) {
+    order_items(
+      where: { order_id: { _eq: $order_id }, is_deleted: { _eq: false } }
+      order_by: { created_at: asc }
+    ) {
+      item_name
+      item_price
+      quantity
+      line_total
+      selected_modifiers
+      base_item_price
+      modifier_total
+      item_note
+    }
+  }
+`;
+
+const GET_RESTAURANT_NAME = `
+  query GetRestaurantName($restaurant_id: uuid!) {
+    restaurants_by_pk(restaurant_id: $restaurant_id) {
+      name
+    }
+  }
+`;
 
 const UPDATE_ORDER_PAYMENT_STATUS = `
   mutation UpdateOrderPaymentStatus($order_id: uuid!, $payment_status: String!, $payment_reference: String) {
@@ -50,6 +108,38 @@ export async function POST(request: NextRequest) {
         payment_status: 'paid',
         payment_reference: paymentIntent.id,
       });
+
+      // Send order confirmation email
+      try {
+        const orderData = await adminGraphqlRequest<{
+          orders_by_pk: Record<string, unknown> | null;
+        }>(GET_ORDER_FOR_INVOICE, { order_id: orderId });
+
+        const order = orderData.orders_by_pk;
+        const contactEmail = typeof order?.contact_email === 'string' ? order.contact_email.trim() : '';
+
+        if (order && contactEmail) {
+          const itemsData = await adminGraphqlRequest<{
+            order_items: Array<Record<string, unknown>>;
+          }>(GET_ORDER_ITEMS_FOR_INVOICE, { order_id: orderId });
+
+          let restaurantName = '';
+          if (order.restaurant_id) {
+            const restData = await adminGraphqlRequest<{
+              restaurants_by_pk: { name: string } | null;
+            }>(GET_RESTAURANT_NAME, { restaurant_id: order.restaurant_id });
+            restaurantName = restData.restaurants_by_pk?.name || '';
+          }
+
+          await sendOrderInvoiceEmail(contactEmail, {
+            order,
+            items: itemsData.order_items || [],
+            restaurantName,
+          });
+        }
+      } catch (emailError) {
+        console.error('[Stripe Webhook] Order confirmation email failed:', emailError);
+      }
     }
   }
 

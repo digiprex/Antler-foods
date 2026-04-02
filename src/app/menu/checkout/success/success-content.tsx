@@ -50,6 +50,9 @@ interface OrderData {
   placed_at: string | null;
   restaurant_id: string | null;
   restaurant_name: string;
+  delivery_provider: string | null;
+  delivery_tracking_url: string | null;
+  delivery_dispatch_status: string | null;
   offer_applied: {
     type: 'auto_offer';
     code?: string | null;
@@ -193,6 +196,8 @@ export default function MenuCheckoutSuccessContent() {
   const schedule = searchParams?.get('schedule') || '';
   const placedAt = formatDate(order?.placed_at ?? null);
   const orderNote = order?.order_note || '';
+  const isDeliveryOrder = fulfillmentLabel === 'Delivery';
+  const deliveryTrackingUrl = order?.delivery_tracking_url || null;
 
   const handleDownloadInvoice = () => {
     const doc = generateInvoicePDF({
@@ -343,10 +348,15 @@ export default function MenuCheckoutSuccessContent() {
                 {phone ? <p>{phone}</p> : null}
               </div>
             ) : null}
+          </div>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-600 sm:text-[15px]">
-              {restaurantName
-                ? `We have sent your order to ${restaurantName}. The restaurant will take it from here.`
-                : 'We have received your order and the restaurant will take it from here.'}
+              {isDeliveryOrder
+                ? restaurantName
+                  ? `We have sent your order to ${restaurantName}. Delivery details will be shared by email shortly.`
+                  : 'We have received your delivery order. Delivery details will be shared by email shortly.'
+                : restaurantName
+                  ? `We have sent your order to ${restaurantName}. The restaurant will take it from here.`
+                  : 'We have received your order and the restaurant will take it from here.'}
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
@@ -355,9 +365,23 @@ export default function MenuCheckoutSuccessContent() {
               <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
                 Payment: {formatStatus(order?.payment_status)}
               </span>
+              {order?.delivery_dispatch_status ? (
+                <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
+                  Delivery: {formatStatus(order.delivery_dispatch_status)}
+                </span>
+              ) : null}
             </div>
-          </div>
-
+            {deliveryTrackingUrl ? (
+              <div className="mt-5">
+                <a
+                  href={deliveryTrackingUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-11 items-center justify-center rounded-[14px] border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-950 transition hover:bg-slate-50">
+                  Track delivery
+                </a>
+              </div>
+            ) : null}
           <div className="px-1 py-1 sm:px-2">
             {/* Order info cards */}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -629,3 +653,5 @@ export default function MenuCheckoutSuccessContent() {
     </div>
   );
 }
+
+

@@ -13,6 +13,8 @@ interface FulfillmentSelectorProps {
   pickupAllowed?: boolean;
   deliveryAllowed?: boolean;
   locationLabel?: string;
+  pickupLocationName?: string;
+  pickupScheduleLabel?: string;
   deliveryAddress: string;
   onModeSelect: (mode: FulfillmentMode) => void;
   onOpenSchedule?: () => void;
@@ -25,6 +27,8 @@ export function FulfillmentSelector({
   pickupAllowed = true,
   deliveryAllowed = true,
   locationLabel,
+  pickupLocationName,
+  pickupScheduleLabel,
   deliveryAddress,
   onModeSelect,
   onOpenSchedule,
@@ -70,17 +74,14 @@ export function FulfillmentSelector({
             onClick={onOpenSchedule}
             className="flex min-h-[3.9rem] w-full items-center justify-between gap-3 rounded-[20px] border border-stone-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-stone-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
           >
-            <span className="flex min-w-0 items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-100 text-stone-900">
-                <MapPinIcon className="h-4 w-4" />
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-2 text-sm font-semibold text-stone-900">
+                <MapPinIcon className="h-4 w-4 shrink-0 text-stone-400" />
+                <span className="truncate">{pickupLocationName || 'Select pickup location'}</span>
               </span>
-              <span className="min-w-0">
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-                  Pickup details
-                </span>
-                <span className="mt-0.5 block truncate text-sm font-semibold text-stone-900">
-                  {locationLabel || 'Select pickup date and time'}
-                </span>
+              <span className="mt-1.5 flex items-center gap-2 text-sm font-semibold text-stone-900">
+                <svg className="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span className="truncate">{pickupScheduleLabel || 'Select date and time'}</span>
               </span>
             </span>
             <ChevronDownIcon className="h-4 w-4 shrink-0 text-stone-500" />
@@ -125,17 +126,14 @@ export function FulfillmentSelector({
           onClick={onOpenSchedule}
           className="flex min-h-[3.9rem] w-full items-center justify-between gap-3 rounded-[20px] border border-stone-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-stone-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
         >
-          <span className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-100 text-stone-900">
-              <MapPinIcon className="h-4 w-4" />
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2 text-sm font-semibold text-stone-900">
+              <MapPinIcon className="h-4 w-4 shrink-0 text-stone-400" />
+              <span className="truncate">{pickupLocationName || 'Select pickup location'}</span>
             </span>
-            <span className="min-w-0">
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-                Pickup details
-              </span>
-              <span className="mt-0.5 block truncate text-sm font-semibold text-stone-900">
-                {locationLabel || 'Select pickup date and time'}
-              </span>
+            <span className="mt-1.5 flex items-center gap-2 text-sm font-semibold text-stone-900">
+              <svg className="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span className="truncate">{pickupScheduleLabel || 'Select date and time'}</span>
             </span>
           </span>
           <ChevronDownIcon className="h-4 w-4 shrink-0 text-stone-500" />

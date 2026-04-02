@@ -430,23 +430,18 @@ export async function continueAsGuestMenuCustomer(input: CustomerIdentityInput) 
   const displayName = requireDisplayName(input.firstName, input.lastName, email);
   const existing = await findCustomerByEmail(restaurantId, email);
 
-  if (existing && existing.is_guest !== true) {
-    throw new MenuCustomerAuthError(
-      409,
-      'This email already has an account for this restaurant. Please sign in.',
-    );
-  }
-
   if (existing) {
-    return toMenuCustomerSession(
+    const session = toMenuCustomerSession(
       await updateCustomer(existing.customer_id || '', {
         email,
         phone,
         displayName,
-        passwordHash: null,
-        isGuest: true,
+        passwordHash: existing.is_guest ? null : (existing.password_hash || null),
+        isGuest: existing.is_guest ?? true,
       }),
     );
+    session.isGuest = true;
+    return session;
   }
 
   return toMenuCustomerSession(

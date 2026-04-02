@@ -99,6 +99,25 @@ const UPDATE_ORDER_PAYMENT = `
   }
 `;
 
+const UPDATE_DELIVERY_QUOTE_CUSTOMER = `
+  mutation UpdateDeliveryQuoteCustomer($delivery_quote_id: uuid!, $customer_id: uuid!) {
+    update_delivery_quotes_by_pk(
+      pk_columns: { delivery_quote_id: $delivery_quote_id },
+      _set: { customer_id: $customer_id }
+    ) {
+      delivery_quote_id
+    }
+  }
+`;
+
+const INSERT_CUSTOMER_DELIVERY_ADDRESS = `
+  mutation InsertCustomerDeliveryAddress($object: customer_delivery_addresses_insert_input!) {
+    insert_customer_delivery_addresses_one(object: $object) {
+      id
+    }
+  }
+`;
+
 const INSERT_ORDER_ITEMS = `
   mutation InsertOrderItems($objects: [order_items_insert_input!]!) {
     insert_order_items(objects: $objects) {
@@ -230,6 +249,10 @@ interface PlaceMenuOrderInput {
   contact: OrderContactInput;
   items: OrderCartItemInput[];
   tipAmount?: number;
+  deliveryFeeAmount?: number | null;
+  deliveryProvider?: string | null;
+  deliveryQuote?: string | null;
+  deliveryQuoteId?: string | null;
   couponCode?: string | null;
   giftCardCode?: string | null;
   orderNote?: string | null;
@@ -239,6 +262,7 @@ export interface PlaceMenuOrderResult {
   orderId: string;
   orderNumber: string;
   subtotal: number;
+  deliveryFee: number;
   taxTotal: number;
   tipTotal: number;
   discountTotal: number;
@@ -305,9 +329,19 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
   const contact = normalizeContact(input.contact);
   const items = normalizeCartItems(input.items);
   const tipAmount = nonNegativeCurrency(input.tipAmount ?? 0, 'Tip amount is invalid.');
+  const deliveryFeeAmount = nonNegativeCurrency(
+    input.deliveryFeeAmount ?? 0,
+    'Delivery fee amount is invalid.',
+  );
   const orderNote = trimText(input.orderNote);
   const deliveryAddress = trimText(input.deliveryAddress);
   const placedAt = new Date();
+  const deliveryProvider =
+    fulfillmentType === 'delivery' ? trimText(input.deliveryProvider) : null;
+  const deliveryQuote =
+    fulfillmentType === 'delivery' ? trimText(input.deliveryQuote) : null;
+  const deliveryQuoteId =
+    fulfillmentType === 'delivery' ? trimText(input.deliveryQuoteId) : null;
   const scheduledFor = resolveScheduledFor(input.scheduleDayId, input.scheduleTime, placedAt);
 
   if (fulfillmentType === 'delivery' && !deliveryAddress) {
@@ -494,7 +528,9 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
 
   const orderDiscountTotal =
     appliedCoupon?.discountAmount || appliedAutoOffer?.discountAmount || 0;
-  const preGiftCardTotal = roundCurrency(subtotal + tipAmount - orderDiscountTotal);
+  const preGiftCardTotal = roundCurrency(
+    subtotal + deliveryFeeAmount + tipAmount - orderDiscountTotal,
+  );
 
   // Only store auto offers in offer_applied (not coupons or gift cards)
   const storedOfferApplied = appliedAutoOffer
@@ -580,6 +616,11 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       delivery_instructions: fulfillmentType === 'delivery' && deliveryData?.instructions ? deliveryData.instructions : null,
       delivery_address_label: fulfillmentType === 'delivery' && deliveryData?.label ? deliveryData.label : null,
       delivery_address_source: fulfillmentType === 'delivery' && deliveryData?.source ? deliveryData.source : null,
+      delivery_provider: deliveryProvider,
+      delivery_dispatch_status:
+        fulfillmentType === 'delivery' && deliveryProvider ? 'pending_ready' : null,
+      delivery_quote: deliveryQuote,
+      delivery_quote_id: deliveryQuoteId,
       placed_at: placedAt.toISOString(),
       order_number: orderNumber,
     },
@@ -610,10 +651,45 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     throw new MenuOrderError(500, 'Order items could not be created.');
   }
 
+  if (deliveryQuoteId && customerId) {
+    try {
+      await adminGraphqlRequest(UPDATE_DELIVERY_QUOTE_CUSTOMER, {
+        delivery_quote_id: deliveryQuoteId,
+        customer_id: customerId,
+      });
+    } catch (err) {
+      console.error('[Menu Orders] Failed to update delivery quote customer_id:', err);
+    }
+  }
+
+  if (fulfillmentType === 'delivery' && customerId && deliveryAddress) {
+    const deliveryData = input.deliveryAddressData;
+    try {
+      await adminGraphqlRequest(INSERT_CUSTOMER_DELIVERY_ADDRESS, {
+        object: {
+          customer_id: customerId,
+          restaurant_id: restaurantId,
+          address: deliveryAddress,
+          street: trimText(deliveryData?.addressLine1) || null,
+          city: trimText(deliveryData?.city) || null,
+          state: trimText(deliveryData?.state) || null,
+          country: trimText(deliveryData?.countryCode) || null,
+          house_no: trimText(deliveryData?.houseFlatFloor) || null,
+          zip_code: trimText(deliveryData?.postalCode) || null,
+          saved_as: trimText(deliveryData?.label) || null,
+          nearby_landmark: trimText(deliveryData?.landmark) || null,
+        },
+      });
+    } catch (err) {
+      console.error('[Menu Orders] Failed to save customer delivery address:', err);
+    }
+  }
+
   return {
     orderId,
     orderNumber,
     subtotal,
+    deliveryFee: deliveryFeeAmount,
     taxTotal,
     tipTotal: tipAmount,
     discountTotal,
@@ -826,6 +902,7 @@ function roundCurrency(value: number) {
 function trimText(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
+
 
 
 

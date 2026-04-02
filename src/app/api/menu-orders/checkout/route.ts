@@ -56,6 +56,13 @@ interface CheckoutOrderRequestBody {
     }>;
   }> | null;
   tipAmount?: number;
+  deliveryQuote?: {
+    id?: string | null;
+    provider?: string;
+    quoteId?: string;
+    deliveryFee?: number;
+    etaMinutes?: number | null;
+  } | null;
   couponCode?: string | null;
   giftCardCode?: string | null;
   orderNote?: string | null;
@@ -103,6 +110,10 @@ export async function POST(request: NextRequest) {
         selectedAddOns: item.selectedAddOns,
       })),
       tipAmount: body?.tipAmount,
+      deliveryFeeAmount: body?.deliveryQuote?.deliveryFee,
+      deliveryProvider: body?.deliveryQuote?.provider || null,
+      deliveryQuote: body?.deliveryQuote?.quoteId || null,
+      deliveryQuoteId: body?.deliveryQuote?.id || null,
       couponCode: body?.couponCode,
       giftCardCode: body?.giftCardCode,
       orderNote: body?.orderNote,
@@ -142,3 +153,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

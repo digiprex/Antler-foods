@@ -57,6 +57,7 @@ interface CheckoutOrderRequestBody {
   }> | null;
   tipAmount?: number;
   deliveryQuote?: {
+    id?: string | null;
     provider?: string;
     quoteId?: string;
     deliveryFee?: number;
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
       deliveryFeeAmount: body?.deliveryQuote?.deliveryFee,
       deliveryProvider: body?.deliveryQuote?.provider || null,
       deliveryQuote: body?.deliveryQuote?.quoteId || null,
+      deliveryQuoteId: body?.deliveryQuote?.id || null,
       couponCode: body?.couponCode,
       giftCardCode: body?.giftCardCode,
       orderNote: body?.orderNote,

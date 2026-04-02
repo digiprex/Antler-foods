@@ -2,14 +2,11 @@ import 'server-only';
 
 import crypto from 'crypto';
 
-type UberStoreMap = Record<string, string>;
-
 interface UberDirectConfig {
   clientId: string;
   clientSecret: string;
   customerId: string | null;
-  defaultStoreId: string | null;
-  storeMap: UberStoreMap;
+  pickupPhoneNumber: string | null;
   currencyCode: string;
   pickupInstructions: string | null;
   defaultPhoneCountryCode: string;
@@ -36,8 +33,15 @@ export interface UberDropoffAddressInput {
   instructions?: string | null;
 }
 
+export interface UberPickupInput {
+  address: string;
+  name?: string | null;
+  phoneNumber?: string | null;
+}
+
 export interface UberQuoteRequestInput extends UberDeliveryContext {
   orderValue: number;
+  pickup: UberPickupInput;
   dropoffAddress: UberDropoffAddressInput;
 }
 
@@ -49,12 +53,14 @@ export interface UberQuoteResult {
   etaMinutes: number | null;
   pickupAt: number;
   expiresAt: number | null;
+  rawPayload: unknown;
 }
 
 export interface UberDispatchInput extends UberDeliveryContext {
   externalOrderId: string;
   orderValue: number;
   externalUserId?: string | null;
+  pickup: UberPickupInput;
   orderItems: Array<{
     name: string;
     quantity: number;
@@ -117,96 +123,87 @@ let accessTokenCache:
     }
   | null = null;
 
-const UBER_API_BASE_URL = 'https://api.uber.com';
-const UBER_AUTH_URL = 'https://auth.uber.com/oauth/v2/token';
+const UBER_API_BASE_URL =
+  process.env.UBER_DIRECT_API_BASE_URL || 'https://api.uber.com';
+const UBER_AUTH_URL =
+  process.env.UBER_DIRECT_AUTH_URL || 'https://login.uber.com/oauth/v2/token';
 const DEFAULT_CURRENCY_CODE = 'USD';
 const DEFAULT_PHONE_COUNTRY_CODE = '+1';
 const ASAP_PICKUP_AT = 0;
 
 export function isUberDirectConfigured() {
   const config = readUberDirectConfig();
-  return Boolean(config.clientId && config.clientSecret);
+  return Boolean(config.clientId && config.clientSecret && config.customerId);
 }
 
 export function getUberDirectCustomerId() {
   return readUberDirectConfig().customerId;
 }
 
-export function resolveUberStoreId(context: UberDeliveryContext) {
-  const config = readUberDirectConfig();
-  const locationId = normalizeText(context.locationId);
-  const restaurantId = normalizeText(context.restaurantId);
-
-  const candidates = [
-    locationId && restaurantId ? `${restaurantId}:${locationId}` : null,
-    locationId,
-    restaurantId,
-  ].filter((value): value is string => Boolean(value));
-
-  for (const candidate of candidates) {
-    const mapped = normalizeText(config.storeMap[candidate]);
-    if (mapped) {
-      return mapped;
-    }
-  }
-
-  return config.defaultStoreId;
-}
 
 export async function quoteUberDirectDelivery(
   input: UberQuoteRequestInput,
 ): Promise<UberQuoteResult> {
-  const storeId = resolveRequiredStoreId(input);
   const config = readUberDirectConfig();
-  const token = await getUberDirectAccessToken();
 
-  const body = {
-    pickup: {
-      store_id: storeId,
-    },
-    dropoff_address: buildUberAddress(input.dropoffAddress),
-    order_summary: {
-      order_value: toMinorUnits(input.orderValue, config.currencyCode),
-      currency_code: config.currencyCode,
-    },
-    pickup_times: [ASAP_PICKUP_AT],
+  if (!config.customerId) {
+    throw new Error('UBER_DIRECT_CUSTOMER_ID is required for Uber Direct API calls.');
+  }
+
+  const pickupAddress = normalizeText(input.pickup.address);
+  if (!pickupAddress) {
+    throw new Error('A pickup address is required for Uber Direct.');
+  }
+
+  const quoteUrl = `${UBER_API_BASE_URL}/v1/customers/${config.customerId}/delivery_quotes`;
+
+  const dropoffAddress = normalizeText(input.dropoffAddress.formattedAddress);
+  if (!dropoffAddress) {
+    throw new Error('A formatted delivery address is required for Uber Direct.');
+  }
+
+  const body: Record<string, unknown> = {
+    pickup_address: pickupAddress,
+    dropoff_address: dropoffAddress,
   };
 
-  const response = await fetch(`${UBER_API_BASE_URL}/v1/eats/deliveries/estimates`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-    cache: 'no-store',
-  });
+  if (typeof input.dropoffAddress.latitude === 'number' && typeof input.dropoffAddress.longitude === 'number') {
+    body.dropoff_latitude = input.dropoffAddress.latitude;
+    body.dropoff_longitude = input.dropoffAddress.longitude;
+  }
 
-  const payload = await parseJson(response);
+  const { response, payload } = await uberApiFetch(quoteUrl, config, body);
+
   if (!response.ok) {
+    console.error('[Uber Direct Quote] Estimate request failed:', {
+      url: quoteUrl,
+      customerId: config.customerId.slice(0, 8) + '...',
+      status: response.status,
+      body: JSON.stringify(payload),
+    });
     throw new Error(readUberError(payload) || 'Uber Direct quote request failed.');
   }
 
-  const estimateId = normalizeText(payload?.estimate_id);
-  if (!estimateId) {
-    throw new Error('Uber Direct quote did not return an estimate id.');
+  const quoteId = normalizeText(payload?.id);
+  if (!quoteId) {
+    throw new Error('Uber Direct quote did not return a quote id.');
   }
 
-  const estimate = Array.isArray(payload?.estimates) ? payload.estimates[0] : null;
-  const deliveryFee = estimate?.delivery_fee;
-  const totalMinor = numberOrNull(deliveryFee?.total) ?? 0;
-  const etaMinutes = deriveEtaMinutes(payload, estimate);
+  const feeMinor = numberOrNull(payload?.fee) ?? 0;
+  const etaMinutes = deriveEtaMinutes(payload);
 
   return {
-    quoteId: estimateId,
-    fee: fromMinorUnits(totalMinor),
-    feeMinor: totalMinor,
+    quoteId,
+    fee: fromMinorUnits(feeMinor),
+    feeMinor,
     currencyCode:
-      normalizeText(deliveryFee?.currency_code) ||
+      normalizeText(payload?.currency_type) ||
+      normalizeText(payload?.currency) ||
       config.currencyCode,
     etaMinutes,
-    pickupAt: numberOrNull(estimate?.pickup_at) ?? ASAP_PICKUP_AT,
-    expiresAt: numberOrNull(payload?.expires_at),
+    pickupAt: numberOrNull(payload?.pickup_duration) ?? ASAP_PICKUP_AT,
+    expiresAt: payload?.expire_time ? Math.floor(new Date(payload.expire_time).getTime() / 1000) : null,
+    rawPayload: payload,
   };
 }
 
@@ -214,83 +211,86 @@ export async function createUberDirectDelivery(
   input: UberDispatchInput,
 ): Promise<UberDispatchResult> {
   const config = readUberDirectConfig();
-  const storeId = resolveRequiredStoreId(input);
+
+  if (!config.customerId) {
+    throw new Error('UBER_DIRECT_CUSTOMER_ID is required for Uber Direct API calls.');
+  }
+
+  const pickupAddress = normalizeText(input.pickup.address);
+  if (!pickupAddress) {
+    throw new Error('A pickup address is required for Uber Direct.');
+  }
+
   const quote = await quoteUberDirectDelivery({
     restaurantId: input.restaurantId,
     locationId: input.locationId,
     orderValue: input.orderValue,
+    pickup: input.pickup,
     dropoffAddress: input.dropoffAddress,
   });
-  const token = await getUberDirectAccessToken();
 
-  const body = {
-    estimate_id: quote.quoteId,
-    pickup_at: input.pickupAt ?? quote.pickupAt,
-    external_order_id: input.externalOrderId,
-    pickup: {
-      store_id: storeId,
-      instructions: config.pickupInstructions,
-    },
-    dropoff: {
-      address: buildUberAddress(input.dropoffAddress),
-      instructions: normalizeText(input.dropoffAddress.instructions),
-      contact: {
-        first_name: input.dropoffContact.firstName,
-        last_name: input.dropoffContact.lastName,
-        email: normalizeText(input.dropoffContact.email) || undefined,
-        phone: normalizePhoneForUber(input.dropoffContact.phone, config.defaultPhoneCountryCode),
-      },
-    },
-    order_items: input.orderItems.map((item) => ({
+  const deliveryUrl = `${UBER_API_BASE_URL}/v1/customers/${config.customerId}/deliveries`;
+
+  const dropoffAddress = normalizeText(input.dropoffAddress.formattedAddress);
+  if (!dropoffAddress) {
+    throw new Error('A formatted delivery address is required for Uber Direct.');
+  }
+
+  const pickupPhone = normalizeText(input.pickup.phoneNumber) || config.pickupPhoneNumber;
+
+  const body: Record<string, unknown> = {
+    quote_id: quote.quoteId,
+    pickup_name: normalizeText(input.pickup.name) || 'Restaurant',
+    pickup_address: pickupAddress,
+    pickup_phone_number: pickupPhone
+      ? normalizePhoneForUber(pickupPhone, config.defaultPhoneCountryCode)
+      : normalizePhoneForUber('0000000000', config.defaultPhoneCountryCode),
+    dropoff_name: `${input.dropoffContact.firstName} ${input.dropoffContact.lastName}`.trim(),
+    dropoff_address: dropoffAddress,
+    dropoff_phone_number: normalizePhoneForUber(input.dropoffContact.phone, config.defaultPhoneCountryCode),
+    manifest_items: input.orderItems.map((item) => ({
       name: item.name,
-      description: normalizeText(item.description) || undefined,
       quantity: item.quantity,
-      price: toMinorUnits(item.lineTotal / Math.max(item.quantity, 1), config.currencyCode),
-      currency_code: config.currencyCode,
-      item_type: 'food',
+      size: 'small',
     })),
-    order_summary: {
-      order_value: toMinorUnits(input.orderValue, config.currencyCode),
-      currency_code: config.currencyCode,
-    },
-    external_user_id:
-      normalizeText(input.externalUserId) ||
-      normalizeText(input.dropoffContact.email) ||
-      normalizePhoneForUber(input.dropoffContact.phone, config.defaultPhoneCountryCode),
+    external_id: input.externalOrderId,
   };
 
-  const response = await fetch(`${UBER_API_BASE_URL}/v1/eats/deliveries/orders`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-    cache: 'no-store',
-  });
+  if (config.pickupInstructions) {
+    body.pickup_notes = config.pickupInstructions;
+  }
+  if (normalizeText(input.dropoffAddress.instructions)) {
+    body.dropoff_notes = normalizeText(input.dropoffAddress.instructions);
+  }
 
-  const payload = await parseJson(response);
+  const { response, payload } = await uberApiFetch(deliveryUrl, config, body);
+
   if (!response.ok) {
+    console.error('[Uber Direct Dispatch] Delivery creation failed:', {
+      url: deliveryUrl,
+      status: response.status,
+      body: JSON.stringify(payload),
+    });
     throw new Error(readUberError(payload) || 'Uber Direct dispatch failed.');
   }
 
-  const deliveryId = normalizeText(payload?.order_id);
+  const deliveryId = normalizeText(payload?.id);
   if (!deliveryId) {
     throw new Error('Uber Direct dispatch did not return a delivery id.');
   }
 
-  const feeMinor = numberOrNull(payload?.full_fee?.total);
+  const feeMinor = numberOrNull(payload?.fee);
 
   return {
     deliveryId,
     quoteId: quote.quoteId,
-    trackingUrl:
-      normalizeText(payload?.order_tracking_url) ||
-      normalizeText(payload?.tracking_url) ||
-      null,
+    trackingUrl: normalizeText(payload?.tracking_url) || null,
     fee: feeMinor === null ? null : fromMinorUnits(feeMinor),
     feeMinor,
-    currencyCode: normalizeText(payload?.full_fee?.currency_code) || null,
+    currencyCode:
+      normalizeText(payload?.currency_type) ||
+      normalizeText(payload?.currency) ||
+      null,
   };
 }
 
@@ -355,8 +355,7 @@ function readUberDirectConfig(): UberDirectConfig {
     clientId: requireEnv('UBER_DIRECT_CLIENT_ID'),
     clientSecret: requireEnv('UBER_DIRECT_CLIENT_SECRET'),
     customerId: normalizeText(process.env.UBER_DIRECT_CUSTOMER_ID),
-    defaultStoreId: normalizeText(process.env.UBER_DIRECT_STORE_ID),
-    storeMap: parseStoreMap(process.env.UBER_DIRECT_STORE_MAP),
+    pickupPhoneNumber: normalizeText(process.env.UBER_DIRECT_PICKUP_PHONE),
     currencyCode:
       normalizeText(process.env.UBER_DIRECT_CURRENCY_CODE)?.toUpperCase() ||
       DEFAULT_CURRENCY_CODE,
@@ -374,6 +373,7 @@ async function getUberDirectAccessToken() {
   }
 
   const config = readUberDirectConfig();
+
   const params = new URLSearchParams({
     client_id: config.clientId,
     client_secret: config.clientSecret,
@@ -392,6 +392,7 @@ async function getUberDirectAccessToken() {
 
   const payload = (await parseJson(response)) as UberAccessTokenResponse | null;
   if (!response.ok || !payload?.access_token || !payload.expires_in) {
+    console.error('[Uber Direct Auth] Token request failed:', response.status, readUberError(payload));
     throw new Error(readUberError(payload) || 'Unable to obtain Uber Direct access token.');
   }
 
@@ -403,92 +404,55 @@ async function getUberDirectAccessToken() {
   return accessTokenCache.token;
 }
 
-function buildUberAddress(input: UberDropoffAddressInput) {
-  const formattedAddress = normalizeText(input.formattedAddress);
-  if (!formattedAddress) {
-    throw new Error('A formatted delivery address is required for Uber Direct.');
-  }
-
-  return {
-    formatted_address: formattedAddress,
-    apt_floor_suite: normalizeText(input.houseFlatFloor) || undefined,
-    place: normalizeText(input.placeId)
-      ? {
-          id: normalizeText(input.placeId),
-          provider: 'google_places',
-        }
-      : undefined,
-    location:
-      typeof input.latitude === 'number' && typeof input.longitude === 'number'
-        ? {
-            latitude: input.latitude,
-            longitude: input.longitude,
-          }
-        : undefined,
+async function uberApiFetch(
+  url: string,
+  config: UberDirectConfig,
+  body: unknown,
+): Promise<{ response: Response; payload: any }> {
+  const attempt = async () => {
+    const token = await getUberDirectAccessToken();
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      cache: 'no-store',
+    });
+    return { response: res, payload: await parseJson(res) };
   };
+
+  const first = await attempt();
+  if (first.response.status === 401 && accessTokenCache) {
+    accessTokenCache = null;
+    return attempt();
+  }
+  return first;
 }
 
-function resolveRequiredStoreId(context: UberDeliveryContext) {
-  const storeId = resolveUberStoreId(context);
-  if (!storeId) {
-    throw new Error(
-      'Uber Direct store mapping is missing for this restaurant location. Set UBER_DIRECT_STORE_ID or UBER_DIRECT_STORE_MAP.',
-    );
-  }
 
-  return storeId;
-}
-
-function parseStoreMap(rawValue: string | undefined): UberStoreMap {
-  if (!rawValue?.trim()) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return {};
-    }
-
-    return Object.entries(parsed).reduce<UberStoreMap>((acc, [key, value]) => {
-      const normalizedKey = normalizeText(key);
-      const normalizedValue = normalizeText(value);
-      if (normalizedKey && normalizedValue) {
-        acc[normalizedKey] = normalizedValue;
-      }
-      return acc;
-    }, {});
-  } catch {
-    return {};
-  }
-}
-
-function deriveEtaMinutes(payload: any, estimateOverride?: any) {
-  const estimate = estimateOverride ?? (Array.isArray(payload?.estimates) ? payload.estimates[0] : null);
-  const estimatedAt = numberOrNull(payload?.estimated_at);
-  const estimateEtd = numberOrNull(estimate?.etd);
+function deriveEtaMinutes(payload: any) {
   const pickupDuration = numberOrNull(payload?.pickup_duration);
-  const durationSeconds = numberOrNull(payload?.duration);
-  const dropoffEta = numberOrNull(payload?.dropoff_eta);
+  const durationMinutes = numberOrNull(payload?.duration);
+  const dropoffDeadline = normalizeText(payload?.dropoff_deadline);
+  const dropoffEta = normalizeText(payload?.dropoff_eta);
 
-  if (estimateEtd !== null) {
-    const referenceTime = estimatedAt ?? Date.now();
-    return Math.max(Math.round((estimateEtd - referenceTime) / 60000), 0);
+  if (durationMinutes !== null) {
+    return Math.max(Math.round(durationMinutes), 0);
   }
 
   if (pickupDuration !== null) {
-    return Math.max(Math.round(pickupDuration / 60), 0);
+    return Math.max(Math.round(pickupDuration), 0);
   }
 
-  if (durationSeconds !== null) {
-    return Math.max(Math.round(durationSeconds / 60), 0);
-  }
-
-  if (dropoffEta !== null) {
-    const now = Date.now();
-    return dropoffEta > now
-      ? Math.max(Math.round((dropoffEta - now) / 60000), 0)
-      : Math.max(Math.round(dropoffEta / 60), 0);
+  const etaString = dropoffDeadline || dropoffEta;
+  if (etaString) {
+    const etaTime = new Date(etaString).getTime();
+    if (Number.isFinite(etaTime)) {
+      return Math.max(Math.round((etaTime - Date.now()) / 60000), 0);
+    }
   }
 
   return null;
@@ -529,10 +493,6 @@ function numberOrNull(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function toMinorUnits(value: number, _currencyCode: string) {
-  return Math.round(value * 100);
-}
-
 function fromMinorUnits(value: number) {
   return Math.round(value) / 100;
 }
@@ -561,4 +521,3 @@ function normalizePhoneForUber(value: string, defaultPhoneCountryCode: string) {
   const countryPrefix = defaultPhoneCountryCode.replace(/[^\d+]/g, '');
   return `${countryPrefix}${localDigits}`;
 }
-

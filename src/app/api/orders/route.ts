@@ -94,6 +94,14 @@ const GET_ORDERS_QUERY = `
       discount_total
       order_note
       delivery_address
+      delivery_provider
+      delivery_provider_delivery_id
+      delivery_tracking_url
+      delivery_dispatch_status
+      delivery_dispatched_at
+      delivery_last_status_at
+      delivery_error
+      delivery_quote
       placed_at
       order_number
       payment_method
@@ -156,13 +164,18 @@ const GET_ORDERS_COUNT_QUERY = `
  * GraphQL mutation to update order status
  */
 const UPDATE_ORDER_STATUS_MUTATION = `
-  mutation UpdateOrderStatus($order_id: uuid!, $status: String!, $payment_status: String) {
+  mutation UpdateOrderStatus(
+    $order_id: uuid!
+    $status: String!
+    $payment_status: String
+    $updated_at: timestamptz!
+  ) {
     update_orders_by_pk(
       pk_columns: {order_id: $order_id}
       _set: {
         status: $status
         payment_status: $payment_status
-        updated_at: "now()"
+        updated_at: $updated_at
       }
     ) {
       order_id
@@ -191,6 +204,7 @@ const UPDATE_ORDER_MUTATION = `
     $delivery_address: String
     $payment_method: String
     $payment_reference: String
+    $updated_at: timestamptz!
   ) {
     update_orders_by_pk(
       pk_columns: {order_id: $order_id}
@@ -207,7 +221,7 @@ const UPDATE_ORDER_MUTATION = `
         delivery_address: $delivery_address
         payment_method: $payment_method
         payment_reference: $payment_reference
-        updated_at: "now()"
+        updated_at: $updated_at
       }
     ) {
       order_id
@@ -327,6 +341,7 @@ export async function PUT(request: NextRequest) {
     }
 
     let data;
+    const updatedAt = new Date().toISOString();
 
     if (action === 'update_status') {
       // Quick status update
@@ -342,11 +357,13 @@ export async function PUT(request: NextRequest) {
         order_id,
         status,
         payment_status,
+        updated_at: updatedAt,
       });
     } else {
       // Full order update
       data = await adminGraphqlRequest(UPDATE_ORDER_MUTATION, {
         order_id,
+        updated_at: updatedAt,
         ...updateData,
       });
     }

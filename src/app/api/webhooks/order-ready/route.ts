@@ -52,10 +52,16 @@ const GET_ORDER_ITEMS = `
   }
 `;
 
-const GET_RESTAURANT_NAME = `
-  query GetRestaurantNameForDispatch($restaurant_id: uuid!) {
+const GET_RESTAURANT_FOR_DISPATCH = `
+  query GetRestaurantForDispatch($restaurant_id: uuid!) {
     restaurants_by_pk(restaurant_id: $restaurant_id) {
       name
+      address
+      city
+      state
+      country
+      postal_code
+      phone_number
     }
   }
 `;
@@ -287,6 +293,33 @@ export async function POST(request: NextRequest) {
       throw new Error('Delivery phone number is missing for this order.');
     }
 
+    const restaurantId = normalizeText(order.restaurant_id);
+    const restaurantResult = await adminGraphqlRequest<{
+      restaurants_by_pk?: {
+        name?: string | null;
+        address?: string | null;
+        city?: string | null;
+        state?: string | null;
+        country?: string | null;
+        postal_code?: string | null;
+        phone_number?: string | null;
+      } | null;
+    }>(GET_RESTAURANT_FOR_DISPATCH, { restaurant_id: restaurantId });
+
+    const restaurant = restaurantResult.restaurants_by_pk;
+    const pickupAddressParts = [
+      normalizeText(restaurant?.address),
+      normalizeText(restaurant?.city),
+      normalizeText(restaurant?.state),
+      normalizeText(restaurant?.postal_code),
+      normalizeText(restaurant?.country),
+    ].filter(Boolean);
+    const pickupAddress = pickupAddressParts.length > 0 ? pickupAddressParts.join(', ') : null;
+
+    if (!pickupAddress) {
+      throw new Error('Restaurant address is not configured for Uber Direct dispatch.');
+    }
+
     const itemsResult = await adminGraphqlRequest<{
       order_items?: Array<{
         item_name?: string | null;
@@ -308,7 +341,7 @@ export async function POST(request: NextRequest) {
     }
 
     const dispatchResult = await createUberDirectDelivery({
-      restaurantId: normalizeText(order.restaurant_id) || '',
+      restaurantId: restaurantId || '',
       locationId: normalizeText(order.location_id),
       externalOrderId:
         normalizeText(order.order_number) || normalizeText(order.order_id) || orderId,
@@ -318,6 +351,11 @@ export async function POST(request: NextRequest) {
         contactPhone ||
         orderId,
       orderValue: numericValue(order.sub_total),
+      pickup: {
+        address: pickupAddress,
+        name: normalizeText(restaurant?.name),
+        phoneNumber: normalizeText(restaurant?.phone_number),
+      },
       orderItems,
       dropoffAddress: {
         formattedAddress,
@@ -346,18 +384,14 @@ export async function POST(request: NextRequest) {
     });
 
     const customerEmail = normalizeText(order.contact_email);
-    const restaurantId = normalizeText(order.restaurant_id);
     if (customerEmail && restaurantId) {
       try {
-        const restaurantResult = await adminGraphqlRequest<{
-          restaurants_by_pk?: { name?: string | null } | null;
-        }>(GET_RESTAURANT_NAME, { restaurant_id: restaurantId });
 
         await sendOrderDeliveryTrackingEmail(customerEmail, {
           orderNumber:
             normalizeText(order.order_number) || normalizeText(order.order_id) || orderId,
           restaurantName:
-            normalizeText(restaurantResult.restaurants_by_pk?.name) || 'Restaurant',
+            normalizeText(restaurant?.name) || 'Restaurant',
           trackingUrl: dispatchResult.trackingUrl,
           customerName: [normalizeText(order.contact_first_name), normalizeText(order.contact_last_name)]
             .filter(Boolean)

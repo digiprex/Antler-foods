@@ -233,6 +233,7 @@ interface PlaceMenuOrderInput {
   deliveryFeeAmount?: number | null;
   deliveryProvider?: string | null;
   deliveryQuote?: string | null;
+  deliveryQuoteId?: string | null;
   couponCode?: string | null;
   giftCardCode?: string | null;
   orderNote?: string | null;
@@ -320,6 +321,8 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     fulfillmentType === 'delivery' ? trimText(input.deliveryProvider) : null;
   const deliveryQuote =
     fulfillmentType === 'delivery' ? trimText(input.deliveryQuote) : null;
+  const deliveryQuoteId =
+    fulfillmentType === 'delivery' ? trimText(input.deliveryQuoteId) : null;
   const scheduledFor = resolveScheduledFor(input.scheduleDayId, input.scheduleTime, placedAt);
 
   if (fulfillmentType === 'delivery' && !deliveryAddress) {
@@ -598,6 +601,7 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       delivery_dispatch_status:
         fulfillmentType === 'delivery' && deliveryProvider ? 'pending_ready' : null,
       delivery_quote: deliveryQuote,
+      delivery_quote_id: deliveryQuoteId,
       placed_at: placedAt.toISOString(),
       order_number: orderNumber,
     },

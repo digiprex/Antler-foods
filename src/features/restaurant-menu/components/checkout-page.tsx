@@ -73,6 +73,7 @@ interface CheckoutGiftCardOffer {
 }
 
 interface CheckoutDeliveryQuote {
+  id: string | null;
   provider: 'uber_direct';
   quoteId: string;
   deliveryFee: number;

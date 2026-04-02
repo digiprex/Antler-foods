@@ -461,6 +461,9 @@ export default function RestaurantMenuCheckoutPage({
   const [giftCardError, setGiftCardError] = useState<string | null>(null);
   const [appliedGiftCard, setAppliedGiftCard] =
     useState<CheckoutGiftCardOffer | null>(null);
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
   const [isOrderSummaryDrawerOpen, setIsOrderSummaryDrawerOpen] =
     useState(false);
   const [isOffersModalOpen, setIsOffersModalOpen] = useState(false);
@@ -652,6 +655,7 @@ export default function RestaurantMenuCheckoutPage({
 
       setAppliedCoupon(payload.coupon);
       setCouponCodeInput('');
+      setIsOffersSectionOpen(false);
       toast.success(`${payload.coupon.code} applied.`);
     } finally {
       setIsApplyingCoupon(false);
@@ -713,6 +717,7 @@ export default function RestaurantMenuCheckoutPage({
 
       setAppliedGiftCard(payload.giftCard);
       setGiftCardCodeInput('');
+      setIsOffersSectionOpen(false);
       toast.success(`${payload.giftCard.code} redeemed.`);
     } finally {
       setIsRedeemingGiftCard(false);
@@ -726,6 +731,71 @@ export default function RestaurantMenuCheckoutPage({
     setAppliedGiftCard(null);
     setGiftCardError(null);
     setGiftCardCodeInput('');
+  };
+
+  const handleApplyPromoCode = async () => {
+    if (!restaurantId) {
+      setPromoError('Restaurant context is missing.');
+      return;
+    }
+
+    const normalizedCode = promoCodeInput.trim().toUpperCase();
+    if (!normalizedCode) {
+      setPromoError('Enter a promo or gift card code.');
+      return;
+    }
+
+    setPromoError(null);
+    setIsApplyingPromo(true);
+
+    try {
+      // Try as coupon first
+      const couponResult = await requestValidateCoupon(
+        restaurantId,
+        subtotal,
+        normalizedCode,
+      );
+
+      if (couponResult.ok && couponResult.coupon) {
+        setAppliedCoupon(couponResult.coupon);
+        setCouponCodeInput(normalizedCode);
+        setPromoCodeInput('');
+        setIsOffersSectionOpen(false);
+        toast.success(`${couponResult.coupon.code} applied.`);
+        return;
+      }
+
+      // Try as gift card
+      const normalizedEmail = contactFields.email.trim().toLowerCase();
+      if (normalizedEmail) {
+        const giftCardResult = await requestValidateGiftCard(
+          restaurantId,
+          normalizedEmail,
+          normalizedCode,
+        );
+
+        if (giftCardResult.ok && giftCardResult.giftCard) {
+          setAppliedGiftCard(giftCardResult.giftCard);
+          setGiftCardCodeInput(normalizedCode);
+          setPromoCodeInput('');
+          setIsOffersSectionOpen(false);
+          toast.success(`${giftCardResult.giftCard.code} redeemed.`);
+          return;
+        }
+
+        // Both coupon and gift card failed
+        setPromoError(
+          giftCardResult.error || 'This code is not a valid coupon or gift card.',
+        );
+      } else {
+        // No email — can't check gift card, show generic message
+        setPromoError(
+          'Code not recognised. For gift cards, enter your email first.',
+        );
+      }
+    } finally {
+      setIsApplyingPromo(false);
+    }
   };
 
   useEffect(() => {
@@ -1269,7 +1339,7 @@ export default function RestaurantMenuCheckoutPage({
   );
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const orderSummaryPanel = (
-    <div className="p-4 sm:p-5 lg:sticky lg:top-0 lg:z-10 lg:flex lg:h-full lg:flex-col">
+    <div className="p-4 sm:p-5 lg:sticky lg:top-0 lg:z-10 lg:flex lg:max-h-screen lg:flex-col lg:overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold tracking-tight text-slate-950">
           Order summary
@@ -1348,7 +1418,7 @@ export default function RestaurantMenuCheckoutPage({
       </div>
 
       {/* Offers & gift cards */}
-      <div className="mt-5 lg:mt-auto">
+      <div className="mt-5 pt-4 lg:mt-auto">
         <button
           type="button"
           onClick={() => setIsOffersSectionOpen((current) => !current)}
@@ -1384,8 +1454,8 @@ export default function RestaurantMenuCheckoutPage({
 
         {isOffersSectionOpen ? (
           <div className="mt-3 space-y-3 rounded-xl border border-stone-200 bg-white p-4">
-            {/* Coupon input */}
-            {appliedCoupon && !normalizedCouponInput ? (
+            {/* Applied coupon card */}
+            {appliedCoupon ? (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
@@ -1411,51 +1481,10 @@ export default function RestaurantMenuCheckoutPage({
                   Remove
                 </button>
               </div>
-            ) : (
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-stone-500">Coupon code</label>
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void handleApplyCoupon();
-                  }}
-                  className="flex gap-2"
-                >
-                  <input
-                    type="text"
-                    value={couponCodeInput}
-                    onChange={(event) => {
-                      setCouponCodeInput(event.target.value.toUpperCase());
-                      if (couponError) {
-                        setCouponError(null);
-                      }
-                    }}
-                    placeholder="Enter code"
-                    className="h-10 flex-1 rounded-lg border border-stone-200 bg-stone-50/60 px-3.5 text-sm font-medium uppercase tracking-wider text-slate-900 outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:bg-white focus:ring-1 focus:ring-stone-900/10"
-                    disabled={isApplyingCoupon}
-                  />
-                  <button
-                    type="submit"
-                    disabled={isApplyingCoupon || !couponCodeInput.trim()}
-                    className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:bg-stone-200 disabled:text-stone-400 active:scale-[0.97]"
-                  >
-                    {isApplyingCoupon ? 'Applying...' : 'Apply'}
-                  </button>
-                </form>
-                {couponError ? (
-                  <p className="mt-1.5 text-xs text-red-600">{couponError}</p>
-                ) : null}
-              </div>
-            )}
+            ) : null}
 
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-100" /></div>
-              <div className="relative flex justify-center"><span className="bg-white px-3 text-[10px] font-medium uppercase tracking-widest text-stone-300">or</span></div>
-            </div>
-
-            {/* Gift card input */}
-            {appliedGiftCard && !normalizedGiftCardInput ? (
+            {/* Applied gift card card */}
+            {appliedGiftCard ? (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50/60 p-3.5">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100">
@@ -1480,42 +1509,45 @@ export default function RestaurantMenuCheckoutPage({
                   Remove
                 </button>
               </div>
-            ) : (
+            ) : null}
+
+            {/* Combined promo / gift card input */}
+            {!appliedCoupon || !appliedGiftCard ? (
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-stone-500">Gift card</label>
+                <label className="mb-1.5 block text-xs font-medium text-stone-500">Promo or gift card code</label>
                 <form
                   onSubmit={(event) => {
                     event.preventDefault();
-                    void handleRedeemGiftCard();
+                    void handleApplyPromoCode();
                   }}
                   className="flex gap-2"
                 >
                   <input
                     type="text"
-                    value={giftCardCodeInput}
+                    value={promoCodeInput}
                     onChange={(event) => {
-                      setGiftCardCodeInput(event.target.value.toUpperCase());
-                      if (giftCardError) {
-                        setGiftCardError(null);
+                      setPromoCodeInput(event.target.value.toUpperCase());
+                      if (promoError) {
+                        setPromoError(null);
                       }
                     }}
-                    placeholder="Enter gift card code"
+                    placeholder="Enter code"
                     className="h-10 flex-1 rounded-lg border border-stone-200 bg-stone-50/60 px-3.5 text-sm font-medium uppercase tracking-wider text-slate-900 outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:bg-white focus:ring-1 focus:ring-stone-900/10"
-                    disabled={isRedeemingGiftCard}
+                    disabled={isApplyingPromo}
                   />
                   <button
                     type="submit"
-                    disabled={isRedeemingGiftCard || !giftCardCodeInput.trim()}
+                    disabled={isApplyingPromo || !promoCodeInput.trim()}
                     className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:bg-stone-200 disabled:text-stone-400 active:scale-[0.97]"
                   >
-                    {isRedeemingGiftCard ? 'Redeeming...' : 'Redeem'}
+                    {isApplyingPromo ? 'Applying...' : 'Apply'}
                   </button>
                 </form>
-                {giftCardError ? (
-                  <p className="mt-1.5 text-xs text-red-600">{giftCardError}</p>
+                {promoError ? (
+                  <p className="mt-1.5 text-xs text-red-600">{promoError}</p>
                 ) : null}
               </div>
-            )}
+            ) : null}
 
             {/* Restaurant offers */}
             {restaurantOfferCount > 0 ? (

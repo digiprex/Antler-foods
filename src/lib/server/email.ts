@@ -735,6 +735,111 @@ export async function sendOrderInvoiceEmail(
   });
 }
 
+export interface OrderDeliveryTrackingEmailData {
+  orderNumber: string;
+  restaurantName: string;
+  trackingUrl?: string | null;
+  customerName?: string | null;
+}
+
+export async function sendOrderDeliveryTrackingEmail(
+  to: string,
+  data: OrderDeliveryTrackingEmailData,
+): Promise<void> {
+  const transporter = createTransporter();
+  const customerLabel = data.customerName?.trim() || 'there';
+  const trackingBlock = data.trackingUrl
+    ? `
+      <table cellpadding="0" cellspacing="0" style="margin:22px 0 0;">
+        <tr>
+          <td>
+            <a href="${data.trackingUrl}" style="display:inline-block;border-radius:999px;background:#111827;padding:14px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
+              Track delivery
+            </a>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:16px 0 0;font-size:13px;line-height:1.7;color:#64748b;word-break:break-word;">
+        ${data.trackingUrl}
+      </p>
+    `
+    : `
+      <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#475569;">
+        Your order has been handed off for delivery. Live tracking details will appear shortly.
+      </p>
+    `;
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <body style="margin:0;padding:24px;background:#f8fafc;font-family:Arial,sans-serif;color:#0f172a;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:22px;overflow:hidden;">
+          <tr>
+            <td style="padding:30px 30px 22px;background:linear-gradient(135deg,#111827 0%,#1f2937 100%);color:#ffffff;">
+              <p style="margin:0 0 10px;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.72);">
+                Delivery Update
+              </p>
+              <h1 style="margin:0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;">
+                Your order is on its way
+              </h1>
+              <p style="margin:12px 0 0;font-size:14px;line-height:1.7;color:rgba(255,255,255,0.78);">
+                ${data.restaurantName}
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:30px;">
+              <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#334155;">
+                Hi ${customerLabel},
+              </p>
+              <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#334155;">
+                Your order <strong>${data.orderNumber}</strong> has been dispatched for delivery.
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc;">
+                <tr>
+                  <td style="padding:18px 20px;">
+                    <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#64748b;">
+                      Order number
+                    </p>
+                    <p style="margin:0;font-size:20px;font-weight:700;color:#0f172a;">
+                      ${data.orderNumber}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              ${trackingBlock}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 30px;background:#f8fafc;border-top:1px solid #e2e8f0;">
+              <p style="margin:0;font-size:12px;line-height:1.7;color:#64748b;">
+                This message was sent automatically by ${data.restaurantName}.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+
+  const textContent = [
+    `${data.restaurantName} delivery update`,
+    '',
+    `Hi ${customerLabel},`,
+    '',
+    `Your order ${data.orderNumber} has been dispatched for delivery.`,
+    data.trackingUrl ? `Track your delivery: ${data.trackingUrl}` : 'Tracking details will be shared shortly.',
+  ].join('\n');
+
+  await transporter.sendMail({
+    from: DEFAULT_FROM,
+    to,
+    subject: `Your delivery is on the way - Order ${data.orderNumber}`,
+    text: textContent,
+    html: htmlContent,
+  });
+}
+
 export async function verifyEmailConfig(): Promise<boolean> {
   try {
     const transporter = createTransporter();

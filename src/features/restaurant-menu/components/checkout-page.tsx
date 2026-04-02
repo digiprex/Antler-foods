@@ -72,6 +72,15 @@ interface CheckoutGiftCardOffer {
   expiryDate: string;
 }
 
+interface CheckoutDeliveryQuote {
+  provider: 'uber_direct';
+  quoteId: string;
+  deliveryFee: number;
+  currencyCode: string;
+  etaMinutes: number | null;
+  pickupAt: number;
+}
+
 type TipPreset = '10' | '15' | '20' | 'custom';
 
 function roundCurrency(value: number) {
@@ -265,6 +274,52 @@ function writeStoredDeliveryAddress(
   );
 }
 
+async function requestDeliveryQuote(
+  restaurantId: string,
+  locationId: string | null | undefined,
+  subtotal: number,
+  deliveryAddressData: DeliveryAddressInput,
+  signal?: AbortSignal,
+) {
+  const response = await fetch('/api/menu-orders/delivery-quote', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'same-origin',
+    signal,
+    body: JSON.stringify({
+      restaurantId,
+      locationId,
+      subtotal,
+      deliveryAddressData: {
+        formattedAddress: deliveryAddressData.formattedAddress,
+        placeId: deliveryAddressData.placeId,
+        latitude: deliveryAddressData.latitude,
+        longitude: deliveryAddressData.longitude,
+        houseFlatFloor: deliveryAddressData.houseFlatFloor,
+        instructions: deliveryAddressData.instructions,
+      },
+    }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | {
+        success?: boolean;
+        available?: boolean;
+        error?: string;
+        quote?: CheckoutDeliveryQuote | null;
+      }
+    | null;
+
+  return {
+    ok: response.ok,
+    available: payload?.available ?? false,
+    error: payload?.error ?? null,
+    quote: payload?.quote ?? null,
+  };
+}
+
 async function requestValidateCoupon(
   restaurantId: string,
   subtotal: number,
@@ -409,6 +464,9 @@ export default function RestaurantMenuCheckoutPage({
   const [isDeliveryDetailsSectionOpen, setIsDeliveryDetailsSectionOpen] =
     useState(true);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isCheckingDeliveryQuote, setIsCheckingDeliveryQuote] = useState(false);
+  const [deliveryQuote, setDeliveryQuote] = useState<CheckoutDeliveryQuote | null>(null);
+  const [deliveryQuoteError, setDeliveryQuoteError] = useState<string | null>(null);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<{
     orderNumber: string;
@@ -798,6 +856,78 @@ export default function RestaurantMenuCheckoutPage({
     }
   }, [deliveryAddressData.formattedAddress]);
 
+  useEffect(() => {
+    if (fulfillmentMode !== 'delivery') {
+      setIsCheckingDeliveryQuote(false);
+      setDeliveryQuote(null);
+      setDeliveryQuoteError(null);
+      return;
+    }
+
+    if (!restaurantId || !isDeliveryAddressValid || subtotal <= 0) {
+      setIsCheckingDeliveryQuote(false);
+      setDeliveryQuote(null);
+      setDeliveryQuoteError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setIsCheckingDeliveryQuote(true);
+      setDeliveryQuote(null);
+      setDeliveryQuoteError(null);
+      void requestDeliveryQuote(
+        restaurantId,
+        selectedLocation?.id || locationId || restaurantId,
+        subtotal,
+        deliveryAddressData,
+        controller.signal,
+      )
+        .then((payload) => {
+          if (!payload.ok || !payload.available || !payload.quote) {
+            setDeliveryQuote(null);
+            setDeliveryQuoteError(
+              payload.error ?? 'Delivery is unavailable for this address right now.',
+            );
+            return;
+          }
+
+          setDeliveryQuote(payload.quote);
+          setDeliveryQuoteError(null);
+        })
+        .catch((error) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+
+          setDeliveryQuote(null);
+          setDeliveryQuoteError(
+            error instanceof Error
+              ? error.message
+              : 'Unable to check delivery availability right now.',
+          );
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setIsCheckingDeliveryQuote(false);
+          }
+        });
+    }, 450);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [
+    deliveryAddressData,
+    fulfillmentMode,
+    isDeliveryAddressValid,
+    locationId,
+    restaurantId,
+    selectedLocation?.id,
+    subtotal,
+  ]);
+
   const handleDeliveryAddressChange = (nextAddress: string) => {
     const normalizedAddress = trimDeliveryAddressText(nextAddress);
     setIsEditingDeliveryAddress(true);
@@ -966,6 +1096,23 @@ export default function RestaurantMenuCheckoutPage({
       return;
     }
 
+    if (fulfillmentMode === 'delivery' && isCheckingDeliveryQuote) {
+      setIsDeliveryDetailsSectionOpen(true);
+      setCheckoutError('Still checking Uber Direct delivery availability. Please wait a moment.');
+      return;
+    }
+
+    if (fulfillmentMode === 'delivery' && !deliveryQuote) {
+      setIsDeliveryDetailsSectionOpen(true);
+      setCheckoutError(
+        deliveryQuoteError || 'Delivery is unavailable for this address right now.',
+      );
+      document
+        .getElementById('delivery-address-section')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
     setIsPlacingOrder(true);
 
     try {
@@ -1003,6 +1150,7 @@ export default function RestaurantMenuCheckoutPage({
           },
           items,
           tipAmount: tipsEnabled ? tipAmount : 0,
+          deliveryQuote: fulfillmentMode === 'delivery' ? deliveryQuote : null,
           couponCode: appliedCoupon?.code || null,
           giftCardCode: appliedGiftCard?.code || null,
           orderNote: cartNote,
@@ -1089,10 +1237,12 @@ export default function RestaurantMenuCheckoutPage({
         ? `${restaurantOfferCount} restaurant offer${restaurantOfferCount === 1 ? '' : 's'} available.`
         : 'No restaurant offers available right now.';
   const effectiveTipAmount = tipsEnabled ? tipAmount : 0;
+  const deliveryFeeAmount =
+    fulfillmentMode === 'delivery' ? deliveryQuote?.deliveryFee ?? 0 : 0;
   const discountAmount =
     appliedCoupon?.discountAmount || activeRestaurantOffer?.discountAmount || 0;
   const preGiftCardTotal = roundCurrency(
-    subtotal + effectiveTipAmount - discountAmount,
+    subtotal + deliveryFeeAmount + effectiveTipAmount - discountAmount,
   );
   const giftCardAppliedAmount = appliedGiftCard
     ? roundCurrency(
@@ -1354,6 +1504,23 @@ export default function RestaurantMenuCheckoutPage({
             <span>Subtotal</span>
             <span className="font-medium">{formatPrice(subtotal)}</span>
           </div>
+          {fulfillmentMode === 'delivery' ? (
+            <div className="flex items-center justify-between gap-4">
+              <span className="flex flex-col">
+                <span>Delivery</span>
+                {deliveryQuote && deliveryQuote.etaMinutes !== null ? (
+                  <span className="text-[11px] text-slate-500">
+                    Uber Direct est. {deliveryQuote.etaMinutes} min
+                  </span>
+                ) : null}
+              </span>
+              <span className="font-medium">
+                {isCheckingDeliveryQuote
+                  ? 'Calculating...'
+                  : formatPrice(deliveryFeeAmount)}
+              </span>
+            </div>
+          ) : null}
           <div className="flex items-center justify-between gap-4">
             <span>Tip</span>
             <span className="font-medium">{formatPrice(effectiveTipAmount)}</span>
@@ -1759,6 +1926,41 @@ export default function RestaurantMenuCheckoutPage({
                       </div>
                     )}
 
+                    <div className="rounded-[16px] border border-stone-200 bg-white px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                            Uber Direct estimate
+                          </p>
+                          {isCheckingDeliveryQuote ? (
+                            <p className="mt-1.5 text-sm text-stone-600">
+                              Checking delivery availability and ETA...
+                            </p>
+                          ) : deliveryQuote ? (
+                            <>
+                              <p className="mt-1.5 text-sm font-semibold text-slate-950">
+                                Delivery fee {formatPrice(deliveryFeeAmount)}
+                              </p>
+                              <p className="mt-1 text-sm text-stone-600">
+                                {deliveryQuote.etaMinutes !== null
+                                  ? `Estimated arrival in about ${deliveryQuote.etaMinutes} minutes once dispatched.`
+                                  : 'Uber Direct is available for this address.'}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="mt-1.5 text-sm text-red-700">
+                              {deliveryQuoteError || 'Enter a serviceable address to check delivery availability.'}
+                            </p>
+                          )}
+                        </div>
+                        {deliveryQuote ? (
+                          <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
+                            Available
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+
                     <div className="border-t border-stone-200 pt-4">
                       <p className="flex items-start gap-3 text-sm leading-6 text-slate-900">
                         <ClockIcon className="mt-0.5 h-4 w-4 shrink-0" />
@@ -1976,10 +2178,14 @@ export default function RestaurantMenuCheckoutPage({
                 <button
                   type="button"
                   onClick={handlePlaceOrder}
-                  disabled={isPlacingOrder}
+                  disabled={isPlacingOrder || (fulfillmentMode === 'delivery' && (isCheckingDeliveryQuote || !deliveryQuote))}
                   className="flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-black text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:h-12 sm:max-w-[280px]"
                 >
-                  {isPlacingOrder ? 'Placing order...' : 'Continue to payment'}
+                  {isPlacingOrder
+                    ? 'Placing order...'
+                    : fulfillmentMode === 'delivery' && isCheckingDeliveryQuote
+                      ? 'Checking delivery...'
+                      : 'Continue to payment'}
               </button>
               </div>
             )}
@@ -2082,6 +2288,21 @@ export default function RestaurantMenuCheckoutPage({
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

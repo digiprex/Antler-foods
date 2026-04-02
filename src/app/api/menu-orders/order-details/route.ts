@@ -31,6 +31,14 @@ const GET_ORDER_BY_NUMBER = `
       discount_total
       order_note
       delivery_address
+      delivery_provider
+      delivery_provider_delivery_id
+      delivery_tracking_url
+      delivery_dispatch_status
+      delivery_dispatched_at
+      delivery_last_status_at
+      delivery_error
+      delivery_quote
       placed_at
       restaurant_id
       offer_applied

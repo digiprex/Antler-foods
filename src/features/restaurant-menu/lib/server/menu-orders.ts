@@ -230,6 +230,9 @@ interface PlaceMenuOrderInput {
   contact: OrderContactInput;
   items: OrderCartItemInput[];
   tipAmount?: number;
+  deliveryFeeAmount?: number | null;
+  deliveryProvider?: string | null;
+  deliveryQuote?: string | null;
   couponCode?: string | null;
   giftCardCode?: string | null;
   orderNote?: string | null;
@@ -239,6 +242,7 @@ export interface PlaceMenuOrderResult {
   orderId: string;
   orderNumber: string;
   subtotal: number;
+  deliveryFee: number;
   taxTotal: number;
   tipTotal: number;
   discountTotal: number;
@@ -305,9 +309,17 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
   const contact = normalizeContact(input.contact);
   const items = normalizeCartItems(input.items);
   const tipAmount = nonNegativeCurrency(input.tipAmount ?? 0, 'Tip amount is invalid.');
+  const deliveryFeeAmount = nonNegativeCurrency(
+    input.deliveryFeeAmount ?? 0,
+    'Delivery fee amount is invalid.',
+  );
   const orderNote = trimText(input.orderNote);
   const deliveryAddress = trimText(input.deliveryAddress);
   const placedAt = new Date();
+  const deliveryProvider =
+    fulfillmentType === 'delivery' ? trimText(input.deliveryProvider) : null;
+  const deliveryQuote =
+    fulfillmentType === 'delivery' ? trimText(input.deliveryQuote) : null;
   const scheduledFor = resolveScheduledFor(input.scheduleDayId, input.scheduleTime, placedAt);
 
   if (fulfillmentType === 'delivery' && !deliveryAddress) {
@@ -494,7 +506,9 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
 
   const orderDiscountTotal =
     appliedCoupon?.discountAmount || appliedAutoOffer?.discountAmount || 0;
-  const preGiftCardTotal = roundCurrency(subtotal + tipAmount - orderDiscountTotal);
+  const preGiftCardTotal = roundCurrency(
+    subtotal + deliveryFeeAmount + tipAmount - orderDiscountTotal,
+  );
 
   // Only store auto offers in offer_applied (not coupons or gift cards)
   const storedOfferApplied = appliedAutoOffer
@@ -580,6 +594,10 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       delivery_instructions: fulfillmentType === 'delivery' && deliveryData?.instructions ? deliveryData.instructions : null,
       delivery_address_label: fulfillmentType === 'delivery' && deliveryData?.label ? deliveryData.label : null,
       delivery_address_source: fulfillmentType === 'delivery' && deliveryData?.source ? deliveryData.source : null,
+      delivery_provider: deliveryProvider,
+      delivery_dispatch_status:
+        fulfillmentType === 'delivery' && deliveryProvider ? 'pending_ready' : null,
+      delivery_quote: deliveryQuote,
       placed_at: placedAt.toISOString(),
       order_number: orderNumber,
     },
@@ -614,6 +632,7 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     orderId,
     orderNumber,
     subtotal,
+    deliveryFee: deliveryFeeAmount,
     taxTotal,
     tipTotal: tipAmount,
     discountTotal,
@@ -826,6 +845,7 @@ function roundCurrency(value: number) {
 function trimText(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
+
 
 
 

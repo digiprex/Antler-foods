@@ -20,6 +20,62 @@ interface StepBusinessInfoProps {
   onBackToStepOne: () => void;
 }
 
+const PHONE_COUNTRY_CODES = [
+  { value: '+1', label: '+1 (US/CA)' },
+  { value: '+44', label: '+44 (UK)' },
+  { value: '+91', label: '+91 (IN)' },
+  { value: '+61', label: '+61 (AU)' },
+  { value: '+64', label: '+64 (NZ)' },
+  { value: '+81', label: '+81 (JP)' },
+  { value: '+86', label: '+86 (CN)' },
+  { value: '+49', label: '+49 (DE)' },
+  { value: '+33', label: '+33 (FR)' },
+  { value: '+39', label: '+39 (IT)' },
+  { value: '+34', label: '+34 (ES)' },
+  { value: '+55', label: '+55 (BR)' },
+  { value: '+52', label: '+52 (MX)' },
+  { value: '+82', label: '+82 (KR)' },
+  { value: '+65', label: '+65 (SG)' },
+  { value: '+60', label: '+60 (MY)' },
+  { value: '+66', label: '+66 (TH)' },
+  { value: '+62', label: '+62 (ID)' },
+  { value: '+63', label: '+63 (PH)' },
+  { value: '+84', label: '+84 (VN)' },
+  { value: '+971', label: '+971 (AE)' },
+  { value: '+966', label: '+966 (SA)' },
+  { value: '+972', label: '+972 (IL)' },
+  { value: '+90', label: '+90 (TR)' },
+  { value: '+27', label: '+27 (ZA)' },
+  { value: '+234', label: '+234 (NG)' },
+  { value: '+254', label: '+254 (KE)' },
+  { value: '+20', label: '+20 (EG)' },
+  { value: '+92', label: '+92 (PK)' },
+  { value: '+880', label: '+880 (BD)' },
+  { value: '+94', label: '+94 (LK)' },
+  { value: '+977', label: '+977 (NP)' },
+  { value: '+47', label: '+47 (NO)' },
+  { value: '+46', label: '+46 (SE)' },
+  { value: '+45', label: '+45 (DK)' },
+  { value: '+358', label: '+358 (FI)' },
+  { value: '+31', label: '+31 (NL)' },
+  { value: '+32', label: '+32 (BE)' },
+  { value: '+41', label: '+41 (CH)' },
+  { value: '+43', label: '+43 (AT)' },
+  { value: '+48', label: '+48 (PL)' },
+  { value: '+351', label: '+351 (PT)' },
+  { value: '+353', label: '+353 (IE)' },
+  { value: '+30', label: '+30 (GR)' },
+  { value: '+7', label: '+7 (RU)' },
+  { value: '+380', label: '+380 (UA)' },
+  { value: '+40', label: '+40 (RO)' },
+  { value: '+36', label: '+36 (HU)' },
+  { value: '+420', label: '+420 (CZ)' },
+  { value: '+54', label: '+54 (AR)' },
+  { value: '+56', label: '+56 (CL)' },
+  { value: '+57', label: '+57 (CO)' },
+  { value: '+51', label: '+51 (PE)' },
+];
+
 const BUSINESS_TYPES = [
   { value: 'restaurant', label: 'Restaurant' },
   { value: 'franchise', label: 'Franchise' },
@@ -117,15 +173,41 @@ export function StepBusinessInfo({
         placeholder="Point of contact name"
       />
 
-      <FormTextInput
-        label="Phone number"
-        name="contactPhone"
-        register={register}
-        errors={errors}
-        placeholder="Phone number"
-        type="tel"
-        required
-      />
+      <div className="space-y-1.5">
+        <label className="block text-base font-medium text-[#111827]">
+          <span className="mr-1 text-[#ef5350]">*</span>
+          Phone number
+        </label>
+        <div className="flex gap-2">
+          <select
+            className="h-12 w-[140px] shrink-0 rounded-xl border border-[#d4e0e6] bg-white px-2 text-sm text-[#101827] focus:outline-none"
+            {...register('phoneCountryCode')}
+          >
+            {PHONE_COUNTRY_CODES.map((cc) => (
+              <option key={cc.value} value={cc.value}>
+                {cc.label}
+              </option>
+            ))}
+          </select>
+          <div
+            className={`flex min-h-12 flex-1 items-center rounded-xl border bg-white ${
+              errors.contactPhone
+                ? 'border-[#e57373] shadow-[0_0_0_2px_rgba(229,115,115,0.08)]'
+                : 'border-[#d4e0e6]'
+            }`}
+          >
+            <input
+              type="tel"
+              placeholder="Phone number"
+              className="h-12 w-full bg-transparent px-3 text-base text-[#101827] placeholder:text-[#a0acb7] focus:outline-none"
+              {...register('contactPhone')}
+            />
+          </div>
+        </div>
+        {typeof errors.contactPhone?.message === 'string' && (
+          <p className="text-xs text-[#d83f3f]">{errors.contactPhone.message}</p>
+        )}
+      </div>
 
       <FormTextInput
         label="Email"

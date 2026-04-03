@@ -65,6 +65,7 @@ export const stepTwoSchema = z
     businessType: requiredText("Business type"),
     restaurantName: requiredText("Restaurant name"),
     contactName: z.string(),
+    phoneCountryCode: z.string().min(1, "Country code is required."),
     contactPhone: z
       .string()
       .min(1, "Phone number of contact person is required.")
@@ -149,6 +150,7 @@ export const STEP_TWO_FIELDS = [
   "businessType",
   "restaurantName",
   "contactName",
+  "phoneCountryCode",
   "contactPhone",
   "contactEmail",
   "shouldCreateOwner",

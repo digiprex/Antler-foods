@@ -92,12 +92,10 @@ export interface OrderItem {
 // Order status constants
 export const ORDER_STATUSES = {
   PENDING: 'pending',
-  CONFIRMED: 'confirmed',
   PREPARING: 'preparing',
   READY: 'ready',
   OUT_FOR_DELIVERY: 'out_for_delivery',
   DELIVERED: 'delivered',
-  COMPLETED: 'completed',
   CANCELLED: 'cancelled',
   REFUNDED: 'refunded',
 } as const;
@@ -220,8 +218,6 @@ export const getOrderStatusColor = (status: string): string => {
   switch (status) {
     case ORDER_STATUSES.PENDING:
       return 'bg-yellow-100 text-yellow-800';
-    case ORDER_STATUSES.CONFIRMED:
-      return 'bg-blue-100 text-blue-800';
     case ORDER_STATUSES.PREPARING:
       return 'bg-orange-100 text-orange-800';
     case ORDER_STATUSES.READY:
@@ -229,7 +225,6 @@ export const getOrderStatusColor = (status: string): string => {
     case ORDER_STATUSES.OUT_FOR_DELIVERY:
       return 'bg-indigo-100 text-indigo-800';
     case ORDER_STATUSES.DELIVERED:
-    case ORDER_STATUSES.COMPLETED:
       return 'bg-green-100 text-green-800';
     case ORDER_STATUSES.CANCELLED:
     case ORDER_STATUSES.REFUNDED:

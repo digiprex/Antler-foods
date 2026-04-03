@@ -82,6 +82,11 @@ export default function Footer(props: FooterProps) {
   const getSocialLinkLabel = (platform?: string) =>
     `Visit us on ${getSocialPlatformName(platform)}`;
 
+  const ensureAbsoluteUrl = (url: string) => {
+    if (/^https?:\/\//i.test(url)) return url;
+    return `https://${url}`;
+  };
+
   const getReadableHref = (href?: string) => {
     if (!href || href === '#') return 'link';
     if (href.startsWith('#')) {
@@ -216,22 +221,22 @@ export default function Footer(props: FooterProps) {
     ),
     yelp: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 5-5v10zm2 0V7l5 5-5 5z"/>
+        <path d="M11.26 2v10.1l-2.1 1.4L3.6 9.8c-.5-.7-.1-1.4.6-1.7l6.1-3.1c.6-.3 1-.8 1-1.5V2zm-.5 13.2l-2.2-1.2-3.4 4.2c-.4.5-.1 1.2.5 1.4l3 1c.6.2 1.2-.2 1.3-.8l.8-4.6zm2.5-1.2l-2.2 1.2.8 4.6c.1.6.7 1 1.3.8l3-1c.6-.2.9-.9.5-1.4l-3.4-4.2zm3.3-2.5l-2 1.5 2.3 4.1c.3.6 1.1.7 1.5.2l2.2-2.5c.4-.5.2-1.2-.4-1.4l-3.6-1.9zm-.2-2.3l2-1.5 3.6-1.9c.6-.2.8-.9.4-1.4l-2.2-2.5c-.4-.5-1.2-.4-1.5.2l-2.3 4.1v3z"/>
       </svg>
     ),
     doordash: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M23.071 8.409l-6.418 6.58c-.783.803-1.852 1.255-2.968 1.255H3.5l1.502-3.047h7.935c.41 0 .805-.166 1.095-.46l3.731-3.827-3.731-3.827c-.29-.294-.685-.46-1.095-.46H3.5L2 8.67h10.685c1.116 0 2.185.452 2.968 1.255l6.418 6.58z"/>
+        <path d="M23.071 8.409a6.09 6.09 0 00-4.31-1.78H1.2L2.4 3.6h15.5a9.12 9.12 0 016.5 2.69l-1.33 2.12zM21.08 12l-1.2 3.03H5.61a2.82 2.82 0 01-2-.83L.29 10.88l1.2-3.03h14.27a2.82 2.82 0 012 .83L21.08 12zm-3.37 5.37a6.09 6.09 0 01-4.31 1.78H.93l1.2-3.03h10.57a9.12 9.12 0 016.5 2.69l-1.49-1.44z"/>
       </svg>
     ),
     grubhub: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.5 14h-3C8.57 16 7 14.43 7 12.5v-3C7 7.57 8.57 6 10.5 6H14v2.5h-3.5c-.55 0-1 .45-1 1v3c0 .55.45 1 1 1H12v-2h-1.5V9h4v7z"/>
       </svg>
     ),
     ubereats: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 5-5v10zm2 0V7l5 5-5 5z"/>
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM9 15.5c-1.93 0-3.5-1.57-3.5-3.5V7h2.5v5c0 .55.45 1 1 1s1-.45 1-1V7H12v5c0 1.93-1.57 3.5-3.5 3.5zm9.5-1.5h-5V7h5v2h-2.5v1H18v2h-1.5v1h2.5v1z"/>
       </svg>
     ),
   };
@@ -263,7 +268,7 @@ export default function Footer(props: FooterProps) {
             {socialLinks.map((link, index) => (
               <a
                 key={index}
-                href={link.url}
+                href={ensureAbsoluteUrl(link.url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.socialIcon}
@@ -361,7 +366,7 @@ export default function Footer(props: FooterProps) {
             {socialLinks.map((link, index) => (
               <a
                 key={index}
-                href={link.url}
+                href={ensureAbsoluteUrl(link.url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.socialIcon}
@@ -445,7 +450,7 @@ export default function Footer(props: FooterProps) {
             {socialLinks.map((link, index) => (
               <a
                 key={index}
-                href={link.url}
+                href={ensureAbsoluteUrl(link.url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.socialIcon}
@@ -574,7 +579,7 @@ export default function Footer(props: FooterProps) {
               {socialLinks.map((link, index) => (
                 <a
                   key={index}
-                  href={link.url}
+                  href={ensureAbsoluteUrl(link.url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={styles.socialIconLarge}

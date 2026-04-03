@@ -25,12 +25,16 @@ const GET_RESTAURANT_ICON = `
   }
 `;
 
-function resolveIconUrl(iconUrl: string, appOrigin: string): string {
-  if (/^https?:\/\//i.test(iconUrl)) {
-    return iconUrl;
+function resolveIconUrl(rawUrl: string, appOrigin: string): string {
+  if (/^https?:\/\//i.test(rawUrl)) {
+    return rawUrl;
   }
 
-  return `${appOrigin}${iconUrl.startsWith("/") ? "" : "/"}${iconUrl}`;
+  const path = rawUrl.startsWith("/")
+    ? rawUrl
+    : `/api/image-proxy?fileId=${encodeURIComponent(rawUrl)}`;
+
+  return `${appOrigin}${path}`;
 }
 
 function isDynamicServerUsageError(error: unknown) {
@@ -52,13 +56,14 @@ export async function generateMetadata(): Promise<Metadata> {
       requestHeaders.get("host") ||
       "";
 
-    if (!host || host.includes("localhost") || host.includes("127.0.0.1")) {
+    if (!host) {
       return baseMetadata;
     }
 
+    const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
     const protocol =
       requestHeaders.get("x-forwarded-proto") ||
-      (host.includes("localhost") ? "http" : "https");
+      (isLocal ? "http" : "https");
     const appOrigin = `${protocol}://${host}`;
 
     const restaurantId = await resolveRestaurantIdByDomain(host);

@@ -5,6 +5,7 @@ import {
   verifyUberDirectWebhookSignature,
   type UberWebhookPayload,
 } from '@/lib/server/delivery/uber-direct';
+import { sendOrderDeliveryTrackingEmail, sendOrderDeliveredReviewEmail } from '@/lib/server/email';
 
 const UPDATE_DELIVERY_STATUS = `
   mutation UpdateDeliveryStatus(
@@ -58,8 +59,48 @@ const UPDATE_DELIVERY_STATUS_AND_ORDER = `
   }
 `;
 
+const GET_ORDER_BY_DELIVERY_ID = `
+  query GetOrderByDeliveryId($delivery_id: String!) {
+    orders(
+      where: {
+        delivery_provider_delivery_id: { _eq: $delivery_id }
+        is_deleted: { _eq: false }
+      }
+      limit: 1
+    ) {
+      order_id
+      order_number
+      contact_email
+      contact_first_name
+      contact_last_name
+      restaurant_id
+      delivery_tracking_url
+    }
+  }
+`;
+
+const GET_RESTAURANT_FOR_EMAIL = `
+  query GetRestaurantForEmail($restaurant_id: uuid!) {
+    restaurants_by_pk(restaurant_id: $restaurant_id) {
+      name
+      gmb_link
+      google_place_id
+    }
+  }
+`;
+
 function normalizeText(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function buildGoogleReviewUrl(gmbLink: string | null, placeId: string | null): string | null {
+  if (gmbLink) {
+    return gmbLink;
+  }
+  if (placeId) {
+    return `https://search.google.com/local/writereview?placeid=${encodeURIComponent(placeId)}`;
+  }
+  return null;
 }
 
 function normalizeUberStatus(rawStatus: string | null, kind: string | null) {
@@ -176,6 +217,71 @@ export async function POST(request: NextRequest) {
     : UPDATE_DELIVERY_STATUS;
 
   await adminGraphqlRequest(mutation, variables);
+
+  // Send emails for out_for_delivery and delivered statuses
+  if (mappedStatus.orderStatus === 'out_for_delivery' || mappedStatus.orderStatus === 'delivered') {
+    try {
+      const orderData = await adminGraphqlRequest<{
+        orders: Array<{
+          order_id?: string;
+          order_number?: string;
+          contact_email?: string;
+          contact_first_name?: string;
+          contact_last_name?: string;
+          restaurant_id?: string;
+          delivery_tracking_url?: string;
+        }>;
+      }>(GET_ORDER_BY_DELIVERY_ID, { delivery_id: event.deliveryId });
+
+      const order = orderData.orders?.[0];
+      const contactEmail = normalizeText(order?.contact_email);
+
+      if (order && contactEmail) {
+        const customerName = [normalizeText(order.contact_first_name), normalizeText(order.contact_last_name)]
+          .filter(Boolean)
+          .join(' ') || null;
+        const orderNumber = normalizeText(order.order_number) || normalizeText(order.order_id) || '';
+
+        let restaurantName = 'Restaurant';
+        let googleReviewUrl: string | null = null;
+
+        if (order.restaurant_id) {
+          const restData = await adminGraphqlRequest<{
+            restaurants_by_pk: {
+              name?: string;
+              gmb_link?: string;
+              google_place_id?: string;
+            } | null;
+          }>(GET_RESTAURANT_FOR_EMAIL, { restaurant_id: order.restaurant_id });
+
+          const rest = restData.restaurants_by_pk;
+          restaurantName = normalizeText(rest?.name) || 'Restaurant';
+          googleReviewUrl = buildGoogleReviewUrl(
+            normalizeText(rest?.gmb_link),
+            normalizeText(rest?.google_place_id),
+          );
+        }
+
+        if (mappedStatus.orderStatus === 'out_for_delivery') {
+          await sendOrderDeliveryTrackingEmail(contactEmail, {
+            orderNumber,
+            restaurantName,
+            trackingUrl: normalizeText(order.delivery_tracking_url) || trackingUrl,
+            customerName,
+          });
+        } else if (mappedStatus.orderStatus === 'delivered') {
+          await sendOrderDeliveredReviewEmail(contactEmail, {
+            orderNumber,
+            restaurantName,
+            customerName,
+            googleReviewUrl,
+          });
+        }
+      }
+    } catch (emailErr) {
+      console.error(`[Uber Webhook] Email failed for delivery ${event.deliveryId}:`, emailErr);
+    }
+  }
 
   return NextResponse.json({
     success: true,

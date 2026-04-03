@@ -100,25 +100,11 @@ export async function sendFormSubmissionEmail(
 
       return `
         <tr>
-          <td style="
-            padding: 14px 0;
-            border-bottom: 1px solid #e5e7eb;
-            font-weight: 600;
-            color: #374151;
-            font-size: 14px;
-            width: 40%;
-            vertical-align: top;
-          ">
+          <td style="padding:10px 0;border-bottom:1px solid #e7e5e4;font-size:14px;font-weight:600;color:#1e293b;width:40%;vertical-align:top;">
             ${formattedKey}
           </td>
-          <td style="
-            padding: 14px 0;
-            border-bottom: 1px solid #e5e7eb;
-            color: #6b7280;
-            font-size: 14px;
-            line-height: 1.6;
-          ">
-            ${value || '<span style="color: #9ca3af; font-style: italic;">Not provided</span>'}
+          <td style="padding:10px 0;border-bottom:1px solid #e7e5e4;font-size:14px;color:#1e293b;">
+            ${value || '<span style="color:#78716c;font-style:italic;">Not provided</span>'}
           </td>
         </tr>
       `;
@@ -126,124 +112,53 @@ export async function sendFormSubmissionEmail(
     .join('');
 
   const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>New Form Submission</title>
-      <style>
-        @media only screen and (max-width: 600px) {
-          .container { width: 100% !important; }
-          .header { padding: 32px 24px !important; }
-          .content { padding: 32px 24px !important; }
-          .field-table td { display: block !important; width: 100% !important; padding: 8px 0 !important; }
-        }
-      </style>
-    </head>
-    <body style="margin: 0; padding: 0; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 40px 0;">
-        <tr>
-          <td align="center">
-            <table class="container" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; max-width: 600px; width: 100%;">
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fafaf9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e7e5e4;overflow:hidden;">
+      <div style="padding:32px 24px;border-bottom:1px solid #e7e5e4;">
+        <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;color:#0f172a;">New Form Submission</h1>
+        <p style="margin:0;font-size:13px;color:#78716c;">${data.restaurantName || 'Website'}</p>
+      </div>
+      <div style="padding:24px;">
+        <table style="width:100%;margin-bottom:20px;font-size:14px;color:#1e293b;">
+          <tr>
+            <td style="padding:4px 0;"><strong>Form</strong></td>
+            <td style="padding:4px 0;">${data.formTitle}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;"><strong>Submitted</strong></td>
+            <td style="padding:4px 0;">${new Date(data.submittedAt).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })} at ${new Date(data.submittedAt).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit'
+            })}</td>
+          </tr>
+        </table>
 
-              <!-- Header -->
-              <tr>
-                <td class="header" style="padding: 48px 48px 32px 48px; border-bottom: 1px solid #e5e7eb;">
-                  <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td>
-                        <h1 style="margin: 0 0 8px 0; color: #111827; font-size: 24px; font-weight: 600; letter-spacing: -0.5px;">
-                          New Form Submission
-                        </h1>
-                        ${data.restaurantName ? `
-                          <p style="margin: 0; color: #6b7280; font-size: 14px; font-weight: 500;">
-                            ${data.restaurantName}
-                          </p>
-                        ` : ''}
-                      </td>
-                      <td align="right" style="vertical-align: top;">
-                        <div style="background-color: #f3f4f6; padding: 6px 12px; border-radius: 6px; display: inline-block;">
-                          <span style="color: #059669; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">New</span>
-                        </div>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:2px solid #0f172a;">
+              <th style="padding:8px 0;text-align:left;font-size:13px;font-weight:600;color:#0f172a;">Field</th>
+              <th style="padding:8px 0;text-align:left;font-size:13px;font-weight:600;color:#0f172a;">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${submissionHtml}
+          </tbody>
+        </table>
 
-              <!-- Content -->
-              <tr>
-                <td class="content" style="padding: 48px;">
-
-                  <!-- Form Details -->
-                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 32px;">
-                    <tr>
-                      <td style="padding-bottom: 24px; border-bottom: 2px solid #f3f4f6;">
-                        <h2 style="margin: 0 0 8px 0; color: #111827; font-size: 18px; font-weight: 600;">
-                          ${data.formTitle}
-                        </h2>
-                        <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.5;">
-                          Submitted on ${new Date(data.submittedAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })} at ${new Date(data.submittedAt).toLocaleTimeString('en-US', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <!-- Submission Data -->
-                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 32px;">
-                    <tr>
-                      <td>
-                        <h3 style="margin: 0 0 16px 0; color: #111827; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                          Submission Details
-                        </h3>
-                        <table class="field-table" width="100%" cellpadding="0" cellspacing="0">
-                          ${submissionHtml}
-                        </table>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <!-- Action Box -->
-                  <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td style="background-color: #f9fafb; padding: 24px; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                        <p style="margin: 0 0 8px 0; color: #111827; font-size: 14px; font-weight: 600;">
-                          Action Required
-                        </p>
-                        <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                          A new submission has been received. Please review and respond promptly to ensure excellent customer service.
-                        </p>
-                      </td>
-                    </tr>
-                  </table>
-
-                </td>
-              </tr>
-
-              <!-- Footer -->
-              <tr>
-                <td style="padding: 32px 48px; background-color: #f9fafb; border-top: 1px solid #e5e7eb;">
-                  <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.6; text-align: center;">
-                    This notification was automatically generated by your website's form submission system.
-                  </p>
-                </td>
-              </tr>
-
-            </table>
-          </td>
-        </tr>
-      </table>
-    </body>
-    </html>
-  `;
+        <p style="margin:20px 0 0;font-size:13px;color:#78716c;">Please review and respond promptly.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
 
   // Plain text version as fallback
   const textContent = `
@@ -322,45 +237,41 @@ export async function sendGiftCardEmail(
   });
 
   const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-      <body style="margin:0;padding:24px;background:#f9fafb;font-family:Arial,sans-serif;color:#111827;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fafaf9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e7e5e4;overflow:hidden;">
+      <div style="padding:32px 24px;border-bottom:1px solid #e7e5e4;">
+        <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;color:#0f172a;">Your Gift Card Is Ready</h1>
+        <p style="margin:0;font-size:13px;color:#78716c;">${data.restaurantName || 'Restaurant'}</p>
+      </div>
+      <div style="padding:24px;">
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">Use the details below to redeem your gift card:</p>
+        <table style="width:100%;margin-bottom:20px;font-size:14px;color:#1e293b;">
           <tr>
-            <td style="padding:24px;background:linear-gradient(90deg,#f5f3ff,#eef2ff);border-bottom:1px solid #e5e7eb;">
-              <h1 style="margin:0;font-size:24px;line-height:1.2;">Your Gift Card Is Ready</h1>
-              <p style="margin:8px 0 0;color:#4b5563;font-size:14px;">
-                ${data.restaurantName ? `${data.restaurantName}` : 'A new gift card'} has been created for you.
-              </p>
-            </td>
+            <td style="padding:4px 0;"><strong>Gift Card Code</strong></td>
+            <td style="padding:4px 0;font-family:monospace;font-size:15px;">${data.code}</td>
           </tr>
           <tr>
-            <td style="padding:24px;">
-              <p style="margin:0 0 16px;color:#374151;font-size:14px;">Use the details below to redeem your gift card:</p>
-              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
-                <tr>
-                  <td style="padding:12px 14px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-weight:600;">Gift Card Code</td>
-                  <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:15px;">${data.code}</td>
-                </tr>
-                <tr>
-                  <td style="padding:12px 14px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-weight:600;">Initial Value</td>
-                  <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;">$${formattedInitialValue}</td>
-                </tr>
-                <tr>
-                  <td style="padding:12px 14px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-weight:600;">Current Balance</td>
-                  <td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;">$${formattedCurrentBalance}</td>
-                </tr>
-                <tr>
-                  <td style="padding:12px 14px;background:#f9fafb;font-weight:600;">Expiry Date</td>
-                  <td style="padding:12px 14px;">${formattedExpiryDate}</td>
-                </tr>
-              </table>
-            </td>
+            <td style="padding:4px 0;"><strong>Initial Value</strong></td>
+            <td style="padding:4px 0;">$${formattedInitialValue}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;"><strong>Current Balance</strong></td>
+            <td style="padding:4px 0;">$${formattedCurrentBalance}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;"><strong>Expiry Date</strong></td>
+            <td style="padding:4px 0;">${formattedExpiryDate}</td>
           </tr>
         </table>
-      </body>
-    </html>
-  `;
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
 
   const textContent = `
 Your Gift Card Is Ready
@@ -406,68 +317,47 @@ export async function sendMenuPasswordResetEmail(
   const customerLabel = data.customerName?.trim() || 'there';
 
   const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-      <body style="margin:0;padding:24px;background:linear-gradient(180deg,#f8fafc 0%,#eef2ff 100%);font-family:Arial,sans-serif;color:#0f172a;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:22px;overflow:hidden;box-shadow:0 24px 60px rgba(76,29,149,0.12);">
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fafaf9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e7e5e4;overflow:hidden;">
+      <div style="padding:32px 24px;border-bottom:1px solid #e7e5e4;">
+        <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;color:#0f172a;">Reset Your Password</h1>
+        <p style="margin:0;font-size:13px;color:#78716c;">${accountLabel}</p>
+      </div>
+      <div style="padding:24px;">
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
+          Hi ${customerLabel},
+        </p>
+        <p style="margin:0 0 20px;font-size:14px;color:#1e293b;">
+          We received a request to reset the password for your online ordering account. Use the button below to choose a new password.
+        </p>
+        <p style="margin:0 0 8px;font-size:13px;color:#78716c;">
+          This one-time link expires in ${data.expiresInMinutes} minutes and can only be used once.
+        </p>
+        <table cellpadding="0" cellspacing="0" style="margin:20px 0;">
           <tr>
-            <td style="padding:32px 32px 24px;background:linear-gradient(135deg,#312e81 0%,#6d28d9 55%,#7c3aed 100%);color:#ffffff;">
-              <div style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid rgba(255,255,255,0.24);padding:8px 14px;background:rgba(255,255,255,0.08);margin-bottom:18px;">
-                <span style="display:inline-block;height:8px;width:8px;border-radius:999px;background:#ddd6fe;margin-right:10px;"></span>
-                <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.84);">Online Ordering</span>
-              </div>
-              <h1 style="margin:0;font-size:30px;line-height:1.15;letter-spacing:-0.02em;">Reset your password</h1>
-              <p style="margin:12px 0 0;font-size:14px;line-height:1.7;color:rgba(255,255,255,0.82);">
-                ${accountLabel}
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:32px;">
-              <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#334155;">
-                Hi ${customerLabel},
-              </p>
-              <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#334155;">
-                We received a request to reset the password for your online ordering account. Use the button below to choose a new password.
-              </p>
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
-                <tr>
-                  <td style="border:1px solid #e9d5ff;border-radius:18px;background:linear-gradient(180deg,#faf5ff 0%,#ffffff 100%);padding:20px;">
-                    <p style="margin:0 0 10px;font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#7c3aed;">Secure reset link</p>
-                    <p style="margin:0;font-size:14px;line-height:1.7;color:#475569;">
-                      This one-time link expires in ${data.expiresInMinutes} minutes and can only be used once.
-                    </p>
-                    <table cellpadding="0" cellspacing="0" style="margin:18px 0 0;">
-                      <tr>
-                        <td>
-                          <a href="${data.resetUrl}" style="display:inline-block;border-radius:999px;background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);padding:14px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;box-shadow:0 14px 32px rgba(124,58,237,0.28);">
-                            Reset password
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-              <p style="margin:0 0 10px;font-size:14px;line-height:1.7;color:#64748b;">
-                If the button does not work, copy and paste this link into your browser:
-              </p>
-              <p style="margin:0;word-break:break-all;font-size:13px;line-height:1.7;color:#5b21b6;">
-                <a href="${data.resetUrl}" style="color:#6d28d9;text-decoration:none;">${data.resetUrl}</a>
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:20px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;">
-              <p style="margin:0;font-size:12px;line-height:1.7;color:#64748b;">
-                If you did not request a password reset, you can safely ignore this email.
-              </p>
+            <td>
+              <a href="${data.resetUrl}" style="display:inline-block;border-radius:8px;background:#0f172a;padding:12px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
+                Reset password
+              </a>
             </td>
           </tr>
         </table>
-      </body>
-    </html>
-  `;
+        <p style="margin:0 0 8px;font-size:13px;color:#78716c;">
+          If the button does not work, copy and paste this link into your browser:
+        </p>
+        <p style="margin:0;word-break:break-all;font-size:13px;color:#1e293b;">
+          <a href="${data.resetUrl}" style="color:#1e293b;text-decoration:underline;">${data.resetUrl}</a>
+        </p>
+        <p style="margin:20px 0 0;font-size:13px;color:#78716c;">If you did not request a password reset, you can safely ignore this email.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
 
   const textContent = `
 Reset your password
@@ -758,77 +648,55 @@ export async function sendOrderDeliveryTrackingEmail(
   const customerLabel = data.customerName?.trim() || 'there';
   const trackingBlock = data.trackingUrl
     ? `
-      <table cellpadding="0" cellspacing="0" style="margin:22px 0 0;">
-        <tr>
-          <td>
-            <a href="${data.trackingUrl}" style="display:inline-block;border-radius:999px;background:#111827;padding:14px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
-              Track delivery
-            </a>
-          </td>
-        </tr>
-      </table>
-      <p style="margin:16px 0 0;font-size:13px;line-height:1.7;color:#64748b;word-break:break-word;">
-        ${data.trackingUrl}
-      </p>
-    `
-    : `
-      <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#475569;">
-        Your order has been handed off for delivery. Live tracking details will appear shortly.
-      </p>
-    `;
-
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-      <body style="margin:0;padding:24px;background:#f8fafc;font-family:Arial,sans-serif;color:#0f172a;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:22px;overflow:hidden;">
+        <table cellpadding="0" cellspacing="0" style="margin:20px 0;">
           <tr>
-            <td style="padding:30px 30px 22px;background:linear-gradient(135deg,#111827 0%,#1f2937 100%);color:#ffffff;">
-              <p style="margin:0 0 10px;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.72);">
-                Delivery Update
-              </p>
-              <h1 style="margin:0;font-size:28px;line-height:1.15;letter-spacing:-0.02em;">
-                Your order is on its way
-              </h1>
-              <p style="margin:12px 0 0;font-size:14px;line-height:1.7;color:rgba(255,255,255,0.78);">
-                ${data.restaurantName}
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:30px;">
-              <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#334155;">
-                Hi ${customerLabel},
-              </p>
-              <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#334155;">
-                Your order <strong>${data.orderNumber}</strong> has been dispatched for delivery.
-              </p>
-              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc;">
-                <tr>
-                  <td style="padding:18px 20px;">
-                    <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#64748b;">
-                      Order number
-                    </p>
-                    <p style="margin:0;font-size:20px;font-weight:700;color:#0f172a;">
-                      ${data.orderNumber}
-                    </p>
-                  </td>
-                </tr>
-              </table>
-              ${trackingBlock}
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:20px 30px;background:#f8fafc;border-top:1px solid #e2e8f0;">
-              <p style="margin:0;font-size:12px;line-height:1.7;color:#64748b;">
-                This message was sent automatically by ${data.restaurantName}.
-              </p>
+            <td>
+              <a href="${data.trackingUrl}" style="display:inline-block;border-radius:8px;background:#0f172a;padding:12px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
+                Track delivery
+              </a>
             </td>
           </tr>
         </table>
-      </body>
-    </html>
-  `;
+        <p style="margin:0;font-size:13px;color:#78716c;word-break:break-all;">
+          ${data.trackingUrl}
+        </p>
+    `
+    : `
+        <p style="margin:16px 0 0;font-size:14px;color:#1e293b;">
+          Your order has been handed off for delivery. Live tracking details will appear shortly.
+        </p>
+    `;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fafaf9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e7e5e4;overflow:hidden;">
+      <div style="padding:32px 24px;border-bottom:1px solid #e7e5e4;">
+        <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;color:#0f172a;">Your Order Is On Its Way</h1>
+        <p style="margin:0;font-size:13px;color:#78716c;">${data.restaurantName}</p>
+      </div>
+      <div style="padding:24px;">
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
+          Hi ${customerLabel},
+        </p>
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
+          Your order <strong>${data.orderNumber}</strong> has been dispatched for delivery.
+        </p>
+        <table style="width:100%;margin-bottom:20px;font-size:14px;color:#1e293b;">
+          <tr>
+            <td style="padding:4px 0;"><strong>Order #</strong></td>
+            <td style="padding:4px 0;">${data.orderNumber}</td>
+          </tr>
+        </table>
+        ${trackingBlock}
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
 
   const textContent = [
     `${data.restaurantName} delivery update`,
@@ -843,6 +711,90 @@ export async function sendOrderDeliveryTrackingEmail(
     from: DEFAULT_FROM,
     to,
     subject: `Your delivery is on the way - Order ${data.orderNumber}`,
+    text: textContent,
+    html: htmlContent,
+  });
+}
+
+export interface OrderDeliveredReviewEmailData {
+  orderNumber: string;
+  restaurantName: string;
+  customerName?: string | null;
+  googleReviewUrl?: string | null;
+}
+
+export async function sendOrderDeliveredReviewEmail(
+  to: string,
+  data: OrderDeliveredReviewEmailData,
+): Promise<void> {
+  const transporter = createTransporter();
+  const customerLabel = data.customerName?.trim() || 'there';
+
+  const reviewBlock = data.googleReviewUrl
+    ? `
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
+          We'd love to hear about your experience! Your feedback helps us improve and helps others discover ${data.restaurantName}.
+        </p>
+        <table cellpadding="0" cellspacing="0" style="margin:20px 0;">
+          <tr>
+            <td>
+              <a href="${data.googleReviewUrl}" style="display:inline-block;border-radius:8px;background:#0f172a;padding:12px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
+                Leave a review
+              </a>
+            </td>
+          </tr>
+        </table>
+    `
+    : `
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
+          We hope you enjoyed your meal! Thank you for ordering from ${data.restaurantName}.
+        </p>
+    `;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fafaf9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e7e5e4;overflow:hidden;">
+      <div style="padding:32px 24px;border-bottom:1px solid #e7e5e4;">
+        <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;color:#0f172a;">Your Order Has Been Delivered!</h1>
+        <p style="margin:0;font-size:13px;color:#78716c;">${data.restaurantName}</p>
+      </div>
+      <div style="padding:24px;">
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
+          Hi ${customerLabel},
+        </p>
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
+          Your order <strong>${data.orderNumber}</strong> has been delivered. Enjoy your meal!
+        </p>
+        <table style="width:100%;margin-bottom:20px;font-size:14px;color:#1e293b;">
+          <tr>
+            <td style="padding:4px 0;"><strong>Order #</strong></td>
+            <td style="padding:4px 0;">${data.orderNumber}</td>
+          </tr>
+        </table>
+        ${reviewBlock}
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const textContent = [
+    `${data.restaurantName} - Order Delivered`,
+    '',
+    `Hi ${customerLabel},`,
+    '',
+    `Your order ${data.orderNumber} has been delivered. Enjoy your meal!`,
+    data.googleReviewUrl ? `\nWe'd love to hear your feedback:\n${data.googleReviewUrl}` : '',
+  ].filter(Boolean).join('\n');
+
+  await transporter.sendMail({
+    from: DEFAULT_FROM,
+    to,
+    subject: `Order ${data.orderNumber} delivered - ${data.restaurantName}`,
     text: textContent,
     html: htmlContent,
   });

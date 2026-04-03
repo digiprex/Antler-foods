@@ -46,7 +46,7 @@ $cta-hover-bg-color: rgb(31 41 55);
   flex: 1;
 
   @media (min-width: 768px) {
-    flex: 0;
+    flex: 0 0 auto;
   }
 }
 

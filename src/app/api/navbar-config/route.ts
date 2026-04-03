@@ -188,7 +188,12 @@ export async function GET(request: Request) {
     // Get restaurant data from database
     const restaurantData = (data as any).restaurants?.[0];
     const restaurantName = restaurantData?.name || 'Restaurant';
-    const logoUrl = restaurantData?.logo || undefined;
+    const rawLogo = typeof restaurantData?.logo === 'string' ? restaurantData.logo.trim() : '';
+    const logoUrl = rawLogo
+      ? rawLogo.startsWith('/') || rawLogo.startsWith('http')
+        ? rawLogo
+        : `/api/image-proxy?fileId=${encodeURIComponent(rawLogo)}`
+      : undefined;
     const globalStyles = restaurantData?.global_styles || null;
 
     // Transform web_pages to nav items

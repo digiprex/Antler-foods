@@ -39,6 +39,7 @@ interface OrderSettingsSaveResponse {
     allow_tips?: boolean;
     pickup_allowed?: boolean;
     delivery_allowed?: boolean;
+    preparation_time?: number | null;
     delivery_zones?: DeliveryZoneApi[];
   };
 }
@@ -175,6 +176,7 @@ export default function OrderSettingsForm({
   const [allowTips, setAllowTips] = useState(true);
   const [pickupAllowed, setPickupAllowed] = useState(true);
   const [deliveryAllowed, setDeliveryAllowed] = useState(true);
+  const [preparationTime, setPreparationTime] = useState('');
   const [zones, setZones] = useState<DeliveryZoneForm[]>([
     {
       id: 'zone-1',
@@ -218,6 +220,7 @@ export default function OrderSettingsForm({
                 allow_tips?: boolean;
                 pickup_allowed?: boolean;
                 delivery_allowed?: boolean;
+                preparation_time?: number | null;
                 address?: string;
                 delivery_zones?: DeliveryZoneApi[];
               };
@@ -236,6 +239,7 @@ export default function OrderSettingsForm({
         setAllowTips(payload.data?.allow_tips ?? true);
         setPickupAllowed(payload.data?.pickup_allowed ?? true);
         setDeliveryAllowed(payload.data?.delivery_allowed ?? true);
+        setPreparationTime(payload.data?.preparation_time != null ? String(payload.data.preparation_time) : '');
         setRestaurantAddress(payload.data?.address ?? '');
         const apiZones = (payload.data?.delivery_zones || []).map(mapZoneFromApi);
         if (apiZones.length > 0) {
@@ -263,6 +267,7 @@ export default function OrderSettingsForm({
     allow_tips: allowTips,
     pickup_allowed: pickupAllowed,
     delivery_allowed: deliveryAllowed,
+    preparation_time: preparationTime.trim() !== '' ? Number(preparationTime) : null,
     delivery_zones: zones.map((zone) => ({
       name: zone.name.trim(),
       map_selection: zone.coverageMode,
@@ -643,7 +648,7 @@ export default function OrderSettingsForm({
             aria-checked={pickupAllowed}
             onClick={() => setPickupAllowed((current) => !current)}
             className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-              pickupAllowed ? 'bg-green-500' : 'bg-gray-300'
+              pickupAllowed ? 'bg-purple-600' : 'bg-gray-300'
             }`}
           >
             <span
@@ -667,7 +672,7 @@ export default function OrderSettingsForm({
             aria-checked={deliveryAllowed}
             onClick={() => setDeliveryAllowed((current) => !current)}
             className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-              deliveryAllowed ? 'bg-green-500' : 'bg-gray-300'
+              deliveryAllowed ? 'bg-purple-600' : 'bg-gray-300'
             }`}
           >
             <span
@@ -678,7 +683,30 @@ export default function OrderSettingsForm({
           </button>
         </div>
 
-        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <label htmlFor="preparation-time" className="text-sm font-semibold text-gray-900">
+                Preparation time (minutes)
+              </label>
+              <p className="mt-1 text-xs text-gray-600">
+                Average time to prepare an order. Shown to customers at checkout.
+              </p>
+            </div>
+            <input
+              id="preparation-time"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="e.g. 30"
+              value={preparationTime}
+              onChange={(e) => setPreparationTime(e.target.value)}
+              className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+            />
+          </div>
+        </div>
+
+        {/* <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="mb-4">
             <h3 className="text-base font-semibold text-gray-900">Delivery Zones</h3>
             <p className="mt-1 text-xs text-gray-600">
@@ -896,7 +924,7 @@ export default function OrderSettingsForm({
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         <div className="mt-5 flex justify-end">
           <button

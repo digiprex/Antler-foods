@@ -53,14 +53,13 @@ type OrderFilter = 'all' | 'active' | 'completed' | 'cancelled';
 
 const ACTIVE_STATUSES = new Set([
   'pending',
-  'confirmed',
   'preparing',
   'ready',
   'out_for_delivery',
   'processing',
 ]);
 
-const COMPLETED_STATUSES = new Set(['completed', 'delivered']);
+const COMPLETED_STATUSES = new Set(['delivered']);
 const CANCELLED_STATUSES = new Set(['cancelled', 'failed', 'refunded']);
 
 function formatDate(value: string | null) {
@@ -79,9 +78,9 @@ function formatShortDate(value: string | null) {
 
 function statusColor(status: string) {
   const n = status.trim().toLowerCase();
-  if (n === 'completed' || n === 'delivered' || n === 'ready') return { bg: 'bg-emerald-500', text: 'text-emerald-700', light: 'bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500' };
+  if (n === 'delivered' || n === 'ready') return { bg: 'bg-emerald-500', text: 'text-emerald-700', light: 'bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500' };
   if (n === 'cancelled' || n === 'failed' || n === 'refunded') return { bg: 'bg-red-500', text: 'text-red-700', light: 'bg-red-50 border-red-200', dot: 'bg-red-500' };
-  if (n === 'preparing' || n === 'confirmed' || n === 'processing') return { bg: 'bg-blue-500', text: 'text-blue-700', light: 'bg-blue-50 border-blue-200', dot: 'bg-blue-500' };
+  if (n === 'preparing' || n === 'processing') return { bg: 'bg-blue-500', text: 'text-blue-700', light: 'bg-blue-50 border-blue-200', dot: 'bg-blue-500' };
   if (n === 'out_for_delivery') return { bg: 'bg-violet-500', text: 'text-violet-700', light: 'bg-violet-50 border-violet-200', dot: 'bg-violet-500' };
   if (n === 'pending') return { bg: 'bg-amber-500', text: 'text-amber-700', light: 'bg-amber-50 border-amber-200', dot: 'bg-amber-500' };
   return { bg: 'bg-slate-400', text: 'text-slate-700', light: 'bg-slate-50 border-slate-200', dot: 'bg-slate-400' };
@@ -89,7 +88,7 @@ function statusColor(status: string) {
 
 function paymentBadge(status: string) {
   const n = status.trim().toLowerCase();
-  if (n === 'paid' || n === 'completed') return { dot: 'bg-emerald-500', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+  if (n === 'paid') return { dot: 'bg-emerald-500', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
   if (n === 'failed' || n === 'refunded') return { dot: 'bg-red-500', cls: 'bg-red-50 text-red-700 border-red-200' };
   if (n === 'pending' || n === 'processing') return { dot: 'bg-amber-500', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
   return { dot: 'bg-slate-400', cls: 'bg-slate-50 text-slate-700 border-slate-200' };
@@ -632,7 +631,7 @@ export default function OrderHistoryPage({
                 [
                   ['all', 'All'],
                   ['active', 'Active'],
-                  ['completed', 'Completed'],
+                  ['completed', 'Delivered'],
                   ['cancelled', 'Cancelled'],
                 ] as Array<[OrderFilter, string]>
               ).map(([filter, label]) => (

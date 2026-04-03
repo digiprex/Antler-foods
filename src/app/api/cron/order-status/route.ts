@@ -15,6 +15,7 @@ const GET_PREPARING_ORDERS = `
       order_id
       restaurant_id
       confirmed_at
+      fulfillment_type
     }
   }
 `;
@@ -330,7 +331,7 @@ export async function GET(request: NextRequest) {
   try {
     // 1. Get preparing orders
     const ordersData = await adminGraphqlRequest<{
-      orders: Array<{ order_id: string; restaurant_id: string; confirmed_at: string }>;
+      orders: Array<{ order_id: string; restaurant_id: string; confirmed_at: string; fulfillment_type: string | null }>;
     }>(GET_PREPARING_ORDERS, {});
 
     const orders = ordersData.orders || [];
@@ -355,6 +356,7 @@ export async function GET(request: NextRequest) {
     // 3. Find orders past preparation time → ready
     const now = Date.now();
     const toReadyIds: string[] = [];
+    const deliveryOrderIds = new Set<string>();
 
     for (const order of orders) {
       const prepMinutes = prepTimeByRestaurant.get(order.restaurant_id);
@@ -363,6 +365,9 @@ export async function GET(request: NextRequest) {
       if (Number.isNaN(confirmedAt)) continue;
       if (now - confirmedAt >= prepMinutes * 60 * 1000) {
         toReadyIds.push(order.order_id);
+        if (order.fulfillment_type === 'delivery') {
+          deliveryOrderIds.add(order.order_id);
+        }
       }
     }
 
@@ -376,9 +381,9 @@ export async function GET(request: NextRequest) {
       console.log(`[Cron] ${affectedReady} order(s) → ready:`, toReadyIds);
     }
 
-    // 5. Dispatch each ready delivery order via Uber Direct
+    // 5. Dispatch only delivery orders via Uber Direct
     let dispatched = 0;
-    for (const orderId of toReadyIds) {
+    for (const orderId of deliveryOrderIds) {
       try {
         await dispatchOrderViaUber(orderId);
         dispatched++;

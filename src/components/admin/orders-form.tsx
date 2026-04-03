@@ -662,6 +662,7 @@ Generated on: ${new Date().toLocaleString()}
       subtotal: order.sub_total,
       total: order.cart_total,
       discount: order.discount_total ?? null,
+      deliveryFee: order.delivery_fee ?? null,
       tip: order.tip_total ?? null,
       tax: order.tax_total ?? null,
       offerApplied: offer,

@@ -69,7 +69,6 @@ interface RestaurantFaviconApiResponse {
   data?: {
     restaurant_id?: string;
     favicon_url?: string | null;
-    favicon_file_id?: string | null;
   };
   error?: string;
 }
@@ -82,6 +81,75 @@ type MediaPreviewState = {
 } | null;
 
 type MyInfoTabKey = 'brand' | 'address' | 'opening-hours' | 'google-profile';
+
+const PHONE_COUNTRY_CODES = [
+  { value: '+1', label: '+1 (US/CA)' },
+  { value: '+44', label: '+44 (UK)' },
+  { value: '+91', label: '+91 (IN)' },
+  { value: '+61', label: '+61 (AU)' },
+  { value: '+64', label: '+64 (NZ)' },
+  { value: '+81', label: '+81 (JP)' },
+  { value: '+86', label: '+86 (CN)' },
+  { value: '+49', label: '+49 (DE)' },
+  { value: '+33', label: '+33 (FR)' },
+  { value: '+39', label: '+39 (IT)' },
+  { value: '+34', label: '+34 (ES)' },
+  { value: '+55', label: '+55 (BR)' },
+  { value: '+52', label: '+52 (MX)' },
+  { value: '+82', label: '+82 (KR)' },
+  { value: '+65', label: '+65 (SG)' },
+  { value: '+60', label: '+60 (MY)' },
+  { value: '+66', label: '+66 (TH)' },
+  { value: '+62', label: '+62 (ID)' },
+  { value: '+63', label: '+63 (PH)' },
+  { value: '+84', label: '+84 (VN)' },
+  { value: '+971', label: '+971 (AE)' },
+  { value: '+966', label: '+966 (SA)' },
+  { value: '+972', label: '+972 (IL)' },
+  { value: '+90', label: '+90 (TR)' },
+  { value: '+27', label: '+27 (ZA)' },
+  { value: '+234', label: '+234 (NG)' },
+  { value: '+254', label: '+254 (KE)' },
+  { value: '+20', label: '+20 (EG)' },
+  { value: '+92', label: '+92 (PK)' },
+  { value: '+880', label: '+880 (BD)' },
+  { value: '+94', label: '+94 (LK)' },
+  { value: '+977', label: '+977 (NP)' },
+  { value: '+47', label: '+47 (NO)' },
+  { value: '+46', label: '+46 (SE)' },
+  { value: '+45', label: '+45 (DK)' },
+  { value: '+358', label: '+358 (FI)' },
+  { value: '+31', label: '+31 (NL)' },
+  { value: '+32', label: '+32 (BE)' },
+  { value: '+41', label: '+41 (CH)' },
+  { value: '+43', label: '+43 (AT)' },
+  { value: '+48', label: '+48 (PL)' },
+  { value: '+351', label: '+351 (PT)' },
+  { value: '+353', label: '+353 (IE)' },
+  { value: '+30', label: '+30 (GR)' },
+  { value: '+7', label: '+7 (RU)' },
+  { value: '+380', label: '+380 (UA)' },
+  { value: '+40', label: '+40 (RO)' },
+  { value: '+36', label: '+36 (HU)' },
+  { value: '+420', label: '+420 (CZ)' },
+  { value: '+54', label: '+54 (AR)' },
+  { value: '+56', label: '+56 (CL)' },
+  { value: '+57', label: '+57 (CO)' },
+  { value: '+51', label: '+51 (PE)' },
+];
+
+const KNOWN_DIAL_CODES = PHONE_COUNTRY_CODES.map((c) => c.value).sort(
+  (a, b) => b.length - a.length,
+);
+
+function splitPhoneCountryCode(phone: string): { code: string; number: string } {
+  const trimmed = phone?.trim() || '';
+  if (!trimmed.startsWith('+')) return { code: '+1', number: trimmed };
+  for (const code of KNOWN_DIAL_CODES) {
+    if (trimmed.startsWith(code)) return { code, number: trimmed.slice(code.length) };
+  }
+  return { code: '+1', number: trimmed.replace(/^\+/, '') };
+}
 
 const BUSINESS_TYPE_OPTIONS = [
   'Restaurant',
@@ -468,18 +536,12 @@ async function fetchRestaurantFaviconSnapshot(restaurantId: string) {
       typeof payload.data.favicon_url === 'string'
         ? payload.data.favicon_url.trim()
         : '';
-    const faviconFileId =
-      typeof payload.data.favicon_file_id === 'string'
-        ? payload.data.favicon_file_id.trim()
-        : '';
-
-    if (!faviconUrl && !faviconFileId) {
+    if (!faviconUrl) {
       return null;
     }
 
     return {
       faviconUrl,
-      faviconFileId,
     };
   } catch {
     return null;
@@ -526,13 +588,11 @@ function useRestaurantDraft(
       if (
         hydrateFavicon &&
         !nextDraft.faviconUrl &&
-        !nextDraft.faviconFileId &&
         faviconSnapshot
       ) {
         nextDraft = {
           ...nextDraft,
           faviconUrl: faviconSnapshot.faviconUrl,
-          faviconFileId: faviconSnapshot.faviconFileId,
         };
       }
 
@@ -761,7 +821,11 @@ export function MyInfoBrandPage() {
   const [toastNotice, setToastNotice] = useState<SaveNotice | null>(null);
   const [legalName, setLegalName] = useState('');
   const [smsName, setSmsName] = useState('');
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+1');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [pocPhoneCountryCode, setPocPhoneCountryCode] = useState('+1');
+  const [pocPhone, setPocPhone] = useState('');
+  const [pocEmail, setPocEmail] = useState('');
   const [email, setEmail] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [serviceModel, setServiceModel] = useState('');
@@ -779,10 +843,8 @@ export function MyInfoBrandPage() {
   const [grubhubLink, setGrubhubLink] = useState('');
   const [doordashLink, setDoordashLink] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  const [logoFileId, setLogoFileId] = useState('');
   const [isLogoUploading, setIsLogoUploading] = useState(false);
   const [faviconUrl, setFaviconUrl] = useState('');
-  const [faviconFileId, setFaviconFileId] = useState('');
   const [isFaviconUploading, setIsFaviconUploading] = useState(false);
   const [cuisineSearchTerm, setCuisineSearchTerm] = useState('');
   const [selectedCuisineTypes, setSelectedCuisineTypes] = useState<string[]>(
@@ -804,7 +866,13 @@ export function MyInfoBrandPage() {
 
     setLegalName(draft.name);
     setSmsName(draft.smsName || draft.name);
-    setPhoneNumber(draft.phoneNumber);
+    const parsedPhone = splitPhoneCountryCode(draft.phoneNumber);
+    setPhoneCountryCode(parsedPhone.code);
+    setPhoneNumber(parsedPhone.number);
+    const parsedPocPhone = splitPhoneCountryCode(draft.pocPhoneNumber);
+    setPocPhoneCountryCode(parsedPocPhone.code);
+    setPocPhone(parsedPocPhone.number);
+    setPocEmail(draft.pocEmail);
     setEmail(draft.email);
     setBusinessType(draft.businessType);
     setServiceModel(draft.serviceModel);
@@ -821,9 +889,7 @@ export function MyInfoBrandPage() {
     setGrubhubLink(draft.grubhubLink || '');
     setDoordashLink(draft.doordashLink || '');
     setLogoUrl(draft.logo || '');
-    setLogoFileId(draft.logoFileId || '');
     setFaviconUrl(draft.faviconUrl || '');
-    setFaviconFileId(draft.faviconFileId || '');
   }, [draft]);
 
   useEffect(() => {
@@ -1020,7 +1086,6 @@ export function MyInfoBrandPage() {
         payload.data.url ||
         `/api/image-proxy?fileId=${encodeURIComponent(payload.data.file_id)}`;
 
-      setLogoFileId(payload.data.file_id);
       setLogoUrl(nextLogoUrl);
       setNotice({
         tone: 'success',
@@ -1052,7 +1117,6 @@ export function MyInfoBrandPage() {
 
   const onRemoveLogo = () => {
     setLogoUrl('');
-    setLogoFileId('');
     setNotice({
       tone: 'success',
       message: 'Logo removed. Click Save brand to apply changes.',
@@ -1099,7 +1163,6 @@ export function MyInfoBrandPage() {
         payload.data.url ||
         `/api/image-proxy?fileId=${encodeURIComponent(payload.data.file_id)}`;
 
-      setFaviconFileId(payload.data.file_id);
       setFaviconUrl(nextFaviconUrl);
       setNotice({
         tone: 'success',
@@ -1131,7 +1194,6 @@ export function MyInfoBrandPage() {
 
   const onRemoveFavicon = () => {
     setFaviconUrl('');
-    setFaviconFileId('');
     setNotice({
       tone: 'success',
       message: 'Favicon removed. Click Save brand to apply changes.',
@@ -1171,27 +1233,24 @@ export function MyInfoBrandPage() {
 
     try {
       const currentFaviconUrl = faviconUrl.trim();
-      const currentFaviconFileId = faviconFileId.trim();
       const existingFaviconUrl = (draft.faviconUrl || '').trim();
-      const existingFaviconFileId = (draft.faviconFileId || '').trim();
       const shouldSyncFavicon =
-        currentFaviconUrl !== existingFaviconUrl ||
-        currentFaviconFileId !== existingFaviconFileId;
+        currentFaviconUrl !== existingFaviconUrl;
 
       await updateRestaurant(restaurant.id, {
         name: trimmedLegalName,
         sms_name: trimmedSmsName,
-        phone_number: phoneNumber.trim(),
+        phone_number: `${phoneCountryCode}${phoneNumber.trim()}`,
         email: email.trim(),
+        poc_phone_number: `${pocPhoneCountryCode}${pocPhone.trim()}`,
+        poc_email: pocEmail.trim(),
         business_type: businessType.trim(),
         service_model: serviceModel.trim(),
         cuisine_types: selectedCuisineTypes
           .map((entry) => entry.trim())
           .filter(Boolean),
         logo: logoUrl.trim() || null,
-        logo_file_id: logoFileId.trim() || null,
         favicon_url: currentFaviconUrl || null,
-        favicon_file_id: currentFaviconFileId || null,
         ...socialLinksPayload,
       });
 
@@ -1205,7 +1264,6 @@ export function MyInfoBrandPage() {
             body: JSON.stringify({
               restaurant_id: restaurant.id,
               favicon_url: currentFaviconUrl || null,
-              favicon_file_id: currentFaviconFileId || null,
             }),
           });
 
@@ -1278,26 +1336,6 @@ export function MyInfoBrandPage() {
                 1MB).
               </p>
             </div>
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center gap-4">
-            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border-2 border-gray-200 bg-white shadow-sm">
-              {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt={`${legalName || restaurant.name} logo`}
-                  className="h-full w-full object-contain p-2"
-                />
-              ) : (
-                <div className="flex flex-col items-center gap-1">
-                  <svg className="h-8 w-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span className="text-xs font-medium text-gray-400">No logo</span>
-                </div>
-              )}
-            </div>
-
             <div className="flex items-center gap-2">
               <input
                 id="brand-logo-upload"
@@ -1310,31 +1348,25 @@ export function MyInfoBrandPage() {
               <label
                 htmlFor="brand-logo-upload"
                 className={cx(
-                  'inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition',
+                  'inline-flex cursor-pointer items-center rounded-xl border px-4 py-2 text-sm font-semibold transition',
                   isSaving || isLogoUploading
-                    ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 pointer-events-none'
-                    : 'border-purple-300 bg-white text-purple-700 hover:bg-purple-50 hover:border-purple-400',
+                    ? 'cursor-not-allowed border-[#d7dfea] bg-[#eef2f7] text-[#8b98a5] pointer-events-none'
+                    : 'border-[#bac8d5] bg-white text-[#2a3a4d] hover:bg-[#f2f6fb]',
                 )}
               >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
                 {isLogoUploading
                   ? 'Uploading...'
                   : logoUrl
-                    ? 'Replace Logo'
-                    : 'Upload Logo'}
+                    ? 'Replace logo'
+                    : 'Upload logo'}
               </label>
-              {logoUrl || logoFileId ? (
+              {logoUrl ? (
                 <button
                   type="button"
                   onClick={onRemoveLogo}
                   disabled={isSaving || isLogoUploading}
-                  className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center rounded-xl border border-[#efc4c4] bg-white px-4 py-2 text-sm font-semibold text-[#c23939] transition hover:bg-[#fff5f5] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
                   Remove
                 </button>
               ) : null}
@@ -1342,7 +1374,7 @@ export function MyInfoBrandPage() {
           </div>
 
           <div className="mt-4 flex items-center gap-4">
-            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-[#d7e2e6] bg-white">
+            <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-[#d7e2e6] bg-white">
               {logoUrl ? (
                 <img
                   src={logoUrl}
@@ -1350,19 +1382,13 @@ export function MyInfoBrandPage() {
                   className="h-full w-full object-contain p-1"
                 />
               ) : (
-                <span className="text-xs font-medium text-[#8b98a5]">
+                <span className="text-[10px] font-medium text-[#8b98a5]">
                   No logo
                 </span>
               )}
             </div>
-            {/* <p className="text-xs text-[#6b7a86]">
-              {logoFileId ? (
-                <span className="font-mono text-[11px]">{logoFileId}</span>
-              ) : (
-                'Logo is stored as URL + file id for stable delivery and easy asset tracking.'
-              )}
-            </p> */}
           </div>
+
         </div>
 
         <div className="rounded-2xl border border-[#d7e2e6] bg-[#f8fafb] p-4">
@@ -1398,7 +1424,7 @@ export function MyInfoBrandPage() {
                     ? 'Replace favicon'
                     : 'Upload favicon'}
               </label>
-              {faviconUrl || faviconFileId ? (
+              {faviconUrl ? (
                 <button
                   type="button"
                   onClick={onRemoveFavicon}
@@ -1444,15 +1470,59 @@ export function MyInfoBrandPage() {
             onChange={setSmsName}
             required
           />
-          <FormField
-            label="Phone number"
-            value={phoneNumber}
-            onChange={setPhoneNumber}
-          />
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-[#111827]">Phone number</span>
+            <div className="flex gap-2">
+              <select
+                value={phoneCountryCode}
+                onChange={(e) => setPhoneCountryCode(e.target.value)}
+                className="h-[50px] w-[130px] shrink-0 rounded-xl border border-[#d2dde2] bg-white px-2 text-sm text-[#111827] outline-none transition focus:border-[#667eea] focus:ring-2 focus:ring-[#ddd6fe]"
+              >
+                {PHONE_COUNTRY_CODES.map((cc) => (
+                  <option key={cc.value} value={cc.value}>{cc.label}</option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-base text-[#111827] outline-none transition focus:border-[#667eea] focus:ring-2 focus:ring-[#ddd6fe]"
+              />
+            </div>
+          </label>
           <FormField
             label="Email"
             value={email}
             onChange={setEmail}
+            type="email"
+          />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-[#111827]">POC phone number</span>
+            <div className="flex gap-2">
+              <select
+                value={pocPhoneCountryCode}
+                onChange={(e) => setPocPhoneCountryCode(e.target.value)}
+                className="h-[50px] w-[130px] shrink-0 rounded-xl border border-[#d2dde2] bg-white px-2 text-sm text-[#111827] outline-none transition focus:border-[#667eea] focus:ring-2 focus:ring-[#ddd6fe]"
+              >
+                {PHONE_COUNTRY_CODES.map((cc) => (
+                  <option key={cc.value} value={cc.value}>{cc.label}</option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                value={pocPhone}
+                onChange={(e) => setPocPhone(e.target.value)}
+                className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-base text-[#111827] outline-none transition focus:border-[#667eea] focus:ring-2 focus:ring-[#ddd6fe]"
+              />
+            </div>
+          </label>
+          <FormField
+            label="POC email"
+            value={pocEmail}
+            onChange={setPocEmail}
             type="email"
           />
         </div>
@@ -4508,37 +4578,24 @@ function buildSocialLinksUpdatePayload({
 
   if (facebook) {
     payload.fb_link = facebook;
-    payload.facebook_link = facebook;
-    payload.facebook_url = facebook;
   }
   if (instagram) {
     payload.insta_link = instagram;
-    payload.instagram_link = instagram;
-    payload.instagram_url = instagram;
   }
   if (x) {
     payload.x_link = x;
-    payload.x_url = x;
-    payload.twitter_link = x;
-    payload.twitter_url = x;
   }
   if (linkedin) {
     payload.linkedin_link = linkedin;
-    payload.linkedin_url = linkedin;
-    payload.li_link = linkedin;
   }
   if (tiktok) {
     payload.tiktok_link = tiktok;
-    payload.tiktok_url = tiktok;
   }
   if (youtube) {
     payload.yt_link = youtube;
-    payload.youtube_link = youtube;
-    payload.youtube_url = youtube;
   }
   if (gmb) {
     payload.gmb_link = gmb;
-    payload.google_business_link = gmb;
   }
   if (yelp) {
     payload.yelp_link = yelp;

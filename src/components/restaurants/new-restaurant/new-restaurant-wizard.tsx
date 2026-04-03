@@ -81,6 +81,7 @@ const DEFAULT_FORM_VALUES: NewRestaurantFormValues = {
   country: '',
   state: '',
   contactName: '',
+  phoneCountryCode: '+1',
   contactPhone: '',
   contactEmail: '',
   shouldCreateOwner: false,
@@ -88,6 +89,42 @@ const DEFAULT_FORM_VALUES: NewRestaurantFormValues = {
   ownerPassword: '',
   ownerDisplayName: '',
 };
+
+const KNOWN_COUNTRY_CODES = [
+  '+1', '+7', '+20', '+27', '+30', '+31', '+32', '+33', '+34', '+36', '+39',
+  '+40', '+41', '+43', '+44', '+45', '+46', '+47', '+48', '+49', '+51', '+52',
+  '+53', '+54', '+55', '+56', '+57', '+58', '+60', '+61', '+62', '+63', '+64',
+  '+65', '+66', '+81', '+82', '+84', '+86', '+90', '+91', '+92', '+93', '+94',
+  '+95', '+98', '+212', '+213', '+216', '+218', '+220', '+221', '+222', '+223',
+  '+224', '+225', '+226', '+227', '+228', '+229', '+230', '+231', '+232', '+233',
+  '+234', '+235', '+236', '+237', '+238', '+239', '+240', '+241', '+242', '+243',
+  '+244', '+245', '+246', '+247', '+248', '+249', '+250', '+251', '+252', '+253',
+  '+254', '+255', '+256', '+257', '+258', '+260', '+261', '+262', '+263', '+264',
+  '+265', '+266', '+267', '+268', '+269', '+290', '+291', '+297', '+298', '+299',
+  '+350', '+351', '+352', '+353', '+354', '+355', '+356', '+357', '+358', '+359',
+  '+370', '+371', '+372', '+373', '+374', '+375', '+376', '+377', '+378', '+380',
+  '+381', '+382', '+385', '+386', '+387', '+389', '+420', '+421', '+423', '+500',
+  '+501', '+502', '+503', '+504', '+505', '+506', '+507', '+508', '+509', '+590',
+  '+591', '+592', '+593', '+594', '+595', '+596', '+597', '+598', '+599', '+670',
+  '+672', '+673', '+674', '+675', '+676', '+677', '+678', '+679', '+680', '+681',
+  '+682', '+683', '+685', '+686', '+687', '+688', '+689', '+690', '+691', '+692',
+  '+850', '+852', '+853', '+855', '+856', '+880', '+886', '+960', '+961', '+962',
+  '+963', '+964', '+965', '+966', '+967', '+968', '+970', '+971', '+972', '+973',
+  '+974', '+975', '+976', '+977', '+992', '+993', '+994', '+995', '+996', '+998',
+].sort((a, b) => b.length - a.length);
+
+function extractPhoneCountryCode(phone: string): { code: string; number: string } {
+  const trimmed = phone?.trim() || '';
+  if (!trimmed.startsWith('+')) {
+    return { code: '+1', number: trimmed };
+  }
+  for (const code of KNOWN_COUNTRY_CODES) {
+    if (trimmed.startsWith(code)) {
+      return { code, number: trimmed.slice(code.length) };
+    }
+  }
+  return { code: '+1', number: trimmed.replace(/^\+/, '') };
+}
 
 function debugLog(label: string, data?: unknown) {
   if (!IS_DEV) {
@@ -424,7 +461,8 @@ export function NewRestaurantWizard() {
           selectedServiceModelName: draft.serviceModel,
           selectedCuisineTypeIds: draft.cuisineTypes,
           selectedCuisineTypeLabels: draft.cuisineTypes,
-          contactPhone: draft.pocPhoneNumber || draft.phoneNumber,
+          phoneCountryCode: extractPhoneCountryCode(draft.pocPhoneNumber || draft.phoneNumber).code,
+          contactPhone: extractPhoneCountryCode(draft.pocPhoneNumber || draft.phoneNumber).number,
           contactEmail: draft.pocEmail || draft.email,
           googlePlaceId:
             draft.googlePlaceId || extractGooglePlaceId(draft.gmbLink),
@@ -757,9 +795,9 @@ export function NewRestaurantWizard() {
       name: values.restaurantName.trim(),
       business_type: values.businessType.trim(),
       poc_name: optionalString(values.contactName),
-      poc_phone_number: optionalString(values.contactPhone),
+      poc_phone_number: optionalString(`${values.phoneCountryCode}${values.contactPhone.trim()}`),
       poc_email: optionalString(values.contactEmail),
-      phone_number: values.contactPhone.trim(),
+      phone_number: `${values.phoneCountryCode}${values.contactPhone.trim()}`,
       email: optionalString(values.contactEmail) ?? '',
       sms_name: values.restaurantName.trim(),
     };
@@ -1270,7 +1308,7 @@ function buildRestaurantPayload(
       : values.selectedCuisineTypeIds;
 
   const trimmedRestaurantName = values.restaurantName.trim();
-  const trimmedContactPhone = values.contactPhone.trim();
+  const trimmedContactPhone = `${values.phoneCountryCode}${values.contactPhone.trim()}`;
   const trimmedContactEmail = values.contactEmail.trim();
   const trimmedGooglePlaceId = values.googlePlaceId.trim();
   const gmbLink = trimmedGooglePlaceId
@@ -1912,43 +1950,30 @@ function buildSocialLinksUpdatePayload({
 
   if (facebookLink) {
     payload.fb_link = facebookLink;
-    payload.facebook_link = facebookLink;
-    payload.facebook_url = facebookLink;
   }
 
   if (instagramLink) {
     payload.insta_link = instagramLink;
-    payload.instagram_link = instagramLink;
-    payload.instagram_url = instagramLink;
   }
 
   if (xLink) {
     payload.x_link = xLink;
-    payload.x_url = xLink;
-    payload.twitter_link = xLink;
-    payload.twitter_url = xLink;
   }
 
   if (linkedinLink) {
     payload.linkedin_link = linkedinLink;
-    payload.linkedin_url = linkedinLink;
-    payload.li_link = linkedinLink;
   }
 
   if (tiktokLink) {
     payload.tiktok_link = tiktokLink;
-    payload.tiktok_url = tiktokLink;
   }
 
   if (youtubeLink) {
     payload.yt_link = youtubeLink;
-    payload.youtube_link = youtubeLink;
-    payload.youtube_url = youtubeLink;
   }
 
   if (googleBusinessLink) {
     payload.gmb_link = googleBusinessLink;
-    payload.google_business_link = googleBusinessLink;
   }
 
   if (yelpLink) {

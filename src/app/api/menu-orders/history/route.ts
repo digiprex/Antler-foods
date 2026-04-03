@@ -35,6 +35,7 @@ const GET_CUSTOMER_ORDERS = `
       created_at
       scheduled_for
       delivery_address
+      delivery_tracking_url
     }
   }
 `;
@@ -83,6 +84,7 @@ interface OrderRecord {
   created_at?: string | null;
   scheduled_for?: string | null;
   delivery_address?: string | null;
+  delivery_tracking_url?: string | null;
 }
 
 interface OrderItemRecord {
@@ -269,6 +271,7 @@ export async function GET(request: NextRequest) {
         createdAt: text(order.created_at),
         scheduledFor: text(order.scheduled_for),
         deliveryAddress: text(order.delivery_address),
+        deliveryTrackingUrl: text(order.delivery_tracking_url),
         pickupAddress: text(order.fulfillment_type) === 'pickup' ? pickupAddress : null,
         items: orderItems,
       };

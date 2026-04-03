@@ -77,6 +77,8 @@ const INSERT_CUSTOMER = `
     $display_name: String!
     $password_hash: String
     $is_guest: Boolean!
+    $email_opt_in: Boolean!
+    $sms_opt_in: Boolean!
   ) {
     insert_customers_one(
       object: {
@@ -87,6 +89,8 @@ const INSERT_CUSTOMER = `
         password_hash: $password_hash
         is_guest: $is_guest
         is_deleted: false
+        email_opt_in: $email_opt_in
+        sms_opt_in: $sms_opt_in
       }
     ) {
       customer_id
@@ -97,6 +101,8 @@ const INSERT_CUSTOMER = `
       password_hash
       is_guest
       is_deleted
+      email_opt_in
+      sms_opt_in
     }
   }
 `;
@@ -109,6 +115,8 @@ const UPDATE_CUSTOMER = `
     $display_name: String!
     $password_hash: String
     $is_guest: Boolean!
+    $email_opt_in: Boolean!
+    $sms_opt_in: Boolean!
   ) {
     update_customers_by_pk(
       pk_columns: { customer_id: $customer_id }
@@ -118,6 +126,8 @@ const UPDATE_CUSTOMER = `
         display_name: $display_name
         password_hash: $password_hash
         is_guest: $is_guest
+        email_opt_in: $email_opt_in
+        sms_opt_in: $sms_opt_in
       }
     ) {
       customer_id
@@ -128,6 +138,8 @@ const UPDATE_CUSTOMER = `
       password_hash
       is_guest
       is_deleted
+      email_opt_in
+      sms_opt_in
     }
   }
 `;
@@ -217,8 +229,23 @@ const INVALIDATE_USER_PASSWORD_RESET_TOKENS = `
   }
 `;
 
-
-
+const UPDATE_CUSTOMER_OPT_IN = `
+  mutation UpdateCustomerOptIn(
+    $customer_id: uuid!
+    $email_opt_in: Boolean!
+    $sms_opt_in: Boolean!
+  ) {
+    update_customers_by_pk(
+      pk_columns: { customer_id: $customer_id }
+      _set: {
+        email_opt_in: $email_opt_in
+        sms_opt_in: $sms_opt_in
+      }
+    ) {
+      customer_id
+    }
+  }
+`;
 
 interface CustomerRecord {
   customer_id?: string | null;
@@ -297,6 +324,8 @@ interface CustomerIdentityInput {
   firstName: string;
   lastName: string;
   phone: string;
+  emailOptIn?: boolean;
+  smsOptIn?: boolean;
 }
 
 interface PasswordResetContext {
@@ -348,6 +377,8 @@ export async function signUpMenuCustomer(
         displayName,
         passwordHash,
         isGuest: false,
+        emailOptIn: input.emailOptIn !== false,
+        smsOptIn: input.smsOptIn !== false,
       }),
     );
   }
@@ -360,6 +391,8 @@ export async function signUpMenuCustomer(
       displayName,
       passwordHash,
       isGuest: false,
+      emailOptIn: input.emailOptIn !== false,
+      smsOptIn: input.smsOptIn !== false,
     }),
   );
 }
@@ -398,6 +431,8 @@ export async function continueAsGuestMenuCustomer(input: CustomerIdentityInput) 
   const email = requireEmail(input.email);
   const phone = requirePhone(input.phone);
   const displayName = requireDisplayName(input.firstName, input.lastName, email);
+  const emailOptIn = input.emailOptIn !== false;
+  const smsOptIn = input.smsOptIn !== false;
   const existing = await findCustomerByEmail(restaurantId, email);
 
   if (existing) {
@@ -408,6 +443,8 @@ export async function continueAsGuestMenuCustomer(input: CustomerIdentityInput) 
         displayName,
         passwordHash: existing.is_guest ? null : (existing.password_hash || null),
         isGuest: existing.is_guest ?? true,
+        emailOptIn,
+        smsOptIn,
       }),
     );
     session.isGuest = true;
@@ -422,6 +459,8 @@ export async function continueAsGuestMenuCustomer(input: CustomerIdentityInput) 
       displayName,
       passwordHash: null,
       isGuest: true,
+      emailOptIn,
+      smsOptIn,
     }),
   );
 }
@@ -508,6 +547,18 @@ export async function changeMenuCustomerPassword({
   const updated = await updateCustomerPassword(customerId, newHash);
 
   return toMenuCustomerSession(updated);
+}
+
+export async function updateMenuCustomerOptIn(
+  customerId: string,
+  { emailOptIn, smsOptIn }: { emailOptIn: boolean; smsOptIn: boolean },
+) {
+  if (!UUID_REGEX.test(customerId)) return;
+  await adminGraphqlRequest(UPDATE_CUSTOMER_OPT_IN, {
+    customer_id: customerId,
+    email_opt_in: emailOptIn,
+    sms_opt_in: smsOptIn,
+  });
 }
 
 export async function requestMenuCustomerPasswordReset({
@@ -740,6 +791,8 @@ async function insertCustomer({
   displayName,
   passwordHash,
   isGuest,
+  emailOptIn = true,
+  smsOptIn = true,
 }: {
   restaurantId: string;
   email: string;
@@ -747,6 +800,8 @@ async function insertCustomer({
   displayName: string;
   passwordHash: string | null;
   isGuest: boolean;
+  emailOptIn?: boolean;
+  smsOptIn?: boolean;
 }) {
   try {
     const data = await adminGraphqlRequest<InsertCustomerResponse>(
@@ -758,6 +813,8 @@ async function insertCustomer({
         display_name: displayName,
         password_hash: passwordHash,
         is_guest: isGuest,
+        email_opt_in: emailOptIn,
+        sms_opt_in: smsOptIn,
       },
     );
 
@@ -787,12 +844,16 @@ async function updateCustomer(
     displayName,
     passwordHash,
     isGuest,
+    emailOptIn = true,
+    smsOptIn = true,
   }: {
     email: string;
     phone: string;
     displayName: string;
     passwordHash: string | null;
     isGuest: boolean;
+    emailOptIn?: boolean;
+    smsOptIn?: boolean;
   },
 ) {
   if (!UUID_REGEX.test(customerId)) {
@@ -808,6 +869,8 @@ async function updateCustomer(
       display_name: displayName,
       password_hash: passwordHash,
       is_guest: isGuest,
+      email_opt_in: emailOptIn,
+      sms_opt_in: smsOptIn,
     },
   );
 

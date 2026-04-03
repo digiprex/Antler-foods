@@ -65,6 +65,9 @@ const GET_RESTAURANT_FOR_INVOICE = `
   query GetRestaurantForInvoice($restaurant_id: uuid!) {
     restaurants_by_pk(restaurant_id: $restaurant_id) {
       name
+      email
+      phone_number
+      logo
       address
       city
       state
@@ -112,10 +115,16 @@ export async function POST(request: NextRequest) {
 
     let restaurantName = '';
     let pickupAddress: string | null = null;
+    let restaurantEmail: string | null = null;
+    let restaurantPhone: string | null = null;
+    let restaurantLogo: string | null = null;
     if (order.restaurant_id) {
       const restData = await adminGraphqlRequest<{
         restaurants_by_pk: {
           name?: string;
+          email?: string;
+          phone_number?: string;
+          logo?: string;
           address?: string;
           city?: string;
           state?: string;
@@ -125,6 +134,9 @@ export async function POST(request: NextRequest) {
       }>(GET_RESTAURANT_FOR_INVOICE, { restaurant_id: order.restaurant_id });
       const rest = restData.restaurants_by_pk;
       restaurantName = rest?.name || '';
+      restaurantEmail = rest?.email || null;
+      restaurantPhone = rest?.phone_number || null;
+      restaurantLogo = rest?.logo || null;
       if (order.fulfillment_type === 'pickup') {
         pickupAddress = [rest?.address, rest?.city, rest?.state, rest?.postal_code, rest?.country]
           .map((v) => (typeof v === 'string' && v.trim() ? v.trim() : null))
@@ -152,6 +164,9 @@ export async function POST(request: NextRequest) {
       items: itemsData.order_items || [],
       restaurantName,
       pickupAddress,
+      restaurantEmail,
+      restaurantPhone,
+      restaurantLogo,
     });
 
     return NextResponse.json({ success: true });

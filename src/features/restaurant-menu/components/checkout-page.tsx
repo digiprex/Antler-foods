@@ -51,6 +51,8 @@ interface CheckoutContactFields {
   firstName: string;
   lastName: string;
   email: string;
+  emailOptIn: boolean;
+  smsOptIn: boolean;
 }
 
 const PHONE_COUNTRY_CODES = [
@@ -451,6 +453,8 @@ export default function RestaurantMenuCheckoutPage({
     firstName: '',
     lastName: '',
     email: '',
+    emailOptIn: true,
+    smsOptIn: true,
   });
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -603,6 +607,7 @@ export default function RestaurantMenuCheckoutPage({
     }
 
     setContactFields((current) => ({
+      ...current,
       phone: current.phone || parsedNumber,
       phoneCountryCode: current.phone ? current.phoneCountryCode : parsedCode,
       firstName: current.firstName || firstName,
@@ -634,6 +639,8 @@ export default function RestaurantMenuCheckoutPage({
         lastName: contactFields.lastName,
         email: contactFields.email,
         phone: `${contactFields.phoneCountryCode}${contactFields.phone.trim()}`,
+        emailOptIn: contactFields.emailOptIn,
+        smsOptIn: contactFields.smsOptIn,
       }),
     });
 
@@ -1290,6 +1297,8 @@ export default function RestaurantMenuCheckoutPage({
           couponCode: appliedCoupon?.code || null,
           giftCardCode: appliedGiftCard?.code || null,
           orderNote: cartNote,
+          emailOptIn: contactFields.emailOptIn,
+          smsOptIn: contactFields.smsOptIn,
         }),
       });
 
@@ -2399,7 +2408,10 @@ export default function RestaurantMenuCheckoutPage({
                     <label className="flex items-center gap-3 text-sm text-stone-600">
                       <input
                         type="checkbox"
-                        defaultChecked
+                        checked={contactFields.emailOptIn}
+                        onChange={(e) =>
+                          setContactFields((prev) => ({ ...prev, emailOptIn: e.target.checked }))
+                        }
                         className="h-4 w-4 rounded border-stone-300 accent-slate-900"
                       />
                       Get promotional emails from {data.restaurant.name}
@@ -2407,7 +2419,10 @@ export default function RestaurantMenuCheckoutPage({
                     <label className="flex items-center gap-3 text-sm text-stone-600">
                       <input
                         type="checkbox"
-                        defaultChecked
+                        checked={contactFields.smsOptIn}
+                        onChange={(e) =>
+                          setContactFields((prev) => ({ ...prev, smsOptIn: e.target.checked }))
+                        }
                         className="h-4 w-4 rounded border-stone-300 accent-slate-900"
                       />
                       Get promotional texts from {data.restaurant.name}

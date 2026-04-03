@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   getMenuCustomerSessionCookieName,
   readMenuCustomerSession,
+  updateMenuCustomerOptIn,
 } from '@/features/restaurant-menu/lib/server/customer-auth';
 import {
   MenuOrderError,
@@ -66,6 +67,8 @@ interface CheckoutOrderRequestBody {
   couponCode?: string | null;
   giftCardCode?: string | null;
   orderNote?: string | null;
+  emailOptIn?: boolean;
+  smsOptIn?: boolean;
 }
 
 export async function POST(request: NextRequest) {
@@ -84,6 +87,12 @@ export async function POST(request: NextRequest) {
         { status: 401 },
       );
     }
+
+    // Update customer opt-in preferences
+    await updateMenuCustomerOptIn(customer.customerId, {
+      emailOptIn: body?.emailOptIn !== false,
+      smsOptIn: body?.smsOptIn !== false,
+    });
 
     const result = await placeMenuOrder({
       customerId: customer.customerId,

@@ -3,7 +3,7 @@ import { jsPDF } from 'jspdf';
 export interface KitchenTicketItem {
   item_name: string;
   quantity: number;
-  selected_modifiers: Array<{ name: string }> | null;
+  selected_modifiers: Array<{ name: string; groupName?: string; price?: number }> | null;
   item_note: string | null;
 }
 
@@ -90,7 +90,9 @@ export function generateKitchenTicketPDF(data: KitchenTicketData): jsPDF {
           doc.addPage();
           y = 8;
         }
-        doc.text(`  + ${mod.name}`, 6, y);
+        const priceSuffix = typeof mod.price === 'number' && mod.price > 0 ? ` ($${mod.price.toFixed(2)})` : '';
+        const groupPrefix = mod.groupName ? `[${mod.groupName}] ` : '';
+        doc.text(`  + ${groupPrefix}${mod.name}${priceSuffix}`, 6, y);
         y += 3.5;
       }
     }

@@ -15,6 +15,39 @@ import {
 } from '@/features/restaurant-menu/lib/customer-auth';
 import { MenuAuthInput } from '@/features/restaurant-menu/components/menu-auth-input';
 
+const PHONE_COUNTRY_CODES = [
+  { code: '+1', label: 'US/CA +1' },
+  { code: '+44', label: 'UK +44' },
+  { code: '+91', label: 'IN +91' },
+  { code: '+61', label: 'AU +61' },
+  { code: '+33', label: 'FR +33' },
+  { code: '+49', label: 'DE +49' },
+  { code: '+81', label: 'JP +81' },
+  { code: '+86', label: 'CN +86' },
+  { code: '+52', label: 'MX +52' },
+  { code: '+55', label: 'BR +55' },
+  { code: '+34', label: 'ES +34' },
+  { code: '+39', label: 'IT +39' },
+  { code: '+82', label: 'KR +82' },
+  { code: '+31', label: 'NL +31' },
+  { code: '+46', label: 'SE +46' },
+  { code: '+47', label: 'NO +47' },
+  { code: '+41', label: 'CH +41' },
+  { code: '+65', label: 'SG +65' },
+  { code: '+971', label: 'AE +971' },
+  { code: '+966', label: 'SA +966' },
+  { code: '+234', label: 'NG +234' },
+  { code: '+27', label: 'ZA +27' },
+  { code: '+254', label: 'KE +254' },
+  { code: '+63', label: 'PH +63' },
+  { code: '+60', label: 'MY +60' },
+  { code: '+66', label: 'TH +66' },
+  { code: '+62', label: 'ID +62' },
+  { code: '+64', label: 'NZ +64' },
+  { code: '+353', label: 'IE +353' },
+  { code: '+48', label: 'PL +48' },
+];
+
 interface MenuSignupFormProps {
   restaurantId?: string | null;
   onRequestLogin?: () => void;
@@ -34,6 +67,7 @@ export function MenuSignupForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+1');
 
   useEffect(() => {
     return () => {
@@ -93,7 +127,7 @@ export function MenuSignupForm({
           firstName: values.firstName,
           lastName: values.lastName,
           email: values.email,
-          phone: values.phone,
+          phone: `${phoneCountryCode}${values.phone.trim()}`,
           password: values.password,
         }),
       });
@@ -157,14 +191,34 @@ export function MenuSignupForm({
           {...register('email')}
         />
 
-        <MenuAuthInput
-          type="tel"
-          label="Phone number"
-          placeholder="Enter your phone number"
-          autoComplete="tel"
-          error={errors.phone?.message}
-          {...register('phone')}
-        />
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold tracking-[-0.01em] text-slate-700">
+            Phone number
+          </label>
+          <div className="flex gap-2">
+            <select
+              value={phoneCountryCode}
+              onChange={(e) => setPhoneCountryCode(e.target.value)}
+              className="menu-auth-input w-[120px] shrink-0"
+            >
+              {PHONE_COUNTRY_CODES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <input
+              type="tel"
+              placeholder="(555) 555-5555"
+              autoComplete="tel-national"
+              className={`menu-auth-input flex-1 ${errors.phone ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' : ''}`}
+              {...register('phone')}
+            />
+          </div>
+          {errors.phone?.message ? (
+            <p className="text-xs font-semibold text-red-600">{errors.phone.message}</p>
+          ) : null}
+        </div>
 
         <MenuAuthInput
           type="password"

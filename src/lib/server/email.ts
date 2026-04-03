@@ -583,6 +583,7 @@ export async function sendOrderInvoiceEmail(
         </table>
 
         ${order.payment_method ? `<p style="margin:16px 0 0;font-size:13px;color:#78716c;">Paid via ${order.payment_method}</p>` : ''}
+        ${order.order_note ? `<div style="margin:16px 0 0;padding:12px 16px;background:#fafaf9;border-radius:10px;border:1px solid #e7e5e4;"><p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#78716c;">Order Note</p><p style="margin:0;font-size:13px;color:#1e293b;">${order.order_note}</p></div>` : ''}
       </div>
     </div>
     ${restaurantEmail || restaurantPhone ? `
@@ -636,6 +637,8 @@ export async function sendOrderInvoiceEmail(
     giftCardCode ? `  Gift Card: ${giftCardCode}` : '',
     typeof order.tip_total === 'number' && order.tip_total > 0 ? `Tip: ${formatCurrency(order.tip_total)}` : '',
     `Total: ${total}`,
+    '',
+    order.order_note ? `Order Note: ${order.order_note}` : '',
     '',
     restaurantEmail || restaurantPhone ? 'Need help with your order? Contact us:' : '',
     restaurantEmail ? `Email: ${restaurantEmail}` : '',

@@ -611,6 +611,9 @@ export async function sendOrderInvoiceEmail(
   if (giftCardCode) {
     discountDetailsRows.push(`<tr><td colspan="3" style="padding:0 0 4px;font-size:12px;color:#059669;">Gift Card: ${giftCardCode}</td></tr>`);
   }
+  const deliveryFeeRow = typeof order.delivery_fee === 'number' && order.delivery_fee > 0
+    ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;">Delivery fee</td><td style="padding:4px 0;font-size:14px;text-align:right;">${formatCurrency(order.delivery_fee)}</td></tr>`
+    : '';
   const discount = typeof order.discount_total === 'number' && order.discount_total > 0
     ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;color:#059669;">Discount</td><td style="padding:4px 0;font-size:14px;text-align:right;color:#059669;">-${formatCurrency(order.discount_total)}</td></tr>${discountDetailsRows.join('')}`
     : '';
@@ -675,6 +678,7 @@ export async function sendOrderInvoiceEmail(
             <td colspan="2" style="padding:4px 0;font-size:14px;">Subtotal</td>
             <td style="padding:4px 0;font-size:14px;text-align:right;">${subtotal}</td>
           </tr>
+          ${deliveryFeeRow}
           ${discount}
           ${tip}
           ${tax}
@@ -721,6 +725,7 @@ export async function sendOrderInvoiceEmail(
     }),
     '',
     `Subtotal: ${subtotal}`,
+    typeof order.delivery_fee === 'number' && order.delivery_fee > 0 ? `Delivery fee: ${formatCurrency(order.delivery_fee)}` : '',
     typeof order.discount_total === 'number' && order.discount_total > 0 ? `Discount: -${formatCurrency(order.discount_total)}` : '',
     offerApplied ? `  Offer Applied: ${resolveOfferTitle(offerApplied as unknown as Record<string, unknown>)}${offerApplied.discountType === 'percent' ? ` (${offerApplied.value}% off)` : ''}` : '',
     couponCode ? `  Coupon: ${couponCode}` : '',

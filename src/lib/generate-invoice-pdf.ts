@@ -39,6 +39,7 @@ export interface InvoiceData {
   subtotal: number | null;
   total: number | null;
   discount: number | null;
+  deliveryFee: number | null;
   tip: number | null;
   tax: number | null;
   offerApplied: InvoiceOffer | null;
@@ -203,6 +204,11 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
     (typeof data.giftCardCode === 'string' && data.giftCardCode.trim()),
   );
 
+  if (typeof data.deliveryFee === 'number' && data.deliveryFee > 0) {
+    doc.text('Delivery fee', 14, y);
+    doc.text(fmt(data.deliveryFee), pageWidth - 14, y, { align: 'right' });
+    y += 6;
+  }
   if (typeof data.discount === 'number' && data.discount > 0) {
     doc.setTextColor(5, 150, 105);
     doc.text('Discount', 14, y);

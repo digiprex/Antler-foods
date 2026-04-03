@@ -45,6 +45,7 @@ interface OrderData {
   tax_total: number | null;
   tip_total: number | null;
   discount_total: number | null;
+  delivery_fee: number | null;
   order_note: string | null;
   delivery_address: string | null;
   placed_at: string | null;
@@ -52,8 +53,13 @@ interface OrderData {
   restaurant_name: string;
   pickup_address: string | null;
   delivery_provider: string | null;
+  delivery_provider_delivery_id: string | null;
   delivery_tracking_url: string | null;
   delivery_dispatch_status: string | null;
+  delivery_dispatched_at: string | null;
+  delivery_last_status_at: string | null;
+  delivery_error: string | null;
+  delivery_quote: unknown;
   offer_applied: {
     type: 'auto_offer';
     code?: string | null;
@@ -190,6 +196,7 @@ export default function MenuCheckoutSuccessContent() {
   const subtotal = order?.sub_total ?? null;
   const total = order?.cart_total ?? null;
   const discount = order?.discount_total ?? null;
+  const deliveryFee = order?.delivery_fee ?? null;
   const offerApplied = order?.offer_applied ?? null;
   const tip = order?.tip_total ?? null;
   const tax = order?.tax_total ?? null;
@@ -217,6 +224,7 @@ export default function MenuCheckoutSuccessContent() {
       subtotal,
       total,
       discount,
+      deliveryFee,
       tip,
       tax,
       offerApplied,
@@ -374,17 +382,6 @@ export default function MenuCheckoutSuccessContent() {
                 </span>
               ) : null}
             </div>
-            {deliveryTrackingUrl ? (
-              <div className="mt-5">
-                <a
-                  href={deliveryTrackingUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex h-11 items-center justify-center rounded-[14px] border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-950 transition hover:bg-slate-50">
-                  Track delivery
-                </a>
-              </div>
-            ) : null}
           <div className="px-1 py-1 sm:px-2">
             {/* Order info */}
             <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden">
@@ -435,13 +432,6 @@ export default function MenuCheckoutSuccessContent() {
                   </div>
                 ) : null}
 
-                {address ? (
-                  <div className="px-5 py-3">
-                    <p className="text-sm text-stone-500">Delivery address</p>
-                    <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-950">{address}</p>
-                  </div>
-                ) : null}
-
                 {pickupAddress ? (
                   <div className="px-5 py-3">
                     <p className="text-sm text-stone-500">Pickup from</p>
@@ -450,6 +440,107 @@ export default function MenuCheckoutSuccessContent() {
                 ) : null}
               </div>
             </div>
+
+            {/* Delivery details */}
+            {isDeliveryOrder ? (
+              <div className="mt-5 overflow-hidden rounded-[20px] border border-slate-200 bg-white">
+                <div className="border-b border-slate-100 bg-slate-50/60 px-5 py-3">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                    </svg>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">Delivery Details</p>
+                  </div>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {address ? (
+                    <div className="flex items-start gap-3 px-5 py-3">
+                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                      </svg>
+                      <div>
+                        <p className="text-xs text-slate-500">Delivery address</p>
+                        <p className="mt-0.5 text-sm font-medium text-slate-900">{address}</p>
+                      </div>
+                    </div>
+                  ) : null}
+                  {order?.delivery_provider ? (
+                    <div className="flex items-center justify-between px-5 py-3">
+                      <span className="text-sm text-slate-500">Provider</span>
+                      <span className="text-sm font-semibold capitalize text-slate-950">{order.delivery_provider.replace(/_/g, ' ')}</span>
+                    </div>
+                  ) : null}
+                  {order?.delivery_dispatch_status ? (
+                    <div className="flex items-center justify-between px-5 py-3">
+                      <span className="text-sm text-slate-500">Dispatch status</span>
+                      <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                        order.delivery_dispatch_status === 'delivered' ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        : order.delivery_dispatch_status === 'failed' || order.delivery_dispatch_status === 'cancelled' ? 'border-red-200 bg-red-50 text-red-700'
+                        : order.delivery_dispatch_status === 'pickup' || order.delivery_dispatch_status === 'dropoff' ? 'border-blue-200 bg-blue-50 text-blue-700'
+                        : 'border-amber-200 bg-amber-50 text-amber-700'
+                      }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          order.delivery_dispatch_status === 'delivered' ? 'bg-emerald-500'
+                          : order.delivery_dispatch_status === 'failed' || order.delivery_dispatch_status === 'cancelled' ? 'bg-red-500'
+                          : order.delivery_dispatch_status === 'pickup' || order.delivery_dispatch_status === 'dropoff' ? 'bg-blue-500'
+                          : 'bg-amber-500'
+                        }`} />
+                        {formatStatus(order.delivery_dispatch_status)}
+                      </span>
+                    </div>
+                  ) : null}
+                  {order?.delivery_provider_delivery_id ? (
+                    <div className="flex items-center justify-between px-5 py-3">
+                      <span className="text-sm text-slate-500">Delivery ID</span>
+                      <span className="font-mono text-xs text-slate-600">{order.delivery_provider_delivery_id}</span>
+                    </div>
+                  ) : null}
+                  {order?.delivery_dispatched_at ? (
+                    <div className="flex items-center justify-between px-5 py-3">
+                      <span className="text-sm text-slate-500">Dispatched at</span>
+                      <span className="text-sm font-medium text-slate-900">{formatDate(order.delivery_dispatched_at)}</span>
+                    </div>
+                  ) : null}
+                  {order?.delivery_last_status_at ? (
+                    <div className="flex items-center justify-between px-5 py-3">
+                      <span className="text-sm text-slate-500">Last update</span>
+                      <span className="text-sm font-medium text-slate-900">{formatDate(order.delivery_last_status_at)}</span>
+                    </div>
+                  ) : null}
+                  {typeof deliveryFee === 'number' && deliveryFee > 0 ? (
+                    <div className="flex items-center justify-between px-5 py-3">
+                      <span className="text-sm text-slate-500">Delivery fee</span>
+                      <span className="text-sm font-semibold text-slate-950">{formatPrice(deliveryFee)}</span>
+                    </div>
+                  ) : null}
+                  {order?.delivery_error ? (
+                    <div className="px-5 py-3">
+                      <div className="rounded-[10px] border border-red-200 bg-red-50 px-3 py-2">
+                        <p className="text-xs font-medium text-red-700">Delivery issue</p>
+                        <p className="mt-0.5 text-xs text-red-600">{order.delivery_error}</p>
+                      </div>
+                    </div>
+                  ) : null}
+                  {deliveryTrackingUrl ? (
+                    <div className="px-5 py-3">
+                      <a
+                        href={deliveryTrackingUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-[12px] bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                        </svg>
+                        Track delivery
+                      </a>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
 
             {/* Order items */}
             {items.length > 0 ? (
@@ -524,6 +615,12 @@ export default function MenuCheckoutSuccessContent() {
                       <tr>
                         <td className="px-5 py-2.5 text-slate-600">Subtotal</td>
                         <td className="px-5 py-2.5 text-right font-medium text-slate-950">{formatPrice(subtotal)}</td>
+                      </tr>
+                  ) : null}
+                  {typeof deliveryFee === 'number' && deliveryFee > 0 ? (
+                      <tr>
+                        <td className="px-5 py-2.5 text-slate-600">Delivery fee</td>
+                        <td className="px-5 py-2.5 text-right font-medium text-slate-950">{formatPrice(deliveryFee)}</td>
                       </tr>
                   ) : null}
                   {typeof discount === 'number' && discount > 0 ? (

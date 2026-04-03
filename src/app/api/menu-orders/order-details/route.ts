@@ -39,6 +39,7 @@ const GET_ORDER_BY_NUMBER = `
       delivery_last_status_at
       delivery_error
       delivery_quote
+      delivery_quote_id
       placed_at
       restaurant_id
       offer_applied
@@ -143,9 +144,24 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    let deliveryFee: number | null = null;
+    const quoteId = typeof order.delivery_quote_id === 'string' ? order.delivery_quote_id : null;
+    if (quoteId) {
+      try {
+        const quoteData = await adminGraphqlRequest<{
+          delivery_quotes_by_pk: { delivery_fee?: number | null } | null;
+        }>(`query ($id: uuid!) { delivery_quotes_by_pk(delivery_quote_id: $id) { delivery_fee } }`, { id: quoteId });
+        const fee = quoteData.delivery_quotes_by_pk?.delivery_fee;
+        deliveryFee = typeof fee === 'number' ? fee : null;
+      } catch {
+        // silent
+      }
+    }
+
     return NextResponse.json({
       order: {
         ...order,
+        delivery_fee: deliveryFee,
         restaurant_name: restaurantName,
         pickup_address: pickupAddress,
         offer_applied: parsedOfferApplied,

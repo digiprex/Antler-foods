@@ -66,14 +66,16 @@ const GET_RESTAURANT_FOR_INVOICE = `
   }
 `;
 
+
 const UPDATE_ORDER_PAYMENT_STATUS = `
-  mutation UpdateOrderPaymentStatus($order_id: uuid!, $payment_status: String!, $payment_reference: String) {
+  mutation UpdateOrderPaymentStatus($order_id: uuid!, $payment_status: String!, $payment_reference: String, $status: String, $confirmed_at: timestamptz) {
     update_orders_by_pk(
       pk_columns: { order_id: $order_id },
-      _set: { payment_status: $payment_status, payment_reference: $payment_reference }
+      _set: { payment_status: $payment_status, payment_reference: $payment_reference, status: $status, confirmed_at: $confirmed_at }
     ) {
       order_id
       payment_status
+      status
     }
   }
 `;
@@ -113,6 +115,8 @@ export async function POST(request: NextRequest) {
         order_id: orderId,
         payment_status: 'paid',
         payment_reference: paymentIntent.id,
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString(),
       });
 
       // Send order confirmation email
@@ -176,6 +180,7 @@ export async function POST(request: NextRequest) {
       } catch (emailError) {
         console.error('[Stripe Webhook] Order confirmation email failed:', emailError);
       }
+
     }
   }
 

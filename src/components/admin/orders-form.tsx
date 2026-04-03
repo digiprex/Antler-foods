@@ -62,6 +62,7 @@ export default function OrdersForm({
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pickupAddress, setPickupAddress] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [pagination, setPagination] = useState({
@@ -80,6 +81,17 @@ export default function OrdersForm({
     setIsMounted(true);
     return () => setIsMounted(false);
   }, []);
+
+  useEffect(() => {
+    fetch(`/api/admin/order-settings?restaurant_id=${encodeURIComponent(restaurantId)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data.data?.address) {
+          setPickupAddress(data.data.address);
+        }
+      })
+      .catch(() => {});
+  }, [restaurantId]);
 
   // Fetch orders from API
   const fetchOrders = useCallback(
@@ -244,7 +256,7 @@ Date: ${orderDate}
 Customer: ${customerName}
 ${order.contact_email ? `Email: ${order.contact_email}` : ''}
 ${order.contact_phone ? `Phone: ${order.contact_phone}` : ''}
-${order.delivery_address ? `Address: ${order.delivery_address}` : ''}
+${order.fulfillment_type === 'pickup' && pickupAddress ? `Pickup Address: ${pickupAddress}` : order.delivery_address ? `Delivery Address: ${order.delivery_address}` : ''}
 
 Status: ${order.status.replace('_', ' ').toUpperCase()}
 ${order.payment_status ? `Payment: ${order.payment_status.replace('_', ' ').toUpperCase()}` : ''}
@@ -469,7 +481,7 @@ Generated on: ${new Date().toLocaleString()}
         <div><strong>Customer:</strong> ${customerName}</div>
         ${order.contact_email ? `<div><strong>Email:</strong> ${order.contact_email}</div>` : ''}
         ${order.contact_phone ? `<div><strong>Phone:</strong> ${order.contact_phone}</div>` : ''}
-        ${order.delivery_address ? `<div><strong>Address:</strong> ${order.delivery_address}</div>` : ''}
+        ${order.fulfillment_type === 'pickup' && pickupAddress ? `<div><strong>Pickup Address:</strong> ${pickupAddress}</div>` : order.delivery_address ? `<div><strong>Delivery Address:</strong> ${order.delivery_address}</div>` : ''}
     </div>
     
     <div class="section">
@@ -667,6 +679,7 @@ Generated on: ${new Date().toLocaleString()}
             .replace(/\b\w/g, (c) => c.toUpperCase())
         : 'N/A',
       address: order.delivery_address || '',
+      pickupAddress: order.fulfillment_type === 'pickup' ? pickupAddress : null,
       paymentMethod: order.payment_method?.replace('_', ' ') || '',
       placedAt: order.placed_at
         ? formatDate(order.placed_at)
@@ -1031,9 +1044,13 @@ Generated on: ${new Date().toLocaleString()}
 
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      Delivery
+                      {order.fulfillment_type === 'pickup' ? 'Pickup' : 'Delivery'}
                     </p>
-                    {order.delivery_address ? (
+                    {order.fulfillment_type === 'pickup' && pickupAddress ? (
+                      <p className="text-gray-900 text-xs leading-relaxed">
+                        {pickupAddress}
+                      </p>
+                    ) : order.delivery_address ? (
                       <p className="text-gray-900 text-xs leading-relaxed">
                         {order.delivery_address}
                       </p>
@@ -1347,7 +1364,16 @@ Generated on: ${new Date().toLocaleString()}
                                 {selectedOrder.contact_phone || 'N/A'}
                               </p>
                             </div>
-                            {selectedOrder.delivery_address && (
+                            {selectedOrder.fulfillment_type === 'pickup' && pickupAddress ? (
+                              <div>
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                  Pickup Address
+                                </p>
+                                <p className="text-sm text-gray-900 mt-1 leading-relaxed">
+                                  {pickupAddress}
+                                </p>
+                              </div>
+                            ) : selectedOrder.delivery_address ? (
                               <div>
                                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                                   Delivery Address
@@ -1356,7 +1382,7 @@ Generated on: ${new Date().toLocaleString()}
                                   {selectedOrder.delivery_address}
                                 </p>
                               </div>
-                            )}
+                            ) : null}
                           </div>
                         </div>
 

@@ -65,7 +65,6 @@ export interface RestaurantDraftItem {
   grubhubLink: string;
   doordashLink: string;
   logo: string;
-  logoFileId: string;
   faviconUrl: string;
   faviconFileId: string;
   isDeleted: boolean | null;
@@ -456,93 +455,6 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           grubhub_link
           doordash_link
           logo
-          logo_file_id
-          favicon_url
-          favicon_file_id
-          is_deleted
-        }
-      }
-    `,
-  },
-  {
-    idField: "restaurant_id",
-    query: `
-      query GetRestaurantDraftByRestaurantIdWithLinkedInUrlAndFavicon($restaurantId: uuid!) {
-        restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
-          restaurant_id
-          franchise_id
-          name
-          address
-          city
-          state
-          country
-          postal_code
-          business_type
-          service_model
-          cuisine_types
-          phone_number
-          email
-          sms_name
-          poc_name
-          poc_phone_number
-          poc_email
-          google_place_id
-          gmb_link
-          fb_link
-          insta_link
-          x_link
-          linkedin_url
-          yt_link
-          tiktok_link
-          yelp_link
-          ubereats_link
-          grubhub_link
-          doordash_link
-          logo
-          logo_file_id
-          favicon_url
-          favicon_file_id
-          is_deleted
-        }
-      }
-    `,
-  },
-  {
-    idField: "restaurant_id",
-    query: `
-      query GetRestaurantDraftByRestaurantIdWithLiLinkAndFavicon($restaurantId: uuid!) {
-        restaurants(where: { restaurant_id: { _eq: $restaurantId } }, limit: 1) {
-          restaurant_id
-          franchise_id
-          name
-          address
-          city
-          state
-          country
-          postal_code
-          business_type
-          service_model
-          cuisine_types
-          phone_number
-          email
-          sms_name
-          poc_name
-          poc_phone_number
-          poc_email
-          google_place_id
-          gmb_link
-          fb_link
-          insta_link
-          x_link
-          li_link
-          yt_link
-          tiktok_link
-          yelp_link
-          ubereats_link
-          grubhub_link
-          doordash_link
-          logo
-          logo_file_id
           favicon_url
           favicon_file_id
           is_deleted
@@ -577,6 +489,7 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           fb_link
           insta_link
           x_link
+          linkedin_link
           yt_link
           tiktok_link
           yelp_link
@@ -584,7 +497,6 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           grubhub_link
           doordash_link
           logo
-          logo_file_id
           favicon_url
           favicon_file_id
           is_deleted
@@ -619,6 +531,7 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           fb_link
           insta_link
           x_link
+          linkedin_link
           yt_link
           tiktok_link
           yelp_link
@@ -626,7 +539,6 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           grubhub_link
           doordash_link
           logo
-          logo_file_id
           favicon_url
           is_deleted
         }
@@ -660,6 +572,7 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           fb_link
           insta_link
           x_link
+          linkedin_link
           yt_link
           tiktok_link
           yelp_link
@@ -667,7 +580,6 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           grubhub_link
           doordash_link
           logo
-          logo_file_id
           is_deleted
         }
       }
@@ -1398,41 +1310,28 @@ function parseRestaurantDraft(rows: Array<Record<string, unknown>>, idField: str
     googlePlaceId: normalizeText(firstRow.google_place_id, ""),
     gmbLink: normalizeText(firstRow.gmb_link, ""),
     facebookLink: normalizeTextFromFieldCandidates(firstRow, [
-      "fb_link",
-      "facebook_link",
-      "facebook_url",
+      "fb_link"
     ]),
     instagramLink: normalizeTextFromFieldCandidates(firstRow, [
-      "insta_link",
-      "instagram_link",
-      "instagram_url",
+      "insta_link"
     ]),
     xLink: normalizeTextFromFieldCandidates(firstRow, [
-      "x_link",
-      "x_url",
-      "twitter_link",
-      "twitter_url",
+      "x_link"
     ]),
     linkedinLink: normalizeTextFromFieldCandidates(firstRow, [
-      "linkedin_link",
-      "linkedin_url",
-      "li_link",
+      "linkedin_link"
     ]),
     tiktokLink: normalizeTextFromFieldCandidates(firstRow, [
-      "tiktok_link",
-      "tiktok_url",
+      "tiktok_link"
     ]),
     youtubeLink: normalizeTextFromFieldCandidates(firstRow, [
-      "yt_link",
-      "youtube_link",
-      "youtube_url",
+      "yt_link"
     ]),
     yelpLink: normalizeText(firstRow.yelp_link, ""),
     ubereatsLink: normalizeText(firstRow.ubereats_link, ""),
     grubhubLink: normalizeText(firstRow.grubhub_link, ""),
     doordashLink: normalizeText(firstRow.doordash_link, ""),
     logo: normalizeText(firstRow.logo, ""),
-    logoFileId: normalizeTextFromFieldCandidates(firstRow, ["logo_file_id"]),
     faviconUrl: normalizeTextFromFieldCandidates(firstRow, [
       "favicon_url",
       "favicon",

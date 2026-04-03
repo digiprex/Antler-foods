@@ -25,10 +25,7 @@ import { resolveRestaurantIdByDomain } from '@/lib/server/domain-resolver';
  * Searches by restaurant_id and category, excludes deleted templates
  * Also fetches email and phone_number from the restaurant table
  */
-function buildFooterConfigQuery(xField?: 'x_link' | 'twitter_link') {
-  const xFieldSelection = xField ? `\n      ${xField}` : '';
-
-  return `
+const GET_FOOTER_CONFIG = `
   query GetFooterConfig($restaurant_id: uuid!) {
     templates(
       where: {
@@ -65,7 +62,8 @@ function buildFooterConfigQuery(xField?: 'x_link' | 'twitter_link') {
       postal_code
       insta_link
       fb_link
-      ${xFieldSelection}
+      x_link
+      linkedin_link
       yt_link
       tiktok_link
       gmb_link
@@ -90,11 +88,6 @@ function buildFooterConfigQuery(xField?: 'x_link' | 'twitter_link') {
     }
   }
 `;
-}
-
-const GET_FOOTER_CONFIG = buildFooterConfigQuery('x_link');
-const GET_FOOTER_CONFIG_WITH_TWITTER_LINK = buildFooterConfigQuery('twitter_link');
-const GET_FOOTER_CONFIG_WITHOUT_X_LINK = buildFooterConfigQuery();
 
 /**
  * Lightweight query for update flow (POST)
@@ -169,36 +162,8 @@ async function graphqlRequest<T>(query: string, variables?: Record<string, unkno
   return adminGraphqlRequest<T>(query, variables);
 }
 
-function isMissingRestaurantFieldError(error: unknown, fieldName: string) {
-  return (
-    error instanceof Error &&
-    error.message.includes(`field '${fieldName}' not found`) &&
-    error.message.includes("'restaurants'")
-  );
-}
-
 async function fetchFooterConfigData(restaurantId: string) {
-  try {
-    return await graphqlRequest(GET_FOOTER_CONFIG, {
-      restaurant_id: restaurantId,
-    });
-  } catch (error) {
-    if (!isMissingRestaurantFieldError(error, 'x_link')) {
-      throw error;
-    }
-  }
-
-  try {
-    return await graphqlRequest(GET_FOOTER_CONFIG_WITH_TWITTER_LINK, {
-      restaurant_id: restaurantId,
-    });
-  } catch (error) {
-    if (!isMissingRestaurantFieldError(error, 'twitter_link')) {
-      throw error;
-    }
-  }
-
-  return graphqlRequest(GET_FOOTER_CONFIG_WITHOUT_X_LINK, {
+  return await graphqlRequest(GET_FOOTER_CONFIG, {
     restaurant_id: restaurantId,
   });
 }
@@ -264,9 +229,12 @@ export async function GET(request: Request) {
     if (restaurantData?.insta_link) {
       socialLinks.push({ platform: 'instagram' as const, url: restaurantData.insta_link, order: order++ });
     }
-    const xLink = restaurantData?.x_link || restaurantData?.twitter_link;
+    const xLink = restaurantData?.x_link;
     if (xLink) {
       socialLinks.push({ platform: 'twitter' as const, url: xLink, order: order++ });
+    }
+    if (restaurantData?.linkedin_link) {
+      socialLinks.push({ platform: 'linkedin' as const, url: restaurantData.linkedin_link, order: order++ });
     }
     if (restaurantData?.yt_link) {
       socialLinks.push({ platform: 'youtube' as const, url: restaurantData.yt_link, order: order++ });

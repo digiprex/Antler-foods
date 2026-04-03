@@ -82,6 +82,11 @@ export default function Footer(props: FooterProps) {
   const getSocialLinkLabel = (platform?: string) =>
     `Visit us on ${getSocialPlatformName(platform)}`;
 
+  const ensureAbsoluteUrl = (url: string) => {
+    if (/^https?:\/\//i.test(url)) return url;
+    return `https://${url}`;
+  };
+
   const getReadableHref = (href?: string) => {
     if (!href || href === '#') return 'link';
     if (href.startsWith('#')) {
@@ -221,17 +226,17 @@ export default function Footer(props: FooterProps) {
     ),
     doordash: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M23.071 8.409l-6.418 6.58c-.783.803-1.852 1.255-2.968 1.255H3.5l1.502-3.047h7.935c.41 0 .805-.166 1.095-.46l3.731-3.827-3.731-3.827c-.29-.294-.685-.46-1.095-.46H3.5L2 8.67h10.685c1.116 0 2.185.452 2.968 1.255l6.418 6.58z"/>
+        <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm3.8 13.6H9.4c-.77 0-1.4-.63-1.4-1.4V9.8c0-.77.63-1.4 1.4-1.4h6.4c.77 0 1.4.63 1.4 1.4v4.4c0 .77-.63 1.4-1.4 1.4zm-1-2.8h-4V11h4v1.8z"/>
       </svg>
     ),
     grubhub: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+        <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm2 14.5h-3c-1.93 0-3.5-1.57-3.5-3.5v-2C7.5 9.07 9.07 7.5 11 7.5h3v2.5h-3c-.55 0-1 .45-1 1v2c0 .55.45 1 1 1h1v-1.5h-1V11h3v5.5z"/>
       </svg>
     ),
     ubereats: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 5-5v10zm2 0V7l5 5-5 5z"/>
+        <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm-3.5 14v-5c0-1.93 1.57-3.5 3.5-3.5s3.5 1.57 3.5 3.5v5h-2.5v-5c0-.55-.45-1-1-1s-1 .45-1 1v5H8.5z"/>
       </svg>
     ),
   };
@@ -263,7 +268,7 @@ export default function Footer(props: FooterProps) {
             {socialLinks.map((link, index) => (
               <a
                 key={index}
-                href={link.url}
+                href={ensureAbsoluteUrl(link.url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.socialIcon}
@@ -361,7 +366,7 @@ export default function Footer(props: FooterProps) {
             {socialLinks.map((link, index) => (
               <a
                 key={index}
-                href={link.url}
+                href={ensureAbsoluteUrl(link.url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.socialIcon}
@@ -445,7 +450,7 @@ export default function Footer(props: FooterProps) {
             {socialLinks.map((link, index) => (
               <a
                 key={index}
-                href={link.url}
+                href={ensureAbsoluteUrl(link.url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.socialIcon}
@@ -574,7 +579,7 @@ export default function Footer(props: FooterProps) {
               {socialLinks.map((link, index) => (
                 <a
                   key={index}
-                  href={link.url}
+                  href={ensureAbsoluteUrl(link.url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={styles.socialIconLarge}

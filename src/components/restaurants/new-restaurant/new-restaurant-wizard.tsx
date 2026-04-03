@@ -1950,43 +1950,30 @@ function buildSocialLinksUpdatePayload({
 
   if (facebookLink) {
     payload.fb_link = facebookLink;
-    payload.facebook_link = facebookLink;
-    payload.facebook_url = facebookLink;
   }
 
   if (instagramLink) {
     payload.insta_link = instagramLink;
-    payload.instagram_link = instagramLink;
-    payload.instagram_url = instagramLink;
   }
 
   if (xLink) {
     payload.x_link = xLink;
-    payload.x_url = xLink;
-    payload.twitter_link = xLink;
-    payload.twitter_url = xLink;
   }
 
   if (linkedinLink) {
     payload.linkedin_link = linkedinLink;
-    payload.linkedin_url = linkedinLink;
-    payload.li_link = linkedinLink;
   }
 
   if (tiktokLink) {
     payload.tiktok_link = tiktokLink;
-    payload.tiktok_url = tiktokLink;
   }
 
   if (youtubeLink) {
     payload.yt_link = youtubeLink;
-    payload.youtube_link = youtubeLink;
-    payload.youtube_url = youtubeLink;
   }
 
   if (googleBusinessLink) {
     payload.gmb_link = googleBusinessLink;
-    payload.google_business_link = googleBusinessLink;
   }
 
   if (yelpLink) {

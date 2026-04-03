@@ -832,6 +832,9 @@ export function MyInfoBrandPage() {
   const [smsName, setSmsName] = useState('');
   const [phoneCountryCode, setPhoneCountryCode] = useState('+1');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [pocPhoneCountryCode, setPocPhoneCountryCode] = useState('+1');
+  const [pocPhone, setPocPhone] = useState('');
+  const [pocEmail, setPocEmail] = useState('');
   const [email, setEmail] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [serviceModel, setServiceModel] = useState('');
@@ -849,7 +852,6 @@ export function MyInfoBrandPage() {
   const [grubhubLink, setGrubhubLink] = useState('');
   const [doordashLink, setDoordashLink] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  const [logoFileId, setLogoFileId] = useState('');
   const [isLogoUploading, setIsLogoUploading] = useState(false);
   const [faviconUrl, setFaviconUrl] = useState('');
   const [faviconFileId, setFaviconFileId] = useState('');
@@ -877,6 +879,10 @@ export function MyInfoBrandPage() {
     const parsedPhone = splitPhoneCountryCode(draft.phoneNumber);
     setPhoneCountryCode(parsedPhone.code);
     setPhoneNumber(parsedPhone.number);
+    const parsedPocPhone = splitPhoneCountryCode(draft.pocPhoneNumber);
+    setPocPhoneCountryCode(parsedPocPhone.code);
+    setPocPhone(parsedPocPhone.number);
+    setPocEmail(draft.pocEmail);
     setEmail(draft.email);
     setBusinessType(draft.businessType);
     setServiceModel(draft.serviceModel);
@@ -893,7 +899,6 @@ export function MyInfoBrandPage() {
     setGrubhubLink(draft.grubhubLink || '');
     setDoordashLink(draft.doordashLink || '');
     setLogoUrl(draft.logo || '');
-    setLogoFileId(draft.logoFileId || '');
     setFaviconUrl(draft.faviconUrl || '');
     setFaviconFileId(draft.faviconFileId || '');
   }, [draft]);
@@ -1092,7 +1097,6 @@ export function MyInfoBrandPage() {
         payload.data.url ||
         `/api/image-proxy?fileId=${encodeURIComponent(payload.data.file_id)}`;
 
-      setLogoFileId(payload.data.file_id);
       setLogoUrl(nextLogoUrl);
       setNotice({
         tone: 'success',
@@ -1124,7 +1128,6 @@ export function MyInfoBrandPage() {
 
   const onRemoveLogo = () => {
     setLogoUrl('');
-    setLogoFileId('');
     setNotice({
       tone: 'success',
       message: 'Logo removed. Click Save brand to apply changes.',
@@ -1255,13 +1258,14 @@ export function MyInfoBrandPage() {
         sms_name: trimmedSmsName,
         phone_number: `${phoneCountryCode}${phoneNumber.trim()}`,
         email: email.trim(),
+        poc_phone_number: `${pocPhoneCountryCode}${pocPhone.trim()}`,
+        poc_email: pocEmail.trim(),
         business_type: businessType.trim(),
         service_model: serviceModel.trim(),
         cuisine_types: selectedCuisineTypes
           .map((entry) => entry.trim())
           .filter(Boolean),
         logo: logoUrl.trim() || null,
-        logo_file_id: logoFileId.trim() || null,
         favicon_url: currentFaviconUrl || null,
         favicon_file_id: currentFaviconFileId || null,
         ...socialLinksPayload,
@@ -1374,7 +1378,7 @@ export function MyInfoBrandPage() {
                     ? 'Replace logo'
                     : 'Upload logo'}
               </label>
-              {logoUrl || logoFileId ? (
+              {logoUrl ? (
                 <button
                   type="button"
                   onClick={onRemoveLogo}
@@ -1508,6 +1512,35 @@ export function MyInfoBrandPage() {
             label="Email"
             value={email}
             onChange={setEmail}
+            type="email"
+          />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-[#111827]">POC phone number</span>
+            <div className="flex gap-2">
+              <select
+                value={pocPhoneCountryCode}
+                onChange={(e) => setPocPhoneCountryCode(e.target.value)}
+                className="h-[50px] w-[130px] shrink-0 rounded-xl border border-[#d2dde2] bg-white px-2 text-sm text-[#111827] outline-none transition focus:border-[#667eea] focus:ring-2 focus:ring-[#ddd6fe]"
+              >
+                {PHONE_COUNTRY_CODES.map((cc) => (
+                  <option key={cc.value} value={cc.value}>{cc.label}</option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                value={pocPhone}
+                onChange={(e) => setPocPhone(e.target.value)}
+                className="w-full rounded-xl border border-[#d2dde2] bg-white px-4 py-3 text-base text-[#111827] outline-none transition focus:border-[#667eea] focus:ring-2 focus:ring-[#ddd6fe]"
+              />
+            </div>
+          </label>
+          <FormField
+            label="POC email"
+            value={pocEmail}
+            onChange={setPocEmail}
             type="email"
           />
         </div>
@@ -4563,37 +4596,24 @@ function buildSocialLinksUpdatePayload({
 
   if (facebook) {
     payload.fb_link = facebook;
-    payload.facebook_link = facebook;
-    payload.facebook_url = facebook;
   }
   if (instagram) {
     payload.insta_link = instagram;
-    payload.instagram_link = instagram;
-    payload.instagram_url = instagram;
   }
   if (x) {
     payload.x_link = x;
-    payload.x_url = x;
-    payload.twitter_link = x;
-    payload.twitter_url = x;
   }
   if (linkedin) {
     payload.linkedin_link = linkedin;
-    payload.linkedin_url = linkedin;
-    payload.li_link = linkedin;
   }
   if (tiktok) {
     payload.tiktok_link = tiktok;
-    payload.tiktok_url = tiktok;
   }
   if (youtube) {
     payload.yt_link = youtube;
-    payload.youtube_link = youtube;
-    payload.youtube_url = youtube;
   }
   if (gmb) {
     payload.gmb_link = gmb;
-    payload.google_business_link = gmb;
   }
   if (yelp) {
     payload.yelp_link = yelp;

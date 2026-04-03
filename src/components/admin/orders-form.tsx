@@ -301,6 +301,10 @@ Subtotal: ${formatCurrency(order.sub_total)}`;
       receiptContent += `\nTip: ${formatCurrency(order.tip_total)}`;
     }
 
+    if (order.delivery_fee != null && order.delivery_fee > 0) {
+      receiptContent += `\nDelivery Fee: ${formatCurrency(order.delivery_fee)}`;
+    }
+
     if (order.discount_total != null && order.discount_total > 0) {
       receiptContent += `\nDiscount: -${formatCurrency(order.discount_total)}`;
       const _offer = parseOfferApplied(order.offer_applied);
@@ -524,6 +528,15 @@ Generated on: ${new Date().toLocaleString()}
             <span>${formatCurrency(order.sub_total)}</span>
         </div>
         ${
+          order.delivery_fee != null && order.delivery_fee > 0
+            ? `
+        <div class="total-line">
+            <span>Delivery Fee:</span>
+            <span>${formatCurrency(order.delivery_fee)}</span>
+        </div>`
+            : ''
+        }
+        ${
           order.tax_total != null && order.tax_total > 0
             ? `
         <div class="total-line">
@@ -662,6 +675,7 @@ Generated on: ${new Date().toLocaleString()}
       subtotal: order.sub_total,
       total: order.cart_total,
       discount: order.discount_total ?? null,
+      deliveryFee: order.delivery_fee ?? null,
       tip: order.tip_total ?? null,
       tax: order.tax_total ?? null,
       offerApplied: offer,
@@ -678,7 +692,7 @@ Generated on: ${new Date().toLocaleString()}
     const orderNumber = order.order_number || order.order_id;
 
     const items = (order.order_items || []).map((item) => {
-      let modifiers: Array<{ name: string }> | null = null;
+      let modifiers: Array<{ name: string; groupName?: string; price?: number }> | null = null;
       if (item.selected_modifiers) {
         try {
           const raw =
@@ -689,6 +703,8 @@ Generated on: ${new Date().toLocaleString()}
             modifiers = raw
               .map((m: any) => ({
                 name: m.name || m.modifierGroupName || 'Modifier',
+                groupName: m.modifierGroupName || undefined,
+                price: typeof m.price === 'number' ? m.price : undefined,
               }))
               .filter((m) => m.name);
           }
@@ -1545,7 +1561,14 @@ Generated on: ${new Date().toLocaleString()}
                                   </div>
 
                                   {/* Modifiers */}
-                                  {item.selected_modifiers && (
+                                  {item.selected_modifiers && (() => {
+                                    try {
+                                      const parsed = typeof item.selected_modifiers === 'string' ? JSON.parse(item.selected_modifiers) : item.selected_modifiers;
+                                      if (Array.isArray(parsed) && parsed.length === 0) return false;
+                                      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length === 0) return false;
+                                      return true;
+                                    } catch { return false; }
+                                  })() && (
                                     <div className="mb-3">
                                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
                                         Customizations
@@ -1649,14 +1672,14 @@ Generated on: ${new Date().toLocaleString()}
                                   )}
 
                                   {/* Base Price and Modifier Breakdown */}
-                                  {(item.base_item_price ||
-                                    item.modifier_total) && (
+                                  {((item.base_item_price != null && item.base_item_price > 0) ||
+                                    (item.modifier_total != null && item.modifier_total > 0)) && (
                                     <div className="mb-3">
                                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
                                         Price Breakdown
                                       </p>
                                       <div className="bg-blue-50 rounded-lg p-3 space-y-1">
-                                        {item.base_item_price && (
+                                        {item.base_item_price != null && item.base_item_price > 0 && (
                                           <div className="flex justify-between text-sm">
                                             <span className="text-gray-600">
                                               Base Price:
@@ -1668,7 +1691,7 @@ Generated on: ${new Date().toLocaleString()}
                                             </span>
                                           </div>
                                         )}
-                                        {item.modifier_total &&
+                                        {item.modifier_total != null &&
                                           item.modifier_total > 0 && (
                                             <div className="flex justify-between text-sm">
                                               <span className="text-gray-600">
@@ -1718,6 +1741,15 @@ Generated on: ${new Date().toLocaleString()}
                               {formatCurrency(selectedOrder.sub_total)}
                             </span>
                           </div>
+                          {selectedOrder.delivery_fee != null &&
+                            selectedOrder.delivery_fee > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Delivery Fee:</span>
+                                <span className="font-medium text-gray-900">
+                                  {formatCurrency(selectedOrder.delivery_fee)}
+                                </span>
+                              </div>
+                            )}
                           {selectedOrder.tax_total != null &&
                             selectedOrder.tax_total > 0 && (
                               <div className="flex justify-between text-sm">

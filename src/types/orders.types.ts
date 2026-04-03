@@ -27,6 +27,7 @@ export interface Order {
   tax_total?: number | null;
   tip_total?: number | null;
   discount_total?: number | null;
+  delivery_fee?: number | null;
   order_note?: string | null;
   delivery_address?: string | null;
   // Structured delivery address fields

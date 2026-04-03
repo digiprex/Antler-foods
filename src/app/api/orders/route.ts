@@ -102,6 +102,7 @@ const GET_ORDERS_QUERY = `
       delivery_last_status_at
       delivery_error
       delivery_quote
+      delivery_quote_id
       placed_at
       order_number
       payment_method
@@ -306,9 +307,40 @@ export async function GET(request: NextRequest) {
       }));
     }
 
+    // Fetch delivery fees from delivery_quotes table
+    const quoteIds = ordersWithItems
+      .map((o: any) => o.delivery_quote_id)
+      .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0);
+
+    let feeByQuoteId = new Map<string, number>();
+    if (quoteIds.length > 0) {
+      try {
+        const quotesData = await adminGraphqlRequest(`
+          query ($ids: [uuid!]!) {
+            delivery_quotes(where: { delivery_quote_id: { _in: $ids } }) {
+              delivery_quote_id
+              delivery_fee
+            }
+          }
+        `, { ids: quoteIds });
+        for (const q of (quotesData as any).delivery_quotes || []) {
+          if (q.delivery_quote_id && typeof q.delivery_fee === 'number') {
+            feeByQuoteId.set(q.delivery_quote_id, q.delivery_fee);
+          }
+        }
+      } catch {
+        // silent
+      }
+    }
+
+    const ordersWithDeliveryFee = ordersWithItems.map((order: any) => ({
+      ...order,
+      delivery_fee: order.delivery_quote_id ? (feeByQuoteId.get(order.delivery_quote_id) ?? null) : null,
+    }));
+
     return NextResponse.json({
       success: true,
-      orders: ordersWithItems,
+      orders: ordersWithDeliveryFee,
       pagination: {
         page,
         limit,

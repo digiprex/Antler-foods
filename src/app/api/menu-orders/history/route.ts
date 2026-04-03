@@ -30,6 +30,7 @@ const GET_CUSTOMER_ORDERS = `
       tip_total
       discount_total
       cart_total
+      delivery_quote_id
       placed_at
       created_at
       scheduled_for
@@ -57,6 +58,15 @@ const GET_ORDER_ITEMS_BY_ORDER_IDS = `
   }
 `;
 
+const GET_DELIVERY_QUOTES_BY_IDS = `
+  query GetDeliveryQuotesByIds($ids: [uuid!]!) {
+    delivery_quotes(where: { delivery_quote_id: { _in: $ids } }) {
+      delivery_quote_id
+      delivery_fee
+    }
+  }
+`;
+
 interface OrderRecord {
   order_id?: string | null;
   order_number?: string | null;
@@ -68,6 +78,7 @@ interface OrderRecord {
   tip_total?: number | string | null;
   discount_total?: number | string | null;
   cart_total?: number | string | null;
+  delivery_quote_id?: string | null;
   placed_at?: string | null;
   created_at?: string | null;
   scheduled_for?: string | null;
@@ -148,6 +159,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Fetch restaurant details for pickup address
+    let pickupAddress: string | null = null;
+    try {
+      const restData = await adminGraphqlRequest<{
+        restaurants_by_pk: { address?: string; city?: string; state?: string; postal_code?: string; country?: string } | null;
+      }>(`query ($id: uuid!) { restaurants_by_pk(restaurant_id: $id) { address city state postal_code country } }`, { id: restaurantId });
+      const rest = restData.restaurants_by_pk;
+      if (rest) {
+        pickupAddress = [rest.address, rest.city, rest.state, rest.postal_code, rest.country]
+          .map((v) => (typeof v === 'string' && v.trim() ? v.trim() : null))
+          .filter(Boolean)
+          .join(', ') || null;
+      }
+    } catch {
+      // silent
+    }
+
     const ordersData = await adminGraphqlRequest<GetCustomerOrdersResponse>(
       GET_CUSTOMER_ORDERS,
       {
@@ -187,8 +215,31 @@ export async function GET(request: NextRequest) {
       }, new Map<string, OrderItemRecord[]>());
     }
 
+    // Fetch delivery fees from delivery_quotes table
+    const deliveryQuoteIds = orders
+      .map((order) => text(order.delivery_quote_id))
+      .filter((id): id is string => Boolean(id));
+
+    let deliveryFeeByQuoteId = new Map<string, number>();
+    if (deliveryQuoteIds.length > 0) {
+      try {
+        const quotesData = await adminGraphqlRequest<{
+          delivery_quotes?: Array<{ delivery_quote_id?: string; delivery_fee?: number | string | null }>;
+        }>(GET_DELIVERY_QUOTES_BY_IDS, { ids: deliveryQuoteIds });
+        for (const q of quotesData.delivery_quotes || []) {
+          const qId = typeof q.delivery_quote_id === 'string' ? q.delivery_quote_id : '';
+          if (qId) {
+            deliveryFeeByQuoteId.set(qId, numberValue(q.delivery_fee));
+          }
+        }
+      } catch {
+        // silent — delivery fee is optional
+      }
+    }
+
     const payload = orders.map((order) => {
       const orderId = text(order.order_id) || '';
+      const quoteId = text(order.delivery_quote_id);
       const orderItems = (itemsByOrderId.get(orderId) || []).map((item) => ({
         orderItemId: text(item.order_item_id) || '',
         itemName: text(item.item_name) || 'Item',
@@ -200,6 +251,8 @@ export async function GET(request: NextRequest) {
         selectedModifiers: item.selected_modifiers ?? null,
       }));
 
+      const deliveryFee = quoteId ? (deliveryFeeByQuoteId.get(quoteId) ?? null) : null;
+
       return {
         orderId,
         orderNumber: text(order.order_number) || '',
@@ -210,11 +263,13 @@ export async function GET(request: NextRequest) {
         taxTotal: numberValue(order.tax_total),
         tipTotal: numberValue(order.tip_total),
         discountTotal: numberValue(order.discount_total),
+        deliveryFee,
         total: numberValue(order.cart_total),
         placedAt: text(order.placed_at),
         createdAt: text(order.created_at),
         scheduledFor: text(order.scheduled_for),
         deliveryAddress: text(order.delivery_address),
+        pickupAddress: text(order.fulfillment_type) === 'pickup' ? pickupAddress : null,
         items: orderItems,
       };
     });

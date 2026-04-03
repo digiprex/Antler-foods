@@ -32,6 +32,7 @@ const GET_ORDER_BY_NUMBER = `
       discount_total
       order_note
       delivery_address
+      delivery_quote_id
       placed_at
       restaurant_id
       offer_applied
@@ -132,8 +133,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let deliveryFee: number | null = null;
+    const quoteId = typeof order.delivery_quote_id === 'string' ? order.delivery_quote_id : null;
+    if (quoteId) {
+      try {
+        const quoteData = await adminGraphqlRequest<{
+          delivery_quotes_by_pk: { delivery_fee?: number | null } | null;
+        }>(`query ($id: uuid!) { delivery_quotes_by_pk(delivery_quote_id: $id) { delivery_fee } }`, { id: quoteId });
+        const fee = quoteData.delivery_quotes_by_pk?.delivery_fee;
+        deliveryFee = typeof fee === 'number' ? fee : null;
+      } catch {
+        // silent
+      }
+    }
+
     await sendOrderInvoiceEmail(email, {
-      order,
+      order: { ...order, delivery_fee: deliveryFee },
       items: itemsData.order_items || [],
       restaurantName,
       pickupAddress,

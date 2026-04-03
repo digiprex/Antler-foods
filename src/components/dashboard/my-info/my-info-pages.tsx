@@ -69,7 +69,6 @@ interface RestaurantFaviconApiResponse {
   data?: {
     restaurant_id?: string;
     favicon_url?: string | null;
-    favicon_file_id?: string | null;
   };
   error?: string;
 }
@@ -537,18 +536,12 @@ async function fetchRestaurantFaviconSnapshot(restaurantId: string) {
       typeof payload.data.favicon_url === 'string'
         ? payload.data.favicon_url.trim()
         : '';
-    const faviconFileId =
-      typeof payload.data.favicon_file_id === 'string'
-        ? payload.data.favicon_file_id.trim()
-        : '';
-
-    if (!faviconUrl && !faviconFileId) {
+    if (!faviconUrl) {
       return null;
     }
 
     return {
       faviconUrl,
-      faviconFileId,
     };
   } catch {
     return null;
@@ -595,13 +588,11 @@ function useRestaurantDraft(
       if (
         hydrateFavicon &&
         !nextDraft.faviconUrl &&
-        !nextDraft.faviconFileId &&
         faviconSnapshot
       ) {
         nextDraft = {
           ...nextDraft,
           faviconUrl: faviconSnapshot.faviconUrl,
-          faviconFileId: faviconSnapshot.faviconFileId,
         };
       }
 
@@ -854,7 +845,6 @@ export function MyInfoBrandPage() {
   const [logoUrl, setLogoUrl] = useState('');
   const [isLogoUploading, setIsLogoUploading] = useState(false);
   const [faviconUrl, setFaviconUrl] = useState('');
-  const [faviconFileId, setFaviconFileId] = useState('');
   const [isFaviconUploading, setIsFaviconUploading] = useState(false);
   const [cuisineSearchTerm, setCuisineSearchTerm] = useState('');
   const [selectedCuisineTypes, setSelectedCuisineTypes] = useState<string[]>(
@@ -900,7 +890,6 @@ export function MyInfoBrandPage() {
     setDoordashLink(draft.doordashLink || '');
     setLogoUrl(draft.logo || '');
     setFaviconUrl(draft.faviconUrl || '');
-    setFaviconFileId(draft.faviconFileId || '');
   }, [draft]);
 
   useEffect(() => {
@@ -1174,7 +1163,6 @@ export function MyInfoBrandPage() {
         payload.data.url ||
         `/api/image-proxy?fileId=${encodeURIComponent(payload.data.file_id)}`;
 
-      setFaviconFileId(payload.data.file_id);
       setFaviconUrl(nextFaviconUrl);
       setNotice({
         tone: 'success',
@@ -1206,7 +1194,6 @@ export function MyInfoBrandPage() {
 
   const onRemoveFavicon = () => {
     setFaviconUrl('');
-    setFaviconFileId('');
     setNotice({
       tone: 'success',
       message: 'Favicon removed. Click Save brand to apply changes.',
@@ -1246,12 +1233,9 @@ export function MyInfoBrandPage() {
 
     try {
       const currentFaviconUrl = faviconUrl.trim();
-      const currentFaviconFileId = faviconFileId.trim();
       const existingFaviconUrl = (draft.faviconUrl || '').trim();
-      const existingFaviconFileId = (draft.faviconFileId || '').trim();
       const shouldSyncFavicon =
-        currentFaviconUrl !== existingFaviconUrl ||
-        currentFaviconFileId !== existingFaviconFileId;
+        currentFaviconUrl !== existingFaviconUrl;
 
       await updateRestaurant(restaurant.id, {
         name: trimmedLegalName,
@@ -1267,7 +1251,6 @@ export function MyInfoBrandPage() {
           .filter(Boolean),
         logo: logoUrl.trim() || null,
         favicon_url: currentFaviconUrl || null,
-        favicon_file_id: currentFaviconFileId || null,
         ...socialLinksPayload,
       });
 
@@ -1281,7 +1264,6 @@ export function MyInfoBrandPage() {
             body: JSON.stringify({
               restaurant_id: restaurant.id,
               favicon_url: currentFaviconUrl || null,
-              favicon_file_id: currentFaviconFileId || null,
             }),
           });
 
@@ -1442,7 +1424,7 @@ export function MyInfoBrandPage() {
                     ? 'Replace favicon'
                     : 'Upload favicon'}
               </label>
-              {faviconUrl || faviconFileId ? (
+              {faviconUrl ? (
                 <button
                   type="button"
                   onClick={onRemoveFavicon}

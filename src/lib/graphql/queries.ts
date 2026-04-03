@@ -66,7 +66,6 @@ export interface RestaurantDraftItem {
   doordashLink: string;
   logo: string;
   faviconUrl: string;
-  faviconFileId: string;
   isDeleted: boolean | null;
 }
 
@@ -87,12 +86,7 @@ type CuisineTypeVariant = {
 };
 
 const CUISINE_CATEGORY_VARIANTS: CuisineCategoryVariant[] = [
-  { idField: "category_id", labelField: "name" },
-  { idField: "category_id", labelField: "label" },
-  { idField: "cuisine_types_category_id", labelField: "name" },
-  { idField: "cuisine_types_category_id", labelField: "label" },
   { idField: "id", labelField: "label" },
-  { idField: "id", labelField: "name" },
 ];
 
 const CUISINE_TYPE_VARIANTS: CuisineTypeVariant[] = [
@@ -456,7 +450,6 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           doordash_link
           logo
           favicon_url
-          favicon_file_id
           is_deleted
         }
       }
@@ -498,7 +491,6 @@ const RESTAURANT_DRAFT_VARIANTS: RestaurantDraftVariant[] = [
           doordash_link
           logo
           favicon_url
-          favicon_file_id
           is_deleted
         }
       }
@@ -1335,10 +1327,6 @@ function parseRestaurantDraft(rows: Array<Record<string, unknown>>, idField: str
     faviconUrl: normalizeTextFromFieldCandidates(firstRow, [
       "favicon_url",
       "favicon",
-    ]),
-    faviconFileId: normalizeTextFromFieldCandidates(firstRow, [
-      "favicon_file_id",
-      "favicon_file",
     ]),
     isDeleted: typeof firstRow.is_deleted === "boolean" ? firstRow.is_deleted : null,
   } satisfies RestaurantDraftItem;

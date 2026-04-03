@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/order-status",
-      "schedule": "* * * * *"
+      "schedule": "*/5 * * * *"
     }
   ]
 }

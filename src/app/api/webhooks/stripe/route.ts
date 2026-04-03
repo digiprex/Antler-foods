@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
         order_id: orderId,
         payment_status: 'paid',
         payment_reference: paymentIntent.id,
-        status: 'confirmed',
+        status: 'preparing',
         confirmed_at: new Date().toISOString(),
       });
 

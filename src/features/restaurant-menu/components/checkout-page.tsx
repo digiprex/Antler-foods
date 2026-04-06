@@ -1828,7 +1828,7 @@ export default function RestaurantMenuCheckoutPage({
                     Pickup details
                   </h2>
                 </div>
-                <div className="ml-3.5 border-l-2 border-stone-200 pl-6">
+                <div className="ml-3.5 border-l-2 border-stone-200 pl-3 sm:pl-6">
                   <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex items-center gap-2 text-sm text-slate-900">
                       <MapPinIcon className="h-4 w-4 shrink-0 text-stone-400" />
@@ -1849,7 +1849,7 @@ export default function RestaurantMenuCheckoutPage({
                     Delivery details
                   </h2>
                 </div>
-                <div className="ml-3.5 border-l-2 border-stone-200 pl-6">
+                <div className="ml-3.5 border-l-2 border-stone-200 pl-3 sm:pl-6">
                 <div className="rounded-2xl border border-stone-200 bg-white shadow-sm">
                   <button
                     type="button"

@@ -34,6 +34,7 @@ interface OrderHistoryOrder {
   scheduledFor: string | null;
   deliveryAddress: string | null;
   deliveryTrackingUrl: string | null;
+  deliveryDispatchStatus: string | null;
   pickupAddress: string | null;
   orderNote: string | null;
   items: OrderHistoryItem[];
@@ -83,6 +84,7 @@ function statusColor(status: string) {
   if (n === 'delivered' || n === 'ready') return { bg: 'bg-emerald-500', text: 'text-emerald-700', light: 'bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500' };
   if (n === 'cancelled' || n === 'failed' || n === 'refunded') return { bg: 'bg-red-500', text: 'text-red-700', light: 'bg-red-50 border-red-200', dot: 'bg-red-500' };
   if (n === 'preparing' || n === 'processing') return { bg: 'bg-blue-500', text: 'text-blue-700', light: 'bg-blue-50 border-blue-200', dot: 'bg-blue-500' };
+  if (n === 'courier_assigned') return { bg: 'bg-indigo-500', text: 'text-indigo-700', light: 'bg-indigo-50 border-indigo-200', dot: 'bg-indigo-500' };
   if (n === 'out_for_delivery') return { bg: 'bg-violet-500', text: 'text-violet-700', light: 'bg-violet-50 border-violet-200', dot: 'bg-violet-500' };
   if (n === 'pending') return { bg: 'bg-amber-500', text: 'text-amber-700', light: 'bg-amber-50 border-amber-200', dot: 'bg-amber-500' };
   return { bg: 'bg-slate-400', text: 'text-slate-700', light: 'bg-slate-50 border-slate-200', dot: 'bg-slate-400' };
@@ -228,6 +230,71 @@ function OrderDetailModal({
               </div>
             )}
           </div>
+
+          {/* Order status timeline */}
+          {isDelivery ? (() => {
+            const steps = [
+              { key: 'confirmed', label: 'Order Confirmed' },
+              { key: 'preparing', label: 'Preparing' },
+              { key: 'courier_assigned', label: 'Courier Assigned' },
+              { key: 'out_for_delivery', label: 'Out for Delivery' },
+              { key: 'delivered', label: 'Delivered' },
+            ];
+            const statusOrder = ['pending', 'confirmed', 'preparing', 'courier_assigned', 'out_for_delivery', 'delivered'];
+            const orderStatus = order.status?.toLowerCase() || 'pending';
+            const dispatchStatus = order.deliveryDispatchStatus?.toLowerCase() || null;
+
+            const getActiveIndex = () => {
+              const orderIdx = statusOrder.indexOf(orderStatus);
+              const dispatchIdx = dispatchStatus === 'courier_assigned' ? statusOrder.indexOf('courier_assigned') :
+                dispatchStatus === 'picked_up' ? statusOrder.indexOf('out_for_delivery') :
+                dispatchStatus === 'delivered' ? statusOrder.indexOf('delivered') : -1;
+              return Math.max(orderIdx, dispatchIdx);
+            };
+            const activeIndex = getActiveIndex();
+
+            const isCancelled = orderStatus === 'cancelled' || orderStatus === 'failed' || dispatchStatus === 'cancelled';
+            if (isCancelled) return null;
+
+            return (
+              <div className="mt-4 rounded-[14px] border border-slate-100 bg-slate-50/60 p-4">
+                <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Delivery Status</p>
+                <div className="flex items-center gap-1">
+                  {steps.map((step, idx) => {
+                    const stepIdx = statusOrder.indexOf(step.key);
+                    const isCompleted = stepIdx <= activeIndex;
+                    const isCurrent = stepIdx === activeIndex;
+                    return (
+                      <div key={step.key} className="flex flex-1 flex-col items-center gap-1.5">
+                        <div className="flex w-full items-center">
+                          {idx > 0 && (
+                            <div className={`h-0.5 flex-1 rounded-full transition-colors ${isCompleted ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                          )}
+                          <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors ${
+                            isCurrent ? 'bg-emerald-500 ring-4 ring-emerald-100' : isCompleted ? 'bg-emerald-500' : 'bg-slate-200'
+                          }`}>
+                            {isCompleted ? (
+                              <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                            )}
+                          </div>
+                          {idx < steps.length - 1 && (
+                            <div className={`h-0.5 flex-1 rounded-full transition-colors ${stepIdx < activeIndex ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                          )}
+                        </div>
+                        <span className={`text-center text-[9px] font-medium leading-tight ${isCurrent ? 'text-emerald-700' : isCompleted ? 'text-slate-600' : 'text-slate-400'}`}>
+                          {step.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })() : null}
 
           {/* Delivery address */}
           {isDelivery && order.deliveryAddress ? (

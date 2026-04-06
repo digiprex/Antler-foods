@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { createUberDirectDelivery } from '@/lib/server/delivery/uber-direct';
-import { sendOrderDeliveryTrackingEmail, sendOrderPickupReadyEmail } from '@/lib/server/email';
+import { sendOrderPickupReadyEmail } from '@/lib/server/email';
 
 const GET_PREPARING_ORDERS = `
   query GetPreparingOrders {
@@ -318,25 +318,8 @@ async function dispatchOrderViaUber(orderId: string) {
     delivery_last_status_at: lastStatusAt,
   });
 
-  // Send tracking email
-  const customerEmail = text(order.contact_email);
-  if (customerEmail) {
-    try {
-      await sendOrderDeliveryTrackingEmail(customerEmail, {
-        orderNumber: text(order.order_number) || text(order.order_id) || orderId,
-        restaurantName: text(restaurant?.name) || 'Restaurant',
-        trackingUrl: dispatchResult.trackingUrl,
-        customerName: [text(order.contact_first_name), text(order.contact_last_name)]
-          .filter(Boolean)
-          .join(' '),
-        restaurantEmail: text(restaurant?.poc_email) || text(restaurant?.email),
-        restaurantPhone: text(restaurant?.poc_phone_number) || text(restaurant?.phone_number),
-      });
-    } catch (emailErr) {
-      console.error(`[Cron] Tracking email failed for order ${orderId}:`, emailErr);
-    }
-  }
-
+  // Delivery emails (tracking, courier assigned, etc.) are sent by the
+  // Uber Direct webhook handler as status updates arrive.
   console.log(`[Cron] Uber Direct dispatched for order ${orderId}, delivery ${dispatchResult.deliveryId}`);
 }
 

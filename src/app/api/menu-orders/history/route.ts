@@ -36,6 +36,7 @@ const GET_CUSTOMER_ORDERS = `
       scheduled_for
       delivery_address
       delivery_tracking_url
+      delivery_dispatch_status
       order_note
     }
   }
@@ -86,6 +87,7 @@ interface OrderRecord {
   scheduled_for?: string | null;
   delivery_address?: string | null;
   delivery_tracking_url?: string | null;
+  delivery_dispatch_status?: string | null;
   order_note?: string | null;
 }
 
@@ -274,6 +276,7 @@ export async function GET(request: NextRequest) {
         scheduledFor: text(order.scheduled_for),
         deliveryAddress: text(order.delivery_address),
         deliveryTrackingUrl: text(order.delivery_tracking_url),
+        deliveryDispatchStatus: text(order.delivery_dispatch_status),
         pickupAddress: text(order.fulfillment_type) === 'pickup' ? pickupAddress : null,
         orderNote: text(order.order_note),
         items: orderItems,

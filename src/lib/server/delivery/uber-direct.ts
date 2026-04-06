@@ -261,6 +261,14 @@ export async function createUberDirectDelivery(
     body.dropoff_longitude = input.dropoffAddress.longitude;
   }
 
+  if (process.env.UBER_DIRECT_TEST_MODE === 'true') {
+    body.test_specifications = {
+      robo_courier_specification: {
+        mode: 'auto',
+      },
+    };
+  }
+
   if (config.pickupInstructions) {
     body.pickup_notes = config.pickupInstructions;
   }

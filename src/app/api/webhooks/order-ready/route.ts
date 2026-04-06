@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { createUberDirectDelivery } from '@/lib/server/delivery/uber-direct';
-import { sendOrderDeliveryTrackingEmail } from '@/lib/server/email';
+// Delivery emails (tracking, courier assigned, etc.) are handled by the
+// Uber Direct webhook at /api/webhooks/uber-direct as status updates arrive.
 
 const GET_ORDER_FOR_DISPATCH = `
   query GetOrderForDispatch($order_id: uuid!) {
@@ -388,27 +389,6 @@ export async function POST(request: NextRequest) {
       delivery_dispatched_at: lastStatusAt,
       delivery_last_status_at: lastStatusAt,
     });
-
-    const customerEmail = normalizeText(order.contact_email);
-    if (customerEmail && restaurantId) {
-      try {
-
-        await sendOrderDeliveryTrackingEmail(customerEmail, {
-          orderNumber:
-            normalizeText(order.order_number) || normalizeText(order.order_id) || orderId,
-          restaurantName:
-            normalizeText(restaurant?.name) || 'Restaurant',
-          trackingUrl: dispatchResult.trackingUrl,
-          customerName: [normalizeText(order.contact_first_name), normalizeText(order.contact_last_name)]
-            .filter(Boolean)
-            .join(' '),
-          restaurantEmail: normalizeText(restaurant?.poc_email) || normalizeText(restaurant?.email),
-          restaurantPhone: normalizeText(restaurant?.poc_phone_number) || normalizeText(restaurant?.phone_number),
-        });
-      } catch (emailError) {
-        console.error('[Uber Direct Dispatch] Tracking email failed:', emailError);
-      }
-    }
 
     return NextResponse.json({
       success: true,

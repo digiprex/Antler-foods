@@ -273,6 +273,7 @@ export interface DeliveryStatus {
   tracking_url?: string | null;
   error?: Record<string, unknown> | null;
   raw_payload: Record<string, unknown>;
+  email_sent?: string | null;
 }
 
 // Delivery address types

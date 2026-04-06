@@ -93,6 +93,7 @@ const INSERT_DELIVERY_STATUS = `
     $tracking_url: String
     $error: jsonb
     $raw_payload: jsonb!
+    $email_sent: String
   ) {
     insert_delivery_statuses_one(object: {
       order_id: $order_id
@@ -105,7 +106,19 @@ const INSERT_DELIVERY_STATUS = `
       tracking_url: $tracking_url
       error: $error
       raw_payload: $raw_payload
+      email_sent: $email_sent
     }) {
+      id
+    }
+  }
+`;
+
+const UPDATE_DELIVERY_STATUS_EMAIL = `
+  mutation UpdateDeliveryStatusEmail($id: uuid!, $email_sent: String!) {
+    update_delivery_statuses_by_pk(
+      pk_columns: { id: $id }
+      _set: { email_sent: $email_sent }
+    ) {
       id
     }
   }
@@ -295,6 +308,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Log every webhook event into delivery_statuses for audit trail
+  let deliveryStatusRowId: string | null = null;
   if (previousOrder?.order_id) {
     try {
       const deliveryStatusVars: Record<string, unknown> = {
@@ -309,7 +323,10 @@ export async function POST(request: NextRequest) {
       if (mappedStatus.orderStatus) deliveryStatusVars.mapped_order_status = mappedStatus.orderStatus;
       if (trackingUrl) deliveryStatusVars.tracking_url = trackingUrl;
       if (mappedStatus.error) deliveryStatusVars.error = { message: mappedStatus.error };
-      await adminGraphqlRequest(INSERT_DELIVERY_STATUS, deliveryStatusVars);
+      const insertResult = await adminGraphqlRequest<{
+        insert_delivery_statuses_one: { id: string } | null;
+      }>(INSERT_DELIVERY_STATUS, deliveryStatusVars);
+      deliveryStatusRowId = insertResult.insert_delivery_statuses_one?.id ?? null;
     } catch (err) {
       console.error('[Uber Webhook] Failed to insert delivery_status:', err);
     }
@@ -370,6 +387,8 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        let emailSentType: string | null = null;
+
         if (mappedStatus.orderStatus === 'out_for_delivery') {
           if (order.delivery_dispatch_status === 'picked_up') {
             console.log('[Uber Webhook] Skipping duplicate out_for_delivery email for order:', orderNumber);
@@ -383,6 +402,7 @@ export async function POST(request: NextRequest) {
               restaurantEmail,
               restaurantPhone,
             });
+            emailSentType = 'out_for_delivery';
             console.log('[Uber Webhook] Delivery tracking email sent successfully');
           }
         } else if (mappedStatus.orderStatus === 'delivered') {
@@ -393,6 +413,7 @@ export async function POST(request: NextRequest) {
             customerName,
             googleReviewUrl,
           });
+          emailSentType = 'delivered';
           console.log('[Uber Webhook] Delivered review email sent successfully');
         } else if (mappedStatus.deliveryStatus === 'cancelled') {
           if (order.delivery_dispatch_status === 'cancelled') {
@@ -407,6 +428,7 @@ export async function POST(request: NextRequest) {
               restaurantEmail,
               restaurantPhone,
             });
+            emailSentType = 'cancelled';
             console.log('[Uber Webhook] Cancelled email sent successfully');
           }
         } else if (mappedStatus.deliveryStatus === 'courier_assigned') {
@@ -423,7 +445,20 @@ export async function POST(request: NextRequest) {
               restaurantEmail,
               restaurantPhone,
             });
+            emailSentType = 'courier_assigned';
             console.log('[Uber Webhook] Delivery status email sent successfully');
+          }
+        }
+
+        // Update the delivery_statuses row with which email was sent
+        if (emailSentType && deliveryStatusRowId) {
+          try {
+            await adminGraphqlRequest(UPDATE_DELIVERY_STATUS_EMAIL, {
+              id: deliveryStatusRowId,
+              email_sent: emailSentType,
+            });
+          } catch (err) {
+            console.error('[Uber Webhook] Failed to update email_sent:', err);
           }
         }
       } catch (emailErr) {

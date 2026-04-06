@@ -36,6 +36,7 @@ const GET_CUSTOMER_ORDERS = `
       scheduled_for
       delivery_address
       delivery_tracking_url
+      order_note
     }
   }
 `;
@@ -85,6 +86,7 @@ interface OrderRecord {
   scheduled_for?: string | null;
   delivery_address?: string | null;
   delivery_tracking_url?: string | null;
+  order_note?: string | null;
 }
 
 interface OrderItemRecord {
@@ -273,6 +275,7 @@ export async function GET(request: NextRequest) {
         deliveryAddress: text(order.delivery_address),
         deliveryTrackingUrl: text(order.delivery_tracking_url),
         pickupAddress: text(order.fulfillment_type) === 'pickup' ? pickupAddress : null,
+        orderNote: text(order.order_note),
         items: orderItems,
       };
     });

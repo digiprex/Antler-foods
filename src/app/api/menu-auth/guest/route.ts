@@ -14,6 +14,8 @@ export async function POST(request: NextRequest) {
           firstName?: string;
           lastName?: string;
           phone?: string;
+          emailOptIn?: boolean;
+          smsOptIn?: boolean;
         }
       | null;
 
@@ -23,6 +25,8 @@ export async function POST(request: NextRequest) {
       firstName: body?.firstName || '',
       lastName: body?.lastName || '',
       phone: body?.phone || '',
+      emailOptIn: body?.emailOptIn !== false,
+      smsOptIn: body?.smsOptIn !== false,
     });
 
     const response = NextResponse.json({ success: true, customer });

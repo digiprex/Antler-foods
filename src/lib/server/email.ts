@@ -389,6 +389,9 @@ export interface OrderInvoiceEmailData {
   items: Array<Record<string, unknown>>;
   restaurantName: string;
   pickupAddress?: string | null;
+  restaurantEmail?: string | null;
+  restaurantPhone?: string | null;
+  restaurantLogo?: string | null;
 }
 
 function formatCurrency(value: unknown): string {
@@ -412,7 +415,7 @@ export async function sendOrderInvoiceEmail(
   data: OrderInvoiceEmailData,
 ): Promise<void> {
   const transporter = createTransporter();
-  const { order, items, restaurantName, pickupAddress } = data;
+  const { order, items, restaurantName, pickupAddress, restaurantEmail, restaurantPhone, restaurantLogo } = data;
 
   const orderNumber = order.order_number || 'N/A';
   const placedAt = order.placed_at
@@ -523,6 +526,7 @@ export async function sendOrderInvoiceEmail(
   <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
     <div style="background:#fff;border-radius:16px;border:1px solid #e7e5e4;overflow:hidden;">
       <div style="padding:32px 24px;border-bottom:1px solid #e7e5e4;">
+        ${restaurantLogo && restaurantLogo.startsWith('http') ? `<img src="${restaurantLogo}" alt="${restaurantName || 'Restaurant'}" style="height:56px;width:auto;margin:0 0 12px;" />` : ''}
         <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;color:#0f172a;">Order Invoice</h1>
         <p style="margin:0;font-size:13px;color:#78716c;">${restaurantName || 'Restaurant'}</p>
       </div>
@@ -579,8 +583,19 @@ export async function sendOrderInvoiceEmail(
         </table>
 
         ${order.payment_method ? `<p style="margin:16px 0 0;font-size:13px;color:#78716c;">Paid via ${order.payment_method}</p>` : ''}
+        ${order.order_note ? `<div style="margin:16px 0 0;padding:12px 16px;background:#fafaf9;border-radius:10px;border:1px solid #e7e5e4;"><p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#78716c;">Order Note</p><p style="margin:0;font-size:13px;color:#1e293b;">${order.order_note}</p></div>` : ''}
       </div>
     </div>
+    ${restaurantEmail || restaurantPhone ? `
+    <div style="margin-top:24px;padding:24px 28px;border-top:1px solid #e7e5e4;text-align:center;">
+      <p style="margin:0 0 4px;font-size:13px;color:#78716c;">Need help with your order? Contact us</p>
+      <p style="margin:0;font-size:13px;color:#0f172a;">
+        ${restaurantEmail ? `<a href="mailto:${restaurantEmail}" style="color:#0f172a;text-decoration:underline;">${restaurantEmail}</a>` : ''}
+        ${restaurantEmail && restaurantPhone ? ' &nbsp;|&nbsp; ' : ''}
+        ${restaurantPhone ? `<a href="tel:${restaurantPhone}" style="color:#0f172a;text-decoration:underline;">${restaurantPhone}</a>` : ''}
+      </p>
+    </div>
+    ` : ''}
   </div>
 </body>
 </html>`;
@@ -622,6 +637,12 @@ export async function sendOrderInvoiceEmail(
     giftCardCode ? `  Gift Card: ${giftCardCode}` : '',
     typeof order.tip_total === 'number' && order.tip_total > 0 ? `Tip: ${formatCurrency(order.tip_total)}` : '',
     `Total: ${total}`,
+    '',
+    order.order_note ? `Order Note: ${order.order_note}` : '',
+    '',
+    restaurantEmail || restaurantPhone ? 'Need help with your order? Contact us:' : '',
+    restaurantEmail ? `Email: ${restaurantEmail}` : '',
+    restaurantPhone ? `Phone: ${restaurantPhone}` : '',
   ].filter(Boolean);
 
   await transporter.sendMail({

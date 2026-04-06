@@ -253,7 +253,7 @@ export async function createUberDirectDelivery(
       quantity: item.quantity,
       size: 'small',
     })),
-    external_id: input.externalOrderId,
+    external_id: `${input.externalOrderId}-${Date.now()}`,
   };
 
   if (typeof input.dropoffAddress.latitude === 'number' && typeof input.dropoffAddress.longitude === 'number') {
@@ -275,6 +275,14 @@ export async function createUberDirectDelivery(
       url: deliveryUrl,
       status: response.status,
       body: JSON.stringify(payload),
+      requestBody: JSON.stringify({
+        quote_id: body.quote_id,
+        pickup_address: body.pickup_address,
+        dropoff_address: body.dropoff_address,
+        dropoff_latitude: body.dropoff_latitude,
+        dropoff_longitude: body.dropoff_longitude,
+        external_id: body.external_id,
+      }),
     });
     throw new Error(readUberError(payload) || 'Uber Direct dispatch failed.');
   }

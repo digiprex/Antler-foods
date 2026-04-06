@@ -726,7 +726,7 @@ function MenuPageContent({ data }: MenuPageProps) {
 
   return (
     <div
-      className="min-h-screen bg-white"
+      className="min-h-screen overflow-x-hidden bg-white"
       style={{ paddingTop: 'var(--navbar-height, 0px)' }}
     >
       <div className="border-b border-stone-200 bg-white/95 backdrop-blur-xl">
@@ -1077,14 +1077,4 @@ export default function MenuPage({ data }: MenuPageProps) {
     </CartProvider>
   );
 }
-
-
-
-
-
-
-
-
-
-
 

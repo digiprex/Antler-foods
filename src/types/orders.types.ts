@@ -259,6 +259,23 @@ export const formatOrderItemsCount = (order: Order): number => {
   return order.order_items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
 };
 
+// Delivery status event log
+export interface DeliveryStatus {
+  id: string;
+  created_at: string;
+  order_id: string;
+  delivery_id: string;
+  webhook_event_id?: string | null;
+  kind?: string | null;
+  raw_status?: Record<string, unknown> | null;
+  mapped_delivery_status: string;
+  mapped_order_status?: string | null;
+  tracking_url?: string | null;
+  error?: Record<string, unknown> | null;
+  raw_payload: Record<string, unknown>;
+  email_sent?: string | null;
+}
+
 // Delivery address types
 export interface DeliveryAddressInput {
   formattedAddress: string;

@@ -898,6 +898,99 @@ export async function sendOrderDeliveredReviewEmail(
   });
 }
 
+export interface OrderPickupReadyEmailData {
+  orderNumber: string;
+  restaurantName: string;
+  customerName?: string | null;
+  pickupAddress?: string | null;
+  restaurantEmail?: string | null;
+  restaurantPhone?: string | null;
+}
+
+export async function sendOrderPickupReadyEmail(
+  to: string,
+  data: OrderPickupReadyEmailData,
+): Promise<void> {
+  const transporter = createTransporter();
+  const customerLabel = data.customerName?.trim() || 'there';
+
+  const pickupAddressHtml = data.pickupAddress
+    ? `
+        <tr>
+          <td style="padding:4px 0;"><strong>Pickup from</strong></td>
+          <td style="padding:4px 0;">${data.pickupAddress}</td>
+        </tr>
+    `
+    : '';
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fafaf9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e7e5e4;overflow:hidden;">
+      <div style="padding:32px 24px;border-bottom:1px solid #e7e5e4;">
+        <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;color:#0f172a;">Your Order Is Ready for Pickup</h1>
+        <p style="margin:0;font-size:13px;color:#78716c;">${data.restaurantName}</p>
+      </div>
+      <div style="padding:24px;">
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
+          Hi ${customerLabel},
+        </p>
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
+          Great news! Your order <strong>${data.orderNumber}</strong> is ready and waiting for you.
+        </p>
+        <table style="width:100%;margin-bottom:20px;font-size:14px;color:#1e293b;">
+          <tr>
+            <td style="padding:4px 0;"><strong>Order #</strong></td>
+            <td style="padding:4px 0;">${data.orderNumber}</td>
+          </tr>
+          ${pickupAddressHtml}
+        </table>
+        <p style="margin:0;font-size:14px;color:#1e293b;">
+          Please pick up your order at your earliest convenience. Thank you!
+        </p>
+      </div>
+    </div>
+    ${data.restaurantEmail || data.restaurantPhone ? `
+    <div style="margin-top:24px;padding:24px 28px;border-top:1px solid #e7e5e4;text-align:center;">
+      <p style="margin:0 0 4px;font-size:13px;color:#78716c;">Need help with your order? Contact us</p>
+      <p style="margin:0;font-size:13px;color:#0f172a;">
+        ${data.restaurantEmail ? `<a href="mailto:${data.restaurantEmail}" style="color:#0f172a;text-decoration:underline;">${data.restaurantEmail}</a>` : ''}
+        ${data.restaurantEmail && data.restaurantPhone ? ' &nbsp;|&nbsp; ' : ''}
+        ${data.restaurantPhone ? `<a href="tel:${data.restaurantPhone}" style="color:#0f172a;text-decoration:underline;">${data.restaurantPhone}</a>` : ''}
+      </p>
+    </div>
+    ` : ''}
+  </div>
+</body>
+</html>`;
+
+  const textContent = [
+    `${data.restaurantName} - Order Ready for Pickup`,
+    '',
+    `Hi ${customerLabel},`,
+    '',
+    `Your order ${data.orderNumber} is ready and waiting for you.`,
+    data.pickupAddress ? `Pickup from: ${data.pickupAddress}` : '',
+    '',
+    'Please pick up your order at your earliest convenience. Thank you!',
+    '',
+    data.restaurantEmail || data.restaurantPhone ? 'Need help with your order? Contact us:' : '',
+    data.restaurantEmail ? `Email: ${data.restaurantEmail}` : '',
+    data.restaurantPhone ? `Phone: ${data.restaurantPhone}` : '',
+  ].filter(Boolean).join('\n');
+
+  await transporter.sendMail({
+    from: DEFAULT_FROM,
+    to,
+    subject: `Your order is ready for pickup - Order ${data.orderNumber}`,
+    text: textContent,
+    html: htmlContent,
+  });
+}
+
 export async function verifyEmailConfig(): Promise<boolean> {
   try {
     const transporter = createTransporter();

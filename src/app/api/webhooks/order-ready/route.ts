@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { createUberDirectDelivery } from '@/lib/server/delivery/uber-direct';
-import { sendOrderDeliveryTrackingEmail } from '@/lib/server/email';
+// Delivery emails (tracking, courier assigned, etc.) are handled by the
+// Uber Direct webhook at /api/webhooks/uber-direct as status updates arrive.
 
 const GET_ORDER_FOR_DISPATCH = `
   query GetOrderForDispatch($order_id: uuid!) {
@@ -62,6 +63,9 @@ const GET_RESTAURANT_FOR_DISPATCH = `
       country
       postal_code
       phone_number
+      email
+      poc_email
+      poc_phone_number
     }
   }
 `;
@@ -303,6 +307,9 @@ export async function POST(request: NextRequest) {
         country?: string | null;
         postal_code?: string | null;
         phone_number?: string | null;
+        email?: string | null;
+        poc_email?: string | null;
+        poc_phone_number?: string | null;
       } | null;
     }>(GET_RESTAURANT_FOR_DISPATCH, { restaurant_id: restaurantId });
 
@@ -382,25 +389,6 @@ export async function POST(request: NextRequest) {
       delivery_dispatched_at: lastStatusAt,
       delivery_last_status_at: lastStatusAt,
     });
-
-    const customerEmail = normalizeText(order.contact_email);
-    if (customerEmail && restaurantId) {
-      try {
-
-        await sendOrderDeliveryTrackingEmail(customerEmail, {
-          orderNumber:
-            normalizeText(order.order_number) || normalizeText(order.order_id) || orderId,
-          restaurantName:
-            normalizeText(restaurant?.name) || 'Restaurant',
-          trackingUrl: dispatchResult.trackingUrl,
-          customerName: [normalizeText(order.contact_first_name), normalizeText(order.contact_last_name)]
-            .filter(Boolean)
-            .join(' '),
-        });
-      } catch (emailError) {
-        console.error('[Uber Direct Dispatch] Tracking email failed:', emailError);
-      }
-    }
 
     return NextResponse.json({
       success: true,

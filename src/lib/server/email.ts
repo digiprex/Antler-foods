@@ -659,6 +659,21 @@ export interface OrderDeliveryTrackingEmailData {
   restaurantName: string;
   trackingUrl?: string | null;
   customerName?: string | null;
+  restaurantEmail?: string | null;
+  restaurantPhone?: string | null;
+  deliveryAddress?: string | null;
+  orderItems?: Array<{
+    name: string;
+    quantity: number;
+    lineTotal: number;
+  }> | null;
+  subtotal?: number | null;
+  tax?: number | null;
+  deliveryFee?: number | null;
+  tip?: number | null;
+  discount?: number | null;
+  total?: number | null;
+  orderNote?: string | null;
 }
 
 export async function sendOrderDeliveryTrackingEmail(
@@ -667,6 +682,7 @@ export async function sendOrderDeliveryTrackingEmail(
 ): Promise<void> {
   const transporter = createTransporter();
   const customerLabel = data.customerName?.trim() || 'there';
+
   const trackingBlock = data.trackingUrl
     ? `
         <table cellpadding="0" cellspacing="0" style="margin:20px 0;">
@@ -678,15 +694,56 @@ export async function sendOrderDeliveryTrackingEmail(
             </td>
           </tr>
         </table>
-        <p style="margin:0;font-size:13px;color:#78716c;word-break:break-all;">
-          ${data.trackingUrl}
-        </p>
     `
     : `
         <p style="margin:16px 0 0;font-size:14px;color:#1e293b;">
           Your order has been handed off for delivery. Live tracking details will appear shortly.
         </p>
     `;
+
+  const itemsHtml = data.orderItems?.length
+    ? `
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+          <thead>
+            <tr style="border-bottom:2px solid #0f172a;">
+              <th style="padding:8px 0;text-align:left;font-size:13px;font-weight:600;color:#0f172a;">Item</th>
+              <th style="padding:8px 0;text-align:center;font-size:13px;font-weight:600;color:#0f172a;">Qty</th>
+              <th style="padding:8px 0;text-align:right;font-size:13px;font-weight:600;color:#0f172a;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.orderItems.map((item) => `
+              <tr>
+                <td style="padding:8px 0;border-bottom:1px solid #e7e5e4;font-size:14px;">${item.name}</td>
+                <td style="padding:8px 0;border-bottom:1px solid #e7e5e4;font-size:14px;text-align:center;">${item.quantity}</td>
+                <td style="padding:8px 0;border-bottom:1px solid #e7e5e4;font-size:14px;text-align:right;">${formatCurrency(item.lineTotal)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <table style="width:100%;margin-bottom:16px;">
+          ${data.subtotal != null ? `<tr><td style="padding:3px 0;font-size:14px;">Subtotal</td><td style="padding:3px 0;font-size:14px;text-align:right;">${formatCurrency(data.subtotal)}</td></tr>` : ''}
+          ${typeof data.deliveryFee === 'number' && data.deliveryFee > 0 ? `<tr><td style="padding:3px 0;font-size:14px;">Delivery fee</td><td style="padding:3px 0;font-size:14px;text-align:right;">${formatCurrency(data.deliveryFee)}</td></tr>` : ''}
+          ${typeof data.discount === 'number' && data.discount > 0 ? `<tr><td style="padding:3px 0;font-size:14px;color:#059669;">Discount</td><td style="padding:3px 0;font-size:14px;text-align:right;color:#059669;">-${formatCurrency(data.discount)}</td></tr>` : ''}
+          ${typeof data.tax === 'number' && data.tax > 0 ? `<tr><td style="padding:3px 0;font-size:14px;">Tax</td><td style="padding:3px 0;font-size:14px;text-align:right;">${formatCurrency(data.tax)}</td></tr>` : ''}
+          ${typeof data.tip === 'number' && data.tip > 0 ? `<tr><td style="padding:3px 0;font-size:14px;">Tip</td><td style="padding:3px 0;font-size:14px;text-align:right;">${formatCurrency(data.tip)}</td></tr>` : ''}
+          ${data.total != null ? `<tr style="border-top:2px solid #0f172a;"><td style="padding:8px 0;font-size:16px;font-weight:700;">Total</td><td style="padding:8px 0;font-size:16px;font-weight:700;text-align:right;">${formatCurrency(data.total)}</td></tr>` : ''}
+        </table>
+    `
+    : '';
+
+  const orderNoteHtml = data.orderNote
+    ? `<div style="margin:0 0 16px;padding:12px 16px;background:#fafaf9;border-radius:10px;border:1px solid #e7e5e4;"><p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#78716c;">Order Note</p><p style="margin:0;font-size:13px;color:#1e293b;">${data.orderNote}</p></div>`
+    : '';
+
+  const deliveryAddressHtml = data.deliveryAddress
+    ? `
+        <tr>
+          <td style="padding:4px 0;"><strong>Delivering to</strong></td>
+          <td style="padding:4px 0;">${data.deliveryAddress}</td>
+        </tr>
+    `
+    : '';
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -711,13 +768,41 @@ export async function sendOrderDeliveryTrackingEmail(
             <td style="padding:4px 0;"><strong>Order #</strong></td>
             <td style="padding:4px 0;">${data.orderNumber}</td>
           </tr>
+          ${deliveryAddressHtml}
         </table>
+        ${orderNoteHtml}
+        ${itemsHtml}
         ${trackingBlock}
       </div>
     </div>
+    ${data.restaurantEmail || data.restaurantPhone ? `
+    <div style="margin-top:24px;padding:24px 28px;border-top:1px solid #e7e5e4;text-align:center;">
+      <p style="margin:0 0 4px;font-size:13px;color:#78716c;">Need help with your order? Contact us</p>
+      <p style="margin:0;font-size:13px;color:#0f172a;">
+        ${data.restaurantEmail ? `<a href="mailto:${data.restaurantEmail}" style="color:#0f172a;text-decoration:underline;">${data.restaurantEmail}</a>` : ''}
+        ${data.restaurantEmail && data.restaurantPhone ? ' &nbsp;|&nbsp; ' : ''}
+        ${data.restaurantPhone ? `<a href="tel:${data.restaurantPhone}" style="color:#0f172a;text-decoration:underline;">${data.restaurantPhone}</a>` : ''}
+      </p>
+    </div>
+    ` : ''}
   </div>
 </body>
 </html>`;
+
+  const itemsText = data.orderItems?.length
+    ? [
+        '',
+        'Items:',
+        ...data.orderItems.map((item) => `  ${item.name} x${item.quantity} - ${formatCurrency(item.lineTotal)}`),
+        '',
+        data.subtotal != null ? `Subtotal: ${formatCurrency(data.subtotal)}` : '',
+        typeof data.deliveryFee === 'number' && data.deliveryFee > 0 ? `Delivery fee: ${formatCurrency(data.deliveryFee)}` : '',
+        typeof data.discount === 'number' && data.discount > 0 ? `Discount: -${formatCurrency(data.discount)}` : '',
+        typeof data.tax === 'number' && data.tax > 0 ? `Tax: ${formatCurrency(data.tax)}` : '',
+        typeof data.tip === 'number' && data.tip > 0 ? `Tip: ${formatCurrency(data.tip)}` : '',
+        data.total != null ? `Total: ${formatCurrency(data.total)}` : '',
+      ].filter(Boolean).join('\n')
+    : '';
 
   const textContent = [
     `${data.restaurantName} delivery update`,
@@ -725,8 +810,16 @@ export async function sendOrderDeliveryTrackingEmail(
     `Hi ${customerLabel},`,
     '',
     `Your order ${data.orderNumber} has been dispatched for delivery.`,
+    data.deliveryAddress ? `Delivering to: ${data.deliveryAddress}` : '',
+    data.orderNote ? `Order Note: ${data.orderNote}` : '',
+    itemsText,
+    '',
     data.trackingUrl ? `Track your delivery: ${data.trackingUrl}` : 'Tracking details will be shared shortly.',
-  ].join('\n');
+    '',
+    data.restaurantEmail || data.restaurantPhone ? 'Need help with your order? Contact us:' : '',
+    data.restaurantEmail ? `Email: ${data.restaurantEmail}` : '',
+    data.restaurantPhone ? `Phone: ${data.restaurantPhone}` : '',
+  ].filter(Boolean).join('\n');
 
   await transporter.sendMail({
     from: DEFAULT_FROM,
@@ -816,6 +909,213 @@ export async function sendOrderDeliveredReviewEmail(
     from: DEFAULT_FROM,
     to,
     subject: `Order ${data.orderNumber} delivered - ${data.restaurantName}`,
+    text: textContent,
+    html: htmlContent,
+  });
+}
+
+export interface OrderDeliveryStatusEmailData {
+  orderNumber: string;
+  restaurantName: string;
+  customerName?: string | null;
+  status: 'courier_assigned' | 'cancelled';
+  trackingUrl?: string | null;
+  restaurantEmail?: string | null;
+  restaurantPhone?: string | null;
+}
+
+const DELIVERY_STATUS_CONFIG: Record<
+  OrderDeliveryStatusEmailData['status'],
+  { heading: string; message: string; subject: string }
+> = {
+  courier_assigned: {
+    heading: 'A Courier Has Been Assigned',
+    message: 'A delivery courier has been assigned to your order and is heading to pick it up.',
+    subject: 'Courier assigned to your order',
+  },
+  cancelled: {
+    heading: 'Delivery Cancelled',
+    message: 'Unfortunately, your delivery has been cancelled. Please contact the restaurant for more details.',
+    subject: 'Delivery cancelled',
+  },
+};
+
+export async function sendOrderDeliveryStatusEmail(
+  to: string,
+  data: OrderDeliveryStatusEmailData,
+): Promise<void> {
+  const transporter = createTransporter();
+  const customerLabel = data.customerName?.trim() || 'there';
+  const config = DELIVERY_STATUS_CONFIG[data.status];
+
+  const trackingBlock = data.trackingUrl
+    ? `
+        <table cellpadding="0" cellspacing="0" style="margin:20px 0;">
+          <tr>
+            <td>
+              <a href="${data.trackingUrl}" style="display:inline-block;border-radius:8px;background:#0f172a;padding:12px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
+                Track delivery
+              </a>
+            </td>
+          </tr>
+        </table>
+    `
+    : '';
+
+  const contactBlock =
+    data.restaurantEmail || data.restaurantPhone
+      ? `
+    <div style="margin-top:24px;padding:24px 28px;border-top:1px solid #e7e5e4;text-align:center;">
+      <p style="margin:0 0 4px;font-size:13px;color:#78716c;">Need help with your order? Contact us</p>
+      <p style="margin:0;font-size:13px;color:#0f172a;">
+        ${data.restaurantEmail ? `<a href="mailto:${data.restaurantEmail}" style="color:#0f172a;text-decoration:underline;">${data.restaurantEmail}</a>` : ''}
+        ${data.restaurantEmail && data.restaurantPhone ? ' &nbsp;|&nbsp; ' : ''}
+        ${data.restaurantPhone ? `<a href="tel:${data.restaurantPhone}" style="color:#0f172a;text-decoration:underline;">${data.restaurantPhone}</a>` : ''}
+      </p>
+    </div>
+    `
+      : '';
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fafaf9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e7e5e4;overflow:hidden;">
+      <div style="padding:32px 24px;border-bottom:1px solid #e7e5e4;">
+        <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;color:#0f172a;">${config.heading}</h1>
+        <p style="margin:0;font-size:13px;color:#78716c;">${data.restaurantName}</p>
+      </div>
+      <div style="padding:24px;">
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">Hi ${customerLabel},</p>
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
+          ${config.message}
+        </p>
+        <table style="width:100%;margin-bottom:20px;font-size:14px;color:#1e293b;">
+          <tr>
+            <td style="padding:4px 0;"><strong>Order #</strong></td>
+            <td style="padding:4px 0;">${data.orderNumber}</td>
+          </tr>
+        </table>
+        ${trackingBlock}
+      </div>
+    </div>
+    ${contactBlock}
+  </div>
+</body>
+</html>`;
+
+  const textContent = [
+    `${data.restaurantName} - ${config.heading}`,
+    '',
+    `Hi ${customerLabel},`,
+    '',
+    config.message,
+    `Order #: ${data.orderNumber}`,
+    data.trackingUrl ? `\nTrack your delivery: ${data.trackingUrl}` : '',
+    data.restaurantEmail || data.restaurantPhone ? '\nNeed help? Contact us:' : '',
+    data.restaurantEmail ? `Email: ${data.restaurantEmail}` : '',
+    data.restaurantPhone ? `Phone: ${data.restaurantPhone}` : '',
+  ].filter(Boolean).join('\n');
+
+  await transporter.sendMail({
+    from: DEFAULT_FROM,
+    to,
+    subject: `${config.subject} - Order ${data.orderNumber}`,
+    text: textContent,
+    html: htmlContent,
+  });
+}
+
+export interface OrderPickupReadyEmailData {
+  orderNumber: string;
+  restaurantName: string;
+  customerName?: string | null;
+  pickupAddress?: string | null;
+  restaurantEmail?: string | null;
+  restaurantPhone?: string | null;
+}
+
+export async function sendOrderPickupReadyEmail(
+  to: string,
+  data: OrderPickupReadyEmailData,
+): Promise<void> {
+  const transporter = createTransporter();
+  const customerLabel = data.customerName?.trim() || 'there';
+
+  const pickupAddressHtml = data.pickupAddress
+    ? `
+        <tr>
+          <td style="padding:4px 0;"><strong>Pickup from</strong></td>
+          <td style="padding:4px 0;">${data.pickupAddress}</td>
+        </tr>
+    `
+    : '';
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fafaf9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e7e5e4;overflow:hidden;">
+      <div style="padding:32px 24px;border-bottom:1px solid #e7e5e4;">
+        <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;color:#0f172a;">Your Order Is Ready for Pickup</h1>
+        <p style="margin:0;font-size:13px;color:#78716c;">${data.restaurantName}</p>
+      </div>
+      <div style="padding:24px;">
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
+          Hi ${customerLabel},
+        </p>
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
+          Great news! Your order <strong>${data.orderNumber}</strong> is ready and waiting for you.
+        </p>
+        <table style="width:100%;margin-bottom:20px;font-size:14px;color:#1e293b;">
+          <tr>
+            <td style="padding:4px 0;"><strong>Order #</strong></td>
+            <td style="padding:4px 0;">${data.orderNumber}</td>
+          </tr>
+          ${pickupAddressHtml}
+        </table>
+        <p style="margin:0;font-size:14px;color:#1e293b;">
+          Please pick up your order at your earliest convenience. Thank you!
+        </p>
+      </div>
+    </div>
+    ${data.restaurantEmail || data.restaurantPhone ? `
+    <div style="margin-top:24px;padding:24px 28px;border-top:1px solid #e7e5e4;text-align:center;">
+      <p style="margin:0 0 4px;font-size:13px;color:#78716c;">Need help with your order? Contact us</p>
+      <p style="margin:0;font-size:13px;color:#0f172a;">
+        ${data.restaurantEmail ? `<a href="mailto:${data.restaurantEmail}" style="color:#0f172a;text-decoration:underline;">${data.restaurantEmail}</a>` : ''}
+        ${data.restaurantEmail && data.restaurantPhone ? ' &nbsp;|&nbsp; ' : ''}
+        ${data.restaurantPhone ? `<a href="tel:${data.restaurantPhone}" style="color:#0f172a;text-decoration:underline;">${data.restaurantPhone}</a>` : ''}
+      </p>
+    </div>
+    ` : ''}
+  </div>
+</body>
+</html>`;
+
+  const textContent = [
+    `${data.restaurantName} - Order Ready for Pickup`,
+    '',
+    `Hi ${customerLabel},`,
+    '',
+    `Your order ${data.orderNumber} is ready and waiting for you.`,
+    data.pickupAddress ? `Pickup from: ${data.pickupAddress}` : '',
+    '',
+    'Please pick up your order at your earliest convenience. Thank you!',
+    '',
+    data.restaurantEmail || data.restaurantPhone ? 'Need help with your order? Contact us:' : '',
+    data.restaurantEmail ? `Email: ${data.restaurantEmail}` : '',
+    data.restaurantPhone ? `Phone: ${data.restaurantPhone}` : '',
+  ].filter(Boolean).join('\n');
+
+  await transporter.sendMail({
+    from: DEFAULT_FROM,
+    to,
+    subject: `Your order is ready for pickup - Order ${data.orderNumber}`,
     text: textContent,
     html: htmlContent,
   });

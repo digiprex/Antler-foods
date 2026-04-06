@@ -448,51 +448,59 @@ export function ItemDetailsModal({
         </div>
 
         <div className="border-t border-stone-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-5">
-          {(addToCartDisabled || invalidGroups.length > 0 || modifierGroups.length > 0) ? (
-            <div className="mb-2.5 text-xs sm:text-sm">
-              {addToCartDisabled ? (
-                <p className="font-medium text-rose-600">
-                  Ordering is currently unavailable for this restaurant.
-                </p>
-              ) : invalidGroups.length ? (
-                <p className="font-medium text-rose-600">
-                  {invalidGroups[0].name}: {getGroupInstruction(invalidGroups[0], getSelectedItemsForGroup(invalidGroups[0], selectedAddOnIds).length)}
-                </p>
-              ) : (
-                <p className="text-stone-500">
-                  {selectedAddOns.length} modifier option{selectedAddOns.length === 1 ? '' : 's'} selected.
-                </p>
-              )}
+          {item.inStock === false ? (
+            <div className="flex h-10 items-center justify-center rounded-[14px] bg-stone-200 text-sm font-semibold text-stone-500">
+              Sold out
             </div>
-          ) : null}
-          <div className="flex items-center gap-3">
-            <QuantityStepper
-              quantity={quantity}
-              onDecrease={() => setQuantity((current) => Math.max(1, current - 1))}
-              onIncrease={() => setQuantity((current) => current + 1)}
-            />
-            <button
-              type="button"
-              disabled={addToCartBlocked}
-              onClick={() => {
-                if (addToCartBlocked) {
-                  return;
-                }
+          ) : (
+            <>
+              {(addToCartDisabled || invalidGroups.length > 0 || modifierGroups.length > 0) ? (
+                <div className="mb-2.5 text-xs sm:text-sm">
+                  {addToCartDisabled ? (
+                    <p className="font-medium text-rose-600">
+                      Ordering is currently unavailable for this restaurant.
+                    </p>
+                  ) : invalidGroups.length ? (
+                    <p className="font-medium text-rose-600">
+                      {invalidGroups[0].name}: {getGroupInstruction(invalidGroups[0], getSelectedItemsForGroup(invalidGroups[0], selectedAddOnIds).length)}
+                    </p>
+                  ) : (
+                    <p className="text-stone-500">
+                      {selectedAddOns.length} modifier option{selectedAddOns.length === 1 ? '' : 's'} selected.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+              <div className="flex items-center gap-3">
+                <QuantityStepper
+                  quantity={quantity}
+                  onDecrease={() => setQuantity((current) => Math.max(1, current - 1))}
+                  onIncrease={() => setQuantity((current) => current + 1)}
+                />
+                <button
+                  type="button"
+                  disabled={addToCartBlocked}
+                  onClick={() => {
+                    if (addToCartBlocked) {
+                      return;
+                    }
 
-                onAddToCart({
-                  item: itemForCart || item,
-                  quantity,
-                  notes,
-                  selectedAddOns,
-                });
-                onClose();
-              }}
-              className="flex h-10 flex-1 items-center justify-between rounded-[14px] bg-stone-900 px-4 text-sm font-semibold text-stone-50 shadow-[0_14px_28px_rgba(15,23,42,0.16)] transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none"
-            >
-              <span>Add to cart</span>
-              <span>{formatPrice(totalPrice)}</span>
-            </button>
-          </div>
+                    onAddToCart({
+                      item: itemForCart || item,
+                      quantity,
+                      notes,
+                      selectedAddOns,
+                    });
+                    onClose();
+                  }}
+                  className="flex h-10 flex-1 items-center justify-between rounded-[14px] bg-stone-900 px-4 text-sm font-semibold text-stone-50 shadow-[0_14px_28px_rgba(15,23,42,0.16)] transition hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none"
+                >
+                  <span>Add to cart</span>
+                  <span>{formatPrice(totalPrice)}</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </ModalShell>

@@ -665,20 +665,26 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
   if (fulfillmentType === 'delivery' && customerId && deliveryAddress) {
     const deliveryData = input.deliveryAddressData;
     try {
+      const addressObject: Record<string, string> = {
+        customer_id: customerId,
+        restaurant_id: restaurantId,
+        address: deliveryAddress,
+      };
+      const optionalFields: Record<string, string | undefined | null> = {
+        street: trimText(deliveryData?.addressLine1),
+        city: trimText(deliveryData?.city),
+        state: trimText(deliveryData?.state),
+        country: trimText(deliveryData?.countryCode),
+        house_no: trimText(deliveryData?.houseFlatFloor),
+        zip_code: trimText(deliveryData?.postalCode),
+        saved_as: trimText(deliveryData?.label) || 'other',
+        nearby_landmark: trimText(deliveryData?.landmark),
+      };
+      for (const [key, value] of Object.entries(optionalFields)) {
+        if (value) addressObject[key] = value;
+      }
       await adminGraphqlRequest(INSERT_CUSTOMER_DELIVERY_ADDRESS, {
-        object: {
-          customer_id: customerId,
-          restaurant_id: restaurantId,
-          address: deliveryAddress,
-          street: trimText(deliveryData?.addressLine1) || null,
-          city: trimText(deliveryData?.city) || null,
-          state: trimText(deliveryData?.state) || null,
-          country: trimText(deliveryData?.countryCode) || null,
-          house_no: trimText(deliveryData?.houseFlatFloor) || null,
-          zip_code: trimText(deliveryData?.postalCode) || null,
-          saved_as: trimText(deliveryData?.label) || null,
-          nearby_landmark: trimText(deliveryData?.landmark) || null,
-        },
+        object: addressObject,
       });
     } catch (err) {
       console.error('[Menu Orders] Failed to save customer delivery address:', err);

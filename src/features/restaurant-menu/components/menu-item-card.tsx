@@ -56,7 +56,11 @@ export function MenuItemCard({
             decoding="async"
             className="h-32 w-full object-cover transition duration-500 group-hover:scale-105"
           />
-          {item.inStock !== false ? (
+          {item.inStock === false ? (
+            <span className="absolute bottom-3 right-3 rounded-full bg-stone-900/80 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
+              Sold out
+            </span>
+          ) : (
             <button
               type="button"
               onClick={(event) => {
@@ -72,7 +76,7 @@ export function MenuItemCard({
             >
               {quantityInCart > 0 ? quantityInCart : <PlusIcon className="h-4 w-4" />}
             </button>
-          ) : null}
+          )}
         </div>
       </div>
     </article>

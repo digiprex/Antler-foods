@@ -198,6 +198,45 @@ export function PopularItemsCarousel({
                       Popular
                     </span>
                   </div>
+                ) : null}
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  width={240}
+                  height={160}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-40 w-full object-cover transition duration-500 group-hover:scale-105"
+                />
+                {item.inStock === false ? (
+                  <span className="absolute bottom-3 right-3 rounded-full bg-stone-900/80 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
+                    Sold out
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onQuickAdd(item);
+                    }}
+                    className={`absolute bottom-3 right-3 flex items-center justify-center shadow-lg transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 ${
+                      quantityInCart > 0
+                        ? 'h-9 min-w-[2.5rem] rounded-full bg-stone-900 px-3.5 text-sm font-semibold text-stone-50'
+                        : 'h-9 w-9 rounded-full border border-stone-200 bg-white text-stone-900'
+                    }`}
+                    aria-label={`Add ${item.name}`}
+                  >
+                    {quantityInCart > 0 ? quantityInCart : <PlusIcon className="h-4 w-4" />}
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1.5 p-3.5">
+                <h3 className="text-base font-semibold leading-tight text-stone-950">
+                  {item.name}
+                </h3>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-semibold text-stone-900">{formatPrice(item.price)}</span>
+                  <span className="text-[10px] uppercase tracking-[0.14em] text-stone-500">Popular</span>
                 </div>
               </article>
             );

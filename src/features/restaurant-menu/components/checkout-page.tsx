@@ -495,6 +495,14 @@ export default function RestaurantMenuCheckoutPage({
   const isDeliveryAddressValid = Boolean(
     trimDeliveryAddressText(deliveryAddressData.formattedAddress),
   );
+  const isDeliveryDetailsComplete = isDeliveryAddressValid
+    && Boolean(deliveryAddressData.addressLine1?.trim())
+    && Boolean(deliveryAddressData.city?.trim())
+    && Boolean(deliveryAddressData.state?.trim())
+    && Boolean(deliveryAddressData.postalCode?.trim())
+    && Boolean(deliveryAddressData.countryCode?.trim())
+    && Boolean(deliveryAddressData.houseFlatFloor?.trim())
+    && Boolean(deliveryAddressData.label?.trim());
   const [savedAddresses, setSavedAddresses] = useState<Array<{
     id: string;
     address: string;
@@ -1239,6 +1247,17 @@ export default function RestaurantMenuCheckoutPage({
       return;
     }
 
+    if (fulfillmentMode === 'delivery' && !isDeliveryDetailsComplete) {
+      setIsDeliveryDetailsSectionOpen(true);
+      setCheckoutError(
+        'Please fill in all required delivery details: street address, city, state, postal code, country, house/flat/floor, and save address label.',
+      );
+      document
+        .getElementById('delivery-address-section')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
     if (fulfillmentMode === 'delivery' && isCheckingDeliveryQuote) {
       setIsDeliveryDetailsSectionOpen(true);
       setCheckoutError('Still checking Uber Direct delivery availability. Please wait a moment.');
@@ -1828,7 +1847,7 @@ export default function RestaurantMenuCheckoutPage({
                     Pickup details
                   </h2>
                 </div>
-                <div className="ml-3.5 border-l-2 border-stone-200 pl-6">
+                <div className="ml-3.5 border-l-2 border-stone-200 pl-3 sm:pl-6">
                   <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex items-center gap-2 text-sm text-slate-900">
                       <MapPinIcon className="h-4 w-4 shrink-0 text-stone-400" />
@@ -1849,7 +1868,7 @@ export default function RestaurantMenuCheckoutPage({
                     Delivery details
                   </h2>
                 </div>
-                <div className="ml-3.5 border-l-2 border-stone-200 pl-6">
+                <div className="ml-3.5 border-l-2 border-stone-200 pl-3 sm:pl-6">
                 <div className="rounded-2xl border border-stone-200 bg-white shadow-sm">
                   <button
                     type="button"
@@ -2055,7 +2074,7 @@ export default function RestaurantMenuCheckoutPage({
                           <div className="grid gap-3 sm:grid-cols-2">
                             <label className="block text-sm font-medium text-slate-900 sm:col-span-2">
                               <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                                Street address
+                                Street address <span className="text-red-500">*</span>
                               </span>
                               <input
                                 type="text"
@@ -2064,6 +2083,7 @@ export default function RestaurantMenuCheckoutPage({
                                   handleDeliveryAddressFieldChange('addressLine1', event.target.value)
                                 }
                                 placeholder="House number, street, road"
+                                required
                                 className={fieldClassName}
                               />
                             </label>
@@ -2083,7 +2103,7 @@ export default function RestaurantMenuCheckoutPage({
                             </label>
                             <label className="block text-sm font-medium text-slate-900">
                               <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                                City
+                                City <span className="text-red-500">*</span>
                               </span>
                               <input
                                 type="text"
@@ -2092,12 +2112,13 @@ export default function RestaurantMenuCheckoutPage({
                                   handleDeliveryAddressFieldChange('city', event.target.value)
                                 }
                                 placeholder="City"
+                                required
                                 className={fieldClassName}
                               />
                             </label>
                             <label className="block text-sm font-medium text-slate-900">
                               <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                                State
+                                State <span className="text-red-500">*</span>
                               </span>
                               <input
                                 type="text"
@@ -2106,12 +2127,13 @@ export default function RestaurantMenuCheckoutPage({
                                   handleDeliveryAddressFieldChange('state', event.target.value)
                                 }
                                 placeholder="State"
+                                required
                                 className={fieldClassName}
                               />
                             </label>
                             <label className="block text-sm font-medium text-slate-900">
                               <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                                Postal code
+                                Postal code <span className="text-red-500">*</span>
                               </span>
                               <input
                                 type="text"
@@ -2120,12 +2142,13 @@ export default function RestaurantMenuCheckoutPage({
                                   handleDeliveryAddressFieldChange('postalCode', event.target.value)
                                 }
                                 placeholder="Postal code"
+                                required
                                 className={fieldClassName}
                               />
                             </label>
                             <label className="block text-sm font-medium text-slate-900">
                               <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                                Country
+                                Country <span className="text-red-500">*</span>
                               </span>
                               <input
                                 type="text"
@@ -2134,6 +2157,7 @@ export default function RestaurantMenuCheckoutPage({
                                   handleDeliveryAddressFieldChange('countryCode', event.target.value)
                                 }
                                 placeholder="Country"
+                                required
                                 className={fieldClassName}
                               />
                             </label>
@@ -2142,7 +2166,7 @@ export default function RestaurantMenuCheckoutPage({
                           <div className="grid gap-3 sm:grid-cols-2">
                             <label className="block text-sm font-medium text-slate-900">
                               <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                                House / Flat / Floor
+                                House / Flat / Floor <span className="text-red-500">*</span>
                               </span>
                               <input
                                 type="text"
@@ -2151,6 +2175,7 @@ export default function RestaurantMenuCheckoutPage({
                                   handleDeliveryAddressMetaChange('houseFlatFloor', event.target.value)
                                 }
                                 placeholder="e.g., Apt 4B, Floor 2"
+                                required
                                 className={fieldClassName}
                               />
                             </label>
@@ -2172,7 +2197,7 @@ export default function RestaurantMenuCheckoutPage({
 
                           <div>
                             <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                              Save address as
+                              Save address as <span className="text-red-500">*</span>
                             </span>
                             <div className="flex flex-wrap gap-2">
                               {['home', 'work', 'other'].map((labelOption) => {
@@ -2442,7 +2467,7 @@ export default function RestaurantMenuCheckoutPage({
               <button
                 type="button"
                 onClick={handlePlaceOrder}
-                disabled={isPlacingOrder || (fulfillmentMode === 'delivery' && (isCheckingDeliveryQuote || !deliveryQuote))}
+                disabled={isPlacingOrder || (fulfillmentMode === 'delivery' && (isCheckingDeliveryQuote || !deliveryQuote || !isDeliveryDetailsComplete))}
                 className="relative flex h-[3.25rem] w-full items-center justify-center gap-2.5 rounded-xl bg-slate-900 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none active:scale-[0.98] sm:max-w-xs"
               >
                 <ShieldIcon className="h-4 w-4" />

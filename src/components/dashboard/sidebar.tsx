@@ -128,6 +128,17 @@ export function Sidebar({
     ? [
         {
           href: buildRestaurantScopedHref(
+            `/admin/customers`,
+            selectedRestaurant,
+          ),
+          label: 'Customers',
+          icon: <CustomersIcon />,
+          matchPrefixes: [
+            `/admin/customers`,
+          ],
+        },
+        {
+          href: buildRestaurantScopedHref(
             `${dashboardBasePath}/reviews`,
             selectedRestaurant,
           ),
@@ -1151,6 +1162,26 @@ function OffersIcon() {
       <circle cx="12" cy="12" r="3" />
       <path d="M8.5 8.5l7 7" />
       <path d="M15.5 8.5l-7 7" />
+    </svg>
+  );
+}
+
+function CustomersIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 00-3-3.87" />
+      <path d="M16 3.13a4 4 0 010 7.75" />
     </svg>
   );
 }

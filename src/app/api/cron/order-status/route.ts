@@ -108,6 +108,8 @@ const GET_RESTAURANT_FOR_DISPATCH = `
       postal_code
       phone_number
       email
+      poc_email
+      poc_phone_number
     }
   }
 `;
@@ -243,6 +245,9 @@ async function dispatchOrderViaUber(orderId: string) {
       country?: string | null;
       postal_code?: string | null;
       phone_number?: string | null;
+      email?: string | null;
+      poc_email?: string | null;
+      poc_phone_number?: string | null;
     } | null;
   }>(GET_RESTAURANT_FOR_DISPATCH, { restaurant_id: restaurantId });
 
@@ -324,6 +329,8 @@ async function dispatchOrderViaUber(orderId: string) {
         customerName: [text(order.contact_first_name), text(order.contact_last_name)]
           .filter(Boolean)
           .join(' '),
+        restaurantEmail: text(restaurant?.poc_email) || text(restaurant?.email),
+        restaurantPhone: text(restaurant?.poc_phone_number) || text(restaurant?.phone_number),
       });
     } catch (emailErr) {
       console.error(`[Cron] Tracking email failed for order ${orderId}:`, emailErr);
@@ -481,13 +488,15 @@ export async function GET(request: NextRequest) {
               country?: string | null;
               phone_number?: string | null;
               email?: string | null;
+              poc_email?: string | null;
+              poc_phone_number?: string | null;
             } | null;
           }>(GET_RESTAURANT_FOR_DISPATCH, { restaurant_id: restaurantId });
 
           const restaurant = restResult.restaurants_by_pk;
           restaurantName = text(restaurant?.name) || 'Restaurant';
-          restaurantEmail = text(restaurant?.email);
-          restaurantPhone = text(restaurant?.phone_number);
+          restaurantEmail = text(restaurant?.poc_email) || text(restaurant?.email);
+          restaurantPhone = text(restaurant?.poc_phone_number) || text(restaurant?.phone_number);
           pickupAddress = [
             text(restaurant?.address),
             text(restaurant?.city),

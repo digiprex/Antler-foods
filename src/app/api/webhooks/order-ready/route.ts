@@ -62,6 +62,9 @@ const GET_RESTAURANT_FOR_DISPATCH = `
       country
       postal_code
       phone_number
+      email
+      poc_email
+      poc_phone_number
     }
   }
 `;
@@ -303,6 +306,9 @@ export async function POST(request: NextRequest) {
         country?: string | null;
         postal_code?: string | null;
         phone_number?: string | null;
+        email?: string | null;
+        poc_email?: string | null;
+        poc_phone_number?: string | null;
       } | null;
     }>(GET_RESTAURANT_FOR_DISPATCH, { restaurant_id: restaurantId });
 
@@ -396,6 +402,8 @@ export async function POST(request: NextRequest) {
           customerName: [normalizeText(order.contact_first_name), normalizeText(order.contact_last_name)]
             .filter(Boolean)
             .join(' '),
+          restaurantEmail: normalizeText(restaurant?.poc_email) || normalizeText(restaurant?.email),
+          restaurantPhone: normalizeText(restaurant?.poc_phone_number) || normalizeText(restaurant?.phone_number),
         });
       } catch (emailError) {
         console.error('[Uber Direct Dispatch] Tracking email failed:', emailError);

@@ -69,7 +69,7 @@ interface MenuItem extends MenuItemFormData {
 interface MenuItemFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (item: MenuItemFormData) => void;
+  onSave: (item: Omit<MenuItemFormData, 'delivery_price' | 'pickup_price'> & { delivery_price: number; pickup_price: number }) => void;
   item?: MenuItem | null;
   mode: 'create' | 'edit';
   categoryId: string;

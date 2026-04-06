@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { createUberDirectDelivery } from '@/lib/server/delivery/uber-direct';
-import { sendOrderDeliveryTrackingEmail } from '@/lib/server/email';
+import { sendOrderDeliveryTrackingEmail, sendOrderPickupReadyEmail } from '@/lib/server/email';
 
 const GET_PREPARING_ORDERS = `
   query GetPreparingOrders {
@@ -36,6 +36,19 @@ const UPDATE_TO_READY = `
       _set: { status: "ready" }
     ) {
       affected_rows
+    }
+  }
+`;
+
+const GET_PICKUP_ORDER_FOR_EMAIL = `
+  query GetPickupOrderForEmail($order_id: uuid!) {
+    orders_by_pk(order_id: $order_id) {
+      order_id
+      order_number
+      contact_email
+      contact_first_name
+      contact_last_name
+      restaurant_id
     }
   }
 `;
@@ -94,6 +107,7 @@ const GET_RESTAURANT_FOR_DISPATCH = `
       country
       postal_code
       phone_number
+      email
     }
   }
 `;
@@ -381,6 +395,7 @@ export async function GET(request: NextRequest) {
     const now = Date.now();
     const toReadyIds: string[] = [];
     const deliveryOrderIds = new Set<string>();
+    const pickupOrderIds = new Set<string>();
     const skipped: Array<{ order_id: string; reason: string }> = [];
 
     for (const order of orders) {
@@ -400,6 +415,8 @@ export async function GET(request: NextRequest) {
         toReadyIds.push(order.order_id);
         if (order.fulfillment_type === 'delivery') {
           deliveryOrderIds.add(order.order_id);
+        } else if (order.fulfillment_type === 'pickup') {
+          pickupOrderIds.add(order.order_id);
         }
         log(`Order ${order.order_id} ready`, {
           elapsed: `${Math.round(elapsedMs / 1000)}s`,
@@ -435,7 +452,71 @@ export async function GET(request: NextRequest) {
       log(`Updated ${affectedReady} order(s) to ready`, toReadyIds);
     }
 
-    // 5. Dispatch only delivery orders via Uber Direct
+    // 5. Send pickup ready emails
+    for (const orderId of pickupOrderIds) {
+      try {
+        const orderResult = await adminGraphqlRequest<{
+          orders_by_pk?: Record<string, unknown> | null;
+        }>(GET_PICKUP_ORDER_FOR_EMAIL, { order_id: orderId });
+
+        const order = orderResult.orders_by_pk;
+        const customerEmail = text(order?.contact_email);
+        if (!order || !customerEmail) continue;
+
+        const restaurantId = text(order.restaurant_id);
+        let restaurantName = 'Restaurant';
+        let pickupAddress: string | null = null;
+
+        let restaurantEmail: string | null = null;
+        let restaurantPhone: string | null = null;
+
+        if (restaurantId) {
+          const restResult = await adminGraphqlRequest<{
+            restaurants_by_pk?: {
+              name?: string | null;
+              address?: string | null;
+              city?: string | null;
+              state?: string | null;
+              postal_code?: string | null;
+              country?: string | null;
+              phone_number?: string | null;
+              email?: string | null;
+            } | null;
+          }>(GET_RESTAURANT_FOR_DISPATCH, { restaurant_id: restaurantId });
+
+          const restaurant = restResult.restaurants_by_pk;
+          restaurantName = text(restaurant?.name) || 'Restaurant';
+          restaurantEmail = text(restaurant?.email);
+          restaurantPhone = text(restaurant?.phone_number);
+          pickupAddress = [
+            text(restaurant?.address),
+            text(restaurant?.city),
+            text(restaurant?.state),
+            text(restaurant?.postal_code),
+            text(restaurant?.country),
+          ].filter(Boolean).join(', ') || null;
+        }
+
+        await sendOrderPickupReadyEmail(customerEmail, {
+          orderNumber: text(order.order_number) || text(order.order_id) || orderId,
+          restaurantName,
+          customerName: [text(order.contact_first_name), text(order.contact_last_name)]
+            .filter(Boolean)
+            .join(' '),
+          pickupAddress,
+          restaurantEmail,
+          restaurantPhone,
+        });
+        log(`Pickup ready email sent for order ${orderId}`);
+      } catch (err) {
+        console.error(`[Cron] Pickup ready email failed for order ${orderId}:`, err);
+        log(`Pickup ready email FAILED for order ${orderId}`, {
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    }
+
+    // 6. Dispatch only delivery orders via Uber Direct
     let dispatched = 0;
     const dispatchResults: Array<{ order_id: string; success: boolean; error?: string }> = [];
 

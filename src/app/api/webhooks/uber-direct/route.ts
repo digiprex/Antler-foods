@@ -5,7 +5,7 @@ import {
   verifyUberDirectWebhookSignature,
   type UberWebhookPayload,
 } from '@/lib/server/delivery/uber-direct';
-import { sendOrderDeliveryTrackingEmail, sendOrderDeliveredReviewEmail } from '@/lib/server/email';
+import { sendOrderDeliveryTrackingEmail, sendOrderDeliveredReviewEmail, sendOrderDeliveryStatusEmail } from '@/lib/server/email';
 
 const UPDATE_DELIVERY_STATUS = `
   mutation UpdateDeliveryStatus(
@@ -75,6 +75,7 @@ const GET_ORDER_BY_DELIVERY_ID = `
       contact_last_name
       restaurant_id
       delivery_tracking_url
+      delivery_dispatch_status
     }
   }
 `;
@@ -190,14 +191,25 @@ export async function POST(request: NextRequest) {
     request.headers.get('x-uber-signature') ||
     request.headers.get('x-postmates-signature');
 
+  console.log('[Uber Webhook] Received webhook event');
+
   if (!verifyUberDirectWebhookSignature(rawBody, signature)) {
+    console.warn('[Uber Webhook] Signature verification failed');
     return NextResponse.json({ error: 'Invalid Uber webhook signature.' }, { status: 401 });
   }
 
   const payload = JSON.parse(rawBody) as UberWebhookPayload;
   const event = parseUberDirectWebhookPayload(payload);
 
+  console.log('[Uber Webhook] Parsed payload:', {
+    kind: payload.kind,
+    status: (payload as Record<string, unknown>).status,
+    deliveryId: event?.deliveryId,
+    eventStatus: event?.status,
+  });
+
   if (!event) {
+    console.warn('[Uber Webhook] Could not parse event, skipping');
     return NextResponse.json({ success: true, skipped: true }, { status: 202 });
   }
 
@@ -207,6 +219,16 @@ export async function POST(request: NextRequest) {
     new Date().toISOString();
   const trackingUrl = event.trackingUrl;
   const mappedStatus = normalizeUberStatus(event.status, event.kind);
+
+  console.log('[Uber Webhook] Status mapping:', {
+    deliveryId: event.deliveryId,
+    rawStatus: event.status,
+    kind: event.kind,
+    mappedDeliveryStatus: mappedStatus.deliveryStatus,
+    mappedOrderStatus: mappedStatus.orderStatus,
+    trackingUrl,
+    error: mappedStatus.error,
+  });
 
   const baseVariables = {
     delivery_id: event.deliveryId,
@@ -224,10 +246,21 @@ export async function POST(request: NextRequest) {
     ? { ...baseVariables, status: mappedStatus.orderStatus }
     : baseVariables;
 
-  await adminGraphqlRequest(mutation, variables);
+  const mutationResult = await adminGraphqlRequest<{ update_orders?: { affected_rows?: number } }>(mutation, variables);
+  console.log('[Uber Webhook] DB update result:', {
+    deliveryId: event.deliveryId,
+    affectedRows: mutationResult?.update_orders?.affected_rows ?? 'unknown',
+  });
 
-  // Send emails for out_for_delivery and delivered statuses
-  if (mappedStatus.orderStatus === 'out_for_delivery' || mappedStatus.orderStatus === 'delivered') {
+  // Send emails only for courier_assigned, out_for_delivery, and delivered
+  const shouldEmail =
+    mappedStatus.deliveryStatus === 'courier_assigned' ||
+    mappedStatus.deliveryStatus === 'cancelled' ||
+    mappedStatus.orderStatus === 'out_for_delivery' ||
+    mappedStatus.orderStatus === 'delivered';
+
+  if (shouldEmail) {
+    console.log('[Uber Webhook] Triggering email for status:', mappedStatus.deliveryStatus, 'orderStatus:', mappedStatus.orderStatus, 'deliveryId:', event.deliveryId);
     try {
       const orderData = await adminGraphqlRequest<{
         orders: Array<Record<string, unknown>>;
@@ -235,6 +268,14 @@ export async function POST(request: NextRequest) {
 
       const order = orderData.orders?.[0];
       const contactEmail = normalizeText(order?.contact_email);
+
+      console.log('[Uber Webhook] Order lookup:', {
+        deliveryId: event.deliveryId,
+        found: !!order,
+        orderId: order?.order_id,
+        orderNumber: order?.order_number,
+        hasEmail: !!contactEmail,
+      });
 
       if (order && contactEmail) {
         const customerName = [normalizeText(order.contact_first_name), normalizeText(order.contact_last_name)]
@@ -271,27 +312,72 @@ export async function POST(request: NextRequest) {
         }
 
         if (mappedStatus.orderStatus === 'out_for_delivery') {
-          await sendOrderDeliveryTrackingEmail(contactEmail, {
-            orderNumber,
-            restaurantName,
-            trackingUrl: normalizeText(order.delivery_tracking_url) || trackingUrl,
-            customerName,
-            restaurantEmail,
-            restaurantPhone,
-          });
+          if (order.delivery_dispatch_status === 'picked_up') {
+            console.log('[Uber Webhook] Skipping duplicate out_for_delivery email for order:', orderNumber);
+          } else {
+            console.log('[Uber Webhook] Sending delivery tracking email to:', contactEmail, 'order:', orderNumber);
+            await sendOrderDeliveryTrackingEmail(contactEmail, {
+              orderNumber,
+              restaurantName,
+              trackingUrl: normalizeText(order.delivery_tracking_url) || trackingUrl,
+              customerName,
+              restaurantEmail,
+              restaurantPhone,
+            });
+            console.log('[Uber Webhook] Delivery tracking email sent successfully');
+          }
         } else if (mappedStatus.orderStatus === 'delivered') {
+          console.log('[Uber Webhook] Sending delivered review email to:', contactEmail, 'order:', orderNumber);
           await sendOrderDeliveredReviewEmail(contactEmail, {
             orderNumber,
             restaurantName,
             customerName,
             googleReviewUrl,
           });
+          console.log('[Uber Webhook] Delivered review email sent successfully');
+        } else if (mappedStatus.deliveryStatus === 'cancelled') {
+          if (order.delivery_dispatch_status === 'cancelled') {
+            console.log('[Uber Webhook] Skipping duplicate cancelled email for order:', orderNumber);
+          } else {
+            console.log('[Uber Webhook] Sending cancelled email to:', contactEmail, 'order:', orderNumber);
+            await sendOrderDeliveryStatusEmail(contactEmail, {
+              orderNumber,
+              restaurantName,
+              status: 'cancelled',
+              customerName,
+              restaurantEmail,
+              restaurantPhone,
+            });
+            console.log('[Uber Webhook] Cancelled email sent successfully');
+          }
+        } else if (mappedStatus.deliveryStatus === 'courier_assigned') {
+          if (order.delivery_dispatch_status === 'courier_assigned') {
+            console.log('[Uber Webhook] Skipping duplicate courier_assigned email for order:', orderNumber);
+          } else {
+            console.log('[Uber Webhook] Sending courier assigned email to:', contactEmail, 'order:', orderNumber);
+            await sendOrderDeliveryStatusEmail(contactEmail, {
+              orderNumber,
+              restaurantName,
+              status: 'courier_assigned',
+              trackingUrl: normalizeText(order.delivery_tracking_url) || trackingUrl,
+              customerName,
+              restaurantEmail,
+              restaurantPhone,
+            });
+            console.log('[Uber Webhook] Delivery status email sent successfully');
+          }
         }
       }
     } catch (emailErr) {
       console.error(`[Uber Webhook] Email failed for delivery ${event.deliveryId}:`, emailErr);
     }
   }
+
+  console.log('[Uber Webhook] Completed processing:', {
+    deliveryId: event.deliveryId,
+    deliveryStatus: mappedStatus.deliveryStatus,
+    orderStatus: mappedStatus.orderStatus,
+  });
 
   return NextResponse.json({
     success: true,

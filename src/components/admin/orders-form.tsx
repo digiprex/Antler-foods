@@ -1317,6 +1317,67 @@ Generated on: ${new Date().toLocaleString()}
                         )}
                       </div>
 
+                      {/* Delivery Status Timeline */}
+                      {selectedOrder.fulfillment_type === 'delivery' && !['cancelled', 'failed', 'refunded'].includes(selectedOrder.status) && (() => {
+                        const steps = [
+                          { key: 'confirmed', label: 'Confirmed' },
+                          { key: 'preparing', label: 'Preparing' },
+                          { key: 'ready', label: 'Ready' },
+                          { key: 'courier_assigned', label: 'Courier Assigned' },
+                          { key: 'out_for_delivery', label: 'Out for Delivery' },
+                          { key: 'delivered', label: 'Delivered' },
+                        ];
+                        const statusOrder = ['pending', 'confirmed', 'preparing', 'ready', 'courier_assigned', 'out_for_delivery', 'delivered'];
+                        const orderStatus = (selectedOrder.status || 'pending').toLowerCase();
+                        const dispatchStatus = (selectedOrder.delivery_dispatch_status || '').toLowerCase();
+
+                        const orderIdx = statusOrder.indexOf(orderStatus);
+                        const dispatchIdx = dispatchStatus === 'courier_assigned' ? statusOrder.indexOf('courier_assigned')
+                          : dispatchStatus === 'picked_up' ? statusOrder.indexOf('out_for_delivery')
+                          : dispatchStatus === 'delivered' ? statusOrder.indexOf('delivered')
+                          : -1;
+                        const activeIndex = Math.max(orderIdx, dispatchIdx);
+
+                        return (
+                          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Delivery Progress</p>
+                            <div className="flex items-start gap-0">
+                              {steps.map((step, idx) => {
+                                const stepIdx = statusOrder.indexOf(step.key);
+                                const isCompleted = stepIdx <= activeIndex;
+                                const isCurrent = stepIdx === activeIndex;
+                                return (
+                                  <div key={step.key} className="flex flex-1 flex-col items-center gap-1.5">
+                                    <div className="flex w-full items-center">
+                                      {idx > 0 && (
+                                        <div className={`h-0.5 flex-1 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-gray-200'}`} />
+                                      )}
+                                      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                                        isCurrent ? 'bg-emerald-500 ring-4 ring-emerald-100' : isCompleted ? 'bg-emerald-500' : 'bg-gray-200'
+                                      }`}>
+                                        {isCompleted ? (
+                                          <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        ) : (
+                                          <span className="h-2 w-2 rounded-full bg-gray-400" />
+                                        )}
+                                      </div>
+                                      {idx < steps.length - 1 && (
+                                        <div className={`h-0.5 flex-1 rounded-full ${stepIdx < activeIndex ? 'bg-emerald-500' : 'bg-gray-200'}`} />
+                                      )}
+                                    </div>
+                                    <span className={`text-center text-[10px] font-medium leading-tight ${isCurrent ? 'text-emerald-700' : isCompleted ? 'text-gray-700' : 'text-gray-400'}`}>
+                                      {step.label}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       {/* Order Summary Grid */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div className="bg-gray-50 rounded-lg p-6">

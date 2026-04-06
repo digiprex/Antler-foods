@@ -296,10 +296,10 @@ export function DeliveryAddressInput({ value, onChange, onPlaceSelected }: Deliv
 
   if (!hasGoogleMapsApiKey || error) {
     return (
-      <div className="rounded-[20px] border border-stone-200 bg-white px-4 py-3 shadow-sm">
+      <div className="min-w-0 rounded-[20px] border border-stone-200 bg-white px-3 py-3 shadow-sm sm:px-4">
         <div className="flex items-center gap-2">
-          <svg className="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <div className="relative flex-1">
+          <svg className="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <div className="relative min-w-0 flex-1">
             <input
               id="delivery-address"
               type="text"
@@ -325,10 +325,9 @@ export function DeliveryAddressInput({ value, onChange, onPlaceSelected }: Deliv
   }
 
   return (
-    <div className="rounded-[20px] border border-stone-200 bg-white px-4 py-3 shadow-sm">
+    <div className="min-w-0 rounded-[20px] border border-stone-200 bg-white px-3 py-3 shadow-sm sm:px-4">
       <div className="flex items-center gap-2">
-        <svg className="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <div className="relative flex-1">
+        <div className="relative min-w-0 flex-1">
           <div
             ref={containerRef}
             className="w-full [&>gmp-place-autocomplete]:w-full [&>gmp-place-autocomplete>input]:w-full [&>gmp-place-autocomplete>input]:rounded-xl [&>gmp-place-autocomplete>input]:border [&>gmp-place-autocomplete>input]:border-stone-200 [&>gmp-place-autocomplete>input]:px-3 [&>gmp-place-autocomplete>input]:py-2.5 [&>gmp-place-autocomplete>input]:pr-11 [&>gmp-place-autocomplete>input]:text-sm [&>gmp-place-autocomplete>input]:font-semibold [&>gmp-place-autocomplete>input]:text-stone-900 [&>gmp-place-autocomplete>input]:placeholder:font-normal [&>gmp-place-autocomplete>input]:placeholder:text-stone-400 [&>gmp-place-autocomplete>input]:focus:border-stone-500 [&>gmp-place-autocomplete>input]:focus:outline-none [&>gmp-place-autocomplete>input]:focus:ring-1 [&>gmp-place-autocomplete>input]:focus:ring-stone-500"

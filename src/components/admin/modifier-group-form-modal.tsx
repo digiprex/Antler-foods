@@ -108,7 +108,7 @@ export default function ModifierGroupFormModal({
     setNewItemError(null);
     setEditingItemIndex(null);
     setEditItemName('');
-    setEditItemPrice('0');
+    setEditItemPrice('');
     setEditItemError(null);
     setDeleteItemIndex(null);
   }, [group, mode, isOpen]);
@@ -194,7 +194,7 @@ export default function ModifierGroupFormModal({
   const openAddModifierItemModal = () => {
     setIsAddItemModalOpen(true);
     setNewItemName('');
-    setNewItemPrice('0');
+    setNewItemPrice('');
     setNewItemError(null);
   };
 
@@ -241,7 +241,7 @@ export default function ModifierGroupFormModal({
   const closeEditModifierItemModal = () => {
     setEditingItemIndex(null);
     setEditItemName('');
-    setEditItemPrice('0');
+    setEditItemPrice('');
     setEditItemError(null);
   };
 
@@ -326,9 +326,8 @@ export default function ModifierGroupFormModal({
                 id="groupName"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                  errors.name ? 'border-red-300' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${errors.name ? 'border-red-300' : 'border-gray-300'
+                  }`}
                 placeholder="e.g., Size Options, Extra Toppings, Cooking Style"
                 maxLength={100}
               />
@@ -349,9 +348,8 @@ export default function ModifierGroupFormModal({
                 value={formData.description || ''}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={3}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                  errors.description ? 'border-red-300' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${errors.description ? 'border-red-300' : 'border-gray-300'
+                  }`}
                 placeholder="Brief description of this modifier group"
                 maxLength={500}
               />
@@ -391,15 +389,13 @@ export default function ModifierGroupFormModal({
                   className="sr-only"
                 />
                 <div
-                  className={`w-11 h-6 p-0.5 rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${
-                    formData.is_required ? 'bg-purple-600' : 'bg-gray-300'
-                  }`}
+                  className={`w-11 h-6 p-0.5 rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${formData.is_required ? 'bg-purple-600' : 'bg-gray-300'
+                    }`}
                   onClick={() => handleInputChange('is_required', !formData.is_required)}
                 >
                   <div
-                    className={`w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ease-in-out ${
-                      formData.is_required ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ease-in-out ${formData.is_required ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   ></div>
                 </div>
               </div>
@@ -417,15 +413,13 @@ export default function ModifierGroupFormModal({
                   className="sr-only"
                 />
                 <div
-                  className={`w-11 h-6 p-0.5 rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${
-                    formData.is_multi_select ? 'bg-purple-600' : 'bg-gray-300'
-                  }`}
+                  className={`w-11 h-6 p-0.5 rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${formData.is_multi_select ? 'bg-purple-600' : 'bg-gray-300'
+                    }`}
                   onClick={() => handleInputChange('is_multi_select', !formData.is_multi_select)}
                 >
                   <div
-                    className={`w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ease-in-out ${
-                      formData.is_multi_select ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ease-in-out ${formData.is_multi_select ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   ></div>
                 </div>
               </div>
@@ -442,9 +436,8 @@ export default function ModifierGroupFormModal({
                   value={formData.min_selection}
                   onChange={(e) => handleInputChange('min_selection', parseInt(e.target.value) || 0)}
                   min="0"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                    errors.min_selection ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${errors.min_selection ? 'border-red-300' : 'border-gray-300'
+                    }`}
                 />
                 {errors.min_selection && (
                   <p className="mt-1 text-sm text-red-600">{errors.min_selection}</p>
@@ -461,9 +454,8 @@ export default function ModifierGroupFormModal({
                   value={formData.max_selection}
                   onChange={(e) => handleInputChange('max_selection', parseInt(e.target.value) || 0)}
                   min="0"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                    errors.max_selection ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${errors.max_selection ? 'border-red-300' : 'border-gray-300'
+                    }`}
                 />
                 {errors.max_selection && (
                   <p className="mt-1 text-sm text-red-600">{errors.max_selection}</p>
@@ -600,6 +592,7 @@ export default function ModifierGroupFormModal({
                 <input
                   type="text"
                   value={editItemName}
+                  placeholder='Item Name'
                   onChange={(event) => {
                     setEditItemName(event.target.value);
                     if (editItemError) setEditItemError(null);
@@ -616,6 +609,7 @@ export default function ModifierGroupFormModal({
                   <input
                     type="number"
                     value={editItemPrice}
+                    placeholder='Item Price'
                     onChange={(event) => {
                       setEditItemPrice(event.target.value);
                       if (editItemError) setEditItemError(null);
@@ -675,6 +669,7 @@ export default function ModifierGroupFormModal({
                 <input
                   type="text"
                   value={newItemName}
+                  placeholder='Item Name'
                   onChange={(event) => {
                     setNewItemName(event.target.value);
                     if (newItemError) setNewItemError(null);
@@ -690,6 +685,7 @@ export default function ModifierGroupFormModal({
                   <span className="absolute left-3 top-2 text-gray-500">$</span>
                   <input
                     type="number"
+                    placeholder='Item Price'
                     value={newItemPrice}
                     onChange={(event) => {
                       setNewItemPrice(event.target.value);

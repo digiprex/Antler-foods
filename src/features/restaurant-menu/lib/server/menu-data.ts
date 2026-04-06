@@ -185,6 +185,7 @@ const GET_ITEMS_BY_CATEGORY_IDS = `
       is_recommended
       is_best_seller
       in_stock
+      is_available
       modifiers
     }
   }
@@ -370,21 +371,11 @@ async function loadRestaurantForLatestMenu() {
 }
 
 async function loadPreferredMenu(restaurantId: string) {
-  const activeMenu = await gql(GET_ACTIVE_MENU_BY_RESTAURANT, { restaurant_id: restaurantId }).then((data: any) => data.menu?.[0] || null);
-  if (activeMenu) {
-    return activeMenu;
-  }
-
-  return gql(GET_LATEST_MENU_BY_RESTAURANT, { restaurant_id: restaurantId }).then((data: any) => data.menu?.[0] || null);
+  return gql(GET_ACTIVE_MENU_BY_RESTAURANT, { restaurant_id: restaurantId }).then((data: any) => data.menu?.[0] || null);
 }
 
 async function loadLatestMenu() {
-  const activeMenu = await gql(GET_LATEST_ACTIVE_MENU).then((data: any) => data.menu?.[0] || null);
-  if (activeMenu) {
-    return activeMenu;
-  }
-
-  return gql(GET_LATEST_MENU).then((data: any) => data.menu?.[0] || null);
+  return gql(GET_LATEST_ACTIVE_MENU).then((data: any) => data.menu?.[0] || null);
 }
 
 async function loadOpeningHours(restaurantId: string) {
@@ -488,9 +479,9 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
     itemsByCategoryId.set(categoryId, existingItems);
   }
 
-  const menuCategories: MenuCategory[] = categories.map((category: any) => {
+  const menuCategories: MenuCategory[] = categories.filter((category: any) => category.is_active !== false).map((category: any) => {
     const categoryId = text(category.category_id) || slugify(category.name) || 'category';
-    const categoryItems = (itemsByCategoryId.get(categoryId) || []).map((item: any) => {
+    const categoryItems = (itemsByCategoryId.get(categoryId) || []).filter((item: any) => item.is_available !== false).map((item: any) => {
       const itemModifierGroups = modifierGroupIdsFromValue(item.modifiers)
         .map((groupId) => groupMap.get(groupId))
         .filter((value): value is MenuModifierGroup => Boolean(value))
@@ -539,7 +530,7 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
       description: text(category.description) || undefined,
       items: topLevelItems,
     };
-  });
+  }).filter((category: any) => category.items.length > 0);
 
   const favoriteCategoryIds = new Set(
     categories

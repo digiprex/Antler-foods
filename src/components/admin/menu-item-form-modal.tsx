@@ -45,8 +45,8 @@ interface ModifierGroup {
 interface MenuItemFormData {
   name: string;
   description?: string;
-  delivery_price: number;
-  pickup_price: number;
+  delivery_price: number | '';
+  pickup_price: number | '';
   image_url?: string;
   is_recommended: boolean;
   is_best_seller: boolean;
@@ -88,8 +88,8 @@ export default function MenuItemFormModal({
   const [formData, setFormData] = useState<MenuItemFormData>({
     name: '',
     description: '',
-    delivery_price: 0,
-    pickup_price: 0,
+    delivery_price: '',
+    pickup_price: '',
     image_url: '',
     is_recommended: false,
     is_best_seller: false,
@@ -193,8 +193,8 @@ export default function MenuItemFormModal({
       setFormData({
         name: '',
         description: '',
-        delivery_price: 0,
-        pickup_price: 0,
+        delivery_price: '',
+        pickup_price: '',
         image_url: '',
         is_recommended: false,
         is_best_seller: false,
@@ -234,11 +234,11 @@ export default function MenuItemFormModal({
       newErrors.description = 'Description must be less than 500 characters';
     }
 
-    if (formData.delivery_price < 0) {
+    if (formData.delivery_price !== '' && formData.delivery_price < 0) {
       newErrors.delivery_price = 'Delivery price must be 0 or greater';
     }
 
-    if (formData.pickup_price < 0) {
+    if (formData.pickup_price !== '' && formData.pickup_price < 0) {
       newErrors.pickup_price = 'Pickup price must be 0 or greater';
     }
 
@@ -263,8 +263,8 @@ export default function MenuItemFormModal({
         ...formData,
         name: formData.name.trim(),
         description: formData.description?.trim() || undefined,
-        delivery_price: Number(formData.delivery_price),
-        pickup_price: Number(formData.pickup_price)
+        delivery_price: formData.delivery_price === '' ? 0 : Number(formData.delivery_price),
+        pickup_price: formData.pickup_price === '' ? 0 : Number(formData.pickup_price)
       });
       
       onClose();
@@ -450,7 +450,7 @@ export default function MenuItemFormModal({
                     type="number"
                     id="deliveryPrice"
                     value={formData.delivery_price}
-                    onChange={(e) => handleInputChange('delivery_price', parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handleInputChange('delivery_price', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
                     min="0"
                     step="0.01"
                     className={`w-full pl-8 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
@@ -475,7 +475,7 @@ export default function MenuItemFormModal({
                     type="number"
                     id="pickupPrice"
                     value={formData.pickup_price}
-                    onChange={(e) => handleInputChange('pickup_price', parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handleInputChange('pickup_price', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
                     min="0"
                     step="0.01"
                     className={`w-full pl-8 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${

@@ -84,6 +84,10 @@ const GET_RESTAURANT_FOR_EMAIL = `
   query GetRestaurantForEmail($restaurant_id: uuid!) {
     restaurants_by_pk(restaurant_id: $restaurant_id) {
       name
+      email
+      phone_number
+      poc_email
+      poc_phone_number
       gmb_link
       google_place_id
     }
@@ -240,11 +244,17 @@ export async function POST(request: NextRequest) {
 
         let restaurantName = 'Restaurant';
         let googleReviewUrl: string | null = null;
+        let restaurantEmail: string | null = null;
+        let restaurantPhone: string | null = null;
 
         if (order.restaurant_id) {
           const restData = await adminGraphqlRequest<{
             restaurants_by_pk: {
               name?: string;
+              email?: string;
+              phone_number?: string;
+              poc_email?: string;
+              poc_phone_number?: string;
               gmb_link?: string;
               google_place_id?: string;
             } | null;
@@ -252,6 +262,8 @@ export async function POST(request: NextRequest) {
 
           const rest = restData.restaurants_by_pk;
           restaurantName = normalizeText(rest?.name) || 'Restaurant';
+          restaurantEmail = normalizeText(rest?.poc_email) || normalizeText(rest?.email);
+          restaurantPhone = normalizeText(rest?.poc_phone_number) || normalizeText(rest?.phone_number);
           googleReviewUrl = buildGoogleReviewUrl(
             normalizeText(rest?.gmb_link),
             normalizeText(rest?.google_place_id),
@@ -264,6 +276,8 @@ export async function POST(request: NextRequest) {
             restaurantName,
             trackingUrl: normalizeText(order.delivery_tracking_url) || trackingUrl,
             customerName,
+            restaurantEmail,
+            restaurantPhone,
           });
         } else if (mappedStatus.orderStatus === 'delivered') {
           await sendOrderDeliveredReviewEmail(contactEmail, {

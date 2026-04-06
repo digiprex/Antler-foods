@@ -33,6 +33,7 @@
     "react-hook-form": "^7.71.1",
     "react-hot-toast": "^2.6.0",
     "sass": "^1.97.3",
+    "server-only": "^0.0.1",
     "sharp": "^0.34.5",
     "stripe": "^21.0.1",
     "zod": "^4.3.6"

@@ -35,6 +35,7 @@ interface OrderHistoryOrder {
   deliveryAddress: string | null;
   deliveryTrackingUrl: string | null;
   pickupAddress: string | null;
+  orderNote: string | null;
   items: OrderHistoryItem[];
 }
 
@@ -271,6 +272,14 @@ function OrderDetailModal({
                 </svg>
                 Track Delivery
               </a>
+            </div>
+          ) : null}
+
+          {/* Order note */}
+          {order.orderNote ? (
+            <div className="mt-4 rounded-[14px] border border-slate-100 bg-slate-50/60 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Order Note</p>
+              <p className="mt-1 text-sm text-slate-700">{order.orderNote}</p>
             </div>
           ) : null}
 
@@ -565,7 +574,7 @@ export default function OrderHistoryPage({
       offerApplied: null,
       couponCode: '',
       giftCardCode: '',
-      orderNote: '',
+      orderNote: order.orderNote || '',
     });
     doc.save(`invoice-${order.orderNumber || order.orderId}.pdf`);
   }, [restaurantName, customerProfile]);

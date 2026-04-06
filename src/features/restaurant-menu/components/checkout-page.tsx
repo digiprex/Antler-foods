@@ -47,10 +47,46 @@ interface RestaurantMenuCheckoutPageProps {
 
 interface CheckoutContactFields {
   phone: string;
+  phoneCountryCode: string;
   firstName: string;
   lastName: string;
   email: string;
+  emailOptIn: boolean;
+  smsOptIn: boolean;
 }
+
+const PHONE_COUNTRY_CODES = [
+  { code: '+1', label: 'US/CA +1' },
+  { code: '+44', label: 'UK +44' },
+  { code: '+91', label: 'IN +91' },
+  { code: '+61', label: 'AU +61' },
+  { code: '+33', label: 'FR +33' },
+  { code: '+49', label: 'DE +49' },
+  { code: '+81', label: 'JP +81' },
+  { code: '+86', label: 'CN +86' },
+  { code: '+52', label: 'MX +52' },
+  { code: '+55', label: 'BR +55' },
+  { code: '+34', label: 'ES +34' },
+  { code: '+39', label: 'IT +39' },
+  { code: '+82', label: 'KR +82' },
+  { code: '+31', label: 'NL +31' },
+  { code: '+46', label: 'SE +46' },
+  { code: '+47', label: 'NO +47' },
+  { code: '+41', label: 'CH +41' },
+  { code: '+65', label: 'SG +65' },
+  { code: '+971', label: 'AE +971' },
+  { code: '+966', label: 'SA +966' },
+  { code: '+234', label: 'NG +234' },
+  { code: '+27', label: 'ZA +27' },
+  { code: '+254', label: 'KE +254' },
+  { code: '+63', label: 'PH +63' },
+  { code: '+60', label: 'MY +60' },
+  { code: '+66', label: 'TH +66' },
+  { code: '+62', label: 'ID +62' },
+  { code: '+64', label: 'NZ +64' },
+  { code: '+353', label: 'IE +353' },
+  { code: '+48', label: 'PL +48' },
+];
 
 interface CheckoutCouponOffer {
   couponId: string;
@@ -413,9 +449,12 @@ export default function RestaurantMenuCheckoutPage({
   const [authSidebarView, setAuthSidebarView] = useState<MenuAuthView>('login');
   const [contactFields, setContactFields] = useState<CheckoutContactFields>({
     phone: '',
+    phoneCountryCode: '+1',
     firstName: '',
     lastName: '',
     email: '',
+    emailOptIn: true,
+    smsOptIn: true,
   });
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -551,8 +590,26 @@ export default function RestaurantMenuCheckoutPage({
 
     const { firstName, lastName } = splitName(customerProfile.name);
 
+    const profilePhone = customerProfile.phone || '';
+    let parsedCode = '+1';
+    let parsedNumber = profilePhone;
+    if (profilePhone.startsWith('+')) {
+      const sorted = PHONE_COUNTRY_CODES.map((c) => c.code).sort(
+        (a, b) => b.length - a.length,
+      );
+      for (const c of sorted) {
+        if (profilePhone.startsWith(c)) {
+          parsedCode = c;
+          parsedNumber = profilePhone.slice(c.length);
+          break;
+        }
+      }
+    }
+
     setContactFields((current) => ({
-      phone: current.phone || customerProfile.phone || '',
+      ...current,
+      phone: current.phone || parsedNumber,
+      phoneCountryCode: current.phone ? current.phoneCountryCode : parsedCode,
       firstName: current.firstName || firstName,
       lastName: current.lastName || lastName,
       email: current.email || customerProfile.email || '',
@@ -581,7 +638,9 @@ export default function RestaurantMenuCheckoutPage({
         firstName: contactFields.firstName,
         lastName: contactFields.lastName,
         email: contactFields.email,
-        phone: contactFields.phone,
+        phone: `${contactFields.phoneCountryCode}${contactFields.phone.trim()}`,
+        emailOptIn: contactFields.emailOptIn,
+        smsOptIn: contactFields.smsOptIn,
       }),
     });
 
@@ -1120,7 +1179,7 @@ export default function RestaurantMenuCheckoutPage({
       successParams.set('email', contactFields.email.trim());
     }
     if (contactFields.phone.trim()) {
-      successParams.set('phone', contactFields.phone.trim());
+      successParams.set('phone', `${contactFields.phoneCountryCode}${contactFields.phone.trim()}`);
     }
     if (fulfillmentMode === 'delivery' && trimDeliveryAddressText(deliveryAddressData.formattedAddress)) {
       successParams.set('address', trimDeliveryAddressText(deliveryAddressData.formattedAddress));
@@ -1230,7 +1289,7 @@ export default function RestaurantMenuCheckoutPage({
             firstName: contactFields.firstName,
             lastName: contactFields.lastName,
             email: contactFields.email,
-            phone: contactFields.phone,
+            phone: `${contactFields.phoneCountryCode}${contactFields.phone.trim()}`,
           },
           items,
           tipAmount: tipsEnabled ? tipAmount : 0,
@@ -1238,6 +1297,8 @@ export default function RestaurantMenuCheckoutPage({
           couponCode: appliedCoupon?.code || null,
           giftCardCode: appliedGiftCard?.code || null,
           orderNote: cartNote,
+          emailOptIn: contactFields.emailOptIn,
+          smsOptIn: contactFields.smsOptIn,
         }),
       });
 
@@ -2313,25 +2374,44 @@ export default function RestaurantMenuCheckoutPage({
                       }
                     />
                   </label>
-                  <label className="block">
+                  <div className="block">
                     <span className="mb-1.5 block text-xs font-medium text-stone-500">
                       Mobile number
                     </span>
-                    <input
-                      type="tel"
-                      placeholder="(555) 555-5555"
-                      className={fieldClassName}
-                      value={contactFields.phone}
-                      onChange={(event) =>
-                        handleContactFieldChange('phone', event.target.value)
-                      }
-                    />
-                  </label>
+                    <div className="flex gap-2">
+                      <select
+                        value={contactFields.phoneCountryCode}
+                        onChange={(event) =>
+                          handleContactFieldChange('phoneCountryCode', event.target.value)
+                        }
+                        className={fieldClassName}
+                        style={{ width: '120px', flexShrink: 0 }}
+                      >
+                        {PHONE_COUNTRY_CODES.map((c) => (
+                          <option key={c.code} value={c.code}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="tel"
+                        placeholder="(555) 555-5555"
+                        className={fieldClassName}
+                        value={contactFields.phone}
+                        onChange={(event) =>
+                          handleContactFieldChange('phone', event.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
                   <div className="space-y-2.5 pt-1">
                     <label className="flex items-center gap-3 text-sm text-stone-600">
                       <input
                         type="checkbox"
-                        defaultChecked
+                        checked={contactFields.emailOptIn}
+                        onChange={(e) =>
+                          setContactFields((prev) => ({ ...prev, emailOptIn: e.target.checked }))
+                        }
                         className="h-4 w-4 rounded border-stone-300 accent-slate-900"
                       />
                       Get promotional emails from {data.restaurant.name}
@@ -2339,7 +2419,10 @@ export default function RestaurantMenuCheckoutPage({
                     <label className="flex items-center gap-3 text-sm text-stone-600">
                       <input
                         type="checkbox"
-                        defaultChecked
+                        checked={contactFields.smsOptIn}
+                        onChange={(e) =>
+                          setContactFields((prev) => ({ ...prev, smsOptIn: e.target.checked }))
+                        }
                         className="h-4 w-4 rounded border-stone-300 accent-slate-900"
                       />
                       Get promotional texts from {data.restaurant.name}

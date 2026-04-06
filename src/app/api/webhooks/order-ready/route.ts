@@ -31,6 +31,11 @@ const GET_ORDER_FOR_DISPATCH = `
       delivery_dispatch_status
       delivery_quote
       delivery_error
+      cart_total
+      tax_total
+      tip_total
+      discount_total
+      order_note
     }
   }
 `;
@@ -396,6 +401,19 @@ export async function POST(request: NextRequest) {
           customerName: [normalizeText(order.contact_first_name), normalizeText(order.contact_last_name)]
             .filter(Boolean)
             .join(' '),
+          deliveryAddress: normalizeText(order.delivery_address),
+          orderItems: orderItems.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            lineTotal: item.lineTotal,
+          })),
+          subtotal: numericValueOrNull(order.sub_total),
+          tax: numericValueOrNull(order.tax_total),
+          deliveryFee: null,
+          tip: numericValueOrNull(order.tip_total),
+          discount: numericValueOrNull(order.discount_total),
+          total: numericValueOrNull(order.cart_total),
+          orderNote: normalizeText(order.order_note),
         });
       } catch (emailError) {
         console.error('[Uber Direct Dispatch] Tracking email failed:', emailError);

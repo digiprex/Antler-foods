@@ -75,6 +75,26 @@ const GET_ORDER_BY_DELIVERY_ID = `
       contact_last_name
       restaurant_id
       delivery_tracking_url
+      delivery_address
+      sub_total
+      cart_total
+      tax_total
+      tip_total
+      discount_total
+      order_note
+    }
+  }
+`;
+
+const GET_ORDER_ITEMS_FOR_EMAIL = `
+  query GetOrderItemsForEmail($order_id: uuid!) {
+    order_items(
+      where: { order_id: { _eq: $order_id }, is_deleted: { _eq: false } }
+      order_by: { created_at: asc }
+    ) {
+      item_name
+      quantity
+      line_total
     }
   }
 `;
@@ -203,18 +223,21 @@ export async function POST(request: NextRequest) {
   const trackingUrl = event.trackingUrl;
   const mappedStatus = normalizeUberStatus(event.status, event.kind);
 
-  const variables = {
+  const baseVariables = {
     delivery_id: event.deliveryId,
     delivery_dispatch_status: mappedStatus.deliveryStatus,
     delivery_tracking_url: trackingUrl,
     delivery_last_status_at: lastStatusAt,
     delivery_error: mappedStatus.error,
-    status: mappedStatus.orderStatus,
   };
 
   const mutation = mappedStatus.orderStatus
     ? UPDATE_DELIVERY_STATUS_AND_ORDER
     : UPDATE_DELIVERY_STATUS;
+
+  const variables = mappedStatus.orderStatus
+    ? { ...baseVariables, status: mappedStatus.orderStatus }
+    : baseVariables;
 
   await adminGraphqlRequest(mutation, variables);
 
@@ -222,15 +245,7 @@ export async function POST(request: NextRequest) {
   if (mappedStatus.orderStatus === 'out_for_delivery' || mappedStatus.orderStatus === 'delivered') {
     try {
       const orderData = await adminGraphqlRequest<{
-        orders: Array<{
-          order_id?: string;
-          order_number?: string;
-          contact_email?: string;
-          contact_first_name?: string;
-          contact_last_name?: string;
-          restaurant_id?: string;
-          delivery_tracking_url?: string;
-        }>;
+        orders: Array<Record<string, unknown>>;
       }>(GET_ORDER_BY_DELIVERY_ID, { delivery_id: event.deliveryId });
 
       const order = orderData.orders?.[0];
@@ -263,11 +278,39 @@ export async function POST(request: NextRequest) {
         }
 
         if (mappedStatus.orderStatus === 'out_for_delivery') {
+          // Fetch order items for the email
+          let orderItems: Array<{ name: string; quantity: number; lineTotal: number }> = [];
+          if (order.order_id) {
+            try {
+              const itemsData = await adminGraphqlRequest<{
+                order_items: Array<{ item_name?: string; quantity?: number; line_total?: number }>;
+              }>(GET_ORDER_ITEMS_FOR_EMAIL, { order_id: order.order_id });
+              orderItems = (itemsData.order_items || []).map((item) => ({
+                name: item.item_name || 'Menu item',
+                quantity: Math.max(Number(item.quantity || 1), 1),
+                lineTotal: Number(item.line_total) || 0,
+              }));
+            } catch {
+              // continue without items
+            }
+          }
+
+          const numVal = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+
           await sendOrderDeliveryTrackingEmail(contactEmail, {
             orderNumber,
             restaurantName,
             trackingUrl: normalizeText(order.delivery_tracking_url) || trackingUrl,
             customerName,
+            deliveryAddress: normalizeText(order.delivery_address),
+            orderItems: orderItems.length > 0 ? orderItems : null,
+            subtotal: numVal(order.sub_total),
+            tax: numVal(order.tax_total),
+            deliveryFee: null,
+            tip: numVal(order.tip_total),
+            discount: numVal(order.discount_total),
+            total: numVal(order.cart_total),
+            orderNote: normalizeText(order.order_note),
           });
         } else if (mappedStatus.orderStatus === 'delivered') {
           await sendOrderDeliveredReviewEmail(contactEmail, {

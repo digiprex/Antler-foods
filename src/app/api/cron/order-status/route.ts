@@ -62,6 +62,11 @@ const GET_ORDER_FOR_DISPATCH = `
       delivery_longitude
       delivery_house_flat_floor
       delivery_instructions
+      cart_total
+      tax_total
+      tip_total
+      discount_total
+      order_note
       delivery_provider
       delivery_provider_delivery_id
       delivery_dispatch_status
@@ -310,6 +315,19 @@ async function dispatchOrderViaUber(orderId: string) {
         customerName: [text(order.contact_first_name), text(order.contact_last_name)]
           .filter(Boolean)
           .join(' '),
+        deliveryAddress: text(order.delivery_address),
+        orderItems: orderItems.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          lineTotal: item.lineTotal,
+        })),
+        subtotal: numOrNull(order.sub_total),
+        tax: numOrNull(order.tax_total),
+        deliveryFee: null,
+        tip: numOrNull(order.tip_total),
+        discount: numOrNull(order.discount_total),
+        total: numOrNull(order.cart_total),
+        orderNote: text(order.order_note),
       });
     } catch (emailErr) {
       console.error(`[Cron] Tracking email failed for order ${orderId}:`, emailErr);

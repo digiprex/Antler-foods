@@ -659,6 +659,8 @@ export interface OrderDeliveryTrackingEmailData {
   restaurantName: string;
   trackingUrl?: string | null;
   customerName?: string | null;
+  restaurantEmail?: string | null;
+  restaurantPhone?: string | null;
   deliveryAddress?: string | null;
   orderItems?: Array<{
     name: string;
@@ -773,6 +775,16 @@ export async function sendOrderDeliveryTrackingEmail(
         ${trackingBlock}
       </div>
     </div>
+    ${data.restaurantEmail || data.restaurantPhone ? `
+    <div style="margin-top:24px;padding:24px 28px;border-top:1px solid #e7e5e4;text-align:center;">
+      <p style="margin:0 0 4px;font-size:13px;color:#78716c;">Need help with your order? Contact us</p>
+      <p style="margin:0;font-size:13px;color:#0f172a;">
+        ${data.restaurantEmail ? `<a href="mailto:${data.restaurantEmail}" style="color:#0f172a;text-decoration:underline;">${data.restaurantEmail}</a>` : ''}
+        ${data.restaurantEmail && data.restaurantPhone ? ' &nbsp;|&nbsp; ' : ''}
+        ${data.restaurantPhone ? `<a href="tel:${data.restaurantPhone}" style="color:#0f172a;text-decoration:underline;">${data.restaurantPhone}</a>` : ''}
+      </p>
+    </div>
+    ` : ''}
   </div>
 </body>
 </html>`;
@@ -803,6 +815,10 @@ export async function sendOrderDeliveryTrackingEmail(
     itemsText,
     '',
     data.trackingUrl ? `Track your delivery: ${data.trackingUrl}` : 'Tracking details will be shared shortly.',
+    '',
+    data.restaurantEmail || data.restaurantPhone ? 'Need help with your order? Contact us:' : '',
+    data.restaurantEmail ? `Email: ${data.restaurantEmail}` : '',
+    data.restaurantPhone ? `Phone: ${data.restaurantPhone}` : '',
   ].filter(Boolean).join('\n');
 
   await transporter.sendMail({

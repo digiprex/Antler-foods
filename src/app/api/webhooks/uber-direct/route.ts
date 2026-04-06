@@ -79,6 +79,7 @@ const GET_ORDER_BY_DELIVERY_ID = `
   }
 `;
 
+
 const GET_RESTAURANT_FOR_EMAIL = `
   query GetRestaurantForEmail($restaurant_id: uuid!) {
     restaurants_by_pk(restaurant_id: $restaurant_id) {
@@ -203,18 +204,21 @@ export async function POST(request: NextRequest) {
   const trackingUrl = event.trackingUrl;
   const mappedStatus = normalizeUberStatus(event.status, event.kind);
 
-  const variables = {
+  const baseVariables = {
     delivery_id: event.deliveryId,
     delivery_dispatch_status: mappedStatus.deliveryStatus,
     delivery_tracking_url: trackingUrl,
     delivery_last_status_at: lastStatusAt,
     delivery_error: mappedStatus.error,
-    status: mappedStatus.orderStatus,
   };
 
   const mutation = mappedStatus.orderStatus
     ? UPDATE_DELIVERY_STATUS_AND_ORDER
     : UPDATE_DELIVERY_STATUS;
+
+  const variables = mappedStatus.orderStatus
+    ? { ...baseVariables, status: mappedStatus.orderStatus }
+    : baseVariables;
 
   await adminGraphqlRequest(mutation, variables);
 
@@ -222,15 +226,7 @@ export async function POST(request: NextRequest) {
   if (mappedStatus.orderStatus === 'out_for_delivery' || mappedStatus.orderStatus === 'delivered') {
     try {
       const orderData = await adminGraphqlRequest<{
-        orders: Array<{
-          order_id?: string;
-          order_number?: string;
-          contact_email?: string;
-          contact_first_name?: string;
-          contact_last_name?: string;
-          restaurant_id?: string;
-          delivery_tracking_url?: string;
-        }>;
+        orders: Array<Record<string, unknown>>;
       }>(GET_ORDER_BY_DELIVERY_ID, { delivery_id: event.deliveryId });
 
       const order = orderData.orders?.[0];

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { createUberDirectDelivery } from '@/lib/server/delivery/uber-direct';
-import { sendOrderDeliveryTrackingEmail } from '@/lib/server/email';
+import { sendOrderDeliveryTrackingEmail, sendOrderPickupReadyEmail } from '@/lib/server/email';
 
 const GET_PREPARING_ORDERS = `
   query GetPreparingOrders {
@@ -36,6 +36,19 @@ const UPDATE_TO_READY = `
       _set: { status: "ready" }
     ) {
       affected_rows
+    }
+  }
+`;
+
+const GET_PICKUP_ORDER_FOR_EMAIL = `
+  query GetPickupOrderForEmail($order_id: uuid!) {
+    orders_by_pk(order_id: $order_id) {
+      order_id
+      order_number
+      contact_email
+      contact_first_name
+      contact_last_name
+      restaurant_id
     }
   }
 `;
@@ -94,6 +107,7 @@ const GET_RESTAURANT_FOR_DISPATCH = `
       country
       postal_code
       phone_number
+      email
     }
   }
 `;
@@ -321,22 +335,44 @@ async function dispatchOrderViaUber(orderId: string) {
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
+  const isLocal = process.env.NODE_ENV === 'development';
+
+  // Skip auth check in local dev
   if (
+    !isLocal &&
     process.env.CRON_SECRET &&
     authHeader !== `Bearer ${process.env.CRON_SECRET}`
   ) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const debug: Record<string, unknown>[] = [];
+  const log = (step: string, data?: unknown) => {
+    const entry = { step, timestamp: new Date().toISOString(), ...(data != null ? { data } : {}) };
+    debug.push(entry);
+    console.log(`[Cron] ${step}`, data != null ? JSON.stringify(data) : '');
+  };
+
   try {
     // 1. Get preparing orders
+    log('Fetching preparing orders');
     const ordersData = await adminGraphqlRequest<{
       orders: Array<{ order_id: string; restaurant_id: string; confirmed_at: string; fulfillment_type: string | null }>;
     }>(GET_PREPARING_ORDERS, {});
 
     const orders = ordersData.orders || [];
+    log('Found preparing orders', {
+      count: orders.length,
+      orders: orders.map((o) => ({
+        order_id: o.order_id,
+        restaurant_id: o.restaurant_id,
+        confirmed_at: o.confirmed_at,
+        fulfillment_type: o.fulfillment_type,
+      })),
+    });
+
     if (orders.length === 0) {
-      return NextResponse.json({ success: true, toReady: 0, dispatched: 0 });
+      return NextResponse.json({ success: true, toReady: 0, dispatched: 0, debug });
     }
 
     // 2. Get preparation times
@@ -353,23 +389,58 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    log('Restaurant preparation times', Object.fromEntries(prepTimeByRestaurant));
+
     // 3. Find orders past preparation time → ready
     const now = Date.now();
     const toReadyIds: string[] = [];
     const deliveryOrderIds = new Set<string>();
+    const pickupOrderIds = new Set<string>();
+    const skipped: Array<{ order_id: string; reason: string }> = [];
 
     for (const order of orders) {
       const prepMinutes = prepTimeByRestaurant.get(order.restaurant_id);
-      if (!prepMinutes) continue;
+      if (!prepMinutes) {
+        skipped.push({ order_id: order.order_id, reason: 'no preparation_time configured for restaurant' });
+        continue;
+      }
       const confirmedAt = new Date(order.confirmed_at).getTime();
-      if (Number.isNaN(confirmedAt)) continue;
-      if (now - confirmedAt >= prepMinutes * 60 * 1000) {
+      if (Number.isNaN(confirmedAt)) {
+        skipped.push({ order_id: order.order_id, reason: `invalid confirmed_at: ${order.confirmed_at}` });
+        continue;
+      }
+      const elapsedMs = now - confirmedAt;
+      const requiredMs = prepMinutes * 60 * 1000;
+      if (elapsedMs >= requiredMs) {
         toReadyIds.push(order.order_id);
         if (order.fulfillment_type === 'delivery') {
           deliveryOrderIds.add(order.order_id);
+        } else if (order.fulfillment_type === 'pickup') {
+          pickupOrderIds.add(order.order_id);
         }
+        log(`Order ${order.order_id} ready`, {
+          elapsed: `${Math.round(elapsedMs / 1000)}s`,
+          required: `${Math.round(requiredMs / 1000)}s`,
+          fulfillment_type: order.fulfillment_type,
+        });
+      } else {
+        skipped.push({
+          order_id: order.order_id,
+          reason: `not ready yet (${Math.round(elapsedMs / 1000)}s / ${Math.round(requiredMs / 1000)}s)`,
+        });
       }
     }
+
+    if (skipped.length > 0) {
+      log('Skipped orders', skipped);
+    }
+
+    log('Orders to transition', {
+      toReadyCount: toReadyIds.length,
+      toReadyIds,
+      deliveryCount: deliveryOrderIds.size,
+      deliveryOrderIds: [...deliveryOrderIds],
+    });
 
     // 4. Bulk update to ready
     let affectedReady = 0;
@@ -378,18 +449,89 @@ export async function GET(request: NextRequest) {
         update_orders: { affected_rows: number };
       }>(UPDATE_TO_READY, { order_ids: toReadyIds });
       affectedReady = result.update_orders?.affected_rows || 0;
-      console.log(`[Cron] ${affectedReady} order(s) → ready:`, toReadyIds);
+      log(`Updated ${affectedReady} order(s) to ready`, toReadyIds);
     }
 
-    // 5. Dispatch only delivery orders via Uber Direct
+    // 5. Send pickup ready emails
+    for (const orderId of pickupOrderIds) {
+      try {
+        const orderResult = await adminGraphqlRequest<{
+          orders_by_pk?: Record<string, unknown> | null;
+        }>(GET_PICKUP_ORDER_FOR_EMAIL, { order_id: orderId });
+
+        const order = orderResult.orders_by_pk;
+        const customerEmail = text(order?.contact_email);
+        if (!order || !customerEmail) continue;
+
+        const restaurantId = text(order.restaurant_id);
+        let restaurantName = 'Restaurant';
+        let pickupAddress: string | null = null;
+
+        let restaurantEmail: string | null = null;
+        let restaurantPhone: string | null = null;
+
+        if (restaurantId) {
+          const restResult = await adminGraphqlRequest<{
+            restaurants_by_pk?: {
+              name?: string | null;
+              address?: string | null;
+              city?: string | null;
+              state?: string | null;
+              postal_code?: string | null;
+              country?: string | null;
+              phone_number?: string | null;
+              email?: string | null;
+            } | null;
+          }>(GET_RESTAURANT_FOR_DISPATCH, { restaurant_id: restaurantId });
+
+          const restaurant = restResult.restaurants_by_pk;
+          restaurantName = text(restaurant?.name) || 'Restaurant';
+          restaurantEmail = text(restaurant?.email);
+          restaurantPhone = text(restaurant?.phone_number);
+          pickupAddress = [
+            text(restaurant?.address),
+            text(restaurant?.city),
+            text(restaurant?.state),
+            text(restaurant?.postal_code),
+            text(restaurant?.country),
+          ].filter(Boolean).join(', ') || null;
+        }
+
+        await sendOrderPickupReadyEmail(customerEmail, {
+          orderNumber: text(order.order_number) || text(order.order_id) || orderId,
+          restaurantName,
+          customerName: [text(order.contact_first_name), text(order.contact_last_name)]
+            .filter(Boolean)
+            .join(' '),
+          pickupAddress,
+          restaurantEmail,
+          restaurantPhone,
+        });
+        log(`Pickup ready email sent for order ${orderId}`);
+      } catch (err) {
+        console.error(`[Cron] Pickup ready email failed for order ${orderId}:`, err);
+        log(`Pickup ready email FAILED for order ${orderId}`, {
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    }
+
+    // 6. Dispatch only delivery orders via Uber Direct
     let dispatched = 0;
+    const dispatchResults: Array<{ order_id: string; success: boolean; error?: string }> = [];
+
     for (const orderId of deliveryOrderIds) {
       try {
+        log(`Dispatching order ${orderId} via Uber Direct`);
         await dispatchOrderViaUber(orderId);
         dispatched++;
+        dispatchResults.push({ order_id: orderId, success: true });
+        log(`Dispatch succeeded for order ${orderId}`);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Uber dispatch failed';
         console.error(`[Cron] Dispatch failed for order ${orderId}:`, message);
+        dispatchResults.push({ order_id: orderId, success: false, error: message });
+        log(`Dispatch FAILED for order ${orderId}`, { error: message });
         try {
           await adminGraphqlRequest(MARK_ORDER_DISPATCH_FAILED, {
             order_id: orderId,
@@ -402,15 +544,21 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    log('Cron run complete', { toReady: affectedReady, dispatched, total: orders.length });
+
     return NextResponse.json({
       success: true,
       toReady: affectedReady,
       dispatched,
+      dispatchResults,
+      debug,
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    log('FATAL ERROR', { error: message, stack: error instanceof Error ? error.stack : undefined });
     console.error('[Cron] Order status transition error:', error);
     return NextResponse.json(
-      { error: 'Failed to process order transitions' },
+      { error: 'Failed to process order transitions', debug },
       { status: 500 },
     );
   }

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prebuild": "node scripts/clean-next.mjs"
+    "prebuild": "node scripts/clean-next.mjs",
+    "cron:local": "node scripts/cron-local.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1008.0",

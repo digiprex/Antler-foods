@@ -256,6 +256,11 @@ export async function createUberDirectDelivery(
     external_id: input.externalOrderId,
   };
 
+  if (typeof input.dropoffAddress.latitude === 'number' && typeof input.dropoffAddress.longitude === 'number') {
+    body.dropoff_latitude = input.dropoffAddress.latitude;
+    body.dropoff_longitude = input.dropoffAddress.longitude;
+  }
+
   if (config.pickupInstructions) {
     body.pickup_notes = config.pickupInstructions;
   }

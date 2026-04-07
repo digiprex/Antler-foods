@@ -55,6 +55,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { sendOrderDeliveryStatusEmail } from '@/lib/server/email';
 
 /**
  * GraphQL query to fetch orders for a restaurant
@@ -243,6 +244,31 @@ const UPDATE_ORDER_MUTATION = `
   }
 `;
 
+const GET_ORDER_FOR_EMAIL = `
+  query GetOrderForEmail($order_id: uuid!) {
+    orders_by_pk(order_id: $order_id) {
+      order_id
+      order_number
+      contact_email
+      contact_first_name
+      contact_last_name
+      restaurant_id
+    }
+  }
+`;
+
+const GET_RESTAURANT_FOR_EMAIL = `
+  query GetRestaurantForEmail($restaurant_id: uuid!) {
+    restaurants_by_pk(restaurant_id: $restaurant_id) {
+      name
+      email
+      phone_number
+      poc_email
+      poc_phone_number
+    }
+  }
+`;
+
 /**
  * GET endpoint to fetch orders for a restaurant
  */
@@ -407,6 +433,65 @@ export async function PUT(request: NextRequest) {
         { error: 'Order not found' },
         { status: 404 }
       );
+    }
+
+    // Send cancellation email when order is cancelled
+    if (action === 'update_status' && updateData.status === 'cancelled') {
+      try {
+        const orderData = await adminGraphqlRequest<{
+          orders_by_pk: {
+            order_id: string;
+            order_number?: string;
+            contact_email?: string;
+            contact_first_name?: string;
+            contact_last_name?: string;
+            restaurant_id?: string;
+          } | null;
+        }>(GET_ORDER_FOR_EMAIL, { order_id });
+
+        const fullOrder = orderData.orders_by_pk;
+        const contactEmail = fullOrder?.contact_email?.trim();
+
+        if (fullOrder && contactEmail) {
+          const customerName = [fullOrder.contact_first_name, fullOrder.contact_last_name]
+            .filter((v) => typeof v === 'string' && v.trim())
+            .join(' ') || null;
+          const orderNumber = fullOrder.order_number || fullOrder.order_id;
+
+          let restaurantName = 'Restaurant';
+          let restaurantEmail: string | null = null;
+          let restaurantPhone: string | null = null;
+
+          if (fullOrder.restaurant_id) {
+            const restData = await adminGraphqlRequest<{
+              restaurants_by_pk: {
+                name?: string;
+                email?: string;
+                phone_number?: string;
+                poc_email?: string;
+                poc_phone_number?: string;
+              } | null;
+            }>(GET_RESTAURANT_FOR_EMAIL, { restaurant_id: fullOrder.restaurant_id });
+
+            const rest = restData.restaurants_by_pk;
+            restaurantName = rest?.name?.trim() || 'Restaurant';
+            restaurantEmail = rest?.poc_email?.trim() || rest?.email?.trim() || null;
+            restaurantPhone = rest?.poc_phone_number?.trim() || rest?.phone_number?.trim() || null;
+          }
+
+          await sendOrderDeliveryStatusEmail(contactEmail, {
+            orderNumber,
+            restaurantName,
+            status: 'cancelled',
+            customerName,
+            restaurantEmail,
+            restaurantPhone,
+          });
+          console.log('[Orders API] Cancellation email sent to:', contactEmail, 'order:', orderNumber);
+        }
+      } catch (emailErr) {
+        console.error('[Orders API] Failed to send cancellation email:', emailErr);
+      }
     }
 
     return NextResponse.json({

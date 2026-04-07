@@ -1169,6 +1169,9 @@ export default function RestaurantMenuCheckoutPage({
     if (subtotal > 0) {
       successParams.set('subtotal', subtotal.toFixed(2));
     }
+    if (taxAmount > 0) {
+      successParams.set('tax', taxAmount.toFixed(2));
+    }
     if (tipsEnabled && tipAmount > 0) {
       successParams.set('tip', tipAmount.toFixed(2));
     }
@@ -1410,8 +1413,11 @@ export default function RestaurantMenuCheckoutPage({
     fulfillmentMode === 'delivery' ? deliveryQuote?.deliveryFee ?? 0 : 0;
   const discountAmount =
     appliedCoupon?.discountAmount || activeRestaurantOffer?.discountAmount || 0;
+  const taxRate = data.transactionTaxRate ?? 5;
+  const taxableAmount = roundCurrency(Math.max(subtotal - discountAmount, 0));
+  const taxAmount = taxRate > 0 ? roundCurrency(taxableAmount * taxRate / 100) : 0;
   const preGiftCardTotal = roundCurrency(
-    subtotal + deliveryFeeAmount + effectiveTipAmount - discountAmount,
+    subtotal + deliveryFeeAmount + effectiveTipAmount + taxAmount - discountAmount,
   );
   const giftCardAppliedAmount = appliedGiftCard
     ? roundCurrency(
@@ -1708,6 +1714,12 @@ export default function RestaurantMenuCheckoutPage({
                 </div>
               ) : null}
             </>
+          ) : null}
+          {taxAmount > 0 ? (
+            <div className="flex items-center justify-between gap-4">
+              <span>Tax ({taxRate}%)</span>
+              <span className="font-medium">{formatPrice(taxAmount)}</span>
+            </div>
           ) : null}
           <div className="flex items-center justify-between gap-4">
             <span>Tip</span>

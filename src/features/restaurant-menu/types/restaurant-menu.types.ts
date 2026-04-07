@@ -159,6 +159,7 @@ export interface RestaurantMenuData {
   restaurantId?: string | null;
   hasMenu?: boolean;
   allowTips?: boolean;
+  transactionTaxRate?: number;
   pickupAllowed?: boolean;
   deliveryAllowed?: boolean;
   variesWithTime?: boolean;

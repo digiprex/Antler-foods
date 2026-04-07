@@ -3,6 +3,10 @@ import {
   isUberDirectConfigured,
   quoteUberDirectDelivery,
 } from '@/lib/server/delivery/uber-direct';
+import {
+  isDoorDashDriveConfigured,
+  quoteDoorDashDriveDelivery,
+} from '@/lib/server/delivery/doordash-drive';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 
 const GET_RESTAURANT_ADDRESS = `
@@ -41,6 +45,18 @@ interface DeliveryQuoteRequestBody {
   } | null;
 }
 
+interface ProviderQuote {
+  provider: string;
+  quoteId: string;
+  deliveryFee: number;
+  feeMinor: number;
+  currencyCode: string;
+  etaMinutes: number | null;
+  pickupAt?: number;
+  expiresAt: number | null;
+  rawPayload: unknown;
+}
+
 function normalizeText(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
@@ -64,13 +80,32 @@ function buildFormattedAddress(restaurant: {
   return parts.length > 0 ? parts.join(', ') : null;
 }
 
+function pickBestQuote(quotes: ProviderQuote[]): ProviderQuote | null {
+  if (quotes.length === 0) return null;
+  if (quotes.length === 1) return quotes[0];
+
+  return quotes.sort((a, b) => {
+    // Lowest fee first
+    if (a.deliveryFee !== b.deliveryFee) {
+      return a.deliveryFee - b.deliveryFee;
+    }
+    // If same fee, fastest ETA first (null ETA goes last)
+    const etaA = a.etaMinutes ?? Infinity;
+    const etaB = b.etaMinutes ?? Infinity;
+    return etaA - etaB;
+  })[0];
+}
+
 export async function POST(request: NextRequest) {
   try {
-    if (!isUberDirectConfigured()) {
+    const uberConfigured = isUberDirectConfigured();
+    const doorDashConfigured = isDoorDashDriveConfigured();
+
+    if (!uberConfigured && !doorDashConfigured) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Uber Direct is not configured yet.',
+          error: 'No delivery provider is configured.',
         },
         { status: 503 },
       );
@@ -132,71 +167,167 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const quote = await quoteUberDirectDelivery({
-        restaurantId,
-        locationId,
-        orderValue: subtotal,
-        pickup: {
-          address: pickupAddress,
-          name: normalizeText(restaurant?.name),
-          phoneNumber: normalizeText(restaurant?.phone_number),
-        },
-        dropoffAddress: {
-          formattedAddress,
-          placeId,
-          latitude,
-          longitude,
-          houseFlatFloor,
-          instructions,
-        },
-      });
+      const restaurantName = normalizeText(restaurant?.name);
+      const restaurantPhone = normalizeText(restaurant?.phone_number);
 
-      let deliveryQuoteId: string | null = null;
-      try {
-        const insertResult = await adminGraphqlRequest<{
-          insert_delivery_quotes_one?: { delivery_quote_id?: string } | null;
-        }>(INSERT_DELIVERY_QUOTE, {
-          object: {
-            restaurant_id: restaurantId,
-            location_id: locationId,
-            provider: 'uber_direct',
-            provider_quote_id: quote.quoteId,
-            delivery_fee: quote.fee,
-            currency_code: quote.currencyCode,
-            eta_minutes: quote.etaMinutes,
-            delivery_address: formattedAddress,
-            delivery_place_id: placeId,
-            expires_at: quote.expiresAt != null ? new Date(quote.expiresAt * 1000).toISOString() : null,
-            raw_response: quote.rawPayload,
-          },
-        });
-        deliveryQuoteId = insertResult.insert_delivery_quotes_one?.delivery_quote_id || null;
-      } catch (saveError) {
-        console.error('[Menu Orders] Failed to persist delivery quote:', saveError);
+      // Fetch quotes from all configured providers in parallel
+      const quotePromises: Promise<ProviderQuote | null>[] = [];
+
+      if (uberConfigured) {
+        quotePromises.push(
+          quoteUberDirectDelivery({
+            restaurantId,
+            locationId,
+            orderValue: subtotal,
+            pickup: {
+              address: pickupAddress,
+              name: restaurantName,
+              phoneNumber: restaurantPhone,
+            },
+            dropoffAddress: {
+              formattedAddress,
+              placeId,
+              latitude,
+              longitude,
+              houseFlatFloor,
+              instructions,
+            },
+          })
+            .then((quote): ProviderQuote => ({
+              provider: 'uber_direct',
+              quoteId: quote.quoteId,
+              deliveryFee: quote.fee,
+              feeMinor: quote.feeMinor,
+              currencyCode: quote.currencyCode,
+              etaMinutes: quote.etaMinutes,
+              pickupAt: quote.pickupAt,
+              expiresAt: quote.expiresAt,
+              rawPayload: quote.rawPayload,
+            }))
+            .catch((err) => {
+              console.error('[Delivery Quote] Uber Direct quote failed:', err);
+              return null;
+            }),
+        );
       }
+
+      if (doorDashConfigured) {
+        quotePromises.push(
+          quoteDoorDashDriveDelivery({
+            restaurantId,
+            locationId,
+            orderValue: subtotal,
+            pickup: {
+              address: pickupAddress,
+              name: restaurantName,
+              phoneNumber: restaurantPhone,
+            },
+            dropoffAddress: {
+              formattedAddress,
+              placeId,
+              latitude,
+              longitude,
+              houseFlatFloor,
+              instructions,
+            },
+          })
+            .then((quote): ProviderQuote => ({
+              provider: 'doordash_drive',
+              quoteId: quote.quoteId,
+              deliveryFee: quote.fee,
+              feeMinor: quote.feeMinor,
+              currencyCode: quote.currencyCode,
+              etaMinutes: quote.etaMinutes,
+              expiresAt: quote.expiresAt,
+              rawPayload: quote.rawPayload,
+            }))
+            .catch((err) => {
+              console.error('[Delivery Quote] DoorDash Drive quote failed:', err);
+              return null;
+            }),
+        );
+      }
+
+      const results = await Promise.all(quotePromises);
+      const successfulQuotes = results.filter((q): q is ProviderQuote => q !== null);
+
+      if (successfulQuotes.length === 0) {
+        return NextResponse.json({
+          success: false,
+          available: false,
+          error: 'Delivery is unavailable for this address right now.',
+        });
+      }
+
+      // Store all quotes in DB
+      const savedQuotes: Array<{ provider: string; deliveryQuoteId: string | null }> = [];
+      for (const quote of successfulQuotes) {
+        try {
+          const insertResult = await adminGraphqlRequest<{
+            insert_delivery_quotes_one?: { delivery_quote_id?: string } | null;
+          }>(INSERT_DELIVERY_QUOTE, {
+            object: {
+              restaurant_id: restaurantId,
+              location_id: locationId,
+              provider: quote.provider,
+              provider_quote_id: quote.quoteId,
+              delivery_fee: quote.deliveryFee,
+              currency_code: quote.currencyCode,
+              eta_minutes: quote.etaMinutes,
+              delivery_address: formattedAddress,
+              delivery_place_id: placeId,
+              expires_at:
+                quote.expiresAt != null
+                  ? new Date(quote.expiresAt * 1000).toISOString()
+                  : null,
+              raw_response: quote.rawPayload,
+            },
+          });
+          savedQuotes.push({
+            provider: quote.provider,
+            deliveryQuoteId:
+              insertResult.insert_delivery_quotes_one?.delivery_quote_id || null,
+          });
+        } catch (saveError) {
+          console.error(`[Delivery Quote] Failed to persist ${quote.provider} quote:`, saveError);
+          savedQuotes.push({ provider: quote.provider, deliveryQuoteId: null });
+        }
+      }
+
+      // Pick the best quote (lowest fee, then fastest ETA)
+      const bestQuote = pickBestQuote(successfulQuotes)!;
+      const bestSaved = savedQuotes.find((s) => s.provider === bestQuote.provider);
 
       return NextResponse.json({
         success: true,
         available: true,
         quote: {
-          id: deliveryQuoteId,
-          provider: 'uber_direct',
-          quoteId: quote.quoteId,
-          deliveryFee: quote.fee,
-          currencyCode: quote.currencyCode,
-          etaMinutes: quote.etaMinutes,
-          pickupAt: quote.pickupAt,
+          id: bestSaved?.deliveryQuoteId || null,
+          provider: bestQuote.provider,
+          quoteId: bestQuote.quoteId,
+          deliveryFee: bestQuote.deliveryFee,
+          currencyCode: bestQuote.currencyCode,
+          etaMinutes: bestQuote.etaMinutes,
+          pickupAt: bestQuote.pickupAt ?? 0,
         },
+        allQuotes: successfulQuotes.map((q) => ({
+          provider: q.provider,
+          deliveryFee: q.deliveryFee,
+          etaMinutes: q.etaMinutes,
+          selected: q.provider === bestQuote.provider,
+        })),
       });
     } catch (error) {
-      console.error('[Menu Orders] Uber quote failed:', error);
+      console.error('[Delivery Quote] Quote failed:', error);
       const message =
         error instanceof Error
           ? error.message
-          : 'Uber Direct is unavailable for this address right now.';
+          : 'Delivery is unavailable for this address right now.';
 
       const isConfigurationError =
-        message.includes('UBER_DIRECT_') || message.includes('pickup address');
+        message.includes('UBER_DIRECT_') ||
+        message.includes('DOORDASH_DRIVE_') ||
+        message.includes('pickup address');
 
       return NextResponse.json(
         {
@@ -208,7 +339,7 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('[Menu Orders] Delivery quote error:', error);
+    console.error('[Delivery Quote] Delivery quote error:', error);
     return NextResponse.json(
       { success: false, error: 'Unable to check delivery availability right now.' },
       { status: 500 },

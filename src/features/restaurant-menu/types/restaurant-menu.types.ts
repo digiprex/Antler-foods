@@ -189,6 +189,7 @@ export interface CartItem {
   key: string;
   itemId: string;
   name: string;
+  parentName?: string;
   quantity: number;
   basePrice: number;
   image: string;
@@ -198,6 +199,7 @@ export interface CartItem {
 
 export interface AddCartItemInput {
   item: MenuItem;
+  parentName?: string;
   quantity: number;
   notes?: string;
   selectedAddOns?: MenuAddOn[];

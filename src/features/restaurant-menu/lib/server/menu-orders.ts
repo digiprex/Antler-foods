@@ -20,6 +20,7 @@ const GET_ITEMS_FOR_ORDER = `
     ) {
       item_id
       name
+      parent_item_id
       pickup_price
       delivery_price
       category_id
@@ -141,6 +142,7 @@ const INSERT_ORDER_ITEMS = `
 interface ItemRecord {
   item_id?: string | null;
   name?: string | null;
+  parent_item_id?: string | null;
   pickup_price?: number | string | null;
   delivery_price?: number | string | null;
   category_id?: string | null;
@@ -374,6 +376,25 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     }
   }
 
+  // Fetch parent items for variants so we can build "Parent — Variant" names
+  const parentIds = Array.from(new Set(
+    itemRecords
+      .map((record) => trimText(record.parent_item_id))
+      .filter((id): id is string => Boolean(id))
+      .filter((id) => !itemMap.has(id)),
+  ));
+  if (parentIds.length > 0) {
+    const parentData = await adminGraphqlRequest<GetItemsForOrderResponse>(GET_ITEMS_FOR_ORDER, {
+      item_ids: parentIds,
+    });
+    for (const record of Array.isArray(parentData.items) ? parentData.items : []) {
+      const itemId = trimText(record.item_id);
+      if (itemId) {
+        itemMap.set(itemId, record);
+      }
+    }
+  }
+
   const categoryIds = Array.from(
     new Set(
       itemRecords
@@ -476,7 +497,18 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     return {
       menuId,
       itemId: cartItem.itemId,
-      itemName: trimText(itemRecord.name) || cartItem.name || 'Menu Item',
+      itemName: (() => {
+        const variantName = trimText(itemRecord.name) || cartItem.name || 'Menu Item';
+        const parentId = trimText(itemRecord.parent_item_id);
+        if (parentId) {
+          const parentRecord = itemMap.get(parentId);
+          const parentName = parentRecord ? trimText(parentRecord.name) : null;
+          if (parentName && parentName !== variantName) {
+            return `${parentName} — ${variantName}`;
+          }
+        }
+        return variantName;
+      })(),
       quantity: cartItem.quantity,
       baseItemPrice,
       modifierTotal,

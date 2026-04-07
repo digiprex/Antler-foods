@@ -935,9 +935,9 @@ const DELIVERY_STATUS_CONFIG: Record<
     subject: 'Courier assigned to your order',
   },
   cancelled: {
-    heading: 'Delivery Cancelled',
-    message: 'Unfortunately, your delivery has been cancelled. Please contact the restaurant for more details.',
-    subject: 'Delivery cancelled',
+    heading: 'Order Cancelled',
+    message: 'Your order has been cancelled. If you did not request this cancellation, please contact the restaurant for more details.',
+    subject: 'Order cancelled',
   },
 };
 

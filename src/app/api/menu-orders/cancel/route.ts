@@ -52,8 +52,7 @@ const GET_RESTAURANT_FOR_EMAIL = `
   }
 `;
 
-const NON_CANCELLABLE_DELIVERY = new Set(['delivered', 'cancelled', 'refunded']);
-const NON_CANCELLABLE_PICKUP = new Set(['ready', 'delivered', 'cancelled', 'refunded']);
+const NON_CANCELLABLE = new Set(['ready', 'delivered', 'cancelled', 'refunded']);
 
 export async function POST(request: NextRequest) {
   try {
@@ -106,8 +105,7 @@ export async function POST(request: NextRequest) {
 
     // Check if order can be cancelled
     const status = order.status?.trim().toLowerCase();
-    const blocked = order.fulfillment_type === 'pickup' ? NON_CANCELLABLE_PICKUP : NON_CANCELLABLE_DELIVERY;
-    if (blocked.has(status)) {
+    if (NON_CANCELLABLE.has(status)) {
       return NextResponse.json(
         { success: false, error: 'This order can no longer be cancelled.' },
         { status: 400 },

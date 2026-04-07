@@ -490,6 +490,7 @@ export function ItemDetailsModal({
 
                     onAddToCart({
                       item: itemForCart || item,
+                      parentName: selectedVariant && item.name !== selectedVariant.name ? item.name : undefined,
                       quantity,
                       notes,
                       selectedAddOns,

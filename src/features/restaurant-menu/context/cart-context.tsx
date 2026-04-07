@@ -50,7 +50,8 @@ function buildCartItemKey(input: AddCartItemInput) {
 
 function buildCartToastMessage(input: AddCartItemInput) {
   const quantityLabel = input.quantity > 1 ? `${input.quantity} x ` : '';
-  return `${quantityLabel}${input.item.name} added to cart`;
+  const itemName = input.parentName ? `${input.parentName} — ${input.item.name}` : input.item.name;
+  return `${quantityLabel}${itemName} added to cart`;
 }
 
 function getCartItemTotal(item: CartItem) {
@@ -173,6 +174,7 @@ export function CartProvider({ children }: PropsWithChildren) {
           key,
           itemId: input.item.id,
           name: input.item.name,
+          parentName: input.parentName || undefined,
           quantity: input.quantity,
           basePrice: input.item.price,
           image: input.item.image,

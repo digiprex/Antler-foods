@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { createUberDirectDelivery } from '@/lib/server/delivery/uber-direct';
+import { createDoorDashDriveDelivery } from '@/lib/server/delivery/doordash-drive';
 // Delivery emails (tracking, courier assigned, etc.) are handled by the
-// Uber Direct webhook at /api/webhooks/uber-direct as status updates arrive.
+// provider webhook handlers as status updates arrive.
 
 const GET_ORDER_FOR_DISPATCH = `
   query GetOrderForDispatch($order_id: uuid!) {
@@ -71,7 +72,7 @@ const GET_RESTAURANT_FOR_DISPATCH = `
 `;
 
 const CLAIM_ORDER_FOR_DISPATCH = `
-  mutation ClaimOrderForDispatch($order_id: uuid!) {
+  mutation ClaimOrderForDispatch($order_id: uuid!, $delivery_provider: String!) {
     update_orders(
       where: {
         order_id: { _eq: $order_id }
@@ -83,12 +84,6 @@ const CLAIM_ORDER_FOR_DISPATCH = `
         _and: [
           {
             _or: [
-              { delivery_provider: { _is_null: true } }
-              { delivery_provider: { _eq: "uber_direct" } }
-            ]
-          }
-          {
-            _or: [
               { delivery_dispatch_status: { _is_null: true } }
               { delivery_dispatch_status: { _eq: "pending_ready" } }
               { delivery_dispatch_status: { _eq: "failed" } }
@@ -97,7 +92,6 @@ const CLAIM_ORDER_FOR_DISPATCH = `
         ]
       }
       _set: {
-        delivery_provider: "uber_direct"
         delivery_dispatch_status: "dispatch_requested"
         delivery_error: null
       }
@@ -110,6 +104,7 @@ const CLAIM_ORDER_FOR_DISPATCH = `
 const MARK_ORDER_DISPATCHED = `
   mutation MarkOrderDispatched(
     $order_id: uuid!
+    $delivery_provider: String!
     $delivery_provider_delivery_id: String!
     $delivery_tracking_url: String
     $delivery_quote: String
@@ -119,7 +114,7 @@ const MARK_ORDER_DISPATCHED = `
     update_orders_by_pk(
       pk_columns: { order_id: $order_id }
       _set: {
-        delivery_provider: "uber_direct"
+        delivery_provider: $delivery_provider
         delivery_provider_delivery_id: $delivery_provider_delivery_id
         delivery_tracking_url: $delivery_tracking_url
         delivery_dispatch_status: "created"
@@ -138,13 +133,14 @@ const MARK_ORDER_DISPATCHED = `
 const MARK_ORDER_DISPATCH_FAILED = `
   mutation MarkOrderDispatchFailed(
     $order_id: uuid!
+    $delivery_provider: String!
     $delivery_error: String!
     $delivery_last_status_at: timestamptz!
   ) {
     update_orders_by_pk(
       pk_columns: { order_id: $order_id }
       _set: {
-        delivery_provider: "uber_direct"
+        delivery_provider: $delivery_provider
         delivery_dispatch_status: "failed"
         delivery_error: $delivery_error
         delivery_last_status_at: $delivery_last_status_at
@@ -247,6 +243,7 @@ function assertHasuraEventSecret(request: NextRequest) {
 export async function POST(request: NextRequest) {
   let payload: HasuraOrderReadyPayload | null = null;
   let orderId: string | null = null;
+  let deliveryProvider: string | null = null;
 
   try {
     assertHasuraEventSecret(request);
@@ -267,9 +264,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Determine which provider to use from the order
+    deliveryProvider = normalizeText(nextRow?.delivery_provider) || 'uber_direct';
+
     const claimResult = await adminGraphqlRequest<{
       update_orders?: { affected_rows?: number | null } | null;
-    }>(CLAIM_ORDER_FOR_DISPATCH, { order_id: orderId });
+    }>(CLAIM_ORDER_FOR_DISPATCH, {
+      order_id: orderId,
+      delivery_provider: deliveryProvider,
+    });
 
     if ((claimResult.update_orders?.affected_rows || 0) === 0) {
       return NextResponse.json({
@@ -285,7 +288,7 @@ export async function POST(request: NextRequest) {
 
     const order = orderResult.orders_by_pk;
     if (!order?.order_id) {
-      throw new Error('Order could not be loaded for Uber dispatch.');
+      throw new Error('Order could not be loaded for delivery dispatch.');
     }
 
     const formattedAddress = normalizeText(order.delivery_address);
@@ -324,7 +327,7 @@ export async function POST(request: NextRequest) {
     const pickupAddress = pickupAddressParts.length > 0 ? pickupAddressParts.join(', ') : null;
 
     if (!pickupAddress) {
-      throw new Error('Restaurant address is not configured for Uber Direct dispatch.');
+      throw new Error('Restaurant address is not configured for delivery dispatch.');
     }
 
     const itemsResult = await adminGraphqlRequest<{
@@ -344,48 +347,84 @@ export async function POST(request: NextRequest) {
     }));
 
     if (orderItems.length === 0) {
-      throw new Error('Order items are missing for Uber dispatch.');
+      throw new Error('Order items are missing for delivery dispatch.');
     }
 
-    const dispatchResult = await createUberDirectDelivery({
-      restaurantId: restaurantId || '',
-      locationId: normalizeText(order.location_id),
-      externalOrderId:
-        normalizeText(order.order_number) || normalizeText(order.order_id) || orderId,
-      externalUserId:
-        normalizeText(order.customer_id) ||
-        normalizeText(order.contact_email) ||
-        contactPhone ||
-        orderId,
-      orderValue: numericValue(order.sub_total),
-      pickup: {
-        address: pickupAddress,
-        name: normalizeText(restaurant?.name),
-        phoneNumber: normalizeText(restaurant?.phone_number),
-      },
-      orderItems,
-      dropoffAddress: {
-        formattedAddress,
-        placeId: normalizeText(order.delivery_place_id),
-        latitude: numericValueOrNull(order.delivery_latitude),
-        longitude: numericValueOrNull(order.delivery_longitude),
-        houseFlatFloor: normalizeText(order.delivery_house_flat_floor),
-        instructions: normalizeText(order.delivery_instructions),
-      },
-      dropoffContact: {
-        firstName: normalizeText(order.contact_first_name) || 'Customer',
-        lastName: normalizeText(order.contact_last_name) || 'Order',
-        email: normalizeText(order.contact_email),
-        phone: contactPhone,
-      },
-    });
+    const pickupInput = {
+      address: pickupAddress,
+      name: normalizeText(restaurant?.name),
+      phoneNumber: normalizeText(restaurant?.phone_number),
+    };
+
+    const dropoffAddressInput = {
+      formattedAddress,
+      placeId: normalizeText(order.delivery_place_id),
+      latitude: numericValueOrNull(order.delivery_latitude),
+      longitude: numericValueOrNull(order.delivery_longitude),
+      houseFlatFloor: normalizeText(order.delivery_house_flat_floor),
+      instructions: normalizeText(order.delivery_instructions),
+    };
+
+    const dropoffContactInput = {
+      firstName: normalizeText(order.contact_first_name) || 'Customer',
+      lastName: normalizeText(order.contact_last_name) || 'Order',
+      email: normalizeText(order.contact_email),
+      phone: contactPhone,
+    };
+
+    const externalOrderId =
+      normalizeText(order.order_number) || normalizeText(order.order_id) || orderId;
+    const externalUserId =
+      normalizeText(order.customer_id) ||
+      normalizeText(order.contact_email) ||
+      contactPhone ||
+      orderId;
+
+    let dispatchResult: { deliveryId: string; quoteId?: string; trackingUrl: string | null };
+
+    if (deliveryProvider === 'doordash_drive') {
+      const result = await createDoorDashDriveDelivery({
+        restaurantId: restaurantId || '',
+        locationId: normalizeText(order.location_id),
+        externalOrderId,
+        externalUserId,
+        orderValue: numericValue(order.sub_total),
+        pickup: pickupInput,
+        orderItems,
+        dropoffAddress: dropoffAddressInput,
+        dropoffContact: dropoffContactInput,
+      });
+      dispatchResult = {
+        deliveryId: result.deliveryId,
+        trackingUrl: result.trackingUrl,
+      };
+    } else {
+      const result = await createUberDirectDelivery({
+        restaurantId: restaurantId || '',
+        locationId: normalizeText(order.location_id),
+        externalOrderId,
+        externalUserId,
+        orderValue: numericValue(order.sub_total),
+        pickup: pickupInput,
+        orderItems,
+        pickupAt: undefined,
+        dropoffAddress: dropoffAddressInput,
+        dropoffContact: dropoffContactInput,
+      });
+      dispatchResult = {
+        deliveryId: result.deliveryId,
+        quoteId: result.quoteId,
+        trackingUrl: result.trackingUrl,
+      };
+    }
 
     const lastStatusAt = new Date().toISOString();
     await adminGraphqlRequest(MARK_ORDER_DISPATCHED, {
       order_id: orderId,
+      delivery_provider: deliveryProvider,
       delivery_provider_delivery_id: dispatchResult.deliveryId,
       delivery_tracking_url: dispatchResult.trackingUrl,
-      delivery_quote: dispatchResult.quoteId,
+      delivery_quote: dispatchResult.quoteId || normalizeText(order.delivery_quote),
       delivery_dispatched_at: lastStatusAt,
       delivery_last_status_at: lastStatusAt,
     });
@@ -393,27 +432,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       order_id: orderId,
+      delivery_provider: deliveryProvider,
       delivery_provider_delivery_id: dispatchResult.deliveryId,
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : 'Unable to dispatch Uber Direct delivery.';
+      error instanceof Error ? error.message : 'Unable to dispatch delivery.';
 
     if (orderId) {
       try {
         await adminGraphqlRequest(MARK_ORDER_DISPATCH_FAILED, {
           order_id: orderId,
+          delivery_provider: deliveryProvider || 'uber_direct',
           delivery_error: message,
           delivery_last_status_at: new Date().toISOString(),
         });
       } catch (updateError) {
-        console.error('[Uber Direct Dispatch] Failed to persist dispatch error:', updateError);
+        console.error('[Delivery Dispatch] Failed to persist dispatch error:', updateError);
       }
     }
 
-    console.error('[Uber Direct Dispatch] Event handling error:', {
+    console.error('[Delivery Dispatch] Event handling error:', {
       eventId: payload?.id || null,
       orderId,
+      deliveryProvider,
       error,
     });
 
@@ -423,4 +465,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

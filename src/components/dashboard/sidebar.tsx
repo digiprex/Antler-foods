@@ -3,6 +3,7 @@ import { SearchBox, type RestaurantSearchSelection } from './search-box';
 import type { DashboardRailTab } from './icon-rail';
 import { useEffect, useMemo, useRef } from 'react';
 import {
+  buildRestaurantBankAccountsPath,
   buildRestaurantInformationPath,
   buildRestaurantMediaPath,
 } from '@/lib/restaurants/route-utils';
@@ -68,6 +69,10 @@ export function Sidebar({
           selectedRestaurant,
           'brand',
         );
+        const bankAccountsPath = buildRestaurantBankAccountsPath(
+          roleSegment,
+          selectedRestaurant,
+        );
         const informationBasePath = informationBrandPath.replace(/brand$/, '');
         const mediaPath = buildRestaurantMediaPath(
           roleSegment,
@@ -105,6 +110,12 @@ export function Sidebar({
             matchPrefixes: [
               `/admin/order-settings`,
             ],
+          },
+          {
+            href: bankAccountsPath,
+            label: 'Bank Accounts',
+            icon: <BankAccountsIcon />,
+            matchPrefixes: [bankAccountsPath],
           },
           {
             href: informationBrandPath,
@@ -1199,6 +1210,26 @@ function OrdersIcon() {
       strokeLinejoin="round"
     >
       <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  );
+}
+
+function BankAccountsIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 10h18" />
+      <path d="M6 15h4" />
+      <path d="M16 15h2" />
     </svg>
   );
 }

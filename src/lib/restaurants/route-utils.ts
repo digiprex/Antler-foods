@@ -5,7 +5,8 @@ export type InformationSection =
   | 'brand'
   | 'address'
   | 'opening-hours'
-  | 'google-profile';
+  | 'google-profile'
+  | 'bank-accounts';
 
 export interface RestaurantRoutingSelection {
   id: string;
@@ -115,4 +116,16 @@ export function buildRestaurantMediaPath(
   restaurant: RestaurantRoutingSelection,
 ) {
   return `/dashboard/${roleSegment}/restaurants/${buildRestaurantSlug(restaurant)}/media`;
+}
+
+export function buildRestaurantBankAccountsPath(
+  roleSegment: string,
+  restaurant: RestaurantRoutingSelection,
+) {
+  const params = new URLSearchParams({
+    restaurant_id: restaurant.id,
+    restaurant_name: restaurant.name,
+  });
+
+  return `/dashboard/${roleSegment}/bank-accounts?${params.toString()}`;
 }

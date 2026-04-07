@@ -636,6 +636,7 @@ export async function sendOrderInvoiceEmail(
     couponCode ? `  Coupon: ${couponCode}` : '',
     giftCardCode ? `  Gift Card: ${giftCardCode}` : '',
     typeof order.tip_total === 'number' && order.tip_total > 0 ? `Tip: ${formatCurrency(order.tip_total)}` : '',
+    typeof order.tax_total === 'number' && order.tax_total > 0 ? `Tax: ${formatCurrency(order.tax_total)}` : '',
     `Total: ${total}`,
     '',
     order.order_note ? `Order Note: ${order.order_note}` : '',

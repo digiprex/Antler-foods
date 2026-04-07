@@ -77,6 +77,16 @@ export default function OrdersForm({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
 
+  // Confirmation dialog for destructive status changes
+  const [confirmAction, setConfirmAction] = useState<{
+    orderId: string;
+    orderNumber: string;
+    status: string;
+  } | null>(null);
+
+  // Track which order is currently being updated
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+
   useEffect(() => {
     setIsMounted(true);
     return () => setIsMounted(false);
@@ -166,6 +176,7 @@ export default function OrdersForm({
     status: string,
     paymentStatus?: string,
   ) => {
+    setUpdatingOrderId(orderId);
     try {
       const response = await fetch('/api/orders', {
         method: 'PUT',
@@ -212,6 +223,8 @@ export default function OrdersForm({
       alert(
         err instanceof Error ? err.message : 'Failed to update order status',
       );
+    } finally {
+      setUpdatingOrderId(null);
     }
   };
 
@@ -945,19 +958,68 @@ Generated on: ${new Date().toLocaleString()}
 
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <div className="relative w-full sm:w-auto">
+                      {updatingOrderId === order.order_id && (
+                        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/70">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-purple-600" />
+                        </div>
+                      )}
                     <select
                       value={order.status}
-                      onChange={(e) =>
-                        handleUpdateOrderStatus(order.order_id, e.target.value)
-                      }
-                      className="w-full sm:w-auto rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
+                      disabled={updatingOrderId === order.order_id}
+                      onChange={(e) => {
+                        const newStatus = e.target.value;
+                        if (newStatus === ORDER_STATUSES.CANCELLED || newStatus === ORDER_STATUSES.REFUNDED) {
+                          setConfirmAction({
+                            orderId: order.order_id,
+                            orderNumber: order.order_number || order.order_id,
+                            status: newStatus,
+                          });
+                          // Reset the select to current value
+                          e.target.value = order.status;
+                        } else {
+                          handleUpdateOrderStatus(order.order_id, newStatus);
+                        }
+                      }}
+                      className="w-full sm:w-auto rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {Object.values(ORDER_STATUSES).map((status) => (
-                        <option key={status} value={status}>
-                          {status.replace('_', ' ').toUpperCase()}
-                        </option>
-                      ))}
+                      {Object.values(ORDER_STATUSES).map((status) => {
+                        const isDestructive = status === ORDER_STATUSES.CANCELLED || status === ORDER_STATUSES.REFUNDED;
+                        const isCurrentStatus = status === order.status;
+
+                        // Determine if cancel/refund is allowed
+                        let canCancel = true;
+                        if (isDestructive) {
+                          if (order.status === ORDER_STATUSES.CANCELLED || order.status === ORDER_STATUSES.REFUNDED) {
+                            canCancel = false;
+                          } else if (status === ORDER_STATUSES.REFUNDED) {
+                            // Refund is always allowed unless already refunded/cancelled
+                            canCancel = true;
+                          } else {
+                            // Cancel: pickup blocks at ready, delivery blocks at delivered
+                            if (order.fulfillment_type === 'pickup') {
+                              canCancel = order.status !== ORDER_STATUSES.READY &&
+                                order.status !== ORDER_STATUSES.DELIVERED;
+                            } else {
+                              canCancel = order.status !== ORDER_STATUSES.DELIVERED;
+                            }
+                          }
+                        }
+
+                        const isEditable = isDestructive && canCancel;
+                        const isViewOnly = !isEditable && !isCurrentStatus;
+                        return (
+                          <option
+                            key={status}
+                            value={status}
+                            disabled={isViewOnly}
+                          >
+                            {status.replace('_', ' ').toUpperCase()}{isViewOnly && !isCurrentStatus ? '' : ''}
+                          </option>
+                        );
+                      })}
                     </select>
+                    </div>
 
                     <button
                       onClick={() => downloadKitchenTicket(order)}
@@ -1937,6 +1999,81 @@ Generated on: ${new Date().toLocaleString()}
                       )}
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+
+      {/* Confirmation Dialog for Cancel / Refund */}
+      {confirmAction &&
+      isMounted &&
+      typeof document !== 'undefined' &&
+      document.body
+        ? createPortal(
+            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50">
+              <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                <div className="mb-1 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                  <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-gray-900">
+                  {confirmAction.status === ORDER_STATUSES.CANCELLED
+                    ? 'Cancel Order'
+                    : 'Refund Order'}
+                </h3>
+                <p className="mt-2 text-sm text-gray-600">
+                  Are you sure you want to{' '}
+                  <span className="font-medium text-gray-900">
+                    {confirmAction.status === ORDER_STATUSES.CANCELLED
+                      ? 'cancel'
+                      : 'refund'}
+                  </span>{' '}
+                  order{' '}
+                  <span className="font-medium text-gray-900">
+                    #{confirmAction.orderNumber}
+                  </span>
+                  ? This action cannot be undone.
+                </p>
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={() => setConfirmAction(null)}
+                    disabled={updatingOrderId === confirmAction.orderId}
+                    className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Go Back
+                  </button>
+                  <button
+                    disabled={updatingOrderId === confirmAction.orderId}
+                    onClick={async () => {
+                      const paymentStatus =
+                        confirmAction.status === ORDER_STATUSES.REFUNDED
+                          ? PAYMENT_STATUSES.REFUNDED
+                          : undefined;
+                      await handleUpdateOrderStatus(
+                        confirmAction.orderId,
+                        confirmAction.status,
+                        paymentStatus,
+                      );
+                      setConfirmAction(null);
+                    }}
+                    className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      confirmAction.status === ORDER_STATUSES.CANCELLED
+                        ? 'bg-red-600 hover:bg-red-700'
+                        : 'bg-orange-600 hover:bg-orange-700'
+                    }`}
+                  >
+                    {updatingOrderId === confirmAction.orderId ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        Updating...
+                      </span>
+                    ) : confirmAction.status === ORDER_STATUSES.CANCELLED
+                      ? 'Yes, Cancel Order'
+                      : 'Yes, Refund Order'}
+                  </button>
                 </div>
               </div>
             </div>,

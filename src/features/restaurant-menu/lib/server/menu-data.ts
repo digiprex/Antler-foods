@@ -44,6 +44,7 @@ const GET_RESTAURANT_BY_DOMAINS = `
       allow_tips
       pickup_allowed
       delivery_allowed
+      transaction_tax_rate
       address
       city
       state
@@ -65,6 +66,7 @@ const GET_RESTAURANT_BY_ID = `
       allow_tips
       pickup_allowed
       delivery_allowed
+      transaction_tax_rate
       address
       city
       state
@@ -547,6 +549,7 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
     restaurantId: text(restaurant.restaurant_id),
     hasMenu: !!menu?.menu_id,
     allowTips: restaurant.allow_tips !== false,
+    transactionTaxRate: typeof restaurant.transaction_tax_rate === 'number' ? restaurant.transaction_tax_rate : 5,
     pickupAllowed,
     deliveryAllowed,
     variesWithTime,
@@ -622,6 +625,7 @@ function buildEmptyMenuData(restaurantName: string): RestaurantMenuData {
     restaurantId: null,
     hasMenu: false,
     allowTips: true,
+    transactionTaxRate: 5,
     pickupAllowed: true,
     deliveryAllowed: true,
     slug: slugify(restaurantName) || 'menu',

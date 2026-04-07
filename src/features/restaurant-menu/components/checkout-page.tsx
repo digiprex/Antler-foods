@@ -1475,8 +1475,11 @@ export default function RestaurantMenuCheckoutPage({
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <p className="truncate text-sm font-semibold text-slate-950">
-                          {item.name}
+                          {item.parentName || item.name}
                         </p>
+                        {item.parentName ? (
+                          <p className="truncate text-xs text-slate-500">{item.name}</p>
+                        ) : null}
                         {item.selectedAddOns.length ? (
                           <p className="mt-0.5 text-[11px] leading-4 text-stone-400">
                             {item.selectedAddOns

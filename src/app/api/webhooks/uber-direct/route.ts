@@ -424,6 +424,7 @@ export async function POST(request: NextRequest) {
               orderNumber,
               restaurantName,
               status: 'cancelled',
+              cancelledBy: 'system',
               customerName,
               restaurantEmail,
               restaurantPhone,

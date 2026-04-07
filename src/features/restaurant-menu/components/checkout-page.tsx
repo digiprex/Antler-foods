@@ -515,6 +515,9 @@ export default function RestaurantMenuCheckoutPage({
     saved_as: string | null;
     nearby_landmark: string | null;
     is_default: boolean;
+    place_id: string | null;
+    latitude: string | null;
+    longitude: string | null;
   }>>([]);
   const [savedAddressesLoaded, setSavedAddressesLoaded] = useState(false);
   const [showSavedAddressPicker, setShowSavedAddressPicker] = useState(false);
@@ -960,12 +963,15 @@ export default function RestaurantMenuCheckoutPage({
 
         setDeliveryAddressData({
           formattedAddress: defaultSaved.address || '',
+          placeId: defaultSaved.place_id || undefined,
           addressLine1: defaultSaved.address || undefined,
           addressLine2: defaultSaved.street || undefined,
           city: defaultSaved.city || undefined,
           state: defaultSaved.state || undefined,
           postalCode: defaultSaved.zip_code || undefined,
           countryCode: defaultSaved.country || undefined,
+          latitude: defaultSaved.latitude ? parseFloat(defaultSaved.latitude) : undefined,
+          longitude: defaultSaved.longitude ? parseFloat(defaultSaved.longitude) : undefined,
           houseFlatFloor: defaultSaved.house_no || undefined,
           landmark: defaultSaved.nearby_landmark || undefined,
           label: defaultSaved.saved_as || undefined,
@@ -1093,12 +1099,15 @@ export default function RestaurantMenuCheckoutPage({
   const handleSelectSavedAddress = (addr: typeof savedAddresses[number]) => {
     setDeliveryAddressData({
       formattedAddress: addr.address || '',
+      placeId: addr.place_id || undefined,
       addressLine1: addr.address || undefined,
       addressLine2: addr.street || undefined,
       city: addr.city || undefined,
       state: addr.state || undefined,
       postalCode: addr.zip_code || undefined,
       countryCode: addr.country || undefined,
+      latitude: addr.latitude ? parseFloat(addr.latitude) : undefined,
+      longitude: addr.longitude ? parseFloat(addr.longitude) : undefined,
       houseFlatFloor: addr.house_no || undefined,
       landmark: addr.nearby_landmark || undefined,
       label: addr.saved_as || undefined,
@@ -1168,6 +1177,9 @@ export default function RestaurantMenuCheckoutPage({
     }
     if (subtotal > 0) {
       successParams.set('subtotal', subtotal.toFixed(2));
+    }
+    if (taxAmount > 0) {
+      successParams.set('tax', taxAmount.toFixed(2));
     }
     if (tipsEnabled && tipAmount > 0) {
       successParams.set('tip', tipAmount.toFixed(2));
@@ -1410,8 +1422,11 @@ export default function RestaurantMenuCheckoutPage({
     fulfillmentMode === 'delivery' ? deliveryQuote?.deliveryFee ?? 0 : 0;
   const discountAmount =
     appliedCoupon?.discountAmount || activeRestaurantOffer?.discountAmount || 0;
+  const taxRate = data.transactionTaxRate ?? 5;
+  const taxableAmount = roundCurrency(Math.max(subtotal - discountAmount, 0));
+  const taxAmount = taxRate > 0 ? roundCurrency(taxableAmount * taxRate / 100) : 0;
   const preGiftCardTotal = roundCurrency(
-    subtotal + deliveryFeeAmount + effectiveTipAmount - discountAmount,
+    subtotal + deliveryFeeAmount + effectiveTipAmount + taxAmount - discountAmount,
   );
   const giftCardAppliedAmount = appliedGiftCard
     ? roundCurrency(
@@ -1708,6 +1723,12 @@ export default function RestaurantMenuCheckoutPage({
                 </div>
               ) : null}
             </>
+          ) : null}
+          {taxAmount > 0 ? (
+            <div className="flex items-center justify-between gap-4">
+              <span>Tax ({taxRate}%)</span>
+              <span className="font-medium">{formatPrice(taxAmount)}</span>
+            </div>
           ) : null}
           <div className="flex items-center justify-between gap-4">
             <span>Tip</span>

@@ -40,6 +40,7 @@ interface OrderSettingsSaveResponse {
     pickup_allowed?: boolean;
     delivery_allowed?: boolean;
     preparation_time?: number | null;
+    transaction_tax_rate?: number | null;
     delivery_zones?: DeliveryZoneApi[];
   };
 }
@@ -177,6 +178,7 @@ export default function OrderSettingsForm({
   const [pickupAllowed, setPickupAllowed] = useState(true);
   const [deliveryAllowed, setDeliveryAllowed] = useState(true);
   const [preparationTime, setPreparationTime] = useState('');
+  const [transactionTaxRate, setTransactionTaxRate] = useState('5');
   const [zones, setZones] = useState<DeliveryZoneForm[]>([
     {
       id: 'zone-1',
@@ -221,6 +223,7 @@ export default function OrderSettingsForm({
                 pickup_allowed?: boolean;
                 delivery_allowed?: boolean;
                 preparation_time?: number | null;
+                transaction_tax_rate?: number | null;
                 address?: string;
                 delivery_zones?: DeliveryZoneApi[];
               };
@@ -240,6 +243,7 @@ export default function OrderSettingsForm({
         setPickupAllowed(payload.data?.pickup_allowed ?? true);
         setDeliveryAllowed(payload.data?.delivery_allowed ?? true);
         setPreparationTime(payload.data?.preparation_time != null ? String(payload.data.preparation_time) : '');
+        setTransactionTaxRate(payload.data?.transaction_tax_rate != null ? String(payload.data.transaction_tax_rate) : '5');
         setRestaurantAddress(payload.data?.address ?? '');
         const apiZones = (payload.data?.delivery_zones || []).map(mapZoneFromApi);
         if (apiZones.length > 0) {
@@ -268,6 +272,7 @@ export default function OrderSettingsForm({
     pickup_allowed: pickupAllowed,
     delivery_allowed: deliveryAllowed,
     preparation_time: preparationTime.trim() !== '' ? Number(preparationTime) : null,
+    transaction_tax_rate: transactionTaxRate.trim() !== '' ? Number(transactionTaxRate) : 5,
     delivery_zones: zones.map((zone) => ({
       name: zone.name.trim(),
       map_selection: zone.coverageMode,
@@ -703,6 +708,33 @@ export default function OrderSettingsForm({
               onChange={(e) => setPreparationTime(e.target.value)}
               className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
             />
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <label htmlFor="transaction-tax-rate" className="text-sm font-semibold text-gray-900">
+                Transaction tax rate (%)
+              </label>
+              <p className="mt-1 text-xs text-gray-600">
+                Tax percentage applied to the subtotal at checkout. Set to 0 to disable tax.
+              </p>
+            </div>
+            <div className="flex overflow-hidden rounded-lg border border-gray-300 bg-white">
+              <input
+                id="transaction-tax-rate"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                placeholder="5"
+                value={transactionTaxRate}
+                onChange={(e) => setTransactionTaxRate(e.target.value)}
+                className="w-20 px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              />
+              <span className="inline-flex items-center border-l border-gray-300 bg-gray-50 px-3 text-sm text-gray-700">%</span>
+            </div>
           </div>
         </div>
 

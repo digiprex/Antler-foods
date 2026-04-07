@@ -37,6 +37,9 @@ interface OrderHistoryOrder {
   deliveryDispatchStatus: string | null;
   pickupAddress: string | null;
   orderNote: string | null;
+  cancelledBy: string | null;
+  cancelledAt: string | null;
+  refundedAt: string | null;
   items: OrderHistoryItem[];
 }
 
@@ -132,6 +135,11 @@ function orderMatchesFilter(order: OrderHistoryOrder, filter: OrderFilter) {
   return true;
 }
 
+function canCancelOrder(order: OrderHistoryOrder) {
+  const status = order.status.trim().toLowerCase();
+  return !new Set(['ready', 'delivered', 'cancelled', 'refunded']).has(status);
+}
+
 /* ─── Order Detail Modal ──────────────────────────────────── */
 function OrderDetailModal({
   order,
@@ -139,12 +147,16 @@ function OrderDetailModal({
   customerProfile,
   onClose,
   onDownloadInvoice,
+  onCancelOrder,
+  isCancelling,
 }: {
   order: OrderHistoryOrder;
   restaurantName: string;
   customerProfile: { name?: string; email?: string; phone?: string | null } | null;
   onClose: () => void;
   onDownloadInvoice: (order: OrderHistoryOrder) => void;
+  onCancelOrder: (order: OrderHistoryOrder) => void;
+  isCancelling: boolean;
 }) {
   const sc = statusColor(order.status);
   const pb = paymentBadge(order.paymentStatus);
@@ -230,6 +242,46 @@ function OrderDetailModal({
               </div>
             )}
           </div>
+
+          {/* Cancellation info */}
+          {order.status.trim().toLowerCase() === 'cancelled' && (order.cancelledBy || order.cancelledAt) ? (
+            <div className="mt-4 rounded-[14px] border border-red-200 bg-red-50/60 p-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                <span className="text-sm font-semibold text-red-800">Order Cancelled</span>
+              </div>
+              {order.cancelledBy ? (
+                <p className="text-xs text-red-700">
+                  <span className="font-medium">By:</span>{' '}
+                  <span className="capitalize">{order.cancelledBy}</span>
+                </p>
+              ) : null}
+              {order.cancelledAt ? (
+                <p className="text-xs text-red-700">
+                  <span className="font-medium">At:</span>{' '}
+                  {formatDate(order.cancelledAt)}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* Refund info */}
+          {order.status.trim().toLowerCase() === 'refunded' && order.refundedAt ? (
+            <div className="mt-4 rounded-[14px] border border-orange-200 bg-orange-50/60 p-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <svg className="h-4 w-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                </svg>
+                <span className="text-sm font-semibold text-orange-800">Order Refunded</span>
+              </div>
+              <p className="text-xs text-orange-700">
+                <span className="font-medium">At:</span>{' '}
+                {formatDate(order.refundedAt)}
+              </p>
+            </div>
+          ) : null}
 
           {/* Order status timeline */}
           {isDelivery ? (() => {
@@ -431,27 +483,46 @@ function OrderDetailModal({
         </div>
 
         {/* Footer actions */}
-        <div className="flex items-center gap-2.5 border-t border-slate-100 px-6 py-4">
-          <button
-            type="button"
-            onClick={() => onDownloadInvoice(order)}
-            className="inline-flex items-center gap-2 rounded-[12px] bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 12-4-4m4 4 4-4M4 20h16" />
-            </svg>
-            Download Invoice
-          </button>
-          {order.orderNumber ? (
-            <Link
-              href={`/menu/checkout/success?orderNumber=${encodeURIComponent(order.orderNumber)}`}
-              className="inline-flex items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300"
+        <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => onDownloadInvoice(order)}
+              className="inline-flex items-center gap-2 rounded-[12px] bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
-              <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 12-4-4m4 4 4-4M4 20h16" />
               </svg>
-              View Receipt
-            </Link>
+              Download Invoice
+            </button>
+            {order.orderNumber ? (
+              <Link
+                href={`/menu/checkout/success?orderNumber=${encodeURIComponent(order.orderNumber)}`}
+                className="inline-flex items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300"
+              >
+                <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                View Receipt
+              </Link>
+            ) : null}
+          </div>
+          {canCancelOrder(order) ? (
+            <button
+              type="button"
+              disabled={isCancelling}
+              onClick={() => onCancelOrder(order)}
+              className="inline-flex items-center gap-2 rounded-[12px] border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isCancelling ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-300 border-t-red-600" />
+              ) : (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+              {isCancelling ? 'Cancelling...' : 'Cancel Order'}
+            </button>
           ) : null}
         </div>
       </div>
@@ -502,6 +573,8 @@ export default function OrderHistoryPage({
   const [activeFilter, setActiveFilter] = useState<OrderFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortDirection, setSortDirection] = useState<'newest' | 'oldest'>('newest');
+  const [cancelConfirmOrder, setCancelConfirmOrder] = useState<OrderHistoryOrder | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -645,6 +718,45 @@ export default function OrderHistoryPage({
     });
     doc.save(`invoice-${order.orderNumber || order.orderId}.pdf`);
   }, [restaurantName, customerProfile]);
+
+  const handleCancelRequest = useCallback((order: OrderHistoryOrder) => {
+    setCancelConfirmOrder(order);
+  }, []);
+
+  const handleConfirmCancel = useCallback(async () => {
+    if (!cancelConfirmOrder || !restaurantId) return;
+    setIsCancelling(true);
+    try {
+      const res = await fetch('/api/menu-orders/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          order_id: cancelConfirmOrder.orderId,
+          restaurant_id: restaurantId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Failed to cancel order.');
+        return;
+      }
+      // Update local state
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.orderId === cancelConfirmOrder.orderId ? { ...o, status: 'cancelled' } : o,
+        ),
+      );
+      if (selectedOrder?.orderId === cancelConfirmOrder.orderId) {
+        setSelectedOrder({ ...selectedOrder, status: 'cancelled' });
+      }
+      setCancelConfirmOrder(null);
+    } catch {
+      alert('Failed to cancel order.');
+    } finally {
+      setIsCancelling(false);
+    }
+  }, [cancelConfirmOrder, restaurantId, selectedOrder]);
 
   if (!isAuthLoading && !hasCustomerSession) return null;
 
@@ -931,7 +1043,57 @@ export default function OrderHistoryPage({
           customerProfile={customerProfile}
           onClose={() => setSelectedOrder(null)}
           onDownloadInvoice={handleDownloadInvoice}
+          onCancelOrder={handleCancelRequest}
+          isCancelling={isCancelling}
         />
+      ) : null}
+
+      {/* Cancel confirmation dialog */}
+      {cancelConfirmOrder ? (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" onClick={() => !isCancelling && setCancelConfirmOrder(null)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div
+            className="relative z-10 w-full max-w-sm rounded-[20px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.15)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+              <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+            <h3 className="mt-4 text-lg font-semibold text-slate-900">Cancel Order</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Are you sure you want to cancel order{' '}
+              <span className="font-semibold text-slate-900">#{cancelConfirmOrder.orderNumber}</span>?
+              This action cannot be undone.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                disabled={isCancelling}
+                onClick={() => setCancelConfirmOrder(null)}
+                className="flex-1 rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Go Back
+              </button>
+              <button
+                type="button"
+                disabled={isCancelling}
+                onClick={handleConfirmCancel}
+                className="flex-1 rounded-[12px] bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCancelling ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    Cancelling...
+                  </span>
+                ) : (
+                  'Yes, Cancel Order'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {navbarAuthSlot && !isAuthLoading && hasCustomerSession && customerProfile

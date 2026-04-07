@@ -19,6 +19,9 @@ const ADDRESS_FIELDS = `
   saved_as
   nearby_landmark
   is_default
+  place_id
+  latitude
+  longitude
   created_at
 `;
 
@@ -151,6 +154,9 @@ export async function POST(request: NextRequest) {
         house_no: str(body.house_no),
         saved_as: str(body.saved_as),
         nearby_landmark: str(body.nearby_landmark),
+        place_id: str(body.place_id),
+        latitude: str(body.latitude),
+        longitude: str(body.longitude),
       },
     });
 
@@ -185,6 +191,9 @@ export async function PUT(request: NextRequest) {
     if ('house_no' in body) changes.house_no = str(body.house_no);
     if ('saved_as' in body) changes.saved_as = str(body.saved_as);
     if ('nearby_landmark' in body) changes.nearby_landmark = str(body.nearby_landmark);
+    if ('place_id' in body) changes.place_id = str(body.place_id);
+    if ('latitude' in body) changes.latitude = str(body.latitude);
+    if ('longitude' in body) changes.longitude = str(body.longitude);
     if ('is_default' in body) changes.is_default = body.is_default === true;
 
     // Verify ownership

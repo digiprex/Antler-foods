@@ -54,6 +54,14 @@ const GET_MENUS_FOR_ORDER = `
   }
 `;
 
+const GET_RESTAURANT_TAX_RATE = `
+  query GetRestaurantTaxRate($restaurant_id: uuid!) {
+    restaurants_by_pk(restaurant_id: $restaurant_id) {
+      transaction_tax_rate
+    }
+  }
+`;
+
 const GET_MODIFIER_ITEMS_FOR_ORDER = `
   query GetModifierItemsForOrder($modifier_item_ids: [uuid!]!) {
     modifier_items(
@@ -565,9 +573,25 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     }
   }
 
+  // Fetch restaurant tax rate
+  let taxRate = 5;
+  try {
+    const taxData = await adminGraphqlRequest<{
+      restaurants_by_pk: { transaction_tax_rate?: number | null } | null;
+    }>(GET_RESTAURANT_TAX_RATE, { restaurant_id: restaurantId });
+    const dbRate = taxData.restaurants_by_pk?.transaction_tax_rate;
+    if (typeof dbRate === 'number' && Number.isFinite(dbRate) && dbRate >= 0) {
+      taxRate = dbRate;
+    }
+  } catch {
+    // fallback to default 5%
+  }
+
+  const taxableAmount = roundCurrency(Math.max(subtotal - orderDiscountTotal, 0));
+  const taxTotal = taxRate > 0 ? roundCurrency(taxableAmount * taxRate / 100) : 0;
   const discountTotal = roundCurrency(orderDiscountTotal + giftCardAppliedAmount);
-  const taxTotal = 0;
-  const total = roundCurrency(Math.max(preGiftCardTotal - giftCardAppliedAmount, 0));
+  const preGiftCardTotalWithTax = roundCurrency(preGiftCardTotal + taxTotal);
+  const total = roundCurrency(Math.max(preGiftCardTotalWithTax - giftCardAppliedAmount, 0));
   const orderNumber = buildOrderNumber(placedAt);
 
   const deliveryData = input.deliveryAddressData;
@@ -679,6 +703,9 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
         zip_code: trimText(deliveryData?.postalCode),
         saved_as: trimText(deliveryData?.label) || 'other',
         nearby_landmark: trimText(deliveryData?.landmark),
+        place_id: trimText(deliveryData?.placeId),
+        latitude: typeof deliveryData?.latitude === 'number' ? String(deliveryData.latitude) : null,
+        longitude: typeof deliveryData?.longitude === 'number' ? String(deliveryData.longitude) : null,
       };
       for (const [key, value] of Object.entries(optionalFields)) {
         if (value) addressObject[key] = value;

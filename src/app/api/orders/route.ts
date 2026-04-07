@@ -104,6 +104,9 @@ const GET_ORDERS_QUERY = `
       delivery_error
       delivery_quote
       delivery_quote_id
+      cancelled_by
+      cancelled_at
+      refunded_at
       placed_at
       order_number
       payment_method
@@ -171,6 +174,9 @@ const UPDATE_ORDER_STATUS_MUTATION = `
     $status: String!
     $payment_status: String
     $updated_at: timestamptz!
+    $cancelled_by: String
+    $cancelled_at: timestamptz
+    $refunded_at: timestamptz
   ) {
     update_orders_by_pk(
       pk_columns: {order_id: $order_id}
@@ -178,6 +184,9 @@ const UPDATE_ORDER_STATUS_MUTATION = `
         status: $status
         payment_status: $payment_status
         updated_at: $updated_at
+        cancelled_by: $cancelled_by
+        cancelled_at: $cancelled_at
+        refunded_at: $refunded_at
       }
     ) {
       order_id
@@ -416,6 +425,9 @@ export async function PUT(request: NextRequest) {
         status,
         payment_status,
         updated_at: updatedAt,
+        cancelled_by: status === 'cancelled' ? 'restaurant' : null,
+        cancelled_at: status === 'cancelled' ? updatedAt : null,
+        refunded_at: status === 'refunded' ? updatedAt : null,
       });
     } else {
       // Full order update
@@ -483,6 +495,7 @@ export async function PUT(request: NextRequest) {
             orderNumber,
             restaurantName,
             status: 'cancelled',
+            cancelledBy: 'restaurant',
             customerName,
             restaurantEmail,
             restaurantPhone,

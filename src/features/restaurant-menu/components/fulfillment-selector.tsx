@@ -20,6 +20,9 @@ interface SavedAddress {
   saved_as: string | null;
   nearby_landmark: string | null;
   is_default: boolean;
+  place_id: string | null;
+  latitude: string | null;
+  longitude: string | null;
 }
 
 interface FulfillmentSelectorProps {

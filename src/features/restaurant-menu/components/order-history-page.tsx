@@ -37,6 +37,9 @@ interface OrderHistoryOrder {
   deliveryDispatchStatus: string | null;
   pickupAddress: string | null;
   orderNote: string | null;
+  cancelledBy: string | null;
+  cancelledAt: string | null;
+  refundedAt: string | null;
   items: OrderHistoryItem[];
 }
 
@@ -134,15 +137,7 @@ function orderMatchesFilter(order: OrderHistoryOrder, filter: OrderFilter) {
 
 function canCancelOrder(order: OrderHistoryOrder) {
   const status = order.status.trim().toLowerCase();
-  if (order.fulfillmentType === 'pickup') {
-    return !new Set(['ready', 'delivered', 'cancelled', 'refunded']).has(status);
-  }
-  return !new Set(['delivered', 'cancelled', 'refunded']).has(status);
-}
-
-function canRefundOrder(order: OrderHistoryOrder) {
-  const status = order.status.trim().toLowerCase();
-  return status !== 'refunded';
+  return !new Set(['ready', 'delivered', 'cancelled', 'refunded']).has(status);
 }
 
 /* ─── Order Detail Modal ──────────────────────────────────── */
@@ -154,8 +149,6 @@ function OrderDetailModal({
   onDownloadInvoice,
   onCancelOrder,
   isCancelling,
-  onRefundOrder,
-  isRefunding,
 }: {
   order: OrderHistoryOrder;
   restaurantName: string;
@@ -164,8 +157,6 @@ function OrderDetailModal({
   onDownloadInvoice: (order: OrderHistoryOrder) => void;
   onCancelOrder: (order: OrderHistoryOrder) => void;
   isCancelling: boolean;
-  onRefundOrder: (order: OrderHistoryOrder) => void;
-  isRefunding: boolean;
 }) {
   const sc = statusColor(order.status);
   const pb = paymentBadge(order.paymentStatus);
@@ -251,6 +242,46 @@ function OrderDetailModal({
               </div>
             )}
           </div>
+
+          {/* Cancellation info */}
+          {order.status.trim().toLowerCase() === 'cancelled' && (order.cancelledBy || order.cancelledAt) ? (
+            <div className="mt-4 rounded-[14px] border border-red-200 bg-red-50/60 p-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                <span className="text-sm font-semibold text-red-800">Order Cancelled</span>
+              </div>
+              {order.cancelledBy ? (
+                <p className="text-xs text-red-700">
+                  <span className="font-medium">By:</span>{' '}
+                  <span className="capitalize">{order.cancelledBy}</span>
+                </p>
+              ) : null}
+              {order.cancelledAt ? (
+                <p className="text-xs text-red-700">
+                  <span className="font-medium">At:</span>{' '}
+                  {formatDate(order.cancelledAt)}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* Refund info */}
+          {order.status.trim().toLowerCase() === 'refunded' && order.refundedAt ? (
+            <div className="mt-4 rounded-[14px] border border-orange-200 bg-orange-50/60 p-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <svg className="h-4 w-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                </svg>
+                <span className="text-sm font-semibold text-orange-800">Order Refunded</span>
+              </div>
+              <p className="text-xs text-orange-700">
+                <span className="font-medium">At:</span>{' '}
+                {formatDate(order.refundedAt)}
+              </p>
+            </div>
+          ) : null}
 
           {/* Order status timeline */}
           {isDelivery ? (() => {
@@ -493,23 +524,6 @@ function OrderDetailModal({
               {isCancelling ? 'Cancelling...' : 'Cancel Order'}
             </button>
           ) : null}
-          {canRefundOrder(order) ? (
-            <button
-              type="button"
-              disabled={isRefunding}
-              onClick={() => onRefundOrder(order)}
-              className="inline-flex items-center gap-2 rounded-[12px] border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm font-semibold text-orange-700 transition hover:bg-orange-100 hover:border-orange-300 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isRefunding ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-orange-300 border-t-orange-600" />
-              ) : (
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-                </svg>
-              )}
-              {isRefunding ? 'Requesting...' : 'Request Refund'}
-            </button>
-          ) : null}
         </div>
       </div>
     </div>
@@ -560,8 +574,6 @@ export default function OrderHistoryPage({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortDirection, setSortDirection] = useState<'newest' | 'oldest'>('newest');
   const [cancelConfirmOrder, setCancelConfirmOrder] = useState<OrderHistoryOrder | null>(null);
-  const [refundConfirmOrder, setRefundConfirmOrder] = useState<OrderHistoryOrder | null>(null);
-  const [isRefunding, setIsRefunding] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
   const handleLogout = async () => {
@@ -745,44 +757,6 @@ export default function OrderHistoryPage({
       setIsCancelling(false);
     }
   }, [cancelConfirmOrder, restaurantId, selectedOrder]);
-
-  const handleRefundRequest = useCallback((order: OrderHistoryOrder) => {
-    setRefundConfirmOrder(order);
-  }, []);
-
-  const handleConfirmRefund = useCallback(async () => {
-    if (!refundConfirmOrder || !restaurantId) return;
-    setIsRefunding(true);
-    try {
-      const res = await fetch('/api/menu-orders/refund', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({
-          order_id: refundConfirmOrder.orderId,
-          restaurant_id: restaurantId,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        alert(data.error || 'Failed to request refund.');
-        return;
-      }
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.orderId === refundConfirmOrder.orderId ? { ...o, status: 'refunded' } : o,
-        ),
-      );
-      if (selectedOrder?.orderId === refundConfirmOrder.orderId) {
-        setSelectedOrder({ ...selectedOrder, status: 'refunded' });
-      }
-      setRefundConfirmOrder(null);
-    } catch {
-      alert('Failed to request refund.');
-    } finally {
-      setIsRefunding(false);
-    }
-  }, [refundConfirmOrder, restaurantId, selectedOrder]);
 
   if (!isAuthLoading && !hasCustomerSession) return null;
 
@@ -1071,8 +1045,6 @@ export default function OrderHistoryPage({
           onDownloadInvoice={handleDownloadInvoice}
           onCancelOrder={handleCancelRequest}
           isCancelling={isCancelling}
-          onRefundOrder={handleRefundRequest}
-          isRefunding={isRefunding}
         />
       ) : null}
 
@@ -1117,54 +1089,6 @@ export default function OrderHistoryPage({
                   </span>
                 ) : (
                   'Yes, Cancel Order'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Refund confirmation dialog */}
-      {refundConfirmOrder ? (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" onClick={() => !isRefunding && setRefundConfirmOrder(null)}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div
-            className="relative z-10 w-full max-w-sm rounded-[20px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.15)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
-              <svg className="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-              </svg>
-            </div>
-            <h3 className="mt-4 text-lg font-semibold text-slate-900">Request Refund</h3>
-            <p className="mt-2 text-sm text-slate-600">
-              Are you sure you want to request a refund for order{' '}
-              <span className="font-semibold text-slate-900">#{refundConfirmOrder.orderNumber}</span>?
-              The restaurant will review your request.
-            </p>
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                disabled={isRefunding}
-                onClick={() => setRefundConfirmOrder(null)}
-                className="flex-1 rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Go Back
-              </button>
-              <button
-                type="button"
-                disabled={isRefunding}
-                onClick={handleConfirmRefund}
-                className="flex-1 rounded-[12px] bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isRefunding ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Requesting...
-                  </span>
-                ) : (
-                  'Yes, Request Refund'
                 )}
               </button>
             </div>

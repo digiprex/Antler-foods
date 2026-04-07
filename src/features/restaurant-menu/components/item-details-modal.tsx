@@ -46,10 +46,11 @@ function getDisplayModifierGroups(item: MenuItem): MenuModifierGroup[] {
 }
 
 function getGroupConstraints(group: MenuModifierGroup) {
-  const isSingleSelect = group.isMultiSelect !== true;
   const minRequired = group.isRequired
     ? Math.max(group.minSelection ?? 1, 1)
     : Math.max(group.minSelection ?? 0, 0);
+  // If minRequired > 1 the user must pick multiple, so treat as multi-select
+  const isSingleSelect = minRequired <= 1 && group.isMultiSelect !== true;
   const resolvedMax = isSingleSelect ? 1 : group.maxSelection ?? group.items.length;
   const maxAllowed = Math.max(resolvedMax, minRequired || 1);
 
@@ -66,7 +67,9 @@ function getDefaultSelectedAddOnIds(groups: MenuModifierGroup[]) {
       return [];
     }
 
-    return [group.items[0].id];
+    const { minRequired } = getGroupConstraints(group);
+    const count = Math.min(minRequired, group.items.length);
+    return group.items.slice(0, count).map((item) => item.id);
   });
 }
 

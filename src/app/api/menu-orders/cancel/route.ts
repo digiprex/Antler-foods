@@ -29,10 +29,10 @@ const GET_ORDER_FOR_CANCEL = `
 `;
 
 const CANCEL_ORDER = `
-  mutation CancelOrder($order_id: uuid!) {
+  mutation CancelOrder($order_id: uuid!, $cancelled_at: timestamptz!) {
     update_orders_by_pk(
       pk_columns: { order_id: $order_id }
-      _set: { status: "cancelled", updated_at: "now()" }
+      _set: { status: "cancelled", cancelled_by: "customer", cancelled_at: $cancelled_at, updated_at: "now()" }
     ) {
       order_id
       status
@@ -52,8 +52,7 @@ const GET_RESTAURANT_FOR_EMAIL = `
   }
 `;
 
-const NON_CANCELLABLE_DELIVERY = new Set(['delivered', 'cancelled', 'refunded']);
-const NON_CANCELLABLE_PICKUP = new Set(['ready', 'delivered', 'cancelled', 'refunded']);
+const NON_CANCELLABLE = new Set(['ready', 'delivered', 'cancelled', 'refunded']);
 
 export async function POST(request: NextRequest) {
   try {
@@ -106,8 +105,7 @@ export async function POST(request: NextRequest) {
 
     // Check if order can be cancelled
     const status = order.status?.trim().toLowerCase();
-    const blocked = order.fulfillment_type === 'pickup' ? NON_CANCELLABLE_PICKUP : NON_CANCELLABLE_DELIVERY;
-    if (blocked.has(status)) {
+    if (NON_CANCELLABLE.has(status)) {
       return NextResponse.json(
         { success: false, error: 'This order can no longer be cancelled.' },
         { status: 400 },
@@ -115,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Cancel the order
-    await adminGraphqlRequest(CANCEL_ORDER, { order_id: orderId });
+    await adminGraphqlRequest(CANCEL_ORDER, { order_id: orderId, cancelled_at: new Date().toISOString() });
 
     // Send cancellation email
     try {
@@ -150,6 +148,7 @@ export async function POST(request: NextRequest) {
           orderNumber: order.order_number || order.order_id,
           restaurantName,
           status: 'cancelled',
+          cancelledBy: 'customer',
           customerName,
           restaurantEmail,
           restaurantPhone,

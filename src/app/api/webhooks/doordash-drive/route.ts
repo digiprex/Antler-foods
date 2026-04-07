@@ -314,9 +314,15 @@ export async function POST(request: NextRequest) {
 
   let previousOrder: Record<string, unknown> | null = null;
   try {
+    console.log('[DoorDash Webhook] Looking up order by delivery_provider_delivery_id:', event.deliveryId);
     const orderData = await adminGraphqlRequest<{
       orders: Array<Record<string, unknown>>;
     }>(GET_ORDER_BY_DELIVERY_ID, { delivery_id: event.deliveryId });
+    console.log('[DoorDash Webhook] Order lookup result:', {
+      found: (orderData.orders?.length ?? 0) > 0,
+      count: orderData.orders?.length ?? 0,
+      orderId: orderData.orders?.[0]?.order_id ?? null,
+    });
     previousOrder = orderData.orders?.[0] ?? null;
   } catch (err) {
     console.error('[DoorDash Webhook] Pre-mutation order fetch failed:', err);
@@ -360,6 +366,16 @@ export async function POST(request: NextRequest) {
   console.log('[DoorDash Webhook] DB update result:', {
     deliveryId: event.deliveryId,
     affectedRows: mutationResult?.update_orders?.affected_rows ?? 'unknown',
+  });
+
+  console.log('[DoorDash Webhook] Email check:', {
+    shouldEmail,
+    hasOrder: !!previousOrder,
+    orderId: previousOrder?.order_id,
+    contactEmail: previousOrder?.contact_email,
+    previousDeliveryStatus: previousOrder?.delivery_dispatch_status,
+    mappedDeliveryStatus: mappedStatus.deliveryStatus,
+    mappedOrderStatus: mappedStatus.orderStatus,
   });
 
   if (shouldEmail && previousOrder) {
@@ -434,6 +450,7 @@ export async function POST(request: NextRequest) {
             emailSentType = 'out_for_delivery';
           }
         } else if (mappedStatus.orderStatus === 'delivered') {
+          console.log('[DoorDash Webhook] Sending delivered review email to:', contactEmail, 'order:', orderNumber);
           await sendOrderDeliveredReviewEmail(contactEmail, {
             orderNumber,
             restaurantName,
@@ -441,6 +458,7 @@ export async function POST(request: NextRequest) {
             googleReviewUrl,
           });
           emailSentType = 'delivered';
+          console.log('[DoorDash Webhook] Delivered review email sent successfully');
         } else if (mappedStatus.deliveryStatus === 'cancelled') {
           if (order.delivery_dispatch_status === 'cancelled') {
             console.log(

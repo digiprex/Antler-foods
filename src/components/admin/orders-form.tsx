@@ -1218,6 +1218,16 @@ Generated on: ${new Date().toLocaleString()}
                     )}
                   </div>
                 )}
+
+                {/* Refund Info */}
+                {order.status === 'refunded' && order.refunded_at && (
+                  <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <p className="text-sm text-orange-800">
+                      <span className="font-medium">Refunded at:</span>{' '}
+                      {formatDate(order.refunded_at)}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -1418,6 +1428,22 @@ Generated on: ${new Date().toLocaleString()}
                               <p className="text-sm font-medium text-red-900">{formatDate(selectedOrder.cancelled_at)}</p>
                             </div>
                           )}
+                        </div>
+                      )}
+
+                      {/* Refund Info */}
+                      {selectedOrder.status === 'refunded' && selectedOrder.refunded_at && (
+                        <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+                          <div className="flex items-center gap-2">
+                            <svg className="h-5 w-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                            </svg>
+                            <span className="text-sm font-semibold text-orange-800">Order Refunded</span>
+                          </div>
+                          <div>
+                            <span className="text-xs font-medium text-orange-600 uppercase tracking-wide">Refunded at</span>
+                            <p className="text-sm font-medium text-orange-900">{formatDate(selectedOrder.refunded_at)}</p>
+                          </div>
                         </div>
                       )}
 

@@ -55,6 +55,7 @@ export interface Order {
   delivery_quote?: string | null;
   cancelled_by?: string | null;
   cancelled_at?: string | null;
+  refunded_at?: string | null;
   placed_at?: string | null;
   order_number?: string | null;
   payment_method?: string | null;

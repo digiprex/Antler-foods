@@ -39,6 +39,7 @@ interface OrderHistoryOrder {
   orderNote: string | null;
   cancelledBy: string | null;
   cancelledAt: string | null;
+  refundedAt: string | null;
   items: OrderHistoryItem[];
 }
 
@@ -263,6 +264,22 @@ function OrderDetailModal({
                   {formatDate(order.cancelledAt)}
                 </p>
               ) : null}
+            </div>
+          ) : null}
+
+          {/* Refund info */}
+          {order.status.trim().toLowerCase() === 'refunded' && order.refundedAt ? (
+            <div className="mt-4 rounded-[14px] border border-orange-200 bg-orange-50/60 p-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <svg className="h-4 w-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                </svg>
+                <span className="text-sm font-semibold text-orange-800">Order Refunded</span>
+              </div>
+              <p className="text-xs text-orange-700">
+                <span className="font-medium">At:</span>{' '}
+                {formatDate(order.refundedAt)}
+              </p>
             </div>
           ) : null}
 

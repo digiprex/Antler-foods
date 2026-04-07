@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   ChangeEvent,
   FormEvent,
@@ -80,7 +80,12 @@ type MediaPreviewState = {
   kind: 'image' | 'video';
 } | null;
 
-type MyInfoTabKey = 'brand' | 'address' | 'opening-hours' | 'google-profile';
+type MyInfoTabKey =
+  | 'brand'
+  | 'address'
+  | 'opening-hours'
+  | 'google-profile'
+  | 'bank-accounts';
 
 const PHONE_COUNTRY_CODES = [
   { value: '+1', label: '+1 (US/CA)' },
@@ -369,6 +374,14 @@ function useMyInfoTabLinks() {
           },
           'google-profile',
         ),
+        'bank-accounts': buildRestaurantInformationPath(
+          restaurantScope.roleSegment,
+          {
+            id: restaurantScope.restaurantId,
+            name: restaurantScope.restaurantNameFromSlug,
+          },
+          'bank-accounts',
+        ),
       } satisfies Record<MyInfoTabKey, string>;
     }
 
@@ -399,6 +412,11 @@ function useMyInfoTabLinks() {
           fallbackRestaurant,
           'google-profile',
         ),
+        'bank-accounts': buildRestaurantInformationPath(
+          dashboardBasePath.split('/')[2] || 'admin',
+          fallbackRestaurant,
+          'bank-accounts',
+        ),
       } satisfies Record<MyInfoTabKey, string>;
     }
 
@@ -411,6 +429,7 @@ function useMyInfoTabLinks() {
       address: fallbackPath,
       'opening-hours': fallbackPath,
       'google-profile': fallbackPath,
+      'bank-accounts': fallbackPath,
     };
   }, [
     dashboardBasePath,
@@ -3799,6 +3818,488 @@ async function importAllGoogleMediaAfterConnection({
   }
 }
 
+type StripeOwnerStatus =
+  | 'not_connected'
+  | 'setup_incomplete'
+  | 'active'
+  | 'action_required';
+
+type StripeAccountState = {
+  provider: 'stripe';
+  status: StripeOwnerStatus;
+  status_label: string;
+  message: string;
+  blocking_issue: string | null;
+  can_launch_onboarding: boolean;
+  primary_action_label: string | null;
+  account: {
+    stripe_account_id: string | null;
+    is_connected: boolean;
+    details_submitted: boolean;
+    charges_enabled: boolean;
+    payouts_enabled: boolean;
+    country: string | null;
+    email: string | null;
+    default_currency: string | null;
+    last_synced_at: string | null;
+    onboarding_status: StripeOwnerStatus;
+    requirements: {
+      currently_due: string[];
+      past_due: string[];
+      pending_verification: string[];
+      disabled_reason: string | null;
+      due_count: number;
+      pending_verification_count: number;
+    };
+  } | null;
+};
+
+type StripeAccountApiResponse = {
+  success: boolean;
+  data?: StripeAccountState;
+  message?: string;
+  error?: string;
+};
+
+const STRIPE_CONNECT_QUERY_KEY = 'stripe_connect';
+
+export function MyInfoBankAccountsPage() {
+  const restaurant = useRestaurantScope();
+  const router = useRouter();
+  const pathname = usePathname() ?? '';
+  const searchParams = useSearchParams() ?? new URLSearchParams();
+  const [accountState, setAccountState] = useState<StripeAccountState | null>(null);
+  const [isLoading, setIsLoading] = useState(Boolean(restaurant?.id));
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<SaveNotice | null>(null);
+  const [isLaunchingOnboarding, setIsLaunchingOnboarding] = useState(false);
+  const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
+
+  const fetchWithAuth = useCallback(
+    async (input: RequestInfo | URL, init: RequestInit = {}) => {
+      const accessToken = await nhost.auth.getAccessToken();
+      if (!accessToken) {
+        throw new Error('Your session has expired. Please login again.');
+      }
+
+      const headers = new Headers(init.headers);
+      headers.set('Authorization', `Bearer ${accessToken}`);
+
+      return fetch(input, {
+        ...init,
+        headers,
+      });
+    },
+    [],
+  );
+
+  const cleanedReturnPath = useMemo(
+    () => buildBankAccountsReturnPath(pathname, searchParams),
+    [pathname, searchParams],
+  );
+
+  const clearStripeConnectQueryParam = useCallback(() => {
+    const cleanedPath = buildBankAccountsReturnPath(pathname, searchParams);
+    router.replace(cleanedPath, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  const loadStripeStatus = useCallback(
+    async ({
+      silent = false,
+      successMessage,
+    }: {
+      silent?: boolean;
+      successMessage?: string;
+    } = {}) => {
+      if (!restaurant?.id) {
+        setAccountState(null);
+        setLoadError(null);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!silent) {
+        setIsLoading(true);
+      }
+
+      try {
+        setLoadError(null);
+        const response = await fetchWithAuth(
+          `/api/restaurants/${encodeURIComponent(restaurant.id)}/stripe-account?sync=true`,
+          { cache: 'no-store' },
+        );
+        const payload = (await safeParseJsonResponse(response)) as StripeAccountApiResponse | null;
+
+        if (!response.ok || !payload?.success || !payload.data) {
+          throw new Error(
+            payload?.error || 'Failed to load Stripe account status.',
+          );
+        }
+
+        setAccountState(payload.data);
+        if (successMessage) {
+          setNotice({
+            tone: 'success',
+            message: successMessage,
+          });
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Failed to load Stripe account status.';
+        setLoadError(message);
+        if (!silent) {
+          setNotice({
+            tone: 'error',
+            message,
+          });
+        }
+      } finally {
+        if (!silent) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [fetchWithAuth, restaurant?.id],
+  );
+
+  const launchStripeOnboarding = useCallback(
+    async ({ automatic = false }: { automatic?: boolean } = {}) => {
+      if (!restaurant?.id) {
+        return;
+      }
+
+      setIsLaunchingOnboarding(true);
+      setNotice(null);
+
+      try {
+        const response = await fetchWithAuth(
+          `/api/restaurants/${encodeURIComponent(restaurant.id)}/stripe-account/onboarding`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              returnPath: cleanedReturnPath,
+            }),
+            cache: 'no-store',
+          },
+        );
+        const payload = (await safeParseJsonResponse(response)) as
+          | {
+              success?: boolean;
+              data?: {
+                url?: string;
+              };
+              error?: string;
+            }
+          | null;
+
+        if (!response.ok || payload?.success !== true || !payload?.data?.url) {
+          throw new Error(payload?.error || 'Failed to start Stripe setup.');
+        }
+
+        window.location.assign(payload.data.url);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Failed to start Stripe setup.';
+        setNotice({
+          tone: 'error',
+          message,
+        });
+
+        if (automatic) {
+          clearStripeConnectQueryParam();
+        }
+      } finally {
+        setIsLaunchingOnboarding(false);
+      }
+    },
+    [cleanedReturnPath, clearStripeConnectQueryParam, fetchWithAuth, restaurant?.id],
+  );
+
+  const refreshStripeStatus = useCallback(
+    async ({ successMessage }: { successMessage?: string } = {}) => {
+      if (!restaurant?.id) {
+        return;
+      }
+
+      setIsRefreshingStatus(true);
+      try {
+        const response = await fetchWithAuth(
+          `/api/restaurants/${encodeURIComponent(restaurant.id)}/stripe-account/refresh`,
+          {
+            method: 'POST',
+            cache: 'no-store',
+          },
+        );
+        const payload = (await safeParseJsonResponse(response)) as StripeAccountApiResponse | null;
+
+        if (!response.ok || !payload?.success || !payload.data) {
+          throw new Error(
+            payload?.error || 'Failed to refresh Stripe account status.',
+          );
+        }
+
+        setAccountState(payload.data);
+        if (successMessage || payload.message) {
+          setNotice({
+            tone: 'success',
+            message: successMessage || payload.message || 'Stripe status refreshed.',
+          });
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Failed to refresh Stripe account status.';
+        setNotice({
+          tone: 'error',
+          message,
+        });
+      } finally {
+        setIsRefreshingStatus(false);
+      }
+    },
+    [fetchWithAuth, restaurant?.id],
+  );
+
+  useEffect(() => {
+    void loadStripeStatus();
+  }, [loadStripeStatus]);
+
+  useEffect(() => {
+    const connectState = searchParams.get(STRIPE_CONNECT_QUERY_KEY)?.trim() ?? '';
+    if (!connectState) {
+      return;
+    }
+
+    if (connectState === 'refresh') {
+      void launchStripeOnboarding({ automatic: true });
+      return;
+    }
+
+    if (connectState === 'return') {
+      void refreshStripeStatus({
+        successMessage: 'Stripe setup was updated successfully.',
+      }).finally(() => {
+        clearStripeConnectQueryParam();
+      });
+    }
+  }, [
+    clearStripeConnectQueryParam,
+    launchStripeOnboarding,
+    refreshStripeStatus,
+    searchParams,
+  ]);
+
+  if (!restaurant) {
+    return (
+      <MyInfoWorkspaceShell activeTab="bank-accounts">
+        <SelectionRequiredCard target="Bank Accounts" />
+      </MyInfoWorkspaceShell>
+    );
+  }
+
+  if (isLoading && !accountState) {
+    return (
+      <MyInfoWorkspaceShell activeTab="bank-accounts">
+        <LoadingCard title="Bank Accounts" />
+      </MyInfoWorkspaceShell>
+    );
+  }
+
+  if (loadError && !accountState) {
+    return (
+      <MyInfoWorkspaceShell activeTab="bank-accounts">
+        <ErrorCard
+          title="Bank Accounts"
+          message={loadError}
+          onRetry={() => {
+            void loadStripeStatus();
+          }}
+        />
+      </MyInfoWorkspaceShell>
+    );
+  }
+
+  const currentStatus = accountState?.status ?? 'not_connected';
+  const account = accountState?.account ?? null;
+  const requirementItems = buildStripeRequirementItems(accountState);
+
+  return (
+    <MyInfoWorkspaceShell activeTab="bank-accounts">
+      <section className="space-y-6">
+        <Header
+          title="Bank Accounts"
+          subtitle="Connect Stripe, complete verification, and review connection status for this restaurant."
+          restaurantName={restaurant.name}
+        />
+
+        <FormMessage notice={notice} />
+
+        <section className="grid gap-5 rounded-3xl border border-[#d7e2e6] bg-white p-6 shadow-sm xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-3">
+                <StripeStatusBadge status={currentStatus} />
+                <div>
+                  <h2 className="text-2xl font-semibold tracking-tight text-[#111827]">
+                    {accountState?.status_label || 'Not connected'}
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5f6c78]">
+                    {accountState?.message ||
+                      'Connect with Stripe to begin account verification.'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {accountState?.can_launch_onboarding ? (
+                  <button
+                    type="button"
+                    onClick={() => void launchStripeOnboarding()}
+                    disabled={isLaunchingOnboarding}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#111827] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isLaunchingOnboarding ? (
+                      <PurpleDotSpinner size="inline" />
+                    ) : (
+                      <StripeConnectIcon />
+                    )}
+                    <span>
+                      {accountState?.primary_action_label || 'Connect with Stripe'}
+                    </span>
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => void refreshStripeStatus()}
+                  disabled={isRefreshingStatus || isLaunchingOnboarding}
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#d2dde2] bg-white px-4 py-2.5 text-sm font-semibold text-[#111827] transition hover:border-[#c4d3da] hover:bg-[#f8fafc] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isRefreshingStatus ? (
+                    <PurpleDotSpinner size="inline" />
+                  ) : (
+                    <RefreshStatusIcon />
+                  )}
+                  <span>Refresh status</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <StripeMetricCard
+                label="Payments enabled"
+                value={formatBooleanLabel(account?.charges_enabled)}
+                tone={account?.charges_enabled ? 'success' : 'neutral'}
+              />
+              <StripeMetricCard
+                label="Payouts enabled"
+                value={formatBooleanLabel(account?.payouts_enabled)}
+                tone={account?.payouts_enabled ? 'success' : 'neutral'}
+              />
+              <StripeMetricCard
+                label="Missing requirements"
+                value={String(account?.requirements?.due_count ?? 0)}
+                tone={account?.requirements?.due_count ? 'warning' : 'neutral'}
+              />
+              <StripeMetricCard
+                label="Pending verification"
+                value={String(account?.requirements?.pending_verification_count ?? 0)}
+                tone={
+                  account?.requirements?.pending_verification_count ? 'warning' : 'neutral'
+                }
+              />
+            </div>
+
+            <div className="rounded-2xl border border-[#d7e2e6] bg-[#f8fbfd] p-4">
+              <p className="text-sm font-medium text-[#111827]">
+                Owner access on this page is limited to Stripe connection and verification status only.
+              </p>
+              <p className="mt-1 text-sm text-[#5f6c78]">
+                Antler Foods admin manages payout controls separately. No payout schedule,
+                withdrawal, or bank settings controls are available here.
+              </p>
+            </div>
+          </div>
+
+          <aside className="space-y-4 rounded-2xl border border-[#d7e2e6] bg-[#fbfdff] p-5">
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#6b7280]">
+                Account snapshot
+              </h3>
+              <div className="mt-4 space-y-3 text-sm text-[#111827]">
+                <StripeInfoRow
+                  label="Stripe account"
+                  value={account?.stripe_account_id || 'Not connected'}
+                />
+                <StripeInfoRow
+                  label="Email"
+                  value={account?.email || 'Unavailable'}
+                />
+                <StripeInfoRow
+                  label="Country"
+                  value={account?.country || 'Unavailable'}
+                />
+                <StripeInfoRow
+                  label="Currency"
+                  value={
+                    account?.default_currency
+                      ? account.default_currency.toUpperCase()
+                      : 'Unavailable'
+                  }
+                />
+                <StripeInfoRow
+                  label="Last synced"
+                  value={formatSyncTimestamp(account?.last_synced_at)}
+                />
+              </div>
+            </div>
+          </aside>
+        </section>
+
+        {requirementItems.length > 0 || accountState?.blocking_issue ? (
+          <section className="space-y-4 rounded-3xl border border-[#f5dcc0] bg-[#fffaf5] p-6">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 rounded-xl bg-[#f59e0b]/10 p-2 text-[#b45309]">
+                <RequirementsAlertIcon />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-[#111827]">
+                  Requirements to review
+                </h2>
+                <p className="mt-1 text-sm text-[#7c5b2a]">
+                  Review the items below and use the Stripe setup action to submit any
+                  missing or updated details.
+                </p>
+              </div>
+            </div>
+
+            {accountState?.blocking_issue ? (
+              <div className="rounded-2xl border border-[#f5d6a8] bg-white px-4 py-3 text-sm text-[#8a5b14]">
+                {accountState.blocking_issue}
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 md:grid-cols-2">
+              {requirementItems.map((item) => (
+                <div
+                  key={item}
+                  className="rounded-2xl border border-[#f5d6a8] bg-white px-4 py-3 text-sm text-[#4b5563]"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </section>
+    </MyInfoWorkspaceShell>
+  );
+}
+
 async function safeParseJsonResponse(response: Response) {
   try {
     return await response.json();
@@ -4617,6 +5118,150 @@ function cx(...values: Array<string | null | false | undefined>) {
   return values.filter(Boolean).join(' ');
 }
 
+function buildBankAccountsReturnPath(
+  pathname: string,
+  searchParams: { toString(): string },
+) {
+  const params = new URLSearchParams(searchParams.toString());
+  params.delete(STRIPE_CONNECT_QUERY_KEY);
+  const nextQuery = params.toString();
+  return nextQuery ? `${pathname}?${nextQuery}` : pathname;
+}
+
+function buildStripeRequirementItems(
+  accountState: StripeAccountState | null,
+) {
+  const account = accountState?.account;
+  if (!account) {
+    return [];
+  }
+
+  const items = [
+    ...account.requirements.currently_due,
+    ...account.requirements.past_due,
+    ...account.requirements.pending_verification,
+  ];
+
+  return Array.from(new Set(items.map(formatStripeRequirementLabel)));
+}
+
+function formatStripeRequirementLabel(value: string) {
+  const normalized = value.trim();
+  if (!normalized) {
+    return 'Additional verification details are required.';
+  }
+
+  return normalized
+    .replace(/[\[\].]/g, ' ')
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (segment) => segment.toUpperCase());
+}
+
+function formatBooleanLabel(value: boolean | null | undefined) {
+  return value ? 'Yes' : 'No';
+}
+
+function formatSyncTimestamp(value: string | null | undefined) {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized) {
+    return 'Not synced yet';
+  }
+
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Not synced yet';
+  }
+
+  return parsed.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function StripeStatusBadge({ status }: { status: StripeOwnerStatus }) {
+  const config =
+    status === 'active'
+      ? {
+          label: 'Active',
+          className: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
+        }
+      : status === 'setup_incomplete'
+        ? {
+            label: 'Setup incomplete',
+            className: 'border border-amber-200 bg-amber-50 text-amber-700',
+          }
+        : status === 'action_required'
+          ? {
+              label: 'Action required',
+              className: 'border border-rose-200 bg-rose-50 text-rose-700',
+            }
+          : {
+              label: 'Not connected',
+              className: 'border border-slate-200 bg-slate-50 text-slate-700',
+            };
+
+  return (
+    <span
+      className={cx(
+        'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide',
+        config.className,
+      )}
+    >
+      {config.label}
+    </span>
+  );
+}
+
+function StripeMetricCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: 'success' | 'warning' | 'neutral';
+}) {
+  const toneClass =
+    tone === 'success'
+      ? 'border-emerald-200 bg-emerald-50/60'
+      : tone === 'warning'
+        ? 'border-amber-200 bg-amber-50/60'
+        : 'border-[#d7e2e6] bg-white';
+
+  return (
+    <div className={cx('rounded-2xl border p-4', toneClass)}>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight text-[#111827]">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function StripeInfoRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3 border-b border-[#e5edf2] pb-3 last:border-b-0 last:pb-0">
+      <span className="text-[#6b7280]">{label}</span>
+      <span className="max-w-[62%] break-words text-right font-medium text-[#111827]">
+        {value}
+      </span>
+    </div>
+  );
+}
+
 function ChevronRightIcon({ isExpanded }: { isExpanded: boolean }) {
   return (
     <svg
@@ -5065,6 +5710,83 @@ function GoogleTabIcon() {
       strokeLinejoin="round"
     >
       <path d="M12 20a8 8 0 1 1 7.7-10H12v4h4.4A4.5 4.5 0 1 1 12 8" />
+    </svg>
+  );
+}
+
+function BankAccountsTabIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 10h18" />
+      <path d="M16 15h2" />
+      <path d="M6 15h4" />
+    </svg>
+  );
+}
+
+function StripeConnectIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M8 12h8" />
+      <path d="m12 8 4 4-4 4" />
+      <path d="M4 12a8 8 0 0 1 8-8" />
+      <path d="M20 12a8 8 0 0 1-8 8" />
+    </svg>
+  );
+}
+
+function RefreshStatusIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+      <path d="M21 3v6h-6" />
+    </svg>
+  );
+}
+
+function RequirementsAlertIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
     </svg>
   );
 }

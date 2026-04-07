@@ -72,7 +72,7 @@ const GET_RESTAURANT_FOR_DISPATCH = `
 `;
 
 const CLAIM_ORDER_FOR_DISPATCH = `
-  mutation ClaimOrderForDispatch($order_id: uuid!, $delivery_provider: String!) {
+  mutation ClaimOrderForDispatch($order_id: uuid!) {
     update_orders(
       where: {
         order_id: { _eq: $order_id }
@@ -267,11 +267,22 @@ export async function POST(request: NextRequest) {
     // Determine which provider to use from the order
     deliveryProvider = normalizeText(nextRow?.delivery_provider) || 'uber_direct';
 
+    console.log('[Delivery Dispatch] Order ready event received:', {
+      orderId,
+      deliveryProvider,
+      previousStatus: normalizeText(previousRow?.status),
+      nextStatus: normalizeText(nextRow?.status),
+    });
+
     const claimResult = await adminGraphqlRequest<{
       update_orders?: { affected_rows?: number | null } | null;
     }>(CLAIM_ORDER_FOR_DISPATCH, {
       order_id: orderId,
-      delivery_provider: deliveryProvider,
+    });
+
+    console.log('[Delivery Dispatch] Claim result:', {
+      orderId,
+      affectedRows: claimResult.update_orders?.affected_rows ?? 0,
     });
 
     if ((claimResult.update_orders?.affected_rows || 0) === 0) {
@@ -382,6 +393,14 @@ export async function POST(request: NextRequest) {
 
     let dispatchResult: { deliveryId: string; quoteId?: string; trackingUrl: string | null };
 
+    console.log('[Delivery Dispatch] Dispatching via:', {
+      deliveryProvider,
+      orderId,
+      externalOrderId,
+      pickupAddress,
+      dropoffAddress: formattedAddress,
+    });
+
     if (deliveryProvider === 'doordash_drive') {
       const result = await createDoorDashDriveDelivery({
         restaurantId: restaurantId || '',
@@ -417,6 +436,13 @@ export async function POST(request: NextRequest) {
         trackingUrl: result.trackingUrl,
       };
     }
+
+    console.log('[Delivery Dispatch] Dispatch result:', {
+      orderId,
+      deliveryProvider,
+      deliveryId: dispatchResult.deliveryId,
+      trackingUrl: dispatchResult.trackingUrl,
+    });
 
     const lastStatusAt = new Date().toISOString();
     await adminGraphqlRequest(MARK_ORDER_DISPATCHED, {

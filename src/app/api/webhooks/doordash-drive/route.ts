@@ -261,12 +261,19 @@ export async function POST(request: NextRequest) {
 
   console.log('[DoorDash Webhook] Parsed payload:', {
     deliveryId: event?.deliveryId,
+    eventName: event?.eventName,
     status: event?.status,
   });
 
   if (!event) {
     console.warn('[DoorDash Webhook] Could not parse event, skipping');
     return NextResponse.json({ success: true, skipped: true }, { status: 202 });
+  }
+
+  // Ignore webhooks for quote deliveries (created during fee estimation and immediately cancelled)
+  if (event.deliveryId.startsWith('quote_')) {
+    console.log('[DoorDash Webhook] Ignoring quote delivery webhook:', event.deliveryId);
+    return NextResponse.json({ success: true, skipped: true, reason: 'quote_delivery' });
   }
 
   const lastStatusAt = event.updatedAt || new Date().toISOString();

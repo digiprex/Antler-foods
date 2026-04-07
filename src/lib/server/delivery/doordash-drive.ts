@@ -77,6 +77,7 @@ export interface DoorDashDispatchResult {
 
 export interface DoorDashWebhookPayload {
   external_delivery_id?: string;
+  event_name?: string;
   delivery_status?: string;
   tracking_url?: string;
   updated_at?: string;
@@ -86,11 +87,13 @@ export interface DoorDashWebhookPayload {
   dasher_id?: number | null;
   dasher_name?: string | null;
   dasher_phone_number?: string | null;
+  dasher_location?: { lat?: number; lng?: number } | null;
   cancellation_reason?: string | null;
 }
 
 export interface DoorDashResolvedWebhookEvent {
   deliveryId: string;
+  eventName: string | null;
   status: string | null;
   trackingUrl: string | null;
   updatedAt: string | null;
@@ -315,13 +318,37 @@ export function parseDoorDashDriveWebhookPayload(
     return null;
   }
 
+  // DoorDash uses event_name (e.g. DASHER_CONFIRMED_PICKUP_ARRIVAL) not delivery_status
+  const eventName = normalizeText(payload.event_name);
+  const status = normalizeText(payload.delivery_status) || eventNameToStatus(eventName);
+
   return {
     deliveryId,
-    status: normalizeText(payload.delivery_status),
+    eventName,
+    status,
     trackingUrl: normalizeText(payload.tracking_url),
     updatedAt: normalizeText(payload.updated_at) || normalizeText(payload.created_at),
     raw: payload,
   };
+}
+
+/**
+ * Map DoorDash event_name to a simplified status string for normalization.
+ */
+function eventNameToStatus(eventName: string | null): string | null {
+  if (!eventName) return null;
+  const name = eventName.toUpperCase();
+
+  if (name === 'DELIVERY_CREATED') return 'created';
+  if (name === 'DASHER_CONFIRMED' || name === 'DASHER_CONFIRMED_STORE_ARRIVAL' || name === 'DASHER_CONFIRMED_PICKUP_ARRIVAL') return 'confirmed';
+  if (name === 'DASHER_PICKED_UP' || name === 'DELIVERY_PICKED_UP') return 'picked_up';
+  if (name === 'DASHER_ENROUTE_TO_DROPOFF') return 'enroute_to_dropoff';
+  if (name === 'DASHER_ARRIVED_AT_DROPOFF') return 'arrived_at_dropoff';
+  if (name === 'DASHER_DROPPED_OFF' || name === 'DELIVERY_DELIVERED') return 'delivered';
+  if (name.includes('CANCEL') || name === 'DELIVERY_CANCELLED') return 'cancelled';
+  if (name.includes('RETURN')) return 'returned';
+
+  return eventName.toLowerCase();
 }
 
 

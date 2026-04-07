@@ -703,6 +703,9 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
         zip_code: trimText(deliveryData?.postalCode),
         saved_as: trimText(deliveryData?.label) || 'other',
         nearby_landmark: trimText(deliveryData?.landmark),
+        place_id: trimText(deliveryData?.placeId),
+        latitude: typeof deliveryData?.latitude === 'number' ? String(deliveryData.latitude) : null,
+        longitude: typeof deliveryData?.longitude === 'number' ? String(deliveryData.longitude) : null,
       };
       for (const [key, value] of Object.entries(optionalFields)) {
         if (value) addressObject[key] = value;

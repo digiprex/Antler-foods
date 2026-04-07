@@ -226,6 +226,9 @@ function MenuPageContent({ data }: MenuPageProps) {
     saved_as: string | null;
     nearby_landmark: string | null;
     is_default: boolean;
+    place_id: string | null;
+    latitude: string | null;
+    longitude: string | null;
   }>>([]);
   const [savedAddressesLoaded, setSavedAddressesLoaded] = useState(false);
   const [showSavedAddressPicker, setShowSavedAddressPicker] = useState(false);
@@ -403,11 +406,14 @@ function MenuPageContent({ data }: MenuPageProps) {
 
         const nextAddress: DeliveryAddressInput = {
           formattedAddress: defaultSaved.address || '',
+          placeId: defaultSaved.place_id || undefined,
           addressLine1: defaultSaved.address || undefined,
           city: defaultSaved.city || undefined,
           state: defaultSaved.state || undefined,
           postalCode: defaultSaved.zip_code || undefined,
           countryCode: defaultSaved.country || undefined,
+          latitude: defaultSaved.latitude ? parseFloat(defaultSaved.latitude) : undefined,
+          longitude: defaultSaved.longitude ? parseFloat(defaultSaved.longitude) : undefined,
           source: 'saved',
         };
         setDeliveryAddress(nextAddress.formattedAddress);
@@ -446,11 +452,14 @@ function MenuPageContent({ data }: MenuPageProps) {
   const handleSelectSavedAddress = (addr: typeof savedAddresses[number]) => {
     const nextAddress: DeliveryAddressInput = {
       formattedAddress: addr.address || '',
+      placeId: addr.place_id || undefined,
       addressLine1: addr.address || undefined,
       city: addr.city || undefined,
       state: addr.state || undefined,
       postalCode: addr.zip_code || undefined,
       countryCode: addr.country || undefined,
+      latitude: addr.latitude ? parseFloat(addr.latitude) : undefined,
+      longitude: addr.longitude ? parseFloat(addr.longitude) : undefined,
       source: 'saved',
     };
     setDeliveryAddress(nextAddress.formattedAddress);

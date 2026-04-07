@@ -515,6 +515,9 @@ export default function RestaurantMenuCheckoutPage({
     saved_as: string | null;
     nearby_landmark: string | null;
     is_default: boolean;
+    place_id: string | null;
+    latitude: string | null;
+    longitude: string | null;
   }>>([]);
   const [savedAddressesLoaded, setSavedAddressesLoaded] = useState(false);
   const [showSavedAddressPicker, setShowSavedAddressPicker] = useState(false);
@@ -960,12 +963,15 @@ export default function RestaurantMenuCheckoutPage({
 
         setDeliveryAddressData({
           formattedAddress: defaultSaved.address || '',
+          placeId: defaultSaved.place_id || undefined,
           addressLine1: defaultSaved.address || undefined,
           addressLine2: defaultSaved.street || undefined,
           city: defaultSaved.city || undefined,
           state: defaultSaved.state || undefined,
           postalCode: defaultSaved.zip_code || undefined,
           countryCode: defaultSaved.country || undefined,
+          latitude: defaultSaved.latitude ? parseFloat(defaultSaved.latitude) : undefined,
+          longitude: defaultSaved.longitude ? parseFloat(defaultSaved.longitude) : undefined,
           houseFlatFloor: defaultSaved.house_no || undefined,
           landmark: defaultSaved.nearby_landmark || undefined,
           label: defaultSaved.saved_as || undefined,
@@ -1093,12 +1099,15 @@ export default function RestaurantMenuCheckoutPage({
   const handleSelectSavedAddress = (addr: typeof savedAddresses[number]) => {
     setDeliveryAddressData({
       formattedAddress: addr.address || '',
+      placeId: addr.place_id || undefined,
       addressLine1: addr.address || undefined,
       addressLine2: addr.street || undefined,
       city: addr.city || undefined,
       state: addr.state || undefined,
       postalCode: addr.zip_code || undefined,
       countryCode: addr.country || undefined,
+      latitude: addr.latitude ? parseFloat(addr.latitude) : undefined,
+      longitude: addr.longitude ? parseFloat(addr.longitude) : undefined,
       houseFlatFloor: addr.house_no || undefined,
       landmark: addr.nearby_landmark || undefined,
       label: addr.saved_as || undefined,

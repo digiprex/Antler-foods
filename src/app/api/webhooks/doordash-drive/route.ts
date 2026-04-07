@@ -231,16 +231,29 @@ function normalizeDoorDashStatus(rawStatus: string | null) {
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
-  const signature = request.headers.get('x-doordash-signature');
+  const authHeader = request.headers.get('authorization');
 
-  console.log('[DoorDash Webhook] Received webhook event');
+  console.log('[DoorDash Webhook] Received webhook event:', {
+    bodyLength: rawBody.length,
+    hasAuth: !!authHeader,
+    rawBody: rawBody.substring(0, 1000),
+  });
 
-  if (!verifyDoorDashDriveWebhookSignature(rawBody, signature)) {
-    console.warn('[DoorDash Webhook] Signature verification failed');
-    return NextResponse.json(
-      { error: 'Invalid DoorDash webhook signature.' },
-      { status: 401 },
-    );
+  // DoorDash sends a Bearer token in the Authorization header (not HMAC signature)
+  const webhookSecret = process.env.DOORDASH_DRIVE_WEBHOOK_SIGNING_SECRET?.trim() || null;
+  if (webhookSecret) {
+    const expectedToken = webhookSecret.replace(/^Bearer\s+/i, '');
+    const receivedToken = (authHeader || '').replace(/^Bearer\s+/i, '').trim();
+    if (!receivedToken || receivedToken !== expectedToken) {
+      console.warn('[DoorDash Webhook] Auth verification failed:', {
+        expected: expectedToken.substring(0, 8) + '...',
+        received: receivedToken ? receivedToken.substring(0, 8) + '...' : '(empty)',
+      });
+      return NextResponse.json(
+        { error: 'Invalid DoorDash webhook authorization.' },
+        { status: 401 },
+      );
+    }
   }
 
   const payload = JSON.parse(rawBody) as DoorDashWebhookPayload;

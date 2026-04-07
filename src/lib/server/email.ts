@@ -920,24 +920,42 @@ export interface OrderDeliveryStatusEmailData {
   restaurantName: string;
   customerName?: string | null;
   status: 'courier_assigned' | 'cancelled';
+  cancelledBy?: 'customer' | 'restaurant' | 'system' | null;
   trackingUrl?: string | null;
   restaurantEmail?: string | null;
   restaurantPhone?: string | null;
 }
 
+function getCancelledConfig(cancelledBy?: string | null) {
+  if (cancelledBy === 'customer') {
+    return {
+      heading: 'Order Cancelled',
+      message: 'Your order has been cancelled as requested. If you have any questions, please contact the restaurant.',
+      subject: 'Order cancelled',
+    };
+  }
+  if (cancelledBy === 'restaurant') {
+    return {
+      heading: 'Order Cancelled by Restaurant',
+      message: 'Unfortunately, the restaurant has cancelled your order. Please contact them for more details or to place a new order.',
+      subject: 'Order cancelled by restaurant',
+    };
+  }
+  return {
+    heading: 'Order Cancelled',
+    message: 'Your order has been cancelled. If you did not request this cancellation, please contact the restaurant for more details.',
+    subject: 'Order cancelled',
+  };
+}
+
 const DELIVERY_STATUS_CONFIG: Record<
-  OrderDeliveryStatusEmailData['status'],
+  string,
   { heading: string; message: string; subject: string }
 > = {
   courier_assigned: {
     heading: 'A Courier Has Been Assigned',
     message: 'A delivery courier has been assigned to your order and is heading to pick it up.',
     subject: 'Courier assigned to your order',
-  },
-  cancelled: {
-    heading: 'Order Cancelled',
-    message: 'Your order has been cancelled. If you did not request this cancellation, please contact the restaurant for more details.',
-    subject: 'Order cancelled',
   },
 };
 
@@ -947,7 +965,9 @@ export async function sendOrderDeliveryStatusEmail(
 ): Promise<void> {
   const transporter = createTransporter();
   const customerLabel = data.customerName?.trim() || 'there';
-  const config = DELIVERY_STATUS_CONFIG[data.status];
+  const config = data.status === 'cancelled'
+    ? getCancelledConfig(data.cancelledBy)
+    : DELIVERY_STATUS_CONFIG[data.status];
 
   const trackingBlock = data.trackingUrl
     ? `

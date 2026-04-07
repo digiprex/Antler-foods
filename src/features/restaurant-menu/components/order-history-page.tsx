@@ -37,6 +37,8 @@ interface OrderHistoryOrder {
   deliveryDispatchStatus: string | null;
   pickupAddress: string | null;
   orderNote: string | null;
+  cancelledBy: string | null;
+  cancelledAt: string | null;
   items: OrderHistoryItem[];
 }
 
@@ -239,6 +241,30 @@ function OrderDetailModal({
               </div>
             )}
           </div>
+
+          {/* Cancellation info */}
+          {order.status.trim().toLowerCase() === 'cancelled' && (order.cancelledBy || order.cancelledAt) ? (
+            <div className="mt-4 rounded-[14px] border border-red-200 bg-red-50/60 p-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                <span className="text-sm font-semibold text-red-800">Order Cancelled</span>
+              </div>
+              {order.cancelledBy ? (
+                <p className="text-xs text-red-700">
+                  <span className="font-medium">By:</span>{' '}
+                  <span className="capitalize">{order.cancelledBy}</span>
+                </p>
+              ) : null}
+              {order.cancelledAt ? (
+                <p className="text-xs text-red-700">
+                  <span className="font-medium">At:</span>{' '}
+                  {formatDate(order.cancelledAt)}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* Order status timeline */}
           {isDelivery ? (() => {

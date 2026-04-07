@@ -1200,6 +1200,24 @@ Generated on: ${new Date().toLocaleString()}
                     </p>
                   </div>
                 )}
+
+                {/* Cancellation Info */}
+                {order.status === 'cancelled' && (order.cancelled_by || order.cancelled_at) && (
+                  <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg flex flex-wrap items-center gap-x-4 gap-y-1">
+                    {order.cancelled_by && (
+                      <p className="text-sm text-red-800">
+                        <span className="font-medium">Cancelled by:</span>{' '}
+                        <span className="capitalize">{order.cancelled_by}</span>
+                      </p>
+                    )}
+                    {order.cancelled_at && (
+                      <p className="text-sm text-red-800">
+                        <span className="font-medium">Cancelled at:</span>{' '}
+                        {formatDate(order.cancelled_at)}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -1378,6 +1396,30 @@ Generated on: ${new Date().toLocaleString()}
                           </span>
                         )}
                       </div>
+
+                      {/* Cancellation Info */}
+                      {selectedOrder.status === 'cancelled' && (selectedOrder.cancelled_by || selectedOrder.cancelled_at) && (
+                        <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+                          <div className="flex items-center gap-2">
+                            <svg className="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                            <span className="text-sm font-semibold text-red-800">Order Cancelled</span>
+                          </div>
+                          {selectedOrder.cancelled_by && (
+                            <div>
+                              <span className="text-xs font-medium text-red-600 uppercase tracking-wide">Cancelled by</span>
+                              <p className="text-sm font-medium text-red-900 capitalize">{selectedOrder.cancelled_by}</p>
+                            </div>
+                          )}
+                          {selectedOrder.cancelled_at && (
+                            <div>
+                              <span className="text-xs font-medium text-red-600 uppercase tracking-wide">Cancelled at</span>
+                              <p className="text-sm font-medium text-red-900">{formatDate(selectedOrder.cancelled_at)}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Delivery Status Timeline */}
                       {selectedOrder.fulfillment_type === 'delivery' && !['cancelled', 'failed', 'refunded'].includes(selectedOrder.status) && (() => {

@@ -38,6 +38,8 @@ const GET_CUSTOMER_ORDERS = `
       delivery_tracking_url
       delivery_dispatch_status
       order_note
+      cancelled_by
+      cancelled_at
     }
   }
 `;
@@ -89,6 +91,8 @@ interface OrderRecord {
   delivery_tracking_url?: string | null;
   delivery_dispatch_status?: string | null;
   order_note?: string | null;
+  cancelled_by?: string | null;
+  cancelled_at?: string | null;
 }
 
 interface OrderItemRecord {
@@ -279,6 +283,8 @@ export async function GET(request: NextRequest) {
         deliveryDispatchStatus: text(order.delivery_dispatch_status),
         pickupAddress: text(order.fulfillment_type) === 'pickup' ? pickupAddress : null,
         orderNote: text(order.order_note),
+        cancelledBy: text(order.cancelled_by),
+        cancelledAt: text(order.cancelled_at),
         items: orderItems,
       };
     });

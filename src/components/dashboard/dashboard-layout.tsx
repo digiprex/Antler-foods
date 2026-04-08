@@ -73,13 +73,13 @@ function isWebsitePath(pathname: string) {
 
 function isInformationPath(pathname: string) {
   return (
-    /^\/dashboard\/(admin|owner|manager)\/restaurants\/[^/]+\/information\/(brand|address|opening-hours|google-profile)(\/|$)/.test(pathname)
+    /^\/dashboard\/(admin|owner|manager)\/restaurants\/[^/]+\/information\/(brand|address|opening-hours|google-profile|bank-accounts)(\/|$)/.test(pathname)
   );
 }
 
 function isRestaurantWorkspacePath(pathname: string) {
   return (
-    /^\/dashboard\/(admin|owner|manager)\/(sales|menu|information|reviews|assets|opening-hours|locations)(\/|$)/.test(
+    /^\/dashboard\/(admin|owner|manager)\/(sales|menu|information|reviews|assets|opening-hours|locations|bank-accounts)(\/|$)/.test(
       pathname,
     ) ||
     /^\/dashboard\/(admin|owner|manager)\/restaurants\/[^/]+\/media(\/|$)/.test(

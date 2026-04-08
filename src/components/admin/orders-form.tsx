@@ -82,7 +82,13 @@ export default function OrdersForm({
     orderId: string;
     orderNumber: string;
     status: string;
+    orderTotal?: number;
+    paymentReference?: string | null;
   } | null>(null);
+
+  // Refund form state
+  const [refundType, setRefundType] = useState<'full' | 'partial'>('full');
+  const [refundAmount, setRefundAmount] = useState<string>('');
 
   // Track which order is currently being updated
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
@@ -175,6 +181,7 @@ export default function OrdersForm({
     orderId: string,
     status: string,
     paymentStatus?: string,
+    refundAmountValue?: number,
   ) => {
     setUpdatingOrderId(orderId);
     try {
@@ -188,6 +195,7 @@ export default function OrdersForm({
           action: 'update_status',
           status,
           payment_status: paymentStatus,
+          refund_amount: refundAmountValue,
         }),
       });
 
@@ -350,7 +358,14 @@ Subtotal: ${formatCurrency(order.sub_total)}`;
 
     receiptContent += `\n${'='.repeat(50)}
 TOTAL: ${formatCurrency(order.cart_total)}
-${'='.repeat(50)}
+${'='.repeat(50)}`;
+
+    if (order.refund_amount != null && order.refund_amount > 0) {
+      receiptContent += `\nREFUNDED: -${formatCurrency(order.refund_amount)}${order.payment_status === 'partially_refunded' ? ' (partial)' : ''}`;
+      receiptContent += `\n${'='.repeat(50)}`;
+    }
+
+    receiptContent += `
 
 ${order.payment_method ? `Payment Method: ${order.payment_method.replace('_', ' ').toUpperCase()}` : ''}
 ${order.payment_reference ? `Reference: ${order.payment_reference}` : ''}
@@ -609,6 +624,11 @@ Generated on: ${new Date().toLocaleString()}
             <span>TOTAL:</span>
             <span>${formatCurrency(order.cart_total)}</span>
         </div>
+        ${order.refund_amount != null && order.refund_amount > 0 ? `
+        <div class="total-line" style="color: #ea580c; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #fed7aa;">
+            <span>REFUNDED${order.payment_status === 'partially_refunded' ? ' (partial)' : ''}:</span>
+            <span>-${formatCurrency(order.refund_amount)}</span>
+        </div>` : ''}
     </div>
     
     <div class="section">
@@ -974,7 +994,11 @@ Generated on: ${new Date().toLocaleString()}
                             orderId: order.order_id,
                             orderNumber: order.order_number || order.order_id,
                             status: newStatus,
+                            orderTotal: order.cart_total || 0,
+                            paymentReference: order.payment_reference,
                           });
+                          setRefundType('full');
+                          setRefundAmount('');
                           // Reset the select to current value
                           e.target.value = order.status;
                         } else {
@@ -1220,12 +1244,22 @@ Generated on: ${new Date().toLocaleString()}
                 )}
 
                 {/* Refund Info */}
-                {order.status === 'refunded' && order.refunded_at && (
-                  <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg flex flex-wrap items-center gap-x-4 gap-y-1">
-                    <p className="text-sm text-orange-800">
-                      <span className="font-medium">Refunded at:</span>{' '}
-                      {formatDate(order.refunded_at)}
-                    </p>
+                {(order.payment_status === 'refunded' || order.payment_status === 'partially_refunded') && order.refunded_at && (
+                  <div className="mt-2 p-3 bg-gradient-to-r from-orange-50 to-orange-50/50 border border-orange-200 rounded-lg flex items-center gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100">
+                      <svg className="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-orange-900">
+                        {order.payment_status === 'partially_refunded' ? 'Partial Refund' : 'Full Refund'}
+                        {order.refund_amount ? (
+                          <span className="ml-1.5 text-orange-700">{formatCurrency(order.refund_amount)}</span>
+                        ) : null}
+                      </p>
+                      <p className="text-xs text-orange-600">{formatDate(order.refunded_at)}</p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1432,17 +1466,29 @@ Generated on: ${new Date().toLocaleString()}
                       )}
 
                       {/* Refund Info */}
-                      {selectedOrder.status === 'refunded' && selectedOrder.refunded_at && (
-                        <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 flex flex-wrap items-center gap-x-6 gap-y-2">
-                          <div className="flex items-center gap-2">
-                            <svg className="h-5 w-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-                            </svg>
-                            <span className="text-sm font-semibold text-orange-800">Order Refunded</span>
+                      {(selectedOrder.payment_status === 'refunded' || selectedOrder.payment_status === 'partially_refunded') && selectedOrder.refunded_at && (
+                        <div className="rounded-xl border border-orange-200 bg-gradient-to-b from-orange-50 to-orange-50/40 p-4">
+                          <div className="flex items-center gap-2.5 mb-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100">
+                              <svg className="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                              </svg>
+                            </div>
+                            <span className="text-sm font-semibold text-orange-900">
+                              {selectedOrder.payment_status === 'partially_refunded' ? 'Partial Refund Issued' : 'Full Refund Issued'}
+                            </span>
                           </div>
-                          <div>
-                            <span className="text-xs font-medium text-orange-600 uppercase tracking-wide">Refunded at</span>
-                            <p className="text-sm font-medium text-orange-900">{formatDate(selectedOrder.refunded_at)}</p>
+                          <div className="grid grid-cols-2 gap-3">
+                            {selectedOrder.refund_amount != null && selectedOrder.refund_amount > 0 && (
+                              <div className="rounded-lg bg-white/70 border border-orange-100 px-3 py-2.5">
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-orange-400">Refund Amount</p>
+                                <p className="mt-0.5 text-lg font-bold text-orange-700">{formatCurrency(selectedOrder.refund_amount)}</p>
+                              </div>
+                            )}
+                            <div className="rounded-lg bg-white/70 border border-orange-100 px-3 py-2.5">
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-orange-400">Refunded On</p>
+                              <p className="mt-0.5 text-sm font-medium text-orange-800">{formatDate(selectedOrder.refunded_at)}</p>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -2034,6 +2080,16 @@ Generated on: ${new Date().toLocaleString()}
                               </span>
                             </div>
                           </div>
+                          {selectedOrder.refund_amount != null && selectedOrder.refund_amount > 0 && (
+                            <div className="mt-2 flex justify-between border-t border-dashed border-orange-200 pt-2">
+                              <span className="text-sm font-semibold text-orange-700">
+                                Refunded{selectedOrder.payment_status === 'partially_refunded' ? ' (partial)' : ''}:
+                              </span>
+                              <span className="text-sm font-semibold text-orange-700">
+                                -{formatCurrency(selectedOrder.refund_amount)}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -2093,18 +2149,94 @@ Generated on: ${new Date().toLocaleString()}
                     : 'Refund Order'}
                 </h3>
                 <p className="mt-2 text-sm text-gray-600">
-                  Are you sure you want to{' '}
-                  <span className="font-medium text-gray-900">
-                    {confirmAction.status === ORDER_STATUSES.CANCELLED
-                      ? 'cancel'
-                      : 'refund'}
-                  </span>{' '}
-                  order{' '}
-                  <span className="font-medium text-gray-900">
-                    #{confirmAction.orderNumber}
-                  </span>
-                  ? This action cannot be undone.
+                  {confirmAction.status === ORDER_STATUSES.CANCELLED ? (
+                    <>
+                      Are you sure you want to{' '}
+                      <span className="font-medium text-gray-900">cancel</span>{' '}
+                      order{' '}
+                      <span className="font-medium text-gray-900">
+                        #{confirmAction.orderNumber}
+                      </span>
+                      ? This action cannot be undone.
+                    </>
+                  ) : (
+                    <>
+                      Refund order{' '}
+                      <span className="font-medium text-gray-900">
+                        #{confirmAction.orderNumber}
+                      </span>
+                      {' '}— total charged:{' '}
+                      <span className="font-medium text-gray-900">
+                        {formatCurrency(confirmAction.orderTotal || 0)}
+                      </span>
+                    </>
+                  )}
                 </p>
+
+                {confirmAction.status === ORDER_STATUSES.REFUNDED && (
+                  <div className="mt-4 space-y-3">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setRefundType('full'); setRefundAmount(''); }}
+                        className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                          refundType === 'full'
+                            ? 'border-orange-500 bg-orange-50 text-orange-700'
+                            : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        Full Refund
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRefundType('partial')}
+                        className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                          refundType === 'partial'
+                            ? 'border-orange-500 bg-orange-50 text-orange-700'
+                            : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        Partial Refund
+                      </button>
+                    </div>
+
+                    {refundType === 'full' ? (
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                        <p className="text-sm text-gray-600">
+                          Refund amount:{' '}
+                          <span className="font-semibold text-gray-900">
+                            {formatCurrency(confirmAction.orderTotal || 0)}
+                          </span>
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-600">
+                          Refund Amount (max {formatCurrency(confirmAction.orderTotal || 0)})
+                        </label>
+                        <div className="relative">
+                          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            max={confirmAction.orderTotal || 0}
+                            value={refundAmount}
+                            onChange={(e) => setRefundAmount(e.target.value)}
+                            placeholder="0.00"
+                            className="w-full rounded-lg border border-gray-300 py-2.5 pl-7 pr-3 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500"
+                          />
+                        </div>
+                        {refundAmount && Number(refundAmount) > (confirmAction.orderTotal || 0) && (
+                          <p className="mt-1 text-xs text-red-600">
+                            Amount cannot exceed {formatCurrency(confirmAction.orderTotal || 0)}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="mt-6 flex gap-3">
                   <button
                     onClick={() => setConfirmAction(null)}
@@ -2114,17 +2246,34 @@ Generated on: ${new Date().toLocaleString()}
                     Go Back
                   </button>
                   <button
-                    disabled={updatingOrderId === confirmAction.orderId}
+                    disabled={
+                      updatingOrderId === confirmAction.orderId ||
+                      (confirmAction.status === ORDER_STATUSES.REFUNDED &&
+                        refundType === 'partial' &&
+                        (!refundAmount || Number(refundAmount) <= 0 || Number(refundAmount) > (confirmAction.orderTotal || 0)))
+                    }
                     onClick={async () => {
-                      const paymentStatus =
-                        confirmAction.status === ORDER_STATUSES.REFUNDED
+                      if (confirmAction.status === ORDER_STATUSES.REFUNDED) {
+                        const amount =
+                          refundType === 'full'
+                            ? confirmAction.orderTotal || 0
+                            : Number(refundAmount);
+                        const isFullRefund = amount >= (confirmAction.orderTotal || 0);
+                        const paymentStatus = isFullRefund
                           ? PAYMENT_STATUSES.REFUNDED
-                          : undefined;
-                      await handleUpdateOrderStatus(
-                        confirmAction.orderId,
-                        confirmAction.status,
-                        paymentStatus,
-                      );
+                          : PAYMENT_STATUSES.PARTIALLY_REFUNDED;
+                        await handleUpdateOrderStatus(
+                          confirmAction.orderId,
+                          isFullRefund ? ORDER_STATUSES.REFUNDED : confirmAction.status,
+                          paymentStatus,
+                          amount,
+                        );
+                      } else {
+                        await handleUpdateOrderStatus(
+                          confirmAction.orderId,
+                          confirmAction.status,
+                        );
+                      }
                       setConfirmAction(null);
                     }}
                     className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
@@ -2136,7 +2285,7 @@ Generated on: ${new Date().toLocaleString()}
                     {updatingOrderId === confirmAction.orderId ? (
                       <span className="flex items-center justify-center gap-2">
                         <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                        Updating...
+                        {confirmAction.status === ORDER_STATUSES.REFUNDED ? 'Processing Refund...' : 'Updating...'}
                       </span>
                     ) : confirmAction.status === ORDER_STATUSES.CANCELLED
                       ? 'Yes, Cancel Order'

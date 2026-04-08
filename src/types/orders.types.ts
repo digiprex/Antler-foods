@@ -56,6 +56,7 @@ export interface Order {
   cancelled_by?: string | null;
   cancelled_at?: string | null;
   refunded_at?: string | null;
+  refund_amount?: number | null;
   placed_at?: string | null;
   order_number?: string | null;
   payment_method?: string | null;

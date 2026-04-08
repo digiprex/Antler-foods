@@ -55,7 +55,8 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
-import { sendOrderDeliveryStatusEmail } from '@/lib/server/email';
+import { getStripe } from '@/lib/server/stripe';
+import { sendOrderDeliveryStatusEmail, sendOrderRefundEmail } from '@/lib/server/email';
 
 /**
  * GraphQL query to fetch orders for a restaurant
@@ -107,6 +108,7 @@ const GET_ORDERS_QUERY = `
       cancelled_by
       cancelled_at
       refunded_at
+      refund_amount
       placed_at
       order_number
       payment_method
@@ -177,6 +179,7 @@ const UPDATE_ORDER_STATUS_MUTATION = `
     $cancelled_by: String
     $cancelled_at: timestamptz
     $refunded_at: timestamptz
+    $refund_amount: numeric
   ) {
     update_orders_by_pk(
       pk_columns: {order_id: $order_id}
@@ -187,6 +190,7 @@ const UPDATE_ORDER_STATUS_MUTATION = `
         cancelled_by: $cancelled_by
         cancelled_at: $cancelled_at
         refunded_at: $refunded_at
+        refund_amount: $refund_amount
       }
     ) {
       order_id
@@ -262,6 +266,7 @@ const GET_ORDER_FOR_EMAIL = `
       contact_first_name
       contact_last_name
       restaurant_id
+      cart_total
     }
   }
 `;
@@ -412,12 +417,45 @@ export async function PUT(request: NextRequest) {
 
     if (action === 'update_status') {
       // Quick status update
-      const { status, payment_status } = updateData;
+      const { status, payment_status, refund_amount } = updateData;
       if (!status) {
         return NextResponse.json(
           { error: 'status is required for status update' },
           { status: 400 }
         );
+      }
+
+      // Process Stripe refund if refund amount is provided
+      const isRefund = payment_status === 'refunded' || payment_status === 'partially_refunded';
+      let processedRefundAmount: number | null = null;
+
+      if (isRefund && typeof refund_amount === 'number' && refund_amount > 0) {
+        // Fetch the order to get payment_reference
+        const orderData = await adminGraphqlRequest<{
+          orders_by_pk?: { payment_reference?: string | null; cart_total?: number | null } | null;
+        }>(`query GetOrderPaymentRef($order_id: uuid!) { orders_by_pk(order_id: $order_id) { payment_reference cart_total } }`, { order_id });
+
+        const paymentReference = orderData.orders_by_pk?.payment_reference;
+        if (paymentReference) {
+          try {
+            const stripe = getStripe();
+            const refundAmountCents = Math.round(refund_amount * 100);
+            await stripe.refunds.create({
+              payment_intent: paymentReference,
+              amount: refundAmountCents,
+            });
+            processedRefundAmount = refund_amount;
+          } catch (stripeErr) {
+            console.error('[Orders API] Stripe refund failed:', stripeErr);
+            return NextResponse.json(
+              { error: stripeErr instanceof Error ? stripeErr.message : 'Stripe refund failed' },
+              { status: 500 }
+            );
+          }
+        } else {
+          // No Stripe payment reference — still allow DB status update
+          processedRefundAmount = refund_amount;
+        }
       }
 
       data = await adminGraphqlRequest(UPDATE_ORDER_STATUS_MUTATION, {
@@ -427,7 +465,8 @@ export async function PUT(request: NextRequest) {
         updated_at: updatedAt,
         cancelled_by: status === 'cancelled' ? 'restaurant' : null,
         cancelled_at: status === 'cancelled' ? updatedAt : null,
-        refunded_at: status === 'refunded' ? updatedAt : null,
+        refunded_at: isRefund ? updatedAt : null,
+        refund_amount: processedRefundAmount,
       });
     } else {
       // Full order update
@@ -504,6 +543,69 @@ export async function PUT(request: NextRequest) {
         }
       } catch (emailErr) {
         console.error('[Orders API] Failed to send cancellation email:', emailErr);
+      }
+    }
+
+    // Send refund email when a refund is processed
+    if (action === 'update_status' && (updateData.payment_status === 'refunded' || updateData.payment_status === 'partially_refunded')) {
+      try {
+        const orderData = await adminGraphqlRequest<{
+          orders_by_pk: {
+            order_id: string;
+            order_number?: string;
+            contact_email?: string;
+            contact_first_name?: string;
+            contact_last_name?: string;
+            restaurant_id?: string;
+            cart_total?: number | null;
+          } | null;
+        }>(GET_ORDER_FOR_EMAIL, { order_id });
+
+        const fullOrder = orderData.orders_by_pk;
+        const contactEmail = fullOrder?.contact_email?.trim();
+
+        if (fullOrder && contactEmail && typeof updateData.refund_amount === 'number' && updateData.refund_amount > 0) {
+          const customerName = [fullOrder.contact_first_name, fullOrder.contact_last_name]
+            .filter((v) => typeof v === 'string' && v.trim())
+            .join(' ') || null;
+          const orderNumber = fullOrder.order_number || fullOrder.order_id;
+          const orderTotal = typeof fullOrder.cart_total === 'number' ? fullOrder.cart_total : Number(fullOrder.cart_total) || 0;
+
+          let restaurantName = 'Restaurant';
+          let restaurantEmail: string | null = null;
+          let restaurantPhone: string | null = null;
+
+          if (fullOrder.restaurant_id) {
+            const restData = await adminGraphqlRequest<{
+              restaurants_by_pk: {
+                name?: string;
+                email?: string;
+                phone_number?: string;
+                poc_email?: string;
+                poc_phone_number?: string;
+              } | null;
+            }>(GET_RESTAURANT_FOR_EMAIL, { restaurant_id: fullOrder.restaurant_id });
+
+            const rest = restData.restaurants_by_pk;
+            restaurantName = rest?.name?.trim() || 'Restaurant';
+            restaurantEmail = rest?.poc_email?.trim() || rest?.email?.trim() || null;
+            restaurantPhone = rest?.poc_phone_number?.trim() || rest?.phone_number?.trim() || null;
+          }
+
+          await sendOrderRefundEmail(contactEmail, {
+            orderNumber,
+            restaurantName,
+            refundAmount: updateData.refund_amount,
+            orderTotal,
+            isPartial: updateData.payment_status === 'partially_refunded',
+            customerName,
+            restaurantEmail,
+            restaurantPhone,
+          });
+          console.log('[Orders API] Refund email sent to:', contactEmail, 'order:', orderNumber, 'amount:', updateData.refund_amount);
+        }
+      } catch (emailErr) {
+        console.error('[Orders API] Failed to send refund email:', emailErr);
       }
     }
 

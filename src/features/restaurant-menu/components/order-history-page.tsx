@@ -246,25 +246,29 @@ function OrderDetailModal({
 
           {/* Cancellation info */}
           {order.status.trim().toLowerCase() === 'cancelled' && (order.cancelledBy || order.cancelledAt) ? (
-            <div className="mt-4 rounded-[14px] border border-red-200 bg-red-50/60 p-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
-                <span className="text-sm font-semibold text-red-800">Order Cancelled</span>
+            <div className="mt-4 rounded-[14px] border border-red-200 bg-gradient-to-b from-red-50/80 to-red-50/40 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-100">
+                  <svg className="h-3.5 w-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+                <span className="text-sm font-semibold text-red-900">Order Cancelled</span>
               </div>
-              {order.cancelledBy ? (
-                <p className="text-xs text-red-700">
-                  <span className="font-medium">By:</span>{' '}
-                  <span className="capitalize">{order.cancelledBy}</span>
-                </p>
-              ) : null}
-              {order.cancelledAt ? (
-                <p className="text-xs text-red-700">
-                  <span className="font-medium">At:</span>{' '}
-                  {formatDate(order.cancelledAt)}
-                </p>
-              ) : null}
+              <div className="grid grid-cols-2 gap-3">
+                {order.cancelledBy ? (
+                  <div className="rounded-[10px] bg-white/70 border border-red-100 px-3 py-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">Cancelled By</p>
+                    <p className="mt-0.5 text-sm font-medium text-red-800 capitalize">{order.cancelledBy}</p>
+                  </div>
+                ) : null}
+                {order.cancelledAt ? (
+                  <div className="rounded-[10px] bg-white/70 border border-red-100 px-3 py-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">Cancelled On</p>
+                    <p className="mt-0.5 text-sm font-medium text-red-800">{formatDate(order.cancelledAt)}</p>
+                  </div>
+                ) : null}
+              </div>
             </div>
           ) : null}
 

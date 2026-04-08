@@ -1227,19 +1227,23 @@ Generated on: ${new Date().toLocaleString()}
 
                 {/* Cancellation Info */}
                 {order.status === 'cancelled' && (order.cancelled_by || order.cancelled_at) && (
-                  <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg flex flex-wrap items-center gap-x-4 gap-y-1">
-                    {order.cancelled_by && (
-                      <p className="text-sm text-red-800">
-                        <span className="font-medium">Cancelled by:</span>{' '}
-                        <span className="capitalize">{order.cancelled_by}</span>
+                  <div className="mt-2 p-3 bg-gradient-to-r from-red-50 to-red-50/50 border border-red-200 rounded-lg flex items-center gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100">
+                      <svg className="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-red-900">
+                        Order Cancelled
+                        {order.cancelled_by ? (
+                          <span className="ml-1.5 font-medium text-red-700">by <span className="capitalize">{order.cancelled_by}</span></span>
+                        ) : null}
                       </p>
-                    )}
-                    {order.cancelled_at && (
-                      <p className="text-sm text-red-800">
-                        <span className="font-medium">Cancelled at:</span>{' '}
-                        {formatDate(order.cancelled_at)}
-                      </p>
-                    )}
+                      {order.cancelled_at && (
+                        <p className="text-xs text-red-600">{formatDate(order.cancelled_at)}</p>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -1443,25 +1447,29 @@ Generated on: ${new Date().toLocaleString()}
 
                       {/* Cancellation Info */}
                       {selectedOrder.status === 'cancelled' && (selectedOrder.cancelled_by || selectedOrder.cancelled_at) && (
-                        <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex flex-wrap items-center gap-x-6 gap-y-2">
-                          <div className="flex items-center gap-2">
-                            <svg className="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                            </svg>
-                            <span className="text-sm font-semibold text-red-800">Order Cancelled</span>
+                        <div className="rounded-xl border border-red-200 bg-gradient-to-b from-red-50 to-red-50/40 p-4">
+                          <div className="flex items-center gap-2.5 mb-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
+                              <svg className="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </div>
+                            <span className="text-sm font-semibold text-red-900">Order Cancelled</span>
                           </div>
-                          {selectedOrder.cancelled_by && (
-                            <div>
-                              <span className="text-xs font-medium text-red-600 uppercase tracking-wide">Cancelled by</span>
-                              <p className="text-sm font-medium text-red-900 capitalize">{selectedOrder.cancelled_by}</p>
-                            </div>
-                          )}
-                          {selectedOrder.cancelled_at && (
-                            <div>
-                              <span className="text-xs font-medium text-red-600 uppercase tracking-wide">Cancelled at</span>
-                              <p className="text-sm font-medium text-red-900">{formatDate(selectedOrder.cancelled_at)}</p>
-                            </div>
-                          )}
+                          <div className="grid grid-cols-2 gap-3">
+                            {selectedOrder.cancelled_by && (
+                              <div className="rounded-lg bg-white/70 border border-red-100 px-3 py-2.5">
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">Cancelled By</p>
+                                <p className="mt-0.5 text-sm font-medium text-red-800 capitalize">{selectedOrder.cancelled_by}</p>
+                              </div>
+                            )}
+                            {selectedOrder.cancelled_at && (
+                              <div className="rounded-lg bg-white/70 border border-red-100 px-3 py-2.5">
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">Cancelled On</p>
+                                <p className="mt-0.5 text-sm font-medium text-red-800">{formatDate(selectedOrder.cancelled_at)}</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
 

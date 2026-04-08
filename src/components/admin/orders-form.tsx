@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Order,
@@ -30,6 +30,7 @@ import {
 } from '@/types/orders.types';
 import { generateInvoicePDF } from '@/lib/generate-invoice-pdf';
 import { generateKitchenTicketPDF } from '@/lib/generate-kitchen-ticket-pdf';
+import { useAutoPrintKOT, type PrinterSettings } from '@/hooks/use-auto-print-kot';
 
 function parseOfferApplied(value: unknown): OfferApplied | null {
   if (!value) return null;
@@ -92,6 +93,21 @@ export default function OrdersForm({
 
   // Track which order is currently being updated
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+
+  // Auto-print KOT
+  const [printerSettings, setPrinterSettings] = useState<PrinterSettings | null>(null);
+  const autoPrint = useAutoPrintKOT(restaurantId, restaurantName, printerSettings);
+
+  useEffect(() => {
+    fetch(`/api/admin/printer-settings?restaurant_id=${encodeURIComponent(restaurantId)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data.data) {
+          setPrinterSettings(data.data);
+        }
+      })
+      .catch(() => {});
+  }, [restaurantId]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -831,6 +847,16 @@ Generated on: ${new Date().toLocaleString()}
               <span className="rounded-full bg-blue-100 px-2.5 py-1 text-blue-800">
                 Page: {pagination.page} of {pagination.totalPages}
               </span>
+              {printerSettings?.autoPrintKot && printerSettings.printerName && (
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${
+                  autoPrint.isConnected
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-amber-100 text-amber-800'
+                }`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${autoPrint.isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                  {autoPrint.isConnected ? `Auto-Print ON${autoPrint.printedCount > 0 ? ` (${autoPrint.printedCount})` : ''}` : 'Auto-Print (connecting...)'}
+                </span>
+              )}
             </div>
           </div>
         </div>

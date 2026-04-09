@@ -144,6 +144,24 @@ async function graphqlRequest<T>(query: string, variables?: Record<string, unkno
 }
 
 /**
+ * Sort nav items according to a stored order (array of hrefs).
+ * Items not in the order list are appended at the end.
+ */
+function applyNavItemOrder(
+  items: Array<{ label: string; href: string }>,
+  order: string[] | undefined,
+): Array<{ label: string; href: string }> {
+  if (!order || !order.length) return items;
+
+  const orderMap = new Map(order.map((href, index) => [href, index]));
+  return [...items].sort((a, b) => {
+    const aIndex = orderMap.get(a.href) ?? Number.MAX_SAFE_INTEGER;
+    const bIndex = orderMap.get(b.href) ?? Number.MAX_SAFE_INTEGER;
+    return aIndex - bIndex;
+  });
+}
+
+/**
  * GET endpoint to fetch navbar configuration
  */
 export async function GET(request: Request) {
@@ -197,10 +215,15 @@ export async function GET(request: Request) {
     const globalStyles = restaurantData?.global_styles || null;
 
     // Transform web_pages to nav items
-    const navItems = ((data as any).web_pages || []).map((page: any) => ({
+    const rawNavItems = ((data as any).web_pages || []).map((page: any) => ({
       label: page.name,
       href: `/${page.url_slug}`,
     }));
+
+    // Apply stored order if available
+    const template0 = (data as any).templates?.[0];
+    const storedOrder: string[] | undefined = template0?.config?.navItemOrder;
+    const navItems = applyNavItemOrder(rawNavItems, storedOrder);
 
     if (!(data as any).templates || (data as any).templates.length === 0) {
       // Return default navbar configuration for new restaurants
@@ -351,6 +374,7 @@ export async function POST(request: Request) {
       buttonBgColor: body.buttonBgColor !== undefined ? body.buttonBgColor : existingConfig.buttonBgColor,
       buttonTextColor: body.buttonTextColor !== undefined ? body.buttonTextColor : existingConfig.buttonTextColor,
       buttonBorderRadius: body.buttonBorderRadius !== undefined ? body.buttonBorderRadius : existingConfig.buttonBorderRadius,
+      navItemOrder: body.navItemOrder !== undefined ? body.navItemOrder : existingConfig.navItemOrder,
     };
 
     // Step 3: Insert new template with preserved menu_items

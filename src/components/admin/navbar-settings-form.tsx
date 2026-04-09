@@ -166,6 +166,7 @@ export default function NavbarSettingsForm() {
   const [buttonBgColor, setButtonBgColor] = useState('#000000');
   const [buttonTextColor, setButtonTextColor] = useState('#ffffff');
   const [buttonBorderRadius, setButtonBorderRadius] = useState('0.5rem');
+  const [navItems, setNavItems] = useState<Array<{ label: string; href: string }>>([]);
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -218,6 +219,12 @@ export default function NavbarSettingsForm() {
       setButtonBgColor(config.buttonBgColor || '#000000');
       setButtonTextColor(config.buttonTextColor || '#ffffff');
       setButtonBorderRadius(config.buttonBorderRadius || '0.5rem');
+      setNavItems(
+        (config.leftNavItems || []).map((item) => ({
+          label: item.label,
+          href: item.href,
+        })),
+      );
     }
   }, [config]);
 
@@ -254,6 +261,7 @@ export default function NavbarSettingsForm() {
             href: orderButtonHref,
           }
           : undefined,
+        navItemOrder: navItems.map((item) => item.href),
       });
 
       setToastMessage('Navbar settings saved successfully!');
@@ -650,6 +658,91 @@ export default function NavbarSettingsForm() {
             </div>
           </div>
         </div>
+
+        {/* Navigation Items Section */}
+        {navItems.length > 0 && (
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                <svg
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Navigation Items</h3>
+                <p className="mt-0.5 text-sm text-gray-600">Drag to reorder menu links in the navbar</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {navItems.map((item, index) => (
+                <div
+                  key={item.href}
+                  className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 transition hover:border-purple-200 hover:bg-purple-50/30"
+                >
+                  {/* Drag handle / order number */}
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gray-100 text-xs font-bold text-gray-500">
+                    {index + 1}
+                  </div>
+
+                  {/* Item info */}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{item.label}</p>
+                    <p className="text-xs text-gray-500 truncate">{item.href}</p>
+                  </div>
+
+                  {/* Move buttons */}
+                  <div className="flex shrink-0 gap-1">
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => {
+                        const next = [...navItems];
+                        [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                        setNavItems(next);
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-500 transition hover:border-purple-300 hover:bg-purple-50 hover:text-purple-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-gray-200 disabled:hover:bg-transparent disabled:hover:text-gray-500"
+                      title="Move up"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === navItems.length - 1}
+                      onClick={() => {
+                        const next = [...navItems];
+                        [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                        setNavItems(next);
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-500 transition hover:border-purple-300 hover:bg-purple-50 hover:text-purple-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-gray-200 disabled:hover:bg-transparent disabled:hover:text-gray-500"
+                      title="Move down"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-3 text-xs text-gray-500">
+              Navigation items are sourced from your published pages. Use the up/down arrows to change their display order.
+            </p>
+          </div>
+        )}
 
         {/* Styling Section */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">

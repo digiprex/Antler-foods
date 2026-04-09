@@ -55,6 +55,9 @@ export interface NavbarConfig {
   fontWeight?: number;
   textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
   
+  // Navigation item ordering
+  navItemOrder?: string[]; // Array of hrefs defining display order
+
   // Additional features
   bagCount?: number;
   additionalText?: string; // For split layout

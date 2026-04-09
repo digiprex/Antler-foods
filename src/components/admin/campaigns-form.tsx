@@ -192,6 +192,9 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
   const [sendingKey, setSendingKey] = useState<string | null>(null);
   const [confirmSendKey, setConfirmSendKey] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
+  const [restaurantEmail, setRestaurantEmail] = useState<string | null>(null);
+  const [restaurantPhone, setRestaurantPhone] = useState<string | null>(null);
+  const [restaurantAddress, setRestaurantAddress] = useState<string | null>(null);
 
   // Expanded row in Table 1 for manual campaigns (audience + date/time + send)
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
@@ -218,6 +221,9 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to load');
       setStoredCampaigns(data.campaigns || []);
       setEmailLogs(data.email_logs || []);
+      setRestaurantEmail(data.restaurant_email || null);
+      setRestaurantPhone(data.restaurant_phone || null);
+      setRestaurantAddress(data.restaurant_address || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
     } finally {
@@ -918,6 +924,9 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                     <h1 className="text-2xl font-bold text-gray-900 text-center mb-4" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
                       {replaceVars(previewTemplate.heading)}
                     </h1>
+                    <p className="text-[16px] text-gray-700 mb-4" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
+                      Hi {'{{customer_name}}'},
+                    </p>
                     <div
                       className="text-[15px] leading-[1.7] text-gray-700 [&>p]:mb-3"
                       style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
@@ -926,6 +935,13 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                   </div>
                   <div className="bg-gray-50 border-t border-gray-200 px-7 py-5">
                     <p className="text-[13px] text-gray-500 text-center">Sent by {restaurantName}</p>
+                    {(restaurantEmail || restaurantPhone || restaurantAddress) && (
+                      <div className="mt-2 text-[12px] text-gray-400 text-center leading-relaxed">
+                        {[restaurantEmail, restaurantPhone, restaurantAddress]
+                          .filter(Boolean)
+                          .join(' | ')}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

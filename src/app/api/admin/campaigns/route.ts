@@ -388,16 +388,25 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'restaurant_id required' }, { status: 400 });
     }
 
-    // Fetch active campaigns and email logs
-    const [activeData, logsData] = await Promise.all([
+    // Fetch active campaigns, email logs, and restaurant info
+    const [activeData, logsData, restData] = await Promise.all([
       adminGraphqlRequest<any>(GET_CAMPAIGNS, { restaurant_id: restaurantId }),
       adminGraphqlRequest<any>(GET_EMAIL_LOGS, { restaurant_id: restaurantId }),
+      adminGraphqlRequest<any>(GET_RESTAURANT_INFO, { restaurant_id: restaurantId }),
     ]);
+
+    const rest = restData.restaurants_by_pk || {};
+    const restaurantAddress = [rest.address, rest.city, rest.state, rest.postal_code]
+      .filter(Boolean)
+      .join(', ') || null;
 
     return NextResponse.json({
       success: true,
       campaigns: activeData.campaigns || [],
       email_logs: logsData.email_logs || [],
+      restaurant_email: rest.email || null,
+      restaurant_phone: rest.phone_number || null,
+      restaurant_address: restaurantAddress,
     });
   } catch (err) {
     return NextResponse.json(

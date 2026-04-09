@@ -40,6 +40,7 @@ interface OrderHistoryOrder {
   cancelledBy: string | null;
   cancelledAt: string | null;
   refundedAt: string | null;
+  refundAmount: number | null;
   items: OrderHistoryItem[];
 }
 
@@ -245,41 +246,57 @@ function OrderDetailModal({
 
           {/* Cancellation info */}
           {order.status.trim().toLowerCase() === 'cancelled' && (order.cancelledBy || order.cancelledAt) ? (
-            <div className="mt-4 rounded-[14px] border border-red-200 bg-red-50/60 p-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
-                <span className="text-sm font-semibold text-red-800">Order Cancelled</span>
+            <div className="mt-4 rounded-[14px] border border-red-200 bg-gradient-to-b from-red-50/80 to-red-50/40 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-100">
+                  <svg className="h-3.5 w-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+                <span className="text-sm font-semibold text-red-900">Order Cancelled</span>
               </div>
-              {order.cancelledBy ? (
-                <p className="text-xs text-red-700">
-                  <span className="font-medium">By:</span>{' '}
-                  <span className="capitalize">{order.cancelledBy}</span>
-                </p>
-              ) : null}
-              {order.cancelledAt ? (
-                <p className="text-xs text-red-700">
-                  <span className="font-medium">At:</span>{' '}
-                  {formatDate(order.cancelledAt)}
-                </p>
-              ) : null}
+              <div className="grid grid-cols-2 gap-3">
+                {order.cancelledBy ? (
+                  <div className="rounded-[10px] bg-white/70 border border-red-100 px-3 py-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">Cancelled By</p>
+                    <p className="mt-0.5 text-sm font-medium text-red-800 capitalize">{order.cancelledBy}</p>
+                  </div>
+                ) : null}
+                {order.cancelledAt ? (
+                  <div className="rounded-[10px] bg-white/70 border border-red-100 px-3 py-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-red-400">Cancelled On</p>
+                    <p className="mt-0.5 text-sm font-medium text-red-800">{formatDate(order.cancelledAt)}</p>
+                  </div>
+                ) : null}
+              </div>
             </div>
           ) : null}
 
           {/* Refund info */}
-          {order.status.trim().toLowerCase() === 'refunded' && order.refundedAt ? (
-            <div className="mt-4 rounded-[14px] border border-orange-200 bg-orange-50/60 p-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <svg className="h-4 w-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-                </svg>
-                <span className="text-sm font-semibold text-orange-800">Order Refunded</span>
+          {(order.paymentStatus === 'refunded' || order.paymentStatus === 'partially_refunded') && order.refundedAt ? (
+            <div className="mt-4 rounded-[14px] border border-orange-200 bg-gradient-to-b from-orange-50/80 to-orange-50/40 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-orange-100">
+                  <svg className="h-3.5 w-3.5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                  </svg>
+                </div>
+                <span className="text-sm font-semibold text-orange-900">
+                  {order.paymentStatus === 'partially_refunded' ? 'Partial Refund Issued' : 'Full Refund Issued'}
+                </span>
               </div>
-              <p className="text-xs text-orange-700">
-                <span className="font-medium">At:</span>{' '}
-                {formatDate(order.refundedAt)}
-              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {order.refundAmount != null && order.refundAmount > 0 && (
+                  <div className="rounded-[10px] bg-white/70 border border-orange-100 px-3 py-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-orange-400">Refund Amount</p>
+                    <p className="mt-0.5 text-lg font-bold text-orange-700">{formatPrice(order.refundAmount)}</p>
+                  </div>
+                )}
+                <div className="rounded-[10px] bg-white/70 border border-orange-100 px-3 py-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-orange-400">Refunded On</p>
+                  <p className="mt-0.5 text-sm font-medium text-orange-800">{formatDate(order.refundedAt)}</p>
+                </div>
+              </div>
             </div>
           ) : null}
 
@@ -478,6 +495,12 @@ function OrderDetailModal({
                 <span>Total</span>
                 <span>{formatPrice(order.total)}</span>
               </div>
+              {order.refundAmount != null && order.refundAmount > 0 ? (
+                <div className="flex justify-between border-t border-orange-200 pt-2 text-sm font-semibold text-orange-700">
+                  <span>Refunded{order.paymentStatus === 'partially_refunded' ? ' (partial)' : ''}</span>
+                  <span>-{formatPrice(order.refundAmount)}</span>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

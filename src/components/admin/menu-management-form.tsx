@@ -1,16 +1,16 @@
-﻿'use client';
+'use client';
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
-import MenuFormModal from './menu-form-modal';
+import MenuFormModal, { DEFAULT_SCHEDULE } from './menu-form-modal';
+import type { MenuScheduleData } from './menu-form-modal';
 
 interface MenuManagementFormProps {
   restaurantId: string;
   restaurantName: string;
 }
 
-// Simplified menu interface matching the database schema
 interface Menu {
   menu_id: string;
   created_at: string;
@@ -22,6 +22,44 @@ interface Menu {
   varies_with_time: boolean;
 }
 
+interface ScheduleConfig {
+  enabled: boolean;
+  schedules: Record<string, MenuScheduleData>;
+  fallback_menu_id: string | null;
+}
+
+const EMPTY_SCHEDULE_CONFIG: ScheduleConfig = {
+  enabled: false,
+  schedules: {},
+  fallback_menu_id: null,
+};
+
+const DAYS_SHORT = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+function formatScheduleLabel(schedule: MenuScheduleData): string {
+  if (schedule.schedule_type === 'always') return 'Always available';
+
+  const time = `${formatTime(schedule.start_time)} - ${formatTime(schedule.end_time)}`;
+
+  if (schedule.schedule_type === 'date_range') {
+    const count = schedule.specific_dates.length;
+    return `${time} on ${count} specific date${count !== 1 ? 's' : ''}`;
+  }
+
+  if (schedule.days.length === 7) return `${time}, Every day`;
+  if (schedule.days.length === 5 && schedule.days.every((d) => d <= 5)) return `${time}, Weekdays`;
+  if (schedule.days.length === 2 && schedule.days.includes(6) && schedule.days.includes(7)) return `${time}, Weekends`;
+
+  return `${time}, ${schedule.days.map((d) => DAYS_SHORT[d]).join(', ')}`;
+}
+
+function formatTime(time: string): string {
+  if (!time) return '';
+  const [h, m] = time.split(':').map(Number);
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${suffix}`;
+}
+
 export default function MenuManagementForm({ restaurantId, restaurantName }: MenuManagementFormProps) {
   const router = useRouter();
   const [menus, setMenus] = useState<Menu[]>([]);
@@ -29,15 +67,16 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>(EMPTY_SCHEDULE_CONFIG);
+
   const [menuModalMode, setMenuModalMode] = useState<'create' | 'edit'>('create');
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [menuToDelete, setMenuToDelete] = useState<Menu | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  // Single active menu confirmation modal
+
   const [showActiveMenuModal, setShowActiveMenuModal] = useState(false);
-  const [pendingMenuData, setPendingMenuData] = useState<Pick<Menu, 'name' | 'varies_with_time' | 'is_active'> | null>(null);
+  const [pendingMenuData, setPendingMenuData] = useState<{ menu: Pick<Menu, 'name' | 'varies_with_time' | 'is_active'>; schedule: MenuScheduleData } | null>(null);
   const [currentActiveMenu, setCurrentActiveMenu] = useState<Menu | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -46,32 +85,32 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
     [menus, selectedMenuId],
   );
 
-  // Fetch menus from API
   const fetchMenus = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`/api/menus?restaurant_id=${restaurantId}`);
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch menus');
+
+      const [menusRes, scheduleRes] = await Promise.all([
+        fetch(`/api/menus?restaurant_id=${restaurantId}`),
+        fetch(`/api/menu-schedules?restaurant_id=${restaurantId}`),
+      ]);
+
+      const menusData = await menusRes.json();
+      const scheduleData = await scheduleRes.json();
+
+      if (!menusRes.ok) {
+        throw new Error(menusData.error || 'Failed to fetch menus');
       }
-      
-      const nextMenus = data.menus || [];
+
+      const nextMenus = menusData.menus || [];
       setMenus(nextMenus);
+      setScheduleConfig(scheduleData.config || EMPTY_SCHEDULE_CONFIG);
 
-      // Keep selection stable if possible, otherwise fall back to first menu.
       setSelectedMenuId((prevSelectedMenuId) => {
-        if (!nextMenus.length) {
-          return null;
-        }
-
+        if (!nextMenus.length) return null;
         const isStillValid = prevSelectedMenuId
           ? nextMenus.some((menu: Menu) => menu.menu_id === prevSelectedMenuId)
           : false;
-
         return isStillValid ? prevSelectedMenuId : nextMenus[0].menu_id;
       });
     } catch (err) {
@@ -81,7 +120,6 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
     }
   }, [restaurantId]);
 
-  // Load menus on component mount
   useEffect(() => {
     fetchMenus();
   }, [fetchMenus]);
@@ -90,6 +128,22 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
     setIsMounted(true);
     return () => setIsMounted(false);
   }, []);
+
+  const saveScheduleConfig = async (nextConfig: ScheduleConfig) => {
+    try {
+      await fetch('/api/menu-schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id: restaurantId,
+          config: nextConfig,
+        }),
+      });
+      setScheduleConfig(nextConfig);
+    } catch (err) {
+      console.error('Failed to save schedule config:', err);
+    }
+  };
 
   const openCreateMenu = () => {
     setMenuModalMode('create');
@@ -115,21 +169,30 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
       const response = await fetch(`/api/menus?menu_id=${menuToDelete.menu_id}`, {
         method: 'DELETE',
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to delete menu');
       }
-      
-      // Remove from local state and keep selection in sync without stale closures.
+
+      // Remove schedule for this menu
+      const nextConfig = { ...scheduleConfig };
+      delete nextConfig.schedules[menuToDelete.menu_id];
+      if (nextConfig.fallback_menu_id === menuToDelete.menu_id) {
+        nextConfig.fallback_menu_id = null;
+      }
+      // Check if any schedules remain
+      const hasTimeSchedules = Object.values(nextConfig.schedules).some(
+        (s) => s.schedule_type !== 'always',
+      );
+      nextConfig.enabled = hasTimeSchedules;
+      await saveScheduleConfig(nextConfig);
+
       setMenus((prevMenus) => {
         const nextMenus = prevMenus.filter((menu) => menu.menu_id !== menuToDelete.menu_id);
         setSelectedMenuId((prevSelectedMenuId) => {
-          if (prevSelectedMenuId !== menuToDelete.menu_id) {
-            return prevSelectedMenuId;
-          }
-
+          if (prevSelectedMenuId !== menuToDelete.menu_id) return prevSelectedMenuId;
           return nextMenus[0]?.menu_id ?? null;
         });
         return nextMenus;
@@ -149,35 +212,37 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
     setMenuToDelete(null);
   };
 
-  const saveMenu = async (payload: Pick<Menu, 'name' | 'varies_with_time' | 'is_active'>) => {
-    // Check if trying to activate a menu when another is already active
-    if (payload.is_active) {
-      const currentActiveMenu = menus.find(menu =>
+  const saveMenu = async (payload: Pick<Menu, 'name' | 'varies_with_time' | 'is_active'>, schedule: MenuScheduleData) => {
+    // Check if trying to activate a menu when another is already active (only when not using scheduling)
+    if (payload.is_active && schedule.schedule_type === 'always') {
+      const active = menus.find((menu) =>
         menu.is_active &&
-        (menuModalMode === 'create' || menu.menu_id !== selectedMenu?.menu_id)
+        (menuModalMode === 'create' || menu.menu_id !== selectedMenu?.menu_id),
       );
-      
-      if (currentActiveMenu) {
-        // Show confirmation modal
-        setCurrentActiveMenu(currentActiveMenu);
-        setPendingMenuData(payload);
-        setShowActiveMenuModal(true);
-        return;
+
+      // Only warn if the other active menu also has no schedule (is "always")
+      if (active) {
+        const otherSchedule = scheduleConfig.schedules[active.menu_id];
+        if (!otherSchedule || otherSchedule.schedule_type === 'always') {
+          setCurrentActiveMenu(active);
+          setPendingMenuData({ menu: payload, schedule });
+          setShowActiveMenuModal(true);
+          return;
+        }
       }
     }
-    
-    // Proceed with saving the menu
-    await performSaveMenu(payload);
+
+    await performSaveMenu(payload, schedule);
   };
 
-  const performSaveMenu = async (payload: Pick<Menu, 'name' | 'varies_with_time' | 'is_active'>) => {
+  const performSaveMenu = async (payload: Pick<Menu, 'name' | 'varies_with_time' | 'is_active'>, schedule: MenuScheduleData) => {
     try {
+      let savedMenuId: string | null = null;
+
       if (menuModalMode === 'create') {
         const response = await fetch('/api/menus', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             restaurant_id: restaurantId,
             name: payload.name,
@@ -185,24 +250,22 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
             varies_with_time: payload.varies_with_time,
           }),
         });
-        
+
         const data = await response.json();
-        
+
         if (!response.ok) {
           throw new Error(data.error || 'Failed to create menu');
         }
-        
-        // Add to local state
+
+        savedMenuId = data.menu.menu_id;
         setMenus((prevMenus) => [data.menu, ...prevMenus]);
         setSelectedMenuId(data.menu.menu_id);
       } else {
         if (!selectedMenu) return;
-        
+
         const response = await fetch('/api/menus', {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             menu_id: selectedMenu.menu_id,
             name: payload.name,
@@ -210,21 +273,43 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
             varies_with_time: payload.varies_with_time,
           }),
         });
-        
+
         const data = await response.json();
-        
+
         if (!response.ok) {
           throw new Error(data.error || 'Failed to update menu');
         }
-        
-        // Update local state
+
+        savedMenuId = selectedMenu.menu_id;
         setMenus((prevMenus) =>
           prevMenus.map((menu) =>
             menu.menu_id === selectedMenu.menu_id ? data.menu : menu,
           ),
         );
       }
-      
+
+      // Save schedule config
+      if (savedMenuId) {
+        const nextConfig = { ...scheduleConfig, schedules: { ...scheduleConfig.schedules } };
+        nextConfig.schedules[savedMenuId] = schedule;
+
+        const hasTimeSchedules = Object.values(nextConfig.schedules).some(
+          (s) => s.schedule_type !== 'always',
+        );
+        nextConfig.enabled = hasTimeSchedules;
+
+        // Auto-set fallback to first menu without a time schedule, or first menu
+        if (!nextConfig.fallback_menu_id) {
+          const fallback = menus.find((m) => {
+            const s = nextConfig.schedules[m.menu_id];
+            return m.is_active && (!s || s.schedule_type === 'always');
+          });
+          nextConfig.fallback_menu_id = fallback?.menu_id || menus[0]?.menu_id || null;
+        }
+
+        await saveScheduleConfig(nextConfig);
+      }
+
       setShowMenuModal(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to save menu');
@@ -235,12 +320,9 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
     if (!pendingMenuData || !currentActiveMenu) return;
 
     try {
-      // First deactivate the current active menu
       const deactivateResponse = await fetch('/api/menus', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           menu_id: currentActiveMenu.menu_id,
           name: currentActiveMenu.name,
@@ -254,7 +336,6 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
         throw new Error(data.error || 'Failed to deactivate current menu');
       }
 
-      // Update local state to deactivate the current menu
       setMenus((prevMenus) =>
         prevMenus.map((menu) =>
           menu.menu_id === currentActiveMenu.menu_id
@@ -263,10 +344,8 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
         ),
       );
 
-      // Now save the new menu with active status
-      await performSaveMenu(pendingMenuData);
-      
-      // Close the confirmation modal
+      await performSaveMenu(pendingMenuData.menu, pendingMenuData.schedule);
+
       setShowActiveMenuModal(false);
       setPendingMenuData(null);
       setCurrentActiveMenu(null);
@@ -327,11 +406,30 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
 
   return (
     <div className="space-y-6">
+      {/* Scheduling Status Banner */}
+      {scheduleConfig.enabled ? (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100">
+              <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-blue-900">Time-based scheduling is active</p>
+              <p className="text-xs text-blue-700">
+                Menus will auto-switch based on configured time schedules. Make sure all scheduled menus are set to active.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Menus</h2>
-            <p className="text-sm text-gray-600">Create, edit, delete, and open a menu to manage its categories and items.</p>
+            <p className="text-sm text-gray-600">Create menus and configure time-based schedules for auto-switching (breakfast, lunch, dinner).</p>
           </div>
           <button
             onClick={openCreateMenu}
@@ -343,51 +441,60 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {menus.map((menu) => (
-            <button
-              key={menu.menu_id}
-              onClick={() => openMenuDetails(menu)}
-              className="rounded-lg border border-gray-200 bg-white p-4 text-left transition hover:border-purple-300 hover:bg-purple-50"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-gray-900">{menu.name}</p>
-                    {menu.varies_with_time && (
-                      <div className="flex items-center gap-1">
-                        <svg className="h-3 w-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="text-xs font-medium text-blue-600">Time-based</span>
-                      </div>
-                    )}
-                  </div>
-                  {menu.varies_with_time && (
-                    <p className="mt-1 text-xs text-gray-600">Varies with time</p>
-                  )}
-                  <p className="mt-1 text-xs text-gray-500">Updated {new Date(menu.updated_at).toLocaleString()}</p>
-                </div>
-                <span className={`rounded-full px-2 py-0.5 text-xs ${menu.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                  {menu.is_active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
+          {menus.map((menu) => {
+            const menuSchedule = scheduleConfig.schedules[menu.menu_id];
+            const hasSchedule = menuSchedule && menuSchedule.schedule_type !== 'always';
 
-              <div className="mt-4 flex gap-2" onClick={(event) => event.stopPropagation()}>
-                <button
-                  onClick={() => openEditMenu(menu.menu_id)}
-                  className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => openDeleteModal(menu)}
-                  className="rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50"
-                >
-                  Delete
-                </button>
-              </div>
-            </button>
-          ))}
+            return (
+              <button
+                key={menu.menu_id}
+                onClick={() => openMenuDetails(menu)}
+                className="rounded-lg border border-gray-200 bg-white p-4 text-left transition hover:border-purple-300 hover:bg-purple-50"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-900">{menu.name}</p>
+                      {hasSchedule && (
+                        <div className="flex items-center gap-1">
+                          <svg className="h-3 w-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-xs font-medium text-blue-600">Scheduled</span>
+                        </div>
+                      )}
+                    </div>
+                    {hasSchedule && menuSchedule ? (
+                      <p className="mt-1 text-xs text-blue-700 bg-blue-50 rounded px-1.5 py-0.5 inline-block">
+                        {formatScheduleLabel(menuSchedule)}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-gray-500">Always available</p>
+                    )}
+                    <p className="mt-1 text-xs text-gray-400">Updated {new Date(menu.updated_at).toLocaleString()}</p>
+                  </div>
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${menu.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                    {menu.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+
+                <div className="mt-4 flex gap-2" onClick={(event) => event.stopPropagation()}>
+                  <button
+                    onClick={() => openEditMenu(menu.menu_id)}
+                    className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => openDeleteModal(menu)}
+                    className="rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {menus.length === 0 && !loading ? (
@@ -402,6 +509,11 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
         onClose={() => setShowMenuModal(false)}
         onSave={saveMenu}
         menu={menuModalMode === 'edit' ? selectedMenu : null}
+        schedule={
+          menuModalMode === 'edit' && selectedMenu
+            ? scheduleConfig.schedules[selectedMenu.menu_id] || null
+            : null
+        }
         mode={menuModalMode}
       />
 
@@ -425,9 +537,9 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
                   <p className="text-sm text-gray-600">This action cannot be undone.</p>
                 </div>
               </div>
-              
+
               <p className="text-sm text-gray-700 mb-6">
-                Are you sure you want to delete "<span className="font-medium">{menuToDelete?.name}</span>"?
+                Are you sure you want to delete &ldquo;<span className="font-medium">{menuToDelete?.name}</span>&rdquo;?
                 This will permanently remove the menu and all its associated data.
               </p>
 
@@ -477,11 +589,11 @@ export default function MenuManagementForm({ restaurantId, restaurantName }: Men
                   <p className="text-sm text-gray-600">Only one menu can be active at a time.</p>
                 </div>
               </div>
-              
+
               <p className="text-sm text-gray-700 mb-6">
-                The menu "<span className="font-medium">{currentActiveMenu.name}</span>" is currently active.
+                The menu &ldquo;<span className="font-medium">{currentActiveMenu.name}</span>&rdquo; is currently active.
                 {menuModalMode === 'create'
-                  ? ` Do you want to deactivate it and make "${pendingMenuData?.name}" active instead?`
+                  ? ` Do you want to deactivate it and make "${pendingMenuData?.menu.name}" active instead?`
                   : ` Do you want to deactivate it and make "${selectedMenu?.name}" active instead?`
                 }
               </p>

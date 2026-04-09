@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useHasuraClaims, useUserData } from '@nhost/react';
 import toast from 'react-hot-toast';
+import { getRoleFromHasuraClaims, getUserRole } from '@/lib/auth/get-user-role';
 
 interface OrderSettingsFormProps {
   restaurantId: string;
@@ -174,6 +176,13 @@ export default function OrderSettingsForm({
   restaurantId,
   restaurantName,
 }: OrderSettingsFormProps) {
+  const user = useUserData();
+  const hasuraClaims = useHasuraClaims();
+  const roleFromClaims = getRoleFromHasuraClaims(hasuraClaims);
+  const roleFromUser = user ? getUserRole(user) : null;
+  const role = roleFromClaims && roleFromClaims !== 'user' ? roleFromClaims : roleFromUser;
+  const isManager = role === 'manager';
+
   const [allowTips, setAllowTips] = useState(true);
   const [pickupAllowed, setPickupAllowed] = useState(true);
   const [deliveryAllowed, setDeliveryAllowed] = useState(true);
@@ -720,6 +729,11 @@ export default function OrderSettingsForm({
               <p className="mt-1 text-xs text-gray-600">
                 Tax percentage applied to the subtotal at checkout. Set to 0 to disable tax.
               </p>
+              {isManager && (
+                <p className="mt-1 text-xs text-amber-600">
+                  Only admins can change the tax rate.
+                </p>
+              )}
             </div>
             <div className="flex overflow-hidden rounded-lg border border-gray-300 bg-white">
               <input
@@ -731,7 +745,8 @@ export default function OrderSettingsForm({
                 placeholder="5"
                 value={transactionTaxRate}
                 onChange={(e) => setTransactionTaxRate(e.target.value)}
-                className="w-20 px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                disabled={isManager}
+                className={`w-20 px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 ${isManager ? 'cursor-not-allowed bg-gray-100 text-gray-500' : ''}`}
               />
               <span className="inline-flex items-center border-l border-gray-300 bg-gray-50 px-3 text-sm text-gray-700">%</span>
             </div>

@@ -580,6 +580,7 @@ export async function sendOrderInvoiceEmail(
             <td colspan="2" style="padding:8px 0;font-size:16px;font-weight:700;">Total</td>
             <td style="padding:8px 0;font-size:16px;font-weight:700;text-align:right;">${total}</td>
           </tr>
+          ${typeof order.refund_amount === 'number' && order.refund_amount > 0 ? `<tr style="border-top:1px dashed #fed7aa;"><td colspan="2" style="padding:6px 0;font-size:14px;color:#ea580c;font-weight:600;">Refunded${order.payment_status === 'partially_refunded' ? ' (partial)' : ''}</td><td style="padding:6px 0;font-size:14px;text-align:right;color:#ea580c;font-weight:600;">-${formatCurrency(order.refund_amount)}</td></tr>` : ''}
         </table>
 
         ${order.payment_method ? `<p style="margin:16px 0 0;font-size:13px;color:#78716c;">Paid via ${order.payment_method}</p>` : ''}
@@ -1137,6 +1138,113 @@ export async function sendOrderPickupReadyEmail(
     from: DEFAULT_FROM,
     to,
     subject: `Your order is ready for pickup - Order ${data.orderNumber}`,
+    text: textContent,
+    html: htmlContent,
+  });
+}
+
+export interface OrderRefundEmailData {
+  orderNumber: string;
+  restaurantName: string;
+  customerName?: string | null;
+  refundAmount: number;
+  orderTotal: number;
+  isPartial: boolean;
+  restaurantEmail?: string | null;
+  restaurantPhone?: string | null;
+}
+
+export async function sendOrderRefundEmail(
+  to: string,
+  data: OrderRefundEmailData,
+): Promise<void> {
+  const transporter = createTransporter();
+  const customerLabel = data.customerName?.trim() || 'there';
+  const heading = data.isPartial ? 'Partial Refund Issued' : 'Refund Issued';
+  const subjectLine = data.isPartial
+    ? `Partial refund issued - Order ${data.orderNumber}`
+    : `Refund issued - Order ${data.orderNumber}`;
+  const message = data.isPartial
+    ? `A partial refund of <strong>${formatCurrency(data.refundAmount)}</strong> has been issued for your order <strong>${data.orderNumber}</strong>. The original order total was ${formatCurrency(data.orderTotal)}.`
+    : `A full refund of <strong>${formatCurrency(data.refundAmount)}</strong> has been issued for your order <strong>${data.orderNumber}</strong>.`;
+  const note = 'Please allow 5–10 business days for the refund to appear on your statement.';
+
+  const contactBlock =
+    data.restaurantEmail || data.restaurantPhone
+      ? `
+    <div style="margin-top:24px;padding:24px 28px;border-top:1px solid #e7e5e4;text-align:center;">
+      <p style="margin:0 0 4px;font-size:13px;color:#78716c;">Questions about your refund? Contact us</p>
+      <p style="margin:0;font-size:13px;color:#0f172a;">
+        ${data.restaurantEmail ? `<a href="mailto:${data.restaurantEmail}" style="color:#0f172a;text-decoration:underline;">${data.restaurantEmail}</a>` : ''}
+        ${data.restaurantEmail && data.restaurantPhone ? ' &nbsp;|&nbsp; ' : ''}
+        ${data.restaurantPhone ? `<a href="tel:${data.restaurantPhone}" style="color:#0f172a;text-decoration:underline;">${data.restaurantPhone}</a>` : ''}
+      </p>
+    </div>
+    `
+      : '';
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fafaf9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e7e5e4;overflow:hidden;">
+      <div style="padding:32px 24px;border-bottom:1px solid #e7e5e4;">
+        <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;color:#0f172a;">${heading}</h1>
+        <p style="margin:0;font-size:13px;color:#78716c;">${data.restaurantName}</p>
+      </div>
+      <div style="padding:24px;">
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">Hi ${customerLabel},</p>
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
+          ${message}
+        </p>
+        <table style="width:100%;margin-bottom:20px;font-size:14px;color:#1e293b;">
+          <tr>
+            <td style="padding:4px 0;"><strong>Order #</strong></td>
+            <td style="padding:4px 0;">${data.orderNumber}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;"><strong>Order Total</strong></td>
+            <td style="padding:4px 0;">${formatCurrency(data.orderTotal)}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;"><strong>Refund Amount</strong></td>
+            <td style="padding:4px 0;font-weight:600;color:#ea580c;">${formatCurrency(data.refundAmount)}</td>
+          </tr>
+        </table>
+        <p style="margin:0;font-size:13px;color:#78716c;">${note}</p>
+      </div>
+    </div>
+    ${contactBlock}
+  </div>
+</body>
+</html>`;
+
+  const textContent = [
+    `${data.restaurantName} - ${heading}`,
+    '',
+    `Hi ${customerLabel},`,
+    '',
+    data.isPartial
+      ? `A partial refund of ${formatCurrency(data.refundAmount)} has been issued for your order ${data.orderNumber}. The original order total was ${formatCurrency(data.orderTotal)}.`
+      : `A full refund of ${formatCurrency(data.refundAmount)} has been issued for your order ${data.orderNumber}.`,
+    '',
+    `Order #: ${data.orderNumber}`,
+    `Order Total: ${formatCurrency(data.orderTotal)}`,
+    `Refund Amount: ${formatCurrency(data.refundAmount)}`,
+    '',
+    note,
+    '',
+    data.restaurantEmail || data.restaurantPhone ? 'Questions about your refund? Contact us:' : '',
+    data.restaurantEmail ? `Email: ${data.restaurantEmail}` : '',
+    data.restaurantPhone ? `Phone: ${data.restaurantPhone}` : '',
+  ].filter(Boolean).join('\n');
+
+  await transporter.sendMail({
+    from: DEFAULT_FROM,
+    to,
+    subject: subjectLine,
     text: textContent,
     html: htmlContent,
   });

@@ -27,6 +27,20 @@ interface StoredCampaign {
   updated_at: string;
 }
 
+interface EmailLog {
+  email_log_id: string;
+  campaign_id: string | null;
+  template_key: string;
+  customer_id: string | null;
+  recipient_email: string;
+  recipient_name: string | null;
+  subject: string;
+  status: string;
+  error_message: string | null;
+  trigger: string;
+  created_at: string;
+}
+
 interface CampaignsFormProps {
   restaurantId: string;
   restaurantName: string;
@@ -40,6 +54,7 @@ interface TemplateDefinition {
   heading: string;
   body: string;
   default_audience: string;
+  trigger: 'manual' | 'auto_signup';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,6 +70,7 @@ const PREDEFINED_TEMPLATES: TemplateDefinition[] = [
     heading: 'Welcome to {restaurant}!',
     body: '<p>We\'re thrilled to have you join the {restaurant} family!</p><p>Explore our carefully crafted menu and discover dishes that will delight your taste buds. Whether you\'re craving something familiar or looking to try something new, we\'ve got you covered.</p><p>Your next great meal is just a click away.</p>',
     default_audience: 'all_customers',
+    trigger: 'auto_signup',
   },
   {
     key: 'we_miss_you',
@@ -64,6 +80,7 @@ const PREDEFINED_TEMPLATES: TemplateDefinition[] = [
     heading: 'It\'s been a while!',
     body: '<p>We noticed you haven\'t visited us in a while, and we miss you!</p><p>Come back and enjoy the flavors you love. We\'ve been working on exciting new dishes and can\'t wait for you to try them.</p><p>Order today and rediscover what makes {restaurant} special.</p>',
     default_audience: 'ordered_last_90',
+    trigger: 'manual',
   },
   {
     key: 'thank_you',
@@ -73,6 +90,7 @@ const PREDEFINED_TEMPLATES: TemplateDefinition[] = [
     heading: 'Thank You!',
     body: '<p>Thank you for choosing {restaurant}! We hope you enjoyed every bite.</p><p>Your support means the world to us. We\'re always striving to bring you the best food and experience possible.</p><p>We\'d love to see you again soon!</p>',
     default_audience: 'ordered_last_30',
+    trigger: 'manual',
   },
   {
     key: 'special_offer',
@@ -82,6 +100,7 @@ const PREDEFINED_TEMPLATES: TemplateDefinition[] = [
     heading: 'A Special Treat Just for You',
     body: '<p>As a valued customer of {restaurant}, we have a special offer just for you!</p><p>Don\'t miss out on this exclusive deal. It\'s our way of saying thank you for being a part of our community.</p><p>Hurry — this offer won\'t last forever!</p>',
     default_audience: 'all_customers',
+    trigger: 'manual',
   },
   {
     key: 'new_menu_items',
@@ -91,6 +110,7 @@ const PREDEFINED_TEMPLATES: TemplateDefinition[] = [
     heading: 'Something New to Try!',
     body: '<p>Exciting news from {restaurant}! We\'ve added delicious new items to our menu.</p><p>From new appetizers to fresh entrees, there\'s something for everyone. Be among the first to try our latest creations.</p><p>Check out what\'s new today!</p>',
     default_audience: 'all_customers',
+    trigger: 'manual',
   },
   {
     key: 'feedback_request',
@@ -100,6 +120,7 @@ const PREDEFINED_TEMPLATES: TemplateDefinition[] = [
     heading: 'We\'d Love Your Feedback',
     body: '<p>Thank you for dining with {restaurant}! We hope you had a wonderful experience.</p><p>Your feedback helps us improve and serve you better. We\'d love to hear what you think — it only takes a moment.</p><p>Share your thoughts with us today!</p>',
     default_audience: 'ordered_last_30',
+    trigger: 'manual',
   },
   {
     key: 'loyalty_reward',
@@ -109,6 +130,7 @@ const PREDEFINED_TEMPLATES: TemplateDefinition[] = [
     heading: 'You Deserve Something Special',
     body: '<p>You\'re one of our most valued customers at {restaurant}, and we want to show our appreciation!</p><p>As a loyal member of our community, you\'ve earned a special reward. Thank you for your continued support.</p><p>Claim your reward now!</p>',
     default_audience: 'opted_in',
+    trigger: 'manual',
   },
   {
     key: 'seasonal_special',
@@ -118,6 +140,7 @@ const PREDEFINED_TEMPLATES: TemplateDefinition[] = [
     heading: 'Seasonal Favorites Are Here',
     body: '<p>{restaurant} is celebrating the season with special limited-time dishes!</p><p>Our chefs have crafted unique seasonal flavors that capture the spirit of the moment. These dishes are available for a limited time only.</p><p>Don\'t miss out — try them before they\'re gone!</p>',
     default_audience: 'all_customers',
+    trigger: 'manual',
   },
   {
     key: 'lazy_sunday',
@@ -127,6 +150,7 @@ const PREDEFINED_TEMPLATES: TemplateDefinition[] = [
     heading: 'Kick Back This Sunday',
     body: '<p>Sundays are for relaxing — let {restaurant} take care of the cooking!</p><p>Whether it\'s a cozy brunch, a hearty lunch, or a laid-back dinner, we\'ve got the perfect dishes to make your Sunday even better.</p><p>Skip the kitchen and treat yourself. You deserve it!</p>',
     default_audience: 'all_customers',
+    trigger: 'manual',
   },
 ];
 
@@ -144,7 +168,7 @@ function isScheduledInFuture(date: string, time: string): boolean {
   return new Date(dateTime) > new Date();
 }
 
-function formatDate(dateStr: string) {
+function formatDateTime(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -154,76 +178,6 @@ function formatDate(dateStr: string) {
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Template Icons
-// ─────────────────────────────────────────────────────────────────────────────
-
-function TemplateIcon({ templateKey }: { templateKey: string }) {
-  const cls = 'h-5 w-5';
-  switch (templateKey) {
-    case 'welcome_email':
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z" />
-        </svg>
-      );
-    case 'we_miss_you':
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-        </svg>
-      );
-    case 'thank_you':
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6.633 10.5c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3.75a.75.75 0 01.75-.75A2.25 2.25 0 0116.5 5.25c0 .896-.393 1.7-1.016 2.25m-3.859 3H6.75A2.25 2.25 0 004.5 12.75v.75a2.25 2.25 0 002.25 2.25h.008a2.25 2.25 0 002.25-2.25V12.75zM16.5 7.5h.008v.008H16.5V7.5zm-3.75 3h7.5a2.25 2.25 0 012.25 2.25v.75a2.25 2.25 0 01-2.25 2.25h-.008a2.25 2.25 0 01-2.25-2.25V12.75z" />
-        </svg>
-      );
-    case 'special_offer':
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
-        </svg>
-      );
-    case 'new_menu_items':
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-        </svg>
-      );
-    case 'feedback_request':
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-        </svg>
-      );
-    case 'loyalty_reward':
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-        </svg>
-      );
-    case 'seasonal_special':
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
-        </svg>
-      );
-    case 'lazy_sunday':
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
-        </svg>
-      );
-    default:
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-        </svg>
-      );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
@@ -231,6 +185,7 @@ function TemplateIcon({ templateKey }: { templateKey: string }) {
 
 export default function CampaignsForm({ restaurantId, restaurantName }: CampaignsFormProps) {
   const [storedCampaigns, setStoredCampaigns] = useState<StoredCampaign[]>([]);
+  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -238,7 +193,10 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
   const [confirmSendKey, setConfirmSendKey] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
 
-  // Local overrides for instant UI updates (no API call until debounce fires)
+  // Expanded row in Table 1 for manual campaigns (audience + date/time + send)
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+
+  // Local overrides for instant UI updates
   const [localOverrides, setLocalOverrides] = useState<Record<string, Partial<StoredCampaign>>>({});
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const storedRef = useRef(storedCampaigns);
@@ -259,6 +217,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to load');
       setStoredCampaigns(data.campaigns || []);
+      setEmailLogs(data.email_logs || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
     } finally {
@@ -270,7 +229,6 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     fetchCampaigns();
   }, [fetchCampaigns]);
 
-  // Cleanup debounce timers on unmount
   useEffect(() => {
     const timers = debounceTimers.current;
     return () => {
@@ -279,15 +237,12 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
   }, []);
 
   const getStoredConfig = useCallback(
-    (key: string): StoredCampaign | undefined => {
-      return storedCampaigns.find((c) => c.template_key === key);
-    },
+    (key: string): StoredCampaign | undefined => storedCampaigns.find((c) => c.template_key === key),
     [storedCampaigns],
   );
 
   const replaceVars = (text: string) => text.replace(/\{restaurant\}/g, restaurantName);
 
-  // Resolve the effective value for a template field (local override > stored > default)
   const getEffective = (templateKey: string, field: keyof StoredCampaign, fallback: unknown) => {
     const override = localOverrides[templateKey]?.[field];
     if (override !== undefined) return override;
@@ -297,15 +252,30 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     return fallback;
   };
 
-  // Save to API silently (no loading spinners, no re-fetch)
   const persistToApi = useCallback(
     async (templateKey: string, overrides: Partial<StoredCampaign>) => {
       try {
         const existing = storedRef.current.find((c) => c.template_key === templateKey);
         const template = PREDEFINED_TEMPLATES.find((t) => t.key === templateKey)!;
 
+        const isReEnabling =
+          overrides.enabled === true &&
+          existing &&
+          !existing.enabled &&
+          (existing.status === 'sent' || existing.status === 'scheduled');
+
+        // If re-enabling a previously sent/scheduled campaign, soft-delete the old
+        // record and create a fresh one so the history is preserved.
+        if (isReEnabling) {
+          await fetch('/api/admin/campaigns', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ campaign_id: existing.campaign_id }),
+          });
+        }
+
         let res: Response;
-        if (existing) {
+        if (existing && !isReEnabling) {
           res = await fetch('/api/admin/campaigns', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -328,6 +298,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
             }),
           });
         } else {
+          // New campaign or re-enabling (old one was soft-deleted above)
           res = await fetch('/api/admin/campaigns', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -350,21 +321,23 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.error || 'Failed to save');
 
-        // Update stored campaigns with the response
         const campaign = data.campaign;
         if (campaign) {
           setStoredCampaigns((prev) => {
-            const idx = prev.findIndex((c) => c.template_key === templateKey);
+            // Remove any soft-deleted entry for this template and add/update with fresh one
+            const filtered = isReEnabling
+              ? prev.filter((c) => c.campaign_id !== existing.campaign_id)
+              : prev;
+            const idx = filtered.findIndex((c) => c.template_key === templateKey);
             if (idx >= 0) {
-              const next = [...prev];
+              const next = [...filtered];
               next[idx] = campaign;
               return next;
             }
-            return [campaign, ...prev];
+            return [campaign, ...filtered];
           });
         }
 
-        // Clear local overrides
         setLocalOverrides((prev) => {
           const next = { ...prev };
           delete next[templateKey];
@@ -378,24 +351,20 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     [restaurantId, restaurantName],
   );
 
-  // Update a field locally and debounce the API save
   const updateField = (templateKey: string, field: keyof StoredCampaign, value: unknown) => {
     const updated = { ...localOverrides[templateKey], [field]: value };
     setLocalOverrides((prev) => ({ ...prev, [templateKey]: updated }));
 
-    // Clear existing debounce for this template
     if (debounceTimers.current[templateKey]) {
       clearTimeout(debounceTimers.current[templateKey]);
     }
 
-    // Debounce save (800ms)
     debounceTimers.current[templateKey] = setTimeout(() => {
       persistToApi(templateKey, updated);
       delete debounceTimers.current[templateKey];
     }, 800);
   };
 
-  // Toggle saves immediately (no debounce)
   const handleToggle = (key: string, currentEnabled: boolean) => {
     const newEnabled = !currentEnabled;
     setLocalOverrides((prev) => ({
@@ -403,7 +372,6 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
       [key]: { ...prev[key], enabled: newEnabled },
     }));
 
-    // Clear any pending debounce — flush everything together
     if (debounceTimers.current[key]) {
       clearTimeout(debounceTimers.current[key]);
       delete debounceTimers.current[key];
@@ -412,20 +380,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     persistToApi(key, { ...localOverrides[key], enabled: newEnabled });
   };
 
-  const handleAudienceChange = (key: string, audience: string) => {
-    updateField(key, 'audience', audience);
-  };
-
-  const handleDateChange = (key: string, date: string) => {
-    updateField(key, 'scheduled_date', date || null);
-  };
-
-  const handleTimeChange = (key: string, time: string) => {
-    updateField(key, 'scheduled_time', time || null);
-  };
-
   const handleSend = async (templateKey: string) => {
-    // Flush any pending saves first
     if (debounceTimers.current[templateKey]) {
       clearTimeout(debounceTimers.current[templateKey]);
       delete debounceTimers.current[templateKey];
@@ -452,20 +407,19 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
         `Sent! ${data.sent_count} delivered, ${data.failed_count} failed out of ${data.total}.`,
       );
 
-      // Update stored state with send results
+      const updatedCampaign = {
+        ...existing,
+        status: 'sent',
+        sent_at: new Date().toISOString(),
+        sent_count: data.sent_count,
+        failed_count: data.failed_count,
+      };
+
       setStoredCampaigns((prev) =>
-        prev.map((c) =>
-          c.campaign_id === existing.campaign_id
-            ? {
-                ...c,
-                status: 'sent',
-                sent_at: new Date().toISOString(),
-                sent_count: data.sent_count,
-                failed_count: data.failed_count,
-              }
-            : c,
-        ),
+        prev.map((c) => c.campaign_id === existing.campaign_id ? updatedCampaign : c),
       );
+      // Re-fetch to get updated email logs
+      fetchCampaigns();
     } catch (err) {
       showToast('error', err instanceof Error ? err.message : 'Failed to send.');
     } finally {
@@ -478,7 +432,6 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
       showToast('error', 'Please select a date first.');
       return;
     }
-    // Flush pending saves
     if (debounceTimers.current[templateKey]) {
       clearTimeout(debounceTimers.current[templateKey]);
       delete debounceTimers.current[templateKey];
@@ -490,16 +443,12 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     const isAlreadyScheduled = existing.status === 'scheduled';
     const newStatus = isAlreadyScheduled ? 'draft' : 'scheduled';
 
-    // Optimistic update
+    const updatedCampaign = { ...existing, status: newStatus, scheduled_date: date || null, scheduled_time: time || null };
+
     setStoredCampaigns((prev) =>
-      prev.map((c) =>
-        c.campaign_id === existing.campaign_id
-          ? { ...c, status: newStatus, scheduled_date: date || null, scheduled_time: time || null }
-          : c,
-      ),
+      prev.map((c) => c.campaign_id === existing.campaign_id ? updatedCampaign : c),
     );
 
-    // Persist
     fetch('/api/admin/campaigns', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -517,6 +466,16 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     }).catch(() => showToast('error', 'Failed to save schedule'));
   };
 
+  // ── Email logs sorted by newest first ──
+  const sortedLogs = [...emailLogs].sort((a, b) =>
+    (b.created_at || '').localeCompare(a.created_at || ''),
+  );
+
+  // ── Preview modal template ──
+  const previewTemplate = previewKey
+    ? PREDEFINED_TEMPLATES.find((t) => t.key === previewKey) || null
+    : null;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
@@ -529,7 +488,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       {/* Toast */}
       {toast && (
         <div
@@ -548,223 +507,191 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
         </div>
       )}
 
-      {/* Info */}
-      <div className="rounded-xl border border-purple-100 bg-purple-50/50 p-4">
-        <p className="text-sm text-gray-600">
-          Toggle on the email templates you want to use, select your audience, pick a date &amp; time, and hit send.
-        </p>
-      </div>
+      {/* ────────────────────────────────────────────────────────────────── */}
+      {/* TABLE 1 — Campaign Templates                                      */}
+      {/* ────────────────────────────────────────────────────────────────── */}
+      <div>
+        <div className="mb-3">
+          <h2 className="text-base font-semibold text-gray-900">Campaign Templates</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Enable or disable email campaigns for your restaurant. Welcome Email auto-sends on customer sign-up.
+          </p>
+        </div>
 
-      {/* Template Cards */}
-      {PREDEFINED_TEMPLATES.map((template) => {
-        const stored = getStoredConfig(template.key);
-        const isEnabled = getEffective(template.key, 'enabled', false) as boolean;
-        const audience = getEffective(template.key, 'audience', template.default_audience) as string;
-        const now = new Date();
-        const defaultDate = now.toISOString().split('T')[0];
-        const defaultTime = now.toTimeString().slice(0, 5);
-        const scheduledDate = (getEffective(template.key, 'scheduled_date', defaultDate) ?? defaultDate) as string;
-        const scheduledTime = (getEffective(template.key, 'scheduled_time', defaultTime) ?? defaultTime) as string;
-        const isSent = stored?.status === 'sent';
-        const isSending = sendingKey === template.key;
-        const isPreviewOpen = previewKey === template.key;
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/60">
+                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 w-[50px]">Active</th>
+                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Template</th>
+                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden sm:table-cell">Trigger</th>
+                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden md:table-cell">Subject</th>
+                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 w-[100px] text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {PREDEFINED_TEMPLATES.map((template) => {
+                  const stored = getStoredConfig(template.key);
+                  const isEnabled = getEffective(template.key, 'enabled', false) as boolean;
+                  const isAuto = template.trigger === 'auto_signup';
+                  const isExpanded = expandedKey === template.key && isEnabled && !isAuto;
+                  const isSending = sendingKey === template.key;
 
-        return (
-          <div
-            key={template.key}
-            className={`rounded-xl border transition-all ${
-              isEnabled
-                ? 'border-purple-200 bg-white shadow-md'
-                : 'border-gray-200 bg-white shadow-sm'
-            }`}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between gap-4 p-5">
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${
-                    isEnabled
-                      ? 'bg-purple-100 text-purple-600'
-                      : 'bg-gray-100 text-gray-400'
-                  }`}
-                >
-                  <TemplateIcon templateKey={template.key} />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-gray-900">{template.name}</h3>
-                    {isSent && (
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
-                        Sent
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 truncate">{template.description}</p>
-                </div>
-              </div>
+                  const now = new Date();
+                  const defaultDate = now.toISOString().split('T')[0];
+                  const defaultTime = now.toTimeString().slice(0, 5);
+                  const audience = getEffective(template.key, 'audience', template.default_audience) as string;
+                  const scheduledDate = (getEffective(template.key, 'scheduled_date', defaultDate) ?? defaultDate) as string;
+                  const scheduledTime = (getEffective(template.key, 'scheduled_time', defaultTime) ?? defaultTime) as string;
 
-              <div className="flex items-center gap-3 shrink-0">
-                {/* Preview button */}
-                <button
-                  type="button"
-                  onClick={() => setPreviewKey(isPreviewOpen ? null : template.key)}
-                  className="text-xs text-purple-600 hover:text-purple-700 font-medium"
-                >
-                  {isPreviewOpen ? 'Hide' : 'Preview'}
-                </button>
-
-                {/* Toggle */}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={isEnabled}
-                  onClick={() => handleToggle(template.key, isEnabled)}
-
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-60 ${
-                    isEnabled ? 'bg-purple-600' : 'bg-gray-200'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      isEnabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-
-            {/* Gmail-style Email Preview Modal */}
-            {isPreviewOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setPreviewKey(null)}>
-                <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-                  {/* Gmail-like toolbar */}
-                  <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200 rounded-t-2xl">
-                    <div className="flex items-center gap-2">
-                      <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                      </svg>
-                      <span className="text-sm font-medium text-gray-600">Email Preview</span>
-                    </div>
-                    <button
-                      onClick={() => setPreviewKey(null)}
-                      className="rounded-full p-1.5 hover:bg-gray-200 transition-colors"
-                    >
-                      <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* Subject line */}
-                  <div className="px-6 pt-5 pb-3">
-                    <h2 className="text-xl font-normal text-gray-900">{replaceVars(template.subject)}</h2>
-                  </div>
-
-                  {/* Sender info (Gmail style) */}
-                  <div className="flex items-center gap-3 px-6 pb-4 border-b border-gray-100">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-purple-600 text-white text-sm font-bold">
-                      {restaurantName.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-900">{restaurantName}</span>
-                        <span className="text-xs text-gray-400">&lt;noreply@{restaurantName.toLowerCase().replace(/\s+/g, '')}.com&gt;</span>
-                      </div>
-                      <p className="text-xs text-gray-500">to me</p>
-                    </div>
-                  </div>
-
-                  {/* Email body - rendered like the actual HTML email */}
-                  <div className="flex-1 overflow-y-auto px-6 py-6">
-                    <div style={{ maxWidth: 600, margin: '0 auto' }}>
-                      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                        <div className="px-7 py-8">
-                          <h1 className="text-2xl font-bold text-gray-900 text-center mb-4" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
-                            {replaceVars(template.heading)}
-                          </h1>
-                          <div
-                            className="text-[15px] leading-[1.7] text-gray-700 [&>p]:mb-3"
-                            style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
-                            dangerouslySetInnerHTML={{ __html: replaceVars(template.body) }}
+                  return (
+                    <tr key={template.key} className="group">
+                      {/* Toggle */}
+                      <td className="px-5 py-3.5">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={isEnabled}
+                          onClick={() => handleToggle(template.key, isEnabled)}
+                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 ${
+                            isEnabled ? 'bg-purple-600' : 'bg-gray-200'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              isEnabled ? 'translate-x-4' : 'translate-x-0'
+                            }`}
                           />
-                        </div>
-                        <div className="bg-gray-50 border-t border-gray-200 px-7 py-5">
-                          <p className="text-[13px] text-gray-500 text-center">
-                            Sent by {restaurantName}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+                        </button>
+                      </td>
 
-            {/* Expanded Controls */}
-            {isEnabled && (
-              <div className="border-t border-purple-100 px-5 py-4 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {/* Name & description */}
+                      <td className="px-5 py-3.5">
+                        <p className="font-medium text-gray-900 text-sm">{template.name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{template.description}</p>
+                      </td>
+
+                      {/* Trigger */}
+                      <td className="px-5 py-3.5 hidden sm:table-cell">
+                        {isAuto ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                            </svg>
+                            Auto on Sign-up
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-gray-600">
+                            Send / Schedule
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Subject */}
+                      <td className="px-5 py-3.5 hidden md:table-cell">
+                        <p className="text-gray-600 text-xs truncate max-w-[220px]">{replaceVars(template.subject)}</p>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="inline-flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewKey(previewKey === template.key ? null : template.key)}
+                            className="text-xs font-medium text-purple-600 hover:text-purple-700"
+                          >
+                            Preview
+                          </button>
+                          {!isAuto && isEnabled && (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedKey(isExpanded ? null : template.key)}
+                              className="text-xs font-medium text-gray-500 hover:text-gray-700"
+                            >
+                              {isExpanded ? 'Close' : 'Configure'}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Expanded config row for manual campaigns */}
+          {expandedKey && (() => {
+            const template = PREDEFINED_TEMPLATES.find((t) => t.key === expandedKey);
+            if (!template || template.trigger === 'auto_signup') return null;
+            const stored = getStoredConfig(template.key);
+            const isEnabled = getEffective(template.key, 'enabled', false) as boolean;
+            if (!isEnabled) return null;
+
+            const now = new Date();
+            const defaultDate = now.toISOString().split('T')[0];
+            const defaultTime = now.toTimeString().slice(0, 5);
+            const audience = getEffective(template.key, 'audience', template.default_audience) as string;
+            const scheduledDate = (getEffective(template.key, 'scheduled_date', defaultDate) ?? defaultDate) as string;
+            const scheduledTime = (getEffective(template.key, 'scheduled_time', defaultTime) ?? defaultTime) as string;
+            const isSending = sendingKey === template.key;
+            const isFuture = isScheduledInFuture(scheduledDate, scheduledTime);
+            const isScheduled = stored?.status === 'scheduled';
+
+            return (
+              <div className="border-t border-purple-100 bg-purple-50/30 px-6 py-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <h3 className="text-sm font-semibold text-gray-900">{template.name}</h3>
+                  <span className="text-xs text-gray-400">— Configure &amp; Send</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                   {/* Audience */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Audience
-                    </label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Audience</label>
                     <select
                       value={audience}
-                      onChange={(e) => handleAudienceChange(template.key, e.target.value)}
-    
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                      onChange={(e) => updateField(template.key, 'audience', e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                     >
                       {AUDIENCE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
                   </div>
 
                   {/* Date */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Send Date
-                    </label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Send Date</label>
                     <input
                       type="date"
                       value={scheduledDate}
-                      onChange={(e) => handleDateChange(template.key, e.target.value)}
-    
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                      onChange={(e) => updateField(template.key, 'scheduled_date', e.target.value || null)}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                     />
                   </div>
 
                   {/* Time */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Send Time
-                    </label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Send Time</label>
                     <input
                       type="time"
                       value={scheduledTime}
-                      onChange={(e) => handleTimeChange(template.key, e.target.value)}
-    
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                      onChange={(e) => updateField(template.key, 'scheduled_time', e.target.value || null)}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                     />
                   </div>
                 </div>
 
-                {/* Status & Actions Row */}
+                {/* Action row */}
                 <div className="flex items-center justify-between gap-3">
-                  {/* Sent / Scheduled stats */}
                   <div className="text-xs text-gray-400">
-                    {isSent && stored?.sent_at ? (
+                    {stored?.status === 'sent' && stored?.sent_at ? (
                       <span>
-                        Last sent: {formatDate(stored.sent_at)} &mdash;{' '}
-                        {stored.sent_count} delivered
-                        {stored.failed_count
-                          ? `, ${stored.failed_count} failed`
-                          : ''}
+                        Last sent: {formatDateTime(stored.sent_at)} — {stored.sent_count} delivered
+                        {stored.failed_count ? `, ${stored.failed_count} failed` : ''}
                       </span>
-                    ) : stored?.status === 'scheduled' && scheduledDate ? (
+                    ) : isScheduled && scheduledDate ? (
                       <span className="text-purple-500 font-medium">
                         Scheduled: {scheduledDate}{scheduledTime ? ` at ${scheduledTime}` : ''}
                       </span>
@@ -773,91 +700,239 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                     )}
                   </div>
 
-                  {/* Action — auto-detects Send vs Schedule based on date/time */}
-                  {(() => {
-                    const isFuture = isScheduledInFuture(scheduledDate, scheduledTime);
-                    const isScheduled = stored?.status === 'scheduled';
-
-                    if (confirmSendKey === template.key) {
-                      return (
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => void handleSend(template.key)}
-                            disabled={isSending}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-60"
-                          >
-                            {isSending ? (
-                              <>
-                                <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                                Sending...
-                              </>
-                            ) : (
-                              'Confirm Send'
-                            )}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmSendKey(null)}
-                            disabled={isSending}
-                            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      );
-                    }
-
-                    if (isFuture) {
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => handleSchedule(template.key, scheduledDate, scheduledTime)}
-                          disabled={isSending}
-                          className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition disabled:opacity-60 ${
-                            isScheduled
-                              ? 'border border-green-300 bg-green-50 text-green-700'
-                              : 'bg-purple-600 text-white hover:bg-purple-700'
-                          }`}
-                        >
-                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {isScheduled ? 'Scheduled' : 'Schedule'}
-                        </button>
-                      );
-                    }
-
-                    return (
+                  {confirmSendKey === template.key ? (
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => setConfirmSendKey(template.key)}
+                        onClick={() => void handleSend(template.key)}
                         disabled={isSending}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-60"
                       >
-                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-                        </svg>
-                        Send
+                        {isSending ? (
+                          <>
+                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            Sending...
+                          </>
+                        ) : (
+                          'Confirm Send'
+                        )}
                       </button>
-                    );
-                  })()}
+                      <button
+                        type="button"
+                        onClick={() => setConfirmSendKey(null)}
+                        disabled={isSending}
+                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : isFuture ? (
+                    <button
+                      type="button"
+                      onClick={() => handleSchedule(template.key, scheduledDate, scheduledTime)}
+                      disabled={isSending}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition disabled:opacity-60 ${
+                        isScheduled
+                          ? 'border border-green-300 bg-green-50 text-green-700'
+                          : 'bg-purple-600 text-white hover:bg-purple-700'
+                      }`}
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {isScheduled ? 'Scheduled' : 'Schedule'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmSendKey(template.key)}
+                      disabled={isSending}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                      </svg>
+                      Send Now
+                    </button>
+                  )}
                 </div>
               </div>
-            )}
+            );
+          })()}
+        </div>
+      </div>
 
-            {/* Collapsed sent info */}
-            {!isEnabled && isSent && stored?.sent_at && (
-              <div className="border-t border-gray-100 px-5 py-2.5">
-                <p className="text-xs text-gray-400">
-                  Last sent: {formatDate(stored.sent_at)} &mdash;{' '}
-                  {stored.sent_count} delivered
-                </p>
-              </div>
-            )}
+      {/* ────────────────────────────────────────────────────────────────── */}
+      {/* TABLE 2 — Email Logs                                              */}
+      {/* ────────────────────────────────────────────────────────────────── */}
+      <div>
+        <div className="mb-3">
+          <h2 className="text-base font-semibold text-gray-900">Sent Emails</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Per-recipient log of every email delivered or failed.
+          </p>
+        </div>
+
+        {sortedLogs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 py-14">
+            <svg className="h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+            </svg>
+            <p className="mt-3 text-sm font-medium text-gray-500">No emails sent yet</p>
+            <p className="mt-1 text-xs text-gray-400">Enable a template above and send or schedule it.</p>
           </div>
-        );
-      })}
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/60">
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Recipient</th>
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden md:table-cell">Subject</th>
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Template</th>
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden sm:table-cell">Trigger</th>
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {sortedLogs.map((log) => {
+                    const templateDef = PREDEFINED_TEMPLATES.find((t) => t.key === log.template_key);
+                    const templateName = templateDef?.name || log.template_key;
+                    const isFailed = log.status === 'failed';
+
+                    const triggerLabels: Record<string, { label: string; cls: string }> = {
+                      manual: { label: 'Manual', cls: 'bg-gray-100 text-gray-600' },
+                      scheduled: { label: 'Scheduled', cls: 'bg-purple-50 text-purple-700' },
+                      auto_signup: { label: 'Sign-up', cls: 'bg-blue-50 text-blue-700' },
+                    };
+                    const trigger = triggerLabels[log.trigger] || triggerLabels.manual;
+
+                    return (
+                      <tr key={log.email_log_id} className="hover:bg-gray-50/50 transition-colors">
+                        {/* Recipient */}
+                        <td className="px-5 py-3.5">
+                          <p className="text-sm text-gray-900 font-medium truncate max-w-[180px]">
+                            {log.recipient_name || log.recipient_email}
+                          </p>
+                          {log.recipient_name && (
+                            <p className="text-[11px] text-gray-400 truncate max-w-[180px]">{log.recipient_email}</p>
+                          )}
+                        </td>
+
+                        {/* Subject */}
+                        <td className="px-5 py-3.5 hidden md:table-cell">
+                          <p className="text-gray-600 text-xs truncate max-w-[200px]">{log.subject}</p>
+                        </td>
+
+                        {/* Template */}
+                        <td className="px-5 py-3.5">
+                          <span className="text-xs text-gray-700 font-medium">{templateName}</span>
+                        </td>
+
+                        {/* Trigger */}
+                        <td className="px-5 py-3.5 hidden sm:table-cell">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${trigger.cls}`}>
+                            {trigger.label}
+                          </span>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-5 py-3.5">
+                          {isFailed ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-700" title={log.error_message || ''}>
+                              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              Failed
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-0.5 text-[11px] font-semibold text-green-700">
+                              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                              Sent
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Date */}
+                        <td className="px-5 py-3.5 text-gray-500 text-xs whitespace-nowrap">
+                          {formatDateTime(log.created_at)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ────────────────────────────────────────────────────────────────── */}
+      {/* Preview Modal                                                      */}
+      {/* ────────────────────────────────────────────────────────────────── */}
+      {previewTemplate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setPreviewKey(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Toolbar */}
+            <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200 rounded-t-2xl">
+              <div className="flex items-center gap-2">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                </svg>
+                <span className="text-sm font-medium text-gray-600">Email Preview</span>
+              </div>
+              <button onClick={() => setPreviewKey(null)} className="rounded-full p-1.5 hover:bg-gray-200 transition-colors">
+                <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Subject */}
+            <div className="px-6 pt-5 pb-3">
+              <h2 className="text-xl font-normal text-gray-900">{replaceVars(previewTemplate.subject)}</h2>
+            </div>
+
+            {/* Sender */}
+            <div className="flex items-center gap-3 px-6 pb-4 border-b border-gray-100">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-purple-600 text-white text-sm font-bold">
+                {restaurantName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-900">{restaurantName}</span>
+                  <span className="text-xs text-gray-400">&lt;noreply@{restaurantName.toLowerCase().replace(/\s+/g, '')}.com&gt;</span>
+                </div>
+                <p className="text-xs text-gray-500">to me</p>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-6">
+              <div style={{ maxWidth: 600, margin: '0 auto' }}>
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                  <div className="px-7 py-8">
+                    <h1 className="text-2xl font-bold text-gray-900 text-center mb-4" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
+                      {replaceVars(previewTemplate.heading)}
+                    </h1>
+                    <div
+                      className="text-[15px] leading-[1.7] text-gray-700 [&>p]:mb-3"
+                      style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
+                      dangerouslySetInnerHTML={{ __html: replaceVars(previewTemplate.body) }}
+                    />
+                  </div>
+                  <div className="bg-gray-50 border-t border-gray-200 px-7 py-5">
+                    <p className="text-[13px] text-gray-500 text-center">Sent by {restaurantName}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

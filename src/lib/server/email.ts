@@ -1260,8 +1260,12 @@ export interface CampaignEmailData {
   body: string; // HTML content
   ctaText?: string;
   ctaUrl?: string;
+  customerName?: string | null;
   restaurantName: string;
   restaurantLogo?: string | null;
+  restaurantEmail?: string | null;
+  restaurantPhone?: string | null;
+  restaurantAddress?: string | null;
   unsubscribeUrl?: string;
 }
 
@@ -1293,6 +1297,22 @@ export async function sendCampaignEmail(
       </p>`
     : '';
 
+  const greetingName = data.customerName?.trim() || null;
+  const greetingBlock = greetingName
+    ? `<p style="margin:0 0 16px;font-size:16px;color:#374151;">Hi ${greetingName},</p>`
+    : '';
+
+  const contactParts: string[] = [];
+  if (data.restaurantEmail) contactParts.push(`<a href="mailto:${data.restaurantEmail}" style="color:#7c3aed;text-decoration:none;">${data.restaurantEmail}</a>`);
+  if (data.restaurantPhone) contactParts.push(`<a href="tel:${data.restaurantPhone}" style="color:#7c3aed;text-decoration:none;">${data.restaurantPhone}</a>`);
+  if (data.restaurantAddress) contactParts.push(`<span>${data.restaurantAddress}</span>`);
+
+  const contactBlock = contactParts.length > 0
+    ? `<div style="margin-top:12px;font-size:12px;color:#9ca3af;text-align:center;line-height:1.8;">
+        ${contactParts.join(' &nbsp;|&nbsp; ')}
+      </div>`
+    : '';
+
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -1303,6 +1323,7 @@ export async function sendCampaignEmail(
           <div style="padding:32px 28px;">
             ${logoBlock}
             <h1 style="margin:0 0 16px;font-size:24px;font-weight:700;color:#111827;text-align:center;">${data.heading}</h1>
+            ${greetingBlock}
             <div style="font-size:15px;line-height:1.7;color:#374151;">
               ${data.body}
             </div>
@@ -1312,6 +1333,7 @@ export async function sendCampaignEmail(
             <p style="margin:0;font-size:13px;color:#6b7280;text-align:center;">
               Sent by ${data.restaurantName}
             </p>
+            ${contactBlock}
             ${unsubBlock}
           </div>
         </div>
@@ -1320,7 +1342,14 @@ export async function sendCampaignEmail(
     </html>
   `;
 
+  const textContactParts: string[] = [];
+  if (data.restaurantEmail) textContactParts.push(data.restaurantEmail);
+  if (data.restaurantPhone) textContactParts.push(data.restaurantPhone);
+  if (data.restaurantAddress) textContactParts.push(data.restaurantAddress);
+
   const textContent = [
+    greetingName ? `Hi ${greetingName},` : '',
+    '',
     data.heading,
     '',
     data.body.replace(/<[^>]*>/g, ''),
@@ -1328,6 +1357,7 @@ export async function sendCampaignEmail(
     data.ctaText && data.ctaUrl ? `${data.ctaText}: ${data.ctaUrl}` : '',
     '',
     `Sent by ${data.restaurantName}`,
+    textContactParts.length > 0 ? textContactParts.join(' | ') : '',
   ].filter((l) => l !== undefined).join('\n');
 
   await transporter.sendMail({

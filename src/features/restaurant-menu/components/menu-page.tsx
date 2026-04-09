@@ -183,7 +183,11 @@ function MenuPageContent({ data }: MenuPageProps) {
   const searchParams = useSearchParams() ?? new URLSearchParams();
   const pickupAllowed = data.pickupAllowed !== false;
   const deliveryAllowed = data.deliveryAllowed !== false;
-  const orderingEnabled = pickupAllowed || deliveryAllowed;
+  const stripeOrderingEnabled = data.stripeConnected !== false;
+  const orderingEnabled = (pickupAllowed || deliveryAllowed) && stripeOrderingEnabled;
+  const orderingBlockedMessage =
+    data.orderingBlockedMessage ||
+    'Online ordering is currently unavailable for this restaurant.';
   const defaultMode: FulfillmentMode = pickupAllowed ? 'pickup' : 'delivery';
   const [fulfillmentMode, setFulfillmentMode] = useState<FulfillmentMode>(
     defaultMode,
@@ -848,6 +852,14 @@ function MenuPageContent({ data }: MenuPageProps) {
           </div>
 
           <div className={`${contentContainerClass} space-y-5 py-4 sm:py-5`}>
+            {!stripeOrderingEnabled ? (
+              <div className="rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-900 shadow-sm">
+                <p className="font-semibold">Online ordering is unavailable</p>
+                <p className="mt-1 leading-6 text-amber-800">
+                  {orderingBlockedMessage}
+                </p>
+              </div>
+            ) : null}
             {!hasCustomerSession ? (
               <RewardsBanner
                 rewards={data.rewards}
@@ -860,6 +872,7 @@ function MenuPageContent({ data }: MenuPageProps) {
                 items={popularItems}
                 onOpenItem={(itemId) => setSelectedItemId(itemId)}
                 onQuickAdd={handleQuickAdd}
+                quickAddDisabled={!orderingEnabled}
                 getItemQuantity={getItemQuantity}
               />
             ) : null}
@@ -872,6 +885,7 @@ function MenuPageContent({ data }: MenuPageProps) {
                     category={category}
                     onOpenItem={(itemId) => setSelectedItemId(itemId)}
                     onQuickAdd={handleQuickAdd}
+                    quickAddDisabled={!orderingEnabled}
                     registerRef={registerSectionRef(category.id)}
                     first={index === 0}
                     getItemQuantity={getItemQuantity}
@@ -914,6 +928,7 @@ function MenuPageContent({ data }: MenuPageProps) {
         itemCount={itemCount}
         subtotal={subtotal}
         checkoutEnabled={orderingEnabled}
+        checkoutDisabledMessage={!orderingEnabled ? orderingBlockedMessage : null}
         cartNote={cartNote}
         mode={fulfillmentMode}
         deliveryAddress={deliveryAddress}
@@ -939,6 +954,7 @@ function MenuPageContent({ data }: MenuPageProps) {
         open={Boolean(displaySelectedItem)}
         trustBanner={data.restaurant.trustBanner}
         addToCartDisabled={!orderingEnabled}
+        addToCartDisabledMessage={!orderingEnabled ? orderingBlockedMessage : null}
         onClose={() => {
           setSelectedItemId(null);
           setCartRecommendedItem(null);

@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     request.nextUrl.searchParams.get('error_description')?.trim() ?? '';
 
   if (errorCode) {
-    return redirectToDashboard(state.returnPath, {
+    return redirectToDashboard(request, state.returnPath, {
       stripe_connect: 'oauth_error',
       stripe_notice: errorDescription || errorCode,
     });
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
   const code = request.nextUrl.searchParams.get('code')?.trim() ?? '';
   if (!code) {
-    return redirectToDashboard(state.returnPath, {
+    return redirectToDashboard(request, state.returnPath, {
       stripe_connect: 'oauth_error',
       stripe_notice: 'Stripe did not return an authorization code.',
     });
@@ -63,35 +63,34 @@ export async function GET(request: NextRequest) {
       createdByUserId: state.userId,
     });
 
-    return redirectToDashboard(state.returnPath, {
+    return redirectToDashboard(request, state.returnPath, {
       stripe_connect: 'return',
       stripe_flow: 'existing_account',
     });
   } catch (error) {
-    return redirectToDashboard(state.returnPath, {
+    return redirectToDashboard(request, state.returnPath, {
       stripe_connect: 'oauth_error',
       stripe_notice:
         error instanceof Error
-          ? error.message
+          ? mapCallbackErrorMessage(error.message)
           : 'Failed to connect the existing Stripe account.',
     });
   }
 }
 
 function redirectToDashboard(
+  request: NextRequest,
   returnPath: string,
   params: Record<string, string>,
 ) {
-  const target = new URL(returnPath, 'http://dashboard.local');
+  const target = new URL(returnPath, resolveRequestOrigin(request));
   Object.entries(params).forEach(([key, value]) => {
     if (value.trim()) {
       target.searchParams.set(key, value);
     }
   });
 
-  return NextResponse.redirect(
-    `${target.pathname}${target.search}${target.hash}`,
-  );
+  return NextResponse.redirect(target);
 }
 
 function resolveRequestOrigin(request: NextRequest) {
@@ -124,4 +123,19 @@ function normalizeOrigin(value: string | undefined) {
   }
 
   return trimmed.replace(/\/+$/, '');
+}
+
+function mapCallbackErrorMessage(message: string) {
+  if (
+    message.includes('restaurant_payment_accounts_connection_mode_check') ||
+    message.includes('existing_account_oauth')
+  ) {
+    return 'Bank Accounts schema is still using the old connection_mode constraint. Update the restaurant_payment_accounts check constraint to allow existing_account_oauth, then try connecting the Stripe account again.';
+  }
+
+  if (message.includes('restaurant_payment_accounts')) {
+    return 'Stripe Connect schema is not available yet. Apply the Bank Accounts SQL updates in Hasura first.';
+  }
+
+  return message;
 }

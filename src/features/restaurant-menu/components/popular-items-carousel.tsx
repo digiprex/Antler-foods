@@ -13,6 +13,7 @@ interface PopularItemsCarouselProps {
   items: MenuItem[];
   onOpenItem: (itemId: string) => void;
   onQuickAdd: (item: MenuItem) => void;
+  quickAddDisabled?: boolean;
   getItemQuantity?: (itemId: string) => number;
 }
 
@@ -20,6 +21,7 @@ export function PopularItemsCarousel({
   items,
   onOpenItem,
   onQuickAdd,
+  quickAddDisabled = false,
   getItemQuantity,
 }: PopularItemsCarouselProps) {
   const railRef = useRef<HTMLDivElement | null>(null);
@@ -179,13 +181,17 @@ export function PopularItemsCarousel({
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
+                        if (quickAddDisabled) {
+                          return;
+                        }
                         onQuickAdd(item);
                       }}
+                      disabled={quickAddDisabled}
                       className={`absolute bottom-3 right-3 flex items-center justify-center shadow-lg transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10 ${
                         quantityInCart > 0
                           ? 'h-9 min-w-[2.5rem] rounded-full bg-stone-900 px-3.5 text-sm font-semibold text-stone-50'
                           : 'h-9 w-9 rounded-full border border-stone-200 bg-white text-stone-900'
-                      }`}
+                      } ${quickAddDisabled ? 'cursor-not-allowed opacity-50 hover:scale-100' : ''}`}
                       aria-label={`Add ${item.name}`}
                     >
                       {quantityInCart > 0 ? quantityInCart : <PlusIcon className="h-4 w-4" />}

@@ -162,6 +162,8 @@ export interface RestaurantMenuData {
   transactionTaxRate?: number;
   pickupAllowed?: boolean;
   deliveryAllowed?: boolean;
+  stripeConnected?: boolean;
+  orderingBlockedMessage?: string | null;
   variesWithTime?: boolean;
   isCurrentlyOpen?: boolean;
   slug: string;

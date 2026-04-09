@@ -6,6 +6,7 @@ import {
   buildRestaurantBankAccountsPath,
   buildRestaurantInformationPath,
   buildRestaurantMediaPath,
+  buildRestaurantPayoutsPath,
 } from '@/lib/restaurants/route-utils';
 
 interface SidebarProps {
@@ -55,12 +56,22 @@ export function Sidebar({
   // Static grouped menu structure matching requested layout
   const HOME_MENU_ITEMS = [
     { href: '/home', label: 'Home', icon: <HomeIcon /> },
-    ...(roleSegment === 'admin' ? [{ href: '/new-restaurant', label: 'New Restaurant', icon: <StoreIcon /> }] : []),
+    ...(roleSegment === 'admin'
+      ? [
+          {
+            href: '/new-restaurant',
+            label: 'New Restaurant',
+            icon: <StoreIcon />,
+          },
+        ]
+      : []),
     { href: '/restaurants', label: 'Restaurants', icon: <ShopIcon /> },
   ];
 
-  const hasRestaurantDomain = selectedRestaurant &&
-    (Boolean(selectedRestaurant.customDomain?.trim()) || Boolean(selectedRestaurant.stagingDomain?.trim()));
+  const hasRestaurantDomain =
+    selectedRestaurant &&
+    (Boolean(selectedRestaurant.customDomain?.trim()) ||
+      Boolean(selectedRestaurant.stagingDomain?.trim()));
 
   const RESTAURANT_MENU_ITEMS = selectedRestaurant
     ? (() => {
@@ -70,6 +81,10 @@ export function Sidebar({
           'brand',
         );
         const bankAccountsPath = buildRestaurantBankAccountsPath(
+          roleSegment,
+          selectedRestaurant,
+        );
+        const payoutsPath = buildRestaurantPayoutsPath(
           roleSegment,
           selectedRestaurant,
         );
@@ -96,9 +111,7 @@ export function Sidebar({
             ),
             label: 'Orders',
             icon: <OrdersIcon />,
-            matchPrefixes: [
-              `/admin/orders`
-            ],
+            matchPrefixes: [`/admin/orders`],
           },
           {
             href: buildRestaurantScopedHref(
@@ -107,9 +120,7 @@ export function Sidebar({
             ),
             label: 'Order Settings',
             icon: <OrdersIcon />,
-            matchPrefixes: [
-              `/admin/order-settings`,
-            ],
+            matchPrefixes: [`/admin/order-settings`],
           },
           {
             href: buildRestaurantScopedHref(
@@ -118,9 +129,7 @@ export function Sidebar({
             ),
             label: 'Printer Settings',
             icon: <PrinterIcon />,
-            matchPrefixes: [
-              `/admin/printer-settings`,
-            ],
+            matchPrefixes: [`/admin/printer-settings`],
           },
           {
             href: bankAccountsPath,
@@ -128,6 +137,16 @@ export function Sidebar({
             icon: <BankAccountsIcon />,
             matchPrefixes: [bankAccountsPath],
           },
+          ...(roleSegment === 'admin' || roleSegment === 'manager'
+            ? [
+                {
+                  href: payoutsPath,
+                  label: 'Payouts',
+                  icon: <PayoutsIcon />,
+                  matchPrefixes: [payoutsPath],
+                },
+              ]
+            : []),
           {
             href: informationBrandPath,
             label: 'Information',
@@ -155,9 +174,7 @@ export function Sidebar({
           ),
           label: 'Customers',
           icon: <CustomersIcon />,
-          matchPrefixes: [
-            `/admin/customers`,
-          ],
+          matchPrefixes: [`/admin/customers`],
         },
         {
           href: buildRestaurantScopedHref(
@@ -168,17 +185,26 @@ export function Sidebar({
           icon: <UsersIcon />,
         },
         {
-          href: buildRestaurantScopedHref(`/admin/form-submissions`, selectedRestaurant),
+          href: buildRestaurantScopedHref(
+            `/admin/form-submissions`,
+            selectedRestaurant,
+          ),
           label: 'Form Submissions',
           icon: <FormSubmissionsIcon />,
         },
         {
-          href: buildRestaurantScopedHref(`/admin/newsletter-submissions`, selectedRestaurant),
+          href: buildRestaurantScopedHref(
+            `/admin/newsletter-submissions`,
+            selectedRestaurant,
+          ),
           label: 'Newsletter Subscribers',
           icon: <NewsletterIcon />,
         },
         {
-          href: buildRestaurantScopedHref(`/admin/campaigns`, selectedRestaurant),
+          href: buildRestaurantScopedHref(
+            `/admin/campaigns`,
+            selectedRestaurant,
+          ),
           label: 'Automated Emails',
           icon: <CampaignsIcon />,
         },
@@ -198,7 +224,7 @@ export function Sidebar({
             `/admin/menu-management`,
             `/admin/menu-categories`,
             `/admin/menu-items`,
-            `/admin/menu-settings`
+            `/admin/menu-settings`,
           ],
         },
         {
@@ -208,9 +234,7 @@ export function Sidebar({
           ),
           label: 'Modifiers',
           icon: <ModifierGroupsIcon />,
-          matchPrefixes: [
-            `/admin/modifier-groups`
-          ],
+          matchPrefixes: [`/admin/modifier-groups`],
         },
       ]
     : [];
@@ -239,7 +263,7 @@ export function Sidebar({
             `/admin/location-settings`,
             `/admin/timeline-settings`,
             `/admin/scrolling-text-settings`,
-            `/admin/seo-settings`
+            `/admin/seo-settings`,
           ],
         },
         {
@@ -249,7 +273,7 @@ export function Sidebar({
           matchPrefixes: [
             `/admin/forms`,
             `/admin/form-submissions`,
-            `/admin/form-settings`
+            `/admin/form-settings`,
           ],
         },
         {
@@ -259,10 +283,7 @@ export function Sidebar({
           ),
           label: 'Navbar Settings',
           icon: <NavbarIcon />,
-          matchPrefixes: [
-            `/admin/navbar-settings`,
-            `/admin/navbar-config`
-          ],
+          matchPrefixes: [`/admin/navbar-settings`, `/admin/navbar-config`],
         },
         {
           href: buildRestaurantScopedHref(
@@ -273,7 +294,7 @@ export function Sidebar({
           icon: <GlobalStyleIcon />,
           matchPrefixes: [
             `/admin/global-style-settings`,
-            `/admin/select-theme`
+            `/admin/select-theme`,
           ],
         },
         {
@@ -315,9 +336,7 @@ export function Sidebar({
           ),
           label: 'QR Codes',
           icon: <QRCodeIcon />,
-          matchPrefixes: [
-            `/admin/qr-codes`
-          ],
+          matchPrefixes: [`/admin/qr-codes`],
         },
       ]
     : [];
@@ -331,33 +350,31 @@ export function Sidebar({
           ),
           label: 'Storefornt Analytics',
           icon: <SiteAnalyticsIcon />,
-          matchPrefixes: [
-            `/admin/site-analytics`,
-          ],
+          matchPrefixes: [`/admin/site-analytics`],
         },
         {
-          href: buildRestaurantScopedHref(`/admin/discounts`, selectedRestaurant),
+          href: buildRestaurantScopedHref(
+            `/admin/discounts`,
+            selectedRestaurant,
+          ),
           label: 'Discounts',
           icon: <DiscountsIcon />,
-          matchPrefixes: [
-            `/admin/discounts`,
-          ],
+          matchPrefixes: [`/admin/discounts`],
         },
         {
           href: buildRestaurantScopedHref(`/admin/offers`, selectedRestaurant),
           label: 'Offers',
           icon: <OffersIcon />,
-          matchPrefixes: [
-            `/admin/offers`,
-          ],
+          matchPrefixes: [`/admin/offers`],
         },
         {
-          href: buildRestaurantScopedHref(`/admin/gift-cards`, selectedRestaurant),
+          href: buildRestaurantScopedHref(
+            `/admin/gift-cards`,
+            selectedRestaurant,
+          ),
           label: 'Gift Cards',
           icon: <GiftCardsIcon />,
-          matchPrefixes: [
-            `/admin/gift-cards`,
-          ],
+          matchPrefixes: [`/admin/gift-cards`],
         },
       ]
     : [];
@@ -401,8 +418,12 @@ export function Sidebar({
     let frameId = 0;
 
     const restoreScrollPosition = () => {
-      const storedValue = window.sessionStorage.getItem(sidebarScrollStorageKey);
-      const parsedScrollTop = storedValue ? Number.parseFloat(storedValue) : NaN;
+      const storedValue = window.sessionStorage.getItem(
+        sidebarScrollStorageKey,
+      );
+      const parsedScrollTop = storedValue
+        ? Number.parseFloat(storedValue)
+        : NaN;
       const hasStoredScrollTop = Number.isFinite(parsedScrollTop);
 
       if (hasStoredScrollTop) {
@@ -446,9 +467,7 @@ export function Sidebar({
       ref={sidebarRef}
       className={`fixed left-0 top-0 z-40 h-screen border-r border-gray-200 bg-white shadow-sm transition-all duration-200 ease-in-out overflow-y-auto scrollbar-hide ${
         isOpen ? 'overflow-x-hidden' : 'overflow-x-visible'
-      } ${
-        isOpen ? 'w-[260px]' : 'w-20'
-      }`}
+      } ${isOpen ? 'w-[260px]' : 'w-20'}`}
       style={{
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
@@ -476,13 +495,12 @@ export function Sidebar({
           )}
           <nav className="space-y-0.5">
             {HOME_MENU_ITEMS.map((item) => {
-              const resolvedHref =
-                selectedRestaurant
-                  ? buildRestaurantScopedHref(
-                      `${dashboardBasePath}${item.href}`,
-                      selectedRestaurant,
-                    )
-                  : `${dashboardBasePath}${item.href}`;
+              const resolvedHref = selectedRestaurant
+                ? buildRestaurantScopedHref(
+                    `${dashboardBasePath}${item.href}`,
+                    selectedRestaurant,
+                  )
+                : `${dashboardBasePath}${item.href}`;
 
               return (
                 <NavItem
@@ -649,7 +667,7 @@ function isSidebarItemActive(
   item: { href: string; matchPrefixes?: string[] },
 ) {
   const itemPath = extractPathFromHref(item.href);
-  
+
   // Exact match
   if (pathname === itemPath) {
     return true;
@@ -907,7 +925,16 @@ function MediaIcon() {
 
 function AssetsIcon() {
   return (
-    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="3" y="3" width="18" height="18" rx="2" />
       <path d="M7 3v18" />
       <path d="M17 3v18" />
@@ -1280,6 +1307,24 @@ function BankAccountsIcon() {
       <path d="M3 10h18" />
       <path d="M6 15h4" />
       <path d="M16 15h2" />
+    </svg>
+  );
+}
+
+function PayoutsIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 3v18" />
+      <path d="M17 7.5c0-1.933-2.239-3.5-5-3.5S7 5.567 7 7.5 9.239 11 12 11s5 1.567 5 3.5S14.761 18 12 18s-5-1.567-5-3.5" />
     </svg>
   );
 }

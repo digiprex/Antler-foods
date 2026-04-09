@@ -129,3 +129,15 @@ export function buildRestaurantBankAccountsPath(
 
   return `/dashboard/${roleSegment}/bank-accounts?${params.toString()}`;
 }
+
+export function buildRestaurantPayoutsPath(
+  roleSegment: string,
+  restaurant: RestaurantRoutingSelection,
+) {
+  const params = new URLSearchParams({
+    restaurant_id: restaurant.id,
+    restaurant_name: restaurant.name,
+  });
+
+  return `/dashboard/${roleSegment}/payouts?${params.toString()}`;
+}

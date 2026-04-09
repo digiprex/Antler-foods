@@ -38,6 +38,7 @@ type StripeAccountState = {
   primary_action_label: string | null;
   account: {
     stripe_account_id: string | null;
+    display_name: string | null;
     is_connected: boolean;
     details_submitted: boolean;
     charges_enabled: boolean;
@@ -422,11 +423,11 @@ export function BankAccountsPage() {
   );
 
   return (
-    <section className="space-y-8">
+    <section className="space-y-6">
       <OperationsBankAccountsHeader restaurantName={restaurant.name} />
       <NoticeBanner notice={notice} />
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="overflow-hidden rounded-[30px] border border-[#e8e7ee] bg-white shadow-[0_18px_42px_rgba(15,23,42,0.06)]">
           <div className="border-b border-[#ece9f5] bg-[linear-gradient(180deg,#fbf8ff_0%,#ffffff_100%)] px-6 py-6 sm:px-8 sm:py-8">
             <div className="space-y-7">
@@ -447,10 +448,10 @@ export function BankAccountsPage() {
 
                   <div className="space-y-3">
                     <SectionEyebrow>Verification state</SectionEyebrow>
-                    <h1 className="text-[2.4rem] font-semibold tracking-[-0.035em] text-[#140f23] sm:text-[2.55rem] sm:leading-[1.04]">
+                    <h1 className="text-[2rem] font-semibold tracking-[-0.03em] text-[#140f23] sm:text-[2.15rem] sm:leading-[1.08]">
                       {accountState?.status_label || 'Not connected'}
                     </h1>
-                    <p className="text-base leading-8 text-[#625b73]">
+                    <p className="text-[15px] leading-7 text-[#625b73]">
                       {accountState?.message ||
                         'Connect Stripe to begin verification and prepare this restaurant for future payouts.'}
                     </p>
@@ -558,7 +559,7 @@ export function BankAccountsPage() {
         <aside className="space-y-6">
           <section className="rounded-[30px] border border-[#e8e7ee] bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.06)] sm:p-7">
             <SectionEyebrow>Account snapshot</SectionEyebrow>
-            <h2 className="mt-2 text-[1.75rem] font-semibold tracking-[-0.03em] text-[#140f23]">
+            <h2 className="mt-2 text-[1.45rem] font-semibold tracking-[-0.025em] text-[#140f23] sm:text-[1.55rem]">
               Connection overview
             </h2>
             <p className="mt-3 text-sm leading-7 text-[#625d6d]">
@@ -568,6 +569,10 @@ export function BankAccountsPage() {
 
             <div className="mt-6 space-y-2 rounded-[24px] border border-[#edf0f8] bg-[#fcfcfe] p-3">
               <InfoRow
+                label="Account name"
+                value={account?.display_name || 'Unavailable'}
+              />
+              <InfoRow
                 label="Stripe account"
                 value={account?.stripe_account_id || 'Not connected'}
               />
@@ -575,7 +580,10 @@ export function BankAccountsPage() {
                 label="Connected via"
                 value={formatConnectionMode(account?.connection_mode)}
               />
-              <InfoRow label="Email" value={account?.email || 'Unavailable'} />
+              <InfoRow
+                label="Contact email"
+                value={account?.email || 'Unavailable'}
+              />
               <InfoRow
                 label="Country"
                 value={account?.country || 'Unavailable'}
@@ -605,40 +613,6 @@ export function BankAccountsPage() {
               />
             </div>
           </section>
-
-          <section className="rounded-[30px] border border-[#e8e7ee] bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.06)] sm:p-7">
-            <SectionEyebrow>Owner scope</SectionEyebrow>
-            <h3 className="mt-2 text-xl font-semibold tracking-[-0.02em] text-[#161122]">
-              Setup and verification only
-            </h3>
-            <p className="mt-3 text-sm leading-7 text-[#676075]">
-              Owners can connect Stripe, complete setup, update required
-              details, and refresh the status. Payout operations stay on the
-              separate admin surface.
-            </p>
-            <div className="mt-5 grid gap-3">
-              <CompactListCard
-                title="Allowed here"
-                items={[
-                  'Connect Stripe',
-                  'Complete Stripe setup',
-                  'Update required details',
-                  'Refresh verification status',
-                ]}
-                tone="purple"
-              />
-              <CompactListCard
-                title="Handled elsewhere"
-                items={[
-                  'Payout operations',
-                  'Schedule changes',
-                  'Withdrawals',
-                  'Admin finance controls',
-                ]}
-                tone="slate"
-              />
-            </div>
-          </section>
         </aside>
       </div>
 
@@ -650,7 +624,7 @@ export function BankAccountsPage() {
                 <RequirementsAlertIcon />
                 Review needed
               </div>
-              <h2 className="mt-4 text-[2rem] font-semibold tracking-[-0.03em] text-[#17121f]">
+              <h2 className="mt-4 text-[1.65rem] font-semibold tracking-[-0.025em] text-[#17121f] sm:text-[1.75rem]">
                 Requirements to review
               </h2>
               <p className="mt-3 text-sm leading-7 text-[#7c5b2a]">
@@ -666,7 +640,7 @@ export function BankAccountsPage() {
             ) : null}
           </div>
 
-          <div className="mt-6 grid gap-4 xl:grid-cols-2">
+          <div className="mt-6 grid items-start gap-4 xl:grid-cols-2">
             {requirementGroups.map((group) => (
               <section
                 key={group.key}
@@ -701,6 +675,43 @@ export function BankAccountsPage() {
           </div>
         </section>
       ) : null}
+
+      <section className="rounded-[30px] border border-[#e8e7ee] bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.05)] sm:p-7">
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+          <div>
+            <SectionEyebrow>Owner scope</SectionEyebrow>
+            <h3 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.02em] text-[#161122] sm:text-[1.45rem]">
+              Setup and verification only
+            </h3>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-[#676075]">
+              Owners can connect Stripe, complete setup, update required details, and refresh the status. Payout operations stay on the separate admin surface.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <CompactListCard
+              title="Allowed here"
+              items={[
+                'Connect Stripe',
+                'Complete Stripe setup',
+                'Update required details',
+                'Refresh verification status',
+              ]}
+              tone="purple"
+            />
+            <CompactListCard
+              title="Handled elsewhere"
+              items={[
+                'Payout operations',
+                'Schedule changes',
+                'Withdrawals',
+                'Admin finance controls',
+              ]}
+              tone="slate"
+            />
+          </div>
+        </div>
+      </section>
     </section>
   );
 }
@@ -1132,7 +1143,7 @@ function MetricCard({
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7c8292]">
             {label}
           </p>
-          <p className="mt-3 text-[2.35rem] font-semibold tracking-[-0.04em] text-[#111827]">
+          <p className="mt-3 text-[2rem] font-semibold tracking-[-0.035em] text-[#111827] sm:text-[2.1rem]">
             {value}
           </p>
         </div>
@@ -1257,7 +1268,7 @@ function StatusInsightPanel({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
           <SectionEyebrow>{content.eyebrow}</SectionEyebrow>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-[#140f23]">
+          <h2 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.02em] text-[#140f23] sm:text-[1.45rem]">
             {content.title}
           </h2>
           <p className="mt-3 text-sm leading-7 text-[#676075]">
@@ -1283,7 +1294,7 @@ function CompactSetupGuide() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
           <SectionEyebrow>How it works</SectionEyebrow>
-          <h2 className="mt-2 text-xl font-semibold tracking-[-0.02em] text-[#140f23]">
+          <h2 className="mt-2 text-[1.2rem] font-semibold tracking-[-0.02em] text-[#140f23] sm:text-[1.3rem]">
             Stripe handles the setup, Antler keeps the status in sync
           </h2>
           <p className="mt-3 text-sm leading-7 text-[#676075]">
@@ -1343,7 +1354,7 @@ function CompactListCard({
           : 'border-[#e8ebf2] bg-[#fbfcfe]',
       )}
     >
-      <p className="text-sm font-semibold text-[#171220]">{title}</p>
+      <p className="text-[15px] font-semibold text-[#171220]">{title}</p>
       <ul className="mt-3 space-y-2.5">
         {items.map((item) => (
           <li
@@ -1409,7 +1420,7 @@ function SnapshotMiniCard({ label, value }: { label: string; value: string }) {
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a90a1]">
         {label}
       </p>
-      <p className="mt-2 text-sm font-semibold text-[#171220]">{value}</p>
+      <p className="mt-2 text-[15px] font-semibold text-[#171220]">{value}</p>
     </div>
   );
 }

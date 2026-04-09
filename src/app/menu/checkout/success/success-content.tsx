@@ -59,7 +59,6 @@ interface OrderData {
   delivery_dispatched_at: string | null;
   delivery_last_status_at: string | null;
   delivery_error: string | null;
-  delivery_quote: unknown;
   offer_applied: {
     type: 'auto_offer';
     code?: string | null;

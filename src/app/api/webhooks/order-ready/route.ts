@@ -31,7 +31,6 @@ const GET_ORDER_FOR_DISPATCH = `
       delivery_provider_delivery_id
       delivery_tracking_url
       delivery_dispatch_status
-      delivery_quote
       delivery_error
     }
   }
@@ -107,7 +106,6 @@ const MARK_ORDER_DISPATCHED = `
     $delivery_provider: String!
     $delivery_provider_delivery_id: String!
     $delivery_tracking_url: String
-    $delivery_quote: String
     $delivery_dispatched_at: timestamptz!
     $delivery_last_status_at: timestamptz!
   ) {
@@ -121,7 +119,6 @@ const MARK_ORDER_DISPATCHED = `
         delivery_dispatched_at: $delivery_dispatched_at
         delivery_last_status_at: $delivery_last_status_at
         delivery_error: null
-        delivery_quote: $delivery_quote
       }
     ) {
       order_id
@@ -190,7 +187,6 @@ interface DispatchableOrder {
   delivery_provider_delivery_id?: string | null;
   delivery_tracking_url?: string | null;
   delivery_dispatch_status?: string | null;
-  delivery_quote?: string | null;
   delivery_error?: string | null;
 }
 
@@ -450,7 +446,6 @@ export async function POST(request: NextRequest) {
       delivery_provider: deliveryProvider,
       delivery_provider_delivery_id: dispatchResult.deliveryId,
       delivery_tracking_url: dispatchResult.trackingUrl,
-      delivery_quote: dispatchResult.quoteId || normalizeText(order.delivery_quote),
       delivery_dispatched_at: lastStatusAt,
       delivery_last_status_at: lastStatusAt,
     });

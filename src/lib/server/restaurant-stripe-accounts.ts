@@ -58,6 +58,7 @@ export interface RestaurantStripeAccountSnapshot {
   restaurantId: string;
   provider: 'stripe';
   stripeAccountId: string | null;
+  displayName: string | null;
   connectionMode: StripeConnectionMode | null;
   isConnected: boolean;
   detailsSubmitted: boolean;
@@ -548,6 +549,13 @@ function buildStripeAccountMutationPayload({
     requirementsPendingVerification,
     requirementsDisabledReason: account.requirements?.disabled_reason ?? null,
   });
+  const displayName =
+    resolveStripeAccountDisplayName(account) ||
+    normalizeMetadataString(existingMetadata, 'display_name');
+  const contactEmail =
+    resolveStripeAccountContactEmail(account) ||
+    normalizeMetadataString(existingMetadata, 'support_email') ||
+    normalizeMetadataString(existingMetadata, 'account_email');
 
   return {
     restaurant_id: restaurantId,
@@ -569,13 +577,18 @@ function buildStripeAccountMutationPayload({
     pending_verification_count: requirementsPendingVerification.length,
     onboarding_status: onboardingStatus,
     country: normalizeNullableString(account.country),
-    email: normalizeNullableString(account.email),
+    email: contactEmail,
     default_currency: normalizeNullableString(account.default_currency),
     livemode: isLiveStripeMode(),
     last_synced_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     metadata: {
       ...(existingMetadata ?? {}),
+      display_name: displayName,
+      account_email: normalizeNullableString(account.email),
+      support_email: normalizeNullableString(account.business_profile?.support_email),
+      legal_name: normalizeNullableString(account.company?.name),
+      individual_name: resolveStripeIndividualName(account),
       account_type: account.type ?? null,
       dashboard_type:
         account.controller?.stripe_dashboard?.type ??
@@ -606,12 +619,14 @@ function normalizeRestaurantStripeAccountRow(
   const requirementsPendingVerification = normalizeStringArray(
     row?.requirements_pending_verification,
   );
+  const metadata = normalizeRecord(row?.metadata);
 
   return {
     id,
     restaurantId,
     provider: 'stripe',
     stripeAccountId,
+    displayName: normalizeMetadataString(metadata, 'display_name'),
     connectionMode:
       normalizeConnectionMode(row?.connection_mode),
     isConnected: Boolean(row?.is_connected) && Boolean(stripeAccountId),
@@ -654,8 +669,31 @@ function normalizeRestaurantStripeAccountRow(
     lastSyncedAt: normalizeNullableString(row?.last_synced_at),
     createdAt: normalizeNullableString(row?.created_at),
     updatedAt: normalizeNullableString(row?.updated_at),
-    metadata: normalizeRecord(row?.metadata),
+    metadata,
   };
+}
+
+function resolveStripeAccountDisplayName(account: Stripe.Account) {
+  return (
+    normalizeNullableString(account.business_profile?.name) ||
+    normalizeNullableString(account.company?.name) ||
+    resolveStripeIndividualName(account)
+  );
+}
+
+function resolveStripeAccountContactEmail(account: Stripe.Account) {
+  return (
+    normalizeNullableString(account.email) ||
+    normalizeNullableString(account.business_profile?.support_email) ||
+    normalizeNullableString(account.individual?.email)
+  );
+}
+
+function resolveStripeIndividualName(account: Stripe.Account) {
+  const firstName = normalizeNullableString(account.individual?.first_name);
+  const lastName = normalizeNullableString(account.individual?.last_name);
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+  return fullName || null;
 }
 
 function normalizeOwnerStripeStatus(
@@ -697,6 +735,13 @@ function normalizeRecord(value: unknown) {
   return value && typeof value === 'object'
     ? (value as Record<string, unknown>)
     : null;
+}
+
+function normalizeMetadataString(
+  metadata: Record<string, unknown> | null | undefined,
+  key: string,
+) {
+  return normalizeNullableString(metadata?.[key]);
 }
 
 function normalizeString(value: unknown) {

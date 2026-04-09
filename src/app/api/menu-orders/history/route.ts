@@ -30,6 +30,7 @@ const GET_CUSTOMER_ORDERS = `
       tip_total
       discount_total
       cart_total
+      delivery_fee_total
       delivery_quote_id
       placed_at
       created_at
@@ -85,6 +86,7 @@ interface OrderRecord {
   tip_total?: number | string | null;
   discount_total?: number | string | null;
   cart_total?: number | string | null;
+  delivery_fee_total?: number | string | null;
   delivery_quote_id?: string | null;
   placed_at?: string | null;
   created_at?: string | null;
@@ -229,8 +231,9 @@ export async function GET(request: NextRequest) {
       }, new Map<string, OrderItemRecord[]>());
     }
 
-    // Fetch delivery fees from delivery_quotes table
+    // Fall back to delivery_quotes only for older orders without a fee snapshot.
     const deliveryQuoteIds = orders
+      .filter((order) => order.delivery_fee_total == null)
       .map((order) => text(order.delivery_quote_id))
       .filter((id): id is string => Boolean(id));
 
@@ -265,7 +268,12 @@ export async function GET(request: NextRequest) {
         selectedModifiers: item.selected_modifiers ?? null,
       }));
 
-      const deliveryFee = quoteId ? (deliveryFeeByQuoteId.get(quoteId) ?? null) : null;
+      const deliveryFee =
+        order.delivery_fee_total != null
+          ? numberValue(order.delivery_fee_total)
+          : quoteId
+            ? (deliveryFeeByQuoteId.get(quoteId) ?? null)
+            : null;
 
       return {
         orderId,

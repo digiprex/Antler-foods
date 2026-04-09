@@ -397,6 +397,7 @@ const loadRestaurantMenuPageDataCached = unstable_cache(
       : [];
 
     return buildMenuData({
+      restaurant,
       menu,
       categories,
       items,

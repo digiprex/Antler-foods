@@ -119,39 +119,12 @@ const INSERT_CAMPAIGN = `
   }
 `;
 
+// Generic update — caller must include ALL fields (merge with existing before calling)
 const UPDATE_CAMPAIGN = `
-  mutation UpdateCampaign(
-    $campaign_id: uuid!
-    $name: String
-    $enabled: Boolean
-    $audience: String
-    $scheduled_date: date
-    $scheduled_time: timetz
-    $subject: String
-    $heading: String
-    $body: String
-    $status: String
-    $sent_at: timestamptz
-    $sent_count: Int
-    $failed_count: Int
-  ) {
+  mutation UpdateCampaign($campaign_id: uuid!, $changes: campaigns_set_input!) {
     update_campaigns_by_pk(
       pk_columns: { campaign_id: $campaign_id }
-      _set: {
-        name: $name
-        enabled: $enabled
-        audience: $audience
-        scheduled_date: $scheduled_date
-        scheduled_time: $scheduled_time
-        subject: $subject
-        heading: $heading
-        body: $body
-        status: $status
-        sent_at: $sent_at
-        sent_count: $sent_count
-        failed_count: $failed_count
-        updated_at: "now()"
-      }
+      _set: $changes
     ) {
       campaign_id
       restaurant_id
@@ -244,11 +217,17 @@ const GET_ORDERED_CUSTOMERS = `
   }
 `;
 
-const GET_RESTAURANT_NAME = `
-  query GetRestaurantName($restaurant_id: uuid!) {
+const GET_RESTAURANT_INFO = `
+  query GetRestaurantInfo($restaurant_id: uuid!) {
     restaurants_by_pk(restaurant_id: $restaurant_id) {
       name
       logo
+      email
+      phone_number
+      address
+      city
+      state
+      postal_code
     }
   }
 `;
@@ -257,25 +236,32 @@ const GET_RESTAURANT_NAME = `
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function getAudienceEmails(
+interface Recipient {
+  email: string;
+  name: string | null;
+}
+
+async function getAudienceRecipients(
   restaurantId: string,
   audience: string,
-): Promise<string[]> {
-  const emails = new Set<string>();
+): Promise<Recipient[]> {
+  const seen = new Map<string, Recipient>();
 
   if (audience === 'newsletter') {
     const data = await adminGraphqlRequest<any>(GET_NEWSLETTER_SUBSCRIBERS, {
       restaurant_id: restaurantId,
     });
     for (const sub of data.newsletter_submissions || []) {
-      if (sub.email?.trim()) emails.add(sub.email.trim().toLowerCase());
+      const email = sub.email?.trim()?.toLowerCase();
+      if (email && !seen.has(email)) seen.set(email, { email, name: null });
     }
   } else if (audience === 'opted_in') {
     const data = await adminGraphqlRequest<any>(GET_OPTED_IN_CUSTOMERS, {
       restaurant_id: restaurantId,
     });
     for (const c of data.customers || []) {
-      if (c.email?.trim()) emails.add(c.email.trim().toLowerCase());
+      const email = c.email?.trim()?.toLowerCase();
+      if (email && !seen.has(email)) seen.set(email, { email, name: c.display_name || null });
     }
   } else if (audience === 'ordered_last_30' || audience === 'ordered_last_90') {
     const days = audience === 'ordered_last_30' ? 30 : 90;
@@ -286,8 +272,8 @@ async function getAudienceEmails(
       since: since.toISOString(),
     });
     for (const o of data.orders || []) {
-      const email = o.customer?.email?.trim();
-      if (email) emails.add(email.toLowerCase());
+      const email = o.customer?.email?.trim()?.toLowerCase();
+      if (email && !seen.has(email)) seen.set(email, { email, name: o.customer?.display_name || null });
     }
   } else {
     // all_customers
@@ -295,11 +281,12 @@ async function getAudienceEmails(
       restaurant_id: restaurantId,
     });
     for (const c of data.customers || []) {
-      if (c.email?.trim()) emails.add(c.email.trim().toLowerCase());
+      const email = c.email?.trim()?.toLowerCase();
+      if (email && !seen.has(email)) seen.set(email, { email, name: c.display_name || null });
     }
   }
 
-  return Array.from(emails);
+  return Array.from(seen.values());
 }
 
 // ---------------------------------------------------------------------------
@@ -398,17 +385,23 @@ async function handleSendCampaign(body: any) {
   }
 
   // Get restaurant info
-  const restData = await adminGraphqlRequest<any>(GET_RESTAURANT_NAME, {
+  const restData = await adminGraphqlRequest<any>(GET_RESTAURANT_INFO, {
     restaurant_id: campaign.restaurant_id,
   });
-  const restaurantName = restData.restaurants_by_pk?.name || 'Restaurant';
-  const rawLogo = restData.restaurants_by_pk?.logo || '';
+  const rest = restData.restaurants_by_pk || {};
+  const restaurantName = rest.name || 'Restaurant';
+  const rawLogo = rest.logo || '';
   const restaurantLogo = rawLogo && rawLogo.startsWith('http') ? rawLogo : null;
+  const restaurantEmail = rest.email || null;
+  const restaurantPhone = rest.phone_number || null;
+  const restaurantAddress = [rest.address, rest.city, rest.state, rest.postal_code]
+    .filter(Boolean)
+    .join(', ') || null;
 
-  // Get audience emails
-  const emails = await getAudienceEmails(campaign.restaurant_id, campaign.audience || 'all_customers');
+  // Get audience recipients
+  const recipients = await getAudienceRecipients(campaign.restaurant_id, campaign.audience || 'all_customers');
 
-  if (emails.length === 0) {
+  if (recipients.length === 0) {
     return NextResponse.json({ success: false, error: 'No recipients found for this audience.' }, { status: 400 });
   }
 
@@ -416,18 +409,22 @@ async function handleSendCampaign(body: any) {
   let sentCount = 0;
   let failedCount = 0;
 
-  for (const email of emails) {
+  for (const recipient of recipients) {
     try {
-      await sendCampaignEmail(email, {
+      await sendCampaignEmail(recipient.email, {
         subject: campaign.subject,
         heading: campaign.heading || campaign.subject,
         body: campaign.body,
+        customerName: recipient.name,
         restaurantName,
         restaurantLogo,
+        restaurantEmail,
+        restaurantPhone,
+        restaurantAddress,
       });
       sentCount++;
     } catch (err) {
-      console.error(`Failed to send campaign email to ${email}:`, err);
+      console.error(`Failed to send campaign email to ${recipient.email}:`, err);
       failedCount++;
     }
   }
@@ -435,17 +432,20 @@ async function handleSendCampaign(body: any) {
   // Update campaign status
   await adminGraphqlRequest(UPDATE_CAMPAIGN, {
     campaign_id: campaignId,
-    status: 'sent',
-    sent_at: new Date().toISOString(),
-    sent_count: sentCount,
-    failed_count: failedCount,
+    changes: {
+      status: 'sent',
+      sent_at: new Date().toISOString(),
+      sent_count: sentCount,
+      failed_count: failedCount,
+      updated_at: 'now()',
+    },
   });
 
   return NextResponse.json({
     success: true,
     sent_count: sentCount,
     failed_count: failedCount,
-    total: emails.length,
+    total: recipients.length,
   });
 }
 
@@ -470,22 +470,25 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: false, error: 'Campaign not found' }, { status: 404 });
     }
 
-    // Build update variables — only include fields that were provided
-    const updates: Record<string, unknown> = { campaign_id: campaignId };
-    if (body.name !== undefined) updates.name = body.name;
-    if (body.enabled !== undefined) updates.enabled = body.enabled;
-    if (body.audience !== undefined) updates.audience = body.audience;
-    if (body.scheduled_date !== undefined) updates.scheduled_date = body.scheduled_date || null;
-    if (body.scheduled_time !== undefined) updates.scheduled_time = body.scheduled_time || null;
-    if (body.subject !== undefined) updates.subject = body.subject;
-    if (body.heading !== undefined) updates.heading = body.heading;
-    if (body.body !== undefined) updates.body = body.body;
-    if (body.status !== undefined) updates.status = body.status;
-    if (body.sent_at !== undefined) updates.sent_at = body.sent_at;
-    if (body.sent_count !== undefined) updates.sent_count = body.sent_count;
-    if (body.failed_count !== undefined) updates.failed_count = body.failed_count;
+    // Build changes object — only include fields that were provided
+    const changes: Record<string, unknown> = { updated_at: 'now()' };
+    if (body.name !== undefined) changes.name = body.name;
+    if (body.enabled !== undefined) changes.enabled = body.enabled;
+    if (body.audience !== undefined) changes.audience = body.audience;
+    if (body.scheduled_date !== undefined) changes.scheduled_date = body.scheduled_date || null;
+    if (body.scheduled_time !== undefined) changes.scheduled_time = body.scheduled_time || null;
+    if (body.subject !== undefined) changes.subject = body.subject;
+    if (body.heading !== undefined) changes.heading = body.heading;
+    if (body.body !== undefined) changes.body = body.body;
+    if (body.status !== undefined) changes.status = body.status;
+    if (body.sent_at !== undefined) changes.sent_at = body.sent_at;
+    if (body.sent_count !== undefined) changes.sent_count = body.sent_count;
+    if (body.failed_count !== undefined) changes.failed_count = body.failed_count;
 
-    const data = await adminGraphqlRequest<any>(UPDATE_CAMPAIGN, updates);
+    const data = await adminGraphqlRequest<any>(UPDATE_CAMPAIGN, {
+      campaign_id: campaignId,
+      changes,
+    });
 
     return NextResponse.json({
       success: true,

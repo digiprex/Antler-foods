@@ -72,7 +72,7 @@ const GET_ALL_CUSTOMERS = `
   query GetAllCustomers($restaurant_id: uuid!) {
     customers(
       where: { restaurant_id: { _eq: $restaurant_id }, is_deleted: { _eq: false } }
-    ) { email }
+    ) { email display_name }
   }
 `;
 
@@ -84,7 +84,7 @@ const GET_OPTED_IN_CUSTOMERS = `
         is_deleted: { _eq: false }
         email_opt_in: { _eq: true }
       }
-    ) { email }
+    ) { email display_name }
   }
 `;
 
@@ -106,7 +106,7 @@ const GET_ORDERED_CUSTOMERS = `
       }
       distinct_on: customer_id
     ) {
-      customer { email }
+      customer { email display_name }
     }
   }
 `;
@@ -116,6 +116,12 @@ const GET_RESTAURANT_INFO = `
     restaurants_by_pk(restaurant_id: $restaurant_id) {
       name
       logo
+      email
+      phone_number
+      address
+      city
+      state
+      postal_code
     }
   }
 `;
@@ -124,18 +130,25 @@ const GET_RESTAURANT_INFO = `
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function getAudienceEmails(restaurantId: string, audience: string): Promise<string[]> {
-  const emails = new Set<string>();
+interface Recipient {
+  email: string;
+  name: string | null;
+}
+
+async function getAudienceRecipients(restaurantId: string, audience: string): Promise<Recipient[]> {
+  const seen = new Map<string, Recipient>();
 
   if (audience === 'newsletter') {
     const data = await adminGraphqlRequest<any>(GET_NEWSLETTER_SUBSCRIBERS, { restaurant_id: restaurantId });
     for (const sub of data.newsletter_submissions || []) {
-      if (sub.email?.trim()) emails.add(sub.email.trim().toLowerCase());
+      const email = sub.email?.trim()?.toLowerCase();
+      if (email && !seen.has(email)) seen.set(email, { email, name: null });
     }
   } else if (audience === 'opted_in') {
     const data = await adminGraphqlRequest<any>(GET_OPTED_IN_CUSTOMERS, { restaurant_id: restaurantId });
     for (const c of data.customers || []) {
-      if (c.email?.trim()) emails.add(c.email.trim().toLowerCase());
+      const email = c.email?.trim()?.toLowerCase();
+      if (email && !seen.has(email)) seen.set(email, { email, name: c.display_name || null });
     }
   } else if (audience === 'ordered_last_30' || audience === 'ordered_last_90') {
     const days = audience === 'ordered_last_30' ? 30 : 90;
@@ -143,17 +156,18 @@ async function getAudienceEmails(restaurantId: string, audience: string): Promis
     since.setDate(since.getDate() - days);
     const data = await adminGraphqlRequest<any>(GET_ORDERED_CUSTOMERS, { restaurant_id: restaurantId, since: since.toISOString() });
     for (const o of data.orders || []) {
-      const email = o.customer?.email?.trim();
-      if (email) emails.add(email.toLowerCase());
+      const email = o.customer?.email?.trim()?.toLowerCase();
+      if (email && !seen.has(email)) seen.set(email, { email, name: o.customer?.display_name || null });
     }
   } else {
     const data = await adminGraphqlRequest<any>(GET_ALL_CUSTOMERS, { restaurant_id: restaurantId });
     for (const c of data.customers || []) {
-      if (c.email?.trim()) emails.add(c.email.trim().toLowerCase());
+      const email = c.email?.trim()?.toLowerCase();
+      if (email && !seen.has(email)) seen.set(email, { email, name: c.display_name || null });
     }
   }
 
-  return Array.from(emails);
+  return Array.from(seen.values());
 }
 
 // ---------------------------------------------------------------------------
@@ -203,11 +217,19 @@ export async function GET(request: NextRequest) {
         const restaurantName = restData.restaurants_by_pk?.name || 'Restaurant';
         const rawLogo = restData.restaurants_by_pk?.logo || '';
         const restaurantLogo = rawLogo && rawLogo.startsWith('http') ? rawLogo : null;
+        const restaurantEmail = restData.restaurants_by_pk?.email || null;
+        const restaurantPhone = restData.restaurants_by_pk?.phone_number || null;
+        const restaurantAddress = [
+          restData.restaurants_by_pk?.address,
+          restData.restaurants_by_pk?.city,
+          restData.restaurants_by_pk?.state,
+          restData.restaurants_by_pk?.postal_code,
+        ].filter(Boolean).join(', ') || null;
 
-        // Get audience emails
-        const emails = await getAudienceEmails(campaign.restaurant_id, campaign.audience || 'all_customers');
+        // Get audience recipients
+        const recipients = await getAudienceRecipients(campaign.restaurant_id, campaign.audience || 'all_customers');
 
-        if (emails.length === 0) {
+        if (recipients.length === 0) {
           console.log(`[Cron/Campaigns] No recipients for campaign ${campaign.campaign_id} (${campaign.template_key}), skipping`);
 
           // Mark as sent with 0 counts so it doesn't re-trigger
@@ -226,18 +248,22 @@ export async function GET(request: NextRequest) {
         let sentCount = 0;
         let failedCount = 0;
 
-        for (const email of emails) {
+        for (const recipient of recipients) {
           try {
-            await sendCampaignEmail(email, {
+            await sendCampaignEmail(recipient.email, {
               subject: campaign.subject,
               heading: campaign.heading || campaign.subject,
               body: campaign.body,
+              customerName: recipient.name,
               restaurantName,
               restaurantLogo,
+              restaurantEmail,
+              restaurantPhone,
+              restaurantAddress,
             });
             sentCount++;
           } catch (err) {
-            console.error(`[Cron/Campaigns] Failed to send to ${email}:`, err);
+            console.error(`[Cron/Campaigns] Failed to send to ${recipient.email}:`, err);
             failedCount++;
           }
         }
@@ -250,8 +276,8 @@ export async function GET(request: NextRequest) {
           failed_count: failedCount,
         });
 
-        console.log(`[Cron/Campaigns] Campaign ${campaign.template_key}: ${sentCount} sent, ${failedCount} failed out of ${emails.length}`);
-        results.push({ campaign_id: campaign.campaign_id, template_key: campaign.template_key, sent: sentCount, failed: failedCount, total: emails.length });
+        console.log(`[Cron/Campaigns] Campaign ${campaign.template_key}: ${sentCount} sent, ${failedCount} failed out of ${recipients.length}`);
+        results.push({ campaign_id: campaign.campaign_id, template_key: campaign.template_key, sent: sentCount, failed: failedCount, total: recipients.length });
       } catch (err) {
         console.error(`[Cron/Campaigns] Failed to process campaign ${campaign.campaign_id}:`, err);
         results.push({ campaign_id: campaign.campaign_id, template_key: campaign.template_key, sent: 0, failed: -1, total: 0 });

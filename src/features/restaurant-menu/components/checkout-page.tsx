@@ -191,7 +191,9 @@ function buildStructuredDeliveryAddressText(address: DeliveryAddressInput) {
   ]);
 }
 
-function createManualDeliveryAddress(formattedAddress = ''): DeliveryAddressInput {
+function createManualDeliveryAddress(
+  formattedAddress = '',
+): DeliveryAddressInput {
   const normalizedAddress = trimDeliveryAddressText(formattedAddress);
   return {
     formattedAddress: normalizedAddress,
@@ -207,7 +209,9 @@ function createDeliveryAddressFromProfile(
   return null;
 }
 
-function createDeliveryAddressFromPlace(place: SelectedGooglePlace): DeliveryAddressInput {
+function createDeliveryAddressFromPlace(
+  place: SelectedGooglePlace,
+): DeliveryAddressInput {
   const addressLine1 = trimDeliveryAddressText(place.address) || undefined;
   const city = trimDeliveryAddressText(place.city) || undefined;
   const state = trimDeliveryAddressText(place.state) || undefined;
@@ -217,7 +221,13 @@ function createDeliveryAddressFromPlace(place: SelectedGooglePlace): DeliveryAdd
   return {
     formattedAddress:
       trimDeliveryAddressText(place.formattedAddress) ||
-      buildDeliveryAddressText([addressLine1, city, state, postalCode, countryCode]) ||
+      buildDeliveryAddressText([
+        addressLine1,
+        city,
+        state,
+        postalCode,
+        countryCode,
+      ]) ||
       trimDeliveryAddressText(place.name),
     placeId: place.placeId || undefined,
     addressLine1,
@@ -237,7 +247,9 @@ function readStoredDeliveryAddress(restaurantId: string | null) {
   }
 
   try {
-    const rawValue = window.sessionStorage.getItem(DELIVERY_ADDRESS_STORAGE_KEY);
+    const rawValue = window.sessionStorage.getItem(
+      DELIVERY_ADDRESS_STORAGE_KEY,
+    );
     if (!rawValue) {
       return null;
     }
@@ -247,7 +259,10 @@ function readStoredDeliveryAddress(restaurantId: string | null) {
       address?: DeliveryAddressInput;
     };
 
-    if (payload.restaurantId !== restaurantId || !payload.address?.formattedAddress) {
+    if (
+      payload.restaurantId !== restaurantId ||
+      !payload.address?.formattedAddress
+    ) {
       return null;
     }
 
@@ -311,14 +326,12 @@ async function requestDeliveryQuote(
     }),
   });
 
-  const payload = (await response.json().catch(() => null)) as
-    | {
-        success?: boolean;
-        available?: boolean;
-        error?: string;
-        quote?: CheckoutDeliveryQuote | null;
-      }
-    | null;
+  const payload = (await response.json().catch(() => null)) as {
+    success?: boolean;
+    available?: boolean;
+    error?: string;
+    quote?: CheckoutDeliveryQuote | null;
+  } | null;
 
   return {
     ok: response.ok,
@@ -420,14 +433,18 @@ export default function RestaurantMenuCheckoutPage({
   } = useMenuCustomerAuth(restaurantId);
   const pickupAllowed = data.pickupAllowed !== false;
   const deliveryAllowed = data.deliveryAllowed !== false;
+  const stripeOrderingEnabled = data.stripeConnected !== false;
+  const orderingBlockedMessage =
+    data.orderingBlockedMessage ||
+    'Online ordering is currently unavailable for this restaurant.';
   const fulfillmentMode: FulfillmentMode =
     !pickupAllowed && deliveryAllowed
       ? 'delivery'
       : pickupAllowed && !deliveryAllowed
         ? 'pickup'
-      : mode === 'delivery'
-        ? 'delivery'
-        : 'pickup';
+        : mode === 'delivery'
+          ? 'delivery'
+          : 'pickup';
   const selectedLocation =
     data.locations.find((location) => location.id === locationId) ||
     data.locations[0];
@@ -479,46 +496,53 @@ export default function RestaurantMenuCheckoutPage({
     useState(true);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isCheckingDeliveryQuote, setIsCheckingDeliveryQuote] = useState(false);
-  const [deliveryQuote, setDeliveryQuote] = useState<CheckoutDeliveryQuote | null>(null);
-  const [deliveryQuoteError, setDeliveryQuoteError] = useState<string | null>(null);
+  const [deliveryQuote, setDeliveryQuote] =
+    useState<CheckoutDeliveryQuote | null>(null);
+  const [deliveryQuoteError, setDeliveryQuoteError] = useState<string | null>(
+    null,
+  );
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<{
     orderNumber: string;
     total: number;
   } | null>(null);
-  const [deliveryAddressData, setDeliveryAddressData] = useState<DeliveryAddressInput>(
-    createManualDeliveryAddress(resolvedDeliveryAddress),
-  );
+  const [deliveryAddressData, setDeliveryAddressData] =
+    useState<DeliveryAddressInput>(
+      createManualDeliveryAddress(resolvedDeliveryAddress),
+    );
   const [isEditingDeliveryAddress, setIsEditingDeliveryAddress] = useState(
     !resolvedDeliveryAddress.trim(),
   );
   const isDeliveryAddressValid = Boolean(
     trimDeliveryAddressText(deliveryAddressData.formattedAddress),
   );
-  const isDeliveryDetailsComplete = isDeliveryAddressValid
-    && Boolean(deliveryAddressData.addressLine1?.trim())
-    && Boolean(deliveryAddressData.city?.trim())
-    && Boolean(deliveryAddressData.state?.trim())
-    && Boolean(deliveryAddressData.postalCode?.trim())
-    && Boolean(deliveryAddressData.countryCode?.trim())
-    && Boolean(deliveryAddressData.houseFlatFloor?.trim())
-    && Boolean(deliveryAddressData.label?.trim());
-  const [savedAddresses, setSavedAddresses] = useState<Array<{
-    id: string;
-    address: string;
-    street: string | null;
-    city: string | null;
-    state: string | null;
-    country: string | null;
-    zip_code: string | null;
-    house_no: string | null;
-    saved_as: string | null;
-    nearby_landmark: string | null;
-    is_default: boolean;
-    place_id: string | null;
-    latitude: string | null;
-    longitude: string | null;
-  }>>([]);
+  const isDeliveryDetailsComplete =
+    isDeliveryAddressValid &&
+    Boolean(deliveryAddressData.addressLine1?.trim()) &&
+    Boolean(deliveryAddressData.city?.trim()) &&
+    Boolean(deliveryAddressData.state?.trim()) &&
+    Boolean(deliveryAddressData.postalCode?.trim()) &&
+    Boolean(deliveryAddressData.countryCode?.trim()) &&
+    Boolean(deliveryAddressData.houseFlatFloor?.trim()) &&
+    Boolean(deliveryAddressData.label?.trim());
+  const [savedAddresses, setSavedAddresses] = useState<
+    Array<{
+      id: string;
+      address: string;
+      street: string | null;
+      city: string | null;
+      state: string | null;
+      country: string | null;
+      zip_code: string | null;
+      house_no: string | null;
+      saved_as: string | null;
+      nearby_landmark: string | null;
+      is_default: boolean;
+      place_id: string | null;
+      latitude: string | null;
+      longitude: string | null;
+    }>
+  >([]);
   const [savedAddressesLoaded, setSavedAddressesLoaded] = useState(false);
   const [showSavedAddressPicker, setShowSavedAddressPicker] = useState(false);
   const brandName = data.restaurant.name.replace(' Menu', '');
@@ -838,7 +862,8 @@ export default function RestaurantMenuCheckoutPage({
 
         // Both coupon and gift card failed
         setPromoError(
-          giftCardResult.error || 'This code is not a valid coupon or gift card.',
+          giftCardResult.error ||
+            'This code is not a valid coupon or gift card.',
         );
       } else {
         // No email — can't check gift card, show generic message
@@ -935,14 +960,21 @@ export default function RestaurantMenuCheckoutPage({
 
   // Fetch saved addresses for logged-in users in delivery mode
   useEffect(() => {
-    if (!hasCustomerSession || isGuestCustomer || fulfillmentMode !== 'delivery' || savedAddressesLoaded) {
+    if (
+      !hasCustomerSession ||
+      isGuestCustomer ||
+      fulfillmentMode !== 'delivery' ||
+      savedAddressesLoaded
+    ) {
       return;
     }
 
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/menu-auth/addresses', { credentials: 'same-origin' });
+        const res = await fetch('/api/menu-auth/addresses', {
+          credentials: 'same-origin',
+        });
         if (!res.ok || cancelled) return;
         const json = await res.json();
         const addrs = json.addresses || [];
@@ -954,11 +986,16 @@ export default function RestaurantMenuCheckoutPage({
         const storedDeliveryAddress = readStoredDeliveryAddress(restaurantId);
         if (storedDeliveryAddress?.formattedAddress) return;
 
-        const currentAddr = trimDeliveryAddressText(deliveryAddressData.formattedAddress);
-        const defaultAddr = trimDeliveryAddressText(data.defaultDeliveryAddress);
+        const currentAddr = trimDeliveryAddressText(
+          deliveryAddressData.formattedAddress,
+        );
+        const defaultAddr = trimDeliveryAddressText(
+          data.defaultDeliveryAddress,
+        );
         if (currentAddr && currentAddr !== defaultAddr) return;
 
-        const defaultSaved = addrs.find((a: { is_default: boolean }) => a.is_default) || addrs[0];
+        const defaultSaved =
+          addrs.find((a: { is_default: boolean }) => a.is_default) || addrs[0];
         if (!defaultSaved) return;
 
         setDeliveryAddressData({
@@ -970,8 +1007,12 @@ export default function RestaurantMenuCheckoutPage({
           state: defaultSaved.state || undefined,
           postalCode: defaultSaved.zip_code || undefined,
           countryCode: defaultSaved.country || undefined,
-          latitude: defaultSaved.latitude ? parseFloat(defaultSaved.latitude) : undefined,
-          longitude: defaultSaved.longitude ? parseFloat(defaultSaved.longitude) : undefined,
+          latitude: defaultSaved.latitude
+            ? parseFloat(defaultSaved.latitude)
+            : undefined,
+          longitude: defaultSaved.longitude
+            ? parseFloat(defaultSaved.longitude)
+            : undefined,
           houseFlatFloor: defaultSaved.house_no || undefined,
           landmark: defaultSaved.nearby_landmark || undefined,
           label: defaultSaved.saved_as || undefined,
@@ -982,8 +1023,18 @@ export default function RestaurantMenuCheckoutPage({
         // silent
       }
     })();
-    return () => { cancelled = true; };
-  }, [hasCustomerSession, isGuestCustomer, fulfillmentMode, savedAddressesLoaded, restaurantId, data.defaultDeliveryAddress, deliveryAddressData.formattedAddress]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    hasCustomerSession,
+    isGuestCustomer,
+    fulfillmentMode,
+    savedAddressesLoaded,
+    restaurantId,
+    data.defaultDeliveryAddress,
+    deliveryAddressData.formattedAddress,
+  ]);
 
   useEffect(() => {
     writeStoredDeliveryAddress(restaurantId, deliveryAddressData);
@@ -1026,7 +1077,8 @@ export default function RestaurantMenuCheckoutPage({
           if (!payload.ok || !payload.available || !payload.quote) {
             setDeliveryQuote(null);
             setDeliveryQuoteError(
-              payload.error ?? 'Delivery is unavailable for this address right now.',
+              payload.error ??
+                'Delivery is unavailable for this address right now.',
             );
             return;
           }
@@ -1071,7 +1123,10 @@ export default function RestaurantMenuCheckoutPage({
     const normalizedAddress = trimDeliveryAddressText(nextAddress);
     setIsEditingDeliveryAddress(true);
     setDeliveryAddressData((current) => {
-      if (normalizedAddress && normalizedAddress === trimDeliveryAddressText(current.formattedAddress)) {
+      if (
+        normalizedAddress &&
+        normalizedAddress === trimDeliveryAddressText(current.formattedAddress)
+      ) {
         return {
           ...current,
           formattedAddress: normalizedAddress,
@@ -1096,7 +1151,7 @@ export default function RestaurantMenuCheckoutPage({
     setIsEditingDeliveryAddress(false);
   };
 
-  const handleSelectSavedAddress = (addr: typeof savedAddresses[number]) => {
+  const handleSelectSavedAddress = (addr: (typeof savedAddresses)[number]) => {
     setDeliveryAddressData({
       formattedAddress: addr.address || '',
       placeId: addr.place_id || undefined,
@@ -1132,9 +1187,8 @@ export default function RestaurantMenuCheckoutPage({
         ...current,
         [field]: fieldValue.trim() ? fieldValue.trim() : undefined,
       } satisfies DeliveryAddressInput;
-      const formattedAddress = buildStructuredDeliveryAddressText(
-        nextDeliveryAddress,
-      );
+      const formattedAddress =
+        buildStructuredDeliveryAddressText(nextDeliveryAddress);
 
       return {
         ...nextDeliveryAddress,
@@ -1185,7 +1239,9 @@ export default function RestaurantMenuCheckoutPage({
       successParams.set('tip', tipAmount.toFixed(2));
     }
     const discountAmount =
-      appliedCoupon?.discountAmount || activeRestaurantOffer?.discountAmount || 0;
+      appliedCoupon?.discountAmount ||
+      activeRestaurantOffer?.discountAmount ||
+      0;
     if (discountAmount > 0) {
       successParams.set('discount', discountAmount.toFixed(2));
     }
@@ -1199,10 +1255,19 @@ export default function RestaurantMenuCheckoutPage({
       successParams.set('email', contactFields.email.trim());
     }
     if (contactFields.phone.trim()) {
-      successParams.set('phone', `${contactFields.phoneCountryCode}${contactFields.phone.trim()}`);
+      successParams.set(
+        'phone',
+        `${contactFields.phoneCountryCode}${contactFields.phone.trim()}`,
+      );
     }
-    if (fulfillmentMode === 'delivery' && trimDeliveryAddressText(deliveryAddressData.formattedAddress)) {
-      successParams.set('address', trimDeliveryAddressText(deliveryAddressData.formattedAddress));
+    if (
+      fulfillmentMode === 'delivery' &&
+      trimDeliveryAddressText(deliveryAddressData.formattedAddress)
+    ) {
+      successParams.set(
+        'address',
+        trimDeliveryAddressText(deliveryAddressData.formattedAddress),
+      );
     }
     successParams.set('payment', 'card');
 
@@ -1272,14 +1337,17 @@ export default function RestaurantMenuCheckoutPage({
 
     if (fulfillmentMode === 'delivery' && isCheckingDeliveryQuote) {
       setIsDeliveryDetailsSectionOpen(true);
-      setCheckoutError('Still checking delivery availability. Please wait a moment.');
+      setCheckoutError(
+        'Still checking delivery availability. Please wait a moment.',
+      );
       return;
     }
 
     if (fulfillmentMode === 'delivery' && !deliveryQuote) {
       setIsDeliveryDetailsSectionOpen(true);
       setCheckoutError(
-        deliveryQuoteError || 'Delivery is unavailable for this address right now.',
+        deliveryQuoteError ||
+          'Delivery is unavailable for this address right now.',
       );
       document
         .getElementById('delivery-address-section')
@@ -1287,6 +1355,10 @@ export default function RestaurantMenuCheckoutPage({
       return;
     }
 
+    if (!stripeOrderingEnabled) {
+      setCheckoutError(orderingBlockedMessage);
+      return;
+    }
     setIsPlacingOrder(true);
 
     try {
@@ -1357,10 +1429,7 @@ export default function RestaurantMenuCheckoutPage({
           total: payload.order?.total ?? 0,
         });
       } else {
-        navigateToSuccess(
-          payload?.order?.orderNumber,
-          payload?.order?.total,
-        );
+        navigateToSuccess(payload?.order?.orderNumber, payload?.order?.total);
       }
     } finally {
       setIsPlacingOrder(false);
@@ -1382,7 +1451,8 @@ export default function RestaurantMenuCheckoutPage({
             Your cart is empty
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-stone-500">
-            Looks like you haven&apos;t added anything yet. Head back to the menu to start your order.
+            Looks like you haven&apos;t added anything yet. Head back to the
+            menu to start your order.
           </p>
           <Link
             href="/menu"
@@ -1419,14 +1489,19 @@ export default function RestaurantMenuCheckoutPage({
         : 'No restaurant offers available right now.';
   const effectiveTipAmount = tipsEnabled ? tipAmount : 0;
   const deliveryFeeAmount =
-    fulfillmentMode === 'delivery' ? deliveryQuote?.deliveryFee ?? 0 : 0;
+    fulfillmentMode === 'delivery' ? (deliveryQuote?.deliveryFee ?? 0) : 0;
   const discountAmount =
     appliedCoupon?.discountAmount || activeRestaurantOffer?.discountAmount || 0;
   const taxRate = data.transactionTaxRate ?? 5;
   const taxableAmount = roundCurrency(Math.max(subtotal - discountAmount, 0));
-  const taxAmount = taxRate > 0 ? roundCurrency(taxableAmount * taxRate / 100) : 0;
+  const taxAmount =
+    taxRate > 0 ? roundCurrency((taxableAmount * taxRate) / 100) : 0;
   const preGiftCardTotal = roundCurrency(
-    subtotal + deliveryFeeAmount + effectiveTipAmount + taxAmount - discountAmount,
+    subtotal +
+      deliveryFeeAmount +
+      effectiveTipAmount +
+      taxAmount -
+      discountAmount,
   );
   const giftCardAppliedAmount = appliedGiftCard
     ? roundCurrency(
@@ -1455,64 +1530,69 @@ export default function RestaurantMenuCheckoutPage({
       </div>
       <div className="mt-4 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1 lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
         <div className="space-y-0 divide-y divide-stone-100">
-            {items.map((item) => {
-              const addOnTotal = item.selectedAddOns.reduce(
-                (sum, addOn) => sum + addOn.price,
-                0,
-              );
-              return (
-                <div key={item.key} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    width={56}
-                    height={56}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-14 w-14 rounded-xl object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-950">
-                          {item.parentName || item.name}
-                        </p>
-                        {item.parentName ? (
-                          <p className="truncate text-xs text-slate-500">{item.name}</p>
-                        ) : null}
-                        {item.selectedAddOns.length ? (
-                          <p className="mt-0.5 text-[11px] leading-4 text-stone-400">
-                            {item.selectedAddOns
-                              .map((addOn) => addOn.name)
-                              .join(', ')}
-                          </p>
-                        ) : null}
-                      </div>
-                      <p className="shrink-0 text-sm font-semibold text-slate-950">
-                        {formatPrice(
-                          getCartItemTotal(
-                            item.basePrice,
-                            addOnTotal,
-                            item.quantity,
-                          ),
-                        )}
+          {items.map((item) => {
+            const addOnTotal = item.selectedAddOns.reduce(
+              (sum, addOn) => sum + addOn.price,
+              0,
+            );
+            return (
+              <div
+                key={item.key}
+                className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
+              >
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  width={56}
+                  height={56}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-14 w-14 rounded-xl object-cover"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-950">
+                        {item.parentName || item.name}
                       </p>
+                      {item.parentName ? (
+                        <p className="truncate text-xs text-slate-500">
+                          {item.name}
+                        </p>
+                      ) : null}
+                      {item.selectedAddOns.length ? (
+                        <p className="mt-0.5 text-[11px] leading-4 text-stone-400">
+                          {item.selectedAddOns
+                            .map((addOn) => addOn.name)
+                            .join(', ')}
+                        </p>
+                      ) : null}
                     </div>
-                    <div className="mt-2">
-                      <CompactQuantityStepper
-                        quantity={item.quantity}
-                        onDecrease={() =>
-                          updateItemQuantity(item.key, item.quantity - 1)
-                        }
-                        onIncrease={() =>
-                          updateItemQuantity(item.key, item.quantity + 1)
-                        }
-                      />
-                    </div>
+                    <p className="shrink-0 text-sm font-semibold text-slate-950">
+                      {formatPrice(
+                        getCartItemTotal(
+                          item.basePrice,
+                          addOnTotal,
+                          item.quantity,
+                        ),
+                      )}
+                    </p>
+                  </div>
+                  <div className="mt-2">
+                    <CompactQuantityStepper
+                      quantity={item.quantity}
+                      onDecrease={() =>
+                        updateItemQuantity(item.key, item.quantity - 1)
+                      }
+                      onIncrease={() =>
+                        updateItemQuantity(item.key, item.quantity + 1)
+                      }
+                    />
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            );
+          })}
         </div>
 
         {cartNote.trim() ? (
@@ -1534,7 +1614,18 @@ export default function RestaurantMenuCheckoutPage({
           aria-expanded={isOffersSectionOpen}
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50">
-            <svg className="h-4 w-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 12H16c-.7 2-2 3-4 3s-3.3-1-4-3H2.5"/><path d="M5.5 5.1L2 12v6c0 1.1.9 2 2 2h16a2 2 0 002-2v-6l-3.4-6.9A2 2 0 0016.8 4H7.2a2 2 0 00-1.8 1.1z"/></svg>
+            <svg
+              className="h-4 w-4 text-amber-600"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21.5 12H16c-.7 2-2 3-4 3s-3.3-1-4-3H2.5" />
+              <path d="M5.5 5.1L2 12v6c0 1.1.9 2 2 2h16a2 2 0 002-2v-6l-3.4-6.9A2 2 0 0016.8 4H7.2a2 2 0 00-1.8 1.1z" />
+            </svg>
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-slate-900">
@@ -1550,7 +1641,7 @@ export default function RestaurantMenuCheckoutPage({
                     : 'Have a promo code or gift card?'}
             </p>
           </div>
-          {(appliedCoupon || appliedGiftCard || activeRestaurantOffer) ? (
+          {appliedCoupon || appliedGiftCard || activeRestaurantOffer ? (
             <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
               Saving {formatPrice(discountAmount + giftCardAppliedAmount)}
             </span>
@@ -1567,17 +1658,30 @@ export default function RestaurantMenuCheckoutPage({
               <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
-                    <svg className="h-5 w-5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <svg
+                      className="h-5 w-5 text-emerald-600"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
                         {appliedCoupon.code}
                       </span>
-                      <span className="text-xs font-semibold text-emerald-800">{appliedCoupon.title}</span>
+                      <span className="text-xs font-semibold text-emerald-800">
+                        {appliedCoupon.title}
+                      </span>
                     </div>
                     <p className="mt-0.5 text-xs text-emerald-700">
-                      You save {formatPrice(appliedCoupon.discountAmount)} on this order
+                      You save {formatPrice(appliedCoupon.discountAmount)} on
+                      this order
                     </p>
                   </div>
                 </div>
@@ -1596,7 +1700,20 @@ export default function RestaurantMenuCheckoutPage({
               <div className="flex items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50/60 p-3.5">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100">
-                    <svg className="h-5 w-5 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 010-5A4.8 8 0 0112 8a4.8 8 0 014.5-5 2.5 2.5 0 010 5"/></svg>
+                    <svg
+                      className="h-5 w-5 text-violet-600"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="8" width="18" height="4" rx="1" />
+                      <path d="M12 8v13" />
+                      <path d="M19 12v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7" />
+                      <path d="M7.5 8a2.5 2.5 0 010-5A4.8 8 0 0112 8a4.8 8 0 014.5-5 2.5 2.5 0 010 5" />
+                    </svg>
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -1605,7 +1722,8 @@ export default function RestaurantMenuCheckoutPage({
                       </span>
                     </div>
                     <p className="mt-0.5 text-xs text-violet-700">
-                      Balance {formatPrice(appliedGiftCard.currentBalance)} &middot; Applying {formatPrice(giftCardAppliedAmount)}
+                      Balance {formatPrice(appliedGiftCard.currentBalance)}{' '}
+                      &middot; Applying {formatPrice(giftCardAppliedAmount)}
                     </p>
                   </div>
                 </div>
@@ -1622,7 +1740,9 @@ export default function RestaurantMenuCheckoutPage({
             {/* Combined promo / gift card input */}
             {!appliedCoupon || !appliedGiftCard ? (
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-stone-500">Promo or gift card code</label>
+                <label className="mb-1.5 block text-xs font-medium text-stone-500">
+                  Promo or gift card code
+                </label>
                 <form
                   onSubmit={(event) => {
                     event.preventDefault();
@@ -1661,18 +1781,34 @@ export default function RestaurantMenuCheckoutPage({
             {restaurantOfferCount > 0 ? (
               <>
                 <div className="relative">
-                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-100" /></div>
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-stone-100" />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between gap-3 pt-1">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50">
-                      <svg className="h-4 w-4 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                      <svg
+                        className="h-4 w-4 text-orange-500"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-slate-900">
-                        {restaurantOfferCount} {restaurantOfferCount === 1 ? 'offer' : 'offers'} available
+                        {restaurantOfferCount}{' '}
+                        {restaurantOfferCount === 1 ? 'offer' : 'offers'}{' '}
+                        available
                       </p>
-                      <p className={`truncate text-[11px] ${appliedCoupon ? 'text-amber-600' : activeRestaurantOffer ? 'text-emerald-600' : 'text-stone-400'}`}>
+                      <p
+                        className={`truncate text-[11px] ${appliedCoupon ? 'text-amber-600' : activeRestaurantOffer ? 'text-emerald-600' : 'text-stone-400'}`}
+                      >
                         {appliedCoupon
                           ? 'Cannot combine with coupon'
                           : activeRestaurantOffer
@@ -1708,7 +1844,10 @@ export default function RestaurantMenuCheckoutPage({
                   <span>Delivery</span>
                   {deliveryQuote && deliveryQuote.etaMinutes !== null ? (
                     <span className="text-[11px] text-slate-500">
-                      {deliveryQuote.provider === 'doordash_drive' ? 'DoorDash' : 'Uber Direct'} est. {deliveryQuote.etaMinutes} min
+                      {deliveryQuote.provider === 'doordash_drive'
+                        ? 'DoorDash'
+                        : 'Uber Direct'}{' '}
+                      est. {deliveryQuote.etaMinutes} min
                     </span>
                   ) : null}
                 </span>
@@ -1735,7 +1874,9 @@ export default function RestaurantMenuCheckoutPage({
           ) : null}
           <div className="flex items-center justify-between gap-4">
             <span>Tip</span>
-            <span className="font-medium">{formatPrice(effectiveTipAmount)}</span>
+            <span className="font-medium">
+              {formatPrice(effectiveTipAmount)}
+            </span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <span className="flex items-center gap-2">
@@ -1836,8 +1977,12 @@ export default function RestaurantMenuCheckoutPage({
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-400">
                         {isGuestCustomer ? 'Guest' : 'Signed in'}
                       </p>
-                      <p className="text-sm font-semibold text-slate-950">{customerProfile.name}</p>
-                      <p className="text-xs text-stone-500">{customerProfile.email}</p>
+                      <p className="text-sm font-semibold text-slate-950">
+                        {customerProfile.name}
+                      </p>
+                      <p className="text-xs text-stone-500">
+                        {customerProfile.email}
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -1863,10 +2008,21 @@ export default function RestaurantMenuCheckoutPage({
               </section>
             ) : null}
 
+            {!stripeOrderingEnabled ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-900">
+                <p className="font-semibold">Online ordering is unavailable</p>
+                <p className="mt-1 leading-6 text-amber-800">
+                  {orderingBlockedMessage}
+                </p>
+              </div>
+            ) : null}
+
             {fulfillmentMode === 'pickup' ? (
               <section className="space-y-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">1</span>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
+                    1
+                  </span>
                   <h2 className="text-lg font-semibold tracking-tight text-slate-950">
                     Pickup details
                   </h2>
@@ -1875,7 +2031,10 @@ export default function RestaurantMenuCheckoutPage({
                   <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex items-center gap-2 text-sm text-slate-900">
                       <MapPinIcon className="h-4 w-4 shrink-0 text-stone-400" />
-                      <span className="font-medium">{selectedLocation?.fullAddress || 'Location unavailable'}</span>
+                      <span className="font-medium">
+                        {selectedLocation?.fullAddress ||
+                          'Location unavailable'}
+                      </span>
                     </div>
                     <div className="mt-2 flex items-center gap-2 text-sm text-slate-900">
                       <ClockIcon className="h-4 w-4 shrink-0 text-stone-400" />
@@ -1887,384 +2046,482 @@ export default function RestaurantMenuCheckoutPage({
             ) : (
               <section id="delivery-address-section" className="space-y-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">1</span>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
+                    1
+                  </span>
                   <h2 className="text-lg font-semibold tracking-tight text-slate-950">
                     Delivery details
                   </h2>
                 </div>
                 <div className="ml-3.5 border-l-2 border-stone-200 pl-3 sm:pl-6">
-                <div className="rounded-2xl border border-stone-200 bg-white shadow-sm">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setIsDeliveryDetailsSectionOpen((current) => !current)
-                    }
-                    className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
-                    aria-expanded={isDeliveryDetailsSectionOpen}
-                    aria-controls="delivery-details-panel"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-100">
-                        <BikeIcon className="h-4 w-4 text-stone-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-slate-950">
-                          {isDeliveryAddressValid ? 'Delivery address' : 'Add delivery address'}
-                        </p>
-                        <p className="mt-0.5 text-xs text-stone-500">
-                          {isDeliveryAddressValid
-                            ? deliveryAddressData.formattedAddress
-                            : 'Enter your drop-off address and instructions'}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-stone-400 transition hover:bg-stone-100">
-                      <ChevronDownIcon
-                        className={`h-4 w-4 transition-transform duration-200 ${isDeliveryDetailsSectionOpen ? 'rotate-180' : ''}`}
-                      />
-                    </span>
-                  </button>
-
-                  {isDeliveryDetailsSectionOpen ? (
-                    <div
-                      id="delivery-details-panel"
-                      className="space-y-4 border-t border-stone-200 px-4 py-4 sm:px-5 sm:py-4"
+                  <div className="rounded-2xl border border-stone-200 bg-white shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setIsDeliveryDetailsSectionOpen((current) => !current)
+                      }
+                      className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+                      aria-expanded={isDeliveryDetailsSectionOpen}
+                      aria-controls="delivery-details-panel"
                     >
-                    {isDeliveryAddressValid && !isEditingDeliveryAddress && !showSavedAddressPicker ? (
-                      <div className="rounded-[18px] border border-stone-200 bg-stone-50 p-4">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="space-y-2">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                              Selected address
-                              {deliveryAddressData.label ? (
-                                <span className="ml-2 rounded-full bg-stone-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-stone-600">
-                                  {deliveryAddressData.label}
-                                </span>
-                              ) : null}
-                            </p>
-                            <p className="text-sm font-semibold leading-6 text-slate-950">
-                              {deliveryAddressData.formattedAddress}
-                            </p>
-                            {deliveryAddressData.houseFlatFloor || deliveryAddressData.landmark ? (
-                              <p className="text-sm leading-6 text-stone-600">
-                                {[deliveryAddressData.houseFlatFloor, deliveryAddressData.landmark]
-                                  .filter(Boolean)
-                                  .join(' | ')}
-                              </p>
-                            ) : (
-                              <p className="text-sm leading-6 text-stone-500">
-                                Add flat, landmark, and instructions below.
-                              </p>
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (hasCustomerSession && !isGuestCustomer && savedAddresses.length > 0) {
-                                setShowSavedAddressPicker(true);
-                              } else {
-                                setIsEditingDeliveryAddress(true);
-                              }
-                            }}
-                            className="inline-flex h-10 shrink-0 items-center justify-center rounded-[12px] border border-stone-300 bg-white px-3.5 text-sm font-medium text-slate-900 transition hover:border-stone-400 hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
-                          >
-                            Change address
-                          </button>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-100">
+                          <BikeIcon className="h-4 w-4 text-stone-600" />
                         </div>
-                      </div>
-                    ) : showSavedAddressPicker && savedAddresses.length > 0 ? (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                            Saved addresses
+                        <div>
+                          <p className="text-sm font-semibold text-slate-950">
+                            {isDeliveryAddressValid
+                              ? 'Delivery address'
+                              : 'Add delivery address'}
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowSavedAddressPicker(false);
-                              setIsEditingDeliveryAddress(true);
-                            }}
-                            className="text-xs font-semibold text-slate-900 underline underline-offset-2 transition hover:text-slate-700"
-                          >
-                            Enter new address
-                          </button>
+                          <p className="mt-0.5 text-xs text-stone-500">
+                            {isDeliveryAddressValid
+                              ? deliveryAddressData.formattedAddress
+                              : 'Enter your drop-off address and instructions'}
+                          </p>
                         </div>
-                        <div className="space-y-2">
-                          {savedAddresses.map((addr) => {
-                            const isSelected = trimDeliveryAddressText(deliveryAddressData.formattedAddress) === trimDeliveryAddressText(addr.address);
-                            return (
-                              <button
-                                key={addr.id}
-                                type="button"
-                                onClick={() => handleSelectSavedAddress(addr)}
-                                className={`w-full rounded-[14px] border p-3.5 text-left transition ${
-                                  isSelected
-                                    ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900/10'
-                                    : 'border-stone-200 bg-white hover:border-stone-300'
-                                }`}
-                              >
-                                <div className="flex items-start gap-3">
-                                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                                    isSelected ? 'border-slate-900' : 'border-stone-300'
-                                  }`}>
-                                    {isSelected ? (
-                                      <span className="h-2.5 w-2.5 rounded-full bg-slate-900" />
-                                    ) : null}
-                                  </span>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <p className="text-sm font-semibold text-slate-950 truncate">{addr.address}</p>
-                                      {addr.is_default ? (
-                                        <span className="shrink-0 rounded-full bg-slate-900 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white">
-                                          Default
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                    {(addr.saved_as || addr.house_no || addr.nearby_landmark) ? (
-                                      <p className="mt-0.5 text-xs text-stone-500">
-                                        {[addr.saved_as ? addr.saved_as.charAt(0).toUpperCase() + addr.saved_as.slice(1) : null, addr.house_no, addr.nearby_landmark].filter(Boolean).join(' - ')}
-                                      </p>
-                                    ) : null}
-                                  </div>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {isDeliveryAddressValid ? (
-                          <div className="flex justify-end">
-                            <button
-                              type="button"
-                              onClick={() => setShowSavedAddressPicker(false)}
-                              className="inline-flex h-10 items-center justify-center rounded-[12px] border border-stone-300 bg-stone-50 px-3.5 text-sm font-medium text-slate-900 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
-                            >
-                              Done
-                            </button>
-                          </div>
-                        ) : null}
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {hasCustomerSession && !isGuestCustomer && savedAddresses.length > 0 ? (
-                          <div className="flex justify-end">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsEditingDeliveryAddress(false);
-                                setShowSavedAddressPicker(true);
-                              }}
-                              className="text-xs font-semibold text-slate-900 underline underline-offset-2 transition hover:text-slate-700"
-                            >
-                              Choose from saved addresses
-                            </button>
-                          </div>
-                        ) : null}
-                        <DeliveryAddressInputField
-                          value={deliveryAddressData.formattedAddress}
-                          onChange={handleDeliveryAddressChange}
-                          onPlaceSelected={handleDeliveryAddressPlaceSelected}
+                      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-stone-400 transition hover:bg-stone-100">
+                        <ChevronDownIcon
+                          className={`h-4 w-4 transition-transform duration-200 ${isDeliveryDetailsSectionOpen ? 'rotate-180' : ''}`}
                         />
-                        {isDeliveryAddressValid ? (
-                          <div className="flex justify-end">
-                            <button
-                              type="button"
-                              onClick={() => { setIsEditingDeliveryAddress(false); setShowSavedAddressPicker(false); }}
-                              className="inline-flex h-10 items-center justify-center rounded-[12px] border border-stone-300 bg-stone-50 px-3.5 text-sm font-medium text-slate-900 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
-                            >
-                              Use this address
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
-                    )}
+                      </span>
+                    </button>
 
-                    {isDeliveryAddressValid ? (
-                      <div className="rounded-[18px] border border-stone-200 bg-stone-50 p-4 sm:p-5">
-                        <div className="flex flex-col gap-4">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <p className="text-sm font-semibold text-slate-950">Exact delivery details</p>
-                              <p className="mt-1 text-sm text-stone-600">
-                                Add the last-mile notes your courier will need.
-                              </p>
+                    {isDeliveryDetailsSectionOpen ? (
+                      <div
+                        id="delivery-details-panel"
+                        className="space-y-4 border-t border-stone-200 px-4 py-4 sm:px-5 sm:py-4"
+                      >
+                        {isDeliveryAddressValid &&
+                        !isEditingDeliveryAddress &&
+                        !showSavedAddressPicker ? (
+                          <div className="rounded-[18px] border border-stone-200 bg-stone-50 p-4">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="space-y-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                  Selected address
+                                  {deliveryAddressData.label ? (
+                                    <span className="ml-2 rounded-full bg-stone-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-stone-600">
+                                      {deliveryAddressData.label}
+                                    </span>
+                                  ) : null}
+                                </p>
+                                <p className="text-sm font-semibold leading-6 text-slate-950">
+                                  {deliveryAddressData.formattedAddress}
+                                </p>
+                                {deliveryAddressData.houseFlatFloor ||
+                                deliveryAddressData.landmark ? (
+                                  <p className="text-sm leading-6 text-stone-600">
+                                    {[
+                                      deliveryAddressData.houseFlatFloor,
+                                      deliveryAddressData.landmark,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(' | ')}
+                                  </p>
+                                ) : (
+                                  <p className="text-sm leading-6 text-stone-500">
+                                    Add flat, landmark, and instructions below.
+                                  </p>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (
+                                    hasCustomerSession &&
+                                    !isGuestCustomer &&
+                                    savedAddresses.length > 0
+                                  ) {
+                                    setShowSavedAddressPicker(true);
+                                  } else {
+                                    setIsEditingDeliveryAddress(true);
+                                  }
+                                }}
+                                className="inline-flex h-10 shrink-0 items-center justify-center rounded-[12px] border border-stone-300 bg-white px-3.5 text-sm font-medium text-slate-900 transition hover:border-stone-400 hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                              >
+                                Change address
+                              </button>
                             </div>
-                            {deliveryAddressData.label ? (
-                              <span className="inline-flex h-9 items-center rounded-full border border-stone-300 bg-white px-3 text-xs font-semibold uppercase tracking-[0.16em] text-stone-700">
-                                {deliveryAddressData.label.charAt(0).toUpperCase() + deliveryAddressData.label.slice(1)}
-                              </span>
-                            ) : null}
                           </div>
-
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <label className="block text-sm font-medium text-slate-900 sm:col-span-2">
-                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                                Street address <span className="text-red-500">*</span>
-                              </span>
-                              <input
-                                type="text"
-                                value={deliveryAddressData.addressLine1 || ''}
-                                onChange={(event) =>
-                                  handleDeliveryAddressFieldChange('addressLine1', event.target.value)
-                                }
-                                placeholder="House number, street, road"
-                                required
-                                className={fieldClassName}
-                              />
-                            </label>
-                            <label className="block text-sm font-medium text-slate-900 sm:col-span-2">
-                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                                Address line 2
-                              </span>
-                              <input
-                                type="text"
-                                value={deliveryAddressData.addressLine2 || ''}
-                                onChange={(event) =>
-                                  handleDeliveryAddressFieldChange('addressLine2', event.target.value)
-                                }
-                                placeholder="Apartment, suite, area, or building"
-                                className={fieldClassName}
-                              />
-                            </label>
-                            <label className="block text-sm font-medium text-slate-900">
-                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                                City <span className="text-red-500">*</span>
-                              </span>
-                              <input
-                                type="text"
-                                value={deliveryAddressData.city || ''}
-                                onChange={(event) =>
-                                  handleDeliveryAddressFieldChange('city', event.target.value)
-                                }
-                                placeholder="City"
-                                required
-                                className={fieldClassName}
-                              />
-                            </label>
-                            <label className="block text-sm font-medium text-slate-900">
-                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                                State <span className="text-red-500">*</span>
-                              </span>
-                              <input
-                                type="text"
-                                value={deliveryAddressData.state || ''}
-                                onChange={(event) =>
-                                  handleDeliveryAddressFieldChange('state', event.target.value)
-                                }
-                                placeholder="State"
-                                required
-                                className={fieldClassName}
-                              />
-                            </label>
-                            <label className="block text-sm font-medium text-slate-900">
-                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                                Postal code <span className="text-red-500">*</span>
-                              </span>
-                              <input
-                                type="text"
-                                value={deliveryAddressData.postalCode || ''}
-                                onChange={(event) =>
-                                  handleDeliveryAddressFieldChange('postalCode', event.target.value)
-                                }
-                                placeholder="Postal code"
-                                required
-                                className={fieldClassName}
-                              />
-                            </label>
-                            <label className="block text-sm font-medium text-slate-900">
-                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                                Country <span className="text-red-500">*</span>
-                              </span>
-                              <input
-                                type="text"
-                                value={deliveryAddressData.countryCode || ''}
-                                onChange={(event) =>
-                                  handleDeliveryAddressFieldChange('countryCode', event.target.value)
-                                }
-                                placeholder="Country"
-                                required
-                                className={fieldClassName}
-                              />
-                            </label>
-                          </div>
-
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <label className="block text-sm font-medium text-slate-900">
-                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                                House / Flat / Floor <span className="text-red-500">*</span>
-                              </span>
-                              <input
-                                type="text"
-                                value={deliveryAddressData.houseFlatFloor || ''}
-                                onChange={(event) =>
-                                  handleDeliveryAddressMetaChange('houseFlatFloor', event.target.value)
-                                }
-                                placeholder="e.g., Apt 4B, Floor 2"
-                                required
-                                className={fieldClassName}
-                              />
-                            </label>
-                            <label className="block text-sm font-medium text-slate-900">
-                              <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                                Nearby landmark
-                              </span>
-                              <input
-                                type="text"
-                                value={deliveryAddressData.landmark || ''}
-                                onChange={(event) =>
-                                  handleDeliveryAddressMetaChange('landmark', event.target.value)
-                                }
-                                placeholder="e.g., Near City Mall"
-                                className={fieldClassName}
-                              />
-                            </label>
-                          </div>
-
-                          <div>
-                            <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                              Save address as <span className="text-red-500">*</span>
-                            </span>
-                            <div className="flex flex-wrap gap-2">
-                              {['home', 'work', 'other'].map((labelOption) => {
-                                const isSelected = deliveryAddressData.label === labelOption;
+                        ) : showSavedAddressPicker &&
+                          savedAddresses.length > 0 ? (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                Saved addresses
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowSavedAddressPicker(false);
+                                  setIsEditingDeliveryAddress(true);
+                                }}
+                                className="text-xs font-semibold text-slate-900 underline underline-offset-2 transition hover:text-slate-700"
+                              >
+                                Enter new address
+                              </button>
+                            </div>
+                            <div className="space-y-2">
+                              {savedAddresses.map((addr) => {
+                                const isSelected =
+                                  trimDeliveryAddressText(
+                                    deliveryAddressData.formattedAddress,
+                                  ) === trimDeliveryAddressText(addr.address);
                                 return (
                                   <button
-                                    key={labelOption}
+                                    key={addr.id}
                                     type="button"
                                     onClick={() =>
-                                      handleDeliveryAddressMetaChange(
-                                        'label',
-                                        isSelected ? '' : labelOption,
-                                      )
+                                      handleSelectSavedAddress(addr)
                                     }
-                                    className={`h-10 rounded-[12px] border px-4 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 ${
+                                    className={`w-full rounded-[14px] border p-3.5 text-left transition ${
                                       isSelected
-                                        ? 'border-black/60 bg-black text-white'
-                                        : 'border-stone-300 bg-white text-slate-900 hover:border-stone-400 hover:bg-stone-50'
+                                        ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900/10'
+                                        : 'border-stone-200 bg-white hover:border-stone-300'
                                     }`}
                                   >
-                                    {labelOption.charAt(0).toUpperCase() + labelOption.slice(1)}
+                                    <div className="flex items-start gap-3">
+                                      <span
+                                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                                          isSelected
+                                            ? 'border-slate-900'
+                                            : 'border-stone-300'
+                                        }`}
+                                      >
+                                        {isSelected ? (
+                                          <span className="h-2.5 w-2.5 rounded-full bg-slate-900" />
+                                        ) : null}
+                                      </span>
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <p className="text-sm font-semibold text-slate-950 truncate">
+                                            {addr.address}
+                                          </p>
+                                          {addr.is_default ? (
+                                            <span className="shrink-0 rounded-full bg-slate-900 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white">
+                                              Default
+                                            </span>
+                                          ) : null}
+                                        </div>
+                                        {addr.saved_as ||
+                                        addr.house_no ||
+                                        addr.nearby_landmark ? (
+                                          <p className="mt-0.5 text-xs text-stone-500">
+                                            {[
+                                              addr.saved_as
+                                                ? addr.saved_as
+                                                    .charAt(0)
+                                                    .toUpperCase() +
+                                                  addr.saved_as.slice(1)
+                                                : null,
+                                              addr.house_no,
+                                              addr.nearby_landmark,
+                                            ]
+                                              .filter(Boolean)
+                                              .join(' - ')}
+                                          </p>
+                                        ) : null}
+                                      </div>
+                                    </div>
                                   </button>
                                 );
                               })}
                             </div>
+                            {isDeliveryAddressValid ? (
+                              <div className="flex justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setShowSavedAddressPicker(false)
+                                  }
+                                  className="inline-flex h-10 items-center justify-center rounded-[12px] border border-stone-300 bg-stone-50 px-3.5 text-sm font-medium text-slate-900 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                                >
+                                  Done
+                                </button>
+                              </div>
+                            ) : null}
                           </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {hasCustomerSession &&
+                            !isGuestCustomer &&
+                            savedAddresses.length > 0 ? (
+                              <div className="flex justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsEditingDeliveryAddress(false);
+                                    setShowSavedAddressPicker(true);
+                                  }}
+                                  className="text-xs font-semibold text-slate-900 underline underline-offset-2 transition hover:text-slate-700"
+                                >
+                                  Choose from saved addresses
+                                </button>
+                              </div>
+                            ) : null}
+                            <DeliveryAddressInputField
+                              value={deliveryAddressData.formattedAddress}
+                              onChange={handleDeliveryAddressChange}
+                              onPlaceSelected={
+                                handleDeliveryAddressPlaceSelected
+                              }
+                            />
+                            {isDeliveryAddressValid ? (
+                              <div className="flex justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsEditingDeliveryAddress(false);
+                                    setShowSavedAddressPicker(false);
+                                  }}
+                                  className="inline-flex h-10 items-center justify-center rounded-[12px] border border-stone-300 bg-stone-50 px-3.5 text-sm font-medium text-slate-900 transition hover:border-stone-400 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                                >
+                                  Use this address
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
+
+                        {isDeliveryAddressValid ? (
+                          <div className="rounded-[18px] border border-stone-200 bg-stone-50 p-4 sm:p-5">
+                            <div className="flex flex-col gap-4">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <p className="text-sm font-semibold text-slate-950">
+                                    Exact delivery details
+                                  </p>
+                                  <p className="mt-1 text-sm text-stone-600">
+                                    Add the last-mile notes your courier will
+                                    need.
+                                  </p>
+                                </div>
+                                {deliveryAddressData.label ? (
+                                  <span className="inline-flex h-9 items-center rounded-full border border-stone-300 bg-white px-3 text-xs font-semibold uppercase tracking-[0.16em] text-stone-700">
+                                    {deliveryAddressData.label
+                                      .charAt(0)
+                                      .toUpperCase() +
+                                      deliveryAddressData.label.slice(1)}
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <label className="block text-sm font-medium text-slate-900 sm:col-span-2">
+                                  <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                    Street address{' '}
+                                    <span className="text-red-500">*</span>
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={
+                                      deliveryAddressData.addressLine1 || ''
+                                    }
+                                    onChange={(event) =>
+                                      handleDeliveryAddressFieldChange(
+                                        'addressLine1',
+                                        event.target.value,
+                                      )
+                                    }
+                                    placeholder="House number, street, road"
+                                    required
+                                    className={fieldClassName}
+                                  />
+                                </label>
+                                <label className="block text-sm font-medium text-slate-900 sm:col-span-2">
+                                  <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                    Address line 2
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={
+                                      deliveryAddressData.addressLine2 || ''
+                                    }
+                                    onChange={(event) =>
+                                      handleDeliveryAddressFieldChange(
+                                        'addressLine2',
+                                        event.target.value,
+                                      )
+                                    }
+                                    placeholder="Apartment, suite, area, or building"
+                                    className={fieldClassName}
+                                  />
+                                </label>
+                                <label className="block text-sm font-medium text-slate-900">
+                                  <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                    City <span className="text-red-500">*</span>
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={deliveryAddressData.city || ''}
+                                    onChange={(event) =>
+                                      handleDeliveryAddressFieldChange(
+                                        'city',
+                                        event.target.value,
+                                      )
+                                    }
+                                    placeholder="City"
+                                    required
+                                    className={fieldClassName}
+                                  />
+                                </label>
+                                <label className="block text-sm font-medium text-slate-900">
+                                  <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                    State{' '}
+                                    <span className="text-red-500">*</span>
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={deliveryAddressData.state || ''}
+                                    onChange={(event) =>
+                                      handleDeliveryAddressFieldChange(
+                                        'state',
+                                        event.target.value,
+                                      )
+                                    }
+                                    placeholder="State"
+                                    required
+                                    className={fieldClassName}
+                                  />
+                                </label>
+                                <label className="block text-sm font-medium text-slate-900">
+                                  <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                    Postal code{' '}
+                                    <span className="text-red-500">*</span>
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={deliveryAddressData.postalCode || ''}
+                                    onChange={(event) =>
+                                      handleDeliveryAddressFieldChange(
+                                        'postalCode',
+                                        event.target.value,
+                                      )
+                                    }
+                                    placeholder="Postal code"
+                                    required
+                                    className={fieldClassName}
+                                  />
+                                </label>
+                                <label className="block text-sm font-medium text-slate-900">
+                                  <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                    Country{' '}
+                                    <span className="text-red-500">*</span>
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={
+                                      deliveryAddressData.countryCode || ''
+                                    }
+                                    onChange={(event) =>
+                                      handleDeliveryAddressFieldChange(
+                                        'countryCode',
+                                        event.target.value,
+                                      )
+                                    }
+                                    placeholder="Country"
+                                    required
+                                    className={fieldClassName}
+                                  />
+                                </label>
+                              </div>
+
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <label className="block text-sm font-medium text-slate-900">
+                                  <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                    House / Flat / Floor{' '}
+                                    <span className="text-red-500">*</span>
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={
+                                      deliveryAddressData.houseFlatFloor || ''
+                                    }
+                                    onChange={(event) =>
+                                      handleDeliveryAddressMetaChange(
+                                        'houseFlatFloor',
+                                        event.target.value,
+                                      )
+                                    }
+                                    placeholder="e.g., Apt 4B, Floor 2"
+                                    required
+                                    className={fieldClassName}
+                                  />
+                                </label>
+                                <label className="block text-sm font-medium text-slate-900">
+                                  <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                    Nearby landmark
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={deliveryAddressData.landmark || ''}
+                                    onChange={(event) =>
+                                      handleDeliveryAddressMetaChange(
+                                        'landmark',
+                                        event.target.value,
+                                      )
+                                    }
+                                    placeholder="e.g., Near City Mall"
+                                    className={fieldClassName}
+                                  />
+                                </label>
+                              </div>
+
+                              <div>
+                                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                                  Save address as{' '}
+                                  <span className="text-red-500">*</span>
+                                </span>
+                                <div className="flex flex-wrap gap-2">
+                                  {['home', 'work', 'other'].map(
+                                    (labelOption) => {
+                                      const isSelected =
+                                        deliveryAddressData.label ===
+                                        labelOption;
+                                      return (
+                                        <button
+                                          key={labelOption}
+                                          type="button"
+                                          onClick={() =>
+                                            handleDeliveryAddressMetaChange(
+                                              'label',
+                                              isSelected ? '' : labelOption,
+                                            )
+                                          }
+                                          className={`h-10 rounded-[12px] border px-4 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 ${
+                                            isSelected
+                                              ? 'border-black/60 bg-black text-white'
+                                              : 'border-stone-300 bg-white text-slate-900 hover:border-stone-400 hover:bg-stone-50'
+                                          }`}
+                                        >
+                                          {labelOption.charAt(0).toUpperCase() +
+                                            labelOption.slice(1)}
+                                        </button>
+                                      );
+                                    },
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="rounded-[16px] border border-dashed border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-600">
+                            Search your delivery address above, then add the
+                            exact drop-off details.
+                          </div>
+                        )}
+
+                        <div className="border-t border-stone-200 pt-4">
+                          <p className="flex items-start gap-3 text-sm leading-6 text-slate-900">
+                            <ClockIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                            <span>{scheduleLabel}</span>
+                          </p>
                         </div>
                       </div>
-                    ) : (
-                      <div className="rounded-[16px] border border-dashed border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-600">
-                        Search your delivery address above, then add the exact drop-off details.
-                      </div>
-                    )}
-
-                    <div className="border-t border-stone-200 pt-4">
-                      <p className="flex items-start gap-3 text-sm leading-6 text-slate-900">
-                        <ClockIcon className="mt-0.5 h-4 w-4 shrink-0" />
-                        <span>{scheduleLabel}</span>
-                      </p>
-                    </div>
+                    ) : null}
                   </div>
-                  ) : null}
-                </div>
                 </div>
               </section>
             )}
@@ -2272,7 +2529,9 @@ export default function RestaurantMenuCheckoutPage({
             {tipsEnabled ? (
               <section className="space-y-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">{fulfillmentMode === 'delivery' ? '2' : '2'}</span>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
+                    {fulfillmentMode === 'delivery' ? '2' : '2'}
+                  </span>
                   <h2 className="text-lg font-semibold tracking-tight text-slate-950">
                     Add a tip
                   </h2>
@@ -2307,8 +2566,12 @@ export default function RestaurantMenuCheckoutPage({
                             : 'border-stone-200 bg-white text-slate-700 hover:border-stone-300'
                         }`}
                       >
-                        <div className="text-xs font-bold tracking-wide">{preset.percent}</div>
-                        <div className={`mt-0.5 text-sm font-semibold ${selected ? 'text-white' : 'text-slate-950'}`}>
+                        <div className="text-xs font-bold tracking-wide">
+                          {preset.percent}
+                        </div>
+                        <div
+                          className={`mt-0.5 text-sm font-semibold ${selected ? 'text-white' : 'text-slate-950'}`}
+                        >
                           {formatPrice(preset.amount)}
                         </div>
                       </button>
@@ -2329,7 +2592,9 @@ export default function RestaurantMenuCheckoutPage({
                     }`}
                   >
                     <div className="text-xs font-bold tracking-wide">Other</div>
-                    <div className={`mt-0.5 text-sm font-semibold ${tipPreset === 'custom' ? 'text-white' : 'text-slate-950'}`}>
+                    <div
+                      className={`mt-0.5 text-sm font-semibold ${tipPreset === 'custom' ? 'text-white' : 'text-slate-950'}`}
+                    >
                       {tipPreset === 'custom' ? formatPrice(tipAmount) : '...'}
                     </div>
                   </button>
@@ -2369,7 +2634,9 @@ export default function RestaurantMenuCheckoutPage({
 
             <section id="checkout-contact-fields" className="space-y-3">
               <div className="flex items-center gap-2.5">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">{tipsEnabled ? '3' : '2'}</span>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
+                  {tipsEnabled ? '3' : '2'}
+                </span>
                 <h2 className="text-lg font-semibold tracking-tight text-slate-950">
                   Your information
                 </h2>
@@ -2404,7 +2671,10 @@ export default function RestaurantMenuCheckoutPage({
                         className={fieldClassName}
                         value={contactFields.lastName}
                         onChange={(event) =>
-                          handleContactFieldChange('lastName', event.target.value)
+                          handleContactFieldChange(
+                            'lastName',
+                            event.target.value,
+                          )
                         }
                       />
                     </label>
@@ -2431,7 +2701,10 @@ export default function RestaurantMenuCheckoutPage({
                       <select
                         value={contactFields.phoneCountryCode}
                         onChange={(event) =>
-                          handleContactFieldChange('phoneCountryCode', event.target.value)
+                          handleContactFieldChange(
+                            'phoneCountryCode',
+                            event.target.value,
+                          )
                         }
                         className={fieldClassName}
                         style={{ width: '120px', flexShrink: 0 }}
@@ -2459,7 +2732,10 @@ export default function RestaurantMenuCheckoutPage({
                         type="checkbox"
                         checked={contactFields.emailOptIn}
                         onChange={(e) =>
-                          setContactFields((prev) => ({ ...prev, emailOptIn: e.target.checked }))
+                          setContactFields((prev) => ({
+                            ...prev,
+                            emailOptIn: e.target.checked,
+                          }))
                         }
                         className="h-4 w-4 rounded border-stone-300 accent-slate-900"
                       />
@@ -2470,7 +2746,10 @@ export default function RestaurantMenuCheckoutPage({
                         type="checkbox"
                         checked={contactFields.smsOptIn}
                         onChange={(e) =>
-                          setContactFields((prev) => ({ ...prev, smsOptIn: e.target.checked }))
+                          setContactFields((prev) => ({
+                            ...prev,
+                            smsOptIn: e.target.checked,
+                          }))
                         }
                         className="h-4 w-4 rounded border-stone-300 accent-slate-900"
                       />
@@ -2491,20 +2770,30 @@ export default function RestaurantMenuCheckoutPage({
               <button
                 type="button"
                 onClick={handlePlaceOrder}
-                disabled={isPlacingOrder || (fulfillmentMode === 'delivery' && (isCheckingDeliveryQuote || !deliveryQuote || !isDeliveryDetailsComplete))}
+                disabled={
+                  !stripeOrderingEnabled ||
+                  isPlacingOrder ||
+                  (fulfillmentMode === 'delivery' &&
+                    (isCheckingDeliveryQuote ||
+                      !deliveryQuote ||
+                      !isDeliveryDetailsComplete))
+                }
                 className="relative flex h-[3.25rem] w-full items-center justify-center gap-2.5 rounded-xl bg-slate-900 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none active:scale-[0.98] sm:max-w-xs"
               >
                 <ShieldIcon className="h-4 w-4" />
                 {isPlacingOrder
                   ? 'Preparing checkout...'
-                  : fulfillmentMode === 'delivery' && isCheckingDeliveryQuote
-                    ? 'Checking delivery...'
-                    : fulfillmentMode === 'delivery' && deliveryQuoteError
-                      ? 'Delivery unavailable'
-                      : `Continue to payment \u00B7 ${formatPrice(total)}`}
+                  : !stripeOrderingEnabled
+                    ? 'Ordering unavailable'
+                    : fulfillmentMode === 'delivery' && isCheckingDeliveryQuote
+                      ? 'Checking delivery...'
+                      : fulfillmentMode === 'delivery' && deliveryQuoteError
+                        ? 'Delivery unavailable'
+                        : `Continue to payment \u00B7 ${formatPrice(total)}`}
               </button>
               <p className="max-w-sm text-xs leading-5 text-stone-400">
-                By placing your order you agree to receive transactional order updates and marketing communications.
+                By placing your order you agree to receive transactional order
+                updates and marketing communications.
               </p>
             </div>
           </div>
@@ -2522,7 +2811,9 @@ export default function RestaurantMenuCheckoutPage({
           className="flex w-full items-center justify-between rounded-xl bg-slate-900 px-5 py-3.5 text-white shadow-lg shadow-slate-900/20 active:scale-[0.98]"
         >
           <div className="flex items-center gap-2.5">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/20 text-xs font-bold">{itemCount}</span>
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/20 text-xs font-bold">
+              {itemCount}
+            </span>
             <span className="text-sm font-semibold">View order</span>
           </div>
           <span className="text-sm font-bold">{formatPrice(total)}</span>
@@ -2579,9 +2870,15 @@ export default function RestaurantMenuCheckoutPage({
             <div className="shrink-0 border-b border-stone-200 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-bold tracking-tight text-slate-950">Payment</h3>
+                  <h3 className="text-lg font-bold tracking-tight text-slate-950">
+                    Payment
+                  </h3>
                   <p className="mt-0.5 text-sm text-stone-500">
-                    Order {pendingOrderData?.orderNumber ? `#${pendingOrderData.orderNumber}` : ''} &middot; {formatPrice(pendingOrderData?.total ?? total)}
+                    Order{' '}
+                    {pendingOrderData?.orderNumber
+                      ? `#${pendingOrderData.orderNumber}`
+                      : ''}{' '}
+                    &middot; {formatPrice(pendingOrderData?.total ?? total)}
                   </p>
                 </div>
                 <button
@@ -2593,7 +2890,18 @@ export default function RestaurantMenuCheckoutPage({
                   disabled={isPaymentProcessing}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full text-stone-400 transition hover:bg-stone-100 hover:text-stone-600 disabled:opacity-50"
                 >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -2615,7 +2923,7 @@ export default function RestaurantMenuCheckoutPage({
       ) : null}
 
       {/* Full-page processing overlay */}
-      {(isPlacingOrder || isPaymentProcessing) ? (
+      {isPlacingOrder || isPaymentProcessing ? (
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-5">
             <div className="relative h-12 w-12">
@@ -2624,7 +2932,9 @@ export default function RestaurantMenuCheckoutPage({
             </div>
             <div className="text-center">
               <p className="text-lg font-semibold tracking-tight text-slate-950">
-                {isPaymentProcessing ? 'Processing payment...' : 'Preparing checkout...'}
+                {isPaymentProcessing
+                  ? 'Processing payment...'
+                  : 'Preparing checkout...'}
               </p>
               <p className="mt-1.5 text-sm text-stone-500">
                 Please do not close or refresh this page.
@@ -2636,31 +2946,3 @@ export default function RestaurantMenuCheckoutPage({
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

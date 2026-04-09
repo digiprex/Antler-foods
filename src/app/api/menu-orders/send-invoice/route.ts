@@ -30,6 +30,7 @@ const GET_ORDER_BY_NUMBER = `
       tax_total
       tip_total
       discount_total
+      delivery_fee_total
       order_note
       delivery_address
       delivery_quote_id
@@ -145,9 +146,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let deliveryFee: number | null = null;
+    let deliveryFee: number | null =
+      order.delivery_fee_total != null ? Number(order.delivery_fee_total) : null;
     const quoteId = typeof order.delivery_quote_id === 'string' ? order.delivery_quote_id : null;
-    if (quoteId) {
+    if (deliveryFee == null && quoteId) {
       try {
         const quoteData = await adminGraphqlRequest<{
           delivery_quotes_by_pk: { delivery_fee?: number | null } | null;

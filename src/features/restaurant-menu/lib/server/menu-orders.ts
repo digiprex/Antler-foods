@@ -89,6 +89,9 @@ const INSERT_ORDER = `
       cart_total
       tax_total
       tip_total
+      delivery_fee_total
+      restaurant_payout_amount
+      payout_status
     }
   }
 `;
@@ -176,6 +179,9 @@ interface InsertOrderRecord {
   cart_total?: number | string | null;
   tax_total?: number | string | null;
   tip_total?: number | string | null;
+  delivery_fee_total?: number | string | null;
+  restaurant_payout_amount?: number | string | null;
+  payout_status?: string | null;
 }
 
 interface GetItemsForOrderResponse {
@@ -624,6 +630,11 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
   const discountTotal = roundCurrency(orderDiscountTotal + giftCardAppliedAmount);
   const preGiftCardTotalWithTax = roundCurrency(preGiftCardTotal + taxTotal);
   const total = roundCurrency(Math.max(preGiftCardTotalWithTax - giftCardAppliedAmount, 0));
+  // State tax is not sourced separately in the current checkout flow yet.
+  const stateTax = 0;
+  const restaurantPayoutAmount = roundCurrency(
+    Math.max(total - taxTotal - stateTax - deliveryFeeAmount, 0),
+  );
   const orderNumber = buildOrderNumber(placedAt);
 
   const deliveryData = input.deliveryAddressData;
@@ -647,8 +658,12 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       contact_phone: contact.phone,
       scheduled_for: scheduledFor,
       tax_total: taxTotal,
+      state_tax: stateTax,
       tip_total: tipAmount,
       discount_total: discountTotal,
+      delivery_fee_total: deliveryFeeAmount,
+      restaurant_payout_amount: restaurantPayoutAmount,
+      payout_status: 'pending',
       order_note: orderNote,
       delivery_address: fulfillmentType === 'delivery' ? deliveryAddress : null,
       // Structured delivery address fields
@@ -675,7 +690,6 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       delivery_provider: deliveryProvider,
       delivery_dispatch_status:
         fulfillmentType === 'delivery' && deliveryProvider ? 'pending_ready' : null,
-      delivery_quote: deliveryQuote,
       delivery_quote_id: deliveryQuoteId,
       placed_at: placedAt.toISOString(),
       order_number: orderNumber,

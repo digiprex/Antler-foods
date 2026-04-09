@@ -79,7 +79,7 @@ function isInformationPath(pathname: string) {
 
 function isRestaurantWorkspacePath(pathname: string) {
   return (
-    /^\/dashboard\/(admin|owner|manager)\/(sales|menu|information|reviews|assets|opening-hours|locations|bank-accounts)(\/|$)/.test(
+    /^\/dashboard\/(admin|owner|manager)\/(sales|menu|information|reviews|assets|opening-hours|locations|bank-accounts|payouts)(\/|$)/.test(
       pathname,
     ) ||
     /^\/dashboard\/(admin|owner|manager)\/restaurants\/[^/]+\/media(\/|$)/.test(

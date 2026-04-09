@@ -73,7 +73,8 @@
       "WebFetch(domain:help.owner.com)",
       "WebFetch(domain:learn.grubhub.com)",
       "WebFetch(domain:wicg.github.io)",
-      "Bash(grep -r \"EMAIL\" /c/Users/natas/Desktop/Antler-foods/.env*)"
+      "Bash(grep -r \"EMAIL\" /c/Users/natas/Desktop/Antler-foods/.env*)",
+      "Bash(find C:\\\\Users\\\\natas\\\\Desktop\\\\Antler-foods\\\\src:*)"
     ]
   }
 }

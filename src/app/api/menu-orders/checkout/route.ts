@@ -4,12 +4,22 @@ import {
   readMenuCustomerSession,
   updateMenuCustomerOptIn,
 } from '@/features/restaurant-menu/lib/server/customer-auth';
+import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import {
   MenuOrderError,
   placeMenuOrder,
   updateOrderPaymentIntent,
 } from '@/features/restaurant-menu/lib/server/menu-orders';
+import { getRestaurantStripeAccountByRestaurantId } from '@/lib/server/restaurant-stripe-accounts';
 import { getStripe } from '@/lib/server/stripe';
+
+const GET_RESTAURANT_PAYMENT_METADATA = `
+  query GetRestaurantPaymentMetadata($restaurant_id: uuid!) {
+    restaurants_by_pk(restaurant_id: $restaurant_id) {
+      name
+    }
+  }
+`;
 
 interface CheckoutOrderRequestBody {
   restaurantId?: string;
@@ -128,14 +138,47 @@ export async function POST(request: NextRequest) {
       orderNote: body?.orderNote,
     });
 
+    const metadata: Record<string, string> = {
+      restaurant_id: restaurantId,
+      order_id: result.orderId,
+      order_number: result.orderNumber,
+    };
+
+    try {
+      const [restaurantData, stripeAccount] = await Promise.all([
+        adminGraphqlRequest<{
+          restaurants_by_pk?: {
+            name?: string | null;
+          } | null;
+        }>(GET_RESTAURANT_PAYMENT_METADATA, {
+          restaurant_id: restaurantId,
+        }),
+        getRestaurantStripeAccountByRestaurantId(restaurantId),
+      ]);
+
+      const restaurantName = trimMetadataValue(
+        restaurantData.restaurants_by_pk?.name,
+      );
+      const stripeAccountId = trimMetadataValue(stripeAccount?.stripeAccountId);
+
+      if (restaurantName) {
+        metadata.restaurant_name = restaurantName;
+      }
+
+      if (stripeAccountId) {
+        metadata.restaurant_stripe_account_id = stripeAccountId;
+      }
+    } catch (metadataError) {
+      console.error(
+        '[Menu Orders] Failed to enrich Stripe payment metadata:',
+        metadataError,
+      );
+    }
+
     const paymentIntent = await getStripe().paymentIntents.create({
       amount: Math.round(result.total * 100),
       currency: 'usd',
-      metadata: {
-        restaurant_id: restaurantId,
-        order_id: result.orderId,
-        order_number: result.orderNumber,
-      },
+      metadata,
       automatic_payment_methods: { enabled: true },
     });
 
@@ -161,5 +204,18 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+function trimMetadataValue(value: unknown) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  return normalized.slice(0, 500);
 }
 

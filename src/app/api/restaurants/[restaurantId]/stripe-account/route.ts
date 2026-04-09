@@ -65,9 +65,10 @@ function serializeStripeAccountPayload(
           : summary.status === 'action_required'
             ? 'Update required details'
             : null,
-    account: account
+        account: account
       ? {
           stripe_account_id: account.stripeAccountId,
+          display_name: account.displayName,
           is_connected: account.isConnected,
           details_submitted: account.detailsSubmitted,
           charges_enabled: account.chargesEnabled,

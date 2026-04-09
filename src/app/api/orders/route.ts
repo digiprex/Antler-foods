@@ -26,8 +26,13 @@ export const dynamic = 'force-dynamic';
  * - contact_phone: text, nullable
  * - scheduled_for: timestamp with time zone, nullable
  * - tax_total: numeric, nullable, default: 0
+ * - state_tax: numeric, nullable, default: 0 
  * - tip_total: numeric, nullable, default: 0
- * - discount_total: numeric, nullable, default: 0
+  * - discount_total: numeric, nullable, default: 0  
+ * - delivery_fee_total: numeric, default: 0 
+ * - restaurant_payout_amount: numeric, default: 0
+ * - payout_status: text, default: 'pending' 
+ * - payout_batch_id: uuid, nullable 
  * - order_note: text, nullable
  * - delivery_address: text, nullable
  * - placed_at: timestamp with time zone, nullable
@@ -93,7 +98,11 @@ const GET_ORDERS_QUERY = `
       scheduled_for
       tax_total
       tip_total
-      discount_total
+        discount_total 
+      delivery_fee_total
+      restaurant_payout_amount
+      payout_status
+      payout_batch_id 
       order_note
       delivery_address
       delivery_provider
@@ -103,7 +112,6 @@ const GET_ORDERS_QUERY = `
       delivery_dispatched_at
       delivery_last_status_at
       delivery_error
-      delivery_quote
       delivery_quote_id
       cancelled_by
       cancelled_at
@@ -347,8 +355,10 @@ export async function GET(request: NextRequest) {
       }));
     }
 
-    // Fetch delivery fees from delivery_quotes table
+    // Fall back to the delivery_quotes table only for older rows that do not
+    // yet have a delivery fee snapshot stored on the order itself.
     const quoteIds = ordersWithItems
+      .filter((o: any) => o.delivery_fee_total == null)
       .map((o: any) => o.delivery_quote_id)
       .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0);
 
@@ -375,7 +385,12 @@ export async function GET(request: NextRequest) {
 
     const ordersWithDeliveryFee = ordersWithItems.map((order: any) => ({
       ...order,
-      delivery_fee: order.delivery_quote_id ? (feeByQuoteId.get(order.delivery_quote_id) ?? null) : null,
+      delivery_fee:
+        order.delivery_fee_total != null
+          ? Number(order.delivery_fee_total)
+          : order.delivery_quote_id
+            ? (feeByQuoteId.get(order.delivery_quote_id) ?? null)
+            : null,
     }));
 
     return NextResponse.json({

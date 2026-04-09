@@ -4,6 +4,7 @@ import { unstable_cache } from 'next/cache';
 
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { loadActiveMenuOffers } from '@/features/restaurant-menu/lib/server/menu-offers';
+import { getRestaurantStripeAccountByRestaurantId } from '@/lib/server/restaurant-stripe-accounts';
 import type {
   MenuAddOn,
   MenuCategory,
@@ -305,19 +306,19 @@ const GET_OPENING_HOUR_SLOTS = `
 `;
 
 const loadRestaurantMenuMetadataCached = unstable_cache(
-async (domain: string) => {
-  const restaurant = (await loadRestaurantByDomain(domain)) || (await loadRestaurantForLatestMenu());
-  const restaurantName = text(restaurant?.name);
+  async (domain: string) => {
+    const restaurant = (await loadRestaurantByDomain(domain)) || (await loadRestaurantForLatestMenu());
+    const restaurantName = text(restaurant?.name);
 
-  return {
-    title: restaurantName ? `${restaurantName} | Online Ordering` : 'Online Ordering',
-    description: restaurantName
-      ? `Order pickup or delivery from ${restaurantName}.`
-      : 'Order pickup or delivery online.',
-  };
-},
-['restaurant-menu-metadata'],
-{ revalidate: 120 },
+    return {
+      title: restaurantName ? `${restaurantName} | Online Ordering` : 'Online Ordering',
+      description: restaurantName
+        ? `Order pickup or delivery from ${restaurantName}.`
+        : 'Order pickup or delivery online.',
+    };
+  },
+  ['restaurant-menu-metadata'],
+  { revalidate: 120 },
 );
 
 export async function loadRestaurantMenuMetadata(domain: string) {
@@ -329,59 +330,86 @@ export function getEmptyRestaurantMenuData(restaurantName = 'Restaurant') {
 }
 
 const loadRestaurantMenuPageDataCached = unstable_cache(
-async (domain: string): Promise<RestaurantMenuData> => {
-  let restaurant = await loadRestaurantByDomain(domain);
-  // Only fall back to the global latest menu when we cannot resolve a restaurant
-  // for the current domain. If a restaurant exists but has no menu yet, keep it empty.
-  let menu = restaurant?.restaurant_id ? await loadPreferredMenu(restaurant.restaurant_id) : null;
-  if (!restaurant && !menu) {
-    menu = await loadLatestMenu();
-  }
-
-  if (!restaurant && menu?.restaurant_id) {
-    restaurant = await gql(GET_RESTAURANT_BY_ID, { restaurant_id: menu.restaurant_id }).then((data: any) => data.restaurants_by_pk || null);
-  }
-
-  if (!restaurant) {
-    return buildEmptyMenuData('Restaurant');
-  }
-
-  const opening = await loadOpeningHours(restaurant.restaurant_id || '');
-  const offers = await loadActiveMenuOffers(restaurant.restaurant_id || '');
-
-  // Try schedule-based menu selection (supports breakfast/lunch/dinner auto-switching)
-  if (restaurant.restaurant_id) {
-    const timeZone = resolveTimeZone(opening.profile?.timezone);
-    const scheduledMenu = await loadScheduledMenu(restaurant.restaurant_id, timeZone);
-    if (scheduledMenu) {
-      menu = scheduledMenu;
+  async (domain: string): Promise<RestaurantMenuData> => {
+    let restaurant = await loadRestaurantByDomain(domain);
+    // Only fall back to the global latest menu when we cannot resolve a restaurant
+    // for the current domain. If a restaurant exists but has no menu yet, keep it empty.
+    let menu = restaurant?.restaurant_id ? await loadPreferredMenu(restaurant.restaurant_id) : null;
+    if (!restaurant && !menu) {
+      menu = await loadLatestMenu();
     }
-  }
 
-  if (!menu?.menu_id) {
-    return buildMenuData({ restaurant, menu: null, categories: [], items: [], modifierGroups: [], modifierItems: [], opening, offers });
-  }
+    if (!restaurant && menu?.restaurant_id) {
+      restaurant = await gql(GET_RESTAURANT_BY_ID, { restaurant_id: menu.restaurant_id }).then((data: any) => data.restaurants_by_pk || null);
+    }
 
-  const categories = await gql(GET_CATEGORIES_BY_MENU, { menu_id: menu.menu_id }).then((data: any) => data.categories || []);
-  const categoryIds = categories.map((category: any) => text(category.category_id)).filter(Boolean);
-  const items = categoryIds.length
-    ? await gql(GET_ITEMS_BY_CATEGORY_IDS, { category_ids: categoryIds }).then((data: any) => data.items || [])
-    : [];
-  const modifierGroupIds = Array.from(new Set(items.flatMap((item: any) => modifierGroupIdsFromValue(item.modifiers))));
-  const modifierGroups = modifierGroupIds.length
-    ? await gql(GET_MODIFIER_GROUPS_BY_IDS, { modifier_group_ids: modifierGroupIds }).then((data: any) => data.modifier_groups || [])
-    : [];
-  const modifierItems = modifierGroups.length
-    ? await gql(
-      GET_MODIFIER_ITEMS_BY_GROUP_IDS,
-      { modifier_group_ids: modifierGroups.map((group: any) => text(group.modifier_group_id)).filter(Boolean) },
-    ).then((data: any) => data.modifier_items || [])
-    : [];
+    if (!restaurant) {
+      return buildEmptyMenuData('Restaurant');
+    }
+    const stripeConnected = text(restaurant.restaurant_id)
+      ? (await getRestaurantStripeAccountByRestaurantId(
+        text(restaurant.restaurant_id) || '',
+      ))?.isConnected !== false
+      : true;
 
-  return buildMenuData({ restaurant, menu, categories, items, modifierGroups, modifierItems, opening, offers });
-},
-['restaurant-menu-page-data'],
-{ revalidate: 60 },
+    const opening = await loadOpeningHours(restaurant.restaurant_id || '');
+    const offers = await loadActiveMenuOffers(restaurant.restaurant_id || '');
+    if (!menu?.menu_id) {
+      return buildMenuData({
+        restaurant,
+        menu: null,
+        categories: [],
+        items: [],
+        modifierGroups: [],
+        modifierItems: [],
+        opening,
+        offers,
+        stripeConnected,
+      });
+    }
+    // Try schedule-based menu selection (supports breakfast/lunch/dinner auto-switching)
+    if (restaurant.restaurant_id) {
+      const timeZone = resolveTimeZone(opening.profile?.timezone);
+      const scheduledMenu = await loadScheduledMenu(restaurant.restaurant_id, timeZone);
+      if (scheduledMenu) {
+        menu = scheduledMenu;
+      }
+    }
+
+    if (!menu?.menu_id) {
+      return buildMenuData({ restaurant, menu: null, categories: [], items: [], modifierGroups: [], modifierItems: [], opening, offers });
+    }
+
+    const categories = await gql(GET_CATEGORIES_BY_MENU, { menu_id: menu.menu_id }).then((data: any) => data.categories || []);
+    const categoryIds = categories.map((category: any) => text(category.category_id)).filter(Boolean);
+    const items = categoryIds.length
+      ? await gql(GET_ITEMS_BY_CATEGORY_IDS, { category_ids: categoryIds }).then((data: any) => data.items || [])
+      : [];
+    const modifierGroupIds = Array.from(new Set(items.flatMap((item: any) => modifierGroupIdsFromValue(item.modifiers))));
+    const modifierGroups = modifierGroupIds.length
+      ? await gql(GET_MODIFIER_GROUPS_BY_IDS, { modifier_group_ids: modifierGroupIds }).then((data: any) => data.modifier_groups || [])
+      : [];
+    const modifierItems = modifierGroups.length
+      ? await gql(
+        GET_MODIFIER_ITEMS_BY_GROUP_IDS,
+        { modifier_group_ids: modifierGroups.map((group: any) => text(group.modifier_group_id)).filter(Boolean) },
+      ).then((data: any) => data.modifier_items || [])
+      : [];
+
+    return buildMenuData({
+      restaurant,
+      menu,
+      categories,
+      items,
+      modifierGroups,
+      modifierItems,
+      opening,
+      offers,
+      stripeConnected,
+    });
+  },
+  ['restaurant-menu-page-data'],
+  { revalidate: 60 },
 );
 
 export async function loadRestaurantMenuPageData(domain: string): Promise<RestaurantMenuData> {
@@ -488,7 +516,7 @@ async function loadScheduledMenu(restaurantId: string, timeZone: string) {
 }
 
 function findMenuForCurrentTime(
-  menus: Array<{ menu_id: string; name: string; [key: string]: any }>,
+  menus: Array<{ menu_id: string; name: string;[key: string]: any }>,
   config: MenuScheduleConfig,
   timeZone: string,
 ) {
@@ -545,10 +573,22 @@ function isRestaurantCurrentlyOpen(intervalsByDay: Map<number, Array<{ open: str
   });
 }
 
-function buildMenuData({ restaurant, menu, categories, items, modifierGroups, modifierItems, opening, offers }: any): RestaurantMenuData {
+
+function buildMenuData({ restaurant,
+  menu,
+  categories,
+  items,
+  modifierGroups,
+  modifierItems,
+  opening,
+  offers,
+  stripeConnected = true, }: any): RestaurantMenuData {
   const restaurantName = text(restaurant?.name) || 'Restaurant';
   const pickupAllowed = restaurant?.pickup_allowed !== false;
   const deliveryAllowed = restaurant?.delivery_allowed !== false;
+  const orderingBlockedMessage = stripeConnected
+    ? null
+    : 'Online ordering is temporarily unavailable because Stripe is not connected for this restaurant yet.';
   const addressLine = buildFullAddress(restaurant) || 'Location unavailable';
   const cityStateZip = buildCityStateZip(restaurant);
   const timeZone = resolveTimeZone(opening.profile?.timezone);
@@ -688,6 +728,8 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
     transactionTaxRate: typeof restaurant.transaction_tax_rate === 'number' ? restaurant.transaction_tax_rate : 5,
     pickupAllowed,
     deliveryAllowed,
+    stripeConnected,
+    orderingBlockedMessage,
     variesWithTime,
     isCurrentlyOpen,
     slug: slugify(restaurantName) || slugify(menu?.name) || 'menu',
@@ -728,9 +770,9 @@ function buildMenuData({ restaurant, menu, categories, items, modifierGroups, mo
     ],
     serviceOptions: pickupAllowed && deliveryAllowed
       ? [
-          { mode: 'pickup', label: 'Pickup', helperText: 'Select a pickup time' },
-          { mode: 'delivery', label: 'Delivery', helperText: 'Enter your address to check availability' },
-        ]
+        { mode: 'pickup', label: 'Pickup', helperText: 'Select a pickup time' },
+        { mode: 'delivery', label: 'Delivery', helperText: 'Enter your address to check availability' },
+      ]
       : pickupAllowed
         ? [{ mode: 'pickup', label: 'Pickup', helperText: 'Select a pickup time' }]
         : [{ mode: 'delivery', label: 'Delivery', helperText: 'Enter your address to check availability' }],
@@ -764,6 +806,7 @@ function buildEmptyMenuData(restaurantName: string): RestaurantMenuData {
     transactionTaxRate: 5,
     pickupAllowed: true,
     deliveryAllowed: true,
+    stripeConnected: true,
     slug: slugify(restaurantName) || 'menu',
     announcement: `Order directly from ${restaurantName}.`,
     brand: { name: restaurantName.toUpperCase(), subtitle: 'Online Ordering', accentText: restaurantName },

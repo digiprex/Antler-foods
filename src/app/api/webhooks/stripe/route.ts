@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/server/stripe';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { sendOrderInvoiceEmail } from '@/lib/server/email';
+import { syncPayoutBatchByTransferEvent } from '@/lib/server/restaurant-payouts';
 
 const GET_ORDER_FOR_INVOICE = `
   query GetOrderForInvoice($order_id: uuid!) {
@@ -25,6 +26,7 @@ const GET_ORDER_FOR_INVOICE = `
       tax_total
       tip_total
       discount_total
+      delivery_fee_total
       order_note
       delivery_address
       delivery_quote_id
@@ -168,9 +170,10 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          let deliveryFee: number | null = null;
+          let deliveryFee: number | null =
+            order.delivery_fee_total != null ? Number(order.delivery_fee_total) : null;
           const quoteId = typeof order.delivery_quote_id === 'string' ? order.delivery_quote_id : null;
-          if (quoteId) {
+          if (deliveryFee == null && quoteId) {
             try {
               const quoteData = await adminGraphqlRequest<{
                 delivery_quotes_by_pk: { delivery_fee?: number | null } | null;
@@ -209,6 +212,25 @@ export async function POST(request: NextRequest) {
         payment_status: 'failed',
         payment_reference: paymentIntent.id,
       });
+    }
+  }
+
+  if (
+    event.type === 'transfer.created' ||
+    event.type === 'transfer.updated' ||
+    event.type === 'transfer.reversed'
+  ) {
+    try {
+      await syncPayoutBatchByTransferEvent(
+        event.data.object as Parameters<typeof syncPayoutBatchByTransferEvent>[0],
+        event.type,
+      );
+    } catch (transferError) {
+      console.error('[Stripe Webhook] Transfer sync failed:', transferError);
+      return NextResponse.json(
+        { error: 'Transfer webhook processing failed.' },
+        { status: 500 },
+      );
     }
   }
 

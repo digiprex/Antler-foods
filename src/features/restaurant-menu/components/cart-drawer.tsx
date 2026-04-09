@@ -21,6 +21,7 @@ interface CartDrawerProps {
   itemCount: number;
   subtotal: number;
   checkoutEnabled?: boolean;
+  checkoutDisabledMessage?: string | null;
   cartNote: string;
   mode: FulfillmentMode;
   deliveryAddress: string;
@@ -49,6 +50,7 @@ export function CartDrawer({
   itemCount,
   subtotal,
   checkoutEnabled = true,
+  checkoutDisabledMessage,
   cartNote,
   mode,
   deliveryAddress,
@@ -267,6 +269,11 @@ export function CartDrawer({
               </>
             )}
           </button>
+          {!checkoutEnabled && checkoutDisabledMessage ? (
+            <p className="mt-2 text-center text-xs font-medium text-rose-600">
+              {checkoutDisabledMessage}
+            </p>
+          ) : null}
         </div>
       </aside>
     </div>

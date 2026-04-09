@@ -5,6 +5,7 @@ interface MenuSectionProps {
   category: MenuCategory;
   onOpenItem: (itemId: string) => void;
   onQuickAdd: (item: MenuItem) => void;
+  quickAddDisabled?: boolean;
   registerRef: (element: HTMLElement | null) => void;
   first?: boolean;
   getItemQuantity?: (itemId: string) => number;
@@ -31,6 +32,7 @@ export function MenuSection({
   category,
   onOpenItem,
   onQuickAdd,
+  quickAddDisabled = false,
   registerRef,
   first = false,
   getItemQuantity,
@@ -59,6 +61,7 @@ export function MenuSection({
               key={item.id}
               item={item}
               quantityInCart={getItemQuantity ? getItemQuantity(item.id) : 0}
+              quickAddDisabled={quickAddDisabled}
               onOpen={onOpenItem}
               onQuickAdd={onQuickAdd}
             />

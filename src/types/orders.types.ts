@@ -25,9 +25,15 @@ export interface Order {
   contact_phone?: string | null;
   scheduled_for?: string | null;
   tax_total?: number | null;
+  state_tax?: number | null;
   tip_total?: number | null;
   discount_total?: number | null;
   delivery_fee?: number | null;
+  delivery_fee_total?: number | null;
+  restaurant_payout_amount?: number | null;
+  payout_status?: string | null;
+  payout_batch_id?: string | null;
+  refund_amount?: number | null;
   order_note?: string | null;
   delivery_address?: string | null;
   // Structured delivery address fields
@@ -52,11 +58,9 @@ export interface Order {
   delivery_dispatched_at?: string | null;
   delivery_last_status_at?: string | null;
   delivery_error?: string | null;
-  delivery_quote?: string | null;
   cancelled_by?: string | null;
   cancelled_at?: string | null;
   refunded_at?: string | null;
-  refund_amount?: number | null;
   placed_at?: string | null;
   order_number?: string | null;
   payment_method?: string | null;

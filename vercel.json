@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/campaigns",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/restaurant-payouts",
+      "schedule": "0 3 * * 1"
     }
   ]
 }

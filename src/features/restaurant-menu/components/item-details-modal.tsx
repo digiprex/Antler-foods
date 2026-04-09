@@ -17,6 +17,7 @@ interface ItemDetailsModalProps {
   open: boolean;
   trustBanner: string;
   addToCartDisabled?: boolean;
+  addToCartDisabledMessage?: string | null;
   onClose: () => void;
   onAddToCart: (input: AddCartItemInput) => void;
 }
@@ -120,6 +121,7 @@ export function ItemDetailsModal({
   open,
   trustBanner,
   addToCartDisabled = false,
+  addToCartDisabledMessage,
   onClose,
   onAddToCart,
 }: ItemDetailsModalProps) {
@@ -461,7 +463,7 @@ export function ItemDetailsModal({
                 <div className="mb-2.5 text-xs sm:text-sm">
                   {addToCartDisabled ? (
                     <p className="font-medium text-rose-600">
-                      Ordering is currently unavailable for this restaurant.
+                      {addToCartDisabledMessage || 'Ordering is currently unavailable for this restaurant.'}
                     </p>
                   ) : invalidGroups.length ? (
                     <p className="font-medium text-rose-600">

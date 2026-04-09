@@ -37,6 +37,71 @@ const GET_CUSTOMERS_QUERY = `
   }
 `;
 
+const GET_CUSTOMERS_WITH_ORDER_FILTER_QUERY = `
+  query GetCustomersWithOrderFilter($restaurant_id: uuid!, $limit: Int, $offset: Int, $search: String, $customer_ids: [uuid!]!) {
+    customers(
+      where: {
+        restaurant_id: { _eq: $restaurant_id }
+        is_deleted: { _eq: false }
+        customer_id: { _in: $customer_ids }
+        _or: [
+          { display_name: { _ilike: $search } }
+          { email: { _ilike: $search } }
+          { phone: { _ilike: $search } }
+        ]
+      }
+      order_by: { created_at: desc }
+      limit: $limit
+      offset: $offset
+    ) {
+      customer_id
+      created_at
+      display_name
+      email
+      phone
+      is_guest
+      email_opt_in
+      sms_opt_in
+    }
+  }
+`;
+
+const GET_CUSTOMERS_WITH_ORDER_FILTER_COUNT_QUERY = `
+  query GetCustomersWithOrderFilterCount($restaurant_id: uuid!, $search: String, $customer_ids: [uuid!]!) {
+    customers_aggregate(
+      where: {
+        restaurant_id: { _eq: $restaurant_id }
+        is_deleted: { _eq: false }
+        customer_id: { _in: $customer_ids }
+        _or: [
+          { display_name: { _ilike: $search } }
+          { email: { _ilike: $search } }
+          { phone: { _ilike: $search } }
+        ]
+      }
+    ) {
+      aggregate {
+        count
+      }
+    }
+  }
+`;
+
+const GET_ORDERED_CUSTOMER_IDS_QUERY = `
+  query GetOrderedCustomerIds($restaurant_id: uuid!, $since: timestamptz!) {
+    orders(
+      where: {
+        restaurant_id: { _eq: $restaurant_id }
+        is_deleted: { _eq: false }
+        created_at: { _gte: $since }
+      }
+      distinct_on: customer_id
+    ) {
+      customer_id
+    }
+  }
+`;
+
 const GET_CUSTOMER_ADDRESSES_QUERY = `
   query GetCustomerAddresses($customer_ids: [uuid!]!) {
     customer_delivery_addresses(
@@ -118,6 +183,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const search = searchParams.get('search') || '';
     const includeOrderStats = searchParams.get('include_order_stats') === 'true';
+    const orderedDays = searchParams.get('ordered_days');
 
     if (!restaurantId) {
       return NextResponse.json(
@@ -129,17 +195,53 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
     const searchFilter = search ? `%${search}%` : '%';
 
+    // If ordered_days filter is set, first get customer IDs who ordered within that period
+    let orderedCustomerIds: string[] | null = null;
+    if (orderedDays) {
+      const days = parseInt(orderedDays);
+      if (!isNaN(days) && days > 0) {
+        const since = new Date();
+        since.setDate(since.getDate() - days);
+        const orderData = await adminGraphqlRequest(GET_ORDERED_CUSTOMER_IDS_QUERY, {
+          restaurant_id: restaurantId,
+          since: since.toISOString(),
+        });
+        orderedCustomerIds = ((orderData as any).orders || []).map((o: any) => o.customer_id);
+        if (orderedCustomerIds!.length === 0) {
+          return NextResponse.json({
+            success: true,
+            customers: [],
+            pagination: { page, limit, total: 0, totalPages: 0 },
+          });
+        }
+      }
+    }
+
     const [customersData, countData] = await Promise.all([
-      adminGraphqlRequest(GET_CUSTOMERS_QUERY, {
-        restaurant_id: restaurantId,
-        limit,
-        offset,
-        search: searchFilter,
-      }),
-      adminGraphqlRequest(GET_CUSTOMERS_COUNT_QUERY, {
-        restaurant_id: restaurantId,
-        search: searchFilter,
-      }),
+      orderedCustomerIds
+        ? adminGraphqlRequest(GET_CUSTOMERS_WITH_ORDER_FILTER_QUERY, {
+            restaurant_id: restaurantId,
+            limit,
+            offset,
+            search: searchFilter,
+            customer_ids: orderedCustomerIds,
+          })
+        : adminGraphqlRequest(GET_CUSTOMERS_QUERY, {
+            restaurant_id: restaurantId,
+            limit,
+            offset,
+            search: searchFilter,
+          }),
+      orderedCustomerIds
+        ? adminGraphqlRequest(GET_CUSTOMERS_WITH_ORDER_FILTER_COUNT_QUERY, {
+            restaurant_id: restaurantId,
+            search: searchFilter,
+            customer_ids: orderedCustomerIds,
+          })
+        : adminGraphqlRequest(GET_CUSTOMERS_COUNT_QUERY, {
+            restaurant_id: restaurantId,
+            search: searchFilter,
+          }),
     ]);
 
     const customers = (customersData as any).customers || [];

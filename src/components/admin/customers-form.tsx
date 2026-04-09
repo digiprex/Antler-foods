@@ -50,6 +50,7 @@ export default function CustomersForm({ restaurantId, restaurantName }: Customer
   });
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [guestFilter, setGuestFilter] = useState<'' | 'guest' | 'registered'>('');
+  const [orderedDaysFilter, setOrderedDaysFilter] = useState<string>('');
 
   // Debounce search
   useEffect(() => {
@@ -74,6 +75,10 @@ export default function CustomersForm({ restaurantId, restaurantName }: Customer
           params.set('search', debouncedSearch);
         }
 
+        if (orderedDaysFilter) {
+          params.set('ordered_days', orderedDaysFilter);
+        }
+
         const response = await fetch(`/api/customers?${params.toString()}`);
         const data = await response.json();
 
@@ -89,7 +94,7 @@ export default function CustomersForm({ restaurantId, restaurantName }: Customer
         setLoading(false);
       }
     },
-    [restaurantId, pagination.limit, debouncedSearch],
+    [restaurantId, pagination.limit, debouncedSearch, orderedDaysFilter],
   );
 
   useEffect(() => {
@@ -155,6 +160,17 @@ export default function CustomersForm({ restaurantId, restaurantName }: Customer
           <option value="">All Customers</option>
           <option value="registered">Registered</option>
           <option value="guest">Guests</option>
+        </select>
+        <select
+          value={orderedDaysFilter}
+          onChange={(e) => setOrderedDaysFilter(e.target.value)}
+          className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
+        >
+          <option value="">All Time</option>
+          <option value="7">Ordered Last 7 Days</option>
+          <option value="30">Ordered Last 30 Days</option>
+          <option value="60">Ordered Last 60 Days</option>
+          <option value="90">Ordered Last 90 Days</option>
         </select>
         <button
           onClick={() => fetchCustomers(1)}

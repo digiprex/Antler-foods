@@ -126,6 +126,36 @@ const GET_RESTAURANT_INFO = `
   }
 `;
 
+const INSERT_EMAIL_LOG = `
+  mutation InsertEmailLog(
+    $restaurant_id: uuid!
+    $campaign_id: uuid
+    $template_key: String!
+    $customer_id: uuid
+    $recipient_email: String!
+    $recipient_name: String
+    $subject: String!
+    $status: String!
+    $error_message: String
+    $trigger: String!
+  ) {
+    insert_email_logs_one(object: {
+      restaurant_id: $restaurant_id
+      campaign_id: $campaign_id
+      template_key: $template_key
+      customer_id: $customer_id
+      recipient_email: $recipient_email
+      recipient_name: $recipient_name
+      subject: $subject
+      status: $status
+      error_message: $error_message
+      trigger: $trigger
+    }) {
+      email_log_id
+    }
+  }
+`;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -133,6 +163,35 @@ const GET_RESTAURANT_INFO = `
 interface Recipient {
   email: string;
   name: string | null;
+}
+
+async function logEmail(params: {
+  restaurantId: string;
+  campaignId: string | null;
+  templateKey: string;
+  recipientEmail: string;
+  recipientName: string | null;
+  subject: string;
+  status: 'sent' | 'failed';
+  errorMessage: string | null;
+  trigger: string;
+}) {
+  try {
+    await adminGraphqlRequest(INSERT_EMAIL_LOG, {
+      restaurant_id: params.restaurantId,
+      campaign_id: params.campaignId,
+      template_key: params.templateKey,
+      customer_id: null,
+      recipient_email: params.recipientEmail,
+      recipient_name: params.recipientName,
+      subject: params.subject,
+      status: params.status,
+      error_message: params.errorMessage,
+      trigger: params.trigger,
+    });
+  } catch (err) {
+    console.error('[Cron/Email Log] Failed to log email:', err);
+  }
 }
 
 async function getAudienceRecipients(restaurantId: string, audience: string): Promise<Recipient[]> {
@@ -249,6 +308,8 @@ export async function GET(request: NextRequest) {
         let failedCount = 0;
 
         for (const recipient of recipients) {
+          let status: 'sent' | 'failed' = 'sent';
+          let errorMessage: string | null = null;
           try {
             await sendCampaignEmail(recipient.email, {
               subject: campaign.subject,
@@ -264,8 +325,22 @@ export async function GET(request: NextRequest) {
             sentCount++;
           } catch (err) {
             console.error(`[Cron/Campaigns] Failed to send to ${recipient.email}:`, err);
+            status = 'failed';
+            errorMessage = err instanceof Error ? err.message : 'Unknown error';
             failedCount++;
           }
+
+          logEmail({
+            restaurantId: campaign.restaurant_id,
+            campaignId: campaign.campaign_id,
+            templateKey: campaign.template_key,
+            recipientEmail: recipient.email,
+            recipientName: recipient.name,
+            subject: campaign.subject,
+            status,
+            errorMessage,
+            trigger: 'scheduled',
+          });
         }
 
         // Update campaign status

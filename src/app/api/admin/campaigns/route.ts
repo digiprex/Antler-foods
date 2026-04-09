@@ -44,6 +44,61 @@ const GET_CAMPAIGNS = `
   }
 `;
 
+const GET_EMAIL_LOGS = `
+  query GetEmailLogs($restaurant_id: uuid!) {
+    email_logs(
+      where: {
+        restaurant_id: { _eq: $restaurant_id }
+        is_deleted: { _eq: false }
+      }
+      order_by: { created_at: desc }
+      limit: 200
+    ) {
+      email_log_id
+      campaign_id
+      template_key
+      customer_id
+      recipient_email
+      recipient_name
+      subject
+      status
+      error_message
+      trigger
+      created_at
+    }
+  }
+`;
+
+const INSERT_EMAIL_LOG = `
+  mutation InsertEmailLog(
+    $restaurant_id: uuid!
+    $campaign_id: uuid
+    $template_key: String!
+    $customer_id: uuid
+    $recipient_email: String!
+    $recipient_name: String
+    $subject: String!
+    $status: String!
+    $error_message: String
+    $trigger: String!
+  ) {
+    insert_email_logs_one(object: {
+      restaurant_id: $restaurant_id
+      campaign_id: $campaign_id
+      template_key: $template_key
+      customer_id: $customer_id
+      recipient_email: $recipient_email
+      recipient_name: $recipient_name
+      subject: $subject
+      status: $status
+      error_message: $error_message
+      trigger: $trigger
+    }) {
+      email_log_id
+    }
+  }
+`;
+
 const GET_CAMPAIGN_BY_ID = `
   query GetCampaignById($campaign_id: uuid!) {
     campaigns_by_pk(campaign_id: $campaign_id) {
@@ -239,6 +294,7 @@ const GET_RESTAURANT_INFO = `
 interface Recipient {
   email: string;
   name: string | null;
+  customerId: string | null;
 }
 
 async function getAudienceRecipients(
@@ -253,7 +309,7 @@ async function getAudienceRecipients(
     });
     for (const sub of data.newsletter_submissions || []) {
       const email = sub.email?.trim()?.toLowerCase();
-      if (email && !seen.has(email)) seen.set(email, { email, name: null });
+      if (email && !seen.has(email)) seen.set(email, { email, name: null, customerId: null });
     }
   } else if (audience === 'opted_in') {
     const data = await adminGraphqlRequest<any>(GET_OPTED_IN_CUSTOMERS, {
@@ -261,7 +317,7 @@ async function getAudienceRecipients(
     });
     for (const c of data.customers || []) {
       const email = c.email?.trim()?.toLowerCase();
-      if (email && !seen.has(email)) seen.set(email, { email, name: c.display_name || null });
+      if (email && !seen.has(email)) seen.set(email, { email, name: c.display_name || null, customerId: c.customer_id || null });
     }
   } else if (audience === 'ordered_last_30' || audience === 'ordered_last_90') {
     const days = audience === 'ordered_last_30' ? 30 : 90;
@@ -273,7 +329,7 @@ async function getAudienceRecipients(
     });
     for (const o of data.orders || []) {
       const email = o.customer?.email?.trim()?.toLowerCase();
-      if (email && !seen.has(email)) seen.set(email, { email, name: o.customer?.display_name || null });
+      if (email && !seen.has(email)) seen.set(email, { email, name: o.customer?.display_name || null, customerId: o.customer_id || null });
     }
   } else {
     // all_customers
@@ -282,11 +338,41 @@ async function getAudienceRecipients(
     });
     for (const c of data.customers || []) {
       const email = c.email?.trim()?.toLowerCase();
-      if (email && !seen.has(email)) seen.set(email, { email, name: c.display_name || null });
+      if (email && !seen.has(email)) seen.set(email, { email, name: c.display_name || null, customerId: c.customer_id || null });
     }
   }
 
   return Array.from(seen.values());
+}
+
+async function logEmail(params: {
+  restaurantId: string;
+  campaignId: string | null;
+  templateKey: string;
+  customerId: string | null;
+  recipientEmail: string;
+  recipientName: string | null;
+  subject: string;
+  status: 'sent' | 'failed';
+  errorMessage: string | null;
+  trigger: 'manual' | 'scheduled' | 'auto_signup';
+}) {
+  try {
+    await adminGraphqlRequest(INSERT_EMAIL_LOG, {
+      restaurant_id: params.restaurantId,
+      campaign_id: params.campaignId,
+      template_key: params.templateKey,
+      customer_id: params.customerId,
+      recipient_email: params.recipientEmail,
+      recipient_name: params.recipientName,
+      subject: params.subject,
+      status: params.status,
+      error_message: params.errorMessage,
+      trigger: params.trigger,
+    });
+  } catch (err) {
+    console.error('[Email Log] Failed to log email:', err);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -302,13 +388,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'restaurant_id required' }, { status: 400 });
     }
 
-    const data = await adminGraphqlRequest<any>(GET_CAMPAIGNS, {
-      restaurant_id: restaurantId,
-    });
+    // Fetch active campaigns and email logs
+    const [activeData, logsData] = await Promise.all([
+      adminGraphqlRequest<any>(GET_CAMPAIGNS, { restaurant_id: restaurantId }),
+      adminGraphqlRequest<any>(GET_EMAIL_LOGS, { restaurant_id: restaurantId }),
+    ]);
 
     return NextResponse.json({
       success: true,
-      campaigns: data.campaigns || [],
+      campaigns: activeData.campaigns || [],
+      email_logs: logsData.email_logs || [],
     });
   } catch (err) {
     return NextResponse.json(
@@ -405,11 +494,13 @@ async function handleSendCampaign(body: any) {
     return NextResponse.json({ success: false, error: 'No recipients found for this audience.' }, { status: 400 });
   }
 
-  // Send emails
+  // Send emails and log each one
   let sentCount = 0;
   let failedCount = 0;
 
   for (const recipient of recipients) {
+    let status: 'sent' | 'failed' = 'sent';
+    let errorMessage: string | null = null;
     try {
       await sendCampaignEmail(recipient.email, {
         subject: campaign.subject,
@@ -425,8 +516,23 @@ async function handleSendCampaign(body: any) {
       sentCount++;
     } catch (err) {
       console.error(`Failed to send campaign email to ${recipient.email}:`, err);
+      status = 'failed';
+      errorMessage = err instanceof Error ? err.message : 'Unknown error';
       failedCount++;
     }
+
+    logEmail({
+      restaurantId: campaign.restaurant_id,
+      campaignId: campaign.campaign_id,
+      templateKey: campaign.template_key,
+      customerId: recipient.customerId,
+      recipientEmail: recipient.email,
+      recipientName: recipient.name,
+      subject: campaign.subject,
+      status,
+      errorMessage,
+      trigger: 'manual',
+    });
   }
 
   // Update campaign status

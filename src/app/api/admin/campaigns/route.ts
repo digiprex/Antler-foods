@@ -283,6 +283,8 @@ const GET_RESTAURANT_INFO = `
       city
       state
       postal_code
+      custom_domain
+      staging_domain
     }
   }
 `;
@@ -495,6 +497,8 @@ async function handleSendCampaign(body: any) {
   const restaurantAddress = [rest.address, rest.city, rest.state, rest.postal_code]
     .filter(Boolean)
     .join(', ') || null;
+  const restaurantDomain = rest.custom_domain || rest.staging_domain || '';
+  const menuUrl = restaurantDomain ? `https://${restaurantDomain}/menu` : '';
 
   // Get audience recipients
   const recipients = await getAudienceRecipients(campaign.restaurant_id, campaign.audience || 'all_customers');
@@ -514,7 +518,7 @@ async function handleSendCampaign(body: any) {
       await sendCampaignEmail(recipient.email, {
         subject: campaign.subject,
         heading: campaign.heading || campaign.subject,
-        body: campaign.body,
+        body: (campaign.body || '').replace(/\{menu_url\}/g, menuUrl),
         customerName: recipient.name,
         restaurantName,
         restaurantLogo,

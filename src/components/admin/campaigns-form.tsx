@@ -41,6 +41,16 @@ interface EmailLog {
   created_at: string;
 }
 
+interface Coupon {
+  coupon_id: string;
+  code: string;
+  discount_type: 'percentage' | 'fixed_amount';
+  value: number;
+  min_spend: number;
+  start_date: string;
+  end_date: string | null;
+}
+
 interface CampaignsFormProps {
   restaurantId: string;
   restaurantName: string;
@@ -191,6 +201,10 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
   // When a manual campaign toggle is flipped ON, we hold it here until config is confirmed
   const [pendingEnableKey, setPendingEnableKey] = useState<string | null>(null);
 
+  // Coupons for Special Offer template
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null);
+
   // Local overrides for instant UI updates
   const [localOverrides, setLocalOverrides] = useState<Record<string, Partial<StoredCampaign>>>({});
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -223,9 +237,18 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     }
   }, [restaurantId]);
 
+  const fetchCoupons = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/coupons?restaurant_id=${encodeURIComponent(restaurantId)}`);
+      const data = await res.json();
+      if (res.ok && data.success) setCoupons(data.coupons || []);
+    } catch { /* silent */ }
+  }, [restaurantId]);
+
   useEffect(() => {
     fetchCampaigns();
-  }, [fetchCampaigns]);
+    fetchCoupons();
+  }, [fetchCampaigns, fetchCoupons]);
 
   useEffect(() => {
     const timers = debounceTimers.current;
@@ -241,6 +264,26 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
 
   const replaceVars = (text: string) => text.replace(/\{restaurant\}/g, restaurantName);
 
+  const selectedCoupon = coupons.find((c) => c.coupon_id === selectedCouponId) || null;
+
+  const buildSpecialOfferBody = (coupon: Coupon) => {
+    const discountLabel = coupon.discount_type === 'percentage'
+      ? `${coupon.value}% off`
+      : `$${coupon.value} off`;
+    const expiry = coupon.end_date
+      ? `Valid until ${new Date(coupon.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      : '';
+
+    return `<p>As a valued customer of ${restaurantName}, we have a special offer just for you!</p>`
+      + `<div style="text-align:center;margin:24px 0;padding:24px;background:#f5f3ff;border-radius:12px;border:2px dashed #7c3aed;">`
+      + `<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#7c3aed;">${discountLabel}</p>`
+      + `<p style="margin:0 0 8px;font-size:18px;font-weight:600;color:#1f2937;">Use code: <span style="background:#7c3aed;color:#fff;padding:4px 12px;border-radius:6px;letter-spacing:1px;">${coupon.code}</span></p>`
+      + (expiry ? `<p style="margin:4px 0 0;font-size:13px;color:#6b7280;">${expiry}</p>` : '')
+      + `</div>`
+      + `<p>Don't miss out on this exclusive deal. It's our way of saying thank you for being a part of our community.</p>`
+      + `<p>Hurry — this offer won't last forever!</p>`;
+  };
+
   const getEffective = (templateKey: string, field: keyof StoredCampaign, fallback: unknown) => {
     const override = localOverrides[templateKey]?.[field];
     if (override !== undefined) return override;
@@ -250,11 +293,19 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     return fallback;
   };
 
+  const selectedCouponRef = useRef(selectedCoupon);
+  selectedCouponRef.current = selectedCoupon;
+
   const persistToApi = useCallback(
     async (templateKey: string, overrides: Partial<StoredCampaign>) => {
       try {
         const existing = storedRef.current.find((c) => c.template_key === templateKey);
         const template = PREDEFINED_TEMPLATES.find((t) => t.key === templateKey)!;
+
+        // Use coupon-enhanced body for special_offer when a coupon is selected
+        const emailBody = templateKey === 'special_offer' && selectedCouponRef.current
+          ? buildSpecialOfferBody(selectedCouponRef.current)
+          : replaceVars(template.body);
 
         const isReEnabling =
           overrides.enabled === true &&
@@ -292,7 +343,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                   : (existing.scheduled_time ?? null),
               subject: replaceVars(template.subject),
               heading: replaceVars(template.heading),
-              body: replaceVars(template.body),
+              body: emailBody,
             }),
           });
         } else {
@@ -310,7 +361,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
               scheduled_time: overrides.scheduled_time ?? null,
               subject: replaceVars(template.subject),
               heading: replaceVars(template.heading),
-              body: replaceVars(template.body),
+              body: emailBody,
               status: 'draft',
             }),
           });
@@ -334,6 +385,10 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
             }
             return [campaign, ...filtered];
           });
+          // Update ref immediately so callers awaiting this function see the new campaign
+          storedRef.current = storedRef.current.some((c) => c.template_key === templateKey)
+            ? storedRef.current.map((c) => c.template_key === templateKey ? campaign : c)
+            : [campaign, ...storedRef.current];
         }
 
         setLocalOverrides((prev) => {
@@ -796,6 +851,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
         const isSending = sendingKey === template.key;
         const isFuture = isScheduledInFuture(scheduledDate, scheduledTime);
         const isScheduled = stored?.status === 'scheduled';
+        const needsCoupon = template.key === 'special_offer' && !selectedCouponId;
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={closePopup}>
@@ -827,6 +883,47 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                     ))}
                   </select>
                 </div>
+
+                {/* Coupon selector for Special Offer */}
+                {template.key === 'special_offer' && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Coupon Code</label>
+                    <select
+                      value={selectedCouponId || ''}
+                      onChange={(e) => setSelectedCouponId(e.target.value || null)}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                    >
+                      <option value="">No coupon (generic offer)</option>
+                      {coupons.map((c) => (
+                        <option key={c.coupon_id} value={c.coupon_id}>
+                          {c.code} — {c.discount_type === 'percentage' ? `${c.value}%` : `$${c.value}`} off
+                          {c.min_spend > 0 ? ` (min $${c.min_spend})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedCoupon && (
+                      <div className="mt-2 rounded-lg bg-purple-50 border border-purple-200 px-3 py-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold text-purple-700">
+                            {selectedCoupon.discount_type === 'percentage' ? `${selectedCoupon.value}% off` : `$${selectedCoupon.value} off`}
+                          </span>
+                          <span className="text-xs font-mono font-semibold bg-purple-600 text-white px-2 py-0.5 rounded">
+                            {selectedCoupon.code}
+                          </span>
+                        </div>
+                        <div className="mt-1 text-[11px] text-gray-500 space-y-0.5">
+                          {selectedCoupon.min_spend > 0 && <p>Min. order: ${selectedCoupon.min_spend}</p>}
+                          {selectedCoupon.end_date && (
+                            <p>Expires: {new Date(selectedCoupon.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {coupons.length === 0 && (
+                      <p className="mt-1 text-[11px] text-gray-400">No coupons found. Create coupons in the Discounts page.</p>
+                    )}
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Send Date</label>
@@ -871,7 +968,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                     <button
                       type="button"
                       onClick={() => void handleSend(template.key)}
-                      disabled={isSending}
+                      disabled={isSending || needsCoupon}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-60"
                     >
                       {isSending ? (
@@ -896,7 +993,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                   <button
                     type="button"
                     onClick={() => handleSchedule(template.key, scheduledDate, scheduledTime)}
-                    disabled={isSending}
+                    disabled={isSending || needsCoupon}
                     className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition disabled:opacity-60 ${
                       isScheduled
                         ? 'border border-green-300 bg-green-50 text-green-700'
@@ -912,7 +1009,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                   <button
                     type="button"
                     onClick={() => setConfirmSendKey(template.key)}
-                    disabled={isSending}
+                    disabled={isSending || needsCoupon}
                     className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
                   >
                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -981,7 +1078,9 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                     <div
                       className="text-[15px] leading-[1.7] text-gray-700 [&>p]:mb-3"
                       style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
-                      dangerouslySetInnerHTML={{ __html: replaceVars(previewTemplate.body) }}
+                      dangerouslySetInnerHTML={{ __html: previewTemplate.key === 'special_offer'
+                        ? buildSpecialOfferBody(selectedCoupon || { coupon_id: '', code: 'SAVE20', discount_type: 'percentage', value: 20, min_spend: 0, start_date: '', end_date: null })
+                        : replaceVars(previewTemplate.body) }}
                     />
                   </div>
                   <div className="bg-gray-50 border-t border-gray-200 px-7 py-5">

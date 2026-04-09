@@ -2,6 +2,20 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
+interface CustomerAddress {
+  id: string;
+  address: string;
+  street: string | null;
+  house_no: string | null;
+  city: string;
+  state: string;
+  country: string;
+  zip_code: string;
+  saved_as: string;
+  nearby_landmark: string | null;
+  is_default: boolean;
+}
+
 interface Customer {
   customer_id: string;
   created_at: string;
@@ -14,6 +28,7 @@ interface Customer {
   order_count?: number;
   total_spent?: number;
   last_order_at?: string | null;
+  customer_delivery_addresses?: CustomerAddress[];
 }
 
 interface CustomersFormProps {
@@ -35,6 +50,7 @@ export default function CustomersForm({ restaurantId, restaurantName }: Customer
   });
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [guestFilter, setGuestFilter] = useState<'' | 'guest' | 'registered'>('');
+  const [orderedDaysFilter, setOrderedDaysFilter] = useState<string>('');
 
   // Debounce search
   useEffect(() => {
@@ -59,6 +75,10 @@ export default function CustomersForm({ restaurantId, restaurantName }: Customer
           params.set('search', debouncedSearch);
         }
 
+        if (orderedDaysFilter) {
+          params.set('ordered_days', orderedDaysFilter);
+        }
+
         const response = await fetch(`/api/customers?${params.toString()}`);
         const data = await response.json();
 
@@ -74,7 +94,7 @@ export default function CustomersForm({ restaurantId, restaurantName }: Customer
         setLoading(false);
       }
     },
-    [restaurantId, pagination.limit, debouncedSearch],
+    [restaurantId, pagination.limit, debouncedSearch, orderedDaysFilter],
   );
 
   useEffect(() => {
@@ -140,6 +160,17 @@ export default function CustomersForm({ restaurantId, restaurantName }: Customer
           <option value="">All Customers</option>
           <option value="registered">Registered</option>
           <option value="guest">Guests</option>
+        </select>
+        <select
+          value={orderedDaysFilter}
+          onChange={(e) => setOrderedDaysFilter(e.target.value)}
+          className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
+        >
+          <option value="">All Time</option>
+          <option value="7">Ordered Last 7 Days</option>
+          <option value="30">Ordered Last 30 Days</option>
+          <option value="60">Ordered Last 60 Days</option>
+          <option value="90">Ordered Last 90 Days</option>
         </select>
         <button
           onClick={() => fetchCustomers(1)}
@@ -211,6 +242,9 @@ export default function CustomersForm({ restaurantId, restaurantName }: Customer
                     Opt-In
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Address
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Orders
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -276,6 +310,30 @@ export default function CustomersForm({ restaurantId, restaurantName }: Customer
                           SMS
                         </span>
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const addrs = customer.customer_delivery_addresses;
+                        if (!addrs?.length) return <span className="text-sm text-gray-400">-</span>;
+                        const defaultAddr = addrs.find((a) => a.is_default) || addrs[0];
+                        const parts = [defaultAddr.house_no, defaultAddr.street, defaultAddr.address, defaultAddr.city, defaultAddr.state, defaultAddr.zip_code].filter(Boolean);
+                        return (
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-medium text-purple-700 capitalize">{defaultAddr.saved_as}</span>
+                              {defaultAddr.is_default && (
+                                <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">Default</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-900 truncate max-w-[200px]" title={parts.join(', ')}>
+                              {parts.join(', ') || 'N/A'}
+                            </p>
+                            {addrs.length > 1 && (
+                              <p className="text-xs text-gray-500">+{addrs.length - 1} more</p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900">
                       {customer.order_count ?? '-'}
@@ -383,6 +441,42 @@ export default function CustomersForm({ restaurantId, restaurantName }: Customer
                   <p className="text-sm text-gray-900 mt-0.5">{selectedCustomer.phone || 'N/A'}</p>
                 </div>
               </div>
+
+              {/* Delivery Addresses */}
+              {selectedCustomer.customer_delivery_addresses && selectedCustomer.customer_delivery_addresses.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    Delivery Addresses ({selectedCustomer.customer_delivery_addresses.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedCustomer.customer_delivery_addresses.map((addr) => {
+                      const parts = [addr.house_no, addr.street, addr.address, addr.city, addr.state, addr.zip_code, addr.country].filter(Boolean);
+                      return (
+                        <div key={addr.id} className={`flex items-start gap-2 rounded-md border p-3 ${addr.is_default ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white'}`}>
+                          <svg className="h-4 w-4 mt-0.5 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-purple-700 capitalize">{addr.saved_as}</span>
+                              {addr.is_default && (
+                                <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">
+                                  Default
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-900 mt-0.5">{parts.join(', ') || 'N/A'}</p>
+                            {addr.nearby_landmark && (
+                              <p className="text-xs text-gray-500 mt-0.5">Near: {addr.nearby_landmark}</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Marketing Opt-In */}
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">

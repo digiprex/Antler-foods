@@ -749,8 +749,8 @@ Generated on: ${new Date().toLocaleString()}
     doc.save(`invoice-${orderNumber}.pdf`);
   };
 
-  // Generate kitchen ticket PDF (items + modifiers + notes, no pricing)
-  const downloadKitchenTicket = (order: Order) => {
+  // Build kitchen ticket data from an order
+  const buildKitchenTicketData = (order: Order) => {
     const orderNumber = order.order_number || order.order_id;
 
     const items = (order.order_items || []).map((item) => {
@@ -783,7 +783,7 @@ Generated on: ${new Date().toLocaleString()}
       };
     });
 
-    const doc = generateKitchenTicketPDF({
+    return {
       orderNumber,
       restaurantName,
       fulfillmentLabel: order.fulfillment_type
@@ -796,9 +796,53 @@ Generated on: ${new Date().toLocaleString()}
         : formatDate(order.created_at),
       items,
       orderNote: order.order_note || '',
-    });
+    };
+  };
 
-    doc.save(`kitchen-ticket-${orderNumber}.pdf`);
+  // Print kitchen ticket via QZ Tray, or download PDF as fallback
+  const [printingKotOrderId, setPrintingKotOrderId] = useState<string | null>(null);
+
+  const printKitchenTicket = async (order: Order) => {
+    const ticketData = buildKitchenTicketData(order);
+
+    // Try QZ Tray if printer is configured
+    if (printerSettings?.printerName) {
+      setPrintingKotOrderId(order.order_id);
+      try {
+        const qzLib = await import('@/lib/qz-tray');
+        if (!qzLib.isQZConnected()) {
+          await qzLib.connectQZ();
+        }
+
+        const columns = printerSettings.paperSize === '58mm' ? 32 : 48;
+
+        if (printerSettings.printMethod === 'pdf') {
+          const doc = generateKitchenTicketPDF(ticketData);
+          const pdfBase64 = doc.output('datauristring').split(',')[1];
+          await qzLib.printPDF({
+            printer: printerSettings.printerName,
+            pdfBase64,
+          });
+        } else {
+          const { generateKOTEscPos } = await import('@/lib/generate-kot-escpos');
+          const data = generateKOTEscPos(ticketData, columns);
+          await qzLib.printRaw({
+            printer: printerSettings.printerName,
+            data,
+            columns,
+          });
+        }
+        return;
+      } catch (err) {
+        console.error('[KOT] QZ Tray print failed, falling back to PDF download:', err);
+      } finally {
+        setPrintingKotOrderId(null);
+      }
+    }
+
+    // Fallback: download PDF
+    const doc = generateKitchenTicketPDF(ticketData);
+    doc.save(`kitchen-ticket-${ticketData.orderNumber}.pdf`);
   };
 
   if (loading && orders.length === 0) {
@@ -1072,24 +1116,19 @@ Generated on: ${new Date().toLocaleString()}
                     </div>
 
                     <button
-                      onClick={() => downloadKitchenTicket(order)}
-                      className="w-full sm:w-auto rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
-                      title="Download Kitchen Ticket"
+                      onClick={() => printKitchenTicket(order)}
+                      disabled={printingKotOrderId === order.order_id}
+                      className="w-full sm:w-auto rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      title={printerSettings?.printerName ? 'Print Kitchen Ticket' : 'Download Kitchen Ticket'}
                     >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-                        />
-                      </svg>
-                      Kitchen Ticket
+                      {printingKotOrderId === order.order_id ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-gray-700" />
+                      ) : (
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                      )}
+                      {printingKotOrderId === order.order_id ? 'Printing...' : 'Kitchen Ticket'}
                     </button>
 
                     <button
@@ -1399,24 +1438,19 @@ Generated on: ${new Date().toLocaleString()}
 
                         <button
                           type="button"
-                          onClick={() => downloadKitchenTicket(selectedOrder)}
-                          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                          title="Download Kitchen Ticket"
+                          onClick={() => printKitchenTicket(selectedOrder)}
+                          disabled={printingKotOrderId === selectedOrder.order_id}
+                          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                          title={printerSettings?.printerName ? 'Print Kitchen Ticket' : 'Download Kitchen Ticket'}
                         >
-                          <svg
-                            className="h-4 w-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            strokeWidth={2}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-                            />
-                          </svg>
-                          Kitchen Ticket
+                          {printingKotOrderId === selectedOrder.order_id ? (
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-gray-700" />
+                          ) : (
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                          )}
+                          {printingKotOrderId === selectedOrder.order_id ? 'Printing...' : 'Kitchen Ticket'}
                         </button>
                       </div>
 

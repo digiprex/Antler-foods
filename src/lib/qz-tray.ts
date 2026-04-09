@@ -139,14 +139,22 @@ export interface PrintRawOptions {
 /**
  * Send raw ESC/POS text commands to a thermal printer via QZ Tray.
  * This prints silently with no browser dialog.
+ *
+ * Each entry in `data` is wrapped as a QZ Tray raw print object so that
+ * ESC/POS control characters are sent correctly to the printer.
  */
 export async function printRaw({
   printer,
   data,
 }: PrintRawOptions): Promise<void> {
   await connectQZ();
-  const config = qz.configs.create(printer);
-  await qz.print(config, data);
+  const config = qz.configs.create(printer, { encoding: { codepage: 'default' } });
+  // Combine all commands into a single string to avoid data loss between chunks
+  const combined = data.join('');
+  const printData = [
+    { type: 'raw', format: 'plain', data: combined },
+  ];
+  await qz.print(config, printData);
 }
 
 export interface PrintPDFOptions {

@@ -1250,6 +1250,95 @@ export async function sendOrderRefundEmail(
   });
 }
 
+// ---------------------------------------------------------------------------
+// Marketing Campaign Emails
+// ---------------------------------------------------------------------------
+
+export interface CampaignEmailData {
+  subject: string;
+  heading: string;
+  body: string; // HTML content
+  ctaText?: string;
+  ctaUrl?: string;
+  restaurantName: string;
+  restaurantLogo?: string | null;
+  unsubscribeUrl?: string;
+}
+
+/**
+ * Sends a marketing campaign email to a single recipient.
+ * Call this in a loop/batch for bulk sends.
+ */
+export async function sendCampaignEmail(
+  to: string,
+  data: CampaignEmailData,
+): Promise<void> {
+  const transporter = createTransporter();
+
+  const ctaBlock = data.ctaText && data.ctaUrl
+    ? `<div style="text-align:center;margin:28px 0;">
+        <a href="${data.ctaUrl}" style="display:inline-block;padding:14px 32px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;">${data.ctaText}</a>
+      </div>`
+    : '';
+
+  const logoBlock = data.restaurantLogo
+    ? `<div style="text-align:center;margin-bottom:20px;">
+        <img src="${data.restaurantLogo}" alt="${data.restaurantName}" style="max-height:60px;max-width:200px;" />
+      </div>`
+    : '';
+
+  const unsubBlock = data.unsubscribeUrl
+    ? `<p style="margin-top:24px;font-size:12px;color:#9ca3af;text-align:center;">
+        <a href="${data.unsubscribeUrl}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
+      </p>`
+    : '';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+    <body style="margin:0;padding:0;background:#f3f4f6;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+      <div style="max-width:600px;margin:0 auto;padding:20px;">
+        <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+          <div style="padding:32px 28px;">
+            ${logoBlock}
+            <h1 style="margin:0 0 16px;font-size:24px;font-weight:700;color:#111827;text-align:center;">${data.heading}</h1>
+            <div style="font-size:15px;line-height:1.7;color:#374151;">
+              ${data.body}
+            </div>
+            ${ctaBlock}
+          </div>
+          <div style="background:#f9fafb;padding:20px 28px;border-top:1px solid #e5e7eb;">
+            <p style="margin:0;font-size:13px;color:#6b7280;text-align:center;">
+              Sent by ${data.restaurantName}
+            </p>
+            ${unsubBlock}
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const textContent = [
+    data.heading,
+    '',
+    data.body.replace(/<[^>]*>/g, ''),
+    '',
+    data.ctaText && data.ctaUrl ? `${data.ctaText}: ${data.ctaUrl}` : '',
+    '',
+    `Sent by ${data.restaurantName}`,
+  ].filter((l) => l !== undefined).join('\n');
+
+  await transporter.sendMail({
+    from: DEFAULT_FROM,
+    to,
+    subject: data.subject,
+    text: textContent,
+    html: htmlContent,
+  });
+}
+
 export async function verifyEmailConfig(): Promise<boolean> {
   try {
     const transporter = createTransporter();

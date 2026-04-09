@@ -72,7 +72,8 @@
       "WebFetch(domain:download.ebz.epson.net)",
       "WebFetch(domain:help.owner.com)",
       "WebFetch(domain:learn.grubhub.com)",
-      "WebFetch(domain:wicg.github.io)"
+      "WebFetch(domain:wicg.github.io)",
+      "Bash(grep -r \"EMAIL\" /c/Users/natas/Desktop/Antler-foods/.env*)"
     ]
   }
 }

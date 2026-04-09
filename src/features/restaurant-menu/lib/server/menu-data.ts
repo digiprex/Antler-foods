@@ -100,6 +100,41 @@ const GET_ACTIVE_MENU_BY_RESTAURANT = `
   }
 `;
 
+const GET_ALL_ACTIVE_MENUS_BY_RESTAURANT = `
+  query GetAllActiveMenusByRestaurant($restaurant_id: uuid!) {
+    menu(
+      where: {
+        restaurant_id: { _eq: $restaurant_id }
+        is_deleted: { _eq: false }
+        is_active: { _eq: true }
+      }
+      order_by: [{ updated_at: desc }, { created_at: desc }]
+    ) {
+      menu_id
+      name
+      restaurant_id
+      is_active
+      varies_with_time
+    }
+  }
+`;
+
+const GET_MENU_SCHEDULE_CONFIG = `
+  query GetMenuScheduleConfig($restaurant_id: uuid!) {
+    templates(
+      where: {
+        restaurant_id: { _eq: $restaurant_id }
+        category: { _eq: "menu_schedule" }
+        is_deleted: { _eq: false }
+      }
+      order_by: { created_at: desc }
+      limit: 1
+    ) {
+      config
+    }
+  }
+`;
+
 const GET_LATEST_MENU_BY_RESTAURANT = `
   query GetLatestMenuByRestaurant($restaurant_id: uuid!) {
     menu(
@@ -313,6 +348,16 @@ async (domain: string): Promise<RestaurantMenuData> => {
 
   const opening = await loadOpeningHours(restaurant.restaurant_id || '');
   const offers = await loadActiveMenuOffers(restaurant.restaurant_id || '');
+
+  // Try schedule-based menu selection (supports breakfast/lunch/dinner auto-switching)
+  if (restaurant.restaurant_id) {
+    const timeZone = resolveTimeZone(opening.profile?.timezone);
+    const scheduledMenu = await loadScheduledMenu(restaurant.restaurant_id, timeZone);
+    if (scheduledMenu) {
+      menu = scheduledMenu;
+    }
+  }
+
   if (!menu?.menu_id) {
     return buildMenuData({ restaurant, menu: null, categories: [], items: [], modifierGroups: [], modifierItems: [], opening, offers });
   }
@@ -393,6 +438,97 @@ async function loadOpeningHours(restaurantId: string) {
 
   const slots = await gql(GET_OPENING_HOUR_SLOTS, { opening_hour_id: openingHourId }).then((data: any) => data.opening_hour_slots || []);
   return { profile, slots };
+}
+
+interface MenuScheduleEntry {
+  schedule_type: 'always' | 'time_based' | 'date_range';
+  start_time: string;
+  end_time: string;
+  days: number[];
+  specific_dates: string[];
+}
+
+interface MenuScheduleConfig {
+  enabled: boolean;
+  schedules: Record<string, MenuScheduleEntry>;
+  fallback_menu_id: string | null;
+}
+
+async function loadMenuScheduleConfig(restaurantId: string): Promise<MenuScheduleConfig | null> {
+  if (!restaurantId) return null;
+  try {
+    const data: any = await gql(GET_MENU_SCHEDULE_CONFIG, { restaurant_id: restaurantId });
+    const config = data.templates?.[0]?.config;
+    if (!config || !config.enabled) return null;
+    return config as MenuScheduleConfig;
+  } catch {
+    return null;
+  }
+}
+
+async function loadScheduledMenu(restaurantId: string, timeZone: string) {
+  const scheduleConfig = await loadMenuScheduleConfig(restaurantId);
+  if (!scheduleConfig) return null;
+
+  const allMenus: any[] = await gql(GET_ALL_ACTIVE_MENUS_BY_RESTAURANT, { restaurant_id: restaurantId })
+    .then((data: any) => data.menu || []);
+
+  if (allMenus.length === 0) return null;
+
+  const matched = findMenuForCurrentTime(allMenus, scheduleConfig, timeZone);
+  if (matched) return matched;
+
+  // Fallback: use configured fallback menu or first active menu
+  if (scheduleConfig.fallback_menu_id) {
+    const fallback = allMenus.find((m) => m.menu_id === scheduleConfig.fallback_menu_id);
+    if (fallback) return fallback;
+  }
+
+  return allMenus[0] || null;
+}
+
+function findMenuForCurrentTime(
+  menus: Array<{ menu_id: string; name: string; [key: string]: any }>,
+  config: MenuScheduleConfig,
+  timeZone: string,
+) {
+  const now = new Date();
+  const parts = zonedParts(now, timeZone);
+  const currentMinutes = parts.minutesOfDay;
+  const todayDbDay = DAY_BY_SHORT.get(parts.weekdayShort) || 1;
+  const todayDate = `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+
+  // First pass: check date-specific schedules (they take priority)
+  for (const menu of menus) {
+    const schedule = config.schedules[menu.menu_id];
+    if (!schedule || schedule.schedule_type !== 'date_range') continue;
+    if (!schedule.specific_dates?.length) continue;
+
+    if (schedule.specific_dates.includes(todayDate)) {
+      const startMinutes = timeToMinutes(`${schedule.start_time}:00`);
+      const endMinutes = timeToMinutes(`${schedule.end_time}:00`);
+      if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+        return menu;
+      }
+    }
+  }
+
+  // Second pass: check time-based schedules
+  for (const menu of menus) {
+    const schedule = config.schedules[menu.menu_id];
+    if (!schedule || schedule.schedule_type !== 'time_based') continue;
+
+    // Check day of week
+    if (schedule.days?.length > 0 && !schedule.days.includes(todayDbDay)) continue;
+
+    const startMinutes = timeToMinutes(`${schedule.start_time}:00`);
+    const endMinutes = timeToMinutes(`${schedule.end_time}:00`);
+    if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+      return menu;
+    }
+  }
+
+  return null;
 }
 
 function isRestaurantCurrentlyOpen(intervalsByDay: Map<number, Array<{ open: string; close: string }>>, timeZone: string): boolean {

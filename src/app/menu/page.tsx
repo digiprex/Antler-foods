@@ -10,7 +10,7 @@ import {
 import { getUmamiWebsiteIdForDomain } from '@/lib/server/umami';
 import UmamiAnalytics from '@/components/umami-analytics';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 function getRequestDomain() {
   const requestHeaders = headers();

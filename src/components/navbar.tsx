@@ -192,30 +192,34 @@ export default function Navbar({
     Math.round(logoSize * (brandInitials.length > 2 ? 0.34 : 0.4)),
   );
 
-  const brandDisplay = logoUrl ? (
-    <img
-      src={logoUrl}
-      alt={restaurantName}
-      width={Math.max(80, Math.round(logoSize * 2))}
-      height={Math.max(80, Math.round(logoSize * 2))}
-      loading="eager"
-      fetchPriority="high"
-      decoding="async"
-      className={styles.logoImage}
-      style={{ height: `${logoSize}px`, width: 'auto' }}
-    />
-  ) : (
-    <span
-      className={styles.logoInitials}
-      style={{
-        width: `${logoSize}px`,
-        height: `${logoSize}px`,
-        minWidth: `${logoSize}px`,
-        fontSize: `${logoInitialsFontSize}px`,
-      }}
-    >
-      {brandInitials}
-    </span>
+  const brandDisplay = (
+    <a href="/home" style={{ display: 'inline-flex', textDecoration: 'none', color: 'inherit' }}>
+      {logoUrl ? (
+        <img
+          src={logoUrl}
+          alt={restaurantName}
+          width={Math.max(80, Math.round(logoSize * 2))}
+          height={Math.max(80, Math.round(logoSize * 2))}
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
+          className={styles.logoImage}
+          style={{ height: `${logoSize}px`, width: 'auto' }}
+        />
+      ) : (
+        <span
+          className={styles.logoInitials}
+          style={{
+            width: `${logoSize}px`,
+            height: `${logoSize}px`,
+            minWidth: `${logoSize}px`,
+            fontSize: `${logoInitialsFontSize}px`,
+          }}
+        >
+          {brandInitials}
+        </span>
+      )}
+    </a>
   );
 
   useEffect(() => {

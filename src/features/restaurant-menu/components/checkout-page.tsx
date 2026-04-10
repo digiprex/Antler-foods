@@ -1492,10 +1492,7 @@ export default function RestaurantMenuCheckoutPage({
     fulfillmentMode === 'delivery' ? (deliveryQuote?.deliveryFee ?? 0) : 0;
   const discountAmount =
     appliedCoupon?.discountAmount || activeRestaurantOffer?.discountAmount || 0;
-  const taxRate = data.transactionTaxRate ?? 5;
-  const taxableAmount = roundCurrency(Math.max(subtotal - discountAmount, 0));
-  const taxAmount =
-    taxRate > 0 ? roundCurrency((taxableAmount * taxRate) / 100) : 0;
+  const taxAmount = 0;
   const preGiftCardTotal = roundCurrency(
     subtotal +
       deliveryFeeAmount +
@@ -1868,7 +1865,7 @@ export default function RestaurantMenuCheckoutPage({
           ) : null}
           {taxAmount > 0 ? (
             <div className="flex items-center justify-between gap-4">
-              <span>Tax ({taxRate}%)</span>
+              <span>Service fee</span>
               <span className="font-medium">{formatPrice(taxAmount)}</span>
             </div>
           ) : null}

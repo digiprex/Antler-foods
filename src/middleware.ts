@@ -21,11 +21,19 @@ export function middleware(request: NextRequest) {
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/_next/') ||
     url.pathname.startsWith('/static/') ||
-    url.pathname.startsWith('/dashboard/') ||
-    url.pathname.startsWith('/admin/') ||
     url.pathname.includes('.') // Skip files with extensions
   ) {
     return NextResponse.next();
+  }
+
+  // Tag admin/dashboard routes so root layout can skip expensive metadata lookups
+  if (
+    url.pathname.startsWith('/dashboard/') ||
+    url.pathname.startsWith('/admin/')
+  ) {
+    const response = NextResponse.next();
+    response.headers.set('x-admin-route', '1');
+    return response;
   }
 
   // Development: localhost always goes through normally

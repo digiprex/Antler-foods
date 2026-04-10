@@ -2,7 +2,6 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import dynamic from 'next/dynamic';
 
 const CustomersForm = dynamic(() => import('@/components/admin/customers-form'), {
@@ -23,7 +22,7 @@ function CustomersContent() {
   const restaurantName = searchParams?.get('restaurant_name') || null;
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName ? (
         <>
           <div className="mb-6 flex items-center justify-between">
@@ -66,7 +65,7 @@ function CustomersContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

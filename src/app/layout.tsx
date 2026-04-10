@@ -50,7 +50,13 @@ export async function generateMetadata(): Promise<Metadata> {
   const baseMetadata = generateSEOMetadata();
 
   try {
-    const requestHeaders = headers();
+    const requestHeaders = await headers();
+
+    // Skip expensive DB lookups for admin/dashboard routes — they define their own metadata
+    if (requestHeaders.get("x-admin-route")) {
+      return baseMetadata;
+    }
+
     const host =
       requestHeaders.get("x-forwarded-host") ||
       requestHeaders.get("host") ||

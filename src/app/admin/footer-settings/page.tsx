@@ -21,7 +21,6 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import FooterSettingsForm from '@/components/admin/footer-settings-form';
 
 function FooterSettingsContent() {
@@ -30,7 +29,7 @@ function FooterSettingsContent() {
   const restaurantName = searchParams.get('restaurant_name');
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName ? (
         <FooterSettingsForm />
       ) : (
@@ -46,7 +45,7 @@ function FooterSettingsContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

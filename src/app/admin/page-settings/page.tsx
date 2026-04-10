@@ -5,7 +5,6 @@ import type { DragEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import Toast from '@/components/ui/toast';
 import '@/styles/page-settings-animations.css';
 import {
@@ -1210,19 +1209,19 @@ function PageSettingsSelector() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex items-center justify-center min-h-screen">
           <div className="inline-flex items-center gap-3 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3.5">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
             <p className="text-sm font-medium text-gray-700">Loading page settings...</p>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       {/* Page Header */}
       <div className="mb-8 flex items-start justify-between">
         <div className="flex items-center gap-4">
@@ -2027,7 +2026,7 @@ function PageSettingsSelector() {
           onClose={() => setShowToast(false)}
         />
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

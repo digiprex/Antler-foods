@@ -20,7 +20,6 @@
 import { Suspense } from 'react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import dynamic from 'next/dynamic';
 import styles from '@/components/admin/gallery-settings-form.module.css';
 
@@ -56,7 +55,7 @@ function YouTubeSettingsContent() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName ? (
         <>
           <button
@@ -85,7 +84,7 @@ function YouTubeSettingsContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

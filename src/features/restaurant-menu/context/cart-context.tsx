@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -43,9 +44,8 @@ function buildCartItemKey(input: AddCartItemInput) {
     .map((addOn) => addOn.id)
     .sort()
     .join(',');
-  const notes = input.notes?.trim() || '';
 
-  return `${input.item.id}::${input.item.price}::${addOnIds}::${notes}`;
+  return `${input.item.id}::${addOnIds}`;
 }
 
 function buildCartToastMessage(input: AddCartItemInput) {
@@ -163,6 +163,7 @@ export function CartProvider({ children }: PropsWithChildren) {
             ? {
                 ...item,
                 quantity: item.quantity + input.quantity,
+                basePrice: input.item.price,
               }
             : item,
         );
@@ -210,10 +211,10 @@ export function CartProvider({ children }: PropsWithChildren) {
     setItems((currentItems) => currentItems.filter((item) => item.key !== key));
   };
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setItems([]);
     setCartNote('');
-  };
+  }, []);
 
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + getCartItemTotal(item), 0);

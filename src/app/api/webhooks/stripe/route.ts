@@ -23,7 +23,7 @@ const GET_ORDER_FOR_INVOICE = `
       contact_email
       contact_phone
       scheduled_for
-      tax_total
+      service_fee
       tip_total
       discount_total
       delivery_fee_total

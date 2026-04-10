@@ -22,7 +22,7 @@ const GET_SALES_SUMMARY = `
         sum {
           cart_total
           sub_total
-          tax_total
+          service_fee
           tip_total
           discount_total
         }
@@ -243,7 +243,7 @@ export async function GET(request: NextRequest) {
         totalOrders: summaryData.total.aggregate.count || 0,
         totalRevenue: toNum(sum?.cart_total),
         subtotal: toNum(sum?.sub_total),
-        totalTax: toNum(sum?.tax_total),
+        totalServiceFee: toNum(sum?.service_fee),
         totalTips: toNum(sum?.tip_total),
         totalDiscounts: toNum(sum?.discount_total),
         avgOrderValue: summaryData.total.aggregate.count

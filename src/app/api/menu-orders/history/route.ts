@@ -28,7 +28,7 @@ const GET_CUSTOMER_ORDERS = `
       fulfillment_type
       payment_status
       sub_total
-      tax_total
+      service_fee
       tip_total
       discount_total
       cart_total
@@ -103,7 +103,7 @@ interface OrderRecord {
   fulfillment_type?: string | null;
   payment_status?: string | null;
   sub_total?: number | string | null;
-  tax_total?: number | string | null;
+  service_fee?: number | string | null;
   tip_total?: number | string | null;
   discount_total?: number | string | null;
   cart_total?: number | string | null;
@@ -320,7 +320,7 @@ export async function GET(request: NextRequest) {
         fulfillmentType: text(order.fulfillment_type) || 'pickup',
         paymentStatus: text(order.payment_status) || 'pending',
         subtotal: numberValue(order.sub_total),
-        taxTotal: numberValue(order.tax_total),
+        serviceFee: numberValue(order.service_fee),
         tipTotal: numberValue(order.tip_total),
         discountTotal: numberValue(order.discount_total),
         deliveryFee,

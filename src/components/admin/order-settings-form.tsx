@@ -724,14 +724,14 @@ export default function OrderSettingsForm({
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <label htmlFor="transaction-tax-rate" className="text-sm font-semibold text-gray-900">
-                Transaction tax rate (%)
+                Service fee rate (%)
               </label>
               <p className="mt-1 text-xs text-gray-600">
-                Tax percentage applied to the subtotal at checkout. Set to 0 to disable tax.
+                Service fee percentage applied to the subtotal at checkout. Set to 0 to disable.
               </p>
               {isManager && (
                 <p className="mt-1 text-xs text-amber-600">
-                  Only admins can change the tax rate.
+                  Only admins can change the service fee rate.
                 </p>
               )}
             </div>

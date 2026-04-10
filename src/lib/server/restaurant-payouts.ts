@@ -15,7 +15,7 @@ type PayoutOrderRow = {
   payment_status?: string | null;
   payout_status?: string | null;
   cart_total?: number | string | null;
-  tax_total?: number | string | null;
+  service_fee?: number | string | null;
   state_tax?: number | string | null;
   delivery_fee_total?: number | string | null;
   restaurant_payout_amount?: number | string | null;
@@ -242,7 +242,7 @@ const GET_ELIGIBLE_PAYOUT_ORDERS = `
       payment_status
       payout_status
       cart_total
-      tax_total
+      service_fee
       state_tax
       delivery_fee_total
       restaurant_payout_amount
@@ -340,7 +340,7 @@ const CLAIM_ORDERS_FOR_BATCH = `
         payment_status
         payout_status
         cart_total
-        tax_total
+        service_fee
         state_tax
         delivery_fee_total
         restaurant_payout_amount

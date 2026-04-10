@@ -103,16 +103,6 @@ const PREDEFINED_TEMPLATES: TemplateDefinition[] = [
     trigger: 'manual',
   },
   {
-    key: 'new_menu_items',
-    name: 'New Menu Items',
-    description: 'Announce new additions to your menu',
-    subject: 'New dishes at {restaurant}!',
-    heading: 'Something New to Try!',
-    body: '<p>Exciting news from {restaurant}! We\'ve added delicious new items to our menu.</p><p>From new appetizers to fresh entrees, there\'s something for everyone. Be among the first to try our latest creations.</p><p>Check out what\'s new today!</p>',
-    default_audience: 'all_customers',
-    trigger: 'manual',
-  },
-  {
     key: 'feedback_request',
     name: 'Feedback Request',
     description: 'Ask customers for reviews and feedback',
@@ -133,22 +123,22 @@ const PREDEFINED_TEMPLATES: TemplateDefinition[] = [
     trigger: 'manual',
   },
   {
-    key: 'seasonal_special',
-    name: 'Seasonal Special',
-    description: 'Promote limited-time seasonal offerings',
-    subject: 'Seasonal specials at {restaurant}!',
-    heading: 'Seasonal Favorites Are Here',
-    body: '<p>{restaurant} is celebrating the season with special limited-time dishes!</p><p>Our chefs have crafted unique seasonal flavors that capture the spirit of the moment. These dishes are available for a limited time only.</p><p>Don\'t miss out — try them before they\'re gone!</p>',
-    default_audience: 'all_customers',
-    trigger: 'manual',
-  },
-  {
     key: 'lazy_sunday',
     name: 'Lazy Sunday',
     description: 'Tempt customers with a relaxing Sunday meal',
     subject: 'Lazy Sunday? Let {restaurant} handle dinner!',
     heading: 'Kick Back This Sunday',
     body: '<p>Sundays are for relaxing — let {restaurant} take care of the cooking!</p><p>Whether it\'s a cozy brunch, a hearty lunch, or a laid-back dinner, we\'ve got the perfect dishes to make your Sunday even better.</p><p>Skip the kitchen and treat yourself. You deserve it!</p>',
+    default_audience: 'all_customers',
+    trigger: 'manual',
+  },
+  {
+    key: 'happy_friday',
+    name: 'Happy Friday',
+    description: 'Kick off the weekend with a delicious meal',
+    subject: 'Happy Friday from {restaurant}!',
+    heading: 'It\'s Friday — Time to Celebrate!',
+    body: '<p>The weekend is here and {restaurant} is ready to make it special!</p><p>Wrap up the week with something delicious. Whether you\'re planning a Friday night feast or a quick treat to kick off the weekend, we\'ve got just what you need.</p><p>Start your weekend right — order now!</p>',
     default_audience: 'all_customers',
     trigger: 'manual',
   },
@@ -275,13 +265,60 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
       : '';
 
     return `<p>As a valued customer of ${restaurantName}, we have a special offer just for you!</p>`
-      + `<div style="text-align:center;margin:24px 0;padding:24px;background:#f5f3ff;border-radius:12px;border:2px dashed #7c3aed;">`
-      + `<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#7c3aed;">${discountLabel}</p>`
-      + `<p style="margin:0 0 8px;font-size:18px;font-weight:600;color:#1f2937;">Use code: <span style="background:#7c3aed;color:#fff;padding:4px 12px;border-radius:6px;letter-spacing:1px;">${coupon.code}</span></p>`
+      + `<div style="text-align:center;margin:24px 0;padding:24px;background:#f9fafb;border-radius:12px;border:2px dashed #1c1917;">`
+      + `<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1c1917;">${discountLabel}</p>`
+      + `<p style="margin:0 0 8px;font-size:18px;font-weight:600;color:#1f2937;">Use code: <span style="background:#1c1917;color:#ffffff;padding:4px 12px;border-radius:6px;letter-spacing:1px;">${coupon.code}</span></p>`
       + (expiry ? `<p style="margin:4px 0 0;font-size:13px;color:#6b7280;">${expiry}</p>` : '')
       + `</div>`
       + `<p>Don't miss out on this exclusive deal. It's our way of saying thank you for being a part of our community.</p>`
-      + `<p>Hurry — this offer won't last forever!</p>`;
+      + `<p>Hurry — this offer won't last forever!</p>`
+      + `<div style="text-align:center;margin:28px 0;"><a href="{menu_url}" style="display:inline-block;padding:14px 32px;background:#1c1917;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;">Order Now</a></div>`;
+  };
+
+  const buildLazySundayBody = (coupon: Coupon) => {
+    const discountLabel = coupon.discount_type === 'percentage'
+      ? `${coupon.value}% off`
+      : `$${coupon.value} off`;
+    const expiry = coupon.end_date
+      ? `Valid until ${new Date(coupon.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      : '';
+
+    return `<p>Sundays are for relaxing — let ${restaurantName} take care of the cooking!</p>`
+      + `<div style="text-align:center;margin:24px 0;padding:24px;background:#f9fafb;border-radius:12px;border:2px dashed #1c1917;">`
+      + `<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1c1917;">${discountLabel}</p>`
+      + `<p style="margin:0 0 8px;font-size:18px;font-weight:600;color:#1f2937;">Use code: <span style="background:#1c1917;color:#ffffff;padding:4px 12px;border-radius:6px;letter-spacing:1px;">${coupon.code}</span></p>`
+      + (expiry ? `<p style="margin:4px 0 0;font-size:13px;color:#6b7280;">${expiry}</p>` : '')
+      + `</div>`
+      + `<p>Whether it's a cozy brunch, a hearty lunch, or a laid-back dinner, we've got the perfect dishes to make your Sunday even better.</p>`
+      + `<p>Skip the kitchen and treat yourself. You deserve it!</p>`
+      + `<div style="text-align:center;margin:28px 0;"><a href="{menu_url}" style="display:inline-block;padding:14px 32px;background:#1c1917;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;">Order Now</a></div>`;
+  };
+
+  const buildHappyFridayBody = (coupon: Coupon) => {
+    const discountLabel = coupon.discount_type === 'percentage'
+      ? `${coupon.value}% off`
+      : `$${coupon.value} off`;
+    const expiry = coupon.end_date
+      ? `Valid until ${new Date(coupon.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      : '';
+
+    return `<p>The weekend is here and ${restaurantName} is ready to make it special!</p>`
+      + `<div style="text-align:center;margin:24px 0;padding:24px;background:#f9fafb;border-radius:12px;border:2px dashed #1c1917;">`
+      + `<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1c1917;">${discountLabel}</p>`
+      + `<p style="margin:0 0 8px;font-size:18px;font-weight:600;color:#1f2937;">Use code: <span style="background:#1c1917;color:#ffffff;padding:4px 12px;border-radius:6px;letter-spacing:1px;">${coupon.code}</span></p>`
+      + (expiry ? `<p style="margin:4px 0 0;font-size:13px;color:#6b7280;">${expiry}</p>` : '')
+      + `</div>`
+      + `<p>Wrap up the week with something delicious. Whether you're planning a Friday night feast or a quick treat to kick off the weekend, we've got just what you need.</p>`
+      + `<p>Start your weekend right — order now!</p>`
+      + `<div style="text-align:center;margin:28px 0;"><a href="{menu_url}" style="display:inline-block;padding:14px 32px;background:#1c1917;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;">Order Now</a></div>`;
+  };
+
+  const couponTemplates = ['special_offer', 'lazy_sunday', 'happy_friday'];
+
+  const getCouponBody = (templateKey: string, coupon: Coupon) => {
+    if (templateKey === 'lazy_sunday') return buildLazySundayBody(coupon);
+    if (templateKey === 'happy_friday') return buildHappyFridayBody(coupon);
+    return buildSpecialOfferBody(coupon);
   };
 
   const getEffective = (templateKey: string, field: keyof StoredCampaign, fallback: unknown) => {
@@ -302,9 +339,9 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
         const existing = storedRef.current.find((c) => c.template_key === templateKey);
         const template = PREDEFINED_TEMPLATES.find((t) => t.key === templateKey)!;
 
-        // Use coupon-enhanced body for special_offer when a coupon is selected
-        const emailBody = templateKey === 'special_offer' && selectedCouponRef.current
-          ? buildSpecialOfferBody(selectedCouponRef.current)
+        // Use coupon-enhanced body when a coupon is selected
+        const emailBody = couponTemplates.includes(templateKey) && selectedCouponRef.current
+          ? getCouponBody(templateKey, selectedCouponRef.current)
           : replaceVars(template.body);
 
         const isReEnabling =
@@ -851,7 +888,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
         const isSending = sendingKey === template.key;
         const isFuture = isScheduledInFuture(scheduledDate, scheduledTime);
         const isScheduled = stored?.status === 'scheduled';
-        const needsCoupon = template.key === 'special_offer' && !selectedCouponId;
+        const needsCoupon = couponTemplates.includes(template.key) && !selectedCouponId;
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={closePopup}>
@@ -884,8 +921,8 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                   </select>
                 </div>
 
-                {/* Coupon selector for Special Offer */}
-                {template.key === 'special_offer' && (
+                {/* Coupon selector for coupon-based templates */}
+                {couponTemplates.includes(template.key) && (
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Coupon Code</label>
                     <select
@@ -1078,8 +1115,8 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                     <div
                       className="text-[15px] leading-[1.7] text-gray-700 [&>p]:mb-3"
                       style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
-                      dangerouslySetInnerHTML={{ __html: previewTemplate.key === 'special_offer'
-                        ? buildSpecialOfferBody(selectedCoupon || { coupon_id: '', code: 'SAVE20', discount_type: 'percentage', value: 20, min_spend: 0, start_date: '', end_date: null })
+                      dangerouslySetInnerHTML={{ __html: couponTemplates.includes(previewTemplate.key)
+                        ? getCouponBody(previewTemplate.key, selectedCoupon || { coupon_id: '', code: 'SAVE20', discount_type: 'percentage', value: 20, min_spend: 0, start_date: '', end_date: null })
                         : replaceVars(previewTemplate.body) }}
                     />
                   </div>

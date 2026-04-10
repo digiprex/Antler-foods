@@ -45,11 +45,10 @@ const TEMPLATE_NAMES: Record<string, string> = {
   we_miss_you: 'We Miss You',
   thank_you: 'Thank You',
   special_offer: 'Special Offer',
-  new_menu_items: 'New Menu Items',
   feedback_request: 'Feedback Request',
   loyalty_reward: 'Loyalty Reward',
-  seasonal_special: 'Seasonal Special',
   lazy_sunday: 'Lazy Sunday',
+  happy_friday: 'Happy Friday',
 };
 
 const TRIGGER_LABELS: Record<string, { label: string; cls: string }> = {
@@ -190,7 +189,7 @@ export default function SentEmailsForm({ restaurantId }: SentEmailsFormProps) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="mt-4 text-sm font-medium text-gray-500">No scheduled emails</p>
-            <p className="mt-1 text-xs text-gray-400">Schedule campaigns from the Automated Emails page.</p>
+            <p className="mt-1 text-xs text-gray-400">Schedule campaigns from the Email Campaigns page.</p>
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -251,7 +250,7 @@ export default function SentEmailsForm({ restaurantId }: SentEmailsFormProps) {
                 : 'No emails sent yet'}
           </p>
           <p className="mt-1 text-xs text-gray-400">
-            Enable and send templates from the Automated Emails page.
+            Enable and send templates from the Email Campaigns page.
           </p>
         </div>
       ) : (

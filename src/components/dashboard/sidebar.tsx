@@ -205,7 +205,7 @@ export function Sidebar({
             `/admin/campaigns`,
             selectedRestaurant,
           ),
-          label: 'Automated Emails',
+          label: 'Email Campaigns',
           icon: <CampaignsIcon />,
         },
         {

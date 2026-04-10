@@ -199,7 +199,6 @@ export default function SentEmailsForm({ restaurantId }: SentEmailsFormProps) {
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/60">
                     <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Template</th>
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden md:table-cell">Subject</th>
                     <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Audience</th>
                     <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Scheduled For</th>
                     <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
@@ -210,9 +209,6 @@ export default function SentEmailsForm({ restaurantId }: SentEmailsFormProps) {
                     <tr key={c.campaign_id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-5 py-3.5">
                         <span className="text-sm font-medium text-gray-900">{TEMPLATE_NAMES[c.template_key] || c.template_key}</span>
-                      </td>
-                      <td className="px-5 py-3.5 hidden md:table-cell">
-                        <p className="text-gray-600 text-xs truncate max-w-[200px]">{c.subject}</p>
                       </td>
                       <td className="px-5 py-3.5">
                         <span className="text-xs text-gray-600">{AUDIENCE_LABELS[c.audience] || c.audience}</span>
@@ -262,7 +258,6 @@ export default function SentEmailsForm({ restaurantId }: SentEmailsFormProps) {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/60">
                   <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Recipient</th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden md:table-cell">Subject</th>
                   <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Template</th>
                   <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden sm:table-cell">Trigger</th>
                   <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
@@ -287,11 +282,6 @@ export default function SentEmailsForm({ restaurantId }: SentEmailsFormProps) {
                         {log.recipient_name && (
                           <p className="text-[11px] text-gray-400 truncate max-w-[180px]">{log.recipient_email}</p>
                         )}
-                      </td>
-
-                      {/* Subject */}
-                      <td className="px-5 py-3.5 hidden md:table-cell">
-                        <p className="text-gray-600 text-xs truncate max-w-[200px]">{log.subject}</p>
                       </td>
 
                       {/* Template */}

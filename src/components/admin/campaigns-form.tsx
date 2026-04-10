@@ -27,20 +27,6 @@ interface StoredCampaign {
   updated_at: string;
 }
 
-interface EmailLog {
-  email_log_id: string;
-  campaign_id: string | null;
-  template_key: string;
-  customer_id: string | null;
-  recipient_email: string;
-  recipient_name: string | null;
-  subject: string;
-  status: string;
-  error_message: string | null;
-  trigger: string;
-  created_at: string;
-}
-
 interface Coupon {
   coupon_id: string;
   code: string;
@@ -165,7 +151,6 @@ function formatDateTime(dateStr: string) {
 
 export default function CampaignsForm({ restaurantId, restaurantName }: CampaignsFormProps) {
   const [storedCampaigns, setStoredCampaigns] = useState<StoredCampaign[]>([]);
-  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -206,7 +191,6 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to load');
       setStoredCampaigns(data.campaigns || []);
-      setEmailLogs(data.email_logs || []);
       setRestaurantEmail(data.restaurant_email || null);
       setRestaurantPhone(data.restaurant_phone || null);
       setRestaurantAddress(data.restaurant_address || null);
@@ -587,11 +571,6 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     }).catch(() => showToast('error', 'Failed to save schedule'));
   };
 
-  // ── Email logs sorted by newest first ──
-  const sortedLogs = [...emailLogs].sort((a, b) =>
-    (b.created_at || '').localeCompare(a.created_at || ''),
-  );
-
   // ── Preview modal template ──
   const previewTemplate = previewKey
     ? PREDEFINED_TEMPLATES.find((t) => t.key === previewKey) || null
@@ -743,114 +722,6 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
           </div>
 
         </div>
-      </div>
-
-      {/* ────────────────────────────────────────────────────────────────── */}
-      {/* TABLE 2 — Email Logs                                              */}
-      {/* ────────────────────────────────────────────────────────────────── */}
-      <div>
-        <div className="mb-3">
-          <h2 className="text-base font-semibold text-gray-900">Sent Emails</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Per-recipient log of every email delivered or failed.
-          </p>
-        </div>
-
-        {sortedLogs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 py-14">
-            <svg className="h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-            </svg>
-            <p className="mt-3 text-sm font-medium text-gray-500">No emails sent yet</p>
-            <p className="mt-1 text-xs text-gray-400">Enable a template above and send or schedule it.</p>
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/60">
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Recipient</th>
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden md:table-cell">Subject</th>
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Template</th>
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden sm:table-cell">Trigger</th>
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {sortedLogs.map((log) => {
-                    const templateDef = PREDEFINED_TEMPLATES.find((t) => t.key === log.template_key);
-                    const templateName = templateDef?.name || log.template_key;
-                    const isFailed = log.status === 'failed';
-
-                    const triggerLabels: Record<string, { label: string; cls: string }> = {
-                      manual: { label: 'Manual', cls: 'bg-gray-100 text-gray-600' },
-                      scheduled: { label: 'Scheduled', cls: 'bg-purple-50 text-purple-700' },
-                      auto_signup: { label: 'Sign-up', cls: 'bg-blue-50 text-blue-700' },
-                    };
-                    const trigger = triggerLabels[log.trigger] || triggerLabels.manual;
-
-                    return (
-                      <tr key={log.email_log_id} className="hover:bg-gray-50/50 transition-colors">
-                        {/* Recipient */}
-                        <td className="px-5 py-3.5">
-                          <p className="text-sm text-gray-900 font-medium truncate max-w-[180px]">
-                            {log.recipient_name || log.recipient_email}
-                          </p>
-                          {log.recipient_name && (
-                            <p className="text-[11px] text-gray-400 truncate max-w-[180px]">{log.recipient_email}</p>
-                          )}
-                        </td>
-
-                        {/* Subject */}
-                        <td className="px-5 py-3.5 hidden md:table-cell">
-                          <p className="text-gray-600 text-xs truncate max-w-[200px]">{log.subject}</p>
-                        </td>
-
-                        {/* Template */}
-                        <td className="px-5 py-3.5">
-                          <span className="text-xs text-gray-700 font-medium">{templateName}</span>
-                        </td>
-
-                        {/* Trigger */}
-                        <td className="px-5 py-3.5 hidden sm:table-cell">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${trigger.cls}`}>
-                            {trigger.label}
-                          </span>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-5 py-3.5">
-                          {isFailed ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-700" title={log.error_message || ''}>
-                              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                              Failed
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-0.5 text-[11px] font-semibold text-green-700">
-                              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                              Sent
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Date */}
-                        <td className="px-5 py-3.5 text-gray-500 text-xs whitespace-nowrap">
-                          {formatDateTime(log.created_at)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ────────────────────────────────────────────────────────────────── */}

@@ -64,6 +64,8 @@ const GET_EMAIL_LOGS = `
       status
       error_message
       trigger
+      opened_at
+      clicked_at
       created_at
     }
   }
@@ -264,10 +266,9 @@ const GET_ORDERED_CUSTOMERS = `
       distinct_on: customer_id
     ) {
       customer_id
-      customer {
-        email
-        display_name
-      }
+      contact_email
+      contact_first_name
+      contact_last_name
     }
   }
 `;
@@ -330,8 +331,9 @@ async function getAudienceRecipients(
       since: since.toISOString(),
     });
     for (const o of data.orders || []) {
-      const email = o.customer?.email?.trim()?.toLowerCase();
-      if (email && !seen.has(email)) seen.set(email, { email, name: o.customer?.display_name || null, customerId: o.customer_id || null });
+      const email = o.contact_email?.trim()?.toLowerCase();
+      const name = [o.contact_first_name, o.contact_last_name].filter(Boolean).join(' ') || null;
+      if (email && !seen.has(email)) seen.set(email, { email, name, customerId: o.customer_id || null });
     }
   } else {
     // all_customers
@@ -347,7 +349,18 @@ async function getAudienceRecipients(
   return Array.from(seen.values());
 }
 
-async function logEmail(params: {
+const UPDATE_EMAIL_LOG_STATUS = `
+  mutation UpdateEmailLogStatus($email_log_id: uuid!, $status: String!, $error_message: String) {
+    update_email_logs_by_pk(
+      pk_columns: { email_log_id: $email_log_id }
+      _set: { status: $status, error_message: $error_message }
+    ) {
+      email_log_id
+    }
+  }
+`;
+
+async function createEmailLog(params: {
   restaurantId: string;
   campaignId: string | null;
   templateKey: string;
@@ -355,12 +368,10 @@ async function logEmail(params: {
   recipientEmail: string;
   recipientName: string | null;
   subject: string;
-  status: 'sent' | 'failed';
-  errorMessage: string | null;
   trigger: 'manual' | 'scheduled' | 'auto_signup';
-}) {
+}): Promise<string | null> {
   try {
-    await adminGraphqlRequest(INSERT_EMAIL_LOG, {
+    const data = await adminGraphqlRequest<any>(INSERT_EMAIL_LOG, {
       restaurant_id: params.restaurantId,
       campaign_id: params.campaignId,
       template_key: params.templateKey,
@@ -368,13 +379,26 @@ async function logEmail(params: {
       recipient_email: params.recipientEmail,
       recipient_name: params.recipientName,
       subject: params.subject,
-      status: params.status,
-      error_message: params.errorMessage,
+      status: 'sent',
+      error_message: null,
       trigger: params.trigger,
     });
+    return data.insert_email_logs_one?.email_log_id || null;
   } catch (err) {
-    console.error('[Email Log] Failed to log email:', err);
+    console.error('[Email Log] Failed to create log:', err);
+    return null;
   }
+}
+
+function injectEmailTracking(html: string, logId: string, baseUrl: string): string {
+  // Wrap links for click tracking
+  const tracked = html.replace(
+    /href="(https?:\/\/[^"]+)"/g,
+    (_match, url) => `href="${baseUrl}/api/email/track/click/${logId}?url=${encodeURIComponent(url)}"`,
+  );
+  // Append open tracking pixel
+  const pixel = `<img src="${baseUrl}/api/email/track/open/${logId}" width="1" height="1" style="display:none;" alt="" />`;
+  return tracked + pixel;
 }
 
 // ---------------------------------------------------------------------------
@@ -508,18 +532,38 @@ async function handleSendCampaign(body: any) {
     return NextResponse.json({ success: false, error: 'No recipients found for this audience.' }, { status: 400 });
   }
 
-  // Send emails and log each one
+  // Build base URL for tracking links
+  const baseUrl = restaurantDomain ? `https://${restaurantDomain}` : '';
+  const emailBody = (campaign.body || '').replace(/\{menu_url\}/g, menuUrl).replace(/\{feedback_url\}/g, feedbackUrl);
+
+  // Send emails with tracking
   let sentCount = 0;
   let failedCount = 0;
 
   for (const recipient of recipients) {
-    let status: 'sent' | 'failed' = 'sent';
-    let errorMessage: string | null = null;
+    // 1. Create log entry first to get the ID for tracking
+    const logId = await createEmailLog({
+      restaurantId: campaign.restaurant_id,
+      campaignId: campaign.campaign_id,
+      templateKey: campaign.template_key,
+      customerId: recipient.customerId,
+      recipientEmail: recipient.email,
+      recipientName: recipient.name,
+      subject: campaign.subject,
+      trigger: 'manual',
+    });
+
+    // 2. Inject tracking pixel and click tracking if we have a log ID and base URL
+    const trackedBody = logId && baseUrl
+      ? injectEmailTracking(emailBody, logId, baseUrl)
+      : emailBody;
+
+    // 3. Send the email
     try {
       await sendCampaignEmail(recipient.email, {
         subject: campaign.subject,
         heading: campaign.heading || campaign.subject,
-        body: (campaign.body || '').replace(/\{menu_url\}/g, menuUrl).replace(/\{feedback_url\}/g, feedbackUrl),
+        body: trackedBody,
         customerName: recipient.name,
         restaurantName,
         restaurantLogo,
@@ -530,23 +574,16 @@ async function handleSendCampaign(body: any) {
       sentCount++;
     } catch (err) {
       console.error(`Failed to send campaign email to ${recipient.email}:`, err);
-      status = 'failed';
-      errorMessage = err instanceof Error ? err.message : 'Unknown error';
       failedCount++;
+      // 4. Update log to failed
+      if (logId) {
+        adminGraphqlRequest(UPDATE_EMAIL_LOG_STATUS, {
+          email_log_id: logId,
+          status: 'failed',
+          error_message: err instanceof Error ? err.message : 'Unknown error',
+        }).catch(() => {});
+      }
     }
-
-    logEmail({
-      restaurantId: campaign.restaurant_id,
-      campaignId: campaign.campaign_id,
-      templateKey: campaign.template_key,
-      customerId: recipient.customerId,
-      recipientEmail: recipient.email,
-      recipientName: recipient.name,
-      subject: campaign.subject,
-      status,
-      errorMessage,
-      trigger: 'manual',
-    });
   }
 
   // Update campaign status

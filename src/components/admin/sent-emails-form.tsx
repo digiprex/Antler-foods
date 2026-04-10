@@ -46,7 +46,6 @@ const TEMPLATE_NAMES: Record<string, string> = {
   thank_you: 'Thank You',
   special_offer: 'Special Offer',
   feedback_request: 'Feedback Request',
-  loyalty_reward: 'Loyalty Reward',
   lazy_sunday: 'Lazy Sunday',
   happy_friday: 'Happy Friday',
 };

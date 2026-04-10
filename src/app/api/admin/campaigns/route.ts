@@ -499,6 +499,7 @@ async function handleSendCampaign(body: any) {
     .join(', ') || null;
   const restaurantDomain = rest.custom_domain || rest.staging_domain || '';
   const menuUrl = restaurantDomain ? `https://${restaurantDomain}/menu` : '';
+  const feedbackUrl = restaurantDomain ? `https://${restaurantDomain}/feedback` : '';
 
   // Get audience recipients
   const recipients = await getAudienceRecipients(campaign.restaurant_id, campaign.audience || 'all_customers');
@@ -518,7 +519,7 @@ async function handleSendCampaign(body: any) {
       await sendCampaignEmail(recipient.email, {
         subject: campaign.subject,
         heading: campaign.heading || campaign.subject,
-        body: (campaign.body || '').replace(/\{menu_url\}/g, menuUrl),
+        body: (campaign.body || '').replace(/\{menu_url\}/g, menuUrl).replace(/\{feedback_url\}/g, feedbackUrl),
         customerName: recipient.name,
         restaurantName,
         restaurantLogo,

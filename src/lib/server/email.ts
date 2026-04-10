@@ -837,6 +837,7 @@ export interface OrderDeliveredReviewEmailData {
   restaurantName: string;
   customerName?: string | null;
   googleReviewUrl?: string | null;
+  feedbackUrl?: string | null;
 }
 
 export async function sendOrderDeliveredReviewEmail(
@@ -846,7 +847,8 @@ export async function sendOrderDeliveredReviewEmail(
   const transporter = createTransporter();
   const customerLabel = data.customerName?.trim() || 'there';
 
-  const reviewBlock = data.googleReviewUrl
+  const feedbackLink = data.feedbackUrl || data.googleReviewUrl;
+  const reviewBlock = feedbackLink
     ? `
         <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
           We'd love to hear about your experience! Your feedback helps us improve and helps others discover ${data.restaurantName}.
@@ -854,8 +856,8 @@ export async function sendOrderDeliveredReviewEmail(
         <table cellpadding="0" cellspacing="0" style="margin:20px 0;">
           <tr>
             <td>
-              <a href="${data.googleReviewUrl}" style="display:inline-block;border-radius:8px;background:#0f172a;padding:12px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
-                Leave a review
+              <a href="${feedbackLink}" style="display:inline-block;border-radius:8px;background:#0f172a;padding:12px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
+                Give Feedback
               </a>
             </td>
           </tr>
@@ -904,7 +906,7 @@ export async function sendOrderDeliveredReviewEmail(
     `Hi ${customerLabel},`,
     '',
     `Your order ${data.orderNumber} has been delivered. Enjoy your meal!`,
-    data.googleReviewUrl ? `\nWe'd love to hear your feedback:\n${data.googleReviewUrl}` : '',
+    feedbackLink ? `\nWe'd love to hear your feedback:\n${feedbackLink}` : '',
   ].filter(Boolean).join('\n');
 
   await transporter.sendMail({

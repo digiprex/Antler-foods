@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 
 interface CustomerAddress {
   id: string;
@@ -64,8 +65,11 @@ export default function CustomersForm({ restaurantId, restaurantName }: Customer
   const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [modalTab, setModalTab] = useState<'overview' | 'orders' | 'addresses' | 'preferences'>('overview');
+  const [isMounted, setIsMounted] = useState(false);
   const [guestFilter, setGuestFilter] = useState<'' | 'guest' | 'registered'>('');
   const [orderedDaysFilter, setOrderedDaysFilter] = useState<string>('');
+
+  useEffect(() => { setIsMounted(true); }, []);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -429,13 +433,13 @@ export default function CustomersForm({ restaurantId, restaurantName }: Customer
       )}
 
       {/* Customer Detail Modal */}
-      {selectedCustomer && (
+      {selectedCustomer && isMounted && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          className="fixed inset-0 top-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 p-4"
           onClick={() => setSelectedCustomer(null)}
         >
           <div
-            className="bg-white rounded-2xl shadow-xl max-w-4xl w-full mx-4 h-[85vh] flex flex-col"
+            className="bg-white rounded-2xl shadow-xl max-w-4xl w-full h-[85vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -775,7 +779,8 @@ export default function CustomersForm({ restaurantId, restaurantName }: Customer
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

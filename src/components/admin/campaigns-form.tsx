@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -165,6 +166,9 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   // When a manual campaign toggle is flipped ON, we hold it here until config is confirmed
   const [pendingEnableKey, setPendingEnableKey] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => { setIsMounted(true); }, []);
 
   // Coupons for Special Offer template
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -751,9 +755,9 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
         const isScheduled = stored?.status === 'scheduled';
         const needsCoupon = couponTemplates.includes(template.key) && !selectedCouponId;
 
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={closePopup}>
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        return isMounted ? createPortal(
+          <div className="fixed inset-0 top-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={closePopup}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
                 <div>
@@ -918,16 +922,17 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                 )}
               </div>
             </div>
-          </div>
-        );
+          </div>,
+          document.body,
+        ) : null;
       })()}
 
       {/* ────────────────────────────────────────────────────────────────── */}
       {/* Preview Modal                                                      */}
       {/* ────────────────────────────────────────────────────────────────── */}
-      {previewTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setPreviewKey(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+      {previewTemplate && isMounted && createPortal(
+        <div className="fixed inset-0 top-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setPreviewKey(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             {/* Toolbar */}
             <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200 rounded-t-2xl">
               <div className="flex items-center gap-2">
@@ -995,7 +1000,8 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

@@ -25,7 +25,7 @@ export const dynamic = 'force-dynamic';
  * - contact_email: text, nullable
  * - contact_phone: text, nullable
  * - scheduled_for: timestamp with time zone, nullable
- * - tax_total: numeric, nullable, default: 0
+ * - service_fee: numeric, nullable, default: 0
  * - state_tax: numeric, nullable, default: 0 
  * - tip_total: numeric, nullable, default: 0
   * - discount_total: numeric, nullable, default: 0  
@@ -131,7 +131,7 @@ const GET_ORDERS_QUERY = `
       contact_email
       contact_phone
       scheduled_for
-      tax_total
+      service_fee
       tip_total
         discount_total 
       delivery_fee_total

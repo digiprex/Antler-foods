@@ -24,7 +24,7 @@ export interface Order {
   contact_email?: string | null;
   contact_phone?: string | null;
   scheduled_for?: string | null;
-  tax_total?: number | null;
+  service_fee?: number | null;
   state_tax?: number | null;
   tip_total?: number | null;
   discount_total?: number | null;
@@ -160,7 +160,7 @@ export interface CreateOrderRequest {
   contact_email?: string;
   contact_phone?: string;
   scheduled_for?: string;
-  tax_total?: number;
+  service_fee?: number;
   tip_total?: number;
   discount_total?: number;
   order_note?: string;

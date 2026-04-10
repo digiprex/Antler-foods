@@ -342,8 +342,8 @@ ${'='.repeat(50)}
 
 Subtotal: ${formatCurrency(order.sub_total)}`;
 
-    if (order.tax_total != null && order.tax_total > 0) {
-      receiptContent += `\nTax: ${formatCurrency(order.tax_total)}`;
+    if (order.service_fee != null && order.service_fee > 0) {
+      receiptContent += `\nService Fee: ${formatCurrency(order.service_fee)}`;
     }
 
     if (order.tip_total != null && order.tip_total > 0) {
@@ -593,11 +593,11 @@ Generated on: ${new Date().toLocaleString()}
             : ''
         }
         ${
-          order.tax_total != null && order.tax_total > 0
+          order.service_fee != null && order.service_fee > 0
             ? `
         <div class="total-line">
-            <span>Tax:</span>
-            <span>${formatCurrency(order.tax_total)}</span>
+            <span>Service Fee:</span>
+            <span>${formatCurrency(order.service_fee)}</span>
         </div>`
             : ''
         }
@@ -739,7 +739,7 @@ Generated on: ${new Date().toLocaleString()}
       discount: order.discount_total ?? null,
       deliveryFee: order.delivery_fee ?? null,
       tip: order.tip_total ?? null,
-      tax: order.tax_total ?? null,
+      tax: order.service_fee ?? null,
       offerApplied: offer,
       couponCode: order.coupon_used || '',
       giftCardCode: order.gift_card_used || '',
@@ -2081,12 +2081,12 @@ Generated on: ${new Date().toLocaleString()}
                                 </span>
                               </div>
                             )}
-                          {selectedOrder.tax_total != null &&
-                            selectedOrder.tax_total > 0 && (
+                          {selectedOrder.service_fee != null &&
+                            selectedOrder.service_fee > 0 && (
                               <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Tax:</span>
+                                <span className="text-gray-600">Service Fee:</span>
                                 <span className="font-medium text-gray-900">
-                                  {formatCurrency(selectedOrder.tax_total)}
+                                  {formatCurrency(selectedOrder.service_fee)}
                                 </span>
                               </div>
                             )}

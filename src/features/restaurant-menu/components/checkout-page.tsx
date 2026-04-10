@@ -1868,7 +1868,7 @@ export default function RestaurantMenuCheckoutPage({
           ) : null}
           {taxAmount > 0 ? (
             <div className="flex items-center justify-between gap-4">
-              <span>Tax ({taxRate}%)</span>
+              <span>Service Fee ({taxRate}%)</span>
               <span className="font-medium">{formatPrice(taxAmount)}</span>
             </div>
           ) : null}

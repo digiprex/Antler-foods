@@ -513,8 +513,8 @@ export async function sendOrderInvoiceEmail(
   const tip = typeof order.tip_total === 'number' && order.tip_total > 0
     ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;">Tip</td><td style="padding:4px 0;font-size:14px;text-align:right;">${formatCurrency(order.tip_total)}</td></tr>`
     : '';
-  const tax = typeof order.tax_total === 'number' && order.tax_total > 0
-    ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;">Tax</td><td style="padding:4px 0;font-size:14px;text-align:right;">${formatCurrency(order.tax_total)}</td></tr>`
+  const tax = typeof order.service_fee === 'number' && order.service_fee > 0
+    ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;">Service Fee</td><td style="padding:4px 0;font-size:14px;text-align:right;">${formatCurrency(order.service_fee)}</td></tr>`
     : '';
   const total = formatCurrency(order.cart_total);
 
@@ -637,7 +637,7 @@ export async function sendOrderInvoiceEmail(
     couponCode ? `  Coupon: ${couponCode}` : '',
     giftCardCode ? `  Gift Card: ${giftCardCode}` : '',
     typeof order.tip_total === 'number' && order.tip_total > 0 ? `Tip: ${formatCurrency(order.tip_total)}` : '',
-    typeof order.tax_total === 'number' && order.tax_total > 0 ? `Tax: ${formatCurrency(order.tax_total)}` : '',
+    typeof order.service_fee === 'number' && order.service_fee > 0 ? `Service Fee: ${formatCurrency(order.service_fee)}` : '',
     `Total: ${total}`,
     '',
     order.order_note ? `Order Note: ${order.order_note}` : '',
@@ -727,7 +727,7 @@ export async function sendOrderDeliveryTrackingEmail(
           ${data.subtotal != null ? `<tr><td style="padding:3px 0;font-size:14px;">Subtotal</td><td style="padding:3px 0;font-size:14px;text-align:right;">${formatCurrency(data.subtotal)}</td></tr>` : ''}
           ${typeof data.deliveryFee === 'number' && data.deliveryFee > 0 ? `<tr><td style="padding:3px 0;font-size:14px;">Delivery fee</td><td style="padding:3px 0;font-size:14px;text-align:right;">${formatCurrency(data.deliveryFee)}</td></tr>` : ''}
           ${typeof data.discount === 'number' && data.discount > 0 ? `<tr><td style="padding:3px 0;font-size:14px;color:#059669;">Discount</td><td style="padding:3px 0;font-size:14px;text-align:right;color:#059669;">-${formatCurrency(data.discount)}</td></tr>` : ''}
-          ${typeof data.tax === 'number' && data.tax > 0 ? `<tr><td style="padding:3px 0;font-size:14px;">Tax</td><td style="padding:3px 0;font-size:14px;text-align:right;">${formatCurrency(data.tax)}</td></tr>` : ''}
+          ${typeof data.tax === 'number' && data.tax > 0 ? `<tr><td style="padding:3px 0;font-size:14px;">Service Fee</td><td style="padding:3px 0;font-size:14px;text-align:right;">${formatCurrency(data.tax)}</td></tr>` : ''}
           ${typeof data.tip === 'number' && data.tip > 0 ? `<tr><td style="padding:3px 0;font-size:14px;">Tip</td><td style="padding:3px 0;font-size:14px;text-align:right;">${formatCurrency(data.tip)}</td></tr>` : ''}
           ${data.total != null ? `<tr style="border-top:2px solid #0f172a;"><td style="padding:8px 0;font-size:16px;font-weight:700;">Total</td><td style="padding:8px 0;font-size:16px;font-weight:700;text-align:right;">${formatCurrency(data.total)}</td></tr>` : ''}
         </table>

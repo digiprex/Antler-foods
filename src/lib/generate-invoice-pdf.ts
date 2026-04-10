@@ -248,7 +248,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
     y += 6;
   }
   if (typeof data.tax === 'number' && data.tax > 0) {
-    doc.text('Tax', 14, y);
+    doc.text('Service Fee', 14, y);
     doc.text(fmt(data.tax), pageWidth - 14, y, { align: 'right' });
     y += 6;
   }

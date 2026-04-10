@@ -137,6 +137,8 @@ const GET_RESTAURANT_FOR_EMAIL = `
       poc_phone_number
       gmb_link
       google_place_id
+      custom_domain
+      staging_domain
     }
   }
 `;
@@ -398,6 +400,7 @@ export async function POST(request: NextRequest) {
 
         let restaurantName = 'Restaurant';
         let googleReviewUrl: string | null = null;
+        let feedbackUrl: string | null = null;
         let restaurantEmail: string | null = null;
         let restaurantPhone: string | null = null;
 
@@ -411,6 +414,8 @@ export async function POST(request: NextRequest) {
               poc_phone_number?: string;
               gmb_link?: string;
               google_place_id?: string;
+              custom_domain?: string;
+              staging_domain?: string;
             } | null;
           }>(GET_RESTAURANT_FOR_EMAIL, {
             restaurant_id: order.restaurant_id,
@@ -427,6 +432,10 @@ export async function POST(request: NextRequest) {
             normalizeText(rest?.gmb_link),
             normalizeText(rest?.google_place_id),
           );
+          const restaurantDomain = normalizeText(rest?.custom_domain) || normalizeText(rest?.staging_domain);
+          if (restaurantDomain) {
+            feedbackUrl = `https://${restaurantDomain}/feedback`;
+          }
         }
 
         let emailSentType: string | null = null;
@@ -456,6 +465,7 @@ export async function POST(request: NextRequest) {
             restaurantName,
             customerName,
             googleReviewUrl,
+            feedbackUrl,
           });
           emailSentType = 'delivered';
           console.log('[DoorDash Webhook] Delivered review email sent successfully');

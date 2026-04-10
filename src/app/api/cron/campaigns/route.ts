@@ -122,6 +122,8 @@ const GET_RESTAURANT_INFO = `
       city
       state
       postal_code
+      custom_domain
+      staging_domain
     }
   }
 `;
@@ -284,6 +286,8 @@ export async function GET(request: NextRequest) {
           restData.restaurants_by_pk?.state,
           restData.restaurants_by_pk?.postal_code,
         ].filter(Boolean).join(', ') || null;
+        const restaurantDomain = restData.restaurants_by_pk?.custom_domain || restData.restaurants_by_pk?.staging_domain || '';
+        const menuUrl = restaurantDomain ? `https://${restaurantDomain}/menu` : '';
 
         // Get audience recipients
         const recipients = await getAudienceRecipients(campaign.restaurant_id, campaign.audience || 'all_customers');
@@ -314,7 +318,7 @@ export async function GET(request: NextRequest) {
             await sendCampaignEmail(recipient.email, {
               subject: campaign.subject,
               heading: campaign.heading || campaign.subject,
-              body: campaign.body,
+              body: (campaign.body || '').replace(/\{menu_url\}/g, menuUrl),
               customerName: recipient.name,
               restaurantName,
               restaurantLogo,

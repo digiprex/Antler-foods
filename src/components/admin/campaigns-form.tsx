@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -27,18 +28,14 @@ interface StoredCampaign {
   updated_at: string;
 }
 
-interface EmailLog {
-  email_log_id: string;
-  campaign_id: string | null;
-  template_key: string;
-  customer_id: string | null;
-  recipient_email: string;
-  recipient_name: string | null;
-  subject: string;
-  status: string;
-  error_message: string | null;
-  trigger: string;
-  created_at: string;
+interface Coupon {
+  coupon_id: string;
+  code: string;
+  discount_type: 'percentage' | 'fixed_amount';
+  value: number;
+  min_spend: number;
+  start_date: string;
+  end_date: string | null;
 }
 
 interface CampaignsFormProps {
@@ -78,18 +75,8 @@ const PREDEFINED_TEMPLATES: TemplateDefinition[] = [
     description: 'Re-engage customers who haven\'t ordered recently',
     subject: 'We miss you at {restaurant}!',
     heading: 'It\'s been a while!',
-    body: '<p>We noticed you haven\'t visited us in a while, and we miss you!</p><p>Come back and enjoy the flavors you love. We\'ve been working on exciting new dishes and can\'t wait for you to try them.</p><p>Order today and rediscover what makes {restaurant} special.</p>',
+    body: '<p>We noticed you haven\'t visited us in a while, and we miss you!</p><p>Come back and enjoy the flavors you love. We\'ve been working on exciting new dishes and can\'t wait for you to try them.</p><p>Order today and rediscover what makes {restaurant} special.</p><div style="text-align:center;margin:28px 0;"><a href="{menu_url}" style="display:inline-block;padding:14px 32px;background:#1c1917;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;">Order Now</a></div>',
     default_audience: 'ordered_last_90',
-    trigger: 'manual',
-  },
-  {
-    key: 'thank_you',
-    name: 'Thank You',
-    description: 'Show appreciation to customers after their orders',
-    subject: 'Thank you for your order from {restaurant}!',
-    heading: 'Thank You!',
-    body: '<p>Thank you for choosing {restaurant}! We hope you enjoyed every bite.</p><p>Your support means the world to us. We\'re always striving to bring you the best food and experience possible.</p><p>We\'d love to see you again soon!</p>',
-    default_audience: 'ordered_last_30',
     trigger: 'manual',
   },
   {
@@ -103,43 +90,13 @@ const PREDEFINED_TEMPLATES: TemplateDefinition[] = [
     trigger: 'manual',
   },
   {
-    key: 'new_menu_items',
-    name: 'New Menu Items',
-    description: 'Announce new additions to your menu',
-    subject: 'New dishes at {restaurant}!',
-    heading: 'Something New to Try!',
-    body: '<p>Exciting news from {restaurant}! We\'ve added delicious new items to our menu.</p><p>From new appetizers to fresh entrees, there\'s something for everyone. Be among the first to try our latest creations.</p><p>Check out what\'s new today!</p>',
-    default_audience: 'all_customers',
-    trigger: 'manual',
-  },
-  {
     key: 'feedback_request',
     name: 'Feedback Request',
     description: 'Ask customers for reviews and feedback',
     subject: 'How was your experience at {restaurant}?',
     heading: 'We\'d Love Your Feedback',
-    body: '<p>Thank you for dining with {restaurant}! We hope you had a wonderful experience.</p><p>Your feedback helps us improve and serve you better. We\'d love to hear what you think — it only takes a moment.</p><p>Share your thoughts with us today!</p>',
+    body: '<p>Thank you for dining with {restaurant}! We hope you had a wonderful experience.</p><p>Your feedback helps us improve and serve you better. We\'d love to hear what you think — it only takes a moment.</p><p>Share your thoughts with us today!</p><div style="text-align:center;margin:28px 0;"><a href="{feedback_url}" style="display:inline-block;padding:14px 32px;background:#1c1917;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;">Give Feedback</a></div>',
     default_audience: 'ordered_last_30',
-    trigger: 'manual',
-  },
-  {
-    key: 'loyalty_reward',
-    name: 'Loyalty Reward',
-    description: 'Reward your most loyal returning customers',
-    subject: 'A special reward from {restaurant}!',
-    heading: 'You Deserve Something Special',
-    body: '<p>You\'re one of our most valued customers at {restaurant}, and we want to show our appreciation!</p><p>As a loyal member of our community, you\'ve earned a special reward. Thank you for your continued support.</p><p>Claim your reward now!</p>',
-    default_audience: 'opted_in',
-    trigger: 'manual',
-  },
-  {
-    key: 'seasonal_special',
-    name: 'Seasonal Special',
-    description: 'Promote limited-time seasonal offerings',
-    subject: 'Seasonal specials at {restaurant}!',
-    heading: 'Seasonal Favorites Are Here',
-    body: '<p>{restaurant} is celebrating the season with special limited-time dishes!</p><p>Our chefs have crafted unique seasonal flavors that capture the spirit of the moment. These dishes are available for a limited time only.</p><p>Don\'t miss out — try them before they\'re gone!</p>',
-    default_audience: 'all_customers',
     trigger: 'manual',
   },
   {
@@ -149,6 +106,16 @@ const PREDEFINED_TEMPLATES: TemplateDefinition[] = [
     subject: 'Lazy Sunday? Let {restaurant} handle dinner!',
     heading: 'Kick Back This Sunday',
     body: '<p>Sundays are for relaxing — let {restaurant} take care of the cooking!</p><p>Whether it\'s a cozy brunch, a hearty lunch, or a laid-back dinner, we\'ve got the perfect dishes to make your Sunday even better.</p><p>Skip the kitchen and treat yourself. You deserve it!</p>',
+    default_audience: 'all_customers',
+    trigger: 'manual',
+  },
+  {
+    key: 'happy_friday',
+    name: 'Happy Friday',
+    description: 'Kick off the weekend with a delicious meal',
+    subject: 'Happy Friday from {restaurant}!',
+    heading: 'It\'s Friday — Time to Celebrate!',
+    body: '<p>The weekend is here and {restaurant} is ready to make it special!</p><p>Wrap up the week with something delicious. Whether you\'re planning a Friday night feast or a quick treat to kick off the weekend, we\'ve got just what you need.</p><p>Start your weekend right — order now!</p>',
     default_audience: 'all_customers',
     trigger: 'manual',
   },
@@ -185,16 +152,27 @@ function formatDateTime(dateStr: string) {
 
 export default function CampaignsForm({ restaurantId, restaurantName }: CampaignsFormProps) {
   const [storedCampaigns, setStoredCampaigns] = useState<StoredCampaign[]>([]);
-  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [sendingKey, setSendingKey] = useState<string | null>(null);
   const [confirmSendKey, setConfirmSendKey] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
+  const [restaurantEmail, setRestaurantEmail] = useState<string | null>(null);
+  const [restaurantPhone, setRestaurantPhone] = useState<string | null>(null);
+  const [restaurantAddress, setRestaurantAddress] = useState<string | null>(null);
 
-  // Expanded row in Table 1 for manual campaigns (audience + date/time + send)
+  // Configure popup key for manual campaigns (audience + date/time + send)
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  // When a manual campaign toggle is flipped ON, we hold it here until config is confirmed
+  const [pendingEnableKey, setPendingEnableKey] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => { setIsMounted(true); }, []);
+
+  // Coupons for Special Offer template
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null);
 
   // Local overrides for instant UI updates
   const [localOverrides, setLocalOverrides] = useState<Record<string, Partial<StoredCampaign>>>({});
@@ -217,7 +195,9 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to load');
       setStoredCampaigns(data.campaigns || []);
-      setEmailLogs(data.email_logs || []);
+      setRestaurantEmail(data.restaurant_email || null);
+      setRestaurantPhone(data.restaurant_phone || null);
+      setRestaurantAddress(data.restaurant_address || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
     } finally {
@@ -225,9 +205,18 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     }
   }, [restaurantId]);
 
+  const fetchCoupons = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/coupons?restaurant_id=${encodeURIComponent(restaurantId)}`);
+      const data = await res.json();
+      if (res.ok && data.success) setCoupons(data.coupons || []);
+    } catch { /* silent */ }
+  }, [restaurantId]);
+
   useEffect(() => {
     fetchCampaigns();
-  }, [fetchCampaigns]);
+    fetchCoupons();
+  }, [fetchCampaigns, fetchCoupons]);
 
   useEffect(() => {
     const timers = debounceTimers.current;
@@ -243,6 +232,73 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
 
   const replaceVars = (text: string) => text.replace(/\{restaurant\}/g, restaurantName);
 
+  const selectedCoupon = coupons.find((c) => c.coupon_id === selectedCouponId) || null;
+
+  const buildSpecialOfferBody = (coupon: Coupon) => {
+    const discountLabel = coupon.discount_type === 'percentage'
+      ? `${coupon.value}% off`
+      : `$${coupon.value} off`;
+    const expiry = coupon.end_date
+      ? `Valid until ${new Date(coupon.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      : '';
+
+    return `<p>As a valued customer of ${restaurantName}, we have a special offer just for you!</p>`
+      + `<div style="text-align:center;margin:24px 0;padding:24px;background:#f9fafb;border-radius:12px;border:2px dashed #1c1917;">`
+      + `<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1c1917;">${discountLabel}</p>`
+      + `<p style="margin:0 0 8px;font-size:18px;font-weight:600;color:#1f2937;">Use code: <span style="background:#1c1917;color:#ffffff;padding:4px 12px;border-radius:6px;letter-spacing:1px;">${coupon.code}</span></p>`
+      + (expiry ? `<p style="margin:4px 0 0;font-size:13px;color:#6b7280;">${expiry}</p>` : '')
+      + `</div>`
+      + `<p>Don't miss out on this exclusive deal. It's our way of saying thank you for being a part of our community.</p>`
+      + `<p>Hurry — this offer won't last forever!</p>`
+      + `<div style="text-align:center;margin:28px 0;"><a href="{menu_url}" style="display:inline-block;padding:14px 32px;background:#1c1917;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;">Order Now</a></div>`;
+  };
+
+  const buildLazySundayBody = (coupon: Coupon) => {
+    const discountLabel = coupon.discount_type === 'percentage'
+      ? `${coupon.value}% off`
+      : `$${coupon.value} off`;
+    const expiry = coupon.end_date
+      ? `Valid until ${new Date(coupon.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      : '';
+
+    return `<p>Sundays are for relaxing — let ${restaurantName} take care of the cooking!</p>`
+      + `<div style="text-align:center;margin:24px 0;padding:24px;background:#f9fafb;border-radius:12px;border:2px dashed #1c1917;">`
+      + `<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1c1917;">${discountLabel}</p>`
+      + `<p style="margin:0 0 8px;font-size:18px;font-weight:600;color:#1f2937;">Use code: <span style="background:#1c1917;color:#ffffff;padding:4px 12px;border-radius:6px;letter-spacing:1px;">${coupon.code}</span></p>`
+      + (expiry ? `<p style="margin:4px 0 0;font-size:13px;color:#6b7280;">${expiry}</p>` : '')
+      + `</div>`
+      + `<p>Whether it's a cozy brunch, a hearty lunch, or a laid-back dinner, we've got the perfect dishes to make your Sunday even better.</p>`
+      + `<p>Skip the kitchen and treat yourself. You deserve it!</p>`
+      + `<div style="text-align:center;margin:28px 0;"><a href="{menu_url}" style="display:inline-block;padding:14px 32px;background:#1c1917;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;">Order Now</a></div>`;
+  };
+
+  const buildHappyFridayBody = (coupon: Coupon) => {
+    const discountLabel = coupon.discount_type === 'percentage'
+      ? `${coupon.value}% off`
+      : `$${coupon.value} off`;
+    const expiry = coupon.end_date
+      ? `Valid until ${new Date(coupon.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      : '';
+
+    return `<p>The weekend is here and ${restaurantName} is ready to make it special!</p>`
+      + `<div style="text-align:center;margin:24px 0;padding:24px;background:#f9fafb;border-radius:12px;border:2px dashed #1c1917;">`
+      + `<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1c1917;">${discountLabel}</p>`
+      + `<p style="margin:0 0 8px;font-size:18px;font-weight:600;color:#1f2937;">Use code: <span style="background:#1c1917;color:#ffffff;padding:4px 12px;border-radius:6px;letter-spacing:1px;">${coupon.code}</span></p>`
+      + (expiry ? `<p style="margin:4px 0 0;font-size:13px;color:#6b7280;">${expiry}</p>` : '')
+      + `</div>`
+      + `<p>Wrap up the week with something delicious. Whether you're planning a Friday night feast or a quick treat to kick off the weekend, we've got just what you need.</p>`
+      + `<p>Start your weekend right — order now!</p>`
+      + `<div style="text-align:center;margin:28px 0;"><a href="{menu_url}" style="display:inline-block;padding:14px 32px;background:#1c1917;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;">Order Now</a></div>`;
+  };
+
+  const couponTemplates = ['special_offer', 'lazy_sunday', 'happy_friday'];
+
+  const getCouponBody = (templateKey: string, coupon: Coupon) => {
+    if (templateKey === 'lazy_sunday') return buildLazySundayBody(coupon);
+    if (templateKey === 'happy_friday') return buildHappyFridayBody(coupon);
+    return buildSpecialOfferBody(coupon);
+  };
+
   const getEffective = (templateKey: string, field: keyof StoredCampaign, fallback: unknown) => {
     const override = localOverrides[templateKey]?.[field];
     if (override !== undefined) return override;
@@ -252,11 +308,19 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     return fallback;
   };
 
+  const selectedCouponRef = useRef(selectedCoupon);
+  selectedCouponRef.current = selectedCoupon;
+
   const persistToApi = useCallback(
     async (templateKey: string, overrides: Partial<StoredCampaign>) => {
       try {
         const existing = storedRef.current.find((c) => c.template_key === templateKey);
         const template = PREDEFINED_TEMPLATES.find((t) => t.key === templateKey)!;
+
+        // Use coupon-enhanced body when a coupon is selected
+        const emailBody = couponTemplates.includes(templateKey) && selectedCouponRef.current
+          ? getCouponBody(templateKey, selectedCouponRef.current)
+          : replaceVars(template.body);
 
         const isReEnabling =
           overrides.enabled === true &&
@@ -294,7 +358,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                   : (existing.scheduled_time ?? null),
               subject: replaceVars(template.subject),
               heading: replaceVars(template.heading),
-              body: replaceVars(template.body),
+              body: emailBody,
             }),
           });
         } else {
@@ -312,7 +376,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
               scheduled_time: overrides.scheduled_time ?? null,
               subject: replaceVars(template.subject),
               heading: replaceVars(template.heading),
-              body: replaceVars(template.body),
+              body: emailBody,
               status: 'draft',
             }),
           });
@@ -336,6 +400,10 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
             }
             return [campaign, ...filtered];
           });
+          // Update ref immediately so callers awaiting this function see the new campaign
+          storedRef.current = storedRef.current.some((c) => c.template_key === templateKey)
+            ? storedRef.current.map((c) => c.template_key === templateKey ? campaign : c)
+            : [campaign, ...storedRef.current];
         }
 
         setLocalOverrides((prev) => {
@@ -366,6 +434,16 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
   };
 
   const handleToggle = (key: string, currentEnabled: boolean) => {
+    const template = PREDEFINED_TEMPLATES.find((t) => t.key === key);
+    const isManual = template && template.trigger !== 'auto_signup';
+
+    // Enabling a manual campaign → open config popup first, don't enable yet
+    if (!currentEnabled && isManual) {
+      setPendingEnableKey(key);
+      setExpandedKey(key);
+      return;
+    }
+
     const newEnabled = !currentEnabled;
     setLocalOverrides((prev) => ({
       ...prev,
@@ -384,6 +462,14 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     if (debounceTimers.current[templateKey]) {
       clearTimeout(debounceTimers.current[templateKey]);
       delete debounceTimers.current[templateKey];
+    }
+
+    // If this is a pending-enable campaign, enable it first
+    if (pendingEnableKey === templateKey) {
+      await persistToApi(templateKey, { ...localOverrides[templateKey], enabled: true });
+      setLocalOverrides((prev) => ({ ...prev, [templateKey]: { ...prev[templateKey], enabled: true } }));
+      setPendingEnableKey(null);
+    } else {
       await persistToApi(templateKey, localOverrides[templateKey] || {});
     }
 
@@ -410,6 +496,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
       const updatedCampaign = {
         ...existing,
         status: 'sent',
+        enabled: false,
         sent_at: new Date().toISOString(),
         sent_count: data.sent_count,
         failed_count: data.failed_count,
@@ -418,8 +505,16 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
       setStoredCampaigns((prev) =>
         prev.map((c) => c.campaign_id === existing.campaign_id ? updatedCampaign : c),
       );
+      // Turn off the toggle after sending so user must re-enable for next send
+      persistToApi(existing.template_key, { enabled: false });
+      setLocalOverrides((prev) => {
+        const next = { ...prev };
+        delete next[existing.template_key];
+        return next;
+      });
       // Re-fetch to get updated email logs
       fetchCampaigns();
+      setExpandedKey(null);
     } catch (err) {
       showToast('error', err instanceof Error ? err.message : 'Failed to send.');
     } finally {
@@ -427,7 +522,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     }
   };
 
-  const handleSchedule = (templateKey: string, date: string, time: string) => {
+  const handleSchedule = async (templateKey: string, date: string, time: string) => {
     if (!date) {
       showToast('error', 'Please select a date first.');
       return;
@@ -435,6 +530,13 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     if (debounceTimers.current[templateKey]) {
       clearTimeout(debounceTimers.current[templateKey]);
       delete debounceTimers.current[templateKey];
+    }
+
+    // If this is a pending-enable campaign, enable it first
+    if (pendingEnableKey === templateKey) {
+      await persistToApi(templateKey, { ...localOverrides[templateKey], enabled: true });
+      setLocalOverrides((prev) => ({ ...prev, [templateKey]: { ...prev[templateKey], enabled: true } }));
+      setPendingEnableKey(null);
     }
 
     const existing = storedRef.current.find((c) => c.template_key === templateKey);
@@ -459,17 +561,19 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
         scheduled_time: time || null,
       }),
     }).then((res) => res.json()).then((data) => {
-      if (!data.success) showToast('error', data.error || 'Failed to schedule');
-      else showToast('success', newStatus === 'scheduled'
-        ? `Scheduled for ${date}${time ? ` at ${time}` : ''}`
-        : 'Schedule removed');
+      if (!data.success) {
+        showToast('error', data.error || 'Failed to schedule');
+      } else {
+        showToast('success', newStatus === 'scheduled'
+          ? `Scheduled for ${date}${time ? ` at ${time}` : ''}`
+          : 'Schedule removed');
+        if (newStatus === 'scheduled') {
+          setExpandedKey(null);
+          setPendingEnableKey(null);
+        }
+      }
     }).catch(() => showToast('error', 'Failed to save schedule'));
   };
-
-  // ── Email logs sorted by newest first ──
-  const sortedLogs = [...emailLogs].sort((a, b) =>
-    (b.created_at || '').localeCompare(a.created_at || ''),
-  );
 
   // ── Preview modal template ──
   const previewTemplate = previewKey
@@ -621,46 +725,108 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
             </table>
           </div>
 
-          {/* Expanded config row for manual campaigns */}
-          {expandedKey && (() => {
-            const template = PREDEFINED_TEMPLATES.find((t) => t.key === expandedKey);
-            if (!template || template.trigger === 'auto_signup') return null;
-            const stored = getStoredConfig(template.key);
-            const isEnabled = getEffective(template.key, 'enabled', false) as boolean;
-            if (!isEnabled) return null;
+        </div>
+      </div>
 
-            const now = new Date();
-            const defaultDate = now.toISOString().split('T')[0];
-            const defaultTime = now.toTimeString().slice(0, 5);
-            const audience = getEffective(template.key, 'audience', template.default_audience) as string;
-            const scheduledDate = (getEffective(template.key, 'scheduled_date', defaultDate) ?? defaultDate) as string;
-            const scheduledTime = (getEffective(template.key, 'scheduled_time', defaultTime) ?? defaultTime) as string;
-            const isSending = sendingKey === template.key;
-            const isFuture = isScheduledInFuture(scheduledDate, scheduledTime);
-            const isScheduled = stored?.status === 'scheduled';
+      {/* ────────────────────────────────────────────────────────────────── */}
+      {/* Configure Popup                                                    */}
+      {/* ────────────────────────────────────────────────────────────────── */}
+      {expandedKey && (() => {
+        const template = PREDEFINED_TEMPLATES.find((t) => t.key === expandedKey);
+        if (!template || template.trigger === 'auto_signup') return null;
+        const stored = getStoredConfig(template.key);
+        const isPending = pendingEnableKey === expandedKey;
+        const isEnabled = getEffective(template.key, 'enabled', false) as boolean;
+        if (!isEnabled && !isPending) { setExpandedKey(null); return null; }
 
-            return (
-              <div className="border-t border-purple-100 bg-purple-50/30 px-6 py-5">
-                <div className="flex items-center gap-2 mb-4">
+        const closePopup = () => {
+          setPendingEnableKey(null);
+          setExpandedKey(null);
+        };
+
+        const now = new Date();
+        const defaultDate = now.toISOString().split('T')[0];
+        const defaultTime = now.toTimeString().slice(0, 5);
+        const audience = getEffective(template.key, 'audience', template.default_audience) as string;
+        const scheduledDate = (getEffective(template.key, 'scheduled_date', defaultDate) ?? defaultDate) as string;
+        const scheduledTime = (getEffective(template.key, 'scheduled_time', defaultTime) ?? defaultTime) as string;
+        const isSending = sendingKey === template.key;
+        const isFuture = isScheduledInFuture(scheduledDate, scheduledTime);
+        const isScheduled = stored?.status === 'scheduled';
+        const needsCoupon = couponTemplates.includes(template.key) && !selectedCouponId;
+
+        return isMounted ? createPortal(
+          <div className="fixed inset-0 top-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={closePopup}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                <div>
                   <h3 className="text-sm font-semibold text-gray-900">{template.name}</h3>
-                  <span className="text-xs text-gray-400">— Configure &amp; Send</span>
+                  <p className="text-xs text-gray-400 mt-0.5">Configure &amp; Send</p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                  {/* Audience */}
+                <button onClick={closePopup} className="rounded-full p-1.5 hover:bg-gray-100 transition-colors">
+                  <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Fields */}
+              <div className="px-5 py-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Audience</label>
+                  <select
+                    value={audience}
+                    onChange={(e) => updateField(template.key, 'audience', e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                  >
+                    {AUDIENCE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Coupon selector for coupon-based templates */}
+                {couponTemplates.includes(template.key) && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Audience</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Coupon Code</label>
                     <select
-                      value={audience}
-                      onChange={(e) => updateField(template.key, 'audience', e.target.value)}
+                      value={selectedCouponId || ''}
+                      onChange={(e) => setSelectedCouponId(e.target.value || null)}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                     >
-                      {AUDIENCE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <option value="">No coupon (generic offer)</option>
+                      {coupons.map((c) => (
+                        <option key={c.coupon_id} value={c.coupon_id}>
+                          {c.code} — {c.discount_type === 'percentage' ? `${c.value}%` : `$${c.value}`} off
+                          {c.min_spend > 0 ? ` (min $${c.min_spend})` : ''}
+                        </option>
                       ))}
                     </select>
+                    {selectedCoupon && (
+                      <div className="mt-2 rounded-lg bg-purple-50 border border-purple-200 px-3 py-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold text-purple-700">
+                            {selectedCoupon.discount_type === 'percentage' ? `${selectedCoupon.value}% off` : `$${selectedCoupon.value} off`}
+                          </span>
+                          <span className="text-xs font-mono font-semibold bg-purple-600 text-white px-2 py-0.5 rounded">
+                            {selectedCoupon.code}
+                          </span>
+                        </div>
+                        <div className="mt-1 text-[11px] text-gray-500 space-y-0.5">
+                          {selectedCoupon.min_spend > 0 && <p>Min. order: ${selectedCoupon.min_spend}</p>}
+                          {selectedCoupon.end_date && (
+                            <p>Expires: {new Date(selectedCoupon.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {coupons.length === 0 && (
+                      <p className="mt-1 text-[11px] text-gray-400">No coupons found. Create coupons in the Discounts page.</p>
+                    )}
                   </div>
-
-                  {/* Date */}
+                )}
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Send Date</label>
                     <input
@@ -670,8 +836,6 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                       className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                     />
                   </div>
-
-                  {/* Time */}
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Send Time</label>
                     <input
@@ -682,200 +846,93 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                     />
                   </div>
                 </div>
+              </div>
 
-                {/* Action row */}
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-xs text-gray-400">
-                    {stored?.status === 'sent' && stored?.sent_at ? (
-                      <span>
-                        Last sent: {formatDateTime(stored.sent_at)} — {stored.sent_count} delivered
-                        {stored.failed_count ? `, ${stored.failed_count} failed` : ''}
-                      </span>
-                    ) : isScheduled && scheduledDate ? (
-                      <span className="text-purple-500 font-medium">
-                        Scheduled: {scheduledDate}{scheduledTime ? ` at ${scheduledTime}` : ''}
-                      </span>
-                    ) : (
-                      <span>Not yet sent</span>
-                    )}
-                  </div>
-
-                  {confirmSendKey === template.key ? (
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void handleSend(template.key)}
-                        disabled={isSending}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-60"
-                      >
-                        {isSending ? (
-                          <>
-                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                            Sending...
-                          </>
-                        ) : (
-                          'Confirm Send'
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmSendKey(null)}
-                        disabled={isSending}
-                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : isFuture ? (
-                    <button
-                      type="button"
-                      onClick={() => handleSchedule(template.key, scheduledDate, scheduledTime)}
-                      disabled={isSending}
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition disabled:opacity-60 ${
-                        isScheduled
-                          ? 'border border-green-300 bg-green-50 text-green-700'
-                          : 'bg-purple-600 text-white hover:bg-purple-700'
-                      }`}
-                    >
-                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {isScheduled ? 'Scheduled' : 'Schedule'}
-                    </button>
+              {/* Footer */}
+              <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+                <div className="text-xs text-gray-400 min-w-0">
+                  {stored?.status === 'sent' && stored?.sent_at ? (
+                    <span>
+                      Last sent: {formatDateTime(stored.sent_at)} — {stored.sent_count} delivered
+                      {stored.failed_count ? `, ${stored.failed_count} failed` : ''}
+                    </span>
+                  ) : isScheduled && scheduledDate ? (
+                    <span className="text-purple-500 font-medium">
+                      Scheduled: {scheduledDate}{scheduledTime ? ` at ${scheduledTime}` : ''}
+                    </span>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmSendKey(template.key)}
-                      disabled={isSending}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
-                    >
-                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-                      </svg>
-                      Send Now
-                    </button>
+                    <span>Not yet sent</span>
                   )}
                 </div>
+
+                {confirmSendKey === template.key ? (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => void handleSend(template.key)}
+                      disabled={isSending || needsCoupon}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+                    >
+                      {isSending ? (
+                        <>
+                          <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          Sending...
+                        </>
+                      ) : (
+                        'Confirm Send'
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmSendKey(null)}
+                      disabled={isSending}
+                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : isFuture ? (
+                  <button
+                    type="button"
+                    onClick={() => handleSchedule(template.key, scheduledDate, scheduledTime)}
+                    disabled={isSending || needsCoupon}
+                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition disabled:opacity-60 ${
+                      isScheduled
+                        ? 'border border-green-300 bg-green-50 text-green-700'
+                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                    }`}
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {isScheduled ? 'Scheduled' : 'Schedule'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmSendKey(template.key)}
+                    disabled={isSending || needsCoupon}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                    </svg>
+                    Send Now
+                  </button>
+                )}
               </div>
-            );
-          })()}
-        </div>
-      </div>
-
-      {/* ────────────────────────────────────────────────────────────────── */}
-      {/* TABLE 2 — Email Logs                                              */}
-      {/* ────────────────────────────────────────────────────────────────── */}
-      <div>
-        <div className="mb-3">
-          <h2 className="text-base font-semibold text-gray-900">Sent Emails</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Per-recipient log of every email delivered or failed.
-          </p>
-        </div>
-
-        {sortedLogs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 py-14">
-            <svg className="h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-            </svg>
-            <p className="mt-3 text-sm font-medium text-gray-500">No emails sent yet</p>
-            <p className="mt-1 text-xs text-gray-400">Enable a template above and send or schedule it.</p>
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/60">
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Recipient</th>
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden md:table-cell">Subject</th>
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Template</th>
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden sm:table-cell">Trigger</th>
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {sortedLogs.map((log) => {
-                    const templateDef = PREDEFINED_TEMPLATES.find((t) => t.key === log.template_key);
-                    const templateName = templateDef?.name || log.template_key;
-                    const isFailed = log.status === 'failed';
-
-                    const triggerLabels: Record<string, { label: string; cls: string }> = {
-                      manual: { label: 'Manual', cls: 'bg-gray-100 text-gray-600' },
-                      scheduled: { label: 'Scheduled', cls: 'bg-purple-50 text-purple-700' },
-                      auto_signup: { label: 'Sign-up', cls: 'bg-blue-50 text-blue-700' },
-                    };
-                    const trigger = triggerLabels[log.trigger] || triggerLabels.manual;
-
-                    return (
-                      <tr key={log.email_log_id} className="hover:bg-gray-50/50 transition-colors">
-                        {/* Recipient */}
-                        <td className="px-5 py-3.5">
-                          <p className="text-sm text-gray-900 font-medium truncate max-w-[180px]">
-                            {log.recipient_name || log.recipient_email}
-                          </p>
-                          {log.recipient_name && (
-                            <p className="text-[11px] text-gray-400 truncate max-w-[180px]">{log.recipient_email}</p>
-                          )}
-                        </td>
-
-                        {/* Subject */}
-                        <td className="px-5 py-3.5 hidden md:table-cell">
-                          <p className="text-gray-600 text-xs truncate max-w-[200px]">{log.subject}</p>
-                        </td>
-
-                        {/* Template */}
-                        <td className="px-5 py-3.5">
-                          <span className="text-xs text-gray-700 font-medium">{templateName}</span>
-                        </td>
-
-                        {/* Trigger */}
-                        <td className="px-5 py-3.5 hidden sm:table-cell">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${trigger.cls}`}>
-                            {trigger.label}
-                          </span>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-5 py-3.5">
-                          {isFailed ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-700" title={log.error_message || ''}>
-                              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                              Failed
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-0.5 text-[11px] font-semibold text-green-700">
-                              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                              Sent
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Date */}
-                        <td className="px-5 py-3.5 text-gray-500 text-xs whitespace-nowrap">
-                          {formatDateTime(log.created_at)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
             </div>
-          </div>
-        )}
-      </div>
+          </div>,
+          document.body,
+        ) : null;
+      })()}
 
       {/* ────────────────────────────────────────────────────────────────── */}
       {/* Preview Modal                                                      */}
       {/* ────────────────────────────────────────────────────────────────── */}
-      {previewTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setPreviewKey(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+      {previewTemplate && isMounted && createPortal(
+        <div className="fixed inset-0 top-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setPreviewKey(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             {/* Toolbar */}
             <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200 rounded-t-2xl">
               <div className="flex items-center gap-2">
@@ -918,20 +975,33 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
                     <h1 className="text-2xl font-bold text-gray-900 text-center mb-4" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
                       {replaceVars(previewTemplate.heading)}
                     </h1>
+                    <p className="text-[16px] text-gray-700 mb-4" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
+                      Hi {'{{customer_name}}'},
+                    </p>
                     <div
                       className="text-[15px] leading-[1.7] text-gray-700 [&>p]:mb-3"
                       style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
-                      dangerouslySetInnerHTML={{ __html: replaceVars(previewTemplate.body) }}
+                      dangerouslySetInnerHTML={{ __html: couponTemplates.includes(previewTemplate.key)
+                        ? getCouponBody(previewTemplate.key, selectedCoupon || { coupon_id: '', code: 'SAVE20', discount_type: 'percentage', value: 20, min_spend: 0, start_date: '', end_date: null })
+                        : replaceVars(previewTemplate.body) }}
                     />
                   </div>
                   <div className="bg-gray-50 border-t border-gray-200 px-7 py-5">
                     <p className="text-[13px] text-gray-500 text-center">Sent by {restaurantName}</p>
+                    {(restaurantEmail || restaurantPhone || restaurantAddress) && (
+                      <div className="mt-2 text-[12px] text-gray-400 text-center leading-relaxed">
+                        {[restaurantEmail, restaurantPhone, restaurantAddress]
+                          .filter(Boolean)
+                          .join(' | ')}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

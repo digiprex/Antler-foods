@@ -25,7 +25,7 @@ export const dynamic = 'force-dynamic';
  * - contact_email: text, nullable
  * - contact_phone: text, nullable
  * - scheduled_for: timestamp with time zone, nullable
- * - tax_total: numeric, nullable, default: 0
+ * - service_fee: numeric, nullable, default: 0
  * - state_tax: numeric, nullable, default: 0 
  * - tip_total: numeric, nullable, default: 0
   * - discount_total: numeric, nullable, default: 0  
@@ -66,6 +66,41 @@ import { sendOrderDeliveryStatusEmail, sendOrderRefundEmail } from '@/lib/server
 /**
  * GraphQL query to fetch orders for a restaurant
  */
+const GET_ORDERS_BY_CUSTOMER_QUERY = `
+  query GetOrdersByCustomer($restaurant_id: uuid!, $customer_id: uuid!, $limit: Int, $offset: Int) {
+    orders(
+      where: {
+        restaurant_id: {_eq: $restaurant_id}
+        customer_id: {_eq: $customer_id}
+        is_deleted: {_eq: false}
+      }
+      order_by: {created_at: desc}
+      limit: $limit
+      offset: $offset
+    ) {
+      order_id
+      order_number
+      created_at
+      status
+      cart_total
+      fulfillment_type
+      payment_status
+      payment_method
+    }
+    orders_aggregate(
+      where: {
+        restaurant_id: {_eq: $restaurant_id}
+        customer_id: {_eq: $customer_id}
+        is_deleted: {_eq: false}
+      }
+    ) {
+      aggregate {
+        count
+      }
+    }
+  }
+`;
+
 const GET_ORDERS_QUERY = `
   query GetOrders($restaurant_id: uuid!, $limit: Int, $offset: Int, $status_filter: String) {
     orders(
@@ -96,7 +131,7 @@ const GET_ORDERS_QUERY = `
       contact_email
       contact_phone
       scheduled_for
-      tax_total
+      service_fee
       tip_total
         discount_total 
       delivery_fee_total
@@ -298,6 +333,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const restaurantId = searchParams.get('restaurant_id');
+    const customerId = searchParams.get('customer_id');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const status = searchParams.get('status') || '';
@@ -311,6 +347,49 @@ export async function GET(request: NextRequest) {
     }
 
     const offset = (page - 1) * limit;
+
+    // If customer_id is provided, return orders for that customer
+    if (customerId) {
+      const data = await adminGraphqlRequest<any>(GET_ORDERS_BY_CUSTOMER_QUERY, {
+        restaurant_id: restaurantId,
+        customer_id: customerId,
+        limit,
+        offset,
+      });
+      const orders = data.orders || [];
+      const totalCount = data.orders_aggregate?.aggregate?.count || 0;
+
+      // Fetch items for these orders
+      let ordersWithItems = orders;
+      if (orders.length > 0) {
+        const orderIds = orders.map((o: any) => o.order_id);
+        const itemsData = await adminGraphqlRequest<any>(GET_ORDER_ITEMS_QUERY, {
+          order_ids: orderIds,
+        });
+        const orderItems = (itemsData as any).order_items || [];
+        const itemsByOrderId = new Map<string, any[]>();
+        for (const item of orderItems) {
+          const existing = itemsByOrderId.get(item.order_id) || [];
+          existing.push(item);
+          itemsByOrderId.set(item.order_id, existing);
+        }
+        ordersWithItems = orders.map((o: any) => ({
+          ...o,
+          order_items: itemsByOrderId.get(o.order_id) || [],
+        }));
+      }
+
+      return NextResponse.json({
+        orders: ordersWithItems,
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      });
+    }
+
     const statusFilter = status ? `%${status}%` : '%';
 
     // Fetch orders

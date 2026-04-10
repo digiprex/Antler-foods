@@ -79,7 +79,7 @@ const INSERT_ORDER = `
       status
       sub_total
       cart_total
-      tax_total
+      service_fee
       tip_total
       delivery_fee_total
       restaurant_payout_amount
@@ -169,7 +169,7 @@ interface InsertOrderRecord {
   status?: string | null;
   sub_total?: number | string | null;
   cart_total?: number | string | null;
-  tax_total?: number | string | null;
+  service_fee?: number | string | null;
   tip_total?: number | string | null;
   delivery_fee_total?: number | string | null;
   restaurant_payout_amount?: number | string | null;
@@ -636,7 +636,7 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       contact_email: contact.email,
       contact_phone: contact.phone,
       scheduled_for: scheduledFor,
-      tax_total: taxTotal,
+      service_fee: taxTotal,
       state_tax: stateTax,
       tip_total: tipAmount,
       discount_total: discountTotal,

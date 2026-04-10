@@ -513,8 +513,8 @@ export async function sendOrderInvoiceEmail(
   const tip = typeof order.tip_total === 'number' && order.tip_total > 0
     ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;">Tip</td><td style="padding:4px 0;font-size:14px;text-align:right;">${formatCurrency(order.tip_total)}</td></tr>`
     : '';
-  const tax = typeof order.tax_total === 'number' && order.tax_total > 0
-    ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;">Tax</td><td style="padding:4px 0;font-size:14px;text-align:right;">${formatCurrency(order.tax_total)}</td></tr>`
+  const tax = typeof order.service_fee === 'number' && order.service_fee > 0
+    ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;">Service Fee</td><td style="padding:4px 0;font-size:14px;text-align:right;">${formatCurrency(order.service_fee)}</td></tr>`
     : '';
   const total = formatCurrency(order.cart_total);
 
@@ -637,7 +637,7 @@ export async function sendOrderInvoiceEmail(
     couponCode ? `  Coupon: ${couponCode}` : '',
     giftCardCode ? `  Gift Card: ${giftCardCode}` : '',
     typeof order.tip_total === 'number' && order.tip_total > 0 ? `Tip: ${formatCurrency(order.tip_total)}` : '',
-    typeof order.tax_total === 'number' && order.tax_total > 0 ? `Tax: ${formatCurrency(order.tax_total)}` : '',
+    typeof order.service_fee === 'number' && order.service_fee > 0 ? `Service Fee: ${formatCurrency(order.service_fee)}` : '',
     `Total: ${total}`,
     '',
     order.order_note ? `Order Note: ${order.order_note}` : '',
@@ -727,7 +727,7 @@ export async function sendOrderDeliveryTrackingEmail(
           ${data.subtotal != null ? `<tr><td style="padding:3px 0;font-size:14px;">Subtotal</td><td style="padding:3px 0;font-size:14px;text-align:right;">${formatCurrency(data.subtotal)}</td></tr>` : ''}
           ${typeof data.deliveryFee === 'number' && data.deliveryFee > 0 ? `<tr><td style="padding:3px 0;font-size:14px;">Delivery fee</td><td style="padding:3px 0;font-size:14px;text-align:right;">${formatCurrency(data.deliveryFee)}</td></tr>` : ''}
           ${typeof data.discount === 'number' && data.discount > 0 ? `<tr><td style="padding:3px 0;font-size:14px;color:#059669;">Discount</td><td style="padding:3px 0;font-size:14px;text-align:right;color:#059669;">-${formatCurrency(data.discount)}</td></tr>` : ''}
-          ${typeof data.tax === 'number' && data.tax > 0 ? `<tr><td style="padding:3px 0;font-size:14px;">Tax</td><td style="padding:3px 0;font-size:14px;text-align:right;">${formatCurrency(data.tax)}</td></tr>` : ''}
+          ${typeof data.tax === 'number' && data.tax > 0 ? `<tr><td style="padding:3px 0;font-size:14px;">Service Fee</td><td style="padding:3px 0;font-size:14px;text-align:right;">${formatCurrency(data.tax)}</td></tr>` : ''}
           ${typeof data.tip === 'number' && data.tip > 0 ? `<tr><td style="padding:3px 0;font-size:14px;">Tip</td><td style="padding:3px 0;font-size:14px;text-align:right;">${formatCurrency(data.tip)}</td></tr>` : ''}
           ${data.total != null ? `<tr style="border-top:2px solid #0f172a;"><td style="padding:8px 0;font-size:16px;font-weight:700;">Total</td><td style="padding:8px 0;font-size:16px;font-weight:700;text-align:right;">${formatCurrency(data.total)}</td></tr>` : ''}
         </table>
@@ -837,6 +837,7 @@ export interface OrderDeliveredReviewEmailData {
   restaurantName: string;
   customerName?: string | null;
   googleReviewUrl?: string | null;
+  feedbackUrl?: string | null;
 }
 
 export async function sendOrderDeliveredReviewEmail(
@@ -846,7 +847,8 @@ export async function sendOrderDeliveredReviewEmail(
   const transporter = createTransporter();
   const customerLabel = data.customerName?.trim() || 'there';
 
-  const reviewBlock = data.googleReviewUrl
+  const feedbackLink = data.feedbackUrl || data.googleReviewUrl;
+  const reviewBlock = feedbackLink
     ? `
         <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
           We'd love to hear about your experience! Your feedback helps us improve and helps others discover ${data.restaurantName}.
@@ -854,8 +856,8 @@ export async function sendOrderDeliveredReviewEmail(
         <table cellpadding="0" cellspacing="0" style="margin:20px 0;">
           <tr>
             <td>
-              <a href="${data.googleReviewUrl}" style="display:inline-block;border-radius:8px;background:#0f172a;padding:12px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
-                Leave a review
+              <a href="${feedbackLink}" style="display:inline-block;border-radius:8px;background:#0f172a;padding:12px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
+                Give Feedback
               </a>
             </td>
           </tr>
@@ -904,7 +906,7 @@ export async function sendOrderDeliveredReviewEmail(
     `Hi ${customerLabel},`,
     '',
     `Your order ${data.orderNumber} has been delivered. Enjoy your meal!`,
-    data.googleReviewUrl ? `\nWe'd love to hear your feedback:\n${data.googleReviewUrl}` : '',
+    feedbackLink ? `\nWe'd love to hear your feedback:\n${feedbackLink}` : '',
   ].filter(Boolean).join('\n');
 
   await transporter.sendMail({

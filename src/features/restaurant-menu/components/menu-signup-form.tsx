@@ -14,6 +14,7 @@ import {
   resolveCustomerNextPath,
 } from '@/features/restaurant-menu/lib/customer-auth';
 import { MenuAuthInput } from '@/features/restaurant-menu/components/menu-auth-input';
+import { useAnalytics } from '@/lib/analytics';
 
 const PHONE_COUNTRY_CODES = [
   { code: '+1', label: 'US/CA +1' },
@@ -60,6 +61,7 @@ export function MenuSignupForm({
   onRequestLogin,
 }: MenuSignupFormProps) {
   const router = useRouter();
+  const { trackSignup } = useAnalytics();
   const searchParams = useSearchParams() ?? new URLSearchParams();
   const nextPath = resolveCustomerNextPath(searchParams.get('next'));
   const resolvedRestaurantId = resolveCustomerRestaurantId(searchParams, restaurantId);
@@ -145,6 +147,11 @@ export function MenuSignupForm({
       reset();
       setSuccessMessage(`${confirmationText} Redirecting you to sign in...`);
       toast.success('Account created successfully. Please sign in.');
+      trackSignup({
+        method: 'email',
+        user_type: 'customer',
+        restaurant_id: resolvedRestaurantId || undefined,
+      });
 
       redirectTimeoutRef.current = window.setTimeout(() => {
         if (onRequestLogin) {

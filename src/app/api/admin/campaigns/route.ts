@@ -283,6 +283,8 @@ const GET_RESTAURANT_INFO = `
       city
       state
       postal_code
+      custom_domain
+      staging_domain
     }
   }
 `;
@@ -388,16 +390,25 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'restaurant_id required' }, { status: 400 });
     }
 
-    // Fetch active campaigns and email logs
-    const [activeData, logsData] = await Promise.all([
+    // Fetch active campaigns, email logs, and restaurant info
+    const [activeData, logsData, restData] = await Promise.all([
       adminGraphqlRequest<any>(GET_CAMPAIGNS, { restaurant_id: restaurantId }),
       adminGraphqlRequest<any>(GET_EMAIL_LOGS, { restaurant_id: restaurantId }),
+      adminGraphqlRequest<any>(GET_RESTAURANT_INFO, { restaurant_id: restaurantId }),
     ]);
+
+    const rest = restData.restaurants_by_pk || {};
+    const restaurantAddress = [rest.address, rest.city, rest.state, rest.postal_code]
+      .filter(Boolean)
+      .join(', ') || null;
 
     return NextResponse.json({
       success: true,
       campaigns: activeData.campaigns || [],
       email_logs: logsData.email_logs || [],
+      restaurant_email: rest.email || null,
+      restaurant_phone: rest.phone_number || null,
+      restaurant_address: restaurantAddress,
     });
   } catch (err) {
     return NextResponse.json(
@@ -486,6 +497,9 @@ async function handleSendCampaign(body: any) {
   const restaurantAddress = [rest.address, rest.city, rest.state, rest.postal_code]
     .filter(Boolean)
     .join(', ') || null;
+  const restaurantDomain = rest.custom_domain || rest.staging_domain || '';
+  const menuUrl = restaurantDomain ? `https://${restaurantDomain}/menu` : '';
+  const feedbackUrl = restaurantDomain ? `https://${restaurantDomain}/feedback` : '';
 
   // Get audience recipients
   const recipients = await getAudienceRecipients(campaign.restaurant_id, campaign.audience || 'all_customers');
@@ -505,7 +519,7 @@ async function handleSendCampaign(body: any) {
       await sendCampaignEmail(recipient.email, {
         subject: campaign.subject,
         heading: campaign.heading || campaign.subject,
-        body: campaign.body,
+        body: (campaign.body || '').replace(/\{menu_url\}/g, menuUrl).replace(/\{feedback_url\}/g, feedbackUrl),
         customerName: recipient.name,
         restaurantName,
         restaurantLogo,

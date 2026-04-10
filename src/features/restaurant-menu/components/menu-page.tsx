@@ -739,7 +739,7 @@ function MenuPageContent({ data }: MenuPageProps) {
 
   return (
     <div
-      className="min-h-screen overflow-x-hidden bg-white"
+      className="min-h-screen overflow-x-clip bg-white"
       style={{ paddingTop: 'var(--navbar-height, 0px)' }}
     >
       <div className="border-b border-stone-200 bg-white/95 backdrop-blur-xl">
@@ -777,7 +777,7 @@ function MenuPageContent({ data }: MenuPageProps) {
       </div>
 
       <div className="mx-auto flex w-full max-w-[1440px]">
-        <div className="hidden lg:block">
+        <div className="hidden shrink-0 lg:block">
           <SidebarNavigation
             categories={filteredCategories.map((category) => ({
               id: category.id,

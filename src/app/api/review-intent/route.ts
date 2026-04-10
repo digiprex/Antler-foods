@@ -51,10 +51,7 @@ function isUuid(value: string) {
   );
 }
 
-function buildGoogleReviewUrl(gmbLink: string | null, placeId: string | null) {
-  if (placeId) {
-    return `https://search.google.com/local/writereview?placeid=${encodeURIComponent(placeId)}`;
-  }
+function buildGoogleReviewUrl(gmbLink: string | null) {
   if (gmbLink) {
     return gmbLink;
   }
@@ -81,7 +78,7 @@ async function resolveRestaurantTarget(restaurantId: string) {
     restaurantId: row.restaurant_id.trim(),
     gmbLink,
     placeId,
-    googleReviewUrl: buildGoogleReviewUrl(gmbLink, placeId),
+    googleReviewUrl: buildGoogleReviewUrl(gmbLink),
   };
 }
 
@@ -153,9 +150,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (Number.isNaN(rawRating) || rawRating < 1 || rawRating > 4) {
+    if (Number.isNaN(rawRating) || rawRating < 1 || rawRating > 5) {
       return NextResponse.json(
-        { success: false, error: 'rating must be between 1 and 4' },
+        { success: false, error: 'rating must be between 1 and 5' },
         { status: 400 },
       );
     }
@@ -217,10 +214,14 @@ export async function POST(request: NextRequest) {
       throw new Error('Failed to save manual review.');
     }
 
+    // For 4-5 star ratings, also return Google review URL so frontend can redirect
+    const googleReviewUrl = rawRating >= 4 ? target.googleReviewUrl : null;
+
     return NextResponse.json({
       success: true,
       data: {
         review_id: reviewId,
+        google_review_url: googleReviewUrl,
       },
     });
   } catch (error) {

@@ -10,6 +10,7 @@ const GET_CUSTOMER_ORDERS = `
     $restaurant_id: uuid!
     $customer_id: uuid!
     $limit: Int!
+    $offset: Int!
   ) {
     orders(
       where: {
@@ -19,6 +20,7 @@ const GET_CUSTOMER_ORDERS = `
       }
       order_by: [{ placed_at: desc_nulls_last }, { created_at: desc }]
       limit: $limit
+      offset: $offset
     ) {
       order_id
       order_number
@@ -26,7 +28,7 @@ const GET_CUSTOMER_ORDERS = `
       fulfillment_type
       payment_status
       sub_total
-      tax_total
+      service_fee
       tip_total
       discount_total
       cart_total
@@ -43,6 +45,25 @@ const GET_CUSTOMER_ORDERS = `
       cancelled_at
       refunded_at
       refund_amount
+    }
+  }
+`;
+
+const GET_CUSTOMER_ORDERS_COUNT = `
+  query GetCustomerOrdersCount(
+    $restaurant_id: uuid!
+    $customer_id: uuid!
+  ) {
+    orders_aggregate(
+      where: {
+        restaurant_id: { _eq: $restaurant_id }
+        customer_id: { _eq: $customer_id }
+        is_deleted: { _eq: false }
+      }
+    ) {
+      aggregate {
+        count
+      }
     }
   }
 `;
@@ -82,7 +103,7 @@ interface OrderRecord {
   fulfillment_type?: string | null;
   payment_status?: string | null;
   sub_total?: number | string | null;
-  tax_total?: number | string | null;
+  service_fee?: number | string | null;
   tip_total?: number | string | null;
   discount_total?: number | string | null;
   cart_total?: number | string | null;
@@ -149,6 +170,12 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Pagination parameters
+  const limitParam = request.nextUrl.searchParams.get('limit');
+  const offsetParam = request.nextUrl.searchParams.get('offset');
+  const limit = limitParam ? Math.max(1, Math.min(100, parseInt(limitParam, 10))) : 25;
+  const offset = offsetParam ? Math.max(0, parseInt(offsetParam, 10)) : 0;
+
   try {
     const cookieValue = request.cookies.get(getMenuCustomerSessionCookieName())?.value;
     const customer = await readMenuCustomerSession(cookieValue, restaurantId);
@@ -192,12 +219,23 @@ export async function GET(request: NextRequest) {
       // silent
     }
 
+    // Fetch total count for pagination
+    const countData = await adminGraphqlRequest<{
+      orders_aggregate?: { aggregate?: { count?: number } };
+    }>(GET_CUSTOMER_ORDERS_COUNT, {
+      restaurant_id: restaurantId,
+      customer_id: customer.customerId,
+    });
+
+    const totalOrders = countData.orders_aggregate?.aggregate?.count || 0;
+
     const ordersData = await adminGraphqlRequest<GetCustomerOrdersResponse>(
       GET_CUSTOMER_ORDERS,
       {
         restaurant_id: restaurantId,
         customer_id: customer.customerId,
-        limit: 25,
+        limit,
+        offset,
       },
     );
 
@@ -282,7 +320,7 @@ export async function GET(request: NextRequest) {
         fulfillmentType: text(order.fulfillment_type) || 'pickup',
         paymentStatus: text(order.payment_status) || 'pending',
         subtotal: numberValue(order.sub_total),
-        taxTotal: numberValue(order.tax_total),
+        serviceFee: numberValue(order.service_fee),
         tipTotal: numberValue(order.tip_total),
         discountTotal: numberValue(order.discount_total),
         deliveryFee,
@@ -312,6 +350,12 @@ export async function GET(request: NextRequest) {
         name: customer.name,
       },
       orders: payload,
+      pagination: {
+        total: totalOrders,
+        limit,
+        offset,
+        hasMore: offset + payload.length < totalOrders,
+      },
     });
   } catch (error) {
     console.error('[Menu Orders] Order history error:', error);

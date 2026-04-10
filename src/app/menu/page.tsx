@@ -7,6 +7,8 @@ import {
   loadRestaurantMenuMetadata,
   loadRestaurantMenuPageData,
 } from '@/features/restaurant-menu/lib/server/menu-data';
+import { getUmamiWebsiteIdForDomain } from '@/lib/server/umami';
+import UmamiAnalytics from '@/components/umami-analytics';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,10 +59,15 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function MenuPageRoute() {
   try {
-    const data = await loadRestaurantMenuPageData(getRequestDomain());
+    const domain = getRequestDomain();
+    const [data, umamiWebsiteId] = await Promise.all([
+      loadRestaurantMenuPageData(domain),
+      getUmamiWebsiteIdForDomain(domain),
+    ]);
     return (
       <Suspense fallback={<MenuPageFallback />}>
         <RestaurantMenuPage data={data} />
+        <UmamiAnalytics websiteId={umamiWebsiteId} />
       </Suspense>
     );
   } catch (error) {

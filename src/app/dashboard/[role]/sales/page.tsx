@@ -7,7 +7,7 @@ interface SalesSummary {
   totalOrders: number;
   totalRevenue: number;
   subtotal: number;
-  totalTax: number;
+  totalServiceFee: number;
   totalTips: number;
   totalDiscounts: number;
   avgOrderValue: number;
@@ -221,7 +221,7 @@ export default function DashboardSalesPage() {
           {/* Revenue Breakdown */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <MiniStat label="Subtotal" value={formatCurrency(data.summary.subtotal)} />
-            <MiniStat label="Tax Collected" value={formatCurrency(data.summary.totalTax)} />
+            <MiniStat label="Service Fee" value={formatCurrency(data.summary.totalServiceFee)} />
             <MiniStat label="Tips" value={formatCurrency(data.summary.totalTips)} />
             <MiniStat label="Discounts" value={`-${formatCurrency(data.summary.totalDiscounts)}`} />
           </div>

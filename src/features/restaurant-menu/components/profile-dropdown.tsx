@@ -117,7 +117,7 @@ export function ProfileDropdown({
 
           {!profile.isGuest ? (
             <Link
-              href="/orders"
+              href="/menu/order-history"
               onClick={() => setIsOpen(false)}
               className="flex w-full items-center justify-between rounded-[16px] px-3.5 py-2.5 text-sm font-semibold text-stone-700 transition hover:bg-stone-100 hover:text-stone-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
             >

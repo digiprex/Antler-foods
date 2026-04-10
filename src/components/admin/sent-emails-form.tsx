@@ -17,6 +17,8 @@ interface EmailLog {
   status: string;
   error_message: string | null;
   trigger: string;
+  opened_at: string | null;
+  clicked_at: string | null;
   created_at: string;
 }
 
@@ -197,7 +199,6 @@ export default function SentEmailsForm({ restaurantId }: SentEmailsFormProps) {
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/60">
                     <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Template</th>
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden md:table-cell">Subject</th>
                     <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Audience</th>
                     <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Scheduled For</th>
                     <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
@@ -208,9 +209,6 @@ export default function SentEmailsForm({ restaurantId }: SentEmailsFormProps) {
                     <tr key={c.campaign_id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-5 py-3.5">
                         <span className="text-sm font-medium text-gray-900">{TEMPLATE_NAMES[c.template_key] || c.template_key}</span>
-                      </td>
-                      <td className="px-5 py-3.5 hidden md:table-cell">
-                        <p className="text-gray-600 text-xs truncate max-w-[200px]">{c.subject}</p>
                       </td>
                       <td className="px-5 py-3.5">
                         <span className="text-xs text-gray-600">{AUDIENCE_LABELS[c.audience] || c.audience}</span>
@@ -260,10 +258,11 @@ export default function SentEmailsForm({ restaurantId }: SentEmailsFormProps) {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/60">
                   <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Recipient</th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden md:table-cell">Subject</th>
                   <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Template</th>
                   <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden sm:table-cell">Trigger</th>
                   <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
+                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden lg:table-cell">Opened</th>
+                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden lg:table-cell">Clicked</th>
                   <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Date</th>
                 </tr>
               </thead>
@@ -283,11 +282,6 @@ export default function SentEmailsForm({ restaurantId }: SentEmailsFormProps) {
                         {log.recipient_name && (
                           <p className="text-[11px] text-gray-400 truncate max-w-[180px]">{log.recipient_email}</p>
                         )}
-                      </td>
-
-                      {/* Subject */}
-                      <td className="px-5 py-3.5 hidden md:table-cell">
-                        <p className="text-gray-600 text-xs truncate max-w-[200px]">{log.subject}</p>
                       </td>
 
                       {/* Template */}
@@ -318,6 +312,35 @@ export default function SentEmailsForm({ restaurantId }: SentEmailsFormProps) {
                             </svg>
                             Sent
                           </span>
+                        )}
+                      </td>
+
+                      {/* Opened */}
+                      <td className="px-5 py-3.5 hidden lg:table-cell">
+                        {log.opened_at ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700" title={formatDateTime(log.opened_at)}>
+                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.64 0 8.577 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.64 0-8.577-3.007-9.963-7.178z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Yes
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-gray-400">—</span>
+                        )}
+                      </td>
+
+                      {/* Clicked */}
+                      <td className="px-5 py-3.5 hidden lg:table-cell">
+                        {log.clicked_at ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700" title={formatDateTime(log.clicked_at)}>
+                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59" />
+                            </svg>
+                            Yes
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-gray-400">—</span>
                         )}
                       </td>
 

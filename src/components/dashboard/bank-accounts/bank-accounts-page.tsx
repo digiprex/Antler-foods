@@ -427,35 +427,73 @@ export function BankAccountsPage() {
       <OperationsBankAccountsHeader restaurantName={restaurant.name} />
       <NoticeBanner notice={notice} />
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="overflow-hidden rounded-[30px] border border-[#e8e7ee] bg-white shadow-[0_18px_42px_rgba(15,23,42,0.06)]">
-          <div className="border-b border-[#ece9f5] bg-[linear-gradient(180deg,#fbf8ff_0%,#ffffff_100%)] px-6 py-6 sm:px-8 sm:py-8">
-            <div className="space-y-7">
-              <div className="flex flex-wrap items-start justify-between gap-6">
-                <div className="max-w-3xl space-y-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <StatusPill status={currentStatus} />
-                    <span className="inline-flex items-center gap-2 rounded-full border border-[#e7dffc] bg-white px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6f5ca8] shadow-sm">
-                      <StripeSparkIcon />
-                      Powered by Stripe
-                    </span>
-                    {account?.connection_mode ? (
-                      <ConnectionModePill
-                        value={formatConnectionMode(account.connection_mode)}
-                      />
-                    ) : null}
-                  </div>
+      {/* Metrics Grid - Prominent at top */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          label="Payments enabled"
+          value={formatBooleanLabel(account?.charges_enabled)}
+          tone={account?.charges_enabled ? 'success' : 'neutral'}
+          icon={<MetricPaymentsIcon />}
+          helper="Charge readiness from Stripe"
+        />
+        <MetricCard
+          label="Payouts enabled"
+          value={formatBooleanLabel(account?.payouts_enabled)}
+          tone={account?.payouts_enabled ? 'success' : 'neutral'}
+          icon={<MetricPayoutsIcon />}
+          helper="Admin payout readiness signal"
+        />
+        <MetricCard
+          label="Missing requirements"
+          value={String(account?.requirements?.due_count ?? 0)}
+          tone={account?.requirements?.due_count ? 'warning' : 'neutral'}
+          icon={<MetricRequirementsIcon />}
+          helper="Items Stripe still needs now"
+        />
+        <MetricCard
+          label="Pending review"
+          value={String(
+            account?.requirements?.pending_verification_count ?? 0,
+          )}
+          tone={
+            account?.requirements?.pending_verification_count
+              ? 'warning'
+              : 'neutral'
+          }
+          icon={<MetricReviewIcon />}
+          helper="Submitted items under review"
+        />
+      </div>
 
-                  <div className="space-y-3">
-                    <SectionEyebrow>Verification state</SectionEyebrow>
-                    <h1 className="text-[2rem] font-semibold tracking-[-0.03em] text-[#140f23] sm:text-[2.15rem] sm:leading-[1.08]">
-                      {accountState?.status_label || 'Not connected'}
-                    </h1>
-                    <p className="text-[15px] leading-7 text-[#625b73]">
-                      {accountState?.message ||
-                        'Connect Stripe to begin verification and prepare this restaurant for future payouts.'}
-                    </p>
-                  </div>
+      {/* Main Content Grid */}
+      <div className="grid items-start gap-5 xl:grid-cols-2">
+        {/* Left Column - Verification Status & Account Info */}
+        <div className="space-y-5">
+          <section className="overflow-hidden rounded-[30px] border border-[#e8e7ee] bg-white shadow-[0_18px_42px_rgba(15,23,42,0.06)]">
+            <div className="bg-[linear-gradient(180deg,#fbf8ff_0%,#ffffff_100%)] px-6 py-6 sm:px-8 sm:py-8">
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <StatusPill status={currentStatus} />
+                  <span className="inline-flex items-center gap-2 rounded-full border border-[#e7dffc] bg-white px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6f5ca8] shadow-sm">
+                    <StripeSparkIcon />
+                    Powered by Stripe
+                  </span>
+                  {account?.connection_mode ? (
+                    <ConnectionModePill
+                      value={formatConnectionMode(account.connection_mode)}
+                    />
+                  ) : null}
+                </div>
+
+                <div className="space-y-3">
+                  <SectionEyebrow>Verification state</SectionEyebrow>
+                  <h1 className="text-[2rem] font-semibold tracking-[-0.03em] text-[#140f23] sm:text-[2.15rem] sm:leading-[1.08]">
+                    {accountState?.status_label || 'Not connected'}
+                  </h1>
+                  <p className="text-[15px] leading-7 text-[#625b73]">
+                    {accountState?.message ||
+                      'Connect Stripe to begin verification and prepare this restaurant for future payouts.'}
+                  </p>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
@@ -501,62 +539,10 @@ export function BankAccountsPage() {
                   </ActionButton>
                 </div>
               </div>
-
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <MetricCard
-                  label="Payments enabled"
-                  value={formatBooleanLabel(account?.charges_enabled)}
-                  tone={account?.charges_enabled ? 'success' : 'neutral'}
-                  icon={<MetricPaymentsIcon />}
-                  helper="Charge readiness from Stripe"
-                />
-                <MetricCard
-                  label="Payouts enabled"
-                  value={formatBooleanLabel(account?.payouts_enabled)}
-                  tone={account?.payouts_enabled ? 'success' : 'neutral'}
-                  icon={<MetricPayoutsIcon />}
-                  helper="Admin payout readiness signal"
-                />
-                <MetricCard
-                  label="Missing requirements"
-                  value={String(account?.requirements?.due_count ?? 0)}
-                  tone={
-                    account?.requirements?.due_count ? 'warning' : 'neutral'
-                  }
-                  icon={<MetricRequirementsIcon />}
-                  helper="Items Stripe still needs now"
-                />
-                <MetricCard
-                  label="Pending review"
-                  value={String(
-                    account?.requirements?.pending_verification_count ?? 0,
-                  )}
-                  tone={
-                    account?.requirements?.pending_verification_count
-                      ? 'warning'
-                      : 'neutral'
-                  }
-                  icon={<MetricReviewIcon />}
-                  helper="Submitted items under review"
-                />
-              </div>
             </div>
-          </div>
+          </section>
 
-          <div className="border-t border-[#ece9f5] bg-[#fcfbfe] px-6 py-5 sm:px-8">
-            {currentStatus === 'not_connected' ? (
-              <CompactSetupGuide />
-            ) : (
-              <StatusInsightPanel
-                status={currentStatus}
-                connectionMode={account?.connection_mode}
-                blockingIssue={accountState?.blocking_issue}
-              />
-            )}
-          </div>
-        </section>
-
-        <aside className="space-y-6">
+          {/* Account Snapshot */}
           <section className="rounded-[30px] border border-[#e8e7ee] bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.06)] sm:p-7">
             <SectionEyebrow>Account snapshot</SectionEyebrow>
             <h2 className="mt-2 text-[1.45rem] font-semibold tracking-[-0.025em] text-[#140f23] sm:text-[1.55rem]">
@@ -602,7 +588,7 @@ export function BankAccountsPage() {
               />
             </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+            <div className="mt-5 grid gap-3 grid-cols-2">
               <SnapshotMiniCard
                 label="Status"
                 value={accountState?.status_label || 'Not connected'}
@@ -613,9 +599,62 @@ export function BankAccountsPage() {
               />
             </div>
           </section>
-        </aside>
+        </div>
+
+        {/* Right Column - Setup Guide/Insight & Owner Scope */}
+        <div className="space-y-5">
+          {/* Setup Guide or Status Insight */}
+          <section className="rounded-[30px] border border-[#e8e7ee] bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.06)] sm:p-7">
+            {currentStatus === 'not_connected' ? (
+              <CompactSetupGuide />
+            ) : (
+              <StatusInsightPanel
+                status={currentStatus}
+                connectionMode={account?.connection_mode}
+                blockingIssue={accountState?.blocking_issue}
+              />
+            )}
+          </section>
+
+          {/* Owner Scope */}
+          <section className="rounded-[30px] border border-[#e8e7ee] bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.05)] sm:p-7">
+            <SectionEyebrow>Owner scope</SectionEyebrow>
+            <h3 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.02em] text-[#161122] sm:text-[1.45rem]">
+              Setup and verification only
+            </h3>
+            <p className="mt-3 text-sm leading-7 text-[#676075]">
+              Owners can connect Stripe, complete setup, update required
+              details, and refresh the status. Payout operations stay on the
+              separate admin surface.
+            </p>
+
+            <div className="mt-5 space-y-3">
+              <CompactListCard
+                title="Allowed here"
+                items={[
+                  'Connect Stripe',
+                  'Complete Stripe setup',
+                  'Update required details',
+                  'Refresh verification status',
+                ]}
+                tone="purple"
+              />
+              <CompactListCard
+                title="Handled elsewhere"
+                items={[
+                  'Payout operations',
+                  'Schedule changes',
+                  'Withdrawals',
+                  'Admin finance controls',
+                ]}
+                tone="slate"
+              />
+            </div>
+          </section>
+        </div>
       </div>
 
+      {/* Requirements Section - Full width at bottom */}
       {requirementGroups.length > 0 || accountState?.blocking_issue ? (
         <section className="rounded-[34px] border border-[#f6dfc7] bg-[linear-gradient(180deg,#fffdf8_0%,#fff9f1_40%,#ffffff_100%)] p-6 shadow-[0_18px_52px_rgba(180,83,9,0.08)] sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -628,9 +667,9 @@ export function BankAccountsPage() {
                 Requirements to review
               </h2>
               <p className="mt-3 text-sm leading-7 text-[#7c5b2a]">
-                These are Stripe-managed details. Use the Stripe action above to
-                submit updates, then refresh this page to pull the latest status
-                back into Antler.
+                These are Stripe-managed details. Use the Stripe action above
+                to submit updates, then refresh this page to pull the latest
+                status back into Antler.
               </p>
             </div>
             {accountState?.blocking_issue ? (
@@ -640,78 +679,83 @@ export function BankAccountsPage() {
             ) : null}
           </div>
 
-          <div className="mt-6 grid items-start gap-4 xl:grid-cols-2">
-            {requirementGroups.map((group) => (
-              <section
-                key={group.key}
-                className="rounded-[28px] border border-[#f1dcc5] bg-white p-5 shadow-[0_14px_36px_rgba(15,23,42,0.05)]"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#17121f]">
-                    {group.title}
-                  </h3>
-                  <span className="inline-flex min-w-9 items-center justify-center rounded-full border border-[#f2d8b7] bg-[#fffaee] px-2.5 py-1 text-xs font-semibold text-[#99651f]">
-                    {group.items.length}
-                  </span>
-                </div>
-                <div className="mt-4 space-y-3">
-                  {group.items.map((item) => (
-                    <div
-                      key={`${group.key}-${item.raw}-${item.state}`}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-[#f3e1ca] bg-[linear-gradient(180deg,#fffdfa_0%,#fffaf4_100%)] px-4 py-3.5"
+          <div className="mt-6 space-y-4">
+            {/* Small groups first - in a 2-column grid */}
+            {requirementGroups.filter((g) => g.items.length <= 5).length > 0 ? (
+              <div className="grid items-start gap-4 lg:grid-cols-2">
+                {requirementGroups
+                  .filter((g) => g.items.length <= 5)
+                  .map((group) => (
+                    <section
+                      key={group.key}
+                      className="rounded-[28px] border border-[#f1dcc5] bg-white p-5 shadow-[0_14px_36px_rgba(15,23,42,0.05)]"
                     >
-                      <div className="flex items-start gap-3">
-                        <span className="mt-1 h-2.5 w-2.5 rounded-full bg-[#d7a14d]" />
-                        <span className="text-sm font-medium leading-6 text-[#3f4451]">
-                          {item.label}
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#17121f]">
+                          {group.title}
+                        </h3>
+                        <span className="inline-flex min-w-9 items-center justify-center rounded-full border border-[#f2d8b7] bg-[#fffaee] px-2.5 py-1 text-xs font-semibold text-[#99651f]">
+                          {group.items.length}
                         </span>
                       </div>
-                      <RequirementStateBadge state={item.state} />
-                    </div>
+                      <div className="mt-4 space-y-3">
+                        {group.items.map((item) => (
+                          <div
+                            key={`${group.key}-${item.raw}-${item.state}`}
+                            className="flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-[#f3e1ca] bg-[linear-gradient(180deg,#fffdfa_0%,#fffaf4_100%)] px-4 py-3.5"
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className="mt-1 h-2.5 w-2.5 rounded-full bg-[#d7a14d]" />
+                              <span className="text-sm font-medium leading-6 text-[#3f4451]">
+                                {item.label}
+                              </span>
+                            </div>
+                            <RequirementStateBadge state={item.state} />
+                          </div>
+                        ))}
+                      </div>
+                    </section>
                   ))}
-                </div>
-              </section>
-            ))}
+              </div>
+            ) : null}
+
+            {/* Large groups - each takes full width */}
+            {requirementGroups
+              .filter((g) => g.items.length > 5)
+              .map((group) => (
+                <section
+                  key={group.key}
+                  className="rounded-[28px] border border-[#f1dcc5] bg-white p-5 shadow-[0_14px_36px_rgba(15,23,42,0.05)]"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#17121f]">
+                      {group.title}
+                    </h3>
+                    <span className="inline-flex min-w-9 items-center justify-center rounded-full border border-[#f2d8b7] bg-[#fffaee] px-2.5 py-1 text-xs font-semibold text-[#99651f]">
+                      {group.items.length}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {group.items.map((item) => (
+                      <div
+                        key={`${group.key}-${item.raw}-${item.state}`}
+                        className="flex flex-col gap-2 rounded-[22px] border border-[#f3e1ca] bg-[linear-gradient(180deg,#fffdfa_0%,#fffaf4_100%)] px-4 py-3.5"
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#d7a14d]" />
+                          <span className="text-sm font-medium leading-6 text-[#3f4451]">
+                            {item.label}
+                          </span>
+                        </div>
+                        <RequirementStateBadge state={item.state} />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))}
           </div>
         </section>
       ) : null}
-
-      <section className="rounded-[30px] border border-[#e8e7ee] bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.05)] sm:p-7">
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-          <div>
-            <SectionEyebrow>Owner scope</SectionEyebrow>
-            <h3 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.02em] text-[#161122] sm:text-[1.45rem]">
-              Setup and verification only
-            </h3>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-[#676075]">
-              Owners can connect Stripe, complete setup, update required details, and refresh the status. Payout operations stay on the separate admin surface.
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <CompactListCard
-              title="Allowed here"
-              items={[
-                'Connect Stripe',
-                'Complete Stripe setup',
-                'Update required details',
-                'Refresh verification status',
-              ]}
-              tone="purple"
-            />
-            <CompactListCard
-              title="Handled elsewhere"
-              items={[
-                'Payout operations',
-                'Schedule changes',
-                'Withdrawals',
-                'Admin finance controls',
-              ]}
-              tone="slate"
-            />
-          </div>
-        </div>
-      </section>
     </section>
   );
 }
@@ -980,11 +1024,11 @@ function OperationsBankAccountsHeader({
               </h1>
             </div>
           </div>
-          <p className="max-w-3xl text-base leading-8 text-[#625b73]">
+          {/* <p className="max-w-3xl text-base leading-8 text-[#625b73]">
             A dedicated place to connect Stripe, complete verification, and
             review connection readiness without exposing payout controls on the
             owner-facing surface.
-          </p>
+          </p> */}
         </div>
         <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#e6ddfb] bg-white/90 px-4 py-2 text-sm font-medium text-[#4b3f79] shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
           <RestaurantChipIcon />

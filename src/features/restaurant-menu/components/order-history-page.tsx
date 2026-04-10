@@ -49,6 +49,12 @@ interface OrderHistoryResponse {
   authenticated?: boolean;
   error?: string;
   orders?: OrderHistoryOrder[];
+  pagination?: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
 }
 
 interface OrderHistoryPageProps {
@@ -178,31 +184,31 @@ function OrderDetailModal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4" onClick={onClose}>
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
       {/* Modal */}
       <div
-        className="relative z-10 flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.15)]"
+        className="relative z-10 flex max-h-[95vh] w-full max-w-[560px] flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.15)] sm:max-h-[90vh] sm:rounded-[20px]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-lg font-semibold text-slate-950">Order #{order.orderNumber || 'N/A'}</h2>
-              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${sc.light} ${sc.text}`}>
+        <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3.5 sm:items-center sm:px-6 sm:py-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2.5">
+              <h2 className="truncate text-base font-semibold text-slate-950 sm:text-lg">Order #{order.orderNumber || 'N/A'}</h2>
+              <span className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide sm:text-[11px] ${sc.light} ${sc.text}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${sc.dot}`} />
                 {formatLabel(order.status)}
               </span>
             </div>
-            <p className="mt-0.5 text-xs text-slate-500">{formatDate(orderedAt)}</p>
+            <p className="mt-1 text-[11px] text-slate-500 sm:mt-0.5 sm:text-xs">{formatDate(orderedAt)}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -211,9 +217,9 @@ function OrderDetailModal({
         </div>
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {/* Info grid */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <div className="rounded-[14px] border border-slate-100 bg-slate-50/60 p-3">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Fulfillment</p>
               <p className="mt-1 text-sm font-medium text-slate-900">{formatLabel(order.fulfillmentType || 'pickup')}</p>
@@ -506,27 +512,29 @@ function OrderDetailModal({
         </div>
 
         {/* Footer actions */}
-        <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-          <div className="flex items-center gap-2.5">
+        <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2.5">
             <button
               type="button"
               onClick={() => onDownloadInvoice(order)}
-              className="inline-flex items-center gap-2 rounded-[12px] bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              className="inline-flex items-center justify-center gap-2 rounded-[12px] bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 12-4-4m4 4 4-4M4 20h16" />
               </svg>
-              Download Invoice
+              <span className="hidden sm:inline">Download Invoice</span>
+              <span className="sm:hidden">Invoice</span>
             </button>
             {order.orderNumber ? (
               <Link
                 href={`/menu/checkout/success?orderNumber=${encodeURIComponent(order.orderNumber)}`}
-                className="inline-flex items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300"
+                className="inline-flex items-center justify-center gap-2 rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300"
               >
                 <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                View Receipt
+                <span className="hidden sm:inline">View Receipt</span>
+                <span className="sm:hidden">Receipt</span>
               </Link>
             ) : null}
           </div>
@@ -535,7 +543,7 @@ function OrderDetailModal({
               type="button"
               disabled={isCancelling}
               onClick={() => onCancelOrder(order)}
-              className="inline-flex items-center gap-2 rounded-[12px] border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center gap-2 rounded-[12px] border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCancelling ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-300 border-t-red-600" />
@@ -598,6 +606,15 @@ export default function OrderHistoryPage({
   const [sortDirection, setSortDirection] = useState<'newest' | 'oldest'>('newest');
   const [cancelConfirmOrder, setCancelConfirmOrder] = useState<OrderHistoryOrder | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState<{
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  } | null>(null);
+
+  const ORDERS_PER_PAGE = 10;
 
   const handleLogout = async () => {
     await logout();
@@ -650,8 +667,9 @@ export default function OrderHistoryPage({
       setIsLoading(true);
       setError(null);
       try {
+        const offset = (currentPage - 1) * ORDERS_PER_PAGE;
         const response = await fetch(
-          `/api/menu-orders/history?restaurantId=${encodeURIComponent(restaurantId)}`,
+          `/api/menu-orders/history?restaurantId=${encodeURIComponent(restaurantId)}&limit=${ORDERS_PER_PAGE}&offset=${offset}`,
           { method: 'GET', credentials: 'same-origin', cache: 'no-store', signal: controller.signal },
         );
         const payload = (await response.json().catch(() => null)) as OrderHistoryResponse | null;
@@ -660,23 +678,26 @@ export default function OrderHistoryPage({
           setIsAuthenticated(payload?.authenticated === true);
           setIsGuestSession(response.status === 403);
           setError(payload?.error || 'Unable to load your order history.');
+          setPagination(null);
           return;
         }
         setIsAuthenticated(Boolean(payload?.authenticated));
         setIsGuestSession(false);
         setOrders(Array.isArray(payload?.orders) ? payload.orders : []);
+        setPagination(payload?.pagination || null);
       } catch (requestError) {
         if (controller.signal.aborted) return;
         console.error('[Menu Orders] Failed to load order history:', requestError);
         setError('Unable to load your order history right now.');
         setOrders([]);
+        setPagination(null);
       } finally {
         if (!controller.signal.aborted) setIsLoading(false);
       }
     };
     void loadOrders();
     return () => controller.abort();
-  }, [hasCustomerSession, isAuthLoading, restaurantId]);
+  }, [hasCustomerSession, isAuthLoading, restaurantId, currentPage]);
 
   const summary = useMemo(() => {
     const totalOrders = orders.length;
@@ -810,41 +831,41 @@ export default function OrderHistoryPage({
         </div>
 
         {/* Header card */}
-        <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-6 py-6 shadow-[0_14px_40px_rgba(15,23,42,0.08)] sm:px-8 sm:py-8 lg:px-10">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)] sm:px-8 sm:py-8 lg:px-10">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.24em] text-slate-400 sm:text-[10px]">
                 {restaurantName}
               </p>
-              <h1 className="mt-1 text-[1.9rem] font-semibold tracking-tight text-slate-950 sm:text-[2.35rem]">
+              <h1 className="mt-0.5 text-xl font-bold tracking-tight text-slate-950 sm:mt-1 sm:text-[1.9rem] lg:text-[2.35rem]">
                 Order History
               </h1>
               {customerProfile?.name ? (
-                <p className="mt-0.5 text-sm text-slate-500">Welcome back, {customerProfile.name.split(' ')[0]}</p>
+                <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">Welcome back, {customerProfile.name.split(' ')[0]}</p>
               ) : null}
             </div>
 
             {/* Stats */}
             {!isLoading && !error && orders.length > 0 ? (
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="rounded-[14px] border border-slate-100 bg-white px-4 py-3 text-center shadow-sm">
-                  <p className="text-xl font-bold text-slate-950">{summary.totalOrders}</p>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Orders</p>
+              <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-3 lg:gap-4">
+                <div className="rounded-[14px] border border-slate-100 bg-white px-2 py-3 text-center shadow-sm sm:px-4">
+                  <p className="text-lg font-bold text-slate-950 sm:text-xl">{summary.totalOrders}</p>
+                  <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 sm:text-[10px]">Orders</p>
                 </div>
-                <div className="rounded-[14px] border border-slate-100 bg-white px-4 py-3 text-center shadow-sm">
-                  <p className="text-xl font-bold text-slate-950">{formatPrice(summary.totalSpent)}</p>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Total Spent</p>
+                <div className="rounded-[14px] border border-slate-100 bg-white px-2 py-3 text-center shadow-sm sm:px-4">
+                  <p className="text-lg font-bold text-slate-950 sm:text-xl">{formatPrice(summary.totalSpent)}</p>
+                  <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 sm:text-[10px]">Total Spent</p>
                 </div>
                 {summary.activeCount > 0 ? (
-                  <div className="rounded-[14px] border border-blue-100 bg-blue-50 px-4 py-3 text-center shadow-sm">
+                  <div className="rounded-[14px] border border-blue-100 bg-blue-50 px-2 py-3 text-center shadow-sm sm:px-4">
                     <div className="flex items-center justify-center gap-1.5">
                       <span className="relative flex h-2 w-2">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
                         <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
                       </span>
-                      <p className="text-xl font-bold text-blue-700">{summary.activeCount}</p>
+                      <p className="text-lg font-bold text-blue-700 sm:text-xl">{summary.activeCount}</p>
                     </div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-500">Active</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-wider text-blue-500 sm:text-[10px]">Active</p>
                   </div>
                 ) : null}
               </div>
@@ -854,42 +875,44 @@ export default function OrderHistoryPage({
 
         {/* Toolbar */}
         {!isLoading && !error && orders.length > 0 ? (
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-5 flex flex-col gap-3">
             {/* Filter tabs */}
-            <div className="flex gap-1 rounded-[14px] border border-slate-200 bg-slate-100 p-1">
-              {(
-                [
-                  ['all', 'All'],
-                  ['active', 'Active'],
-                  ['completed', 'Delivered'],
-                  ['cancelled', 'Cancelled'],
-                ] as Array<[OrderFilter, string]>
-              ).map(([filter, label]) => (
-                <button
-                  key={filter}
-                  type="button"
-                  onClick={() => setActiveFilter(filter)}
-                  className={`flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-sm font-semibold transition ${
-                    activeFilter === filter
-                      ? 'bg-white text-slate-950 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  {label}
-                  {filterCounts[filter] > 0 ? (
-                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none ${
-                      activeFilter === filter ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-500'
-                    }`}>
-                      {filterCounts[filter]}
-                    </span>
-                  ) : null}
-                </button>
-              ))}
+            <div className="overflow-x-auto rounded-[14px] border border-slate-200 bg-slate-100 p-1">
+              <div className="flex min-w-max gap-1">
+                {(
+                  [
+                    ['all', 'All'],
+                    ['active', 'Active'],
+                    ['completed', 'Delivered'],
+                    ['cancelled', 'Cancelled'],
+                  ] as Array<[OrderFilter, string]>
+                ).map(([filter, label]) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => setActiveFilter(filter)}
+                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-[10px] px-3 py-2 text-xs font-semibold transition sm:px-3.5 sm:text-sm ${
+                      activeFilter === filter
+                        ? 'bg-white text-slate-950 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    {label}
+                    {filterCounts[filter] > 0 ? (
+                      <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none ${
+                        activeFilter === filter ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-500'
+                      }`}>
+                        {filterCounts[filter]}
+                      </span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Search + sort */}
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+              <div className="relative flex-1 sm:flex-initial">
                 <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -903,12 +926,13 @@ export default function OrderHistoryPage({
               <button
                 type="button"
                 onClick={() => setSortDirection((c) => (c === 'newest' ? 'oldest' : 'newest'))}
-                className="flex h-10 items-center gap-1.5 rounded-[12px] border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+                className="flex h-10 items-center justify-center gap-1.5 rounded-[12px] border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 sm:w-auto"
               >
                 <svg className={`h-4 w-4 transition ${sortDirection === 'oldest' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
                 </svg>
-                {sortDirection === 'newest' ? 'Newest' : 'Oldest'}
+                <span className="hidden sm:inline">{sortDirection === 'newest' ? 'Newest' : 'Oldest'}</span>
+                <span className="sm:hidden">{sortDirection === 'newest' ? 'Newest First' : 'Oldest First'}</span>
               </button>
             </div>
           </div>
@@ -1055,6 +1079,118 @@ export default function OrderHistoryPage({
               </div>
             </div>
           )}
+
+          {/* Pagination */}
+          {!isLoading && !error && orders.length > 0 && pagination && pagination.total > ORDERS_PER_PAGE ? (
+            <div className="mt-6 flex flex-col gap-4 rounded-[20px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div className="flex items-center justify-center gap-2 text-xs text-slate-600 sm:justify-start sm:text-sm">
+                <span className="font-medium text-slate-900">
+                  {pagination.offset + 1}-{Math.min(pagination.offset + orders.length, pagination.total)}
+                </span>
+                <span>of</span>
+                <span className="font-medium text-slate-900">{pagination.total}</span>
+                <span className="hidden sm:inline">orders</span>
+              </div>
+
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => {
+                    setCurrentPage((p) => Math.max(1, p - 1));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-slate-200"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                {/* Page numbers */}
+                <div className="flex items-center gap-1">
+                  {(() => {
+                    const totalPages = Math.ceil(pagination.total / ORDERS_PER_PAGE);
+                    const pages: (number | string)[] = [];
+
+                    if (totalPages <= 7) {
+                      // Show all pages if 7 or fewer
+                      for (let i = 1; i <= totalPages; i++) {
+                        pages.push(i);
+                      }
+                    } else {
+                      // Always show first page
+                      pages.push(1);
+
+                      if (currentPage > 3) {
+                        pages.push('...');
+                      }
+
+                      // Show current page and neighbors
+                      const start = Math.max(2, currentPage - 1);
+                      const end = Math.min(totalPages - 1, currentPage + 1);
+
+                      for (let i = start; i <= end; i++) {
+                        pages.push(i);
+                      }
+
+                      if (currentPage < totalPages - 2) {
+                        pages.push('...');
+                      }
+
+                      // Always show last page
+                      pages.push(totalPages);
+                    }
+
+                    return pages.map((page, idx) => {
+                      if (page === '...') {
+                        return (
+                          <span key={`ellipsis-${idx}`} className="flex h-9 w-9 items-center justify-center text-slate-400">
+                            •••
+                          </span>
+                        );
+                      }
+
+                      const pageNum = page as number;
+                      const isActive = pageNum === currentPage;
+
+                      return (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => {
+                            setCurrentPage(pageNum);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className={`flex h-9 min-w-[36px] items-center justify-center rounded-[10px] px-3 text-sm font-semibold transition ${
+                            isActive
+                              ? 'bg-slate-900 text-white shadow-sm'
+                              : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!pagination.hasMore}
+                  onClick={() => {
+                    setCurrentPage((p) => p + 1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-slate-200"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -1073,10 +1209,10 @@ export default function OrderHistoryPage({
 
       {/* Cancel confirmation dialog */}
       {cancelConfirmOrder ? (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" onClick={() => !isCancelling && setCancelConfirmOrder(null)}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-3 sm:p-4" onClick={() => !isCancelling && setCancelConfirmOrder(null)}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <div
-            className="relative z-10 w-full max-w-sm rounded-[20px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.15)]"
+            className="relative z-10 w-full max-w-sm rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.15)] sm:rounded-[20px] sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
@@ -1084,18 +1220,18 @@ export default function OrderHistoryPage({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
               </svg>
             </div>
-            <h3 className="mt-4 text-lg font-semibold text-slate-900">Cancel Order</h3>
-            <p className="mt-2 text-sm text-slate-600">
+            <h3 className="mt-4 text-base font-semibold text-slate-900 sm:text-lg">Cancel Order</h3>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
               Are you sure you want to cancel order{' '}
               <span className="font-semibold text-slate-900">#{cancelConfirmOrder.orderNumber}</span>?
               This action cannot be undone.
             </p>
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:gap-3">
               <button
                 type="button"
                 disabled={isCancelling}
                 onClick={() => setCancelConfirmOrder(null)}
-                className="flex-1 rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="order-2 flex-1 rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed sm:order-1"
               >
                 Go Back
               </button>
@@ -1103,7 +1239,7 @@ export default function OrderHistoryPage({
                 type="button"
                 disabled={isCancelling}
                 onClick={handleConfirmCancel}
-                className="flex-1 rounded-[12px] bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="order-1 flex-1 rounded-[12px] bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed sm:order-2"
               >
                 {isCancelling ? (
                   <span className="flex items-center justify-center gap-2">

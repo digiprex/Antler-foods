@@ -46,6 +46,9 @@ export default function CustomerProfilePage({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Address state
   interface SavedAddress {
@@ -470,21 +473,23 @@ export default function CustomerProfilePage({
         </div>
 
         {/* Header */}
-        <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-6 py-6 shadow-[0_14px_40px_rgba(15,23,42,0.08)] sm:px-8 sm:py-8 lg:px-10">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-lg font-bold text-slate-50">
-              {customerProfile?.initials || '??'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                {restaurantName}
-              </p>
-              <h1 className="mt-1 truncate text-[1.9rem] font-semibold tracking-tight text-slate-950 sm:text-[2.35rem]">
-                {customerProfile?.name || 'Your Profile'}
-              </h1>
-              <p className="mt-0.5 truncate text-sm text-slate-500">
-                {customerProfile?.email}
-              </p>
+        <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)] sm:px-8 sm:py-8 lg:px-10">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-800 to-slate-950 text-base font-bold text-white shadow-lg sm:h-16 sm:w-16 sm:text-lg">
+                {customerProfile?.initials || '??'}
+              </div>
+              <div className="min-w-0 flex-1 sm:flex-initial">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.24em] text-slate-400 sm:text-[10px]">
+                  {restaurantName}
+                </p>
+                <h1 className="mt-0.5 truncate text-xl font-bold tracking-tight text-slate-950 sm:mt-1 sm:text-[1.9rem] lg:text-[2.35rem]">
+                  {customerProfile?.name || 'Your Profile'}
+                </h1>
+                <p className="mt-0.5 truncate text-xs text-slate-500 sm:text-sm">
+                  {customerProfile?.email}
+                </p>
+              </div>
             </div>
           </div>
           {isGuest ? (
@@ -512,40 +517,58 @@ export default function CustomerProfilePage({
 
         {/* Tabs */}
         {!isGuest ? (
-          <div className="mt-5 flex gap-1 rounded-[16px] border border-slate-200 bg-slate-100 p-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab('profile')}
-              className={`flex-1 rounded-[12px] px-4 py-2.5 text-sm font-semibold transition ${
-                activeTab === 'profile'
-                  ? 'bg-white text-slate-950 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Profile
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('addresses')}
-              className={`flex-1 rounded-[12px] px-4 py-2.5 text-sm font-semibold transition ${
-                activeTab === 'addresses'
-                  ? 'bg-white text-slate-950 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Addresses
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('password')}
-              className={`flex-1 rounded-[12px] px-4 py-2.5 text-sm font-semibold transition ${
-                activeTab === 'password'
-                  ? 'bg-white text-slate-950 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Password
-            </button>
+          <div className="mt-5 overflow-x-auto rounded-[16px] border border-slate-200 bg-slate-100 p-1">
+            <div className="flex min-w-max gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('profile')}
+                className={`flex-1 whitespace-nowrap rounded-[12px] px-5 py-2.5 text-sm font-semibold transition sm:px-6 ${
+                  activeTab === 'profile'
+                    ? 'bg-white text-slate-950 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Profile
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('addresses')}
+                className={`flex-1 whitespace-nowrap rounded-[12px] px-5 py-2.5 text-sm font-semibold transition sm:px-6 ${
+                  activeTab === 'addresses'
+                    ? 'bg-white text-slate-950 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                  </svg>
+                  Addresses
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('password')}
+                className={`flex-1 whitespace-nowrap rounded-[12px] px-5 py-2.5 text-sm font-semibold transition sm:px-6 ${
+                  activeTab === 'password'
+                    ? 'bg-white text-slate-950 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                  Password
+                </span>
+              </button>
+            </div>
           </div>
         ) : null}
 
@@ -568,15 +591,15 @@ export default function CustomerProfilePage({
             </div>
           ) : activeTab === 'addresses' ? (
             <div>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-base font-semibold text-slate-950">Saved addresses</h2>
-                  <p className="mt-1 text-sm text-slate-500">Manage your delivery addresses.</p>
+                  <h2 className="text-base font-semibold text-slate-950 sm:text-lg">Saved addresses</h2>
+                  <p className="mt-1 text-xs text-slate-500 sm:text-sm">Manage your delivery addresses.</p>
                 </div>
                 <button
                   type="button"
                   onClick={openAddModal}
-                  className="inline-flex items-center gap-1.5 rounded-[12px] bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-[12px] bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-slate-800 sm:px-4 sm:py-2"
                 >
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -810,11 +833,11 @@ export default function CustomerProfilePage({
                   {addresses.map((addr) => (
                     <div
                       key={addr.id}
-                      className={`rounded-[16px] border bg-white px-5 py-4 transition hover:border-slate-300 ${
+                      className={`rounded-[16px] border bg-white px-4 py-4 transition hover:border-slate-300 sm:px-5 ${
                         addr.is_default ? 'border-slate-900/20 ring-1 ring-slate-900/10' : 'border-slate-200'
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-1.5">
                             {addr.saved_as ? (
@@ -828,18 +851,18 @@ export default function CustomerProfilePage({
                               </span>
                             ) : null}
                           </div>
-                          <p className={`text-sm font-semibold text-slate-950 ${addr.saved_as || addr.is_default ? 'mt-1.5' : ''}`}>{addr.address}</p>
+                          <p className={`text-sm font-semibold leading-relaxed text-slate-950 ${addr.saved_as || addr.is_default ? 'mt-2' : ''}`}>{addr.address}</p>
                           {(addr.house_no || addr.nearby_landmark) ? (
-                            <p className="mt-0.5 text-xs text-slate-500">
-                              {[addr.house_no, addr.nearby_landmark].filter(Boolean).join(' - ')}
+                            <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                              {[addr.house_no, addr.nearby_landmark].filter(Boolean).join(' • ')}
                             </p>
                           ) : null}
                         </div>
-                        <div className="flex shrink-0 items-center gap-1">
+                        <div className="flex shrink-0 items-center gap-1 sm:gap-1">
                           <button
                             type="button"
                             onClick={() => openEditModal(addr)}
-                            className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                             title="Edit address"
                           >
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -850,7 +873,7 @@ export default function CustomerProfilePage({
                             type="button"
                             onClick={() => handleDeleteAddress(addr.id)}
                             disabled={deletingAddressId === addr.id}
-                            className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                             title="Delete address"
                           >
                             {deletingAddressId === addr.id ? (
@@ -869,7 +892,7 @@ export default function CustomerProfilePage({
 
                       {/* Default toggle */}
                       <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                        <span className="text-xs font-medium text-slate-500">Default address</span>
+                        <span className="text-xs font-medium text-slate-500 sm:text-sm">Default address</span>
                         <button
                           type="button"
                           onClick={() => handleSetDefault(addr.id)}
@@ -899,9 +922,10 @@ export default function CustomerProfilePage({
             </div>
           ) : activeTab === 'profile' ? (
             <form onSubmit={handleSave}>
-              <h2 className="text-base font-semibold text-slate-950">Personal information</h2>
+              <h2 className="text-base font-semibold text-slate-950 sm:text-lg">Personal information</h2>
+              <p className="mt-1 text-xs text-slate-500 sm:text-sm">Update your personal details.</p>
 
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <div>
                   <label
                     htmlFor="profile-first-name"
@@ -994,8 +1018,11 @@ export default function CustomerProfilePage({
               </div>
             </form>
           ) : (
-            <form onSubmit={handleChangePassword} className="max-w-md space-y-4">
-              <h2 className="text-base font-semibold text-slate-950">Change password</h2>
+            <form onSubmit={handleChangePassword} className="space-y-4 sm:max-w-md">
+              <div>
+                <h2 className="text-base font-semibold text-slate-950 sm:text-lg">Change password</h2>
+                <p className="mt-1 text-xs text-slate-500 sm:text-sm">Update your account password.</p>
+              </div>
               <div>
                 <label
                   htmlFor="profile-current-password"
@@ -1003,15 +1030,34 @@ export default function CustomerProfilePage({
                 >
                   Current password
                 </label>
-                <input
-                  id="profile-current-password"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => { setCurrentPassword(e.target.value); setPasswordMessage(null); }}
-                  className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
-                  placeholder="Enter current password"
-                  autoComplete="current-password"
-                />
+                <div className="relative">
+                  <input
+                    id="profile-current-password"
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => { setCurrentPassword(e.target.value); setPasswordMessage(null); }}
+                    className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 pr-11 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
+                    placeholder="Enter current password"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 focus:outline-none"
+                    tabIndex={-1}
+                  >
+                    {showCurrentPassword ? (
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
               <div>
                 <label
@@ -1020,15 +1066,34 @@ export default function CustomerProfilePage({
                 >
                   New password
                 </label>
-                <input
-                  id="profile-new-password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => { setNewPassword(e.target.value); setPasswordMessage(null); }}
-                  className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
-                  placeholder="At least 8 characters"
-                  autoComplete="new-password"
-                />
+                <div className="relative">
+                  <input
+                    id="profile-new-password"
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => { setNewPassword(e.target.value); setPasswordMessage(null); }}
+                    className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 pr-11 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
+                    placeholder="At least 8 characters"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 focus:outline-none"
+                    tabIndex={-1}
+                  >
+                    {showNewPassword ? (
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
               <div>
                 <label
@@ -1037,15 +1102,34 @@ export default function CustomerProfilePage({
                 >
                   Confirm new password
                 </label>
-                <input
-                  id="profile-confirm-password"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => { setConfirmPassword(e.target.value); setPasswordMessage(null); }}
-                  className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
-                  placeholder="Repeat new password"
-                  autoComplete="new-password"
-                />
+                <div className="relative">
+                  <input
+                    id="profile-confirm-password"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => { setConfirmPassword(e.target.value); setPasswordMessage(null); }}
+                    className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 pr-11 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
+                    placeholder="Repeat new password"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 focus:outline-none"
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? (
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {passwordMessage ? (

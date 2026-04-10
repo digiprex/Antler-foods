@@ -72,6 +72,7 @@ export function PayoutsPage() {
   const [data, setData] = useState<PayoutDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(restaurant?.id));
   const [isRunning, setIsRunning] = useState(false);
+  const [downloadingBatchId, setDownloadingBatchId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<SaveNotice | null>(null);
   const [batchSearch, setBatchSearch] = useState('');
@@ -195,6 +196,54 @@ export function PayoutsPage() {
     }
   }, [fetchWithAuth, loadPayouts, restaurant?.id]);
 
+  const downloadBatchStatement = useCallback(
+    async (batch: PayoutBatchSummary) => {
+      setDownloadingBatchId(batch.payoutBatchId);
+
+      try {
+        const response = await fetchWithAuth(
+          `/api/payout-batches/${encodeURIComponent(batch.payoutBatchId)}/statement`,
+          {
+            method: 'GET',
+          },
+        );
+
+        if (!response.ok) {
+          const payload = await safeParseJsonResponse(response);
+          throw new Error(
+            payload && typeof payload.error === 'string'
+              ? payload.error
+              : 'Failed to download payout statement.',
+          );
+        }
+
+        const blob = await response.blob();
+        const objectUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download =
+          extractFilenameFromContentDisposition(
+            response.headers.get('content-disposition'),
+          ) || `${batch.payoutBatchId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(objectUrl);
+      } catch (downloadError) {
+        setNotice({
+          tone: 'error',
+          message:
+            downloadError instanceof Error
+              ? downloadError.message
+              : 'Failed to download payout statement.',
+        });
+      } finally {
+        setDownloadingBatchId(null);
+      }
+    },
+    [fetchWithAuth],
+  );
+
   const currency = useMemo(
     () => (data?.currency || 'usd').toUpperCase(),
     [data?.currency],
@@ -283,23 +332,23 @@ export function PayoutsPage() {
   }
 
   return (
-    <section className="space-y-6">
-      <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-          <div className="space-y-3">
-            <div className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-violet-700">
+    <section className="space-y-4 sm:space-y-6">
+      <div className="rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[28px] sm:p-6">
+        <div className="flex flex-col gap-4 sm:gap-5 xl:flex-row xl:items-start xl:justify-between">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-violet-700 sm:px-3 sm:text-[11px]">
               Weekly payout ledger
             </div>
             <div className="space-y-2">
-              <h1 className="text-[24px] font-semibold tracking-tight text-slate-950">
+              <h1 className="text-[20px] font-semibold tracking-tight text-slate-950 sm:text-[24px] lg:text-[26px]">
                 Restaurant payouts
               </h1>
-              <p className="max-w-3xl text-[13px] leading-6 text-slate-600">
+              <p className="max-w-3xl text-xs leading-6 text-slate-600 sm:text-[13px]">
                 Review eligible orders, payout batches, and Stripe transfer results
                 in one place.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               <InfoChip label="Restaurant" value={restaurant.name} />
               <InfoChip label="Settlement model" value="Weekly batch transfer" />
               <InfoChip
@@ -313,21 +362,40 @@ export function PayoutsPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
             <button
               type="button"
               onClick={() => void loadPayouts()}
-              className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:py-3"
             >
+              <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 1 1-2.64-6.36" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 3v6h-6" />
+              </svg>
               Refresh
             </button>
             <button
               type="button"
               onClick={() => void runPayoutNow()}
               disabled={isRunning}
-              className="inline-flex items-center rounded-2xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_-22px_rgba(124,58,237,0.7)] transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-2xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_16px_36px_-22px_rgba(124,58,237,0.7)] transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60 sm:py-3"
             >
-              {isRunning ? 'Running payout...' : 'Run payout now'}
+              {isRunning ? (
+                <>
+                  <svg className="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Running payout...
+                </>
+              ) : (
+                <>
+                  <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  Run payout now
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -368,25 +436,25 @@ export function PayoutsPage() {
         </div>
       ) : (
         <>
-          <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <section className="rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[28px] sm:p-6">
+            <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-violet-600">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-violet-600 sm:text-[11px]">
                   Eligible orders
                 </div>
-                <h2 className="mt-2 text-[21px] font-semibold tracking-tight text-slate-950">
+                <h2 className="mt-2 text-[18px] font-semibold tracking-tight text-slate-950 sm:text-[21px]">
                   Pending payout orders
                 </h2>
-                <p className="mt-2 text-[13px] leading-6 text-slate-600">
+                <p className="mt-2 text-xs leading-6 text-slate-600 sm:text-[13px]">
                   Orders in this table are still waiting to be included in a payout batch.
                 </p>
               </div>
-              <div className="text-xs font-medium text-slate-500">
+              <div className="whitespace-nowrap text-xs font-medium text-slate-500 sm:text-sm">
                 {filteredPendingOrders.length} of {data?.pendingOrders.length || 0} orders
               </div>
             </div>
 
-            <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="mt-4 flex flex-col gap-2 sm:mt-5 sm:gap-3 lg:flex-row lg:items-center">
               <FilterInput
                 value={orderSearch}
                 onChange={setOrderSearch}
@@ -406,7 +474,7 @@ export function PayoutsPage() {
             </div>
 
             {filteredPendingOrders.length ? (
-              <div className="mt-5 overflow-hidden rounded-3xl border border-slate-200">
+              <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 sm:mt-5 sm:rounded-3xl">
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-slate-200">
                     <thead className="bg-slate-50">
@@ -452,7 +520,7 @@ export function PayoutsPage() {
             )}
           </section>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
             <SummaryCard
               label="Pending payout"
               value={formatCurrency(data?.pendingPayoutAmount || 0, currency)}
@@ -493,7 +561,7 @@ export function PayoutsPage() {
             <SummaryCard
               label="Connected account"
               value={truncateMiddle(data?.stripeConnectedAccountId, 24)}
-              valueClassName="font-mono text-[16px] leading-6 break-all"
+              valueClassName="font-mono text-sm sm:text-[16px] leading-6 break-all"
               helper={
                 latestFailedBatch
                   ? `Latest failure: ${formatBatchStatus(latestFailedBatch.status)}`
@@ -503,25 +571,25 @@ export function PayoutsPage() {
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <section className="rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[28px] sm:p-6">
+              <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-violet-600">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-violet-600 sm:text-[11px]">
                     Batch history
                   </div>
-                  <h2 className="mt-2 text-[21px] font-semibold tracking-tight text-slate-950">
+                  <h2 className="mt-2 text-[18px] font-semibold tracking-tight text-slate-950 sm:text-[21px]">
                     Weekly payout batches
                   </h2>
-                  <p className="mt-2 text-[13px] leading-6 text-slate-600">
+                  <p className="mt-2 text-xs leading-6 text-slate-600 sm:text-[13px]">
                     Review payout totals, transfer ids, and final batch status.
                   </p>
                 </div>
-                <div className="text-xs font-medium text-slate-500">
+                <div className="whitespace-nowrap text-xs font-medium text-slate-500 sm:text-sm">
                   {filteredBatches.length} of {data?.recentBatches.length || 0} batches
                 </div>
               </div>
 
-              <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="mt-4 flex flex-col gap-2 sm:mt-5 sm:gap-3 lg:flex-row lg:items-center">
                 <FilterInput
                   value={batchSearch}
                   onChange={setBatchSearch}
@@ -541,7 +609,7 @@ export function PayoutsPage() {
               </div>
 
               {filteredBatches.length ? (
-                <div className="mt-5 overflow-hidden rounded-3xl border border-slate-200">
+                <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 sm:mt-5 sm:rounded-3xl">
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-slate-200">
                       <thead className="bg-slate-50">
@@ -553,6 +621,7 @@ export function PayoutsPage() {
                           <th className="px-4 py-3">Status</th>
                           <th className="px-4 py-3">Stripe transfer</th>
                           <th className="px-4 py-3">Processed</th>
+                          <th className="px-4 py-3">Statement</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200 bg-white">
@@ -601,6 +670,21 @@ export function PayoutsPage() {
                             <td className="px-4 py-4 text-sm text-slate-700">
                               {formatDateTime(batch.processedAt)}
                             </td>
+                            <td className="px-4 py-4 text-sm text-slate-700">
+                              <button
+                                type="button"
+                                onClick={() => void downloadBatchStatement(batch)}
+                                disabled={
+                                  downloadingBatchId === batch.payoutBatchId ||
+                                  batch.orderCount <= 0
+                                }
+                                className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {downloadingBatchId === batch.payoutBatchId
+                                  ? 'Preparing...'
+                                  : 'Download PDF'}
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -612,19 +696,19 @@ export function PayoutsPage() {
               )}
             </section>
 
-            <aside className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-violet-600">
+            <aside className="rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[28px] sm:p-6">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-violet-600 sm:text-[11px]">
                 Settlement snapshot
               </div>
-              <h2 className="mt-2 text-[20px] font-semibold tracking-tight text-slate-950">
+              <h2 className="mt-2 text-[18px] font-semibold tracking-tight text-slate-950 sm:text-[20px]">
                 Current configuration
               </h2>
 
-              <div className="mt-5 divide-y divide-slate-200 overflow-hidden rounded-3xl border border-slate-200">
+              <div className="mt-4 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 sm:mt-5 sm:rounded-3xl">
                 <InfoRow
                   label="Connected account"
                   value={truncateMiddle(data?.stripeConnectedAccountId, 24)}
-                  valueClassName="font-mono text-[12px] leading-5 break-all"
+                  valueClassName="font-mono text-[11px] leading-5 break-all sm:text-[12px]"
                 />
                 <InfoRow label="Currency" value={currency} />
                 <InfoRow label="Pending orders" value={String(data?.pendingOrderCount || 0)} />
@@ -672,18 +756,18 @@ function SummaryCard({
   valueClassName?: string;
 }) {
   return (
-    <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+    <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[24px] sm:p-5">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500 sm:text-[11px]">
         {label}
       </div>
       <div
-        className={`mt-3 font-semibold tracking-tight text-slate-950 ${
-          valueClassName || 'text-[24px]'
+        className={`mt-2 font-semibold tracking-tight text-slate-950 sm:mt-3 ${
+          valueClassName || 'text-[20px] sm:text-[24px]'
         }`}
       >
         {value}
       </div>
-      <div className="mt-2 text-[13px] leading-6 text-slate-600">{helper}</div>
+      <div className="mt-1.5 text-xs leading-6 text-slate-600 sm:mt-2 sm:text-[13px]">{helper}</div>
     </div>
   );
 }
@@ -711,11 +795,11 @@ function Banner({
 
 function InfoChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700">
+    <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] text-slate-700 sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs">
       <span className="font-semibold uppercase tracking-[0.14em] text-slate-500">
         {label}
       </span>
-      <span className="font-medium text-slate-900">{value}</span>
+      <span className="max-w-[140px] truncate font-medium text-slate-900 sm:max-w-none">{value}</span>
     </div>
   );
 }
@@ -730,12 +814,17 @@ function FilterInput({
   placeholder: string;
 }) {
   return (
-    <input
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      placeholder={placeholder}
-      className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-300 focus:ring-2 focus:ring-slate-900/5 lg:max-w-sm"
-    />
+    <div className="relative flex-1 lg:max-w-sm">
+      <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="h-10 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-300 focus:ring-2 focus:ring-slate-900/5 sm:h-11"
+      />
+    </div>
   );
 }
 
@@ -752,7 +841,7 @@ function FilterSelect({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-slate-300 focus:ring-2 focus:ring-slate-900/5"
+      className="h-10 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-slate-300 focus:ring-2 focus:ring-slate-900/5 sm:h-11 sm:w-auto sm:min-w-[180px]"
     >
       {options.map((option) => (
         <option key={option.value} value={option.value}>
@@ -825,11 +914,11 @@ function InfoRow({
   valueClassName?: string;
 }) {
   return (
-    <div className="grid gap-1 px-4 py-3">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+    <div className="grid gap-1 px-3 py-2.5 sm:px-4 sm:py-3">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 sm:text-[11px]">
         {label}
       </div>
-      <div className={`text-sm font-medium text-slate-900 ${valueClassName || ''}`}>
+      <div className={`text-xs font-medium text-slate-900 sm:text-sm ${valueClassName || ''}`}>
         {value}
       </div>
     </div>
@@ -838,7 +927,10 @@ function InfoRow({
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="mt-5 rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-sm text-slate-500">
+    <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-xs text-slate-500 sm:mt-5 sm:rounded-3xl sm:px-6 sm:py-10 sm:text-sm">
+      <svg className="mx-auto mb-3 h-10 w-10 text-slate-300 sm:h-12 sm:w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+      </svg>
       {message}
     </div>
   );
@@ -909,4 +1001,18 @@ async function safeParseJsonResponse(response: Response) {
   } catch {
     return null;
   }
+}
+
+function extractFilenameFromContentDisposition(header: string | null) {
+  if (!header) {
+    return null;
+  }
+
+  const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1]);
+  }
+
+  const basicMatch = header.match(/filename="([^"]+)"/i);
+  return basicMatch?.[1] || null;
 }

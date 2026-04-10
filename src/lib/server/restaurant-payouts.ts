@@ -41,6 +41,39 @@ type PayoutBatchRow = {
   updated_at?: string | null;
 };
 
+type PayoutStatementOrderRow = {
+  order_id?: string | null;
+  order_number?: string | null;
+  payment_reference?: string | null;
+  payment_status?: string | null;
+  payment_method?: string | null;
+  fulfillment_type?: string | null;
+  cart_total?: number | string | null;
+  tip_total?: number | string | null;
+  tax_total?: number | string | null;
+  state_tax?: number | string | null;
+  delivery_fee_total?: number | string | null;
+  restaurant_payout_amount?: number | string | null;
+  refund_amount?: number | string | null;
+  placed_at?: string | null;
+  created_at?: string | null;
+};
+
+type PayoutBatchOrderRow = {
+  order_id?: string | null;
+  restaurant_payout_amount?: number | string | null;
+};
+
+type RestaurantInfoRow = {
+  restaurant_id?: string | null;
+  name?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  postal_code?: string | null;
+};
+
 type ConnectedRestaurantRow = {
   restaurant_id?: string | null;
   stripe_account_id?: string | null;
@@ -78,6 +111,13 @@ interface InsertBatchOrdersResponse {
 
 interface PayoutBatchListResponse {
   restaurant_payout_batches?: PayoutBatchRow[];
+}
+
+interface PayoutStatementPayloadResponse {
+  restaurant_payout_batches?: PayoutBatchRow[];
+  restaurants_by_pk?: RestaurantInfoRow | null;
+  orders?: PayoutStatementOrderRow[];
+  restaurant_payout_batch_orders?: PayoutBatchOrderRow[];
 }
 
 export interface RestaurantPayoutBatchSummary {
@@ -121,6 +161,49 @@ export interface RestaurantPayoutRunResult {
   claimedOrderCount: number;
   totalPayoutAmount: number;
   message: string;
+}
+
+export interface RestaurantPayoutStatementOrder {
+  orderId: string;
+  orderNumber: string;
+  paymentReference: string | null;
+  paymentStatus: string;
+  paymentMethod: string | null;
+  fulfillmentType: string | null;
+  cartTotal: number;
+  tipTotal: number;
+  taxTotal: number;
+  stateTax: number;
+  deliveryFeeTotal: number;
+  refundAmount: number;
+  payoutAmount: number;
+  placedAt: string | null;
+}
+
+export interface RestaurantPayoutStatement {
+  batch: RestaurantPayoutBatchSummary;
+  restaurant: {
+    restaurantId: string;
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    postalCode: string;
+    fullAddress: string;
+  };
+  currency: string;
+  generatedAt: string;
+  totals: {
+    grossSales: number;
+    tipTotal: number;
+    processingTaxTotal: number;
+    stateTaxTotal: number;
+    deliveryFeeTotal: number;
+    refundTotal: number;
+    netPayoutAmount: number;
+  };
+  orders: RestaurantPayoutStatementOrder[];
 }
 
 const ZERO_DECIMAL_CURRENCIES = new Set([
@@ -337,6 +420,68 @@ const GET_PAYOUT_BATCH_BY_TRANSFER_ID = `
   }
 `;
 
+const GET_PAYOUT_STATEMENT_PAYLOAD = `
+  query GetPayoutStatementPayload($payout_batch_id: uuid!, $restaurant_id: uuid!) {
+    restaurant_payout_batches(
+      where: { payout_batch_id: { _eq: $payout_batch_id } }
+      limit: 1
+    ) {
+      payout_batch_id
+      restaurant_id
+      stripe_connected_account_id
+      period_start
+      period_end
+      currency
+      order_count
+      total_payout_amount
+      stripe_transfer_id
+      status
+      failure_reason
+      processed_at
+      created_at
+      updated_at
+    }
+    restaurants_by_pk(restaurant_id: $restaurant_id) {
+      restaurant_id
+      name
+      address
+      city
+      state
+      country
+      postal_code
+    }
+    orders(
+      where: {
+        payout_batch_id: { _eq: $payout_batch_id }
+        is_deleted: { _eq: false }
+      }
+      order_by: [{ placed_at: asc_nulls_last }, { created_at: asc }]
+    ) {
+      order_id
+      order_number
+      payment_reference
+      payment_status
+      payment_method
+      fulfillment_type
+      cart_total
+      tip_total
+      tax_total
+      state_tax
+      delivery_fee_total
+      restaurant_payout_amount
+      refund_amount
+      placed_at
+      created_at
+    }
+    restaurant_payout_batch_orders(
+      where: { payout_batch_id: { _eq: $payout_batch_id } }
+    ) {
+      order_id
+      restaurant_payout_amount
+    }
+  }
+`;
+
 export async function getRestaurantPayoutDashboard(
   restaurantId: string,
 ): Promise<RestaurantPayoutDashboardData> {
@@ -389,6 +534,25 @@ export async function createRestaurantPayoutBatchForRestaurant(
   }
 
   const currency = normalizeCurrencyCode(account.defaultCurrency || 'usd');
+  const plannedPayoutAmount = roundCurrency(
+    eligibleOrders.reduce((sum, order) => sum + calculateEffectiveOrderPayout(order), 0),
+  );
+  const plannedTransferAmount = toMinorCurrencyAmount(plannedPayoutAmount, currency);
+  const availableBalanceAmount = await getAvailablePlatformBalanceMinor(currency);
+
+  if (plannedTransferAmount > availableBalanceAmount) {
+    return {
+      status: 'skipped',
+      batch: null,
+      claimedOrderCount: 0,
+      totalPayoutAmount: plannedPayoutAmount,
+      message: `Insufficient available Stripe balance for payout. Available: ${formatMajorCurrencyAmount(
+        availableBalanceAmount,
+        currency,
+      )}. Required: ${formatMajorCurrencyAmount(plannedTransferAmount, currency)}. Wait for funds to become available or use a bypass-pending test payment method in test mode.`,
+    };
+  }
+
   const periodStart = buildPeriodBoundary(
     eligibleOrders[0]?.placed_at,
     eligibleOrders[0]?.created_at,
@@ -479,6 +643,13 @@ export async function createRestaurantPayoutBatchForRestaurant(
       };
     }
 
+    await updatePayoutBatch(batchId, {
+      currency,
+      order_count: mappedOrders.length,
+      total_payout_amount: totalPayoutAmount,
+      failure_reason: null,
+    });
+
     await adminGraphqlRequest<InsertBatchOrdersResponse>(
       INSERT_PAYOUT_BATCH_ORDERS,
       {
@@ -536,6 +707,142 @@ export async function createRestaurantPayoutBatchForRestaurant(
     await markOrdersForBatch(batchId, 'failed');
     throw error;
   }
+}
+
+export async function getRestaurantPayoutStatement(
+  payoutBatchId: string,
+): Promise<RestaurantPayoutStatement> {
+  const normalizedBatchId = normalizeString(payoutBatchId);
+  if (!normalizedBatchId) {
+    throw new Error('payoutBatchId is required.');
+  }
+
+  const batchLookup = await adminGraphqlRequest<PayoutBatchListResponse>(
+    `
+      query GetPayoutBatchById($payout_batch_id: uuid!) {
+        restaurant_payout_batches(
+          where: { payout_batch_id: { _eq: $payout_batch_id } }
+          limit: 1
+        ) {
+          payout_batch_id
+          restaurant_id
+          stripe_connected_account_id
+          period_start
+          period_end
+          currency
+          order_count
+          total_payout_amount
+          stripe_transfer_id
+          status
+          failure_reason
+          processed_at
+          created_at
+          updated_at
+        }
+      }
+    `,
+    { payout_batch_id: normalizedBatchId },
+  );
+
+  const batchLookupRow = Array.isArray(batchLookup.restaurant_payout_batches)
+    ? batchLookup.restaurant_payout_batches[0]
+    : null;
+  const restaurantId = normalizeString(batchLookupRow?.restaurant_id);
+  if (!restaurantId) {
+    throw new Error('Payout batch not found.');
+  }
+
+  const batchData = await adminGraphqlRequest<PayoutStatementPayloadResponse>(
+    GET_PAYOUT_STATEMENT_PAYLOAD,
+    {
+      payout_batch_id: normalizedBatchId,
+      restaurant_id: restaurantId,
+    },
+  );
+
+  const batchRow = Array.isArray(batchData.restaurant_payout_batches)
+    ? batchData.restaurant_payout_batches[0]
+    : null;
+  const batch = serializePayoutBatchRow(batchRow);
+
+  if (!batch.payoutBatchId || !batch.restaurantId) {
+    throw new Error('Payout batch not found.');
+  }
+
+  const payoutAmounts = new Map<string, number>(
+    (Array.isArray(batchData.restaurant_payout_batch_orders)
+      ? batchData.restaurant_payout_batch_orders
+      : []
+    )
+      .map(
+        (row): [string, number] | null => {
+          const orderId = normalizeString(row.order_id);
+          if (!orderId) {
+            return null;
+          }
+
+          return [
+            orderId,
+            roundCurrency(toNumber(row.restaurant_payout_amount)),
+          ];
+        },
+      )
+      .filter((entry): entry is [string, number] => Boolean(entry)),
+  );
+
+  const orders = (Array.isArray(batchData.orders) ? batchData.orders : []).map((row) => {
+    const orderId = normalizeString(row.order_id) || '';
+    const fallbackPayout = calculateEffectiveOrderPayout({
+      restaurant_payout_amount: row.restaurant_payout_amount,
+      refund_amount: row.refund_amount,
+    });
+
+    return {
+      orderId,
+      orderNumber: normalizeString(row.order_number) || orderId,
+      paymentReference: normalizeString(row.payment_reference),
+      paymentStatus: normalizeString(row.payment_status) || 'pending',
+      paymentMethod: normalizeString(row.payment_method),
+      fulfillmentType: normalizeString(row.fulfillment_type),
+      cartTotal: roundCurrency(toNumber(row.cart_total)),
+      tipTotal: roundCurrency(toNumber(row.tip_total)),
+      taxTotal: roundCurrency(toNumber(row.tax_total)),
+      stateTax: roundCurrency(toNumber(row.state_tax)),
+      deliveryFeeTotal: roundCurrency(toNumber(row.delivery_fee_total)),
+      refundAmount: roundCurrency(toNumber(row.refund_amount)),
+      payoutAmount: payoutAmounts.get(orderId) ?? fallbackPayout,
+      placedAt: normalizeString(row.placed_at) || normalizeString(row.created_at),
+    };
+  });
+
+  const restaurant = serializeRestaurantInfo(batchData.restaurants_by_pk, batch.restaurantId);
+
+  return {
+    batch,
+    restaurant,
+    currency: batch.currency.toUpperCase(),
+    generatedAt: new Date().toISOString(),
+    totals: {
+      grossSales: roundCurrency(orders.reduce((sum, order) => sum + order.cartTotal, 0)),
+      tipTotal: roundCurrency(orders.reduce((sum, order) => sum + order.tipTotal, 0)),
+      processingTaxTotal: roundCurrency(
+        orders.reduce((sum, order) => sum + order.taxTotal, 0),
+      ),
+      stateTaxTotal: roundCurrency(
+        orders.reduce((sum, order) => sum + order.stateTax, 0),
+      ),
+      deliveryFeeTotal: roundCurrency(
+        orders.reduce((sum, order) => sum + order.deliveryFeeTotal, 0),
+      ),
+      refundTotal: roundCurrency(
+        orders.reduce((sum, order) => sum + order.refundAmount, 0),
+      ),
+      netPayoutAmount: roundCurrency(
+        orders.reduce((sum, order) => sum + order.payoutAmount, 0),
+      ),
+    },
+    orders,
+  };
 }
 
 export async function processRestaurantPayouts(
@@ -739,6 +1046,28 @@ function serializePayoutBatchRow(row: PayoutBatchRow | null | undefined): Restau
   };
 }
 
+function serializeRestaurantInfo(
+  row: RestaurantInfoRow | null | undefined,
+  fallbackRestaurantId: string,
+) {
+  const address = normalizeString(row?.address) || '';
+  const city = normalizeString(row?.city) || '';
+  const state = normalizeString(row?.state) || '';
+  const country = normalizeString(row?.country) || '';
+  const postalCode = normalizeString(row?.postal_code) || '';
+
+  return {
+    restaurantId: normalizeString(row?.restaurant_id) || fallbackRestaurantId,
+    name: normalizeString(row?.name) || 'Restaurant',
+    address,
+    city,
+    state,
+    country,
+    postalCode,
+    fullAddress: [address, city, state, postalCode, country].filter(Boolean).join(', '),
+  };
+}
+
 function buildPeriodBoundary(
   placedAt: string | null | undefined,
   createdAt: string | null | undefined,
@@ -781,4 +1110,25 @@ function toMinorCurrencyAmount(amount: number, currency: string) {
   }
 
   return Math.round(amount * 100);
+}
+
+async function getAvailablePlatformBalanceMinor(currency: string) {
+  const balance = await getStripe().balance.retrieve();
+  const normalizedCurrency = normalizeCurrencyCode(currency);
+
+  const availableEntry = Array.isArray(balance.available)
+    ? balance.available.find((entry) => entry.currency === normalizedCurrency)
+    : null;
+
+  return availableEntry?.amount ?? 0;
+}
+
+function formatMajorCurrencyAmount(amountMinor: number, currency: string) {
+  const normalizedCurrency = normalizeCurrencyCode(currency).toUpperCase();
+
+  if (ZERO_DECIMAL_CURRENCIES.has(normalizedCurrency)) {
+    return `${normalizedCurrency} ${amountMinor.toFixed(0)}`;
+  }
+
+  return `${normalizedCurrency} ${(amountMinor / 100).toFixed(2)}`;
 }

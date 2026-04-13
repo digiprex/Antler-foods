@@ -4,15 +4,32 @@ import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { sendInvoiceForOrder } from '@/lib/server/order-invoice';
 import { syncPayoutBatchByTransferEvent } from '@/lib/server/restaurant-payouts';
 
-const UPDATE_ORDER_PAYMENT_STATUS = `
-  mutation UpdateOrderPaymentStatus($order_id: uuid!, $payment_status: String!, $payment_reference: String, $status: String, $confirmed_at: timestamptz) {
+const CONFIRM_PAID_ORDER = `
+  mutation ConfirmPaidOrder($order_id: uuid!, $payment_reference: String!, $confirmed_at: timestamptz!) {
+    update_orders(
+      where: {
+        order_id: { _eq: $order_id }
+        status: { _eq: "pending" }
+      }
+      _set: {
+        payment_status: "paid"
+        payment_reference: $payment_reference
+        status: "preparing"
+        confirmed_at: $confirmed_at
+      }
+    ) {
+      affected_rows
+    }
+  }
+`;
+
+const UPDATE_PAYMENT_FAILED = `
+  mutation UpdatePaymentFailed($order_id: uuid!, $payment_reference: String!) {
     update_orders_by_pk(
       pk_columns: { order_id: $order_id },
-      _set: { payment_status: $payment_status, payment_reference: $payment_reference, status: $status, confirmed_at: $confirmed_at }
+      _set: { payment_status: "failed", payment_reference: $payment_reference }
     ) {
       order_id
-      payment_status
-      status
     }
   }
 `;
@@ -48,18 +65,23 @@ export async function POST(request: NextRequest) {
     const orderId = paymentIntent.metadata.order_id;
 
     if (orderId) {
-      await adminGraphqlRequest(UPDATE_ORDER_PAYMENT_STATUS, {
+      // Conditional update — only transitions if still "pending".
+      // If confirm-payment endpoint already handled it, affected_rows is 0.
+      const result = await adminGraphqlRequest<{
+        update_orders: { affected_rows: number };
+      }>(CONFIRM_PAID_ORDER, {
         order_id: orderId,
-        payment_status: 'paid',
         payment_reference: paymentIntent.id,
-        status: 'preparing',
         confirmed_at: new Date().toISOString(),
       });
 
-      try {
-        await sendInvoiceForOrder(orderId);
-      } catch (emailError) {
-        console.error('[Stripe Webhook] Order confirmation email failed:', emailError);
+      // Only send email if we were the first to confirm (prevents duplicates)
+      if ((result.update_orders?.affected_rows ?? 0) > 0) {
+        try {
+          await sendInvoiceForOrder(orderId);
+        } catch (emailError) {
+          console.error('[Stripe Webhook] Order confirmation email failed:', emailError);
+        }
       }
     }
   }
@@ -69,9 +91,8 @@ export async function POST(request: NextRequest) {
     const orderId = paymentIntent.metadata.order_id;
 
     if (orderId) {
-      await adminGraphqlRequest(UPDATE_ORDER_PAYMENT_STATUS, {
+      await adminGraphqlRequest(UPDATE_PAYMENT_FAILED, {
         order_id: orderId,
-        payment_status: 'failed',
         payment_reference: paymentIntent.id,
       });
     }

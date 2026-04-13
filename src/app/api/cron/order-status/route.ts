@@ -4,6 +4,33 @@ import { createUberDirectDelivery } from '@/lib/server/delivery/uber-direct';
 import { createDoorDashDriveDelivery } from '@/lib/server/delivery/doordash-drive';
 import { sendOrderPickupReadyEmail } from '@/lib/server/email';
 
+const GET_PENDING_CASH_ORDERS = `
+  query GetPendingCashOrders {
+    orders(
+      where: {
+        status: { _eq: "pending" }
+        payment_method: { _eq: "cash" }
+        is_deleted: { _eq: false }
+        placed_at: { _is_null: false }
+      }
+    ) {
+      order_id
+      placed_at
+    }
+  }
+`;
+
+const CONFIRM_CASH_ORDERS = `
+  mutation ConfirmCashOrders($order_ids: [uuid!]!, $confirmed_at: timestamptz!) {
+    update_orders(
+      where: { order_id: { _in: $order_ids } }
+      _set: { status: "preparing", confirmed_at: $confirmed_at }
+    ) {
+      affected_rows
+    }
+  }
+`;
+
 const GET_PREPARING_ORDERS = `
   query GetPreparingOrders {
     orders(
@@ -372,6 +399,29 @@ export async function GET(request: NextRequest) {
   };
 
   try {
+    // 0. Catch any pending cash orders and transition them to "preparing"
+    try {
+      const pendingCash = await adminGraphqlRequest<{
+        orders: Array<{ order_id: string; placed_at: string }>;
+      }>(GET_PENDING_CASH_ORDERS, {});
+
+      const cashOrderIds = (pendingCash.orders || []).map((o) => o.order_id);
+      if (cashOrderIds.length > 0) {
+        const now = new Date().toISOString();
+        const confirmResult = await adminGraphqlRequest<{
+          update_orders: { affected_rows: number };
+        }>(CONFIRM_CASH_ORDERS, { order_ids: cashOrderIds, confirmed_at: now });
+        log('Confirmed pending cash orders', {
+          count: confirmResult.update_orders?.affected_rows || 0,
+          order_ids: cashOrderIds,
+        });
+      }
+    } catch (err) {
+      log('Failed to confirm pending cash orders', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+    }
+
     // 1. Get preparing orders
     log('Fetching preparing orders');
     const ordersData = await adminGraphqlRequest<{

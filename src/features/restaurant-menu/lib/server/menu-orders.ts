@@ -172,7 +172,7 @@ const UPSERT_LOYALTY_BALANCE = `
         lifetime_redeemed: $lifetime_redeemed
       }
       on_conflict: {
-        constraint: loyalty_balances_customer_id_restaurant_id_key
+        constraint: loyalty_balances_pkey
         update_columns: [points_balance, lifetime_earned, lifetime_redeemed]
       }
     ) {

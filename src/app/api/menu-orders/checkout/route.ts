@@ -12,6 +12,7 @@ import {
 } from '@/features/restaurant-menu/lib/server/menu-orders';
 import { getRestaurantStripeAccountByRestaurantId } from '@/lib/server/restaurant-stripe-accounts';
 import { getStripe } from '@/lib/server/stripe';
+import { sendInvoiceForOrder } from '@/lib/server/order-invoice';
 
 const GET_RESTAURANT_PAYMENT_METADATA = `
   query GetRestaurantPaymentMetadata($restaurant_id: uuid!) {
@@ -161,9 +162,50 @@ export async function POST(request: NextRequest) {
         console.error('[Menu Orders] Failed to auto-confirm cash order:', err);
       }
 
+      try {
+        await sendInvoiceForOrder(result.orderId);
+      } catch (emailErr) {
+        console.error('[Menu Orders] Cash order confirmation email failed:', emailErr);
+      }
+
       return NextResponse.json({
         success: true,
         message: `Order ${result.orderNumber} placed. Pay with cash at pickup.`,
+        order: result,
+      });
+    }
+
+    // If loyalty points / gift cards cover the full amount, skip Stripe and
+    // mark the order as paid + preparing so the cron processes it normally.
+    if (result.total <= 0) {
+      try {
+        await adminGraphqlRequest(
+          `mutation ConfirmFullyDiscountedOrder($order_id: uuid!, $confirmed_at: timestamptz!) {
+            update_orders_by_pk(
+              pk_columns: { order_id: $order_id }
+              _set: {
+                payment_status: "paid",
+                payment_method: "loyalty",
+                status: "preparing",
+                confirmed_at: $confirmed_at
+              }
+            ) { order_id }
+          }`,
+          { order_id: result.orderId, confirmed_at: new Date().toISOString() },
+        );
+      } catch (err) {
+        console.error('[Menu Orders] Failed to auto-confirm fully discounted order:', err);
+      }
+
+      try {
+        await sendInvoiceForOrder(result.orderId);
+      } catch (emailErr) {
+        console.error('[Menu Orders] Loyalty order confirmation email failed:', emailErr);
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Order ${result.orderNumber} placed. Fully covered by rewards!`,
         order: result,
       });
     }
@@ -248,4 +290,3 @@ function trimMetadataValue(value: unknown) {
 
   return normalized.slice(0, 500);
 }
-

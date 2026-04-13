@@ -496,6 +496,8 @@ export default function RestaurantMenuCheckoutPage({
   const [isOffersSectionOpen, setIsOffersSectionOpen] = useState(false);
   const [isDeliveryDetailsSectionOpen, setIsDeliveryDetailsSectionOpen] =
     useState(true);
+  const allowCashPickup = data.allowCashPickup === true;
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isCheckingDeliveryQuote, setIsCheckingDeliveryQuote] = useState(false);
   const [deliveryQuote, setDeliveryQuote] =
@@ -1271,7 +1273,7 @@ export default function RestaurantMenuCheckoutPage({
         trimDeliveryAddressText(deliveryAddressData.formattedAddress),
       );
     }
-    successParams.set('payment', 'card');
+    successParams.set('payment', paymentMethod);
 
     clearCart();
 
@@ -1357,7 +1359,9 @@ export default function RestaurantMenuCheckoutPage({
       return;
     }
 
-    if (!stripeOrderingEnabled) {
+    const isCashOrder = fulfillmentMode === 'pickup' && allowCashPickup && paymentMethod === 'cash';
+
+    if (!isCashOrder && !stripeOrderingEnabled) {
       setCheckoutError(orderingBlockedMessage);
       return;
     }
@@ -1398,6 +1402,7 @@ export default function RestaurantMenuCheckoutPage({
           },
           items,
           tipAmount: tipsEnabled ? tipAmount : 0,
+          paymentMethod: isCashOrder ? 'cash' : 'card',
           deliveryQuote: fulfillmentMode === 'delivery' ? deliveryQuote : null,
           couponCode: appliedCoupon?.code || null,
           giftCardCode: appliedGiftCard?.code || null,
@@ -2761,6 +2766,43 @@ export default function RestaurantMenuCheckoutPage({
               </div>
             </section>
 
+            {fulfillmentMode === 'pickup' && allowCashPickup ? (
+              <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+                <h3 className="text-sm font-bold tracking-tight text-slate-950">Payment method</h3>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('card')}
+                    className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                      paymentMethod === 'card'
+                        ? 'border-slate-900 bg-slate-900 text-white shadow-md'
+                        : 'border-stone-200 bg-stone-50 text-stone-700 hover:border-stone-300'
+                    }`}
+                  >
+                    <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
+                    Pay with card
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('cash')}
+                    className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                      paymentMethod === 'cash'
+                        ? 'border-slate-900 bg-slate-900 text-white shadow-md'
+                        : 'border-stone-200 bg-stone-50 text-stone-700 hover:border-stone-300'
+                    }`}
+                  >
+                    <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="12" cy="12" r="3" /><line x1="2" y1="10" x2="4" y2="10" /><line x1="20" y1="10" x2="22" y2="10" /><line x1="2" y1="14" x2="4" y2="14" /><line x1="20" y1="14" x2="22" y2="14" /></svg>
+                    Pay with cash
+                  </button>
+                </div>
+                {paymentMethod === 'cash' ? (
+                  <p className="mt-2.5 text-xs text-stone-500">
+                    Pay with cash when you pick up your order.
+                  </p>
+                ) : null}
+              </section>
+            ) : null}
+
             {checkoutError ? (
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-800">
                 {checkoutError}
@@ -2772,7 +2814,7 @@ export default function RestaurantMenuCheckoutPage({
                 type="button"
                 onClick={handlePlaceOrder}
                 disabled={
-                  !stripeOrderingEnabled ||
+                  (paymentMethod !== 'cash' && !stripeOrderingEnabled) ||
                   isPlacingOrder ||
                   (fulfillmentMode === 'delivery' &&
                     (isCheckingDeliveryQuote ||
@@ -2784,13 +2826,15 @@ export default function RestaurantMenuCheckoutPage({
                 <ShieldIcon className="h-4 w-4" />
                 {isPlacingOrder
                   ? 'Preparing checkout...'
-                  : !stripeOrderingEnabled
+                  : paymentMethod !== 'cash' && !stripeOrderingEnabled
                     ? 'Ordering unavailable'
                     : fulfillmentMode === 'delivery' && isCheckingDeliveryQuote
                       ? 'Checking delivery...'
                       : fulfillmentMode === 'delivery' && deliveryQuoteError
                         ? 'Delivery unavailable'
-                        : `Continue to payment \u00B7 ${formatPrice(total)}`}
+                        : paymentMethod === 'cash'
+                          ? `Place order \u00B7 ${formatPrice(total)}`
+                          : `Continue to payment \u00B7 ${formatPrice(total)}`}
               </button>
               <p className="max-w-sm text-xs leading-5 text-stone-400">
                 By placing your order you agree to receive transactional order

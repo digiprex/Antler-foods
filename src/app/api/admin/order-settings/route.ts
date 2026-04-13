@@ -11,6 +11,7 @@ const GET_ORDER_SETTINGS = `
       preparation_time
       transaction_tax_rate
       service_fee_capped_at
+      allow_cash_pickup
       address
       city
       state
@@ -41,7 +42,7 @@ const GET_ORDER_SETTINGS = `
 `;
 
 const UPDATE_ORDER_SETTINGS = `
-  mutation UpdateOrderSettings($restaurant_id: uuid!, $allow_tips: Boolean!, $pickup_allowed: Boolean!, $delivery_allowed: Boolean!, $preparation_time: numeric, $transaction_tax_rate: numeric, $service_fee_capped_at: numeric) {
+  mutation UpdateOrderSettings($restaurant_id: uuid!, $allow_tips: Boolean!, $pickup_allowed: Boolean!, $delivery_allowed: Boolean!, $preparation_time: numeric, $transaction_tax_rate: numeric, $service_fee_capped_at: numeric, $allow_cash_pickup: Boolean!) {
     update_restaurants_by_pk(
       pk_columns: { restaurant_id: $restaurant_id }
       _set: {
@@ -51,6 +52,7 @@ const UPDATE_ORDER_SETTINGS = `
         preparation_time: $preparation_time
         transaction_tax_rate: $transaction_tax_rate
         service_fee_capped_at: $service_fee_capped_at
+        allow_cash_pickup: $allow_cash_pickup
       }
     ) {
       restaurant_id
@@ -60,6 +62,7 @@ const UPDATE_ORDER_SETTINGS = `
       preparation_time
       transaction_tax_rate
       service_fee_capped_at
+      allow_cash_pickup
     }
   }
 `;
@@ -130,6 +133,7 @@ interface OrderSettingsResponse {
     preparation_time?: number | null;
     transaction_tax_rate?: number | null;
     service_fee_capped_at?: number | null;
+    allow_cash_pickup?: boolean | null;
     address?: string | null;
     city?: string | null;
     state?: string | null;
@@ -148,6 +152,7 @@ interface UpdateOrderSettingsResponse {
     preparation_time?: number | null;
     transaction_tax_rate?: number | null;
     service_fee_capped_at?: number | null;
+    allow_cash_pickup?: boolean | null;
   } | null;
 }
 
@@ -280,6 +285,7 @@ export async function GET(request: NextRequest) {
         preparation_time: data.restaurants_by_pk.preparation_time ?? null,
         transaction_tax_rate: data.restaurants_by_pk.transaction_tax_rate ?? 5,
         service_fee_capped_at: data.restaurants_by_pk.service_fee_capped_at ?? 100,
+        allow_cash_pickup: data.restaurants_by_pk.allow_cash_pickup ?? false,
         address: [
           data.restaurants_by_pk.address,
           data.restaurants_by_pk.city,
@@ -312,6 +318,7 @@ export async function PUT(request: NextRequest) {
           preparation_time?: number | null;
           transaction_tax_rate?: number | null;
           service_fee_capped_at?: number | null;
+          allow_cash_pickup?: boolean;
           delivery_zones?: unknown[];
         }
       | null;
@@ -338,6 +345,7 @@ export async function PUT(request: NextRequest) {
       : Number.isFinite(Number(feeCapRaw)) && Number(feeCapRaw) >= 0
         ? Math.round(Number(feeCapRaw) * 100) / 100
         : 100;
+    const allowCashPickup = body?.allow_cash_pickup === true;
     const parsedDeliveryZones = parseDeliveryZones(body?.delivery_zones);
 
     if (!restaurantId) {
@@ -382,6 +390,7 @@ export async function PUT(request: NextRequest) {
         preparation_time: preparationTime,
         transaction_tax_rate: transactionTaxRate,
         service_fee_capped_at: serviceFeeCappedAt,
+        allow_cash_pickup: allowCashPickup,
       },
     );
 
@@ -422,6 +431,7 @@ export async function PUT(request: NextRequest) {
         preparation_time: data.update_restaurants_by_pk.preparation_time ?? null,
         transaction_tax_rate: data.update_restaurants_by_pk.transaction_tax_rate ?? 5,
         service_fee_capped_at: data.update_restaurants_by_pk.service_fee_capped_at ?? 100,
+        allow_cash_pickup: data.update_restaurants_by_pk.allow_cash_pickup ?? false,
         delivery_zones: (zonesData.insert_delivery_zones?.returning || []).map(normalizeDeliveryZoneOutput),
       },
     });

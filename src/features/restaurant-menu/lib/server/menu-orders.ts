@@ -273,6 +273,7 @@ interface PlaceMenuOrderInput {
   couponCode?: string | null;
   giftCardCode?: string | null;
   orderNote?: string | null;
+  paymentMethod?: 'card' | 'cash';
 }
 
 export interface PlaceMenuOrderResult {
@@ -351,6 +352,7 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     'Delivery fee amount is invalid.',
   );
   const orderNote = trimText(input.orderNote);
+  const paymentMethod = input.paymentMethod === 'cash' ? 'cash' : 'card';
   const deliveryAddress = trimText(input.deliveryAddress);
   const placedAt = new Date();
   const deliveryProvider =
@@ -649,7 +651,8 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       // Only persist auto offer metadata (not coupons or gift cards)
       offer_applied: storedOfferApplied ? JSON.stringify(storedOfferApplied) : null,
       fulfillment_type: fulfillmentType,
-      payment_status: 'processing',
+      payment_method: paymentMethod,
+      payment_status: paymentMethod === 'cash' ? 'cash_on_pickup' : 'processing',
       contact_first_name: contact.firstName,
       contact_last_name: contact.lastName,
       contact_email: contact.email,

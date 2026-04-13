@@ -161,6 +161,7 @@ export interface RestaurantMenuData {
   allowTips?: boolean;
   transactionTaxRate?: number;
   serviceFeeCappedAt?: number;
+  allowCashPickup?: boolean;
   pickupAllowed?: boolean;
   deliveryAllowed?: boolean;
   stripeConnected?: boolean;

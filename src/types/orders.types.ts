@@ -66,6 +66,9 @@ export interface Order {
   payment_method?: string | null;
   payment_reference?: string | null;
   offer_applied?: OfferApplied | null;
+  loyalty_points_earned?: number | null;
+  loyalty_points_redeemed?: number | null;
+  loyalty_discount?: number | null;
   order_items?: OrderItem[];
 }
 

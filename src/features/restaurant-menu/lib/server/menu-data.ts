@@ -13,6 +13,14 @@ import type {
   ScheduleDay,
 } from '@/features/restaurant-menu/types/restaurant-menu.types';
 
+const GET_LOYALTY_POINTS_PER_DOLLAR = `
+  query GetLoyaltyPointsPerDollar($restaurant_id: uuid!) {
+    loyalty_settings(where: { restaurant_id: { _eq: $restaurant_id }, is_enabled: { _eq: true } }, limit: 1) {
+      points_per_dollar
+    }
+  }
+`;
+
 const DAYS = [
   { dbDay: 1, longLabel: 'Monday', shortLabel: 'Mon' },
   { dbDay: 2, longLabel: 'Tuesday', shortLabel: 'Tue' },
@@ -358,6 +366,16 @@ const loadRestaurantMenuPageDataCached = unstable_cache(
 
     const opening = await loadOpeningHours(restaurant.restaurant_id || '');
     const offers = await loadActiveMenuOffers(restaurant.restaurant_id || '');
+    let loyaltyPointsPerDollar = 0;
+    try {
+      const loyaltyData = await gql(GET_LOYALTY_POINTS_PER_DOLLAR, { restaurant_id: restaurant.restaurant_id });
+      const ls = loyaltyData.loyalty_settings?.[0];
+      if (ls) {
+        loyaltyPointsPerDollar = typeof ls.points_per_dollar === 'number' ? ls.points_per_dollar : 0;
+      }
+    } catch {
+      // Loyalty settings table may not exist yet — silently ignore
+    }
     if (!menu?.menu_id) {
       return buildMenuData({
         restaurant,
@@ -369,6 +387,7 @@ const loadRestaurantMenuPageDataCached = unstable_cache(
         opening,
         offers,
         stripeConnected,
+        loyaltyPointsPerDollar,
       });
     }
     // Try schedule-based menu selection (supports breakfast/lunch/dinner auto-switching)
@@ -381,7 +400,7 @@ const loadRestaurantMenuPageDataCached = unstable_cache(
     }
 
     if (!menu?.menu_id) {
-      return buildMenuData({ restaurant, menu: null, categories: [], items: [], modifierGroups: [], modifierItems: [], opening, offers });
+      return buildMenuData({ restaurant, menu: null, categories: [], items: [], modifierGroups: [], modifierItems: [], opening, offers, loyaltyPointsPerDollar });
     }
 
     const categories = await gql(GET_CATEGORIES_BY_MENU, { menu_id: menu.menu_id }).then((data: any) => data.categories || []);
@@ -410,6 +429,7 @@ const loadRestaurantMenuPageDataCached = unstable_cache(
       opening,
       offers,
       stripeConnected,
+      loyaltyPointsPerDollar,
     });
   },
   ['restaurant-menu-page-data'],
@@ -586,7 +606,8 @@ function buildMenuData({ restaurant,
   modifierItems,
   opening,
   offers,
-  stripeConnected = true, }: any): RestaurantMenuData {
+  stripeConnected = true,
+  loyaltyPointsPerDollar = 0, }: any): RestaurantMenuData {
   const restaurantName = text(restaurant?.name) || 'Restaurant';
   const pickupAllowed = restaurant?.pickup_allowed !== false;
   const deliveryAllowed = restaurant?.delivery_allowed !== false;
@@ -732,6 +753,7 @@ function buildMenuData({ restaurant,
     transactionTaxRate: typeof restaurant.transaction_tax_rate === 'number' ? restaurant.transaction_tax_rate : 5,
     serviceFeeCappedAt: typeof restaurant.service_fee_capped_at === 'number' ? restaurant.service_fee_capped_at : 100,
     allowCashPickup: restaurant.allow_cash_pickup === true,
+    loyaltyPointsPerDollar: typeof loyaltyPointsPerDollar === 'number' ? loyaltyPointsPerDollar : 0,
     pickupAllowed,
     deliveryAllowed,
     stripeConnected,
@@ -812,6 +834,7 @@ function buildEmptyMenuData(restaurantName: string): RestaurantMenuData {
     transactionTaxRate: 5,
     serviceFeeCappedAt: 100,
     allowCashPickup: false,
+    loyaltyPointsPerDollar: 0,
     pickupAllowed: true,
     deliveryAllowed: true,
     stripeConnected: true,

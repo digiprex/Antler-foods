@@ -498,6 +498,15 @@ export default function RestaurantMenuCheckoutPage({
     useState(true);
   const allowCashPickup = data.allowCashPickup === true;
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
+  const [loyaltyData, setLoyaltyData] = useState<{
+    enabled: boolean;
+    points_balance: number;
+    redemption_rate: number;
+    min_redemption_points: number;
+    max_redemption_percentage: number;
+    points_per_dollar: number;
+  } | null>(null);
+  const [loyaltyPointsToRedeem, setLoyaltyPointsToRedeem] = useState(0);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isCheckingDeliveryQuote, setIsCheckingDeliveryQuote] = useState(false);
   const [deliveryQuote, setDeliveryQuote] =
@@ -654,6 +663,33 @@ export default function RestaurantMenuCheckoutPage({
       email: current.email || customerProfile.email || '',
     }));
   }, [customerProfile]);
+
+  // Fetch loyalty balance when customer session is available
+  useEffect(() => {
+    if (!restaurantId || !hasCustomerSession || isGuestCustomer) {
+      setLoyaltyData(null);
+      setLoyaltyPointsToRedeem(0);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/menu-orders/loyalty-balance?restaurant_id=${encodeURIComponent(restaurantId)}`,
+          { credentials: 'same-origin' },
+        );
+        if (cancelled || !res.ok) return;
+        const json = await res.json();
+        if (cancelled || !json.success) return;
+        setLoyaltyData(json.data);
+      } catch {
+        // silent — loyalty is optional
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [restaurantId, hasCustomerSession, isGuestCustomer]);
 
   const handleContactFieldChange = (
     field: keyof CheckoutContactFields,
@@ -1402,6 +1438,7 @@ export default function RestaurantMenuCheckoutPage({
           },
           items,
           tipAmount: tipsEnabled ? tipAmount : 0,
+          loyaltyPointsToRedeem: loyaltyPointsToRedeem > 0 ? loyaltyPointsToRedeem : 0,
           paymentMethod: isCashOrder ? 'cash' : 'card',
           deliveryQuote: fulfillmentMode === 'delivery' ? deliveryQuote : null,
           couponCode: appliedCoupon?.code || null,
@@ -1499,6 +1536,14 @@ export default function RestaurantMenuCheckoutPage({
     fulfillmentMode === 'delivery' ? (deliveryQuote?.deliveryFee ?? 0) : 0;
   const discountAmount =
     appliedCoupon?.discountAmount || activeRestaurantOffer?.discountAmount || 0;
+  const loyaltyDiscountAmount = loyaltyData?.enabled && loyaltyPointsToRedeem > 0
+    ? roundCurrency(
+        Math.min(
+          loyaltyPointsToRedeem * (loyaltyData.redemption_rate || 0.01),
+          subtotal * ((loyaltyData.max_redemption_percentage || 50) / 100),
+        ),
+      )
+    : 0;
   const taxAmount = taxRate > 0
     ? roundCurrency(Math.min(subtotal * (taxRate / 100), serviceFeeCap > 0 ? serviceFeeCap : Infinity))
     : 0;
@@ -1507,7 +1552,8 @@ export default function RestaurantMenuCheckoutPage({
       deliveryFeeAmount +
       effectiveTipAmount +
       taxAmount -
-      discountAmount,
+      discountAmount -
+      loyaltyDiscountAmount,
   );
   const giftCardAppliedAmount = appliedGiftCard
     ? roundCurrency(
@@ -1524,6 +1570,8 @@ export default function RestaurantMenuCheckoutPage({
     Math.max(preGiftCardTotal - giftCardAppliedAmount, 0),
   );
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const loyaltyPointsPerDollar = loyaltyData?.points_per_dollar || data.loyaltyPointsPerDollar || 0;
+  const loyaltyPointsEarned = loyaltyPointsPerDollar > 0 ? Math.floor(subtotal * loyaltyPointsPerDollar) : 0;
   const orderSummaryPanel = (
     <div className="p-4 sm:p-5 lg:sticky lg:top-0 lg:z-10 lg:flex lg:max-h-screen lg:flex-col lg:overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <div className="flex items-center justify-between">
@@ -1928,11 +1976,112 @@ export default function RestaurantMenuCheckoutPage({
               </span>
             </div>
           ) : null}
+          {loyaltyDiscountAmount > 0 ? (
+            <div className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-2">
+                <span>Loyalty points</span>
+                <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+                  {loyaltyPointsToRedeem} pts
+                </span>
+              </span>
+              <span className="font-medium text-emerald-700">
+                - {formatPrice(loyaltyDiscountAmount)}
+              </span>
+            </div>
+          ) : null}
         </div>
+
+        {/* Loyalty Points — balance + redeem */}
+        {loyaltyData?.enabled && hasCustomerSession && !isGuestCustomer && loyaltyData.points_balance > 0 ? (
+          <div className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50/80 to-orange-50/80 p-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400/20">
+                  <svg className="h-3.5 w-3.5 text-amber-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.28l-4.77 2.51.91-5.33L2.27 6.69l5.34-.78L10 1z" />
+                  </svg>
+                </div>
+                <span className="text-xs font-bold text-amber-900">Loyalty Points</span>
+              </div>
+              <span className="rounded-full bg-amber-400/20 px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-amber-700">
+                {loyaltyData.points_balance} pts
+              </span>
+            </div>
+            {loyaltyData.points_balance >= loyaltyData.min_redemption_points ? (
+              <div className="mt-3 space-y-2.5">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={0}
+                    max={loyaltyData.points_balance}
+                    step={1}
+                    value={loyaltyPointsToRedeem}
+                    onChange={(e) => setLoyaltyPointsToRedeem(Number(e.target.value))}
+                    className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-amber-200 accent-amber-600 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-amber-600 [&::-webkit-slider-thumb]:shadow-md"
+                  />
+                  <span className="min-w-[3.5rem] text-right text-xs font-bold tabular-nums text-amber-800">
+                    {loyaltyPointsToRedeem} pts
+                  </span>
+                </div>
+                {loyaltyPointsToRedeem > 0 ? (
+                  <div className="flex items-center justify-between rounded-lg bg-white/70 px-3 py-2 ring-1 ring-amber-200/60">
+                    <span className="text-[11px] font-medium text-amber-800">
+                      Redeeming {loyaltyPointsToRedeem} points
+                    </span>
+                    <span className="text-xs font-bold text-emerald-700">
+                      - {formatPrice(loyaltyDiscountAmount)}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-amber-700/70">
+                    Slide to redeem points for a discount
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="mt-2 text-[11px] text-amber-700/70">
+                You need {loyaltyData.min_redemption_points} pts to start redeeming (worth ${(loyaltyData.min_redemption_points * loyaltyData.redemption_rate).toFixed(2)})
+              </p>
+            )}
+          </div>
+        ) : null}
+
         <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-900 px-4 py-3 text-white">
           <span className="text-sm font-semibold">Total</span>
           <span className="text-lg font-bold">{formatPrice(total)}</span>
         </div>
+
+        {/* Points earned with this order */}
+        {loyaltyPointsEarned > 0 ? (
+          <div className="mt-2.5 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3.5 py-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400/20">
+                <svg className="h-3.5 w-3.5 text-amber-600" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.28l-4.77 2.51.91-5.33L2.27 6.69l5.34-.78L10 1z" />
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                {hasCustomerSession && !isGuestCustomer ? (
+                  <p className="text-[11px] font-semibold text-amber-900 sm:text-xs">
+                    You&apos;ll earn <span className="text-amber-700">{loyaltyPointsEarned} points</span> with this order
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-[11px] font-semibold text-amber-900 sm:text-xs">
+                      Earn <span className="text-amber-700">{loyaltyPointsEarned} points</span> on this order
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-amber-700/80">
+                      Sign in or create an account to start earning
+                    </p>
+                  </>
+                )}
+              </div>
+              <span className="shrink-0 rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold tabular-nums text-amber-700">
+                +{loyaltyPointsEarned}
+              </span>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -2765,6 +2914,8 @@ export default function RestaurantMenuCheckoutPage({
                 </div>
               </div>
             </section>
+
+            {/* Loyalty redemption moved to order summary panel */}
 
             {fulfillmentMode === 'pickup' && allowCashPickup ? (
               <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">

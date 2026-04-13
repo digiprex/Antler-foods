@@ -45,6 +45,9 @@ const GET_CUSTOMER_ORDERS = `
       cancelled_at
       refunded_at
       refund_amount
+      loyalty_points_earned
+      loyalty_points_redeemed
+      loyalty_discount
     }
   }
 `;
@@ -120,6 +123,9 @@ interface OrderRecord {
   cancelled_at?: string | null;
   refunded_at?: string | null;
   refund_amount?: number | string | null;
+  loyalty_points_earned?: number | string | null;
+  loyalty_points_redeemed?: number | string | null;
+  loyalty_discount?: number | string | null;
 }
 
 interface OrderItemRecord {
@@ -337,6 +343,9 @@ export async function GET(request: NextRequest) {
         cancelledAt: text(order.cancelled_at),
         refundedAt: text(order.refunded_at),
         refundAmount: numberValue(order.refund_amount),
+        loyaltyPointsEarned: numberValue(order.loyalty_points_earned),
+        loyaltyPointsRedeemed: numberValue(order.loyalty_points_redeemed),
+        loyaltyDiscount: numberValue(order.loyalty_discount),
         items: orderItems,
       };
     });

@@ -131,6 +131,65 @@ const INSERT_CUSTOMER_DELIVERY_ADDRESS = `
   }
 `;
 
+const GET_LOYALTY_SETTINGS_FOR_ORDER = `
+  query GetLoyaltySettingsForOrder($restaurant_id: uuid!) {
+    loyalty_settings(where: { restaurant_id: { _eq: $restaurant_id }, is_enabled: { _eq: true } }, limit: 1) {
+      id
+      points_per_dollar
+      redemption_rate
+      min_redemption_points
+      max_redemption_percentage
+      welcome_bonus_points
+    }
+  }
+`;
+
+const GET_LOYALTY_BALANCE = `
+  query GetLoyaltyBalance($customer_id: uuid!, $restaurant_id: uuid!) {
+    loyalty_balances(where: { customer_id: { _eq: $customer_id }, restaurant_id: { _eq: $restaurant_id } }, limit: 1) {
+      id
+      points_balance
+      lifetime_earned
+      lifetime_redeemed
+    }
+  }
+`;
+
+const UPSERT_LOYALTY_BALANCE = `
+  mutation UpsertLoyaltyBalance(
+    $customer_id: uuid!,
+    $restaurant_id: uuid!,
+    $points_balance: Int!,
+    $lifetime_earned: Int!,
+    $lifetime_redeemed: Int!
+  ) {
+    insert_loyalty_balances_one(
+      object: {
+        customer_id: $customer_id
+        restaurant_id: $restaurant_id
+        points_balance: $points_balance
+        lifetime_earned: $lifetime_earned
+        lifetime_redeemed: $lifetime_redeemed
+      }
+      on_conflict: {
+        constraint: loyalty_balances_customer_id_restaurant_id_key
+        update_columns: [points_balance, lifetime_earned, lifetime_redeemed]
+      }
+    ) {
+      id
+      points_balance
+    }
+  }
+`;
+
+const INSERT_LOYALTY_TRANSACTION = `
+  mutation InsertLoyaltyTransaction($object: loyalty_transactions_insert_input!) {
+    insert_loyalty_transactions_one(object: $object) {
+      id
+    }
+  }
+`;
+
 const INSERT_ORDER_ITEMS = `
   mutation InsertOrderItems($objects: [order_items_insert_input!]!) {
     insert_order_items(objects: $objects) {
@@ -274,6 +333,7 @@ interface PlaceMenuOrderInput {
   giftCardCode?: string | null;
   orderNote?: string | null;
   paymentMethod?: 'card' | 'cash';
+  loyaltyPointsToRedeem?: number;
 }
 
 export interface PlaceMenuOrderResult {
@@ -284,6 +344,9 @@ export interface PlaceMenuOrderResult {
   taxTotal: number;
   tipTotal: number;
   discountTotal: number;
+  loyaltyPointsEarned: number;
+  loyaltyPointsRedeemed: number;
+  loyaltyDiscount: number;
   total: number;
   offerApplied: {
     type: 'auto_offer';
@@ -627,8 +690,76 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
   const taxTotal = taxRate > 0
     ? roundCurrency(Math.min(subtotal * (taxRate / 100), serviceFeeCap > 0 ? serviceFeeCap : Infinity))
     : 0;
-  const discountTotal = roundCurrency(orderDiscountTotal + giftCardAppliedAmount);
-  const preGiftCardTotalWithTax = roundCurrency(preGiftCardTotal + taxTotal);
+  // --- Loyalty points redemption ---
+  interface LoyaltySettingsRow {
+    points_per_dollar?: number;
+    redemption_rate?: number;
+    min_redemption_points?: number;
+    max_redemption_percentage?: number;
+    welcome_bonus_points?: number;
+  }
+  interface LoyaltyBalanceRow {
+    id?: string;
+    points_balance?: number;
+    lifetime_earned?: number;
+    lifetime_redeemed?: number;
+  }
+  let loyaltyPointsRedeemed = 0;
+  let loyaltyDiscount = 0;
+  let loyaltySettings: LoyaltySettingsRow | null = null;
+  let existingBalance: LoyaltyBalanceRow | null = null;
+
+  try {
+    const loyaltyData = await adminGraphqlRequest<{
+      loyalty_settings?: LoyaltySettingsRow[];
+      loyalty_balances?: LoyaltyBalanceRow[];
+    }>(
+      `query LoyaltyCheck($restaurant_id: uuid!, $customer_id: uuid!) {
+        loyalty_settings(where: { restaurant_id: { _eq: $restaurant_id }, is_enabled: { _eq: true } }, limit: 1) {
+          points_per_dollar
+          redemption_rate
+          min_redemption_points
+          max_redemption_percentage
+          welcome_bonus_points
+        }
+        loyalty_balances(where: { customer_id: { _eq: $customer_id }, restaurant_id: { _eq: $restaurant_id } }, limit: 1) {
+          id
+          points_balance
+          lifetime_earned
+          lifetime_redeemed
+        }
+      }`,
+      { restaurant_id: restaurantId, customer_id: customerId },
+    );
+    loyaltySettings = loyaltyData.loyalty_settings?.[0] || null;
+    existingBalance = loyaltyData.loyalty_balances?.[0] || null;
+  } catch (err) {
+    console.error('[Menu Orders] Failed to fetch loyalty data:', err);
+  }
+
+  if (
+    loyaltySettings &&
+    typeof input.loyaltyPointsToRedeem === 'number' &&
+    input.loyaltyPointsToRedeem > 0
+  ) {
+    const pointsRequested = Math.round(input.loyaltyPointsToRedeem);
+    const currentBalance = existingBalance?.points_balance ?? 0;
+    const minPoints = loyaltySettings.min_redemption_points ?? 100;
+    const maxPct = loyaltySettings.max_redemption_percentage ?? 50;
+    const rate = typeof loyaltySettings.redemption_rate === 'number' ? loyaltySettings.redemption_rate / 10000 : 0.01;
+
+    if (pointsRequested >= minPoints && pointsRequested <= currentBalance) {
+      const maxDiscount = roundCurrency(subtotal * (maxPct / 100));
+      const requestedDiscount = roundCurrency(pointsRequested * rate);
+      loyaltyDiscount = roundCurrency(Math.min(requestedDiscount, maxDiscount));
+      loyaltyPointsRedeemed = loyaltyDiscount > 0
+        ? Math.min(pointsRequested, Math.ceil(loyaltyDiscount / rate))
+        : 0;
+    }
+  }
+
+  const discountTotal = roundCurrency(orderDiscountTotal + giftCardAppliedAmount + loyaltyDiscount);
+  const preGiftCardTotalWithTax = roundCurrency(preGiftCardTotal + taxTotal - loyaltyDiscount);
   const total = roundCurrency(Math.max(preGiftCardTotalWithTax - giftCardAppliedAmount, 0));
   // State tax is not sourced separately in the current checkout flow yet.
   const stateTax = 0;
@@ -688,6 +819,8 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       delivery_instructions: fulfillmentType === 'delivery' && deliveryData?.instructions ? deliveryData.instructions : null,
       delivery_address_label: fulfillmentType === 'delivery' && deliveryData?.label ? deliveryData.label : null,
       delivery_address_source: fulfillmentType === 'delivery' && deliveryData?.source ? deliveryData.source : null,
+      loyalty_points_redeemed: loyaltyPointsRedeemed,
+      loyalty_discount: loyaltyDiscount,
       delivery_provider: deliveryProvider,
       delivery_dispatch_status:
         fulfillmentType === 'delivery' && deliveryProvider ? 'pending_ready' : null,
@@ -765,6 +898,84 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     }
   }
 
+  // --- Loyalty: credit earned points and debit redeemed points ---
+  let loyaltyPointsEarned = 0;
+  if (loyaltySettings) {
+    const pointsPerDollar = loyaltySettings.points_per_dollar ?? 1;
+    loyaltyPointsEarned = Math.floor(subtotal * pointsPerDollar);
+
+    // Welcome bonus: first order for this restaurant
+    const isFirstOrder = !existingBalance?.id;
+    const welcomeBonus = isFirstOrder ? (loyaltySettings.welcome_bonus_points ?? 0) : 0;
+
+    const currentBalance = existingBalance?.points_balance ?? 0;
+    const currentLifetimeEarned = existingBalance?.lifetime_earned ?? 0;
+    const currentLifetimeRedeemed = existingBalance?.lifetime_redeemed ?? 0;
+    const totalEarned = loyaltyPointsEarned + welcomeBonus;
+    const newBalance = currentBalance + totalEarned - loyaltyPointsRedeemed;
+    const newLifetimeEarned = currentLifetimeEarned + totalEarned;
+    const newLifetimeRedeemed = currentLifetimeRedeemed + loyaltyPointsRedeemed;
+
+    try {
+      await adminGraphqlRequest(UPSERT_LOYALTY_BALANCE, {
+        customer_id: customerId,
+        restaurant_id: restaurantId,
+        points_balance: Math.max(newBalance, 0),
+        lifetime_earned: newLifetimeEarned,
+        lifetime_redeemed: newLifetimeRedeemed,
+      });
+
+      // Insert transaction records
+      if (totalEarned > 0) {
+        await adminGraphqlRequest(INSERT_LOYALTY_TRANSACTION, {
+          object: {
+            customer_id: customerId,
+            restaurant_id: restaurantId,
+            order_id: orderId,
+            type: welcomeBonus > 0 && loyaltyPointsEarned === 0 ? 'welcome_bonus' : 'earned',
+            points: totalEarned,
+            balance_after: Math.max(newBalance, 0),
+            description: welcomeBonus > 0
+              ? `Order #${orderNumber} (+${loyaltyPointsEarned} earned, +${welcomeBonus} welcome bonus)`
+              : `Order #${orderNumber}`,
+          },
+        });
+      }
+
+      if (loyaltyPointsRedeemed > 0) {
+        await adminGraphqlRequest(INSERT_LOYALTY_TRANSACTION, {
+          object: {
+            customer_id: customerId,
+            restaurant_id: restaurantId,
+            order_id: orderId,
+            type: 'redeemed',
+            points: -loyaltyPointsRedeemed,
+            balance_after: Math.max(newBalance, 0),
+            description: `Redeemed on Order #${orderNumber} (-$${loyaltyDiscount.toFixed(2)})`,
+          },
+        });
+      }
+
+      // Update order with earned points
+      if (loyaltyPointsEarned + welcomeBonus > 0) {
+        try {
+          await adminGraphqlRequest(
+            `mutation UpdateOrderLoyaltyEarned($order_id: uuid!, $points: Int!) {
+              update_orders_by_pk(pk_columns: { order_id: $order_id }, _set: { loyalty_points_earned: $points }) {
+                order_id
+              }
+            }`,
+            { order_id: orderId, points: totalEarned },
+          );
+        } catch (err) {
+          console.error('[Menu Orders] Failed to update order loyalty_points_earned:', err);
+        }
+      }
+    } catch (err) {
+      console.error('[Menu Orders] Failed to process loyalty points:', err);
+    }
+  }
+
   return {
     orderId,
     orderNumber,
@@ -773,6 +984,9 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     taxTotal,
     tipTotal: tipAmount,
     discountTotal,
+    loyaltyPointsEarned,
+    loyaltyPointsRedeemed,
+    loyaltyDiscount,
     total,
     offerApplied,
   };

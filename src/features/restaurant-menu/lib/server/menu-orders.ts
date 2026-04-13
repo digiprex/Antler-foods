@@ -656,7 +656,6 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       contact_phone: contact.phone,
       scheduled_for: scheduledFor,
       service_fee: taxTotal,
-      service_fee_capped_at: serviceFeeCap,
       state_tax: stateTax,
       tip_total: tipAmount,
       discount_total: discountTotal,

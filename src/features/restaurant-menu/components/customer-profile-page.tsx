@@ -320,8 +320,8 @@ export default function CustomerProfilePage({
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!firstName.trim() || !lastName.trim() || !phone.trim()) {
-      setSaveMessage({ type: 'error', text: 'All fields are required.' });
+    if (!firstName.trim() || !lastName.trim()) {
+      setSaveMessage({ type: 'error', text: 'First name and last name are required.' });
       return;
     }
 

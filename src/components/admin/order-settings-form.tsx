@@ -44,6 +44,7 @@ interface OrderSettingsSaveResponse {
     preparation_time?: number | null;
     transaction_tax_rate?: number | null;
     service_fee_capped_at?: number | null;
+    allow_cash_pickup?: boolean;
     delivery_zones?: DeliveryZoneApi[];
   };
 }
@@ -190,6 +191,7 @@ export default function OrderSettingsForm({
   const [preparationTime, setPreparationTime] = useState('');
   const [transactionTaxRate, setTransactionTaxRate] = useState('5');
   const [serviceFeeCappedAt, setServiceFeeCappedAt] = useState('100');
+  const [allowCashPickup, setAllowCashPickup] = useState(false);
   const [zones, setZones] = useState<DeliveryZoneForm[]>([
     {
       id: 'zone-1',
@@ -236,6 +238,7 @@ export default function OrderSettingsForm({
                 preparation_time?: number | null;
                 transaction_tax_rate?: number | null;
                 service_fee_capped_at?: number | null;
+                allow_cash_pickup?: boolean;
                 address?: string;
                 delivery_zones?: DeliveryZoneApi[];
               };
@@ -257,6 +260,7 @@ export default function OrderSettingsForm({
         setPreparationTime(payload.data?.preparation_time != null ? String(payload.data.preparation_time) : '');
         setTransactionTaxRate(payload.data?.transaction_tax_rate != null ? String(payload.data.transaction_tax_rate) : '5');
         setServiceFeeCappedAt(payload.data?.service_fee_capped_at != null ? String(payload.data.service_fee_capped_at) : '100');
+        setAllowCashPickup(payload.data?.allow_cash_pickup ?? false);
         setRestaurantAddress(payload.data?.address ?? '');
         const apiZones = (payload.data?.delivery_zones || []).map(mapZoneFromApi);
         if (apiZones.length > 0) {
@@ -287,6 +291,7 @@ export default function OrderSettingsForm({
     preparation_time: preparationTime.trim() !== '' ? Number(preparationTime) : null,
     transaction_tax_rate: transactionTaxRate.trim() !== '' ? Number(transactionTaxRate) : 5,
     service_fee_capped_at: serviceFeeCappedAt.trim() !== '' ? Number(serviceFeeCappedAt) : 100,
+    allow_cash_pickup: allowCashPickup,
     delivery_zones: zones.map((zone) => ({
       name: zone.name.trim(),
       map_selection: zone.coverageMode,
@@ -788,6 +793,30 @@ export default function OrderSettingsForm({
               />
             </div>
           </div>
+        </div>
+
+        <div className="mt-4 flex items-start justify-between gap-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Allow cash payment at pickup</p>
+            <p className="mt-1 text-xs text-gray-600">
+              When enabled, customers can choose to pay with cash when picking up their order.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={allowCashPickup}
+            onClick={() => setAllowCashPickup((current) => !current)}
+            className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+              allowCashPickup ? 'bg-purple-600' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                allowCashPickup ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
         </div>
 
         {/* <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">

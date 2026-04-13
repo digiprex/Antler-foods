@@ -52,19 +52,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (typeof phone !== 'string' || !phone.trim()) {
-      return NextResponse.json(
-        { error: 'Phone number is required.' },
-        { status: 400 },
-      );
-    }
-
     const updatedSession = await updateMenuCustomerProfile({
       customerId: session.customerId,
       restaurantId: session.restaurantId,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      phone: phone.trim(),
+      phone: typeof phone === 'string' && phone.trim() ? phone.trim() : null,
     });
 
     const response = NextResponse.json({

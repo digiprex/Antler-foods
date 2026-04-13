@@ -67,6 +67,7 @@ interface CheckoutOrderRequestBody {
     }>;
   }> | null;
   tipAmount?: number;
+  paymentMethod?: 'card' | 'cash';
   deliveryQuote?: {
     id?: string | null;
     provider?: string;
@@ -104,6 +105,8 @@ export async function POST(request: NextRequest) {
       smsOptIn: body?.smsOptIn !== false,
     });
 
+    const isCashOrder = body?.paymentMethod === 'cash' && (body?.fulfillmentType || 'pickup') === 'pickup';
+
     const result = await placeMenuOrder({
       customerId: customer.customerId,
       restaurantId,
@@ -136,7 +139,16 @@ export async function POST(request: NextRequest) {
       couponCode: body?.couponCode,
       giftCardCode: body?.giftCardCode,
       orderNote: body?.orderNote,
+      paymentMethod: isCashOrder ? 'cash' : 'card',
     });
+
+    if (isCashOrder) {
+      return NextResponse.json({
+        success: true,
+        message: `Order ${result.orderNumber} placed. Pay with cash at pickup.`,
+        order: result,
+      });
+    }
 
     const metadata: Record<string, string> = {
       restaurant_id: restaurantId,

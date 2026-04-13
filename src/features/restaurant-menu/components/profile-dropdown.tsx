@@ -8,12 +8,14 @@ import type { MenuCustomerProfile } from '@/features/restaurant-menu/lib/custome
 interface ProfileDropdownProps {
   profile: MenuCustomerProfile;
   isLoggingOut: boolean;
+  loyaltyPoints?: number | null;
   onLogout: () => void | Promise<void>;
 }
 
 export function ProfileDropdown({
   profile,
   isLoggingOut,
+  loyaltyPoints,
   onLogout,
 }: ProfileDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -92,6 +94,24 @@ export function ProfileDropdown({
             </div>
           </div>
         </div>
+
+        {typeof loyaltyPoints === 'number' && loyaltyPoints > 0 && !profile.isGuest ? (
+          <div className="mt-2 rounded-[16px] border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3.5 py-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400/20">
+                <svg className="h-3.5 w-3.5 text-amber-600" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.28l-4.77 2.51.91-5.33L2.27 6.69l5.34-.78L10 1z" />
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold text-amber-900">Loyalty Points</p>
+              </div>
+              <span className="rounded-full bg-amber-400/20 px-2.5 py-0.5 text-xs font-bold tabular-nums text-amber-700">
+                {loyaltyPoints}
+              </span>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mt-2">
           <Link

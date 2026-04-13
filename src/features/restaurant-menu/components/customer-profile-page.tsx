@@ -28,6 +28,22 @@ export default function CustomerProfilePage({
     refresh,
   } = useMenuCustomerAuth(restaurantId);
   const [navbarAuthSlot, setNavbarAuthSlot] = useState<HTMLElement | null>(null);
+  const [loyaltyPointsBalance, setLoyaltyPointsBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!restaurantId || !hasCustomerSession) {
+      setLoyaltyPointsBalance(null);
+      return;
+    }
+    fetch(`/api/menu-orders/loyalty-balance?restaurant_id=${encodeURIComponent(restaurantId)}`, { credentials: 'same-origin' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data.data?.enabled) {
+          setLoyaltyPointsBalance(data.data.points_balance ?? 0);
+        }
+      })
+      .catch(() => {});
+  }, [restaurantId, hasCustomerSession]);
 
   // Form state
   const [firstName, setFirstName] = useState('');
@@ -1161,6 +1177,7 @@ export default function CustomerProfilePage({
             <ProfileDropdown
               profile={customerProfile}
               isLoggingOut={isLoggingOut}
+              loyaltyPoints={loyaltyPointsBalance}
               onLogout={handleLogout}
             />,
             navbarAuthSlot,

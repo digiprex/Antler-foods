@@ -238,6 +238,23 @@ function MenuPageContent({ data }: MenuPageProps) {
   const [savedAddressesLoaded, setSavedAddressesLoaded] = useState(false);
   const [showSavedAddressPicker, setShowSavedAddressPicker] = useState(false);
   const [hasConfirmedAddress, setHasConfirmedAddress] = useState(false);
+  const [loyaltyPointsBalance, setLoyaltyPointsBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!restaurantId || !hasCustomerSession || customerProfile?.isGuest) {
+      setLoyaltyPointsBalance(null);
+      return;
+    }
+    fetch(`/api/menu-orders/loyalty-balance?restaurant_id=${encodeURIComponent(restaurantId)}`, { credentials: 'same-origin' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data.data?.enabled) {
+          setLoyaltyPointsBalance(data.data.points_balance ?? 0);
+        }
+      })
+      .catch(() => {});
+  }, [restaurantId, hasCustomerSession, customerProfile?.isGuest]);
+
   const contentContainerClass = 'mx-auto w-full max-w-[1080px] px-4 sm:px-6 lg:px-6';
   const brandName = data.restaurant.name.replace(' Menu', '');
 
@@ -963,6 +980,8 @@ function MenuPageContent({ data }: MenuPageProps) {
         mode={fulfillmentMode}
         deliveryAddress={deliveryAddress}
         scheduleLabel={scheduleLabel}
+        loyaltyPointsPerDollar={data.loyaltyPointsPerDollar ?? 0}
+        isSignedIn={hasCustomerSession}
         recommendedItems={recommendedItems}
         onClose={closeCart}
         onUpdateQuantity={updateItemQuantity}
@@ -1070,6 +1089,7 @@ function MenuPageContent({ data }: MenuPageProps) {
             <ProfileDropdown
               profile={customerProfile}
               isLoggingOut={isLoggingOut}
+              loyaltyPoints={loyaltyPointsBalance}
               onLogout={handleLogout}
             />,
             navbarAuthSlot,

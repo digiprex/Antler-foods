@@ -26,6 +26,8 @@ interface CartDrawerProps {
   mode: FulfillmentMode;
   deliveryAddress: string;
   scheduleLabel: string;
+  loyaltyPointsPerDollar?: number;
+  isSignedIn?: boolean;
   recommendedItems: MenuItem[];
   onClose: () => void;
   onUpdateQuantity: (key: string, quantity: number) => void;
@@ -55,6 +57,8 @@ export function CartDrawer({
   mode,
   deliveryAddress,
   scheduleLabel,
+  loyaltyPointsPerDollar = 0,
+  isSignedIn = false,
   recommendedItems,
   onClose,
   onUpdateQuantity,
@@ -77,7 +81,7 @@ export function CartDrawer({
     return null;
   }
 
-  const rewardPoints = Math.round(subtotal * 10);
+  const rewardPoints = loyaltyPointsPerDollar > 0 ? Math.floor(subtotal * loyaltyPointsPerDollar) : 0;
   const checkoutDisabled = itemCount === 0 || isCheckingOut || !checkoutEnabled;
 
   return (
@@ -224,11 +228,38 @@ export function CartDrawer({
         </div>
 
         <div className="border-t border-stone-200 bg-white px-4 pb-4 pt-3 sm:px-6 sm:pb-4">
-          <div className="rounded-[14px] border border-stone-200 bg-stone-50 px-3 py-2 text-center text-[11px] font-semibold text-slate-900 sm:text-xs">
-            You'll earn {rewardPoints} points with this order
-          </div>
+          {rewardPoints > 0 ? (
+            <div className="rounded-[14px] border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3.5 py-2.5">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400/20">
+                  <svg className="h-3.5 w-3.5 text-amber-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.28l-4.77 2.51.91-5.33L2.27 6.69l5.34-.78L10 1z" />
+                  </svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  {isSignedIn ? (
+                    <p className="text-[11px] font-semibold text-amber-900 sm:text-xs">
+                      You&apos;ll earn <span className="text-amber-700">{rewardPoints} points</span> with this order
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-[11px] font-semibold text-amber-900 sm:text-xs">
+                        Earn <span className="text-amber-700">{rewardPoints} points</span> on this order
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-amber-700/80">
+                        Sign in or create an account to start earning
+                      </p>
+                    </>
+                  )}
+                </div>
+                <span className="shrink-0 rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold tabular-nums text-amber-700">
+                  +{rewardPoints}
+                </span>
+              </div>
+            </div>
+          ) : null}
 
-          <div className="mt-2.5 rounded-[14px] border border-stone-200 bg-white px-3 py-2.5">
+          <div className={`${rewardPoints > 0 ? 'mt-2.5' : ''} rounded-[14px] border border-stone-200 bg-white px-3 py-2.5`}>
             <div className="flex items-center justify-between text-slate-950">
               <span className="text-lg font-semibold tracking-tight sm:text-xl">
                 Subtotal

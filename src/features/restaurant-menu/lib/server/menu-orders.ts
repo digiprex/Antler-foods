@@ -71,6 +71,14 @@ const GET_MODIFIER_ITEMS_FOR_ORDER = `
   }
 `;
 
+const GET_RESTAURANT_TAX_RATE = `
+  query GetRestaurantTaxRate($restaurant_id: uuid!) {
+    restaurants_by_pk(restaurant_id: $restaurant_id) {
+      transaction_tax_rate
+    }
+  }
+`;
+
 const INSERT_ORDER = `
   mutation InsertOrder($object: orders_insert_input!) {
     insert_orders_one(object: $object) {
@@ -603,9 +611,14 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     }
   }
 
-  // Service fee / tax is not sourced in the current checkout flow.
-  // Keep this at zero until the real field is explicitly provided.
-  const taxTotal = 0;
+  const taxRateData = await adminGraphqlRequest<{ restaurants_by_pk: { transaction_tax_rate?: number | null } | null }>(
+    GET_RESTAURANT_TAX_RATE,
+    { restaurant_id: restaurantId },
+  );
+  const taxRate = typeof taxRateData.restaurants_by_pk?.transaction_tax_rate === 'number'
+    ? taxRateData.restaurants_by_pk.transaction_tax_rate
+    : 0;
+  const taxTotal = taxRate > 0 ? roundCurrency(subtotal * (taxRate / 100)) : 0;
   const discountTotal = roundCurrency(orderDiscountTotal + giftCardAppliedAmount);
   const preGiftCardTotalWithTax = roundCurrency(preGiftCardTotal + taxTotal);
   const total = roundCurrency(Math.max(preGiftCardTotalWithTax - giftCardAppliedAmount, 0));

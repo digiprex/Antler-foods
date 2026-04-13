@@ -4,6 +4,7 @@ import { getStripe } from '@/lib/server/stripe';
 import { createUberDirectDelivery } from '@/lib/server/delivery/uber-direct';
 import { createDoorDashDriveDelivery } from '@/lib/server/delivery/doordash-drive';
 import { sendOrderPickupReadyEmail } from '@/lib/server/email';
+import { sendInvoiceForOrder } from '@/lib/server/order-invoice';
 
 const GET_PENDING_CONFIRMABLE_ORDERS = `
   query GetPendingConfirmableOrders {
@@ -481,6 +482,14 @@ export async function GET(request: NextRequest) {
                 confirmed_at: new Date().toISOString(),
               });
               log(`Reconciled order ${order.order_id} — payment succeeded`);
+              try {
+                await sendInvoiceForOrder(order.order_id);
+                log(`Invoice email sent for reconciled order ${order.order_id}`);
+              } catch (emailErr) {
+                log(`Invoice email failed for reconciled order ${order.order_id}`, {
+                  error: emailErr instanceof Error ? emailErr.message : 'Unknown error',
+                });
+              }
             } else if (pi.status === 'canceled' || pi.status === 'requires_payment_method') {
               await adminGraphqlRequest(RECONCILE_STALE_ORDER, {
                 order_id: order.order_id,

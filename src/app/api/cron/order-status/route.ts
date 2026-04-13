@@ -4,14 +4,18 @@ import { createUberDirectDelivery } from '@/lib/server/delivery/uber-direct';
 import { createDoorDashDriveDelivery } from '@/lib/server/delivery/doordash-drive';
 import { sendOrderPickupReadyEmail } from '@/lib/server/email';
 
-const GET_PENDING_CASH_ORDERS = `
-  query GetPendingCashOrders {
+const GET_PENDING_CONFIRMABLE_ORDERS = `
+  query GetPendingConfirmableOrders {
     orders(
       where: {
         status: { _eq: "pending" }
-        payment_method: { _eq: "cash" }
         is_deleted: { _eq: false }
         placed_at: { _is_null: false }
+        _or: [
+          { payment_method: { _eq: "cash" } }
+          { payment_method: { _eq: "loyalty" } }
+          { payment_status: { _eq: "paid" } }
+        ]
       }
     ) {
       order_id
@@ -20,8 +24,8 @@ const GET_PENDING_CASH_ORDERS = `
   }
 `;
 
-const CONFIRM_CASH_ORDERS = `
-  mutation ConfirmCashOrders($order_ids: [uuid!]!, $confirmed_at: timestamptz!) {
+const CONFIRM_PENDING_ORDERS = `
+  mutation ConfirmPendingOrders($order_ids: [uuid!]!, $confirmed_at: timestamptz!) {
     update_orders(
       where: { order_id: { _in: $order_ids } }
       _set: { status: "preparing", confirmed_at: $confirmed_at }
@@ -399,25 +403,26 @@ export async function GET(request: NextRequest) {
   };
 
   try {
-    // 0. Catch any pending cash orders and transition them to "preparing"
+    // 0. Catch any pending orders (cash, loyalty-covered, or already paid) and
+    //    transition them to "preparing" so the preparation timer picks them up.
     try {
-      const pendingCash = await adminGraphqlRequest<{
+      const pendingOrders = await adminGraphqlRequest<{
         orders: Array<{ order_id: string; placed_at: string }>;
-      }>(GET_PENDING_CASH_ORDERS, {});
+      }>(GET_PENDING_CONFIRMABLE_ORDERS, {});
 
-      const cashOrderIds = (pendingCash.orders || []).map((o) => o.order_id);
-      if (cashOrderIds.length > 0) {
+      const pendingIds = (pendingOrders.orders || []).map((o) => o.order_id);
+      if (pendingIds.length > 0) {
         const now = new Date().toISOString();
         const confirmResult = await adminGraphqlRequest<{
           update_orders: { affected_rows: number };
-        }>(CONFIRM_CASH_ORDERS, { order_ids: cashOrderIds, confirmed_at: now });
-        log('Confirmed pending cash orders', {
+        }>(CONFIRM_PENDING_ORDERS, { order_ids: pendingIds, confirmed_at: now });
+        log('Confirmed pending orders', {
           count: confirmResult.update_orders?.affected_rows || 0,
-          order_ids: cashOrderIds,
+          order_ids: pendingIds,
         });
       }
     } catch (err) {
-      log('Failed to confirm pending cash orders', {
+      log('Failed to confirm pending orders', {
         error: err instanceof Error ? err.message : 'Unknown error',
       });
     }

@@ -168,6 +168,35 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // If loyalty points / gift cards cover the full amount, skip Stripe and
+    // mark the order as paid + preparing so the cron processes it normally.
+    if (result.total <= 0) {
+      try {
+        await adminGraphqlRequest(
+          `mutation ConfirmFullyDiscountedOrder($order_id: uuid!, $confirmed_at: timestamptz!) {
+            update_orders_by_pk(
+              pk_columns: { order_id: $order_id }
+              _set: {
+                payment_status: "paid",
+                payment_method: "loyalty",
+                status: "preparing",
+                confirmed_at: $confirmed_at
+              }
+            ) { order_id }
+          }`,
+          { order_id: result.orderId, confirmed_at: new Date().toISOString() },
+        );
+      } catch (err) {
+        console.error('[Menu Orders] Failed to auto-confirm fully discounted order:', err);
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Order ${result.orderNumber} placed. Fully covered by rewards!`,
+        order: result,
+      });
+    }
+
     const metadata: Record<string, string> = {
       restaurant_id: restaurantId,
       order_id: result.orderId,

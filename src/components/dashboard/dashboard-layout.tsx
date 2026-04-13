@@ -23,7 +23,11 @@ import type { RestaurantSearchSelection } from './search-box';
 import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
 import { PurpleDotSpinner } from './purple-dot-spinner';
-import { DASHBOARD_ROUTE_LOADING_START_EVENT, DASHBOARD_RESTAURANT_UPDATED_EVENT, type RestaurantUpdateData } from './route-loading-events';
+import {
+  DASHBOARD_ROUTE_LOADING_START_EVENT,
+  DASHBOARD_RESTAURANT_UPDATED_EVENT,
+  type RestaurantUpdateData,
+} from './route-loading-events';
 import {
   buildRestaurantSlug,
   parseRestaurantScopeFromPath,
@@ -68,19 +72,25 @@ function resolveDashboardBasePath(pathname: string, userRole: AppRole | null) {
 function isWebsitePath(pathname: string) {
   // Treat the legacy "pages-settings" route as part of the Website workspace
   // so the sidebar stays in the Website tab when navigating there.
-  return /^\/dashboard\/(admin|owner|manager)\/(website|pages-settings)(\/|$)/.test(pathname) ||
-         /^\/admin\/(pages-settings|navbar-settings|popup-settings|youtube-settings|footer-settings|hero-settings|gallery-settings|faq-settings|review-settings)(\/|$)/.test(pathname);
+  return (
+    /^\/dashboard\/(admin|owner|manager)\/(website|pages-settings)(\/|$)/.test(
+      pathname,
+    ) ||
+    /^\/admin\/(pages-settings|navbar-settings|popup-settings|youtube-settings|footer-settings|hero-settings|gallery-settings|faq-settings|review-settings)(\/|$)/.test(
+      pathname,
+    )
+  );
 }
 
 function isInformationPath(pathname: string) {
-  return (
-    /^\/dashboard\/(admin|owner|manager)\/restaurants\/[^/]+\/information\/(brand|address|opening-hours|google-profile|bank-accounts)(\/|$)/.test(pathname)
+  return /^\/dashboard\/(admin|owner|manager)\/restaurants\/[^/]+\/information\/(brand|address|opening-hours|google-profile|bank-accounts)(\/|$)/.test(
+    pathname,
   );
 }
 
 function isRestaurantWorkspacePath(pathname: string) {
   return (
-    /^\/dashboard\/(admin|owner|manager)\/(sales|menu|information|reviews|assets|opening-hours|locations|bank-accounts|payouts)(\/|$)/.test(
+    /^\/dashboard\/(admin|owner|manager)\/(sales|menu|information|reviews|assets|opening-hours|locations|bank-accounts|google-manager|payouts)(\/|$)/.test(
       pathname,
     ) ||
     /^\/dashboard\/(admin|owner|manager)\/restaurants\/[^/]+\/media(\/|$)/.test(
@@ -124,9 +134,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   );
   const websiteBasePath = useMemo(
     () =>
-      roleRouteSegment
-        ? `/dashboard/${roleRouteSegment}/website`
-        : '/website',
+      roleRouteSegment ? `/dashboard/${roleRouteSegment}/website` : '/website',
     [roleRouteSegment],
   );
 
@@ -145,7 +153,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
     const queryRestaurantName =
       searchParams.get('restaurant_name')?.trim() ?? '';
-    const resolvedName = queryRestaurantName || restaurantScope.restaurantNameFromSlug;
+    const resolvedName =
+      queryRestaurantName || restaurantScope.restaurantNameFromSlug;
 
     setSelectedRestaurant((previous) => {
       if (
@@ -159,8 +168,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         id: restaurantScope.restaurantId,
         name: resolvedName,
         // Preserve domain fields if they exist for the same restaurant
-        customDomain: previous?.id === restaurantScope.restaurantId ? previous.customDomain : undefined,
-        stagingDomain: previous?.id === restaurantScope.restaurantId ? previous.stagingDomain : undefined,
+        customDomain:
+          previous?.id === restaurantScope.restaurantId
+            ? previous.customDomain
+            : undefined,
+        stagingDomain:
+          previous?.id === restaurantScope.restaurantId
+            ? previous.stagingDomain
+            : undefined,
       };
     });
   }, [pathname, searchParams]);
@@ -191,8 +206,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         id: queryRestaurantId,
         name: queryRestaurantName,
         // Preserve domain fields if they exist for the same restaurant
-        customDomain: previous?.id === queryRestaurantId ? previous.customDomain : undefined,
-        stagingDomain: previous?.id === queryRestaurantId ? previous.stagingDomain : undefined,
+        customDomain:
+          previous?.id === queryRestaurantId
+            ? previous.customDomain
+            : undefined,
+        stagingDomain:
+          previous?.id === queryRestaurantId
+            ? previous.stagingDomain
+            : undefined,
       };
     });
   }, [pathname, searchParams]);
@@ -214,7 +235,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       setIsRouteLoading(true);
     };
 
-    window.addEventListener(DASHBOARD_ROUTE_LOADING_START_EVENT, onRouteLoadStart);
+    window.addEventListener(
+      DASHBOARD_ROUTE_LOADING_START_EVENT,
+      onRouteLoadStart,
+    );
     return () => {
       window.removeEventListener(
         DASHBOARD_ROUTE_LOADING_START_EVENT,
@@ -241,7 +265,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       });
     };
 
-    window.addEventListener(DASHBOARD_RESTAURANT_UPDATED_EVENT, onRestaurantUpdated);
+    window.addEventListener(
+      DASHBOARD_RESTAURANT_UPDATED_EVENT,
+      onRestaurantUpdated,
+    );
     return () => {
       window.removeEventListener(
         DASHBOARD_RESTAURANT_UPDATED_EVENT,
@@ -298,7 +325,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       return;
     }
 
-    if (pathname.startsWith('/dashboard') && !pathname.startsWith('/dashboard/')) {
+    if (
+      pathname.startsWith('/dashboard') &&
+      !pathname.startsWith('/dashboard/')
+    ) {
       const nextSuffix = pathname.slice('/dashboard'.length);
       router.replace(`/dashboard/${roleRouteSegment}${nextSuffix}`);
       return;
@@ -342,9 +372,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
     if (!restaurant) {
       if (restaurantScope?.roleSegment) {
-        router.replace(`/dashboard/${restaurantScope.roleSegment}/restaurants`, {
-          scroll: false,
-        });
+        router.replace(
+          `/dashboard/${restaurantScope.roleSegment}/restaurants`,
+          {
+            scroll: false,
+          },
+        );
         return;
       }
 
@@ -391,10 +424,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     router.replace(nextUrl, { scroll: false });
   };
 
-  if (
-    isStatusLoading ||
-    (isAuthenticated && !isRoleResolved)
-  ) {
+  if (isStatusLoading || (isAuthenticated && !isRoleResolved)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-6 py-4 text-sm text-gray-700 shadow-sm">
@@ -424,7 +454,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         selectedRestaurant={selectedRestaurant}
         onRestaurantSelect={onRestaurantSelect}
       />
-      <div className={`min-h-screen transition-all duration-200 ease-in-out ${isSidebarOpen ? 'ml-[260px]' : 'ml-20'}`}>
+      <div
+        className={`min-h-screen transition-all duration-200 ease-in-out ${isSidebarOpen ? 'ml-[260px]' : 'ml-20'}`}
+      >
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar
             userLabel={userLabel}

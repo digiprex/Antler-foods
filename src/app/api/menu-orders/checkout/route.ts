@@ -12,6 +12,7 @@ import {
 } from '@/features/restaurant-menu/lib/server/menu-orders';
 import { getRestaurantStripeAccountByRestaurantId } from '@/lib/server/restaurant-stripe-accounts';
 import { getStripe } from '@/lib/server/stripe';
+import { sendInvoiceForOrder } from '@/lib/server/order-invoice';
 
 const GET_RESTAURANT_PAYMENT_METADATA = `
   query GetRestaurantPaymentMetadata($restaurant_id: uuid!) {
@@ -161,6 +162,12 @@ export async function POST(request: NextRequest) {
         console.error('[Menu Orders] Failed to auto-confirm cash order:', err);
       }
 
+      try {
+        await sendInvoiceForOrder(result.orderId);
+      } catch (emailErr) {
+        console.error('[Menu Orders] Cash order confirmation email failed:', emailErr);
+      }
+
       return NextResponse.json({
         success: true,
         message: `Order ${result.orderNumber} placed. Pay with cash at pickup.`,
@@ -188,6 +195,12 @@ export async function POST(request: NextRequest) {
         );
       } catch (err) {
         console.error('[Menu Orders] Failed to auto-confirm fully discounted order:', err);
+      }
+
+      try {
+        await sendInvoiceForOrder(result.orderId);
+      } catch (emailErr) {
+        console.error('[Menu Orders] Loyalty order confirmation email failed:', emailErr);
       }
 
       return NextResponse.json({
@@ -277,4 +290,3 @@ function trimMetadataValue(value: unknown) {
 
   return normalized.slice(0, 500);
 }
-

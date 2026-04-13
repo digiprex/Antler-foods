@@ -157,6 +157,9 @@ const GET_ORDERS_QUERY = `
       payment_method
       payment_reference
       offer_applied
+      loyalty_points_earned
+      loyalty_points_redeemed
+      loyalty_discount
     }
   }
 `;

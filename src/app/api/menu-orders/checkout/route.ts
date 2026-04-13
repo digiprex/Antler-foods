@@ -78,6 +78,7 @@ interface CheckoutOrderRequestBody {
   couponCode?: string | null;
   giftCardCode?: string | null;
   orderNote?: string | null;
+  loyaltyPointsToRedeem?: number;
   emailOptIn?: boolean;
   smsOptIn?: boolean;
 }
@@ -139,10 +140,27 @@ export async function POST(request: NextRequest) {
       couponCode: body?.couponCode,
       giftCardCode: body?.giftCardCode,
       orderNote: body?.orderNote,
+      loyaltyPointsToRedeem: typeof body?.loyaltyPointsToRedeem === 'number' ? body.loyaltyPointsToRedeem : 0,
       paymentMethod: isCashOrder ? 'cash' : 'card',
     });
 
     if (isCashOrder) {
+      // Cash pickup orders skip Stripe, so transition to "preparing" immediately
+      // so the cron picks them up for the preparation timer.
+      try {
+        await adminGraphqlRequest(
+          `mutation ConfirmCashOrder($order_id: uuid!, $confirmed_at: timestamptz!) {
+            update_orders_by_pk(
+              pk_columns: { order_id: $order_id }
+              _set: { status: "preparing", confirmed_at: $confirmed_at }
+            ) { order_id }
+          }`,
+          { order_id: result.orderId, confirmed_at: new Date().toISOString() },
+        );
+      } catch (err) {
+        console.error('[Menu Orders] Failed to auto-confirm cash order:', err);
+      }
+
       return NextResponse.json({
         success: true,
         message: `Order ${result.orderNumber} placed. Pay with cash at pickup.`,

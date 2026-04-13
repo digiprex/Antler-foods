@@ -41,6 +41,9 @@ interface OrderHistoryOrder {
   cancelledAt: string | null;
   refundedAt: string | null;
   refundAmount: number | null;
+  loyaltyPointsEarned: number;
+  loyaltyPointsRedeemed: number;
+  loyaltyDiscount: number;
   items: OrderHistoryItem[];
 }
 
@@ -501,6 +504,15 @@ function OrderDetailModal({
                 <span>Total</span>
                 <span>{formatPrice(order.total)}</span>
               </div>
+              {order.loyaltyDiscount > 0 ? (
+                <div className="flex justify-between text-amber-600">
+                  <span className="flex items-center gap-1.5">
+                    Loyalty discount
+                    <span className="rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[9px] font-bold text-amber-700">{order.loyaltyPointsRedeemed} pts</span>
+                  </span>
+                  <span>-{formatPrice(order.loyaltyDiscount)}</span>
+                </div>
+              ) : null}
               {order.refundAmount != null && order.refundAmount > 0 ? (
                 <div className="flex justify-between border-t border-orange-200 pt-2 text-sm font-semibold text-orange-700">
                   <span>Refunded{order.paymentStatus === 'partially_refunded' ? ' (partial)' : ''}</span>
@@ -509,6 +521,26 @@ function OrderDetailModal({
               ) : null}
             </div>
           </div>
+
+          {/* Loyalty points earned */}
+          {order.loyaltyPointsEarned > 0 ? (
+            <div className="mt-4 rounded-[14px] border border-amber-200 bg-gradient-to-r from-amber-50/80 to-orange-50/80 p-3.5">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-400/20">
+                  <svg className="h-4 w-4 text-amber-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.28l-4.77 2.51.91-5.33L2.27 6.69l5.34-.78L10 1z" />
+                  </svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-amber-900">Points earned</p>
+                  <p className="text-[11px] text-amber-700/80">From this order</p>
+                </div>
+                <span className="rounded-full bg-amber-400/20 px-2.5 py-1 text-sm font-bold tabular-nums text-amber-700">
+                  +{order.loyaltyPointsEarned}
+                </span>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* Footer actions */}
@@ -606,6 +638,7 @@ export default function OrderHistoryPage({
   const [sortDirection, setSortDirection] = useState<'newest' | 'oldest'>('newest');
   const [cancelConfirmOrder, setCancelConfirmOrder] = useState<OrderHistoryOrder | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [loyaltyPointsBalance, setLoyaltyPointsBalance] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<{
     total: number;
@@ -620,6 +653,21 @@ export default function OrderHistoryPage({
     await logout();
     router.refresh();
   };
+
+  useEffect(() => {
+    if (!restaurantId || !hasCustomerSession) {
+      setLoyaltyPointsBalance(null);
+      return;
+    }
+    fetch(`/api/menu-orders/loyalty-balance?restaurant_id=${encodeURIComponent(restaurantId)}`, { credentials: 'same-origin' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data.data?.enabled) {
+          setLoyaltyPointsBalance(data.data.points_balance ?? 0);
+        }
+      })
+      .catch(() => {});
+  }, [restaurantId, hasCustomerSession]);
 
   useEffect(() => {
     const syncNavbarAuthSlot = () => {
@@ -1056,7 +1104,12 @@ export default function OrderHistoryPage({
                       </div>
 
                       {/* Total */}
-                      <p className="text-right text-sm font-bold text-slate-950 sm:text-sm">{formatPrice(order.total)}</p>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-slate-950">{formatPrice(order.total)}</p>
+                        {order.loyaltyPointsEarned > 0 ? (
+                          <p className="mt-0.5 text-[10px] font-semibold text-amber-600">+{order.loyaltyPointsEarned} pts</p>
+                        ) : null}
+                      </div>
 
                       {/* Arrow */}
                       <div className="hidden justify-end sm:flex">
@@ -1260,6 +1313,7 @@ export default function OrderHistoryPage({
             <ProfileDropdown
               profile={customerProfile}
               isLoggingOut={isLoggingOut}
+              loyaltyPoints={loyaltyPointsBalance}
               onLogout={handleLogout}
             />,
             navbarAuthSlot,

@@ -416,12 +416,10 @@ export async function GET(request: NextRequest) {
     const pickupOrderIds = new Set<string>();
     const skipped: Array<{ order_id: string; reason: string }> = [];
 
+    const DEFAULT_PREPARATION_MINUTES = 15;
+
     for (const order of orders) {
-      const prepMinutes = prepTimeByRestaurant.get(order.restaurant_id);
-      if (!prepMinutes) {
-        skipped.push({ order_id: order.order_id, reason: 'no preparation_time configured for restaurant' });
-        continue;
-      }
+      const prepMinutes = prepTimeByRestaurant.get(order.restaurant_id) || DEFAULT_PREPARATION_MINUTES;
       const confirmedAt = new Date(order.confirmed_at).getTime();
       if (Number.isNaN(confirmedAt)) {
         skipped.push({ order_id: order.order_id, reason: `invalid confirmed_at: ${order.confirmed_at}` });

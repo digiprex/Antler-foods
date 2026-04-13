@@ -2138,6 +2138,24 @@ Generated on: ${new Date().toLocaleString()}
                                 )}
                               </div>
                             )}
+                          {selectedOrder.loyalty_discount != null &&
+                            selectedOrder.loyalty_discount > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600 flex items-center gap-1.5">
+                                  Loyalty Discount
+                                  {selectedOrder.loyalty_points_redeemed != null &&
+                                    selectedOrder.loyalty_points_redeemed > 0 && (
+                                      <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                                        {selectedOrder.loyalty_points_redeemed} pts
+                                      </span>
+                                    )}
+                                  :
+                                </span>
+                                <span className="font-medium text-green-600">
+                                  -{formatCurrency(selectedOrder.loyalty_discount)}
+                                </span>
+                              </div>
+                            )}
                           <div className="border-t border-gray-200 pt-3">
                             <div className="flex justify-between">
                               <span className="text-lg font-bold text-gray-900">
@@ -2148,6 +2166,17 @@ Generated on: ${new Date().toLocaleString()}
                               </span>
                             </div>
                           </div>
+                          {selectedOrder.loyalty_points_earned != null &&
+                            selectedOrder.loyalty_points_earned > 0 && (
+                              <div className="mt-2 flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                                <svg className="h-4 w-4 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                                  <path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.28l-4.77 2.51.91-5.33L2.27 6.69l5.34-.78L10 1z" />
+                                </svg>
+                                <span className="text-xs font-semibold text-amber-800">
+                                  +{selectedOrder.loyalty_points_earned} loyalty points earned
+                                </span>
+                              </div>
+                            )}
                           {selectedOrder.refund_amount != null && selectedOrder.refund_amount > 0 && (
                             <div className="mt-2 flex justify-between border-t border-dashed border-orange-200 pt-2">
                               <span className="text-sm font-semibold text-orange-700">

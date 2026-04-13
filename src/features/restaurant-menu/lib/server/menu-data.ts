@@ -46,6 +46,7 @@ const GET_RESTAURANT_BY_DOMAINS = `
       pickup_allowed
       delivery_allowed
       transaction_tax_rate
+      service_fee_capped_at
       address
       city
       state
@@ -68,6 +69,7 @@ const GET_RESTAURANT_BY_ID = `
       pickup_allowed
       delivery_allowed
       transaction_tax_rate
+      service_fee_capped_at
       address
       city
       state
@@ -726,6 +728,7 @@ function buildMenuData({ restaurant,
     hasMenu: !!menu?.menu_id,
     allowTips: restaurant.allow_tips !== false,
     transactionTaxRate: typeof restaurant.transaction_tax_rate === 'number' ? restaurant.transaction_tax_rate : 5,
+    serviceFeeCappedAt: typeof restaurant.service_fee_capped_at === 'number' ? restaurant.service_fee_capped_at : 100,
     pickupAllowed,
     deliveryAllowed,
     stripeConnected,
@@ -804,6 +807,7 @@ function buildEmptyMenuData(restaurantName: string): RestaurantMenuData {
     hasMenu: false,
     allowTips: true,
     transactionTaxRate: 5,
+    serviceFeeCappedAt: 100,
     pickupAllowed: true,
     deliveryAllowed: true,
     stripeConnected: true,

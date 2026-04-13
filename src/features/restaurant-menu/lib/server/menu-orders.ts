@@ -75,6 +75,7 @@ const GET_RESTAURANT_TAX_RATE = `
   query GetRestaurantTaxRate($restaurant_id: uuid!) {
     restaurants_by_pk(restaurant_id: $restaurant_id) {
       transaction_tax_rate
+      service_fee_capped_at
     }
   }
 `;
@@ -611,14 +612,19 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     }
   }
 
-  const taxRateData = await adminGraphqlRequest<{ restaurants_by_pk: { transaction_tax_rate?: number | null } | null }>(
+  const taxRateData = await adminGraphqlRequest<{ restaurants_by_pk: { transaction_tax_rate?: number | null; service_fee_capped_at?: number | null } | null }>(
     GET_RESTAURANT_TAX_RATE,
     { restaurant_id: restaurantId },
   );
   const taxRate = typeof taxRateData.restaurants_by_pk?.transaction_tax_rate === 'number'
     ? taxRateData.restaurants_by_pk.transaction_tax_rate
     : 0;
-  const taxTotal = taxRate > 0 ? roundCurrency(subtotal * (taxRate / 100)) : 0;
+  const serviceFeeCap = typeof taxRateData.restaurants_by_pk?.service_fee_capped_at === 'number'
+    ? taxRateData.restaurants_by_pk.service_fee_capped_at
+    : 100;
+  const taxTotal = taxRate > 0
+    ? roundCurrency(Math.min(subtotal * (taxRate / 100), serviceFeeCap > 0 ? serviceFeeCap : Infinity))
+    : 0;
   const discountTotal = roundCurrency(orderDiscountTotal + giftCardAppliedAmount);
   const preGiftCardTotalWithTax = roundCurrency(preGiftCardTotal + taxTotal);
   const total = roundCurrency(Math.max(preGiftCardTotalWithTax - giftCardAppliedAmount, 0));
@@ -650,6 +656,7 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       contact_phone: contact.phone,
       scheduled_for: scheduledFor,
       service_fee: taxTotal,
+      service_fee_capped_at: serviceFeeCap,
       state_tax: stateTax,
       tip_total: tipAmount,
       discount_total: discountTotal,

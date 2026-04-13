@@ -460,6 +460,7 @@ export default function RestaurantMenuCheckoutPage({
     deliveryAddress?.trim() || data.defaultDeliveryAddress || '';
   const tipsEnabled = data.allowTips !== false;
   const taxRate = typeof data.transactionTaxRate === 'number' ? data.transactionTaxRate : 0;
+  const serviceFeeCap = typeof data.serviceFeeCappedAt === 'number' ? data.serviceFeeCappedAt : 100;
   const [tipPreset, setTipPreset] = useState<TipPreset>('20');
   const [tipAmount, setTipAmount] = useState(0);
   const [customTipInput, setCustomTipInput] = useState('0.00');
@@ -1493,7 +1494,9 @@ export default function RestaurantMenuCheckoutPage({
     fulfillmentMode === 'delivery' ? (deliveryQuote?.deliveryFee ?? 0) : 0;
   const discountAmount =
     appliedCoupon?.discountAmount || activeRestaurantOffer?.discountAmount || 0;
-  const taxAmount = taxRate > 0 ? roundCurrency(subtotal * (taxRate / 100)) : 0;
+  const taxAmount = taxRate > 0
+    ? roundCurrency(Math.min(subtotal * (taxRate / 100), serviceFeeCap > 0 ? serviceFeeCap : Infinity))
+    : 0;
   const preGiftCardTotal = roundCurrency(
     subtotal +
       deliveryFeeAmount +

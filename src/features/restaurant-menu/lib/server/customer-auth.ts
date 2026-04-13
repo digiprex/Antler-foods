@@ -476,13 +476,13 @@ export async function updateMenuCustomerProfile({
   restaurantId: string;
   firstName: string;
   lastName: string;
-  phone: string;
+  phone: string | null;
 }) {
   if (!UUID_REGEX.test(customerId)) {
     throw new MenuCustomerAuthError(400, 'Invalid customer id.');
   }
 
-  const normalizedPhone = requirePhone(phone);
+  const normalizedPhone = phone && phone.trim() ? requirePhone(phone) : null;
   const displayName = requireDisplayName(firstName, lastName, '');
 
   const customer = await findCustomerById(customerId);
@@ -848,7 +848,7 @@ async function updateCustomer(
     smsOptIn = true,
   }: {
     email: string;
-    phone: string;
+    phone: string | null;
     displayName: string;
     passwordHash: string | null;
     isGuest: boolean;

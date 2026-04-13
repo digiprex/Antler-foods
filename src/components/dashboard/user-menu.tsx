@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface UserMenuProps {
   userLabel: string;
@@ -11,6 +13,8 @@ interface UserMenuProps {
 export function UserMenu({ userLabel, onLogout, isLoggingOut }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const pathname = usePathname() ?? "";
+  const roleSegment = pathname.split("/").find((seg) => seg === "admin" || seg === "manager" || seg === "owner") || "admin";
 
   useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
@@ -44,6 +48,14 @@ export function UserMenu({ userLabel, onLogout, isLoggingOut }: UserMenuProps) {
             <p className="mt-1 text-sm font-medium text-gray-900 truncate">{userLabel}</p>
           </div>
           <div className="p-2">
+            <Link
+              href={`/dashboard/${roleSegment}/profile`}
+              onClick={() => setOpen(false)}
+              className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-all hover:bg-purple-50 hover:text-purple-600"
+            >
+              <UserIcon />
+              Profile
+            </Link>
             <button
               type="button"
               onClick={async () => {
@@ -76,6 +88,24 @@ function ChevronDownIcon() {
       strokeLinejoin="round"
     >
       <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
     </svg>
   );
 }

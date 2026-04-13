@@ -24,7 +24,6 @@
 import { Suspense } from 'react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for faster initial load - form loads progressively
@@ -64,7 +63,7 @@ function MenuSettingsContent() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName ? (
         <>
           <button
@@ -109,7 +108,7 @@ function MenuSettingsContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

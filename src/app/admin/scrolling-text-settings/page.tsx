@@ -19,7 +19,6 @@
 import { Suspense } from 'react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for faster initial load - form loads progressively
@@ -54,7 +53,7 @@ function ScrollingTextSettingsContent() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName && pageId ? (
         <>
           <button
@@ -83,7 +82,7 @@ function ScrollingTextSettingsContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

@@ -21,7 +21,6 @@
 import { Suspense } from 'react';
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import GlobalStyleSettingsForm from '@/components/admin/global-style-settings-form';
 
 function GlobalStyleSettingsContent() {
@@ -73,21 +72,21 @@ function GlobalStyleSettingsContent() {
   // Show loading state while checking domain
   if (restaurantId && restaurantName && checkingDomain) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex min-h-[400px] items-center justify-center p-6">
           <div className="inline-flex items-center gap-3 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3.5">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
             <p className="text-sm font-medium text-gray-700">Checking site status...</p>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   // Show message when no staging domain exists
   if (restaurantId && restaurantName && stagingDomainExists === false) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex min-h-[400px] items-center justify-center p-6">
           <div className="max-w-md text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-purple-200">
@@ -118,12 +117,12 @@ function GlobalStyleSettingsContent() {
             </button>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName && stagingDomainExists === true ? (
         <GlobalStyleSettingsForm />
       ) : (
@@ -139,7 +138,7 @@ function GlobalStyleSettingsContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

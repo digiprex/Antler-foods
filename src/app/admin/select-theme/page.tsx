@@ -18,7 +18,6 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for faster initial load
@@ -43,7 +42,7 @@ function SelectThemeContent() {
   const restaurantName = searchParams.get('restaurant_name');
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName ? (
         <SelectThemeForm />
       ) : (
@@ -61,7 +60,7 @@ function SelectThemeContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

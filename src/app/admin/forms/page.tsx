@@ -16,7 +16,6 @@ import { Suspense } from 'react';
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import type { Form } from '@/types/forms.types';
 import Toast from '@/components/ui/toast';
 
@@ -186,7 +185,7 @@ function FormsContent() {
 
   if (!restaurantId || !restaurantName) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex min-h-[400px] items-center justify-center p-6">
           <div className="max-w-md text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-purple-200">
@@ -202,28 +201,28 @@ function FormsContent() {
             </p>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   // Show loading state while checking domain
   if (checkingDomain) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex min-h-[400px] items-center justify-center p-6">
           <div className="inline-flex items-center gap-3 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3.5">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
             <p className="text-sm font-medium text-gray-700">Checking site status...</p>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   // Show message when no staging domain exists
   if (stagingDomainExists === false) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex min-h-[400px] items-center justify-center p-6">
           <div className="max-w-md text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-purple-200">
@@ -254,12 +253,12 @@ function FormsContent() {
             </button>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       {/* Toast Notification */}
       {showToast && (
         <Toast
@@ -474,7 +473,7 @@ function FormsContent() {
           onCancel={cancelDeleteForm}
         />
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

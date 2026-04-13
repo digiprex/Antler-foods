@@ -20,7 +20,6 @@
 
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import MenuManagementForm from '@/components/admin/menu-management-form';
 
 function MenuManagementContent() {
@@ -37,7 +36,7 @@ function MenuManagementContent() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName ? (
         <>
           <div className="mb-6 flex items-center justify-between">
@@ -80,7 +79,7 @@ function MenuManagementContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

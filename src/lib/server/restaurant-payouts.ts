@@ -197,7 +197,7 @@ export interface RestaurantPayoutStatement {
   totals: {
     grossSales: number;
     tipTotal: number;
-    processingTaxTotal: number;
+    serviceFeeTotal: number;
     stateTaxTotal: number;
     deliveryFeeTotal: number;
     refundTotal: number;
@@ -825,7 +825,7 @@ export async function getRestaurantPayoutStatement(
     totals: {
       grossSales: roundCurrency(orders.reduce((sum, order) => sum + order.cartTotal, 0)),
       tipTotal: roundCurrency(orders.reduce((sum, order) => sum + order.tipTotal, 0)),
-      processingTaxTotal: roundCurrency(
+      serviceFeeTotal: roundCurrency(
         orders.reduce((sum, order) => sum + order.taxTotal, 0),
       ),
       stateTaxTotal: roundCurrency(

@@ -20,7 +20,6 @@
 import { Suspense } from 'react';
 
 import { useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import PagesListPage from '@/components/admin/pages-list';
 
 function PagesSettingsContent() {
@@ -29,7 +28,7 @@ function PagesSettingsContent() {
   const restaurantName = searchParams.get('restaurant_name');
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName ? (
         <PagesListPage />
       ) : (
@@ -45,7 +44,7 @@ function PagesSettingsContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

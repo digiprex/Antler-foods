@@ -255,7 +255,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       return;
     }
 
-    const timer = setTimeout(() => setClaimsWaitElapsed(true), 1200);
+    const timer = setTimeout(() => setClaimsWaitElapsed(true), 150);
     return () => clearTimeout(timer);
   }, [isAuthenticated, roleFromClaims]);
 

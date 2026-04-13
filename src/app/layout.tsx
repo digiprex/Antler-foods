@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import { unstable_cache } from "next/cache";
 import "./globals.css";
 import { Providers } from "./providers";
 import ConditionalAnnouncementBar from "../components/conditional-announcement-bar";
@@ -24,6 +25,21 @@ const GET_RESTAURANT_ICON = `
     }
   }
 `;
+
+const getCachedRestaurantIcon = unstable_cache(
+  async (restaurantId: string) => {
+    const data = await adminGraphqlRequest<RestaurantIconResponse>(
+      GET_RESTAURANT_ICON,
+      { restaurant_id: restaurantId },
+    );
+    return {
+      faviconUrl: data.restaurants_by_pk?.favicon_url ?? null,
+      logoUrl: data.restaurants_by_pk?.logo ?? null,
+    };
+  },
+  ["restaurant-icon"],
+  { revalidate: 300 }, // 5 minutes
+);
 
 function resolveIconUrl(rawUrl: string, appOrigin: string): string {
   if (/^https?:\/\//i.test(rawUrl)) {
@@ -50,7 +66,13 @@ export async function generateMetadata(): Promise<Metadata> {
   const baseMetadata = generateSEOMetadata();
 
   try {
-    const requestHeaders = headers();
+    const requestHeaders = await headers();
+
+    // Skip expensive DB lookups for admin/dashboard routes — they define their own metadata
+    if (requestHeaders.get("x-admin-route")) {
+      return baseMetadata;
+    }
+
     const host =
       requestHeaders.get("x-forwarded-host") ||
       requestHeaders.get("host") ||
@@ -71,13 +93,7 @@ export async function generateMetadata(): Promise<Metadata> {
       return baseMetadata;
     }
 
-    const data = await adminGraphqlRequest<RestaurantIconResponse>(
-      GET_RESTAURANT_ICON,
-      { restaurant_id: restaurantId },
-    );
-
-    const faviconUrl = data.restaurants_by_pk?.favicon_url;
-    const logoUrl = data.restaurants_by_pk?.logo;
+    const { faviconUrl, logoUrl } = await getCachedRestaurantIcon(restaurantId);
     const iconCandidate = faviconUrl || logoUrl;
 
     if (!iconCandidate) {

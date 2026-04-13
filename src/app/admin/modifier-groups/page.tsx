@@ -18,7 +18,6 @@
 'use client';
 
 import { Suspense } from 'react';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for faster initial load
@@ -39,7 +38,7 @@ const ModifierGroupsForm = dynamic(
 
 function ModifierGroupsContent() {
   return (
-    <DashboardLayout>
+    <>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Modifier Groups</h1>
         <p className="text-sm text-gray-600 mt-1">
@@ -47,7 +46,7 @@ function ModifierGroupsContent() {
         </p>
       </div>
       <ModifierGroupsForm />
-    </DashboardLayout>
+    </>
   );
 }
 

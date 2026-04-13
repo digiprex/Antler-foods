@@ -570,7 +570,7 @@ export function PayoutsPage() {
             />
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-6">
             <section className="rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[28px] sm:p-6">
               <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
@@ -589,7 +589,7 @@ export function PayoutsPage() {
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-col gap-2 sm:mt-5 sm:gap-3 lg:flex-row lg:items-center">
+                <div className="mt-4 flex flex-col gap-2 sm:mt-5 sm:gap-3 lg:flex-row lg:items-center">
                 <FilterInput
                   value={batchSearch}
                   onChange={setBatchSearch}
@@ -611,7 +611,7 @@ export function PayoutsPage() {
               {filteredBatches.length ? (
                 <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 sm:mt-5 sm:rounded-3xl">
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-200">
+                    <table className="min-w-[980px] divide-y divide-slate-200 xl:min-w-full">
                       <thead className="bg-slate-50">
                         <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                           <th className="px-4 py-3">Batch</th>
@@ -696,7 +696,7 @@ export function PayoutsPage() {
               )}
             </section>
 
-            <aside className="rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[28px] sm:p-6">
+            <section className="rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[28px] sm:p-6">
               <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-violet-600 sm:text-[11px]">
                 Settlement snapshot
               </div>
@@ -704,24 +704,27 @@ export function PayoutsPage() {
                 Current configuration
               </h2>
 
-              <div className="mt-4 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 sm:mt-5 sm:rounded-3xl">
-                <InfoRow
+              <div className="mt-4 grid gap-3 sm:mt-5 sm:grid-cols-2 xl:grid-cols-5">
+                <CompactInfoCard
                   label="Connected account"
-                  value={truncateMiddle(data?.stripeConnectedAccountId, 24)}
-                  valueClassName="font-mono text-[11px] leading-5 break-all sm:text-[12px]"
+                  value={truncateMiddle(data?.stripeConnectedAccountId, 32)}
+                  valueClassName="font-mono text-[12px] leading-5 break-all"
                 />
-                <InfoRow label="Currency" value={currency} />
-                <InfoRow label="Pending orders" value={String(data?.pendingOrderCount || 0)} />
-                <InfoRow
+                <CompactInfoCard label="Currency" value={currency} />
+                <CompactInfoCard
+                  label="Pending orders"
+                  value={String(data?.pendingOrderCount || 0)}
+                />
+                <CompactInfoCard
                   label="Pending payout"
                   value={formatCurrency(data?.pendingPayoutAmount || 0, currency)}
                 />
-                <InfoRow
+                <CompactInfoCard
                   label="Latest batch status"
                   value={latestBatch ? formatBatchStatus(latestBatch.status) : 'No batch yet'}
                 />
               </div>
-            </aside>
+            </section>
           </div>
         </>
       )}
@@ -919,6 +922,31 @@ function InfoRow({
         {label}
       </div>
       <div className={`text-xs font-medium text-slate-900 sm:text-sm ${valueClassName || ''}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function CompactInfoCard({
+  label,
+  value,
+  valueClassName,
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-3 sm:rounded-[22px] sm:px-5 sm:py-4">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 sm:text-[11px]">
+        {label}
+      </div>
+      <div
+        className={`mt-2 text-sm font-semibold tracking-tight text-slate-950 sm:text-[15px] ${
+          valueClassName || ''
+        }`}
+      >
         {value}
       </div>
     </div>

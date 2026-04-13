@@ -43,6 +43,7 @@ interface OrderSettingsSaveResponse {
     delivery_allowed?: boolean;
     preparation_time?: number | null;
     transaction_tax_rate?: number | null;
+    service_fee_capped_at?: number | null;
     delivery_zones?: DeliveryZoneApi[];
   };
 }
@@ -188,6 +189,7 @@ export default function OrderSettingsForm({
   const [deliveryAllowed, setDeliveryAllowed] = useState(true);
   const [preparationTime, setPreparationTime] = useState('');
   const [transactionTaxRate, setTransactionTaxRate] = useState('5');
+  const [serviceFeeCappedAt, setServiceFeeCappedAt] = useState('100');
   const [zones, setZones] = useState<DeliveryZoneForm[]>([
     {
       id: 'zone-1',
@@ -233,6 +235,7 @@ export default function OrderSettingsForm({
                 delivery_allowed?: boolean;
                 preparation_time?: number | null;
                 transaction_tax_rate?: number | null;
+                service_fee_capped_at?: number | null;
                 address?: string;
                 delivery_zones?: DeliveryZoneApi[];
               };
@@ -253,6 +256,7 @@ export default function OrderSettingsForm({
         setDeliveryAllowed(payload.data?.delivery_allowed ?? true);
         setPreparationTime(payload.data?.preparation_time != null ? String(payload.data.preparation_time) : '');
         setTransactionTaxRate(payload.data?.transaction_tax_rate != null ? String(payload.data.transaction_tax_rate) : '5');
+        setServiceFeeCappedAt(payload.data?.service_fee_capped_at != null ? String(payload.data.service_fee_capped_at) : '100');
         setRestaurantAddress(payload.data?.address ?? '');
         const apiZones = (payload.data?.delivery_zones || []).map(mapZoneFromApi);
         if (apiZones.length > 0) {
@@ -282,6 +286,7 @@ export default function OrderSettingsForm({
     delivery_allowed: deliveryAllowed,
     preparation_time: preparationTime.trim() !== '' ? Number(preparationTime) : null,
     transaction_tax_rate: transactionTaxRate.trim() !== '' ? Number(transactionTaxRate) : 5,
+    service_fee_capped_at: serviceFeeCappedAt.trim() !== '' ? Number(serviceFeeCappedAt) : 100,
     delivery_zones: zones.map((zone) => ({
       name: zone.name.trim(),
       map_selection: zone.coverageMode,
@@ -749,6 +754,38 @@ export default function OrderSettingsForm({
                 className={`w-20 px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 ${isManager ? 'cursor-not-allowed bg-gray-100 text-gray-500' : ''}`}
               />
               <span className="inline-flex items-center border-l border-gray-300 bg-gray-50 px-3 text-sm text-gray-700">%</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <label htmlFor="service-fee-cap" className="text-sm font-semibold text-gray-900">
+                Service fee cap ($)
+              </label>
+              <p className="mt-1 text-xs text-gray-600">
+                Maximum service fee amount charged per order. Set to 0 for no cap.
+              </p>
+              {isManager && (
+                <p className="mt-1 text-xs text-amber-600">
+                  Only admins can change the service fee cap.
+                </p>
+              )}
+            </div>
+            <div className="flex overflow-hidden rounded-lg border border-gray-300 bg-white">
+              <span className="inline-flex items-center border-r border-gray-300 bg-gray-50 px-3 text-sm text-gray-700">$</span>
+              <input
+                id="service-fee-cap"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="100"
+                value={serviceFeeCappedAt}
+                onChange={(e) => setServiceFeeCappedAt(e.target.value)}
+                disabled={isManager}
+                className={`w-20 px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 ${isManager ? 'cursor-not-allowed bg-gray-100 text-gray-500' : ''}`}
+              />
             </div>
           </div>
         </div>

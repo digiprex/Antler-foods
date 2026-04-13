@@ -70,6 +70,15 @@ type UmamiMetricType =
   | 'hostname'
   | 'channel';
 
+// In-memory cache for Umami websites list (avoids hitting external API on every page load)
+let cachedWebsites: UmamiWebsite[] | null = null;
+let cachedWebsitesTimestamp = 0;
+const WEBSITES_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// In-memory cache for domain→websiteId lookups
+const domainWebsiteIdCache = new Map<string, { value: string | null; timestamp: number }>();
+const DOMAIN_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 function normalizeConfiguredBaseUrl(raw: string) {
   const trimmed = raw.trim().replace(/\/+$/, '');
 
@@ -242,6 +251,11 @@ async function fetchUmamiJson<T>(path: string): Promise<T | null> {
 }
 
 async function fetchUmamiWebsites() {
+  // Return cached list if still fresh
+  if (cachedWebsites && Date.now() - cachedWebsitesTimestamp < WEBSITES_CACHE_TTL_MS) {
+    return cachedWebsites;
+  }
+
   const config = getUmamiConfig();
 
   if (!config) {
@@ -266,11 +280,13 @@ async function fetchUmamiWebsites() {
   }
 
   const json = (await response.json()) as UmamiListResponse;
-  if (Array.isArray(json)) {
-    return json;
-  }
+  const websites = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
 
-  return Array.isArray(json.data) ? json.data : [];
+  // Update cache
+  cachedWebsites = websites;
+  cachedWebsitesTimestamp = Date.now();
+
+  return websites;
 }
 
 function findWebsiteByDomain(websites: UmamiWebsite[], domain: string) {
@@ -292,9 +308,20 @@ export async function getUmamiWebsiteIdForDomain(domain: string) {
     const normalizedDomain = normalizeDomain(domain);
     if (!normalizedDomain) return null;
 
+    // Check domain-level cache first
+    const cached = domainWebsiteIdCache.get(normalizedDomain);
+    if (cached && Date.now() - cached.timestamp < DOMAIN_CACHE_TTL_MS) {
+      return cached.value;
+    }
+
     const websites = await fetchUmamiWebsites();
     const found = findWebsiteByDomain(websites, normalizedDomain);
-    return websiteIdFromWebsite(found);
+    const websiteId = websiteIdFromWebsite(found);
+
+    // Cache the result
+    domainWebsiteIdCache.set(normalizedDomain, { value: websiteId, timestamp: Date.now() });
+
+    return websiteId;
   } catch (error) {
     console.error('[Umami] Failed to resolve website ID for domain:', domain, error);
     return null;

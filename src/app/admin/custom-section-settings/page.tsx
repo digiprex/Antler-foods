@@ -21,7 +21,6 @@
 
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import CustomSectionSettingsForm from '@/components/admin/custom-section-settings-form-simple';
 
 function CustomSectionSettingsContent() {
@@ -42,7 +41,7 @@ function CustomSectionSettingsContent() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName ? (
         <>
           <button
@@ -75,7 +74,7 @@ function CustomSectionSettingsContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

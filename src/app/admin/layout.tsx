@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { generateMetadata as generateSEOMetadata, getPageSEO } from "@/lib/seo";
+import { AdminShell } from "./admin-shell";
 
 export const metadata: Metadata = generateSEOMetadata(getPageSEO('admin'));
 
@@ -9,5 +10,5 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
-  return <>{children}</>;
+  return <AdminShell>{children}</AdminShell>;
 }

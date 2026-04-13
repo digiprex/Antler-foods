@@ -15,7 +15,6 @@ import { Suspense } from 'react';
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import type { Form, FormField, FormFieldType, FormPayload } from '@/types/forms.types';
 import Toast from '@/components/ui/toast';
 
@@ -280,7 +279,7 @@ function FormBuilderContent() {
 
   if (!restaurantId) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex min-h-[400px] items-center justify-center p-6">
           <div className="max-w-md text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-purple-200">
@@ -296,12 +295,12 @@ function FormBuilderContent() {
             </p>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       {/* Toast Notification */}
       {showToast && (
         <Toast
@@ -694,7 +693,7 @@ function FormBuilderContent() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 

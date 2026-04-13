@@ -154,6 +154,34 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 /**
+ * Fetch page data on the server so the client can render immediately
+ * without a redundant loading-spinner fetch.
+ */
+async function fetchPageDataOnServer(slug: string, domain: string) {
+  if (!domain) return null;
+
+  try {
+    const isLocal = domain.includes('localhost') || domain.includes('127.0.0.1');
+    const protocol = isLocal ? 'http' : 'https';
+    const appOrigin = `${protocol}://${domain}`;
+
+    const pageResponse = await fetch(
+      `${appOrigin}/api/page-details?domain=${encodeURIComponent(domain)}&url_slug=${encodeURIComponent(slug)}`,
+      { next: { revalidate: 60 } },
+    );
+
+    if (!pageResponse.ok) return null;
+
+    const data = await pageResponse.json();
+    if (!data.success || !data.data?.page?.restaurant_id) return null;
+
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Main page component
  */
 export default async function DynamicPage({ params }: PageProps) {
@@ -162,14 +190,17 @@ export default async function DynamicPage({ params }: PageProps) {
     requestHeaders.get('x-forwarded-host') ||
     requestHeaders.get('host') ||
     '';
-  const umamiWebsiteId = domain
-    ? await getUmamiWebsiteIdForDomain(domain)
-    : null;
+
+  const [umamiWebsiteId, initialPageData] = await Promise.all([
+    domain ? getUmamiWebsiteIdForDomain(domain) : null,
+    fetchPageDataOnServer(params.slug, domain),
+  ]);
 
   return (
     <DynamicPageClient
       slug={params.slug}
       umamiWebsiteId={umamiWebsiteId}
+      initialPageData={initialPageData}
     />
   );
 }

@@ -21,7 +21,6 @@
 
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for faster initial load
@@ -56,7 +55,7 @@ function MenuCategoriesContent() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName && menuId && menuName ? (
         <>
           <div className="mb-6 flex items-center justify-between">
@@ -110,7 +109,7 @@ function MenuCategoriesContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

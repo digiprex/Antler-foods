@@ -17,7 +17,6 @@ import { Suspense } from 'react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import toast, { Toaster } from 'react-hot-toast';
 import { ImageGalleryModal } from '@/components/admin/image-gallery-modal';
 
@@ -133,14 +132,14 @@ function SEOSettingsContent() {
     return (
       <>
         <Toaster />
-        <DashboardLayout>
+        <>
           <div className="flex items-center justify-center min-h-screen">
             <div className="inline-flex items-center gap-3 rounded-xl border border-purple-200 bg-purple-50 px-5 py-3.5">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
               <p className="text-sm font-medium text-gray-700">Loading SEO settings...</p>
             </div>
           </div>
-        </DashboardLayout>
+        </>
       </>
     );
   }
@@ -148,7 +147,7 @@ function SEOSettingsContent() {
   return (
     <>
       <Toaster />
-      <DashboardLayout>
+      <>
         {restaurantId && restaurantName && pageId ? (
           <>
             {/* Back Button */}
@@ -448,7 +447,7 @@ function SEOSettingsContent() {
           title="Select Social Sharing Image"
           description="Choose an image from your media library or upload new"
         />
-      </DashboardLayout>
+      </>
     </>
   );
 }

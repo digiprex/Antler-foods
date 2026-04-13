@@ -9,7 +9,6 @@
 import { Suspense } from 'react';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import Toast from '@/components/ui/toast';
 
 interface FormSubmission {
@@ -93,7 +92,7 @@ function FormSubmissionsContent() {
 
   if (!restaurantId) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex min-h-[400px] items-center justify-center p-6">
           <div className="max-w-md text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-purple-200">
@@ -109,12 +108,12 @@ function FormSubmissionsContent() {
             </p>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -372,7 +371,7 @@ function FormSubmissionsContent() {
           onClose={() => setShowToast(false)}
         />
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

@@ -3,7 +3,6 @@
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 
 const GiftCardsForm = dynamic(
   () => import('@/components/admin/gift-cards-form'),
@@ -26,7 +25,7 @@ function GiftCardsContent() {
   const restaurantName = searchParams?.get('restaurant_name') || null;
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName ? (
         <>
           <div className="mb-6">
@@ -50,7 +49,7 @@ function GiftCardsContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

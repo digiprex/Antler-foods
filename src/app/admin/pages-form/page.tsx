@@ -19,7 +19,6 @@
 import { Suspense } from 'react';
 
 import { useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { PageForm } from '@/components/admin/page-form';
 
 function PageFormContent() {
@@ -29,7 +28,7 @@ function PageFormContent() {
   const restaurantName = searchParams.get('restaurant_name');
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName ? (
         <div className="p-6">
           <div className="mb-6">
@@ -56,7 +55,7 @@ function PageFormContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

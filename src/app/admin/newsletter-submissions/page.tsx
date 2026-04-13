@@ -3,7 +3,6 @@
 import { Suspense } from 'react';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 
 interface NewsletterSubmission {
   id: string;
@@ -126,7 +125,7 @@ function NewsletterSubmissionsContent() {
 
   if (!restaurantId) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex min-h-[400px] items-center justify-center p-6">
           <div className="max-w-md text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-blue-200">
@@ -142,12 +141,12 @@ function NewsletterSubmissionsContent() {
             </p>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -381,7 +380,7 @@ function NewsletterSubmissionsContent() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 

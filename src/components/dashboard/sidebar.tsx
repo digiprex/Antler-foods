@@ -277,7 +277,6 @@ export function Sidebar({
           icon: <FormsIcon />,
           matchPrefixes: [
             `/admin/forms`,
-            `/admin/form-submissions`,
             `/admin/form-settings`,
           ],
         },
@@ -353,7 +352,7 @@ export function Sidebar({
             `/admin/site-analytics`,
             selectedRestaurant,
           ),
-          label: 'Storefornt Analytics',
+          label: 'Storefront Analytics',
           icon: <SiteAnalyticsIcon />,
           matchPrefixes: [`/admin/site-analytics`],
         },

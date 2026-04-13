@@ -2,7 +2,6 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import dynamic from 'next/dynamic';
 
 const SentEmailsForm = dynamic(() => import('@/components/admin/sent-emails-form'), {
@@ -23,7 +22,7 @@ function SentEmailsContent() {
   const restaurantName = searchParams?.get('restaurant_name') || null;
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName ? (
         <>
           <div className="mb-6">
@@ -49,7 +48,7 @@ function SentEmailsContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

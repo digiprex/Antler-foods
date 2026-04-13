@@ -30,13 +30,17 @@ const CustomSection = dynamic(() => import('@/components/custom-section'));
 interface DynamicPageClientProps {
   slug: string;
   umamiWebsiteId?: string | null;
+  initialPageData?: any;
 }
 
-export default function DynamicPageClient({ slug, umamiWebsiteId = null }: DynamicPageClientProps) {
-  const [pageData, setPageData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+export default function DynamicPageClient({ slug, umamiWebsiteId = null, initialPageData }: DynamicPageClientProps) {
+  const hasInitialData = Boolean(initialPageData?.data?.page?.restaurant_id);
+  const [pageData, setPageData] = useState<any>(hasInitialData ? initialPageData : null);
+  const [loading, setLoading] = useState(!hasInitialData);
   const [error, setError] = useState<string | null>(null);
-  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [restaurantId, setRestaurantId] = useState<string | null>(
+    hasInitialData ? initialPageData.data.page.restaurant_id : null,
+  );
   const [topSpacing, setTopSpacing] = useState<string>('0px');
 
   // Calculate dynamic top spacing based on navbar and announcement bar
@@ -131,10 +135,10 @@ export default function DynamicPageClient({ slug, umamiWebsiteId = null }: Dynam
       }
     };
 
-    if (slug) {
+    if (slug && !hasInitialData) {
       fetchPageData();
     }
-  }, [slug]);
+  }, [slug, hasInitialData]);
 
   // Show loading state
   if (loading) {

@@ -164,6 +164,7 @@ function MenuPageContent({ data }: MenuPageProps) {
     updateItemQuantity,
     updateCartNote,
     getItemQuantity,
+    clearCart,
   } = useMenuCart();
   const restaurantId = data.restaurantId || data.locations[0]?.id || null;
   const {
@@ -308,13 +309,14 @@ function MenuPageContent({ data }: MenuPageProps) {
     }
 
     if (fulfillmentMode !== defaultMode) {
+      clearCart();
       setFulfillmentMode(defaultMode);
     }
 
     if (locationModalMode !== defaultMode) {
       setLocationModalMode(defaultMode);
     }
-  }, [pickupAllowed, deliveryAllowed, defaultMode, fulfillmentMode, locationModalMode]);
+  }, [pickupAllowed, deliveryAllowed, defaultMode, fulfillmentMode, locationModalMode, clearCart]);
 
   useEffect(() => {
     if (showClosedPopup) {
@@ -334,6 +336,7 @@ function MenuPageContent({ data }: MenuPageProps) {
 
     setDeliveryAddress(storedDeliveryAddress.formattedAddress);
     setDeliveryAddressData(storedDeliveryAddress);
+    setHasConfirmedAddress(true);
   }, [restaurantId]);
 
   useEffect(() => {
@@ -374,9 +377,9 @@ function MenuPageContent({ data }: MenuPageProps) {
     restaurantId,
   ]);
 
-  // Fetch saved addresses for logged-in users in delivery mode
+  // Prefetch saved addresses as soon as customer is logged in
   useEffect(() => {
-    if (!hasCustomerSession || fulfillmentMode !== 'delivery' || savedAddressesLoaded) {
+    if (!hasCustomerSession || savedAddressesLoaded) {
       return;
     }
 
@@ -391,7 +394,9 @@ function MenuPageContent({ data }: MenuPageProps) {
         setSavedAddresses(addrs);
         setSavedAddressesLoaded(true);
 
-        // Auto-pick default address if no address is set yet
+        // Auto-pick default address if currently in delivery mode
+        if (fulfillmentMode !== 'delivery') return;
+
         const storedDeliveryAddress = readStoredDeliveryAddress(restaurantId);
         if (storedDeliveryAddress?.formattedAddress) {
           setHasConfirmedAddress(true);
@@ -428,7 +433,7 @@ function MenuPageContent({ data }: MenuPageProps) {
       }
     })();
     return () => { cancelled = true; };
-  }, [hasCustomerSession, fulfillmentMode, savedAddressesLoaded, restaurantId, data.defaultDeliveryAddress, deliveryAddressData.formattedAddress]);
+  }, [hasCustomerSession, savedAddressesLoaded, fulfillmentMode, restaurantId, data.defaultDeliveryAddress, deliveryAddressData.formattedAddress]);
 
   const handleDeliveryAddressChange = (nextAddress: string) => {
     const normalizedAddress = trimDeliveryAddressText(nextAddress);
@@ -620,6 +625,31 @@ function MenuPageContent({ data }: MenuPageProps) {
 
     if (!deliveryAllowed && mode === 'delivery') {
       return;
+    }
+
+    if (mode !== fulfillmentMode) {
+      clearCart();
+    }
+
+    if (mode === 'delivery' && savedAddressesLoaded && !hasConfirmedAddress) {
+      const defaultSaved = savedAddresses.find((a) => a.is_default) || savedAddresses[0];
+      if (defaultSaved) {
+        const nextAddress: DeliveryAddressInput = {
+          formattedAddress: defaultSaved.address || '',
+          placeId: defaultSaved.place_id || undefined,
+          addressLine1: defaultSaved.address || undefined,
+          city: defaultSaved.city || undefined,
+          state: defaultSaved.state || undefined,
+          postalCode: defaultSaved.zip_code || undefined,
+          countryCode: defaultSaved.country || undefined,
+          latitude: defaultSaved.latitude ? parseFloat(defaultSaved.latitude) : undefined,
+          longitude: defaultSaved.longitude ? parseFloat(defaultSaved.longitude) : undefined,
+          source: 'saved',
+        };
+        setDeliveryAddress(nextAddress.formattedAddress);
+        setDeliveryAddressData(nextAddress);
+        setHasConfirmedAddress(true);
+      }
     }
 
     setFulfillmentMode(mode);
@@ -982,9 +1012,11 @@ function MenuPageContent({ data }: MenuPageProps) {
           setScheduleModalOpen(true);
         }}
         onConfirm={() => {
-          setFulfillmentMode(
-            pickupAllowed && deliveryAllowed ? locationModalMode : defaultMode,
-          );
+          const nextMode = pickupAllowed && deliveryAllowed ? locationModalMode : defaultMode;
+          if (nextMode !== fulfillmentMode) {
+            clearCart();
+          }
+          setFulfillmentMode(nextMode);
           setLocationModalOpen(false);
         }}
       />

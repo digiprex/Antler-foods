@@ -21,7 +21,6 @@
 import { Suspense } from 'react';
 
 import { useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import NavbarSettingsForm from '@/components/admin/navbar-settings-form';
 
 function NavbarSettingsContent() {
@@ -30,7 +29,7 @@ function NavbarSettingsContent() {
   const restaurantName = searchParams.get('restaurant_name');
 
   return (
-    <DashboardLayout>
+    <>
       {restaurantId && restaurantName ? (
         <NavbarSettingsForm />
       ) : (
@@ -60,7 +59,7 @@ function NavbarSettingsContent() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

@@ -10,7 +10,6 @@
 import { Suspense } from 'react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { useState, useEffect } from 'react';
 import type { PopupConfig } from '@/types/popup.types';
 import { DEFAULT_POPUP_CONFIG } from '@/types/popup.types';
@@ -472,7 +471,7 @@ function PopupSettingsContent() {
 
   if (!restaurantId) {
     return (
-      <DashboardLayout>
+      <>
         <div className={styles.emptyState}>
           <div className={styles.emptyStateIcon}>🔔</div>
           <h2 className={styles.emptyStateTitle}>No Restaurant Selected</h2>
@@ -480,12 +479,12 @@ function PopupSettingsContent() {
             Please select a restaurant from the dashboard to configure popup settings.
           </p>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className={styles.container}>
         <div className={styles.singleLayout}>
           <div className={styles.formSection}>
@@ -1058,7 +1057,7 @@ function PopupSettingsContent() {
           {toast.message}
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

@@ -516,6 +516,7 @@ export default function RestaurantMenuCheckoutPage({
   );
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<{
+    orderId: string;
     orderNumber: string;
     total: number;
   } | null>(null);
@@ -1454,6 +1455,7 @@ export default function RestaurantMenuCheckoutPage({
         message?: string;
         clientSecret?: string;
         order?: {
+          orderId?: string;
           orderNumber?: string;
           total?: number;
         };
@@ -1469,6 +1471,7 @@ export default function RestaurantMenuCheckoutPage({
       if (payload?.clientSecret) {
         setClientSecret(payload.clientSecret);
         setPendingOrderData({
+          orderId: payload.order?.orderId || '',
           orderNumber: payload.order?.orderNumber || '',
           total: payload.order?.total ?? 0,
         });
@@ -1993,7 +1996,7 @@ export default function RestaurantMenuCheckoutPage({
 
         {/* Loyalty Points — balance + redeem */}
         {loyaltyData?.enabled && hasCustomerSession && !isGuestCustomer && loyaltyData.points_balance > 0 ? (
-          <div className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50/80 to-orange-50/80 p-3.5">
+          <div className="mb-4 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50/80 to-orange-50/80 p-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400/20">
@@ -3104,12 +3107,23 @@ export default function RestaurantMenuCheckoutPage({
             <StripePaymentProvider clientSecret={clientSecret}>
               <StripePaymentSection
                 total={pendingOrderData?.total ?? total}
-                onSuccess={() =>
+                onSuccess={async () => {
+                  if (pendingOrderData?.orderId) {
+                    try {
+                      await fetch('/api/menu-orders/confirm-payment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderId: pendingOrderData.orderId }),
+                      });
+                    } catch {
+                      // Webhook will handle as fallback
+                    }
+                  }
                   navigateToSuccess(
                     pendingOrderData?.orderNumber,
                     pendingOrderData?.total,
-                  )
-                }
+                  );
+                }}
                 onError={(message) => setCheckoutError(message)}
                 onProcessingChange={setIsPaymentProcessing}
               />

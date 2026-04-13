@@ -652,7 +652,7 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       offer_applied: storedOfferApplied ? JSON.stringify(storedOfferApplied) : null,
       fulfillment_type: fulfillmentType,
       payment_method: paymentMethod,
-      payment_status: paymentMethod === 'cash' ? 'cash_on_pickup' : 'processing',
+      payment_status: 'pending',
       contact_first_name: contact.firstName,
       contact_last_name: contact.lastName,
       contact_email: contact.email,

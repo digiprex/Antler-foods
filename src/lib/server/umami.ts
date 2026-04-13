@@ -275,8 +275,11 @@ async function fetchUmamiWebsites() {
   });
 
   if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(`Failed to fetch Umami websites (${response.status}): ${body}`);
+    console.error(`[Umami] Failed to fetch websites (${response.status})`);
+    // Cache the empty result so we don't hammer a failing API on every page load
+    cachedWebsites = [];
+    cachedWebsitesTimestamp = Date.now();
+    return [];
   }
 
   const json = (await response.json()) as UmamiListResponse;

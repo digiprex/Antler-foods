@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
+import { getStripe } from '@/lib/server/stripe';
 import { createUberDirectDelivery } from '@/lib/server/delivery/uber-direct';
 import { createDoorDashDriveDelivery } from '@/lib/server/delivery/doordash-drive';
 import { sendOrderPickupReadyEmail } from '@/lib/server/email';
@@ -31,6 +32,34 @@ const CONFIRM_PENDING_ORDERS = `
       _set: { status: "preparing", confirmed_at: $confirmed_at }
     ) {
       affected_rows
+    }
+  }
+`;
+
+const GET_STALE_PROCESSING_ORDERS = `
+  query GetStaleProcessingOrders($stale_before: timestamptz!) {
+    orders(
+      where: {
+        status: { _eq: "pending" }
+        payment_status: { _eq: "processing" }
+        payment_reference: { _is_null: false }
+        is_deleted: { _eq: false }
+        placed_at: { _lt: $stale_before }
+      }
+    ) {
+      order_id
+      payment_reference
+    }
+  }
+`;
+
+const RECONCILE_STALE_ORDER = `
+  mutation ReconcileStaleOrder($order_id: uuid!, $payment_status: String!, $status: String!, $confirmed_at: timestamptz) {
+    update_orders_by_pk(
+      pk_columns: { order_id: $order_id }
+      _set: { payment_status: $payment_status, status: $status, confirmed_at: $confirmed_at }
+    ) {
+      order_id
     }
   }
 `;
@@ -423,6 +452,55 @@ export async function GET(request: NextRequest) {
       }
     } catch (err) {
       log('Failed to confirm pending orders', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+    }
+
+    // 0b. Reconcile card orders stuck in "processing" — verify with Stripe
+    //     and confirm if payment actually succeeded (handles webhook failures).
+    try {
+      const staleBefore = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const staleData = await adminGraphqlRequest<{
+        orders: Array<{ order_id: string; payment_reference: string }>;
+      }>(GET_STALE_PROCESSING_ORDERS, { stale_before: staleBefore });
+
+      const staleOrders = staleData.orders || [];
+      if (staleOrders.length > 0) {
+        log('Reconciling stale processing orders', { count: staleOrders.length });
+        const stripe = getStripe();
+
+        for (const order of staleOrders) {
+          try {
+            const pi = await stripe.paymentIntents.retrieve(order.payment_reference);
+
+            if (pi.status === 'succeeded') {
+              await adminGraphqlRequest(RECONCILE_STALE_ORDER, {
+                order_id: order.order_id,
+                payment_status: 'paid',
+                status: 'preparing',
+                confirmed_at: new Date().toISOString(),
+              });
+              log(`Reconciled order ${order.order_id} — payment succeeded`);
+            } else if (pi.status === 'canceled' || pi.status === 'requires_payment_method') {
+              await adminGraphqlRequest(RECONCILE_STALE_ORDER, {
+                order_id: order.order_id,
+                payment_status: 'failed',
+                status: 'cancelled',
+                confirmed_at: null,
+              });
+              log(`Cancelled stale order ${order.order_id} — Stripe status: ${pi.status}`);
+            } else {
+              log(`Order ${order.order_id} still in Stripe status: ${pi.status}`);
+            }
+          } catch (stripeErr) {
+            log(`Failed to reconcile order ${order.order_id}`, {
+              error: stripeErr instanceof Error ? stripeErr.message : 'Unknown error',
+            });
+          }
+        }
+      }
+    } catch (err) {
+      log('Failed to reconcile stale processing orders', {
         error: err instanceof Error ? err.message : 'Unknown error',
       });
     }

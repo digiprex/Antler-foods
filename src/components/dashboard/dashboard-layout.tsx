@@ -9,6 +9,7 @@ import {
   useUserData,
 } from '@nhost/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Toaster } from 'react-hot-toast';
 import { getRoleFromHasuraClaims, getUserRole } from '@/lib/auth/get-user-role';
 import type { AppRole } from '@/lib/auth/get-user-role';
 import {
@@ -412,6 +413,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Toaster position="top-right" />
       {/* Global spinner removed */}
       <Sidebar
         activeTab={activeTab}

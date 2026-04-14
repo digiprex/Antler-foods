@@ -31,6 +31,7 @@ const GET_LOYALTY_BALANCE = `
       min_redemption_points
       max_redemption_percentage
       points_per_dollar
+      google_review_bonus_points
     }
   }
 `;
@@ -62,6 +63,7 @@ export async function GET(request: NextRequest) {
           min_redemption_points: 0,
           max_redemption_percentage: 0,
           points_per_dollar: 0,
+          google_review_bonus_points: 0,
         },
       });
     }
@@ -79,6 +81,7 @@ export async function GET(request: NextRequest) {
         min_redemption_points?: number;
         max_redemption_percentage?: number;
         points_per_dollar?: number;
+        google_review_bonus_points?: number;
       }>;
     }>(GET_LOYALTY_BALANCE, {
       customer_id: customer.customerId,
@@ -115,6 +118,7 @@ export async function GET(request: NextRequest) {
         min_redemption_points: settings.min_redemption_points ?? 100,
         max_redemption_percentage: settings.max_redemption_percentage ?? 50,
         points_per_dollar: settings.points_per_dollar ?? 1,
+        google_review_bonus_points: settings.google_review_bonus_points ?? 0,
       },
     });
   } catch (error) {

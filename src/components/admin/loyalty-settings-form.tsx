@@ -290,13 +290,6 @@ export default function LoyaltySettingsForm({
             {/* Google Review Bonus section */}
             <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
-                  <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 5a7 7 0 1 0 6.7 9h-6.2" />
-                    <path d="M20 12h-8" />
-                    <path d="M16 8v8" />
-                  </svg>
-                </div>
                 <div className="flex-1">
                   <h3 className="text-sm font-semibold text-gray-900">Google Review Bonus</h3>
                   <p className="mt-1 text-xs leading-5 text-gray-600">

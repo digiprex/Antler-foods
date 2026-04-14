@@ -874,48 +874,57 @@ Generated on: ${new Date().toLocaleString()}
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header + Filters */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
+    <div className="space-y-4">
+      {/* Header + Search + Filters */}
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 pb-3">
+          <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold text-gray-900">Orders</h2>
-            <p className="text-sm text-gray-600">
-              Manage orders for {restaurantName}
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-medium">
-              <span className="rounded-full bg-purple-100 px-2.5 py-1 text-purple-800">
-                Total: {pagination.total}
+            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold tabular-nums text-gray-600">
+              {pagination.total}
+            </span>
+            {printerSettings?.autoPrintKot && printerSettings.printerName && (
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
+                autoPrint.isConnected
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-amber-100 text-amber-700'
+              }`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${autoPrint.isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                {autoPrint.isConnected ? `Auto-Print${autoPrint.printedCount > 0 ? ` (${autoPrint.printedCount})` : ''}` : 'Connecting...'}
               </span>
-              <span className="rounded-full bg-blue-100 px-2.5 py-1 text-blue-800">
-                Page: {pagination.page} of {pagination.totalPages}
-              </span>
-              {printerSettings?.autoPrintKot && printerSettings.printerName && (
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${
-                  autoPrint.isConnected
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-amber-100 text-amber-800'
-                }`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${autoPrint.isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                  {autoPrint.isConnected ? `Auto-Print ON${autoPrint.printedCount > 0 ? ` (${autoPrint.printedCount})` : ''}` : 'Auto-Print (connecting...)'}
-                </span>
-              )}
-            </div>
+            )}
+          </div>
+          <div className="relative w-full sm:w-72">
+            <svg className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0z" />
+            </svg>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search orders..."
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-8 text-sm text-gray-700 placeholder:text-gray-400 focus:border-purple-400 focus:bg-white focus:ring-1 focus:ring-purple-400"
+            />
+            {searchTerm && (
+              <button type="button" onClick={() => setSearchTerm('')} className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-gray-400 hover:text-gray-600">
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
-
-        {/* Status Filter Buttons */}
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 border-t border-gray-100 px-4 py-2.5">
           <button
             type="button"
             onClick={() => setStatusFilter('')}
             className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               statusFilter === ''
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-purple-600 text-white shadow-sm'
+                : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
-            All Orders
+            All
           </button>
           {Object.values(ORDER_STATUSES).map((status) => (
             <button
@@ -924,8 +933,8 @@ Generated on: ${new Date().toLocaleString()}
               onClick={() => setStatusFilter(status)}
               className={`rounded-full px-3 py-1 text-xs font-medium transition-colors capitalize ${
                 statusFilter === status
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               {status.replace('_', ' ')}
@@ -934,451 +943,273 @@ Generated on: ${new Date().toLocaleString()}
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-          <svg
-            className="h-4 w-4 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"
-            />
-          </svg>
-        </div>
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search by customer name, order number, email, or phone..."
-          className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-10 text-sm text-gray-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500"
-        />
-        {searchTerm && (
-          <button
-            type="button"
-            onClick={() => setSearchTerm('')}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        )}
-      </div>
-
       {/* Orders List */}
       {filteredOrders.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-            <svg
-              className="h-8 w-8 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No orders found
-          </h3>
-          <p className="text-gray-600">
-            {searchTerm
-              ? `No orders match "${searchTerm}".`
-              : 'No orders have been placed yet.'}
+        <div className="rounded-xl border border-gray-200 bg-white py-16 text-center">
+          <svg className="mx-auto mb-3 h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p className="text-sm font-medium text-gray-900">No orders found</p>
+          <p className="mt-1 text-xs text-gray-500">
+            {searchTerm ? `No results for "${searchTerm}"` : 'No orders have been placed yet.'}
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {filteredOrders.map((order) => (
-            <div
-              key={order.order_id}
-              className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden"
-            >
-              <div className="p-6">
-                {/* Header Section */}
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Order #{order.order_number || order.order_id}
-                      </h3>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getOrderStatusColor(order.status)}`}
-                      >
-                        {order.status.replace('_', ' ').toUpperCase()}
+        <div className="space-y-3">
+          {filteredOrders.map((order) => {
+            const customerName = order.contact_first_name || order.contact_last_name
+              ? `${order.contact_first_name || ''} ${order.contact_last_name || ''}`.trim()
+              : 'N/A';
+            const offer = parseOfferApplied(order.offer_applied);
+            const loyaltyAmt = order.loyalty_discount != null ? Number(order.loyalty_discount) : 0;
+            const totalDisc = order.discount_total != null ? Number(order.discount_total) : 0;
+            const otherDiscAmt = totalDisc - loyaltyAmt;
+            const isCancelled = order.status === 'cancelled';
+            const isRefunded = order.payment_status === 'refunded' || order.payment_status === 'partially_refunded';
+            const hasTags = offer || otherDiscAmt > 0.005 || loyaltyAmt > 0.005 || order.coupon_used || order.gift_card_used || order.order_note || (isCancelled && (order.cancelled_by || order.cancelled_at)) || (isRefunded && order.refunded_at);
+
+            return (
+              <div
+                key={order.order_id}
+                className={`rounded-xl border bg-white shadow-sm overflow-hidden transition-shadow hover:shadow-md ${
+                  isCancelled ? 'border-red-200' : isRefunded ? 'border-orange-200' : 'border-gray-200'
+                }`}
+              >
+                {/* Top: Header bar */}
+                <div className={`flex items-center justify-between gap-3 px-5 py-3 ${
+                  isCancelled ? 'bg-red-50/60' : isRefunded ? 'bg-orange-50/60' : 'bg-gray-50/80'
+                }`}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-bold text-gray-900 tabular-nums">#{order.order_number || order.order_id.slice(0, 8)}</span>
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${getOrderStatusColor(order.status)}`}>
+                      {order.status.replace('_', ' ').toUpperCase()}
+                    </span>
+                    {order.payment_status && (
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${getPaymentStatusColor(order.payment_status)}`}>
+                        {order.payment_status.replace('_', ' ').toUpperCase()}
                       </span>
-                      {order.payment_status && (
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getPaymentStatusColor(order.payment_status)}`}
-                        >
-                          {order.payment_status.replace('_', ' ').toUpperCase()}
-                        </span>
+                    )}
+                    {order.fulfillment_type && (
+                      <span className="inline-flex items-center rounded-full bg-blue-100/80 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+                        {order.fulfillment_type === 'pickup' ? 'Pickup' : order.fulfillment_type === 'delivery' ? 'Delivery' : order.fulfillment_type.replace('_', ' ')}
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-400">{formatDate(order.created_at)}</span>
+                  </div>
+                  <p className="text-lg font-bold tabular-nums text-gray-900">{formatCurrency(formatOrderTotal(order))}</p>
+                </div>
+
+                {/* Body */}
+                <div className="px-5 py-4">
+                  {/* Info columns */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">Customer</p>
+                      <p className="mt-0.5 text-sm font-semibold text-gray-900">{customerName}</p>
+                      {order.contact_phone && <p className="text-xs text-gray-500">{order.contact_phone}</p>}
+                      {order.contact_email && <p className="text-xs text-gray-500 truncate">{order.contact_email}</p>}
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">Items</p>
+                      <p className="mt-0.5 text-sm font-semibold text-gray-900">{formatOrderItemsCount(order)} items</p>
+                      <p className="text-xs text-gray-500">Subtotal {formatCurrency(order.sub_total)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">Payment</p>
+                      <p className="mt-0.5 text-sm font-semibold text-gray-900 capitalize">{order.payment_method?.replace('_', ' ') || 'N/A'}</p>
+                      {order.payment_reference && <p className="text-xs text-gray-500 truncate" title={order.payment_reference}>Ref: {order.payment_reference}</p>}
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">{order.fulfillment_type === 'pickup' ? 'Pickup' : 'Delivery'}</p>
+                      {order.fulfillment_type === 'pickup' && pickupAddress ? (
+                        <p className="mt-0.5 text-xs text-gray-700 leading-relaxed line-clamp-2">{pickupAddress}</p>
+                      ) : order.delivery_address ? (
+                        <p className="mt-0.5 text-xs text-gray-700 leading-relaxed line-clamp-2">{order.delivery_address}</p>
+                      ) : (
+                        <p className="mt-0.5 text-xs text-gray-400">N/A</p>
                       )}
-                      {order.fulfillment_type && (
-                        <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-800">
-                          {order.fulfillment_type
-                            .replace('_', ' ')
-                            .toUpperCase()}
-                        </span>
+                      {order.scheduled_for && (
+                        <p className="text-xs font-medium text-purple-600">Scheduled: {formatDate(order.scheduled_for)}</p>
                       )}
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                    <div className="relative w-full sm:w-auto">
+                  {/* Tags row */}
+                  {hasTags && (
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                      {offer && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-medium text-green-700">
+                          {offer.title} {offer.discountType === 'percent' ? `${offer.value}%` : formatCurrency(offer.value)}
+                          {typeof offer.discountAmount === 'number' && offer.discountAmount > 0 && (
+                            <span className="font-bold">-{formatCurrency(offer.discountAmount)}</span>
+                          )}
+                        </span>
+                      )}
+                      {!offer && otherDiscAmt > 0.005 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-medium text-green-700">
+                          Discount <span className="font-bold">-{formatCurrency(otherDiscAmt)}</span>
+                        </span>
+                      )}
+                      {loyaltyAmt > 0.005 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+                          Loyalty -{formatCurrency(loyaltyAmt)}
+                          {order.loyalty_points_redeemed != null && Number(order.loyalty_points_redeemed) > 0 && (
+                            <span className="text-amber-500">({order.loyalty_points_redeemed} pts)</span>
+                          )}
+                        </span>
+                      )}
+                      {order.coupon_used && (
+                        <span className="inline-flex items-center rounded-full bg-purple-50 px-2.5 py-1 text-[11px] font-mono font-medium text-purple-700">
+                          {order.coupon_used}
+                        </span>
+                      )}
+                      {order.gift_card_used && (
+                        <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-mono font-medium text-indigo-700">
+                          GC: {order.gift_card_used}
+                        </span>
+                      )}
+                      {order.order_note && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-yellow-50 px-2.5 py-1 text-[11px] text-yellow-700" title={order.order_note}>
+                          <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          {order.order_note.length > 50 ? order.order_note.slice(0, 50) + '...' : order.order_note}
+                        </span>
+                      )}
+                      {isCancelled && (order.cancelled_by || order.cancelled_at) && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700">
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Cancelled{order.cancelled_by ? ` by ${order.cancelled_by}` : ''}{order.cancelled_at ? ` - ${formatDate(order.cancelled_at)}` : ''}
+                        </span>
+                      )}
+                      {isRefunded && order.refunded_at && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-medium text-orange-700">
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                          </svg>
+                          {order.payment_status === 'partially_refunded' ? 'Partial' : 'Full'} Refund{order.refund_amount ? ` ${formatCurrency(order.refund_amount)}` : ''}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom: Actions bar */}
+                <div className="flex items-center justify-between gap-3 border-t border-gray-100 bg-gray-50/50 px-5 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
                       {updatingOrderId === order.order_id && (
                         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/70">
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-purple-600" />
+                          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 border-t-purple-600" />
                         </div>
                       )}
-                    <select
-                      value={order.status}
-                      disabled={updatingOrderId === order.order_id}
-                      onChange={(e) => {
-                        const newStatus = e.target.value;
-                        if (newStatus === ORDER_STATUSES.CANCELLED || newStatus === ORDER_STATUSES.REFUNDED) {
-                          setConfirmAction({
-                            orderId: order.order_id,
-                            orderNumber: order.order_number || order.order_id,
-                            status: newStatus,
-                            orderTotal: order.cart_total || 0,
-                            paymentReference: order.payment_reference,
-                          });
-                          setRefundType('full');
-                          setRefundAmount('');
-                          // Reset the select to current value
-                          e.target.value = order.status;
-                        } else {
-                          handleUpdateOrderStatus(order.order_id, newStatus);
-                        }
-                      }}
-                      className="w-full sm:w-auto rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {Object.values(ORDER_STATUSES).map((status) => {
-                        const isDestructive = status === ORDER_STATUSES.CANCELLED || status === ORDER_STATUSES.REFUNDED;
-                        const isCurrentStatus = status === order.status;
-
-                        // Determine if cancel/refund is allowed
-                        let canCancel = true;
-                        if (isDestructive) {
-                          if (order.status === ORDER_STATUSES.CANCELLED || order.status === ORDER_STATUSES.REFUNDED) {
-                            canCancel = false;
-                          } else if (status === ORDER_STATUSES.REFUNDED) {
-                            // Refund is always allowed unless already refunded/cancelled
-                            canCancel = true;
+                      <select
+                        value={order.status}
+                        disabled={updatingOrderId === order.order_id}
+                        onChange={(e) => {
+                          const newStatus = e.target.value;
+                          if (newStatus === ORDER_STATUSES.CANCELLED || newStatus === ORDER_STATUSES.REFUNDED) {
+                            setConfirmAction({
+                              orderId: order.order_id,
+                              orderNumber: order.order_number || order.order_id,
+                              status: newStatus,
+                              orderTotal: order.cart_total || 0,
+                              paymentReference: order.payment_reference,
+                            });
+                            setRefundType('full');
+                            setRefundAmount('');
+                            e.target.value = order.status;
                           } else {
-                            // Cancel: pickup blocks at ready, delivery blocks at delivered
-                            if (order.fulfillment_type === 'pickup') {
-                              canCancel = order.status !== ORDER_STATUSES.READY &&
-                                order.status !== ORDER_STATUSES.DELIVERED;
+                            handleUpdateOrderStatus(order.order_id, newStatus);
+                          }
+                        }}
+                        className="h-8 rounded-lg border border-gray-200 bg-white pl-2.5 pr-7 text-xs font-medium text-gray-700 focus:border-purple-400 focus:ring-1 focus:ring-purple-400 disabled:opacity-50"
+                      >
+                        {Object.values(ORDER_STATUSES).map((status) => {
+                          const isDestructive = status === ORDER_STATUSES.CANCELLED || status === ORDER_STATUSES.REFUNDED;
+                          const isCurrentStatus = status === order.status;
+                          let canCancel = true;
+                          if (isDestructive) {
+                            if (order.status === ORDER_STATUSES.CANCELLED || order.status === ORDER_STATUSES.REFUNDED) {
+                              canCancel = false;
+                            } else if (status === ORDER_STATUSES.REFUNDED) {
+                              canCancel = true;
                             } else {
-                              canCancel = order.status !== ORDER_STATUSES.DELIVERED;
+                              if (order.fulfillment_type === 'pickup') {
+                                canCancel = order.status !== ORDER_STATUSES.READY && order.status !== ORDER_STATUSES.DELIVERED;
+                              } else {
+                                canCancel = order.status !== ORDER_STATUSES.DELIVERED;
+                              }
                             }
                           }
-                        }
-
-                        const isEditable = isDestructive && canCancel;
-                        const isViewOnly = !isEditable && !isCurrentStatus;
-                        return (
-                          <option
-                            key={status}
-                            value={status}
-                            disabled={isViewOnly}
-                          >
-                            {status.replace('_', ' ').toUpperCase()}{isViewOnly && !isCurrentStatus ? '' : ''}
-                          </option>
-                        );
-                      })}
-                    </select>
+                          const isEditable = isDestructive && canCancel;
+                          const isViewOnly = !isEditable && !isCurrentStatus;
+                          return (
+                            <option key={status} value={status} disabled={isViewOnly}>
+                              {status.replace('_', ' ').toUpperCase()}
+                            </option>
+                          );
+                        })}
+                      </select>
                     </div>
-
+                  </div>
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => printKitchenTicket(order)}
                       disabled={printingKotOrderId === order.order_id}
-                      className="w-full sm:w-auto rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50"
                       title={printerSettings?.printerName ? 'Print Kitchen Ticket' : 'Download Kitchen Ticket'}
                     >
                       {printingKotOrderId === order.order_id ? (
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-gray-700" />
+                        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
                       ) : (
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                         </svg>
                       )}
-                      {printingKotOrderId === order.order_id ? 'Printing...' : 'Kitchen Ticket'}
+                      KOT
                     </button>
-
                     <button
                       onClick={() => handleViewOrder(order)}
-                      className="w-full sm:w-auto rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-purple-600 px-3.5 text-xs font-medium text-white hover:bg-purple-700 transition-colors"
                     >
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
                       View Details
                     </button>
                   </div>
                 </div>
-
-                {/* Content Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      Customer
-                    </p>
-                    <p className="font-semibold text-gray-900 text-sm">
-                      {order.contact_first_name || order.contact_last_name
-                        ? `${order.contact_first_name || ''} ${order.contact_last_name || ''}`.trim()
-                        : 'N/A'}
-                    </p>
-                    {order.contact_email && (
-                      <p className="text-gray-600 text-xs break-all">
-                        {order.contact_email}
-                      </p>
-                    )}
-                    {order.contact_phone && (
-                      <p className="text-gray-600 text-xs">
-                        {order.contact_phone}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      Order Details
-                    </p>
-                    <p className="font-bold text-gray-900 text-lg">
-                      {formatCurrency(formatOrderTotal(order))}
-                    </p>
-                    <p className="text-gray-600 text-xs">
-                      {formatOrderItemsCount(order)} items
-                    </p>
-                    <p className="text-gray-600 text-xs">
-                      {formatDate(order.created_at)}
-                    </p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      Payment
-                    </p>
-                    <p className="font-medium text-gray-900 text-sm">
-                      {order.payment_method?.replace('_', ' ').toUpperCase() ||
-                        'N/A'}
-                    </p>
-                    {order.payment_reference && (
-                      <p className="text-gray-600 text-xs">
-                        Ref: {order.payment_reference}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      {order.fulfillment_type === 'pickup' ? 'Pickup' : 'Delivery'}
-                    </p>
-                    {order.fulfillment_type === 'pickup' && pickupAddress ? (
-                      <p className="text-gray-900 text-xs leading-relaxed">
-                        {pickupAddress}
-                      </p>
-                    ) : order.delivery_address ? (
-                      <p className="text-gray-900 text-xs leading-relaxed">
-                        {order.delivery_address}
-                      </p>
-                    ) : (
-                      <p className="text-gray-600 text-xs">N/A</p>
-                    )}
-                    {order.scheduled_for && (
-                      <p className="text-gray-600 text-xs">
-                        Scheduled: {formatDate(order.scheduled_for)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Offer Applied (auto offers only) */}
-                {(() => {
-                  const offer = parseOfferApplied(order.offer_applied);
-                  return offer ? (
-                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex flex-wrap items-center gap-2">
-                      <span className="text-green-700 font-medium text-sm">
-                        Offer Applied: {offer.title}
-                      </span>
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800">
-                        {offer.discountType === 'percent'
-                          ? `${offer.value}% off`
-                          : `$${offer.value.toFixed(2)} off`}
-                      </span>
-                      {typeof offer.discountAmount === 'number' &&
-                        offer.discountAmount > 0 && (
-                          <span className="text-green-800 text-xs font-semibold ml-auto">
-                            −{formatCurrency(offer.discountAmount)}
-                          </span>
-                        )}
-                    </div>
-                  ) : null;
-                })()}
-
-                {/* Discount total (when no offer but discount exists, e.g. coupon/gift card) */}
-                {(() => {
-                  const offer = parseOfferApplied(order.offer_applied);
-                  const _loyaltyAmt = order.loyalty_discount != null ? Number(order.loyalty_discount) : 0;
-                  const _totalDisc = order.discount_total != null ? Number(order.discount_total) : 0;
-                  const _otherAmt = _totalDisc - _loyaltyAmt;
-                  return (
-                    <>
-                      {!offer && _otherAmt > 0.005 ? (
-                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-                          <span className="text-green-700 font-medium text-sm">
-                            Discount Applied
-                          </span>
-                          <span className="text-green-800 text-xs font-semibold ml-auto">
-                            −{formatCurrency(_otherAmt)}
-                          </span>
-                        </div>
-                      ) : null}
-                      {_loyaltyAmt > 0.005 ? (
-                        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
-                          <span className="text-amber-700 font-medium text-sm">
-                            Loyalty Discount
-                          </span>
-                          {order.loyalty_points_redeemed != null && Number(order.loyalty_points_redeemed) > 0 && (
-                            <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
-                              {order.loyalty_points_redeemed} pts
-                            </span>
-                          )}
-                          <span className="text-amber-800 text-xs font-semibold ml-auto">
-                            −{formatCurrency(_loyaltyAmt)}
-                          </span>
-                        </div>
-                      ) : null}
-                    </>
-                  );
-                })()}
-
-                {/* Coupon Code */}
-                {order.coupon_used && (
-                  <div className="mt-2 p-3 bg-purple-50 border border-purple-200 rounded-lg flex items-center gap-2">
-                    <span className="text-purple-700 font-medium text-sm">
-                      Coupon Used:
-                    </span>
-                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-mono bg-purple-100 text-purple-800">
-                      {order.coupon_used}
-                    </span>
-                  </div>
-                )}
-
-                {/* Gift Card Code */}
-                {order.gift_card_used && (
-                  <div className="mt-2 p-3 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center gap-2">
-                    <span className="text-indigo-700 font-medium text-sm">
-                      Gift Card Used:
-                    </span>
-                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-mono bg-indigo-100 text-indigo-800">
-                      {order.gift_card_used}
-                    </span>
-                  </div>
-                )}
-
-                {/* Order Note */}
-                {order.order_note && (
-                  <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-800">
-                      <span className="font-medium">Note:</span>{' '}
-                      {order.order_note}
-                    </p>
-                  </div>
-                )}
-
-                {/* Cancellation Info */}
-                {order.status === 'cancelled' && (order.cancelled_by || order.cancelled_at) && (
-                  <div className="mt-2 p-3 bg-gradient-to-r from-red-50 to-red-50/50 border border-red-200 rounded-lg flex items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100">
-                      <svg className="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-red-900">
-                        Order Cancelled
-                        {order.cancelled_by ? (
-                          <span className="ml-1.5 font-medium text-red-700">by <span className="capitalize">{order.cancelled_by}</span></span>
-                        ) : null}
-                      </p>
-                      {order.cancelled_at && (
-                        <p className="text-xs text-red-600">{formatDate(order.cancelled_at)}</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Refund Info */}
-                {(order.payment_status === 'refunded' || order.payment_status === 'partially_refunded') && order.refunded_at && (
-                  <div className="mt-2 p-3 bg-gradient-to-r from-orange-50 to-orange-50/50 border border-orange-200 rounded-lg flex items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100">
-                      <svg className="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-orange-900">
-                        {order.payment_status === 'partially_refunded' ? 'Partial Refund' : 'Full Refund'}
-                        {order.refund_amount ? (
-                          <span className="ml-1.5 text-orange-700">{formatCurrency(order.refund_amount)}</span>
-                        ) : null}
-                      </p>
-                      <p className="text-xs text-orange-600">{formatDate(order.refunded_at)}</p>
-                    </div>
-                  </div>
-                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-700">
-            Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-            {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-            {pagination.total} orders
-          </div>
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-5 py-3 shadow-sm">
+          <p className="text-sm text-gray-500">
+            Showing <span className="font-medium text-gray-700">{(pagination.page - 1) * pagination.limit + 1}</span> to <span className="font-medium text-gray-700">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of <span className="font-medium text-gray-700">{pagination.total}</span> orders
+          </p>
+          <div className="flex items-center gap-1">
             <button
               onClick={() => handlePageChange(pagination.page - 1)}
               disabled={pagination.page <= 1}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:text-gray-300 disabled:border-gray-100 disabled:hover:bg-transparent transition-colors"
             >
               Previous
             </button>
-            <span className="px-3 py-2 text-sm font-medium text-gray-700">
-              Page {pagination.page} of {pagination.totalPages}
+            <span className="px-3 py-1.5 text-sm tabular-nums text-gray-500">
+              {pagination.page} / {pagination.totalPages}
             </span>
             <button
               onClick={() => handlePageChange(pagination.page + 1)}
               disabled={pagination.page >= pagination.totalPages}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:text-gray-300 disabled:border-gray-100 disabled:hover:bg-transparent transition-colors"
             >
               Next
             </button>

@@ -1866,216 +1866,73 @@ Generated on: ${new Date().toLocaleString()}
                           Order Items ({selectedOrder.order_items?.length || 0})
                         </h4>
 
-                        <div className="space-y-4">
-                          {selectedOrder.order_items?.map((item, index) => (
-                            <div
-                              key={item.order_item_id}
-                              className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
-                            >
-                              <div className="flex justify-between items-start mb-3">
-                                <div className="flex-1">
-                                  <h5 className="text-lg font-semibold text-gray-900 mb-2">
-                                    {item.item_name}
-                                  </h5>
+                        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                          {/* Table header */}
+                          <div className="grid grid-cols-[1fr_60px_90px_90px] sm:grid-cols-[1fr_70px_100px_100px] gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                            <span>Item</span>
+                            <span className="text-center">Qty</span>
+                            <span className="text-right">Price</span>
+                            <span className="text-right">Total</span>
+                          </div>
 
-                                  {/* Item Details Grid */}
-                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
-                                    <div>
-                                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                                        Unit Price
-                                      </p>
-                                      <p className="text-sm font-bold text-gray-900">
-                                        {formatCurrency(item.item_price)}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                                        Quantity
-                                      </p>
-                                      <p className="text-sm font-bold text-gray-900">
-                                        ×{item.quantity || 1}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                                        Line Total
-                                      </p>
-                                      <p className="text-lg font-bold text-purple-600">
-                                        {formatCurrency(
-                                          item.line_total ||
-                                            item.item_price *
-                                              (item.quantity || 1),
-                                        )}
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  {/* Modifiers */}
-                                  {item.selected_modifiers && (() => {
-                                    try {
-                                      const parsed = typeof item.selected_modifiers === 'string' ? JSON.parse(item.selected_modifiers) : item.selected_modifiers;
-                                      if (Array.isArray(parsed) && parsed.length === 0) return false;
-                                      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length === 0) return false;
-                                      return true;
-                                    } catch { return false; }
-                                  })() && (
-                                    <div className="mb-3">
-                                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                                        Customizations
-                                      </p>
-                                      <div className="bg-gray-50 rounded-lg p-3">
-                                        {(() => {
-                                          try {
-                                            const modifiers =
-                                              typeof item.selected_modifiers ===
-                                              'string'
-                                                ? JSON.parse(
-                                                    item.selected_modifiers,
-                                                  )
-                                                : item.selected_modifiers;
-
-                                            if (Array.isArray(modifiers)) {
-                                              return (
-                                                <div className="space-y-2">
-                                                  {modifiers.map(
-                                                    (
-                                                      modifier: any,
-                                                      idx: number,
-                                                    ) => (
-                                                      <div
-                                                        key={idx}
-                                                        className="flex justify-between items-center"
-                                                      >
-                                                        <span className="text-sm text-gray-700">
-                                                          {modifier.name ||
-                                                            modifier.modifierGroupName ||
-                                                            'Modifier'}
-                                                        </span>
-                                                        {modifier.price && (
-                                                          <span className="text-sm font-medium text-gray-900">
-                                                            +
-                                                            {formatCurrency(
-                                                              modifier.price,
-                                                            )}
-                                                          </span>
-                                                        )}
-                                                      </div>
-                                                    ),
-                                                  )}
-                                                </div>
-                                              );
-                                            } else if (
-                                              typeof modifiers === 'object'
-                                            ) {
-                                              return (
-                                                <div className="space-y-2">
-                                                  {Object.entries(
-                                                    modifiers,
-                                                  ).map(
-                                                    (
-                                                      [key, value]: [
-                                                        string,
-                                                        any,
-                                                      ],
-                                                      idx: number,
-                                                    ) => (
-                                                      <div
-                                                        key={idx}
-                                                        className="flex justify-between items-center"
-                                                      >
-                                                        <span className="text-sm text-gray-700">
-                                                          {key}
-                                                        </span>
-                                                        <span className="text-sm font-medium text-gray-900">
-                                                          {typeof value ===
-                                                          'object'
-                                                            ? value.name ||
-                                                              JSON.stringify(
-                                                                value,
-                                                              )
-                                                            : String(value)}
-                                                        </span>
-                                                      </div>
-                                                    ),
-                                                  )}
-                                                </div>
-                                              );
-                                            } else {
-                                              return (
-                                                <p className="text-sm text-gray-600">
-                                                  {String(modifiers)}
-                                                </p>
-                                              );
-                                            }
-                                          } catch (e) {
-                                            return (
-                                              <p className="text-sm text-gray-600">
-                                                {String(
-                                                  item.selected_modifiers,
-                                                )}
-                                              </p>
-                                            );
-                                          }
-                                        })()}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Base Price and Modifier Breakdown */}
-                                  {((item.base_item_price != null && item.base_item_price > 0) ||
-                                    (item.modifier_total != null && item.modifier_total > 0)) && (
-                                    <div className="mb-3">
-                                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                                        Price Breakdown
-                                      </p>
-                                      <div className="bg-blue-50 rounded-lg p-3 space-y-1">
-                                        {item.base_item_price != null && item.base_item_price > 0 && (
-                                          <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">
-                                              Base Price:
-                                            </span>
-                                            <span className="font-medium text-gray-900">
-                                              {formatCurrency(
-                                                item.base_item_price,
-                                              )}
-                                            </span>
-                                          </div>
-                                        )}
-                                        {item.modifier_total != null &&
-                                          item.modifier_total > 0 && (
-                                            <div className="flex justify-between text-sm">
-                                              <span className="text-gray-600">
-                                                Modifiers:
-                                              </span>
-                                              <span className="font-medium text-gray-900">
-                                                +
-                                                {formatCurrency(
-                                                  item.modifier_total,
-                                                )}
-                                              </span>
-                                            </div>
-                                          )}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Special Instructions */}
-                                  {item.item_note && (
-                                    <div>
-                                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                                        Special Instructions
-                                      </p>
-                                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                        <p className="text-sm text-yellow-800">
-                                          {item.item_note}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  )}
+                          {/* Item rows */}
+                          <div className="divide-y divide-gray-100">
+                            {selectedOrder.order_items?.map((item) => (
+                              <div key={item.order_item_id} className="px-4 py-3 hover:bg-gray-50/50 transition-colors">
+                                {/* Main row */}
+                                <div className="grid grid-cols-[1fr_60px_90px_90px] sm:grid-cols-[1fr_70px_100px_100px] gap-2 items-baseline">
+                                  <span className="text-sm font-semibold text-gray-900 leading-snug">{item.item_name}</span>
+                                  <span className="text-sm text-gray-700 text-center tabular-nums">{item.quantity || 1}</span>
+                                  <span className="text-sm text-gray-600 text-right tabular-nums">{formatCurrency(item.item_price)}</span>
+                                  <span className="text-sm font-bold text-gray-900 text-right tabular-nums">{formatCurrency(item.line_total || item.item_price * (item.quantity || 1))}</span>
                                 </div>
+
+                                {/* Modifiers */}
+                                {item.selected_modifiers && (() => {
+                                  try {
+                                    const parsed = typeof item.selected_modifiers === 'string' ? JSON.parse(item.selected_modifiers) : item.selected_modifiers;
+                                    if (Array.isArray(parsed) && parsed.length > 0) {
+                                      return (
+                                        <div className="mt-1.5 flex flex-wrap gap-1.5 pl-0.5">
+                                          {parsed.map((mod: any, idx: number) => (
+                                            <span key={idx} className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                                              <span>{mod.name || mod.modifierGroupName || 'Modifier'}</span>
+                                              {mod.price ? <span className="font-medium text-gray-500">+{formatCurrency(mod.price)}</span> : null}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      );
+                                    }
+                                    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length > 0) {
+                                      return (
+                                        <div className="mt-1.5 flex flex-wrap gap-1.5 pl-0.5">
+                                          {Object.entries(parsed).map(([key, value]: [string, any], idx: number) => (
+                                            <span key={idx} className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                                              <span>{key}:</span>
+                                              <span className="font-medium text-gray-700">{typeof value === 'object' ? (value.name || JSON.stringify(value)) : String(value)}</span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  } catch {
+                                    return null;
+                                  }
+                                })()}
+
+                                {/* Item note */}
+                                {item.item_note && (
+                                  <div className="mt-1.5 flex items-start gap-1.5 pl-0.5">
+                                    <svg className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    <p className="text-xs text-amber-700 italic leading-snug">{item.item_note}</p>
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
                       </div>
 

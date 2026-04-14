@@ -354,21 +354,23 @@ Subtotal: ${formatCurrency(order.sub_total)}`;
       receiptContent += `\nDelivery Fee: ${formatCurrency(order.delivery_fee)}`;
     }
 
-    if (order.discount_total != null && order.discount_total > 0) {
-      receiptContent += `\nDiscount: -${formatCurrency(order.discount_total)}`;
-      const _offer = parseOfferApplied(order.offer_applied);
-      if (_offer) {
-        const offerType =
-          _offer.discountType === 'percent'
-            ? `${_offer.value}% off`
-            : `$${_offer.value.toFixed(2)} off`;
-        receiptContent += `\n  Offer Applied: ${_offer.title} (${offerType})`;
+    {
+      const _loyaltyAmt = order.loyalty_discount != null ? Number(order.loyalty_discount) : 0;
+      const _totalDisc = order.discount_total != null ? Number(order.discount_total) : 0;
+      const _otherAmt = _totalDisc - _loyaltyAmt;
+      if (_otherAmt > 0.005) {
+        receiptContent += `\nDiscount: -${formatCurrency(_otherAmt)}`;
+        const _offer = parseOfferApplied(order.offer_applied);
+        if (_offer) {
+          const offerType = _offer.discountType === 'percent' ? `${_offer.value}% off` : `$${_offer.value.toFixed(2)} off`;
+          receiptContent += `\n  Offer Applied: ${_offer.title} (${offerType})`;
+        }
+        if (order.coupon_used) receiptContent += `\n  Coupon: ${order.coupon_used}`;
+        if (order.gift_card_used) receiptContent += `\n  Gift Card: ${order.gift_card_used}`;
       }
-      if (order.coupon_used) {
-        receiptContent += `\n  Coupon: ${order.coupon_used}`;
-      }
-      if (order.gift_card_used) {
-        receiptContent += `\n  Gift Card: ${order.gift_card_used}`;
+      if (_loyaltyAmt > 0.005) {
+        receiptContent += `\nLoyalty Discount: -${formatCurrency(_loyaltyAmt)}`;
+        if (order.loyalty_points_redeemed) receiptContent += ` (${order.loyalty_points_redeemed} pts redeemed)`;
       }
     }
 
@@ -610,32 +612,27 @@ Generated on: ${new Date().toLocaleString()}
         </div>`
             : ''
         }
-        ${
-          order.discount_total != null && order.discount_total > 0
-            ? (() => {
-                const _offer = parseOfferApplied(order.offer_applied);
-                let details = '';
-                if (_offer) {
-                  const offerType =
-                    _offer.discountType === 'percent'
-                      ? `${_offer.value}% off`
-                      : `$${_offer.value.toFixed(2)} off`;
-                  details += `<div style="font-size:11px;color:#059669;margin-left:10px;">Offer Applied: ${_offer.title} (${offerType})</div>`;
-                }
-                if (order.coupon_used) {
-                  details += `<div style="font-size:11px;color:#059669;margin-left:10px;">Coupon: ${order.coupon_used}</div>`;
-                }
-                if (order.gift_card_used) {
-                  details += `<div style="font-size:11px;color:#059669;margin-left:10px;">Gift Card: ${order.gift_card_used}</div>`;
-                }
-                return `
-        <div class="total-line" style="color: #059669;">
-            <span>Discount</span>
-            <span>-${formatCurrency(order.discount_total)}</span>
-        </div>${details}`;
-              })()
-            : ''
-        }
+        ${(() => {
+          const _loyaltyAmt = order.loyalty_discount != null ? Number(order.loyalty_discount) : 0;
+          const _totalDisc = order.discount_total != null ? Number(order.discount_total) : 0;
+          const _otherAmt = _totalDisc - _loyaltyAmt;
+          let discountHtml = '';
+          if (_otherAmt > 0.005) {
+            const _offer = parseOfferApplied(order.offer_applied);
+            let details = '';
+            if (_offer) {
+              const offerType = _offer.discountType === 'percent' ? `${_offer.value}% off` : `$${_offer.value.toFixed(2)} off`;
+              details += `<div style="font-size:11px;color:#059669;margin-left:10px;">Offer Applied: ${_offer.title} (${offerType})</div>`;
+            }
+            if (order.coupon_used) details += `<div style="font-size:11px;color:#059669;margin-left:10px;">Coupon: ${order.coupon_used}</div>`;
+            if (order.gift_card_used) details += `<div style="font-size:11px;color:#059669;margin-left:10px;">Gift Card: ${order.gift_card_used}</div>`;
+            discountHtml += `<div class="total-line" style="color: #059669;"><span>Discount</span><span>-${formatCurrency(_otherAmt)}</span></div>${details}`;
+          }
+          if (_loyaltyAmt > 0.005) {
+            discountHtml += `<div class="total-line" style="color: #b47800;"><span>Loyalty Discount${order.loyalty_points_redeemed ? ` (${order.loyalty_points_redeemed} pts)` : ''}</span><span>-${formatCurrency(_loyaltyAmt)}</span></div>`;
+          }
+          return discountHtml;
+        })()}
         <div class="total-line grand-total">
             <span>TOTAL:</span>
             <span>${formatCurrency(order.cart_total)}</span>
@@ -737,6 +734,8 @@ Generated on: ${new Date().toLocaleString()}
       subtotal: order.sub_total,
       total: order.cart_total,
       discount: order.discount_total ?? null,
+      loyaltyDiscount: order.loyalty_discount ?? null,
+      loyaltyPointsRedeemed: order.loyalty_points_redeemed ?? null,
       deliveryFee: order.delivery_fee ?? null,
       tip: order.tip_total ?? null,
       tax: order.service_fee ?? null,
@@ -1242,18 +1241,38 @@ Generated on: ${new Date().toLocaleString()}
                 {/* Discount total (when no offer but discount exists, e.g. coupon/gift card) */}
                 {(() => {
                   const offer = parseOfferApplied(order.offer_applied);
-                  return !offer &&
-                    order.discount_total != null &&
-                    Number(order.discount_total) > 0 ? (
-                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-                      <span className="text-green-700 font-medium text-sm">
-                        Discount Applied
-                      </span>
-                      <span className="text-green-800 text-xs font-semibold ml-auto">
-                        −{formatCurrency(Number(order.discount_total))}
-                      </span>
-                    </div>
-                  ) : null;
+                  const _loyaltyAmt = order.loyalty_discount != null ? Number(order.loyalty_discount) : 0;
+                  const _totalDisc = order.discount_total != null ? Number(order.discount_total) : 0;
+                  const _otherAmt = _totalDisc - _loyaltyAmt;
+                  return (
+                    <>
+                      {!offer && _otherAmt > 0.005 ? (
+                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+                          <span className="text-green-700 font-medium text-sm">
+                            Discount Applied
+                          </span>
+                          <span className="text-green-800 text-xs font-semibold ml-auto">
+                            −{formatCurrency(_otherAmt)}
+                          </span>
+                        </div>
+                      ) : null}
+                      {_loyaltyAmt > 0.005 ? (
+                        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
+                          <span className="text-amber-700 font-medium text-sm">
+                            Loyalty Discount
+                          </span>
+                          {order.loyalty_points_redeemed != null && Number(order.loyalty_points_redeemed) > 0 && (
+                            <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                              {order.loyalty_points_redeemed} pts
+                            </span>
+                          )}
+                          <span className="text-amber-800 text-xs font-semibold ml-auto">
+                            −{formatCurrency(_loyaltyAmt)}
+                          </span>
+                        </div>
+                      ) : null}
+                    </>
+                  );
                 })()}
 
                 {/* Coupon Code */}
@@ -2099,63 +2118,57 @@ Generated on: ${new Date().toLocaleString()}
                                 </span>
                               </div>
                             )}
-                          {selectedOrder.discount_total != null &&
-                            selectedOrder.discount_total > 0 && (
-                              <div>
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-600">
-                                    Discount:
-                                  </span>
-                                  <span className="font-medium text-green-600">
-                                    -
-                                    {formatCurrency(
-                                      selectedOrder.discount_total,
-                                    )}
-                                  </span>
-                                </div>
-                                {(() => {
-                                  const offer = parseOfferApplied(
-                                    selectedOrder.offer_applied,
-                                  );
-                                  return offer ? (
-                                    <p className="text-xs text-green-600 mt-0.5">
-                                      Offer Applied: {offer.title}
-                                      {offer.discountType === 'percent'
-                                        ? ` (${offer.value}% off)`
-                                        : ''}
-                                    </p>
-                                  ) : null;
-                                })()}
-                                {selectedOrder.coupon_used && (
-                                  <p className="text-xs text-green-600 mt-0.5">
-                                    Coupon: {selectedOrder.coupon_used}
-                                  </p>
-                                )}
-                                {selectedOrder.gift_card_used && (
-                                  <p className="text-xs text-green-600 mt-0.5">
-                                    Gift Card: {selectedOrder.gift_card_used}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          {selectedOrder.loyalty_discount != null &&
-                            selectedOrder.loyalty_discount > 0 && (
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-600 flex items-center gap-1.5">
-                                  Loyalty Discount
-                                  {selectedOrder.loyalty_points_redeemed != null &&
-                                    selectedOrder.loyalty_points_redeemed > 0 && (
-                                      <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
-                                        {selectedOrder.loyalty_points_redeemed} pts
+                          {(() => {
+                            const loyaltyAmt = selectedOrder.loyalty_discount != null ? Number(selectedOrder.loyalty_discount) : 0;
+                            const totalDisc = selectedOrder.discount_total != null ? Number(selectedOrder.discount_total) : 0;
+                            const otherAmt = totalDisc - loyaltyAmt;
+                            return (
+                              <>
+                                {otherAmt > 0.005 && (
+                                  <div>
+                                    <div className="flex justify-between text-sm">
+                                      <span className="text-gray-600">Discount:</span>
+                                      <span className="font-medium text-green-600">
+                                        -{formatCurrency(otherAmt)}
                                       </span>
+                                    </div>
+                                    {(() => {
+                                      const offer = parseOfferApplied(selectedOrder.offer_applied);
+                                      return offer ? (
+                                        <p className="text-xs text-green-600 mt-0.5">
+                                          Offer Applied: {offer.title}
+                                          {offer.discountType === 'percent' ? ` (${offer.value}% off)` : ''}
+                                        </p>
+                                      ) : null;
+                                    })()}
+                                    {selectedOrder.coupon_used && (
+                                      <p className="text-xs text-green-600 mt-0.5">Coupon: {selectedOrder.coupon_used}</p>
                                     )}
-                                  :
-                                </span>
-                                <span className="font-medium text-green-600">
-                                  -{formatCurrency(selectedOrder.loyalty_discount)}
-                                </span>
-                              </div>
-                            )}
+                                    {selectedOrder.gift_card_used && (
+                                      <p className="text-xs text-green-600 mt-0.5">Gift Card: {selectedOrder.gift_card_used}</p>
+                                    )}
+                                  </div>
+                                )}
+                                {loyaltyAmt > 0.005 && (
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600 flex items-center gap-1.5">
+                                      Loyalty Discount
+                                      {selectedOrder.loyalty_points_redeemed != null &&
+                                        selectedOrder.loyalty_points_redeemed > 0 && (
+                                          <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                                            {selectedOrder.loyalty_points_redeemed} pts
+                                          </span>
+                                        )}
+                                      :
+                                    </span>
+                                    <span className="font-medium text-amber-600">
+                                      -{formatCurrency(loyaltyAmt)}
+                                    </span>
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                           <div className="border-t border-gray-200 pt-3">
                             <div className="flex justify-between">
                               <span className="text-lg font-bold text-gray-900">

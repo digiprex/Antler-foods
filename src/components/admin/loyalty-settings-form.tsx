@@ -16,6 +16,7 @@ interface LoyaltySettingsData {
   max_redemption_percentage: number;
   welcome_bonus_points: number;
   points_expiry_days: number | null;
+  google_review_bonus_points: number;
 }
 
 export default function LoyaltySettingsForm({
@@ -31,6 +32,7 @@ export default function LoyaltySettingsForm({
   const [maxRedemptionPercentage, setMaxRedemptionPercentage] = useState('50');
   const [welcomeBonusPoints, setWelcomeBonusPoints] = useState('0');
   const [pointsExpiryDays, setPointsExpiryDays] = useState('');
+  const [googleReviewBonusPoints, setGoogleReviewBonusPoints] = useState('0');
 
   useEffect(() => {
     let active = true;
@@ -64,6 +66,7 @@ export default function LoyaltySettingsForm({
             ? String(payload.data.points_expiry_days)
             : '',
         );
+        setGoogleReviewBonusPoints(String(payload.data?.google_review_bonus_points ?? 0));
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : 'Failed to load loyalty settings.',
@@ -92,6 +95,7 @@ export default function LoyaltySettingsForm({
           max_redemption_percentage: Number(maxRedemptionPercentage) || 50,
           welcome_bonus_points: Math.round(Number(welcomeBonusPoints) || 0),
           points_expiry_days: pointsExpiryDays.trim() ? Math.round(Number(pointsExpiryDays)) || null : null,
+          google_review_bonus_points: Math.round(Number(googleReviewBonusPoints) || 0),
         }),
       });
 
@@ -279,6 +283,45 @@ export default function LoyaltySettingsForm({
                   />
                   <p className="mt-1 text-xs text-gray-500">
                     Leave empty for points that never expire.
+                  </p>
+                </label>
+              </div>
+            </div>
+            {/* Google Review Bonus section */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
+                  <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 5a7 7 0 1 0 6.7 9h-6.2" />
+                    <path d="M20 12h-8" />
+                    <path d="M16 8v8" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-gray-900">Google Review Bonus</h3>
+                  <p className="mt-1 text-xs leading-5 text-gray-600">
+                    Reward customers with bonus loyalty points when they leave a review on your Google Business profile.
+                    This helps boost your online presence while keeping customers engaged.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 max-w-sm">
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium text-gray-700">
+                    Points awarded per Google review
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={googleReviewBonusPoints}
+                    onChange={(e) => setGoogleReviewBonusPoints(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    {Number(googleReviewBonusPoints) > 0
+                      ? `Customers earn ${Math.round(Number(googleReviewBonusPoints))} bonus points for each Google review.`
+                      : 'Set to 0 to disable Google review rewards.'}
                   </p>
                 </label>
               </div>

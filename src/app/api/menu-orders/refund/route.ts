@@ -5,6 +5,7 @@ import {
 } from '@/features/restaurant-menu/lib/server/customer-auth';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { sendOrderDeliveryStatusEmail } from '@/lib/server/email';
+import { reverseOrderLoyaltyPoints } from '@/features/restaurant-menu/lib/server/menu-orders';
 
 const GET_ORDER_FOR_REFUND = `
   query GetOrderForRefund($order_id: uuid!, $customer_id: uuid!) {
@@ -112,6 +113,14 @@ export async function POST(request: NextRequest) {
 
     // Refund the order
     await adminGraphqlRequest(REFUND_ORDER, { order_id: orderId });
+
+    // Reverse loyalty points — refunded orders had payment confirmed,
+    // so earned points were credited and should be revoked.
+    try {
+      await reverseOrderLoyaltyPoints(orderId, { revokeEarned: true });
+    } catch (loyaltyErr) {
+      console.error('[Menu Orders] Refund loyalty reversal failed:', loyaltyErr);
+    }
 
     // Send refund email
     try {

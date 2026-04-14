@@ -28,18 +28,26 @@ export default function CustomerProfilePage({
     refresh,
   } = useMenuCustomerAuth(restaurantId);
   const [navbarAuthSlot, setNavbarAuthSlot] = useState<HTMLElement | null>(null);
-  const [loyaltyPointsBalance, setLoyaltyPointsBalance] = useState<number | null>(null);
+  const [loyaltyData, setLoyaltyData] = useState<{
+    points_balance: number;
+    lifetime_earned: number;
+    lifetime_redeemed: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!restaurantId || !hasCustomerSession) {
-      setLoyaltyPointsBalance(null);
+      setLoyaltyData(null);
       return;
     }
     fetch(`/api/menu-orders/loyalty-balance?restaurant_id=${encodeURIComponent(restaurantId)}`, { credentials: 'same-origin' })
       .then((res) => res.json())
       .then((data) => {
         if (data?.success && data.data?.enabled) {
-          setLoyaltyPointsBalance(data.data.points_balance ?? 0);
+          setLoyaltyData({
+            points_balance: data.data.points_balance ?? 0,
+            lifetime_earned: data.data.lifetime_earned ?? 0,
+            lifetime_redeemed: data.data.lifetime_redeemed ?? 0,
+          });
         }
       })
       .catch(() => {});
@@ -530,6 +538,35 @@ export default function CustomerProfilePage({
             </div>
           ) : null}
         </div>
+
+        {/* Loyalty Points */}
+        {loyaltyData ? (
+          <div className="mt-5 rounded-[24px] border border-amber-200 bg-gradient-to-r from-amber-50/80 to-orange-50/80 px-5 py-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)] sm:px-8 sm:py-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-400/20">
+                <svg className="h-5 w-5 text-amber-600" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.28l-4.77 2.51.91-5.33L2.27 6.69l5.34-.78L10 1z" />
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-800/70">Loyalty Points</p>
+                <p className="mt-0.5 text-2xl font-bold tabular-nums tracking-tight text-amber-900 sm:text-3xl">
+                  {loyaltyData.points_balance.toLocaleString()} <span className="text-base font-semibold text-amber-700/70">pts</span>
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 flex gap-3 sm:gap-4">
+              <div className="flex-1 rounded-[14px] bg-white/60 px-3.5 py-2.5 ring-1 ring-amber-200/50">
+                <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-amber-700/60">Total earned</p>
+                <p className="mt-0.5 text-sm font-bold tabular-nums text-amber-900">{loyaltyData.lifetime_earned.toLocaleString()}</p>
+              </div>
+              <div className="flex-1 rounded-[14px] bg-white/60 px-3.5 py-2.5 ring-1 ring-amber-200/50">
+                <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-amber-700/60">Total redeemed</p>
+                <p className="mt-0.5 text-sm font-bold tabular-nums text-amber-900">{loyaltyData.lifetime_redeemed.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/* Tabs */}
         {!isGuest ? (
@@ -1177,7 +1214,7 @@ export default function CustomerProfilePage({
             <ProfileDropdown
               profile={customerProfile}
               isLoggingOut={isLoggingOut}
-              loyaltyPoints={loyaltyPointsBalance}
+              loyaltyPoints={loyaltyData?.points_balance ?? null}
               onLogout={handleLogout}
             />,
             navbarAuthSlot,

@@ -698,17 +698,17 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     : 0;
   // --- Loyalty points redemption ---
   interface LoyaltySettingsRow {
-    points_per_dollar?: number;
-    redemption_rate?: number;
-    min_redemption_points?: number;
-    max_redemption_percentage?: number;
-    welcome_bonus_points?: number;
+    points_per_dollar?: number | string;
+    redemption_rate?: number | string;
+    min_redemption_points?: number | string;
+    max_redemption_percentage?: number | string;
+    welcome_bonus_points?: number | string;
   }
   interface LoyaltyBalanceRow {
     id?: string;
-    points_balance?: number;
-    lifetime_earned?: number;
-    lifetime_redeemed?: number;
+    points_balance?: number | string;
+    lifetime_earned?: number | string;
+    lifetime_redeemed?: number | string;
   }
   let loyaltyPointsRedeemed = 0;
   let loyaltyDiscount = 0;
@@ -728,7 +728,7 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
           max_redemption_percentage
           welcome_bonus_points
         }
-        loyalty_balances(where: { customer_id: { _eq: $customer_id }, restaurant_id: { _eq: $restaurant_id } }, order_by: { updated_at: desc }, limit: 1) {
+        loyalty_balances(where: { customer_id: { _eq: $customer_id }, restaurant_id: { _eq: $restaurant_id } }, limit: 1) {
           id
           points_balance
           lifetime_earned
@@ -749,10 +749,11 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     input.loyaltyPointsToRedeem > 0
   ) {
     const pointsRequested = Math.round(input.loyaltyPointsToRedeem);
-    const currentBalance = existingBalance?.points_balance ?? 0;
-    const minPoints = loyaltySettings.min_redemption_points ?? 100;
-    const maxPct = loyaltySettings.max_redemption_percentage ?? 50;
-    const rate = typeof loyaltySettings.redemption_rate === 'number' ? loyaltySettings.redemption_rate / 10000 : 0.01;
+    const currentBalance = toInt(existingBalance?.points_balance);
+    const minPoints = toInt(loyaltySettings.min_redemption_points) || 100;
+    const maxPct = toInt(loyaltySettings.max_redemption_percentage) || 50;
+    const rawRate = toInt(loyaltySettings.redemption_rate);
+    const rate = rawRate > 0 ? rawRate / 10000 : 0.01;
 
     if (pointsRequested >= minPoints && pointsRequested <= currentBalance) {
       const maxDiscount = roundCurrency(subtotal * (maxPct / 100));
@@ -910,12 +911,12 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
   // (cash/loyalty), or cron reconciliation.
   let loyaltyPointsEarned = 0;
   if (loyaltySettings) {
-    const pointsPerDollar = loyaltySettings.points_per_dollar ?? 1;
+    const pointsPerDollar = toInt(loyaltySettings.points_per_dollar) || 1;
     loyaltyPointsEarned = Math.floor(subtotal * pointsPerDollar);
 
     // Welcome bonus: first order for this restaurant
     const isFirstOrder = !existingBalance?.id;
-    const welcomeBonus = isFirstOrder ? (loyaltySettings.welcome_bonus_points ?? 0) : 0;
+    const welcomeBonus = isFirstOrder ? (toInt(loyaltySettings.welcome_bonus_points)) : 0;
     const totalEarned = loyaltyPointsEarned + welcomeBonus;
 
     // Store earned points on the order (credited to balance after payment)
@@ -937,12 +938,12 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     // Debit redeemed points from balance now to prevent double-spend
     if (loyaltyPointsRedeemed > 0 && existingBalance?.id) {
       try {
-        const currentBalance = existingBalance.points_balance ?? 0;
-        const currentLifetimeRedeemed = existingBalance.lifetime_redeemed ?? 0;
+        const currentBalance = toInt(existingBalance.points_balance);
+        const currentLifetimeRedeemed = toInt(existingBalance.lifetime_redeemed);
         await adminGraphqlRequest(UPDATE_LOYALTY_BALANCE, {
           id: existingBalance.id,
           points_balance: Math.max(currentBalance - loyaltyPointsRedeemed, 0),
-          lifetime_earned: existingBalance.lifetime_earned ?? 0,
+          lifetime_earned: toInt(existingBalance.lifetime_earned),
           lifetime_redeemed: currentLifetimeRedeemed + loyaltyPointsRedeemed,
         });
 
@@ -1207,7 +1208,6 @@ const GET_LOYALTY_BALANCE_FOR_CREDIT = `
   query GetLoyaltyBalanceForCredit($customer_id: uuid!, $restaurant_id: uuid!) {
     loyalty_balances(
       where: { customer_id: { _eq: $customer_id }, restaurant_id: { _eq: $restaurant_id } }
-      order_by: { updated_at: desc }
       limit: 1
     ) {
       id
@@ -1223,17 +1223,26 @@ interface OrderLoyaltyRow {
   order_number?: string;
   customer_id?: string;
   restaurant_id?: string;
-  sub_total?: number;
-  loyalty_points_earned?: number | null;
-  loyalty_points_redeemed?: number | null;
-  loyalty_discount?: number | null;
+  sub_total?: number | string;
+  loyalty_points_earned?: number | string | null;
+  loyalty_points_redeemed?: number | string | null;
+  loyalty_discount?: number | string | null;
+}
+
+function toInt(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.round(value);
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return Math.round(parsed);
+  }
+  return 0;
 }
 
 interface LoyaltyBalanceCreditRow {
   id?: string;
-  points_balance?: number;
-  lifetime_earned?: number;
-  lifetime_redeemed?: number;
+  points_balance?: number | string;
+  lifetime_earned?: number | string;
+  lifetime_redeemed?: number | string;
 }
 
 /**
@@ -1249,7 +1258,7 @@ export async function creditOrderLoyaltyPoints(orderId: string): Promise<void> {
     const order = data.orders_by_pk;
     if (!order?.customer_id || !order?.restaurant_id) return;
 
-    const pointsEarned = typeof order.loyalty_points_earned === 'number' ? order.loyalty_points_earned : 0;
+    const pointsEarned = toInt(order.loyalty_points_earned);
     if (pointsEarned <= 0) return;
 
     const balData = await adminGraphqlRequest<{ loyalty_balances?: LoyaltyBalanceCreditRow[] }>(
@@ -1257,8 +1266,8 @@ export async function creditOrderLoyaltyPoints(orderId: string): Promise<void> {
       { customer_id: order.customer_id, restaurant_id: order.restaurant_id },
     );
     const existing = balData.loyalty_balances?.[0];
-    const currentBalance = existing?.points_balance ?? 0;
-    const currentLifetimeEarned = existing?.lifetime_earned ?? 0;
+    const currentBalance = toInt(existing?.points_balance);
+    const currentLifetimeEarned = toInt(existing?.lifetime_earned);
     const newBalance = currentBalance + pointsEarned;
     const newLifetimeEarned = currentLifetimeEarned + pointsEarned;
 
@@ -1267,7 +1276,7 @@ export async function creditOrderLoyaltyPoints(orderId: string): Promise<void> {
         id: existing.id,
         points_balance: Math.max(newBalance, 0),
         lifetime_earned: newLifetimeEarned,
-        lifetime_redeemed: existing.lifetime_redeemed ?? 0,
+        lifetime_redeemed: toInt(existing.lifetime_redeemed),
       });
     } else {
       await adminGraphqlRequest(INSERT_LOYALTY_BALANCE, {
@@ -1318,12 +1327,8 @@ export async function reverseOrderLoyaltyPoints(
     const order = data.orders_by_pk;
     if (!order?.customer_id || !order?.restaurant_id) return;
 
-    const pointsEarned = revokeEarned && typeof order.loyalty_points_earned === 'number'
-      ? order.loyalty_points_earned
-      : 0;
-    const pointsRedeemed = typeof order.loyalty_points_redeemed === 'number'
-      ? order.loyalty_points_redeemed
-      : 0;
+    const pointsEarned = revokeEarned ? toInt(order.loyalty_points_earned) : 0;
+    const pointsRedeemed = toInt(order.loyalty_points_redeemed);
 
     if (pointsEarned === 0 && pointsRedeemed === 0) return;
 
@@ -1334,9 +1339,9 @@ export async function reverseOrderLoyaltyPoints(
     const existing = balData.loyalty_balances?.[0];
     if (!existing?.id) return; // no balance record to adjust
 
-    const currentBalance = existing.points_balance ?? 0;
-    const currentLifetimeEarned = existing.lifetime_earned ?? 0;
-    const currentLifetimeRedeemed = existing.lifetime_redeemed ?? 0;
+    const currentBalance = toInt(existing.points_balance);
+    const currentLifetimeEarned = toInt(existing.lifetime_earned);
+    const currentLifetimeRedeemed = toInt(existing.lifetime_redeemed);
 
     // Restore redeemed points, revoke earned points
     const newBalance = currentBalance + pointsRedeemed - pointsEarned;

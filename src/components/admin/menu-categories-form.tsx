@@ -15,7 +15,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
+import toast from 'react-hot-toast';
 import CategoryFormModal from './category-form-modal';
+import MenuCsvImportModal from './menu-csv-import-modal';
 
 // Item interface
 interface Item {
@@ -33,7 +35,7 @@ interface Item {
   category_id: string;
   is_available: boolean;
   in_stock: boolean;
-  modifiers?: any;
+  modifiers?: { modifier_group_ids?: string[] } | string[] | null;
   has_variants?: boolean;
   parent_item_id?: string;
 }
@@ -51,8 +53,8 @@ interface Category {
   type: string;
   image?: string;
   is_active: boolean;
-  modifier_groups?: any;
-  identifiers?: any;
+  modifier_groups?: unknown;
+  identifiers?: unknown;
   items?: Item[];
   items_count?: number;
 }
@@ -86,6 +88,7 @@ export default function MenuCategoriesForm({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showMenuCsvImportModal, setShowMenuCsvImportModal] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
   const [categoryStatusFilter, setCategoryStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [isMounted, setIsMounted] = useState(false);
@@ -221,7 +224,7 @@ export default function MenuCategoriesForm({
 
   const handleManageItems = (category: Category) => {
     if (isTemporaryCategoryId(category.category_id)) {
-      alert('Category is still being created. Please wait a moment and try again.');
+      toast.error('Category is still being created. Please wait a moment and try again.');
       return;
     }
 
@@ -343,11 +346,8 @@ export default function MenuCategoriesForm({
         );
         setShowCreateCategory(true);
       }
-      // You could add a toast notification or error state here instead of alert
-      // For now, keeping it simple but this could be improved with proper error handling
       const errorMessage = err instanceof Error ? err.message : 'Failed to save category';
-      // Temporary alert replacement - could be replaced with a toast or error modal
-      alert(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -377,15 +377,27 @@ export default function MenuCategoriesForm({
               <span className="rounded-full bg-gray-100 px-2.5 py-1 text-gray-700">Inactive: {inactiveCategoryCount}</span>
             </div>
           </div>
-          <button
-            onClick={handleCreateCategory}
-            className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-purple-700"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Add Category
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowMenuCsvImportModal(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:border-gray-300 hover:bg-gray-50"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 12 4-4m-4 4-4-4M4 20h16" />
+              </svg>
+              Menu CSV
+            </button>
+            <button
+              onClick={handleCreateCategory}
+              className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-purple-700"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Category
+            </button>
+          </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <button
@@ -667,6 +679,16 @@ export default function MenuCategoriesForm({
           mode="edit"
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <MenuCsvImportModal
+        isOpen={showMenuCsvImportModal}
+        restaurantId={restaurantId}
+        menuId={menuId}
+        menuName={menuName}
+        onClose={() => setShowMenuCsvImportModal(false)}
+        onImported={fetchCategories}
+      />
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm &&

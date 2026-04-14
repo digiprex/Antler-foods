@@ -74,7 +74,12 @@
       "WebFetch(domain:learn.grubhub.com)",
       "WebFetch(domain:wicg.github.io)",
       "Bash(grep -r \"EMAIL\" /c/Users/natas/Desktop/Antler-foods/.env*)",
-      "Bash(find C:\\\\Users\\\\natas\\\\Desktop\\\\Antler-foods\\\\src:*)"
+      "Bash(find C:\\\\Users\\\\natas\\\\Desktop\\\\Antler-foods\\\\src:*)",
+      "Bash(mv menu-csv-import-modal.tsx menu-csv-import-modal-old-backup.tsx)",
+      "Bash(mv menu-csv-import-modal-new.tsx menu-csv-import-modal.tsx)",
+      "Bash(del menu-csv-import-modal.tsx)",
+      "Bash(ren menu-csv-import-modal-new.tsx menu-csv-import-modal.tsx)",
+      "Bash(ls:*)"
     ]
   }
 }

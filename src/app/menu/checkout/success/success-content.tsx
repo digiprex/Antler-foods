@@ -114,6 +114,7 @@ export default function MenuCheckoutSuccessContent() {
   const [navbarAuthSlot, setNavbarAuthSlot] = useState<HTMLElement | null>(null);
   const [loyaltyPointsBalance, setLoyaltyPointsBalance] = useState<number | null>(null);
   const [googleReviewBonusPoints, setGoogleReviewBonusPoints] = useState<number>(0);
+  const [hasReviewed, setHasReviewed] = useState(false);
 
   const restaurantId = order?.restaurant_id || null;
   const {
@@ -177,9 +178,12 @@ export default function MenuCheckoutSuccessContent() {
     fetch(`/api/menu-orders/loyalty-balance?restaurant_id=${encodeURIComponent(restaurantId)}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data?.success && data.data?.enabled) {
-          setLoyaltyPointsBalance(data.data.points_balance ?? 0);
-          setGoogleReviewBonusPoints(data.data.google_review_bonus_points ?? 0);
+        if (data?.success) {
+          if (data.data?.enabled) {
+            setLoyaltyPointsBalance(data.data.points_balance ?? 0);
+            setGoogleReviewBonusPoints(data.data.google_review_bonus_points ?? 0);
+          }
+          setHasReviewed(!!data.data?.has_reviewed);
         }
       })
       .catch(() => {});
@@ -723,7 +727,8 @@ export default function MenuCheckoutSuccessContent() {
               </div>
             ) : null}
 
-            {/* Feedback / Google Review CTA */}
+            {/* Feedback / Google Review CTA — hidden if customer already left a review */}
+            {!hasReviewed && (
             <div className="mt-5 overflow-hidden rounded-[20px] border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50/40">
               <div className="px-5 py-5 sm:px-6">
                 <div className="flex items-start gap-4">
@@ -765,6 +770,7 @@ export default function MenuCheckoutSuccessContent() {
                 </div>
               </div>
             </div>
+            )}
 
             {/* Actions */}
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">

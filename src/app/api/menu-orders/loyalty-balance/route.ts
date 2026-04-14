@@ -33,6 +33,17 @@ const GET_LOYALTY_BALANCE = `
       points_per_dollar
       google_review_bonus_points
     }
+    reviews_aggregate(
+      where: {
+        customer_id: { _eq: $customer_id }
+        restaurant_id: { _eq: $restaurant_id }
+        is_deleted: { _neq: true }
+      }
+    ) {
+      aggregate {
+        count
+      }
+    }
   }
 `;
 
@@ -64,6 +75,7 @@ export async function GET(request: NextRequest) {
           max_redemption_percentage: 0,
           points_per_dollar: 0,
           google_review_bonus_points: 0,
+          has_reviewed: false,
         },
       });
     }
@@ -83,6 +95,7 @@ export async function GET(request: NextRequest) {
         points_per_dollar?: number;
         google_review_bonus_points?: number;
       }>;
+      reviews_aggregate?: { aggregate?: { count?: number } };
     }>(GET_LOYALTY_BALANCE, {
       customer_id: customer.customerId,
       restaurant_id: restaurantId,
@@ -90,6 +103,8 @@ export async function GET(request: NextRequest) {
 
     const settings = data.loyalty_settings?.[0];
     const balance = data.loyalty_balances?.[0];
+
+    const hasReviewed = (data.reviews_aggregate?.aggregate?.count ?? 0) > 0;
 
     if (!settings?.is_enabled) {
       return NextResponse.json({
@@ -103,6 +118,7 @@ export async function GET(request: NextRequest) {
           min_redemption_points: 0,
           max_redemption_percentage: 0,
           points_per_dollar: 0,
+          has_reviewed: hasReviewed,
         },
       });
     }
@@ -119,6 +135,7 @@ export async function GET(request: NextRequest) {
         max_redemption_percentage: settings.max_redemption_percentage ?? 50,
         points_per_dollar: settings.points_per_dollar ?? 1,
         google_review_bonus_points: settings.google_review_bonus_points ?? 0,
+        has_reviewed: hasReviewed,
       },
     });
   } catch (error) {

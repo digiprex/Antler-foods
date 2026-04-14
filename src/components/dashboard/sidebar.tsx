@@ -4,6 +4,7 @@ import type { DashboardRailTab } from './icon-rail';
 import { useEffect, useMemo, useRef } from 'react';
 import {
   buildRestaurantBankAccountsPath,
+  buildRestaurantGoogleManagerPath,
   buildRestaurantInformationPath,
   buildRestaurantMediaPath,
   buildRestaurantPayoutsPath,
@@ -84,6 +85,10 @@ export function Sidebar({
           roleSegment,
           selectedRestaurant,
         );
+        const googleManagerPath = buildRestaurantGoogleManagerPath(
+          roleSegment,
+          selectedRestaurant,
+        );
         const payoutsPath = buildRestaurantPayoutsPath(
           roleSegment,
           selectedRestaurant,
@@ -145,6 +150,12 @@ export function Sidebar({
             label: 'Bank Accounts',
             icon: <BankAccountsIcon />,
             matchPrefixes: [bankAccountsPath],
+          },
+          {
+            href: googleManagerPath,
+            label: 'Google Manager',
+            icon: <GoogleManagerIcon />,
+            matchPrefixes: [googleManagerPath],
           },
           ...(roleSegment === 'admin' || roleSegment === 'manager'
             ? [
@@ -218,7 +229,10 @@ export function Sidebar({
           icon: <CampaignsIcon />,
         },
         {
-          href: buildRestaurantScopedHref(`/admin/sent-emails`, selectedRestaurant),
+          href: buildRestaurantScopedHref(
+            `/admin/sent-emails`,
+            selectedRestaurant,
+          ),
           label: 'Sent & Scheduled',
           icon: <SentEmailsIcon />,
         },
@@ -284,10 +298,7 @@ export function Sidebar({
           href: buildRestaurantScopedHref(`/admin/forms`, selectedRestaurant),
           label: 'Forms',
           icon: <FormsIcon />,
-          matchPrefixes: [
-            `/admin/forms`,
-            `/admin/form-settings`,
-          ],
+          matchPrefixes: [`/admin/forms`, `/admin/form-settings`],
         },
         {
           href: buildRestaurantScopedHref(
@@ -1372,6 +1383,25 @@ function PayoutsIcon() {
     >
       <path d="M12 3v18" />
       <path d="M17 7.5c0-1.933-2.239-3.5-5-3.5S7 5.567 7 7.5 9.239 11 12 11s5 1.567 5 3.5S14.761 18 12 18s-5-1.567-5-3.5" />
+    </svg>
+  );
+}
+
+function GoogleManagerIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 5a7 7 0 1 0 6.7 9h-6.2" />
+      <path d="M20 12h-8" />
+      <path d="M16 8v8" />
     </svg>
   );
 }

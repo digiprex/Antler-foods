@@ -501,6 +501,7 @@ export default function RestaurantMenuCheckoutPage({
   const [loyaltyData, setLoyaltyData] = useState<{
     enabled: boolean;
     points_balance: number;
+    lifetime_earned: number;
     redemption_rate: number;
     min_redemption_points: number;
     max_redemption_percentage: number;
@@ -1996,7 +1997,7 @@ export default function RestaurantMenuCheckoutPage({
         </div>
 
         {/* Loyalty Points — balance + redeem */}
-        {loyaltyData?.enabled && hasCustomerSession && !isGuestCustomer && loyaltyData.points_balance > 0 ? (
+        {loyaltyData?.enabled && hasCustomerSession && !isGuestCustomer && (loyaltyData.points_balance > 0 || loyaltyData.lifetime_earned > 0) ? (
           <div className="mb-4 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50/80 to-orange-50/80 p-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -2011,6 +2012,11 @@ export default function RestaurantMenuCheckoutPage({
                 {loyaltyData.points_balance} pts
               </span>
             </div>
+            {loyaltyData.lifetime_earned > 0 ? (
+              <p className="mt-1.5 text-[10px] font-medium tabular-nums text-amber-700/70">
+                Total earned: {loyaltyData.lifetime_earned.toLocaleString()} pts
+              </p>
+            ) : null}
             {loyaltyData.points_balance >= loyaltyData.min_redemption_points ? (
               <div className="mt-3 space-y-2.5">
                 <div className="flex items-center gap-3">
@@ -2042,11 +2048,11 @@ export default function RestaurantMenuCheckoutPage({
                   </p>
                 )}
               </div>
-            ) : (
+            ) : loyaltyData.points_balance > 0 ? (
               <p className="mt-2 text-[11px] text-amber-700/70">
                 You need {loyaltyData.min_redemption_points} pts to start redeeming (worth ${(loyaltyData.min_redemption_points * loyaltyData.redemption_rate).toFixed(2)})
               </p>
-            )}
+            ) : null}
           </div>
         ) : null}
 

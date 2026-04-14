@@ -5,6 +5,7 @@ import { createUberDirectDelivery } from '@/lib/server/delivery/uber-direct';
 import { createDoorDashDriveDelivery } from '@/lib/server/delivery/doordash-drive';
 import { sendOrderPickupReadyEmail } from '@/lib/server/email';
 import { sendInvoiceForOrder } from '@/lib/server/order-invoice';
+import { creditOrderLoyaltyPoints } from '@/features/restaurant-menu/lib/server/menu-orders';
 
 const GET_PENDING_CONFIRMABLE_ORDERS = `
   query GetPendingConfirmableOrders {
@@ -450,6 +451,16 @@ export async function GET(request: NextRequest) {
           count: confirmResult.update_orders?.affected_rows || 0,
           order_ids: pendingIds,
         });
+        // Credit loyalty points for newly confirmed orders
+        for (const oid of pendingIds) {
+          try {
+            await creditOrderLoyaltyPoints(oid);
+          } catch (loyaltyErr) {
+            log(`Loyalty credit failed for pending order ${oid}`, {
+              error: loyaltyErr instanceof Error ? loyaltyErr.message : 'Unknown error',
+            });
+          }
+        }
       }
     } catch (err) {
       log('Failed to confirm pending orders', {
@@ -482,6 +493,13 @@ export async function GET(request: NextRequest) {
                 confirmed_at: new Date().toISOString(),
               });
               log(`Reconciled order ${order.order_id} — payment succeeded`);
+              try {
+                await creditOrderLoyaltyPoints(order.order_id);
+              } catch (loyaltyErr) {
+                log(`Loyalty credit failed for reconciled order ${order.order_id}`, {
+                  error: loyaltyErr instanceof Error ? loyaltyErr.message : 'Unknown error',
+                });
+              }
               try {
                 await sendInvoiceForOrder(order.order_id);
                 log(`Invoice email sent for reconciled order ${order.order_id}`);

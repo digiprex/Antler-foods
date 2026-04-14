@@ -12,6 +12,7 @@ const GET_LOYALTY_BALANCE = `
         customer_id: { _eq: $customer_id }
         restaurant_id: { _eq: $restaurant_id }
       }
+      order_by: { updated_at: desc }
       limit: 1
     ) {
       id

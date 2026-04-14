@@ -3,6 +3,7 @@ import { getStripe } from '@/lib/server/stripe';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { sendInvoiceForOrder } from '@/lib/server/order-invoice';
 import { syncPayoutBatchByTransferEvent } from '@/lib/server/restaurant-payouts';
+import { creditOrderLoyaltyPoints } from '@/features/restaurant-menu/lib/server/menu-orders';
 
 const CONFIRM_PAID_ORDER = `
   mutation ConfirmPaidOrder($order_id: uuid!, $payment_reference: String!, $confirmed_at: timestamptz!) {
@@ -75,8 +76,13 @@ export async function POST(request: NextRequest) {
         confirmed_at: new Date().toISOString(),
       });
 
-      // Only send email if we were the first to confirm (prevents duplicates)
+      // Only send email and credit loyalty if we were the first to confirm
       if ((result.update_orders?.affected_rows ?? 0) > 0) {
+        try {
+          await creditOrderLoyaltyPoints(orderId);
+        } catch (loyaltyError) {
+          console.error('[Stripe Webhook] Loyalty credit failed:', loyaltyError);
+        }
         try {
           await sendInvoiceForOrder(orderId);
         } catch (emailError) {

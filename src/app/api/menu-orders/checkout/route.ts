@@ -9,6 +9,7 @@ import {
   MenuOrderError,
   placeMenuOrder,
   updateOrderPaymentIntent,
+  creditOrderLoyaltyPoints,
 } from '@/features/restaurant-menu/lib/server/menu-orders';
 import { getRestaurantStripeAccountByRestaurantId } from '@/lib/server/restaurant-stripe-accounts';
 import { getStripe } from '@/lib/server/stripe';
@@ -163,6 +164,12 @@ export async function POST(request: NextRequest) {
       }
 
       try {
+        await creditOrderLoyaltyPoints(result.orderId);
+      } catch (loyaltyErr) {
+        console.error('[Menu Orders] Cash order loyalty credit failed:', loyaltyErr);
+      }
+
+      try {
         await sendInvoiceForOrder(result.orderId);
       } catch (emailErr) {
         console.error('[Menu Orders] Cash order confirmation email failed:', emailErr);
@@ -195,6 +202,12 @@ export async function POST(request: NextRequest) {
         );
       } catch (err) {
         console.error('[Menu Orders] Failed to auto-confirm fully discounted order:', err);
+      }
+
+      try {
+        await creditOrderLoyaltyPoints(result.orderId);
+      } catch (loyaltyErr) {
+        console.error('[Menu Orders] Loyalty order loyalty credit failed:', loyaltyErr);
       }
 
       try {

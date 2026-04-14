@@ -423,12 +423,12 @@ export function BankAccountsPage() {
   );
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-5">
       <OperationsBankAccountsHeader restaurantName={restaurant.name} />
       <NoticeBanner notice={notice} />
 
-      {/* Metrics Grid - Prominent at top */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Metrics Grid */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           label="Payments enabled"
           value={formatBooleanLabel(account?.charges_enabled)}
@@ -466,94 +466,92 @@ export function BankAccountsPage() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid items-start gap-5 xl:grid-cols-2">
+      <div className="grid items-start gap-4 xl:grid-cols-2">
         {/* Left Column - Verification Status & Account Info */}
-        <div className="space-y-5">
-          <section className="overflow-hidden rounded-[30px] border border-[#e8e7ee] bg-white shadow-[0_18px_42px_rgba(15,23,42,0.06)]">
-            <div className="bg-[linear-gradient(180deg,#fbf8ff_0%,#ffffff_100%)] px-6 py-6 sm:px-8 sm:py-8">
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-center gap-3">
-                  <StatusPill status={currentStatus} />
-                  <span className="inline-flex items-center gap-2 rounded-full border border-[#e7dffc] bg-white px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6f5ca8] shadow-sm">
-                    <StripeSparkIcon />
-                    Powered by Stripe
-                  </span>
-                  {account?.connection_mode ? (
-                    <ConnectionModePill
-                      value={formatConnectionMode(account.connection_mode)}
-                    />
-                  ) : null}
-                </div>
-
-                <div className="space-y-3">
-                  <SectionEyebrow>Verification state</SectionEyebrow>
-                  <h1 className="text-[2rem] font-semibold tracking-[-0.03em] text-[#140f23] sm:text-[2.15rem] sm:leading-[1.08]">
-                    {accountState?.status_label || 'Not connected'}
-                  </h1>
-                  <p className="text-[15px] leading-7 text-[#625b73]">
-                    {accountState?.message ||
-                      'Connect Stripe to begin verification and prepare this restaurant for future payouts.'}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  {showPrimaryOnboardingAction ? (
-                    <ActionButton
-                      tone="primary"
-                      loading={isLaunchingOnboarding}
-                      disabled={isLaunchingExisting}
-                      icon={<StripeConnectIcon />}
-                      onClick={() => {
-                        void launchStripeOnboarding();
-                      }}
-                    >
-                      {accountState?.primary_action_label ||
-                        'Connect with Stripe'}
-                    </ActionButton>
-                  ) : null}
-
-                  {canConnectExistingAccount ? (
-                    <ActionButton
-                      tone="secondary"
-                      loading={isLaunchingExisting}
-                      disabled={isLaunchingOnboarding}
-                      icon={<LinkAccountIcon />}
-                      onClick={() => {
-                        void launchExistingStripeConnection();
-                      }}
-                    >
-                      Connect existing Stripe account
-                    </ActionButton>
-                  ) : null}
-
-                  <ActionButton
-                    tone="ghost"
-                    loading={isRefreshingStatus}
-                    disabled={isLaunchingOnboarding || isLaunchingExisting}
-                    icon={<RefreshStatusIcon />}
-                    onClick={() => {
-                      void refreshStripeStatus();
-                    }}
-                  >
-                    Refresh status
-                  </ActionButton>
-                </div>
+        <div className="space-y-4">
+          <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="border-b border-gray-100 bg-gray-50/80 px-5 py-5">
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <StatusPill status={currentStatus} />
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-purple-600">
+                  <StripeSparkIcon />
+                  Stripe
+                </span>
+                {account?.connection_mode ? (
+                  <ConnectionModePill
+                    value={formatConnectionMode(account.connection_mode)}
+                  />
+                ) : null}
               </div>
+
+              <div>
+                <SectionEyebrow>Verification state</SectionEyebrow>
+                <h2 className="mt-1.5 text-xl font-semibold text-gray-900">
+                  {accountState?.status_label || 'Not connected'}
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-gray-500">
+                  {accountState?.message ||
+                    'Connect Stripe to begin verification and prepare this restaurant for future payouts.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 px-5 py-4">
+              {showPrimaryOnboardingAction ? (
+                <ActionButton
+                  tone="primary"
+                  loading={isLaunchingOnboarding}
+                  disabled={isLaunchingExisting}
+                  icon={<StripeConnectIcon />}
+                  onClick={() => {
+                    void launchStripeOnboarding();
+                  }}
+                >
+                  {accountState?.primary_action_label ||
+                    'Connect with Stripe'}
+                </ActionButton>
+              ) : null}
+
+              {canConnectExistingAccount ? (
+                <ActionButton
+                  tone="secondary"
+                  loading={isLaunchingExisting}
+                  disabled={isLaunchingOnboarding}
+                  icon={<LinkAccountIcon />}
+                  onClick={() => {
+                    void launchExistingStripeConnection();
+                  }}
+                >
+                  Connect existing Stripe account
+                </ActionButton>
+              ) : null}
+
+              <ActionButton
+                tone="ghost"
+                loading={isRefreshingStatus}
+                disabled={isLaunchingOnboarding || isLaunchingExisting}
+                icon={<RefreshStatusIcon />}
+                onClick={() => {
+                  void refreshStripeStatus();
+                }}
+              >
+                Refresh status
+              </ActionButton>
             </div>
           </section>
 
           {/* Account Snapshot */}
-          <section className="rounded-[30px] border border-[#e8e7ee] bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.06)] sm:p-7">
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <SectionEyebrow>Account snapshot</SectionEyebrow>
-            <h2 className="mt-2 text-[1.45rem] font-semibold tracking-[-0.025em] text-[#140f23] sm:text-[1.55rem]">
+            <h2 className="mt-1.5 text-lg font-semibold text-gray-900">
               Connection overview
             </h2>
-            <p className="mt-3 text-sm leading-7 text-[#625d6d]">
+            <p className="mt-2 text-sm leading-relaxed text-gray-500">
               Confirm which Stripe account is linked, how it was connected, and
               when we last synced the verification state.
             </p>
 
-            <div className="mt-6 space-y-2 rounded-[24px] border border-[#edf0f8] bg-[#fcfcfe] p-3">
+            <div className="mt-5 divide-y divide-gray-100 rounded-lg border border-gray-100 bg-gray-50/50">
               <InfoRow
                 label="Account name"
                 value={account?.display_name || 'Unavailable'}
@@ -588,7 +586,7 @@ export function BankAccountsPage() {
               />
             </div>
 
-            <div className="mt-5 grid gap-3 grid-cols-2">
+            <div className="mt-4 grid gap-3 grid-cols-2">
               <SnapshotMiniCard
                 label="Status"
                 value={accountState?.status_label || 'Not connected'}
@@ -602,9 +600,9 @@ export function BankAccountsPage() {
         </div>
 
         {/* Right Column - Setup Guide/Insight & Owner Scope */}
-        <div className="space-y-5">
+        <div className="space-y-4">
           {/* Setup Guide or Status Insight */}
-          <section className="rounded-[30px] border border-[#e8e7ee] bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.06)] sm:p-7">
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             {currentStatus === 'not_connected' ? (
               <CompactSetupGuide />
             ) : (
@@ -617,18 +615,18 @@ export function BankAccountsPage() {
           </section>
 
           {/* Owner Scope */}
-          <section className="rounded-[30px] border border-[#e8e7ee] bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.05)] sm:p-7">
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <SectionEyebrow>Owner scope</SectionEyebrow>
-            <h3 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.02em] text-[#161122] sm:text-[1.45rem]">
+            <h3 className="mt-1.5 text-lg font-semibold text-gray-900">
               Setup and verification only
             </h3>
-            <p className="mt-3 text-sm leading-7 text-[#676075]">
+            <p className="mt-2 text-sm leading-relaxed text-gray-500">
               Owners can connect Stripe, complete setup, update required
               details, and refresh the status. Payout operations stay on the
               separate admin surface.
             </p>
 
-            <div className="mt-5 space-y-3">
+            <div className="mt-4 space-y-3">
               <CompactListCard
                 title="Allowed here"
                 items={[
@@ -656,57 +654,57 @@ export function BankAccountsPage() {
 
       {/* Requirements Section - Full width at bottom */}
       {requirementGroups.length > 0 || accountState?.blocking_issue ? (
-        <section className="rounded-[34px] border border-[#f6dfc7] bg-[linear-gradient(180deg,#fffdf8_0%,#fff9f1_40%,#ffffff_100%)] p-6 shadow-[0_18px_52px_rgba(180,83,9,0.08)] sm:p-8">
+        <section className="rounded-xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#f2d4ae] bg-white px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9b6a21] shadow-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-700">
                 <RequirementsAlertIcon />
                 Review needed
-              </div>
-              <h2 className="mt-4 text-[1.65rem] font-semibold tracking-[-0.025em] text-[#17121f] sm:text-[1.75rem]">
+              </span>
+              <h2 className="mt-3 text-lg font-semibold text-gray-900">
                 Requirements to review
               </h2>
-              <p className="mt-3 text-sm leading-7 text-[#7c5b2a]">
+              <p className="mt-2 text-sm leading-relaxed text-amber-700">
                 These are Stripe-managed details. Use the Stripe action above
                 to submit updates, then refresh this page to pull the latest
                 status back into Antler.
               </p>
             </div>
             {accountState?.blocking_issue ? (
-              <div className="max-w-xl rounded-[24px] border border-[#f1d1a4] bg-white px-4 py-3 text-sm leading-6 text-[#8a5b14] shadow-[0_12px_28px_rgba(180,83,9,0.08)]">
+              <div className="max-w-xl rounded-lg border border-amber-200 bg-white px-4 py-3 text-sm leading-relaxed text-amber-700">
                 {accountState.blocking_issue}
               </div>
             ) : null}
           </div>
 
-          <div className="mt-6 space-y-4">
+          <div className="mt-5 space-y-3">
             {/* Small groups first - in a 2-column grid */}
             {requirementGroups.filter((g) => g.items.length <= 5).length > 0 ? (
-              <div className="grid items-start gap-4 lg:grid-cols-2">
+              <div className="grid items-start gap-3 lg:grid-cols-2">
                 {requirementGroups
                   .filter((g) => g.items.length <= 5)
                   .map((group) => (
                     <section
                       key={group.key}
-                      className="rounded-[28px] border border-[#f1dcc5] bg-white p-5 shadow-[0_14px_36px_rgba(15,23,42,0.05)]"
+                      className="rounded-lg border border-amber-200 bg-white p-4 shadow-sm"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#17121f]">
+                        <h3 className="text-sm font-semibold text-gray-900">
                           {group.title}
                         </h3>
-                        <span className="inline-flex min-w-9 items-center justify-center rounded-full border border-[#f2d8b7] bg-[#fffaee] px-2.5 py-1 text-xs font-semibold text-[#99651f]">
+                        <span className="inline-flex min-w-[28px] items-center justify-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
                           {group.items.length}
                         </span>
                       </div>
-                      <div className="mt-4 space-y-3">
+                      <div className="mt-3 space-y-2">
                         {group.items.map((item) => (
                           <div
                             key={`${group.key}-${item.raw}-${item.state}`}
-                            className="flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-[#f3e1ca] bg-[linear-gradient(180deg,#fffdfa_0%,#fffaf4_100%)] px-4 py-3.5"
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-100 bg-gray-50/50 px-3 py-2.5"
                           >
-                            <div className="flex items-start gap-3">
-                              <span className="mt-1 h-2.5 w-2.5 rounded-full bg-[#d7a14d]" />
-                              <span className="text-sm font-medium leading-6 text-[#3f4451]">
+                            <div className="flex items-start gap-2.5">
+                              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-400" />
+                              <span className="text-sm text-gray-700">
                                 {item.label}
                               </span>
                             </div>
@@ -725,25 +723,25 @@ export function BankAccountsPage() {
               .map((group) => (
                 <section
                   key={group.key}
-                  className="rounded-[28px] border border-[#f1dcc5] bg-white p-5 shadow-[0_14px_36px_rgba(15,23,42,0.05)]"
+                  className="rounded-lg border border-amber-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#17121f]">
+                    <h3 className="text-sm font-semibold text-gray-900">
                       {group.title}
                     </h3>
-                    <span className="inline-flex min-w-9 items-center justify-center rounded-full border border-[#f2d8b7] bg-[#fffaee] px-2.5 py-1 text-xs font-semibold text-[#99651f]">
+                    <span className="inline-flex min-w-[28px] items-center justify-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
                       {group.items.length}
                     </span>
                   </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {group.items.map((item) => (
                       <div
                         key={`${group.key}-${item.raw}-${item.state}`}
-                        className="flex flex-col gap-2 rounded-[22px] border border-[#f3e1ca] bg-[linear-gradient(180deg,#fffdfa_0%,#fffaf4_100%)] px-4 py-3.5"
+                        className="flex flex-col gap-1.5 rounded-lg border border-gray-100 bg-gray-50/50 px-3 py-2.5"
                       >
-                        <div className="flex items-start gap-3">
-                          <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#d7a14d]" />
-                          <span className="text-sm font-medium leading-6 text-[#3f4451]">
+                        <div className="flex items-start gap-2.5">
+                          <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-400" />
+                          <span className="text-sm text-gray-700">
                             {item.label}
                           </span>
                         </div>
@@ -941,13 +939,13 @@ function formatSyncTimestamp(value: string | null | undefined) {
 
 function SelectionRequiredCard({ target }: { target: string }) {
   return (
-    <section className="space-y-6">
-      <div className="rounded-[32px] border border-[#e8defc] bg-[linear-gradient(135deg,#fdfbff_0%,#f7f4ff_48%,#ffffff_100%)] p-8 shadow-[0_24px_70px_rgba(91,33,182,0.08)] sm:p-10">
+    <section className="space-y-5">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
         <SectionEyebrow>{target}</SectionEyebrow>
-        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-[#140f23]">
-          Select a restaurant to unlock this workspace
+        <h1 className="mt-3 text-2xl font-semibold text-gray-900">
+          Select a restaurant to get started
         </h1>
-        <p className="mt-4 max-w-3xl text-base leading-8 text-[#625b73]">
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-500">
           Pick a restaurant from the dashboard search so the Bank Accounts page
           can load the correct Stripe connection state, actions, and
           verification details.
@@ -959,14 +957,14 @@ function SelectionRequiredCard({ target }: { target: string }) {
 
 function LoadingCard({ title }: { title: string }) {
   return (
-    <section className="space-y-6">
-      <div className="flex items-center gap-4 rounded-[32px] border border-[#e8defc] bg-[linear-gradient(135deg,#fdfbff_0%,#f7f4ff_48%,#ffffff_100%)] p-8 text-sm text-[#625b73] shadow-[0_24px_70px_rgba(91,33,182,0.08)]">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm">
+    <section className="space-y-5">
+      <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
           <PageBankIcon />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           <SectionEyebrow>{title}</SectionEyebrow>
-          <p className="text-base font-medium text-[#140f23]">
+          <p className="text-sm font-medium text-gray-900">
             Loading Stripe connection state...
           </p>
         </div>
@@ -986,16 +984,16 @@ function ErrorCard({
   onRetry: () => void;
 }) {
   return (
-    <section className="space-y-6">
-      <div className="space-y-5 rounded-[32px] border border-[#f3d8d8] bg-[linear-gradient(135deg,#fffafb_0%,#fff1f2_100%)] p-8 shadow-[0_20px_60px_rgba(127,29,29,0.08)]">
+    <section className="space-y-5">
+      <div className="space-y-4 rounded-xl border border-red-200 bg-red-50 p-6 shadow-sm">
         <SectionEyebrow>{title}</SectionEyebrow>
-        <p className="max-w-3xl text-base leading-8 text-[#a72b2b]">
+        <p className="max-w-2xl text-sm leading-relaxed text-red-700">
           {message}
         </p>
         <button
           type="button"
           onClick={onRetry}
-          className="inline-flex items-center rounded-2xl bg-[#161122] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_32px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:bg-[#23183a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6] focus-visible:ring-offset-2"
+          className="inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
         >
           Retry
         </button>
@@ -1010,32 +1008,23 @@ function OperationsBankAccountsHeader({
   restaurantName: string;
 }) {
   return (
-    <div className="rounded-[32px] border border-[#e7defc] bg-[linear-gradient(135deg,#fefcff_0%,#f8f5ff_52%,#ffffff_100%)] p-6 shadow-[0_24px_70px_rgba(91,33,182,0.07)] sm:p-7">
-      <div className="flex flex-wrap items-start justify-between gap-5">
-        <div className="space-y-4">
-          <div className="inline-flex items-center gap-3 rounded-full border border-white/80 bg-white/90 px-4 py-2 shadow-[0_10px_24px_rgba(109,40,217,0.08)]">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7c3aed] via-[#8b5cf6] to-[#a78bfa] text-white shadow-[0_16px_36px_rgba(124,58,237,0.28)]">
-              <PageBankIcon />
-            </div>
-            <div>
-              {/* <SectionEyebrow>Operations workspace</SectionEyebrow> */}
-              <h1 className="text-2xl font-semibold tracking-[-0.03em] text-[#111827] sm:text-3xl">
-                Bank Accounts
-              </h1>
-            </div>
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-600 text-white">
+            <PageBankIcon />
           </div>
-          {/* <p className="max-w-3xl text-base leading-8 text-[#625b73]">
-            A dedicated place to connect Stripe, complete verification, and
-            review connection readiness without exposing payout controls on the
-            owner-facing surface.
-          </p> */}
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900">Bank Accounts</h1>
+            <p className="text-sm text-gray-500">Stripe Connect integration</p>
+          </div>
         </div>
-        <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#e6ddfb] bg-white/90 px-4 py-2 text-sm font-medium text-[#4b3f79] shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
+        {/* <div className="inline-flex max-w-full items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-700">
           <RestaurantChipIcon />
           <span className="max-w-[260px] truncate sm:max-w-[420px]">
             {restaurantName}
           </span>
-        </div>
+        </div> */}
       </div>
     </div>
   );
@@ -1049,10 +1038,10 @@ function NoticeBanner({ notice }: { notice: SaveNotice | null }) {
   return (
     <p
       className={cx(
-        'rounded-[24px] px-4 py-3.5 text-sm font-medium shadow-[0_14px_32px_rgba(15,23,42,0.05)]',
+        'rounded-lg px-4 py-3 text-sm font-medium',
         notice.tone === 'success'
-          ? 'border border-[#dccfff] bg-[linear-gradient(135deg,#faf6ff_0%,#f3ebff_100%)] text-[#5b21b6]'
-          : 'border border-[#f3d0d0] bg-[linear-gradient(135deg,#fff7f7_0%,#fff0f0_100%)] text-[#a72b2b]',
+          ? 'border border-green-200 bg-green-50 text-green-700'
+          : 'border border-red-200 bg-red-50 text-red-700',
       )}
     >
       {notice.message}
@@ -1081,27 +1070,18 @@ function ActionButton({
       onClick={onClick}
       disabled={loading || disabled}
       className={cx(
-        'inline-flex min-h-[52px] items-center justify-center gap-2.5 rounded-2xl px-5 py-3 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6] focus-visible:ring-offset-2',
+        'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2',
         tone === 'primary'
-          ? 'bg-[linear-gradient(135deg,#7c3aed_0%,#6d28d9_52%,#5b21b6_100%)] text-white shadow-[0_16px_34px_rgba(109,40,217,0.22)] hover:-translate-y-0.5 hover:shadow-[0_20px_38px_rgba(109,40,217,0.28)]'
+          ? 'bg-purple-600 text-white hover:bg-purple-700'
           : tone === 'secondary'
-            ? 'border border-[#d8cff7] bg-white text-[#31274f] shadow-[0_10px_24px_rgba(15,23,42,0.04)] hover:-translate-y-0.5 hover:border-[#c5b5f0] hover:bg-[#faf8ff]'
-            : 'border border-[#d6dde8] bg-white text-[#1f2937] shadow-[0_10px_24px_rgba(15,23,42,0.04)] hover:-translate-y-0.5 hover:border-[#c7d1de] hover:bg-[#f8fafc]',
+            ? 'border border-purple-200 bg-white text-purple-700 hover:bg-purple-50'
+            : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50',
         loading || disabled
-          ? 'cursor-not-allowed opacity-60 shadow-none hover:translate-y-0'
+          ? 'cursor-not-allowed opacity-50'
           : '',
       )}
     >
-      <span
-        className={cx(
-          'flex h-8 w-8 items-center justify-center rounded-full',
-          tone === 'primary'
-            ? 'bg-white/16'
-            : tone === 'secondary'
-              ? 'bg-[#f3efff] text-[#6d28d9]'
-              : 'bg-[#f3f5f8] text-[#334155]',
-        )}
-      >
+      <span className="flex h-5 w-5 items-center justify-center">
         {loading ? <PurpleDotSpinner size="inline" /> : icon}
       </span>
       <span>{children}</span>
@@ -1114,35 +1094,31 @@ function StatusPill({ status }: { status: StripeOwnerStatus }) {
     status === 'active'
       ? {
           label: 'Active',
-          className:
-            'border-emerald-200 bg-emerald-50/90 text-emerald-700 shadow-[0_10px_24px_rgba(5,150,105,0.12)]',
+          className: 'bg-green-100 text-green-800',
         }
       : status === 'setup_incomplete'
         ? {
             label: 'Setup incomplete',
-            className:
-              'border-amber-200 bg-amber-50/95 text-amber-700 shadow-[0_10px_24px_rgba(217,119,6,0.12)]',
+            className: 'bg-amber-100 text-amber-800',
           }
         : status === 'action_required'
           ? {
               label: 'Action required',
-              className:
-                'border-rose-200 bg-rose-50/95 text-rose-700 shadow-[0_10px_24px_rgba(225,29,72,0.1)]',
+              className: 'bg-red-100 text-red-800',
             }
           : {
               label: 'Not connected',
-              className:
-                'border-slate-200 bg-slate-50/95 text-slate-700 shadow-[0_10px_24px_rgba(100,116,139,0.08)]',
+              className: 'bg-gray-100 text-gray-700',
             };
 
   return (
     <span
       className={cx(
-        'inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em]',
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider',
         config.className,
       )}
     >
-      <span className="h-2 w-2 rounded-full bg-current opacity-80" />
+      <span className="h-1.5 w-1.5 rounded-full bg-current" />
       {config.label}
     </span>
   );
@@ -1163,44 +1139,44 @@ function MetricCard({
 }) {
   const toneClass =
     tone === 'success'
-      ? 'border-emerald-200/80 bg-[linear-gradient(180deg,rgba(236,253,245,0.95)_0%,rgba(255,255,255,1)_100%)]'
+      ? 'border-green-200 bg-green-50/50'
       : tone === 'warning'
-        ? 'border-amber-200/90 bg-[linear-gradient(180deg,rgba(255,251,235,0.96)_0%,rgba(255,255,255,1)_100%)]'
-        : 'border-[#e4e9f1] bg-white';
+        ? 'border-amber-200 bg-amber-50/50'
+        : 'border-gray-200 bg-white';
 
   const iconToneClass =
     tone === 'success'
-      ? 'bg-emerald-100 text-emerald-700'
+      ? 'bg-green-100 text-green-600'
       : tone === 'warning'
-        ? 'bg-amber-100 text-amber-700'
-        : 'bg-[#f2f4f8] text-[#475569]';
+        ? 'bg-amber-100 text-amber-600'
+        : 'bg-gray-100 text-gray-500';
 
   return (
     <div
       className={cx(
-        'rounded-[24px] border p-5 shadow-[0_12px_28px_rgba(15,23,42,0.04)]',
+        'rounded-xl border p-4 shadow-sm',
         toneClass,
       )}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7c8292]">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
             {label}
           </p>
-          <p className="mt-3 text-[2rem] font-semibold tracking-[-0.035em] text-[#111827] sm:text-[2.1rem]">
+          <p className="mt-2 text-2xl font-bold tabular-nums text-gray-900">
             {value}
           </p>
         </div>
         <div
           className={cx(
-            'flex h-11 w-11 items-center justify-center rounded-2xl shadow-sm',
+            'flex h-9 w-9 items-center justify-center rounded-lg',
             iconToneClass,
           )}
         >
           {icon}
         </div>
       </div>
-      <p className="mt-4 text-sm leading-6 text-[#697284]">{helper}</p>
+      <p className="mt-3 text-xs text-gray-500">{helper}</p>
     </div>
   );
 }
@@ -1212,12 +1188,12 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     value === 'Not synced yet';
 
   return (
-    <div className="flex items-start justify-between gap-4 rounded-2xl border border-transparent px-3 py-3 transition-colors hover:border-[#eef1f6] hover:bg-[#fbfbfe]">
-      <span className="text-sm font-medium text-[#6b7280]">{label}</span>
+    <div className="flex items-start justify-between gap-4 px-4 py-2.5">
+      <span className="text-sm text-gray-500">{label}</span>
       <span
         className={cx(
-          'max-w-[62%] break-words text-right text-sm font-semibold',
-          isFallback ? 'text-[#8a93a7]' : 'text-[#111827]',
+          'max-w-[62%] break-words text-right text-sm font-medium',
+          isFallback ? 'text-gray-400' : 'text-gray-900',
         )}
       >
         {value}
@@ -1231,22 +1207,22 @@ function RequirementStateBadge({ state }: { state: RequirementItem['state'] }) {
     state === 'past_due'
       ? {
           label: 'Past due',
-          className: 'border-rose-200 bg-rose-50 text-rose-700',
+          className: 'bg-red-100 text-red-700',
         }
       : state === 'pending_review'
         ? {
             label: 'Pending review',
-            className: 'border-sky-200 bg-sky-50 text-sky-700',
+            className: 'bg-blue-100 text-blue-700',
           }
         : {
             label: 'Required now',
-            className: 'border-amber-200 bg-amber-50 text-amber-700',
+            className: 'bg-amber-100 text-amber-700',
           };
 
   return (
     <span
       className={cx(
-        'inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm',
+        'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold',
         config.className,
       )}
     >
@@ -1257,7 +1233,7 @@ function RequirementStateBadge({ state }: { state: RequirementItem['state'] }) {
 
 function SectionEyebrow({ children }: { children: string }) {
   return (
-    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8a78c2]">
+    <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
       {children}
     </p>
   );
@@ -1265,8 +1241,8 @@ function SectionEyebrow({ children }: { children: string }) {
 
 function ConnectionModePill({ value }: { value: string }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-[#e6ddfb] bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#66538f] shadow-[0_8px_22px_rgba(15,23,42,0.05)]">
-      <span className="h-2 w-2 rounded-full bg-[#8b5cf6]" />
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-gray-600">
+      <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
       {value}
     </span>
   );
@@ -1308,27 +1284,27 @@ function StatusInsightPanel({
           };
 
   return (
-    <section className="rounded-[24px] border border-[#ebe6f8] bg-white p-5 shadow-sm sm:p-6">
+    <div>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
           <SectionEyebrow>{content.eyebrow}</SectionEyebrow>
-          <h2 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.02em] text-[#140f23] sm:text-[1.45rem]">
+          <h2 className="mt-1.5 text-lg font-semibold text-gray-900">
             {content.title}
           </h2>
-          <p className="mt-3 text-sm leading-7 text-[#676075]">
+          <p className="mt-2 text-sm leading-relaxed text-gray-500">
             {content.description}
           </p>
         </div>
-        <div className="rounded-2xl border border-[#ece6fb] bg-[#faf7ff] px-4 py-3 text-sm text-[#67598f]">
+        <span className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600">
           Connected via: {formatConnectionMode(connectionMode)}
-        </div>
+        </span>
       </div>
       {blockingIssue ? (
-        <div className="mt-5 rounded-[20px] border border-[#f0d3aa] bg-[#fffaf3] px-4 py-3 text-sm leading-6 text-[#8a5b14]">
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-700">
           {blockingIssue}
         </div>
       ) : null}
-    </section>
+    </div>
   );
 }
 

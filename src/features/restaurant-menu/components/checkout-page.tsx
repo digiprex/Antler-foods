@@ -501,6 +501,7 @@ export default function RestaurantMenuCheckoutPage({
   const [loyaltyData, setLoyaltyData] = useState<{
     enabled: boolean;
     points_balance: number;
+    lifetime_earned: number;
     redemption_rate: number;
     min_redemption_points: number;
     max_redemption_percentage: number;
@@ -1996,7 +1997,7 @@ export default function RestaurantMenuCheckoutPage({
         </div>
 
         {/* Loyalty Points — balance + redeem */}
-        {loyaltyData?.enabled && hasCustomerSession && !isGuestCustomer && loyaltyData.points_balance > 0 ? (
+        {loyaltyData?.enabled && hasCustomerSession && !isGuestCustomer && (loyaltyData.points_balance > 0 || loyaltyData.lifetime_earned > 0) ? (
           <div className="mb-4 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50/80 to-orange-50/80 p-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -2011,6 +2012,11 @@ export default function RestaurantMenuCheckoutPage({
                 {loyaltyData.points_balance} pts
               </span>
             </div>
+            {loyaltyData.lifetime_earned > 0 ? (
+              <p className="mt-1.5 text-[10px] font-medium tabular-nums text-amber-700/70">
+                Total earned: {loyaltyData.lifetime_earned.toLocaleString()} pts
+              </p>
+            ) : null}
             {loyaltyData.points_balance >= loyaltyData.min_redemption_points ? (
               <div className="mt-3 space-y-2.5">
                 <div className="flex items-center gap-3">
@@ -2020,12 +2026,22 @@ export default function RestaurantMenuCheckoutPage({
                     max={loyaltyData.points_balance}
                     step={1}
                     value={loyaltyPointsToRedeem}
-                    onChange={(e) => setLoyaltyPointsToRedeem(Number(e.target.value))}
+                    onChange={(e) => setLoyaltyPointsToRedeem(Math.round(Number(e.target.value)))}
                     className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-amber-200 accent-amber-600 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-amber-600 [&::-webkit-slider-thumb]:shadow-md"
                   />
-                  <span className="min-w-[3.5rem] text-right text-xs font-bold tabular-nums text-amber-800">
-                    {loyaltyPointsToRedeem} pts
-                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={loyaltyData.points_balance}
+                    step={1}
+                    value={loyaltyPointsToRedeem}
+                    onChange={(e) => {
+                      const v = Math.round(Number(e.target.value) || 0);
+                      setLoyaltyPointsToRedeem(Math.max(0, Math.min(v, loyaltyData.points_balance)));
+                    }}
+                    className="w-16 rounded-lg border border-amber-300 bg-white/80 px-2 py-1 text-center text-xs font-bold tabular-nums text-amber-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-400"
+                  />
+                  <span className="text-xs font-medium text-amber-700">pts</span>
                 </div>
                 {loyaltyPointsToRedeem > 0 ? (
                   <div className="flex items-center justify-between rounded-lg bg-white/70 px-3 py-2 ring-1 ring-amber-200/60">
@@ -2038,15 +2054,15 @@ export default function RestaurantMenuCheckoutPage({
                   </div>
                 ) : (
                   <p className="text-[11px] text-amber-700/70">
-                    Slide to redeem points for a discount
+                    Slide or type points to redeem for a discount
                   </p>
                 )}
               </div>
-            ) : (
+            ) : loyaltyData.points_balance > 0 ? (
               <p className="mt-2 text-[11px] text-amber-700/70">
                 You need {loyaltyData.min_redemption_points} pts to start redeeming (worth ${(loyaltyData.min_redemption_points * loyaltyData.redemption_rate).toFixed(2)})
               </p>
-            )}
+            ) : null}
           </div>
         ) : null}
 

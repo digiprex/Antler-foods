@@ -5,6 +5,7 @@ import {
 } from '@/features/restaurant-menu/lib/server/customer-auth';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { sendOrderDeliveryStatusEmail } from '@/lib/server/email';
+import { reverseOrderLoyaltyPoints } from '@/features/restaurant-menu/lib/server/menu-orders';
 
 const GET_ORDER_FOR_CANCEL = `
   query GetOrderForCancel($order_id: uuid!, $customer_id: uuid!) {
@@ -114,6 +115,15 @@ export async function POST(request: NextRequest) {
 
     // Cancel the order
     await adminGraphqlRequest(CANCEL_ORDER, { order_id: orderId, cancelled_at: new Date().toISOString() });
+
+    // Reverse loyalty points — earned points were only credited if payment was
+    // confirmed (status was 'preparing' or beyond), so revokeEarned depends on
+    // the pre-cancel status.
+    try {
+      await reverseOrderLoyaltyPoints(orderId, { revokeEarned: status !== 'pending' });
+    } catch (loyaltyErr) {
+      console.error('[Menu Orders] Cancel loyalty reversal failed:', loyaltyErr);
+    }
 
     // Send cancellation email
     try {

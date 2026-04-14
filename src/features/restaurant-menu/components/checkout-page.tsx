@@ -1540,6 +1540,7 @@ export default function RestaurantMenuCheckoutPage({
   const discountAmount =
     appliedCoupon?.discountAmount || activeRestaurantOffer?.discountAmount || 0;
   const loyaltyDiscountAmount = loyaltyData?.enabled && loyaltyPointsToRedeem > 0
+      && loyaltyPointsToRedeem >= (loyaltyData.min_redemption_points || 0)
     ? roundCurrency(
         Math.min(
           loyaltyPointsToRedeem * (loyaltyData.redemption_rate || 0.01),

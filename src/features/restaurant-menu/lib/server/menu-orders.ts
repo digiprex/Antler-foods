@@ -144,19 +144,8 @@ const GET_LOYALTY_SETTINGS_FOR_ORDER = `
   }
 `;
 
-const GET_LOYALTY_BALANCE = `
-  query GetLoyaltyBalance($customer_id: uuid!, $restaurant_id: uuid!) {
-    loyalty_balances(where: { customer_id: { _eq: $customer_id }, restaurant_id: { _eq: $restaurant_id } }, limit: 1) {
-      id
-      points_balance
-      lifetime_earned
-      lifetime_redeemed
-    }
-  }
-`;
-
-const UPSERT_LOYALTY_BALANCE = `
-  mutation UpsertLoyaltyBalance(
+const INSERT_LOYALTY_BALANCE = `
+  mutation InsertLoyaltyBalance(
     $customer_id: uuid!,
     $restaurant_id: uuid!,
     $points_balance: Int!,
@@ -171,9 +160,26 @@ const UPSERT_LOYALTY_BALANCE = `
         lifetime_earned: $lifetime_earned
         lifetime_redeemed: $lifetime_redeemed
       }
-      on_conflict: {
-        constraint: loyalty_balances_pkey
-        update_columns: [points_balance, lifetime_earned, lifetime_redeemed]
+    ) {
+      id
+      points_balance
+    }
+  }
+`;
+
+const UPDATE_LOYALTY_BALANCE = `
+  mutation UpdateLoyaltyBalance(
+    $id: uuid!,
+    $points_balance: Int!,
+    $lifetime_earned: Int!,
+    $lifetime_redeemed: Int!
+  ) {
+    update_loyalty_balances_by_pk(
+      pk_columns: { id: $id }
+      _set: {
+        points_balance: $points_balance
+        lifetime_earned: $lifetime_earned
+        lifetime_redeemed: $lifetime_redeemed
       }
     ) {
       id
@@ -722,7 +728,7 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
           max_redemption_percentage
           welcome_bonus_points
         }
-        loyalty_balances(where: { customer_id: { _eq: $customer_id }, restaurant_id: { _eq: $restaurant_id } }, limit: 1) {
+        loyalty_balances(where: { customer_id: { _eq: $customer_id }, restaurant_id: { _eq: $restaurant_id } }, order_by: { updated_at: desc }, limit: 1) {
           id
           points_balance
           lifetime_earned
@@ -898,7 +904,10 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     }
   }
 
-  // --- Loyalty: credit earned points and debit redeemed points ---
+  // --- Loyalty: debit redeemed points immediately (prevents double-spend) ---
+  // Earned points are credited later when payment is confirmed via
+  // creditOrderLoyaltyPoints(), called from the Stripe webhook, checkout
+  // (cash/loyalty), or cron reconciliation.
   let loyaltyPointsEarned = 0;
   if (loyaltySettings) {
     const pointsPerDollar = loyaltySettings.points_per_dollar ?? 1;
@@ -907,42 +916,36 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     // Welcome bonus: first order for this restaurant
     const isFirstOrder = !existingBalance?.id;
     const welcomeBonus = isFirstOrder ? (loyaltySettings.welcome_bonus_points ?? 0) : 0;
-
-    const currentBalance = existingBalance?.points_balance ?? 0;
-    const currentLifetimeEarned = existingBalance?.lifetime_earned ?? 0;
-    const currentLifetimeRedeemed = existingBalance?.lifetime_redeemed ?? 0;
     const totalEarned = loyaltyPointsEarned + welcomeBonus;
-    const newBalance = currentBalance + totalEarned - loyaltyPointsRedeemed;
-    const newLifetimeEarned = currentLifetimeEarned + totalEarned;
-    const newLifetimeRedeemed = currentLifetimeRedeemed + loyaltyPointsRedeemed;
 
-    try {
-      await adminGraphqlRequest(UPSERT_LOYALTY_BALANCE, {
-        customer_id: customerId,
-        restaurant_id: restaurantId,
-        points_balance: Math.max(newBalance, 0),
-        lifetime_earned: newLifetimeEarned,
-        lifetime_redeemed: newLifetimeRedeemed,
-      });
-
-      // Insert transaction records
-      if (totalEarned > 0) {
-        await adminGraphqlRequest(INSERT_LOYALTY_TRANSACTION, {
-          object: {
-            customer_id: customerId,
-            restaurant_id: restaurantId,
-            order_id: orderId,
-            type: welcomeBonus > 0 && loyaltyPointsEarned === 0 ? 'welcome_bonus' : 'earned',
-            points: totalEarned,
-            balance_after: Math.max(newBalance, 0),
-            description: welcomeBonus > 0
-              ? `Order #${orderNumber} (+${loyaltyPointsEarned} earned, +${welcomeBonus} welcome bonus)`
-              : `Order #${orderNumber}`,
-          },
-        });
+    // Store earned points on the order (credited to balance after payment)
+    if (totalEarned > 0) {
+      try {
+        await adminGraphqlRequest(
+          `mutation UpdateOrderLoyaltyEarned($order_id: uuid!, $points: Int!) {
+            update_orders_by_pk(pk_columns: { order_id: $order_id }, _set: { loyalty_points_earned: $points }) {
+              order_id
+            }
+          }`,
+          { order_id: orderId, points: totalEarned },
+        );
+      } catch (err) {
+        console.error('[Menu Orders] Failed to update order loyalty_points_earned:', err);
       }
+    }
 
-      if (loyaltyPointsRedeemed > 0) {
+    // Debit redeemed points from balance now to prevent double-spend
+    if (loyaltyPointsRedeemed > 0 && existingBalance?.id) {
+      try {
+        const currentBalance = existingBalance.points_balance ?? 0;
+        const currentLifetimeRedeemed = existingBalance.lifetime_redeemed ?? 0;
+        await adminGraphqlRequest(UPDATE_LOYALTY_BALANCE, {
+          id: existingBalance.id,
+          points_balance: Math.max(currentBalance - loyaltyPointsRedeemed, 0),
+          lifetime_earned: existingBalance.lifetime_earned ?? 0,
+          lifetime_redeemed: currentLifetimeRedeemed + loyaltyPointsRedeemed,
+        });
+
         await adminGraphqlRequest(INSERT_LOYALTY_TRANSACTION, {
           object: {
             customer_id: customerId,
@@ -950,29 +953,13 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
             order_id: orderId,
             type: 'redeemed',
             points: -loyaltyPointsRedeemed,
-            balance_after: Math.max(newBalance, 0),
+            balance_after: Math.max(currentBalance - loyaltyPointsRedeemed, 0),
             description: `Redeemed on Order #${orderNumber} (-$${loyaltyDiscount.toFixed(2)})`,
           },
         });
+      } catch (err) {
+        console.error('[Menu Orders] Failed to debit loyalty points:', err);
       }
-
-      // Update order with earned points
-      if (loyaltyPointsEarned + welcomeBonus > 0) {
-        try {
-          await adminGraphqlRequest(
-            `mutation UpdateOrderLoyaltyEarned($order_id: uuid!, $points: Int!) {
-              update_orders_by_pk(pk_columns: { order_id: $order_id }, _set: { loyalty_points_earned: $points }) {
-                order_id
-              }
-            }`,
-            { order_id: orderId, points: totalEarned },
-          );
-        } catch (err) {
-          console.error('[Menu Orders] Failed to update order loyalty_points_earned:', err);
-        }
-      }
-    } catch (err) {
-      console.error('[Menu Orders] Failed to process loyalty points:', err);
     }
   }
 
@@ -1197,6 +1184,214 @@ function trimText(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+// ---------------------------------------------------------------------------
+// Loyalty: credit earned points after payment confirmation
+// ---------------------------------------------------------------------------
 
+const GET_ORDER_LOYALTY_DATA = `
+  query GetOrderLoyaltyData($order_id: uuid!) {
+    orders_by_pk(order_id: $order_id) {
+      order_id
+      order_number
+      customer_id
+      restaurant_id
+      sub_total
+      loyalty_points_earned
+      loyalty_points_redeemed
+      loyalty_discount
+    }
+  }
+`;
 
+const GET_LOYALTY_BALANCE_FOR_CREDIT = `
+  query GetLoyaltyBalanceForCredit($customer_id: uuid!, $restaurant_id: uuid!) {
+    loyalty_balances(
+      where: { customer_id: { _eq: $customer_id }, restaurant_id: { _eq: $restaurant_id } }
+      order_by: { updated_at: desc }
+      limit: 1
+    ) {
+      id
+      points_balance
+      lifetime_earned
+      lifetime_redeemed
+    }
+  }
+`;
+
+interface OrderLoyaltyRow {
+  order_id?: string;
+  order_number?: string;
+  customer_id?: string;
+  restaurant_id?: string;
+  sub_total?: number;
+  loyalty_points_earned?: number | null;
+  loyalty_points_redeemed?: number | null;
+  loyalty_discount?: number | null;
+}
+
+interface LoyaltyBalanceCreditRow {
+  id?: string;
+  points_balance?: number;
+  lifetime_earned?: number;
+  lifetime_redeemed?: number;
+}
+
+/**
+ * Credits earned loyalty points to the customer's balance.
+ * Called after payment is confirmed (Stripe webhook, cash confirmation, etc.).
+ */
+export async function creditOrderLoyaltyPoints(orderId: string): Promise<void> {
+  try {
+    const data = await adminGraphqlRequest<{ orders_by_pk?: OrderLoyaltyRow }>(
+      GET_ORDER_LOYALTY_DATA,
+      { order_id: orderId },
+    );
+    const order = data.orders_by_pk;
+    if (!order?.customer_id || !order?.restaurant_id) return;
+
+    const pointsEarned = typeof order.loyalty_points_earned === 'number' ? order.loyalty_points_earned : 0;
+    if (pointsEarned <= 0) return;
+
+    const balData = await adminGraphqlRequest<{ loyalty_balances?: LoyaltyBalanceCreditRow[] }>(
+      GET_LOYALTY_BALANCE_FOR_CREDIT,
+      { customer_id: order.customer_id, restaurant_id: order.restaurant_id },
+    );
+    const existing = balData.loyalty_balances?.[0];
+    const currentBalance = existing?.points_balance ?? 0;
+    const currentLifetimeEarned = existing?.lifetime_earned ?? 0;
+    const newBalance = currentBalance + pointsEarned;
+    const newLifetimeEarned = currentLifetimeEarned + pointsEarned;
+
+    if (existing?.id) {
+      await adminGraphqlRequest(UPDATE_LOYALTY_BALANCE, {
+        id: existing.id,
+        points_balance: Math.max(newBalance, 0),
+        lifetime_earned: newLifetimeEarned,
+        lifetime_redeemed: existing.lifetime_redeemed ?? 0,
+      });
+    } else {
+      await adminGraphqlRequest(INSERT_LOYALTY_BALANCE, {
+        customer_id: order.customer_id,
+        restaurant_id: order.restaurant_id,
+        points_balance: Math.max(newBalance, 0),
+        lifetime_earned: newLifetimeEarned,
+        lifetime_redeemed: 0,
+      });
+    }
+
+    await adminGraphqlRequest(INSERT_LOYALTY_TRANSACTION, {
+      object: {
+        customer_id: order.customer_id,
+        restaurant_id: order.restaurant_id,
+        order_id: orderId,
+        type: 'earned',
+        points: pointsEarned,
+        balance_after: Math.max(newBalance, 0),
+        description: `Order #${order.order_number || orderId}`,
+      },
+    });
+  } catch (err) {
+    console.error('[Menu Orders] Failed to credit loyalty points for order:', orderId, err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Loyalty: reverse points on cancel / refund
+// ---------------------------------------------------------------------------
+
+/**
+ * Reverses loyalty point changes for a cancelled or refunded order.
+ *
+ * @param revokeEarned — pass true when payment was already confirmed so the
+ *   earned points have been credited. For orders cancelled before payment
+ *   (still in "pending"), earned points were never credited; pass false.
+ */
+export async function reverseOrderLoyaltyPoints(
+  orderId: string,
+  { revokeEarned }: { revokeEarned: boolean },
+): Promise<void> {
+  try {
+    const data = await adminGraphqlRequest<{ orders_by_pk?: OrderLoyaltyRow }>(
+      GET_ORDER_LOYALTY_DATA,
+      { order_id: orderId },
+    );
+    const order = data.orders_by_pk;
+    if (!order?.customer_id || !order?.restaurant_id) return;
+
+    const pointsEarned = revokeEarned && typeof order.loyalty_points_earned === 'number'
+      ? order.loyalty_points_earned
+      : 0;
+    const pointsRedeemed = typeof order.loyalty_points_redeemed === 'number'
+      ? order.loyalty_points_redeemed
+      : 0;
+
+    if (pointsEarned === 0 && pointsRedeemed === 0) return;
+
+    const balData = await adminGraphqlRequest<{ loyalty_balances?: LoyaltyBalanceCreditRow[] }>(
+      GET_LOYALTY_BALANCE_FOR_CREDIT,
+      { customer_id: order.customer_id, restaurant_id: order.restaurant_id },
+    );
+    const existing = balData.loyalty_balances?.[0];
+    if (!existing?.id) return; // no balance record to adjust
+
+    const currentBalance = existing.points_balance ?? 0;
+    const currentLifetimeEarned = existing.lifetime_earned ?? 0;
+    const currentLifetimeRedeemed = existing.lifetime_redeemed ?? 0;
+
+    // Restore redeemed points, revoke earned points
+    const newBalance = currentBalance + pointsRedeemed - pointsEarned;
+    const newLifetimeEarned = currentLifetimeEarned - pointsEarned;
+    const newLifetimeRedeemed = currentLifetimeRedeemed - pointsRedeemed;
+
+    await adminGraphqlRequest(UPDATE_LOYALTY_BALANCE, {
+      id: existing.id,
+      points_balance: Math.max(newBalance, 0),
+      lifetime_earned: Math.max(newLifetimeEarned, 0),
+      lifetime_redeemed: Math.max(newLifetimeRedeemed, 0),
+    });
+
+    const orderLabel = order.order_number || orderId;
+
+    if (pointsRedeemed > 0) {
+      await adminGraphqlRequest(INSERT_LOYALTY_TRANSACTION, {
+        object: {
+          customer_id: order.customer_id,
+          restaurant_id: order.restaurant_id,
+          order_id: orderId,
+          type: 'restored',
+          points: pointsRedeemed,
+          balance_after: Math.max(newBalance, 0),
+          description: `Points restored — Order #${orderLabel} cancelled/refunded`,
+        },
+      });
+    }
+
+    if (pointsEarned > 0) {
+      await adminGraphqlRequest(INSERT_LOYALTY_TRANSACTION, {
+        object: {
+          customer_id: order.customer_id,
+          restaurant_id: order.restaurant_id,
+          order_id: orderId,
+          type: 'revoked',
+          points: -pointsEarned,
+          balance_after: Math.max(newBalance, 0),
+          description: `Points revoked — Order #${orderLabel} cancelled/refunded`,
+        },
+      });
+    }
+
+    // Zero out loyalty fields on the order to prevent double-reversal
+    await adminGraphqlRequest(
+      `mutation ClearOrderLoyalty($order_id: uuid!) {
+        update_orders_by_pk(
+          pk_columns: { order_id: $order_id }
+          _set: { loyalty_points_earned: 0, loyalty_points_redeemed: 0, loyalty_discount: 0 }
+        ) { order_id }
+      }`,
+      { order_id: orderId },
+    );
+  } catch (err) {
+    console.error('[Menu Orders] Failed to reverse loyalty points for order:', orderId, err);
+  }
+}
 

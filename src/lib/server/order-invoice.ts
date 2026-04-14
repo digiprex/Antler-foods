@@ -25,6 +25,8 @@ const GET_ORDER_FOR_INVOICE = `
       service_fee
       tip_total
       discount_total
+      loyalty_discount
+      loyalty_points_redeemed
       delivery_fee_total
       order_note
       delivery_address

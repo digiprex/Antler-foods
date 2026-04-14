@@ -59,6 +59,8 @@ interface OrderData {
   delivery_dispatched_at: string | null;
   delivery_last_status_at: string | null;
   delivery_error: string | null;
+  loyalty_discount: number | null;
+  loyalty_points_redeemed: number | null;
   offer_applied: {
     type: 'auto_offer';
     code?: string | null;
@@ -236,6 +238,8 @@ export default function MenuCheckoutSuccessContent() {
       subtotal,
       total,
       discount,
+      loyaltyDiscount: order?.loyalty_discount ?? null,
+      loyaltyPointsRedeemed: order?.loyalty_points_redeemed ?? null,
       deliveryFee,
       tip,
       tax,
@@ -635,26 +639,53 @@ export default function MenuCheckoutSuccessContent() {
                         <td className="px-5 py-2.5 text-right font-medium text-slate-950">{formatPrice(deliveryFee)}</td>
                       </tr>
                   ) : null}
-                  {typeof discount === 'number' && discount > 0 ? (
-                      <tr>
-                        <td className="px-5 py-2.5 align-top text-emerald-700">
-                          <p>Discount</p>
-                          {offerApplied ? (
-                            <p className="mt-0.5 text-xs text-emerald-600">
-                              Offer: {offerApplied.title}
-                              {offerApplied.discountType === 'percent' ? ` (${offerApplied.value}% off)` : ''}
-                            </p>
-                          ) : null}
-                          {order?.coupon_used ? (
-                            <p className="mt-0.5 text-xs text-emerald-600">Coupon: {order.coupon_used}</p>
-                          ) : null}
-                          {order?.gift_card_used ? (
-                            <p className="mt-0.5 text-xs text-emerald-600">Gift Card: {order.gift_card_used}</p>
-                          ) : null}
-                        </td>
-                        <td className="px-5 py-2.5 text-right font-medium text-emerald-700">-{formatPrice(discount)}</td>
-                      </tr>
-                  ) : null}
+                  {typeof discount === 'number' && discount > 0 ? (() => {
+                    const loyaltyAmt = typeof order?.loyalty_discount === 'number' ? order.loyalty_discount : 0;
+                    const otherAmt = discount - loyaltyAmt;
+                    const hasOther = otherAmt > 0.005;
+                    const hasLoyalty = loyaltyAmt > 0.005;
+                    return (
+                      <>
+                        {hasOther ? (
+                          <tr>
+                            <td className="px-5 py-2.5 align-top text-emerald-700">
+                              <p>Discount</p>
+                              {offerApplied ? (
+                                <p className="mt-0.5 text-xs text-emerald-600">
+                                  Offer: {offerApplied.title}
+                                  {offerApplied.discountType === 'percent' ? ` (${offerApplied.value}% off)` : ''}
+                                </p>
+                              ) : null}
+                              {order?.coupon_used ? (
+                                <p className="mt-0.5 text-xs text-emerald-600">Coupon: {order.coupon_used}</p>
+                              ) : null}
+                              {order?.gift_card_used ? (
+                                <p className="mt-0.5 text-xs text-emerald-600">Gift Card: {order.gift_card_used}</p>
+                              ) : null}
+                            </td>
+                            <td className="px-5 py-2.5 text-right font-medium text-emerald-700">-{formatPrice(otherAmt)}</td>
+                          </tr>
+                        ) : null}
+                        {hasLoyalty ? (
+                          <tr>
+                            <td className="px-5 py-2.5 align-top text-amber-700">
+                              <p>Loyalty Discount</p>
+                              {typeof order?.loyalty_points_redeemed === 'number' && order.loyalty_points_redeemed > 0 ? (
+                                <p className="mt-0.5 text-xs text-amber-600">{order.loyalty_points_redeemed} points redeemed</p>
+                              ) : null}
+                            </td>
+                            <td className="px-5 py-2.5 text-right font-medium text-amber-700">-{formatPrice(loyaltyAmt)}</td>
+                          </tr>
+                        ) : null}
+                        {!hasOther && !hasLoyalty ? (
+                          <tr>
+                            <td className="px-5 py-2.5 text-emerald-700">Discount</td>
+                            <td className="px-5 py-2.5 text-right font-medium text-emerald-700">-{formatPrice(discount)}</td>
+                          </tr>
+                        ) : null}
+                      </>
+                    );
+                  })() : null}
                   {typeof tip === 'number' && tip > 0 ? (
                       <tr>
                         <td className="px-5 py-2.5 text-slate-600">Tip</td>

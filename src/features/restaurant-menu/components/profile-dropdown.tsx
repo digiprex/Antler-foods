@@ -95,7 +95,7 @@ export function ProfileDropdown({
           </div>
         </div>
 
-        {typeof loyaltyPoints === 'number' && loyaltyPoints > 0 && !profile.isGuest ? (
+        {typeof loyaltyPoints === 'number' && !profile.isGuest ? (
           <div className="mt-2 rounded-[16px] border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3.5 py-2.5">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400/20">

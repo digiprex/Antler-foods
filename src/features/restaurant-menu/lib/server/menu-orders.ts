@@ -145,22 +145,8 @@ const GET_LOYALTY_SETTINGS_FOR_ORDER = `
 `;
 
 const INSERT_LOYALTY_BALANCE = `
-  mutation InsertLoyaltyBalance(
-    $customer_id: uuid!,
-    $restaurant_id: uuid!,
-    $points_balance: Int!,
-    $lifetime_earned: Int!,
-    $lifetime_redeemed: Int!
-  ) {
-    insert_loyalty_balances_one(
-      object: {
-        customer_id: $customer_id
-        restaurant_id: $restaurant_id
-        points_balance: $points_balance
-        lifetime_earned: $lifetime_earned
-        lifetime_redeemed: $lifetime_redeemed
-      }
-    ) {
+  mutation InsertLoyaltyBalance($object: loyalty_balances_insert_input!) {
+    insert_loyalty_balances_one(object: $object) {
       id
       points_balance
     }
@@ -168,20 +154,8 @@ const INSERT_LOYALTY_BALANCE = `
 `;
 
 const UPDATE_LOYALTY_BALANCE = `
-  mutation UpdateLoyaltyBalance(
-    $id: uuid!,
-    $points_balance: Int!,
-    $lifetime_earned: Int!,
-    $lifetime_redeemed: Int!
-  ) {
-    update_loyalty_balances_by_pk(
-      pk_columns: { id: $id }
-      _set: {
-        points_balance: $points_balance
-        lifetime_earned: $lifetime_earned
-        lifetime_redeemed: $lifetime_redeemed
-      }
-    ) {
+  mutation UpdateLoyaltyBalance($id: uuid!, $changes: loyalty_balances_set_input!) {
+    update_loyalty_balances_by_pk(pk_columns: { id: $id }, _set: $changes) {
       id
       points_balance
     }
@@ -923,12 +897,12 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
     if (totalEarned > 0) {
       try {
         await adminGraphqlRequest(
-          `mutation UpdateOrderLoyaltyEarned($order_id: uuid!, $points: Int!) {
-            update_orders_by_pk(pk_columns: { order_id: $order_id }, _set: { loyalty_points_earned: $points }) {
+          `mutation UpdateOrderLoyaltyEarned($order_id: uuid!, $changes: orders_set_input!) {
+            update_orders_by_pk(pk_columns: { order_id: $order_id }, _set: $changes) {
               order_id
             }
           }`,
-          { order_id: orderId, points: totalEarned },
+          { order_id: orderId, changes: { loyalty_points_earned: totalEarned } },
         );
       } catch (err) {
         console.error('[Menu Orders] Failed to update order loyalty_points_earned:', err);
@@ -942,9 +916,11 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
         const currentLifetimeRedeemed = toInt(existingBalance.lifetime_redeemed);
         await adminGraphqlRequest(UPDATE_LOYALTY_BALANCE, {
           id: existingBalance.id,
-          points_balance: Math.max(currentBalance - loyaltyPointsRedeemed, 0),
-          lifetime_earned: toInt(existingBalance.lifetime_earned),
-          lifetime_redeemed: currentLifetimeRedeemed + loyaltyPointsRedeemed,
+          changes: {
+            points_balance: Math.max(currentBalance - loyaltyPointsRedeemed, 0),
+            lifetime_earned: toInt(existingBalance.lifetime_earned),
+            lifetime_redeemed: currentLifetimeRedeemed + loyaltyPointsRedeemed,
+          },
         });
 
         await adminGraphqlRequest(INSERT_LOYALTY_TRANSACTION, {
@@ -1256,10 +1232,16 @@ export async function creditOrderLoyaltyPoints(orderId: string): Promise<void> {
       { order_id: orderId },
     );
     const order = data.orders_by_pk;
-    if (!order?.customer_id || !order?.restaurant_id) return;
+    if (!order?.customer_id || !order?.restaurant_id) {
+      console.warn('[Loyalty Credit] Order missing customer/restaurant:', orderId);
+      return;
+    }
 
     const pointsEarned = toInt(order.loyalty_points_earned);
-    if (pointsEarned <= 0) return;
+    if (pointsEarned <= 0) {
+      console.warn('[Loyalty Credit] No points earned on order:', orderId, 'raw value:', order.loyalty_points_earned);
+      return;
+    }
 
     const balData = await adminGraphqlRequest<{ loyalty_balances?: LoyaltyBalanceCreditRow[] }>(
       GET_LOYALTY_BALANCE_FOR_CREDIT,
@@ -1271,20 +1253,26 @@ export async function creditOrderLoyaltyPoints(orderId: string): Promise<void> {
     const newBalance = currentBalance + pointsEarned;
     const newLifetimeEarned = currentLifetimeEarned + pointsEarned;
 
+    console.log('[Loyalty Credit] Crediting', pointsEarned, 'pts for order', orderId, existing?.id ? '(update)' : '(insert)');
+
     if (existing?.id) {
       await adminGraphqlRequest(UPDATE_LOYALTY_BALANCE, {
         id: existing.id,
-        points_balance: Math.max(newBalance, 0),
-        lifetime_earned: newLifetimeEarned,
-        lifetime_redeemed: toInt(existing.lifetime_redeemed),
+        changes: {
+          points_balance: Math.max(newBalance, 0),
+          lifetime_earned: newLifetimeEarned,
+          lifetime_redeemed: toInt(existing.lifetime_redeemed),
+        },
       });
     } else {
       await adminGraphqlRequest(INSERT_LOYALTY_BALANCE, {
-        customer_id: order.customer_id,
-        restaurant_id: order.restaurant_id,
-        points_balance: Math.max(newBalance, 0),
-        lifetime_earned: newLifetimeEarned,
-        lifetime_redeemed: 0,
+        object: {
+          customer_id: order.customer_id,
+          restaurant_id: order.restaurant_id,
+          points_balance: Math.max(newBalance, 0),
+          lifetime_earned: newLifetimeEarned,
+          lifetime_redeemed: 0,
+        },
       });
     }
 
@@ -1299,8 +1287,10 @@ export async function creditOrderLoyaltyPoints(orderId: string): Promise<void> {
         description: `Order #${order.order_number || orderId}`,
       },
     });
+
+    console.log('[Loyalty Credit] Success for order', orderId);
   } catch (err) {
-    console.error('[Menu Orders] Failed to credit loyalty points for order:', orderId, err);
+    console.error('[Loyalty Credit] Failed for order:', orderId, err);
   }
 }
 
@@ -1350,9 +1340,11 @@ export async function reverseOrderLoyaltyPoints(
 
     await adminGraphqlRequest(UPDATE_LOYALTY_BALANCE, {
       id: existing.id,
-      points_balance: Math.max(newBalance, 0),
-      lifetime_earned: Math.max(newLifetimeEarned, 0),
-      lifetime_redeemed: Math.max(newLifetimeRedeemed, 0),
+      changes: {
+        points_balance: Math.max(newBalance, 0),
+        lifetime_earned: Math.max(newLifetimeEarned, 0),
+        lifetime_redeemed: Math.max(newLifetimeRedeemed, 0),
+      },
     });
 
     const orderLabel = order.order_number || orderId;

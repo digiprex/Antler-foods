@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { getStripe } from '@/lib/server/stripe';
 import { sendInvoiceForOrder } from '@/lib/server/order-invoice';
+import { creditOrderLoyaltyPoints } from '@/features/restaurant-menu/lib/server/menu-orders';
 
 const GET_ORDER_PAYMENT_REF = `
   query GetOrderPaymentRef($order_id: uuid!) {
@@ -91,8 +92,13 @@ export async function POST(request: NextRequest) {
       confirmed_at: new Date().toISOString(),
     });
 
-    // Only send invoice if we were the one to confirm (prevents duplicate emails)
+    // Only credit loyalty + send invoice if we were the one to confirm (prevents duplicates)
     if ((result.update_orders?.affected_rows ?? 0) > 0) {
+      try {
+        await creditOrderLoyaltyPoints(orderId);
+      } catch (loyaltyErr) {
+        console.error('[Confirm Payment] Loyalty credit failed:', loyaltyErr);
+      }
       try {
         await sendInvoiceForOrder(orderId);
       } catch (emailErr) {

@@ -110,6 +110,7 @@ export default function MenuCheckoutSuccessContent() {
   const [isLoading, setIsLoading] = useState(!!orderNumber);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [navbarAuthSlot, setNavbarAuthSlot] = useState<HTMLElement | null>(null);
+  const [loyaltyPointsBalance, setLoyaltyPointsBalance] = useState<number | null>(null);
 
   const restaurantId = order?.restaurant_id || null;
   const {
@@ -167,6 +168,18 @@ export default function MenuCheckoutSuccessContent() {
       });
     };
   }, [hasCustomerSession]);
+
+  useEffect(() => {
+    if (!restaurantId || !hasCustomerSession) return;
+    fetch(`/api/menu-orders/loyalty-balance?restaurant_id=${encodeURIComponent(restaurantId)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data.data?.enabled) {
+          setLoyaltyPointsBalance(data.data.points_balance ?? 0);
+        }
+      })
+      .catch(() => {});
+  }, [restaurantId, hasCustomerSession]);
 
   useEffect(() => {
     if (!orderNumber) return;
@@ -740,6 +753,7 @@ export default function MenuCheckoutSuccessContent() {
             <ProfileDropdown
               profile={customerProfile}
               isLoggingOut={isLoggingOut}
+              loyaltyPoints={loyaltyPointsBalance}
               onLogout={handleLogout}
             />,
             navbarAuthSlot,

@@ -16,6 +16,7 @@ interface LoyaltySettingsData {
   max_redemption_percentage: number;
   welcome_bonus_points: number;
   points_expiry_days: number | null;
+  google_review_bonus_points: number;
 }
 
 export default function LoyaltySettingsForm({
@@ -31,6 +32,8 @@ export default function LoyaltySettingsForm({
   const [maxRedemptionPercentage, setMaxRedemptionPercentage] = useState('50');
   const [welcomeBonusPoints, setWelcomeBonusPoints] = useState('0');
   const [pointsExpiryDays, setPointsExpiryDays] = useState('');
+  const [googleReviewBonusPoints, setGoogleReviewBonusPoints] = useState('0');
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -38,20 +41,36 @@ export default function LoyaltySettingsForm({
     const loadSettings = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          `/api/admin/loyalty-settings?restaurant_id=${encodeURIComponent(restaurantId)}`,
-        );
-        const payload = (await response.json().catch(() => null)) as {
+        const [settingsRes, googleRes] = await Promise.all([
+          fetch(`/api/admin/loyalty-settings?restaurant_id=${encodeURIComponent(restaurantId)}`),
+          fetch(`/api/restaurants/${encodeURIComponent(restaurantId)}/google-business/connection`),
+        ]);
+
+        const payload = (await settingsRes.json().catch(() => null)) as {
           success?: boolean;
           data?: LoyaltySettingsData;
           error?: string;
         } | null;
 
-        if (!response.ok || !payload?.success) {
+        if (!settingsRes.ok || !payload?.success) {
           throw new Error(payload?.error || 'Failed to load loyalty settings.');
         }
 
+        const googlePayload = (await googleRes.json().catch(() => null)) as {
+          connected?: boolean;
+          hasSelectedLocation?: boolean;
+          connection?: { googlePlaceId?: string | null } | null;
+          fallbackPlaceId?: string | null;
+        } | null;
+
         if (!active) return;
+
+        const googleConnected = !!(
+          googlePayload?.connected &&
+          googlePayload?.hasSelectedLocation &&
+          (googlePayload?.connection?.googlePlaceId || googlePayload?.fallbackPlaceId)
+        );
+        setIsGoogleConnected(googleConnected);
 
         setIsEnabled(payload.data?.is_enabled ?? false);
         setPointsPerDollar(String(payload.data?.points_per_dollar ?? 1));
@@ -63,6 +82,9 @@ export default function LoyaltySettingsForm({
           payload.data?.points_expiry_days != null
             ? String(payload.data.points_expiry_days)
             : '',
+        );
+        setGoogleReviewBonusPoints(
+          googleConnected ? String(payload.data?.google_review_bonus_points ?? 0) : '0',
         );
       } catch (error) {
         toast.error(
@@ -92,6 +114,7 @@ export default function LoyaltySettingsForm({
           max_redemption_percentage: Number(maxRedemptionPercentage) || 50,
           welcome_bonus_points: Math.round(Number(welcomeBonusPoints) || 0),
           points_expiry_days: pointsExpiryDays.trim() ? Math.round(Number(pointsExpiryDays)) || null : null,
+          google_review_bonus_points: isGoogleConnected ? Math.round(Number(googleReviewBonusPoints) || 0) : 0,
         }),
       });
 
@@ -282,6 +305,50 @@ export default function LoyaltySettingsForm({
                   </p>
                 </label>
               </div>
+            </div>
+            {/* Google Review Bonus section */}
+            <div className={`rounded-lg border px-4 py-3.5 ${isGoogleConnected ? 'border-gray-200 bg-gray-50' : 'border-amber-200 bg-amber-50/50'}`}>
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-gray-900">Google Review Bonus</h3>
+                  <p className="mt-1 text-xs leading-5 text-gray-600">
+                    Reward customers with bonus loyalty points when they leave a review on your Google Business profile.
+                    This helps boost your online presence while keeping customers engaged.
+                  </p>
+                </div>
+              </div>
+              {isGoogleConnected ? (
+                <div className="mt-3 max-w-sm">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-gray-700">
+                      Points awarded per Google review
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={googleReviewBonusPoints}
+                      onChange={(e) => setGoogleReviewBonusPoints(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      {Number(googleReviewBonusPoints) > 0
+                        ? `Customers earn ${Math.round(Number(googleReviewBonusPoints))} bonus points for each Google review.`
+                        : 'Set to 0 to disable Google review rewards.'}
+                    </p>
+                  </label>
+                </div>
+              ) : (
+                <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-300 bg-white px-3 py-2.5">
+                  <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-xs leading-5 text-amber-700">
+                    Your Google account is not connected. Please connect your Google Business Profile under{' '}
+                    <span className="font-semibold">Google Manager</span> to enable review bonus points and let customers post reviews on Google.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         ) : null}

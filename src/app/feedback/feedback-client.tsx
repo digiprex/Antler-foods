@@ -20,6 +20,7 @@ export default function FeedbackClient({ restaurantId, restaurantName, restauran
   const [error, setError] = useState<string | null>(null);
   const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(null);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [bonusPointsAwarded, setBonusPointsAwarded] = useState(0);
 
   const handleStarClick = async (star: number) => {
     setRating(star);
@@ -68,6 +69,7 @@ export default function FeedbackClient({ restaurantId, restaurantName, restauran
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to submit');
 
+      setBonusPointsAwarded(data.data?.bonus_points_awarded ?? 0);
       setStep('thankyou');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -233,6 +235,16 @@ export default function FeedbackClient({ restaurantId, restaurantName, restauran
               <p className="text-sm text-gray-500">
                 Your feedback means a lot to us. We&apos;ll use it to improve your experience.
               </p>
+              {bonusPointsAwarded > 0 && (
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200 px-4 py-2">
+                  <svg className="h-4 w-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  <span className="text-sm font-medium text-amber-700">
+                    You earned {bonusPointsAwarded} bonus points!
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

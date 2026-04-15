@@ -43,6 +43,8 @@ const GET_ORDER_BY_NUMBER = `
       placed_at
       restaurant_id
       offer_applied
+      loyalty_discount
+      loyalty_points_redeemed
     }
   }
 `;

@@ -35,7 +35,7 @@ const GET_COUPON_BY_CODE = `
         is_deleted: { _eq: false }
         code: { _ilike: $code }
         start_date: { _lte: $now }
-        end_date: { _gte: $now }
+        _or: [{ end_date: { _is_null: true } }, { end_date: { _gte: $now } }]
       }
       limit: 1
     ) {
@@ -180,7 +180,7 @@ export async function validateMenuCouponCode({
     throw new Error('This coupon is not active yet.');
   }
 
-  if (!endDate || endDate.getTime() < now.getTime()) {
+  if (endDate && endDate.getTime() < now.getTime()) {
     throw new Error('This coupon has expired.');
   }
 

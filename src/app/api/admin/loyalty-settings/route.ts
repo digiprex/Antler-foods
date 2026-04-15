@@ -13,6 +13,7 @@ const GET_LOYALTY_SETTINGS = `
       max_redemption_percentage
       welcome_bonus_points
       points_expiry_days
+      google_review_bonus_points
     }
   }
 `;
@@ -26,7 +27,8 @@ const UPSERT_LOYALTY_SETTINGS = `
     $min_redemption_points: Int!,
     $max_redemption_percentage: numeric!,
     $welcome_bonus_points: Int!,
-    $points_expiry_days: Int
+    $points_expiry_days: Int,
+    $google_review_bonus_points: numeric!
   ) {
     insert_loyalty_settings_one(
       object: {
@@ -38,6 +40,7 @@ const UPSERT_LOYALTY_SETTINGS = `
         max_redemption_percentage: $max_redemption_percentage
         welcome_bonus_points: $welcome_bonus_points
         points_expiry_days: $points_expiry_days
+        google_review_bonus_points: $google_review_bonus_points
       }
       on_conflict: {
         constraint: loyalty_settings_restaurant_id_key
@@ -49,6 +52,7 @@ const UPSERT_LOYALTY_SETTINGS = `
           max_redemption_percentage
           welcome_bonus_points
           points_expiry_days
+          google_review_bonus_points
         ]
       }
     ) {
@@ -61,6 +65,7 @@ const UPSERT_LOYALTY_SETTINGS = `
       max_redemption_percentage
       welcome_bonus_points
       points_expiry_days
+      google_review_bonus_points
     }
   }
 `;
@@ -75,6 +80,7 @@ interface LoyaltySettingsRow {
   max_redemption_percentage?: number;
   welcome_bonus_points?: number;
   points_expiry_days?: number | null;
+  google_review_bonus_points?: number;
 }
 
 function toNumber(value: unknown, fallback: number) {
@@ -125,6 +131,7 @@ export async function GET(request: NextRequest) {
         max_redemption_percentage: row?.max_redemption_percentage ?? 50,
         welcome_bonus_points: row?.welcome_bonus_points ?? 0,
         points_expiry_days: row?.points_expiry_days ?? null,
+        google_review_bonus_points: row?.google_review_bonus_points ?? 0,
       },
     });
   } catch (error) {
@@ -147,6 +154,7 @@ export async function PUT(request: NextRequest) {
       max_redemption_percentage?: number;
       welcome_bonus_points?: number;
       points_expiry_days?: number | null;
+      google_review_bonus_points?: number;
     } | null;
 
     const restaurantId = body?.restaurant_id;
@@ -170,6 +178,7 @@ export async function PUT(request: NextRequest) {
       body?.points_expiry_days === null || body?.points_expiry_days === undefined
         ? null
         : Math.max(toInt(body.points_expiry_days, 0), 0) || null;
+    const googleReviewBonusPoints = Math.max(toInt(body?.google_review_bonus_points, 0), 0);
 
     const data = await adminGraphqlRequest<{
       insert_loyalty_settings_one?: LoyaltySettingsRow;
@@ -182,6 +191,7 @@ export async function PUT(request: NextRequest) {
       max_redemption_percentage: maxRedemptionPercentage,
       welcome_bonus_points: welcomeBonusPoints,
       points_expiry_days: pointsExpiryDays,
+      google_review_bonus_points: googleReviewBonusPoints,
     });
 
     const row = data.insert_loyalty_settings_one;
@@ -197,6 +207,7 @@ export async function PUT(request: NextRequest) {
         max_redemption_percentage: row?.max_redemption_percentage ?? maxRedemptionPercentage,
         welcome_bonus_points: row?.welcome_bonus_points ?? welcomeBonusPoints,
         points_expiry_days: row?.points_expiry_days ?? pointsExpiryDays,
+        google_review_bonus_points: row?.google_review_bonus_points ?? googleReviewBonusPoints,
       },
     });
   } catch (error) {

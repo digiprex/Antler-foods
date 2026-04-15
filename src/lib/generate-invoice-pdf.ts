@@ -39,6 +39,8 @@ export interface InvoiceData {
   subtotal: number | null;
   total: number | null;
   discount: number | null;
+  loyaltyDiscount?: number | null;
+  loyaltyPointsRedeemed?: number | null;
   deliveryFee: number | null;
   tip: number | null;
   tax: number | null;
@@ -210,11 +212,35 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
     y += 6;
   }
   if (typeof data.discount === 'number' && data.discount > 0) {
-    doc.setTextColor(5, 150, 105);
-    doc.text('Discount', 14, y);
-    doc.text(`-${fmt(data.discount)}`, pageWidth - 14, y, { align: 'right' });
-    y += 5;
-    doc.setTextColor(15, 23, 42);
+    const loyaltyAmt = typeof data.loyaltyDiscount === 'number' ? data.loyaltyDiscount : 0;
+    const otherAmt = data.discount - loyaltyAmt;
+    if (otherAmt > 0.005) {
+      doc.setTextColor(5, 150, 105);
+      doc.text('Discount', 14, y);
+      doc.text(`-${fmt(otherAmt)}`, pageWidth - 14, y, { align: 'right' });
+      y += 5;
+      doc.setTextColor(15, 23, 42);
+    }
+    if (loyaltyAmt > 0.005) {
+      doc.setTextColor(180, 120, 0);
+      doc.text('Loyalty Discount', 14, y);
+      doc.text(`-${fmt(loyaltyAmt)}`, pageWidth - 14, y, { align: 'right' });
+      y += 4;
+      if (typeof data.loyaltyPointsRedeemed === 'number' && data.loyaltyPointsRedeemed > 0) {
+        doc.setFontSize(8);
+        doc.text(`${data.loyaltyPointsRedeemed} points redeemed`, 14, y);
+        doc.setFontSize(10);
+        y += 4;
+      }
+      doc.setTextColor(15, 23, 42);
+    }
+    if (otherAmt <= 0.005 && loyaltyAmt <= 0.005) {
+      doc.setTextColor(5, 150, 105);
+      doc.text('Discount', 14, y);
+      doc.text(`-${fmt(data.discount)}`, pageWidth - 14, y, { align: 'right' });
+      y += 5;
+      doc.setTextColor(15, 23, 42);
+    }
   }
 
   if (hasOfferOrCodeDetails) {

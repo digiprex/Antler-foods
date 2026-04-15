@@ -507,9 +507,17 @@ export async function sendOrderInvoiceEmail(
   const deliveryFeeRow = typeof order.delivery_fee === 'number' && order.delivery_fee > 0
     ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;">Delivery fee</td><td style="padding:4px 0;font-size:14px;text-align:right;">${formatCurrency(order.delivery_fee)}</td></tr>`
     : '';
-  const discount = typeof order.discount_total === 'number' && order.discount_total > 0
-    ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;color:#059669;">Discount</td><td style="padding:4px 0;font-size:14px;text-align:right;color:#059669;">-${formatCurrency(order.discount_total)}</td></tr>${discountDetailsRows.join('')}`
+  const loyaltyAmt = typeof order.loyalty_discount === 'number' ? Number(order.loyalty_discount) : 0;
+  const totalDiscount = typeof order.discount_total === 'number' ? Number(order.discount_total) : 0;
+  const otherDiscountAmt = totalDiscount - loyaltyAmt;
+  const loyaltyRedeemed = typeof order.loyalty_points_redeemed === 'number' ? Number(order.loyalty_points_redeemed) : 0;
+  const otherDiscountRow = otherDiscountAmt > 0.005
+    ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;color:#059669;">Discount</td><td style="padding:4px 0;font-size:14px;text-align:right;color:#059669;">-${formatCurrency(otherDiscountAmt)}</td></tr>${discountDetailsRows.join('')}`
     : '';
+  const loyaltyDiscountRow = loyaltyAmt > 0.005
+    ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;color:#b47800;">Loyalty Discount${loyaltyRedeemed > 0 ? `<br/><span style="font-size:12px;">${loyaltyRedeemed} points redeemed</span>` : ''}</td><td style="padding:4px 0;font-size:14px;text-align:right;color:#b47800;">-${formatCurrency(loyaltyAmt)}</td></tr>`
+    : '';
+  const discount = totalDiscount > 0 ? (otherDiscountRow || loyaltyDiscountRow ? `${otherDiscountRow}${loyaltyDiscountRow}` : `<tr><td colspan="2" style="padding:4px 0;font-size:14px;color:#059669;">Discount</td><td style="padding:4px 0;font-size:14px;text-align:right;color:#059669;">-${formatCurrency(totalDiscount)}</td></tr>`) : '';
   const tip = typeof order.tip_total === 'number' && order.tip_total > 0
     ? `<tr><td colspan="2" style="padding:4px 0;font-size:14px;">Tip</td><td style="padding:4px 0;font-size:14px;text-align:right;">${formatCurrency(order.tip_total)}</td></tr>`
     : '';
@@ -632,10 +640,11 @@ export async function sendOrderInvoiceEmail(
     '',
     `Subtotal: ${subtotal}`,
     typeof order.delivery_fee === 'number' && order.delivery_fee > 0 ? `Delivery fee: ${formatCurrency(order.delivery_fee)}` : '',
-    typeof order.discount_total === 'number' && order.discount_total > 0 ? `Discount: -${formatCurrency(order.discount_total)}` : '',
+    otherDiscountAmt > 0.005 ? `Discount: -${formatCurrency(otherDiscountAmt)}` : '',
     offerApplied ? `  Offer Applied: ${resolveOfferTitle(offerApplied as unknown as Record<string, unknown>)}${offerApplied.discountType === 'percent' ? ` (${offerApplied.value}% off)` : ''}` : '',
     couponCode ? `  Coupon: ${couponCode}` : '',
     giftCardCode ? `  Gift Card: ${giftCardCode}` : '',
+    loyaltyAmt > 0.005 ? `Loyalty Discount: -${formatCurrency(loyaltyAmt)}${loyaltyRedeemed > 0 ? ` (${loyaltyRedeemed} points redeemed)` : ''}` : '',
     typeof order.tip_total === 'number' && order.tip_total > 0 ? `Tip: ${formatCurrency(order.tip_total)}` : '',
     typeof order.service_fee === 'number' && order.service_fee > 0 ? `Service Fee: ${formatCurrency(order.service_fee)}` : '',
     `Total: ${total}`,

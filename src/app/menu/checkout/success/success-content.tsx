@@ -59,6 +59,8 @@ interface OrderData {
   delivery_dispatched_at: string | null;
   delivery_last_status_at: string | null;
   delivery_error: string | null;
+  loyalty_discount: number | null;
+  loyalty_points_redeemed: number | null;
   offer_applied: {
     type: 'auto_offer';
     code?: string | null;
@@ -111,6 +113,8 @@ export default function MenuCheckoutSuccessContent() {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [navbarAuthSlot, setNavbarAuthSlot] = useState<HTMLElement | null>(null);
   const [loyaltyPointsBalance, setLoyaltyPointsBalance] = useState<number | null>(null);
+  const [googleReviewBonusPoints, setGoogleReviewBonusPoints] = useState<number>(0);
+  const [hasReviewed, setHasReviewed] = useState(false);
 
   const restaurantId = order?.restaurant_id || null;
   const {
@@ -174,8 +178,12 @@ export default function MenuCheckoutSuccessContent() {
     fetch(`/api/menu-orders/loyalty-balance?restaurant_id=${encodeURIComponent(restaurantId)}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data?.success && data.data?.enabled) {
-          setLoyaltyPointsBalance(data.data.points_balance ?? 0);
+        if (data?.success) {
+          if (data.data?.enabled) {
+            setLoyaltyPointsBalance(data.data.points_balance ?? 0);
+            setGoogleReviewBonusPoints(data.data.google_review_bonus_points ?? 0);
+          }
+          setHasReviewed(!!data.data?.has_reviewed);
         }
       })
       .catch(() => {});
@@ -236,6 +244,8 @@ export default function MenuCheckoutSuccessContent() {
       subtotal,
       total,
       discount,
+      loyaltyDiscount: order?.loyalty_discount ?? null,
+      loyaltyPointsRedeemed: order?.loyalty_points_redeemed ?? null,
       deliveryFee,
       tip,
       tax,
@@ -635,26 +645,53 @@ export default function MenuCheckoutSuccessContent() {
                         <td className="px-5 py-2.5 text-right font-medium text-slate-950">{formatPrice(deliveryFee)}</td>
                       </tr>
                   ) : null}
-                  {typeof discount === 'number' && discount > 0 ? (
-                      <tr>
-                        <td className="px-5 py-2.5 align-top text-emerald-700">
-                          <p>Discount</p>
-                          {offerApplied ? (
-                            <p className="mt-0.5 text-xs text-emerald-600">
-                              Offer: {offerApplied.title}
-                              {offerApplied.discountType === 'percent' ? ` (${offerApplied.value}% off)` : ''}
-                            </p>
-                          ) : null}
-                          {order?.coupon_used ? (
-                            <p className="mt-0.5 text-xs text-emerald-600">Coupon: {order.coupon_used}</p>
-                          ) : null}
-                          {order?.gift_card_used ? (
-                            <p className="mt-0.5 text-xs text-emerald-600">Gift Card: {order.gift_card_used}</p>
-                          ) : null}
-                        </td>
-                        <td className="px-5 py-2.5 text-right font-medium text-emerald-700">-{formatPrice(discount)}</td>
-                      </tr>
-                  ) : null}
+                  {typeof discount === 'number' && discount > 0 ? (() => {
+                    const loyaltyAmt = typeof order?.loyalty_discount === 'number' ? order.loyalty_discount : 0;
+                    const otherAmt = discount - loyaltyAmt;
+                    const hasOther = otherAmt > 0.005;
+                    const hasLoyalty = loyaltyAmt > 0.005;
+                    return (
+                      <>
+                        {hasOther ? (
+                          <tr>
+                            <td className="px-5 py-2.5 align-top text-emerald-700">
+                              <p>Discount</p>
+                              {offerApplied ? (
+                                <p className="mt-0.5 text-xs text-emerald-600">
+                                  Offer: {offerApplied.title}
+                                  {offerApplied.discountType === 'percent' ? ` (${offerApplied.value}% off)` : ''}
+                                </p>
+                              ) : null}
+                              {order?.coupon_used ? (
+                                <p className="mt-0.5 text-xs text-emerald-600">Coupon: {order.coupon_used}</p>
+                              ) : null}
+                              {order?.gift_card_used ? (
+                                <p className="mt-0.5 text-xs text-emerald-600">Gift Card: {order.gift_card_used}</p>
+                              ) : null}
+                            </td>
+                            <td className="px-5 py-2.5 text-right font-medium text-emerald-700">-{formatPrice(otherAmt)}</td>
+                          </tr>
+                        ) : null}
+                        {hasLoyalty ? (
+                          <tr>
+                            <td className="px-5 py-2.5 align-top text-amber-700">
+                              <p>Loyalty Discount</p>
+                              {typeof order?.loyalty_points_redeemed === 'number' && order.loyalty_points_redeemed > 0 ? (
+                                <p className="mt-0.5 text-xs text-amber-600">{order.loyalty_points_redeemed} points redeemed</p>
+                              ) : null}
+                            </td>
+                            <td className="px-5 py-2.5 text-right font-medium text-amber-700">-{formatPrice(loyaltyAmt)}</td>
+                          </tr>
+                        ) : null}
+                        {!hasOther && !hasLoyalty ? (
+                          <tr>
+                            <td className="px-5 py-2.5 text-emerald-700">Discount</td>
+                            <td className="px-5 py-2.5 text-right font-medium text-emerald-700">-{formatPrice(discount)}</td>
+                          </tr>
+                        ) : null}
+                      </>
+                    );
+                  })() : null}
                   {typeof tip === 'number' && tip > 0 ? (
                       <tr>
                         <td className="px-5 py-2.5 text-slate-600">Tip</td>
@@ -689,6 +726,51 @@ export default function MenuCheckoutSuccessContent() {
                 </div>
               </div>
             ) : null}
+
+            {/* Feedback / Google Review CTA — hidden if customer already left a review */}
+            {!hasReviewed && (
+            <div className="mt-5 overflow-hidden rounded-[20px] border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50/40">
+              <div className="px-5 py-5 sm:px-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                    <svg className="h-5.5 w-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-base font-semibold text-slate-950">
+                      How was your experience?
+                    </h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-stone-600">
+                      We&apos;d love to hear your feedback!
+                      {googleReviewBonusPoints > 0 ? (
+                        <> Leave a review and earn <span className="font-semibold text-amber-700">{googleReviewBonusPoints} bonus points</span> as a thank you.</>
+                      ) : null}
+                    </p>
+                    {googleReviewBonusPoints > 0 ? (
+                      <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-700">
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                        </svg>
+                        Leave a review and earn extra rewards
+                      </div>
+                    ) : null}
+                    <div className="mt-4">
+                      <Link
+                        href="/feedback"
+                        className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                      >
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                        Leave feedback
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            )}
 
             {/* Actions */}
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">

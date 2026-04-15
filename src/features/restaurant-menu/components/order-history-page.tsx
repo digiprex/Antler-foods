@@ -482,12 +482,37 @@ function OrderDetailModal({
                   <span>{formatPrice(order.deliveryFee)}</span>
                 </div>
               ) : null}
-              {order.discountTotal > 0 ? (
-                <div className="flex justify-between text-emerald-600">
-                  <span>Discount</span>
-                  <span>-{formatPrice(order.discountTotal)}</span>
-                </div>
-              ) : null}
+              {(() => {
+                const loyaltyAmt = order.loyaltyDiscount || 0;
+                const otherAmt = order.discountTotal - loyaltyAmt;
+                return (
+                  <>
+                    {otherAmt > 0.005 ? (
+                      <div className="flex justify-between text-emerald-600">
+                        <span>Discount</span>
+                        <span>-{formatPrice(otherAmt)}</span>
+                      </div>
+                    ) : null}
+                    {loyaltyAmt > 0.005 ? (
+                      <div className="flex justify-between text-amber-600">
+                        <span className="flex items-center gap-1.5">
+                          Loyalty Discount
+                          {order.loyaltyPointsRedeemed > 0 ? (
+                            <span className="rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[9px] font-bold text-amber-700">{order.loyaltyPointsRedeemed} pts</span>
+                          ) : null}
+                        </span>
+                        <span>-{formatPrice(loyaltyAmt)}</span>
+                      </div>
+                    ) : null}
+                    {order.discountTotal > 0 && otherAmt <= 0.005 && loyaltyAmt <= 0.005 ? (
+                      <div className="flex justify-between text-emerald-600">
+                        <span>Discount</span>
+                        <span>-{formatPrice(order.discountTotal)}</span>
+                      </div>
+                    ) : null}
+                  </>
+                );
+              })()}
               {order.serviceFee > 0 ? (
                 <div className="flex justify-between text-slate-600">
                   <span>Service Fee</span>
@@ -504,15 +529,6 @@ function OrderDetailModal({
                 <span>Total</span>
                 <span>{formatPrice(order.total)}</span>
               </div>
-              {order.loyaltyDiscount > 0 ? (
-                <div className="flex justify-between text-amber-600">
-                  <span className="flex items-center gap-1.5">
-                    Loyalty discount
-                    <span className="rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[9px] font-bold text-amber-700">{order.loyaltyPointsRedeemed} pts</span>
-                  </span>
-                  <span>-{formatPrice(order.loyaltyDiscount)}</span>
-                </div>
-              ) : null}
               {order.refundAmount != null && order.refundAmount > 0 ? (
                 <div className="flex justify-between border-t border-orange-200 pt-2 text-sm font-semibold text-orange-700">
                   <span>Refunded{order.paymentStatus === 'partially_refunded' ? ' (partial)' : ''}</span>
@@ -800,6 +816,8 @@ export default function OrderHistoryPage({
       subtotal: order.subtotal,
       total: order.total,
       discount: order.discountTotal,
+      loyaltyDiscount: order.loyaltyDiscount || null,
+      loyaltyPointsRedeemed: order.loyaltyPointsRedeemed || null,
       deliveryFee: order.deliveryFee,
       tip: order.tipTotal,
       tax: order.serviceFee,

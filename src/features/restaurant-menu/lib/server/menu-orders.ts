@@ -4,7 +4,7 @@ import { randomBytes } from 'crypto';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { evaluateMenuOffers } from '@/features/restaurant-menu/lib/menu-offers';
 import { validateMenuCouponCode } from '@/features/restaurant-menu/lib/server/menu-coupons';
-import { validateMenuGiftCardCode } from '@/features/restaurant-menu/lib/server/menu-gift-cards';
+import { validateMenuGiftCardCode, deductGiftCardBalance } from '@/features/restaurant-menu/lib/server/menu-gift-cards';
 import { loadActiveMenuOffers } from '@/features/restaurant-menu/lib/server/menu-offers';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -580,6 +580,13 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
   let appliedCoupon = null;
   let appliedAutoOffer = null;
   let giftCardAppliedAmount = 0;
+  let appliedGiftCard: {
+    giftCardId: string;
+    code: string;
+    amountApplied: number;
+    balanceBefore: number;
+    totalRedeemed: number;
+  } | null = null;
 
   if (trimText(input.couponCode)) {
     try {
@@ -647,6 +654,17 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       giftCardAppliedAmount = roundCurrency(
         Math.min(giftCard.currentBalance, Math.max(preGiftCardTotal, 0)),
       );
+
+      // Store gift card info for deduction after order creation
+      if (giftCardAppliedAmount > 0) {
+        appliedGiftCard = {
+          giftCardId: giftCard.giftCardId,
+          code: giftCard.code,
+          amountApplied: giftCardAppliedAmount,
+          balanceBefore: giftCard.currentBalance,
+          totalRedeemed: giftCard.totalRedeemed,
+        };
+      }
     } catch (error) {
       throw new MenuOrderError(
         400,
@@ -937,6 +955,21 @@ export async function placeMenuOrder(input: PlaceMenuOrderInput): Promise<PlaceM
       } catch (err) {
         console.error('[Menu Orders] Failed to debit loyalty points:', err);
       }
+    }
+  }
+
+  // --- Gift Card: deduct used amount from balance immediately ---
+  if (appliedGiftCard && appliedGiftCard.amountApplied > 0) {
+    try {
+      await deductGiftCardBalance({
+        giftCardId: appliedGiftCard.giftCardId,
+        amountUsed: appliedGiftCard.amountApplied,
+        currentBalance: appliedGiftCard.balanceBefore,
+        currentTotalRedeemed: appliedGiftCard.totalRedeemed,
+      });
+    } catch (giftCardError) {
+      console.error('[Menu Orders] Failed to deduct gift card balance:', giftCardError);
+      // Note: Order is already created. Consider marking for manual review or rollback.
     }
   }
 

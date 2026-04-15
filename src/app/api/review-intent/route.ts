@@ -210,7 +210,12 @@ function isUuid(value: string) {
   );
 }
 
-function buildGoogleReviewUrl(gmbLink: string | null) {
+function buildGoogleReviewUrl(gmbLink: string | null, placeId: string | null) {
+  // Prefer place ID — opens the "write a review" page directly
+  if (placeId) {
+    return `https://search.google.com/local/writereview?placeid=${encodeURIComponent(placeId)}`;
+  }
+  // Fallback to GMB link if no place ID
   if (gmbLink) {
     return gmbLink;
   }
@@ -237,7 +242,7 @@ async function resolveRestaurantTarget(restaurantId: string) {
     restaurantId: row.restaurant_id.trim(),
     gmbLink,
     placeId,
-    googleReviewUrl: buildGoogleReviewUrl(gmbLink),
+    googleReviewUrl: buildGoogleReviewUrl(gmbLink, placeId),
   };
 }
 

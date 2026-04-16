@@ -2,6 +2,7 @@ import 'server-only';
 
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
 import { sendOrderInvoiceEmail } from '@/lib/server/email';
+import { isTwilioConfigured, sendSms } from '@/lib/server/twilio';
 
 const GET_ORDER_FOR_INVOICE = `
   query GetOrderForInvoice($order_id: uuid!) {
@@ -146,4 +147,50 @@ export async function sendInvoiceForOrder(orderId: string) {
     restaurantPhone,
     restaurantLogo,
   });
+}
+
+/**
+ * Sends an order confirmation SMS to the customer's phone.
+ * Safe to call from any context — silently returns if Twilio is not configured
+ * or the order/phone is missing.
+ */
+export async function sendOrderConfirmationSms(orderId: string) {
+  if (!isTwilioConfigured()) return;
+
+  try {
+    const orderData = await adminGraphqlRequest<{
+      orders_by_pk: {
+        order_number?: string;
+        contact_phone?: string;
+        contact_first_name?: string;
+        fulfillment_type?: string;
+        cart_total?: number;
+        restaurant_id?: string;
+      } | null;
+    }>(GET_ORDER_FOR_INVOICE, { order_id: orderId });
+
+    const order = orderData.orders_by_pk;
+    const phone = typeof order?.contact_phone === 'string' ? order.contact_phone.trim() : '';
+    const orderNumber = order?.order_number || '';
+    if (!order || !phone || !orderNumber) return;
+
+    let restaurantName = 'the restaurant';
+    if (order.restaurant_id) {
+      const restData = await adminGraphqlRequest<{
+        restaurants_by_pk: { name?: string } | null;
+      }>(GET_RESTAURANT_FOR_INVOICE, { restaurant_id: order.restaurant_id });
+      restaurantName = restData.restaurants_by_pk?.name || restaurantName;
+    }
+
+    const name = typeof order.contact_first_name === 'string' ? order.contact_first_name.trim() : '';
+    const greeting = name ? `Hi ${name}, your` : 'Your';
+    const fulfillment = order.fulfillment_type === 'delivery' ? 'delivery' : 'pickup';
+
+    const message = `${greeting} order #${orderNumber} from ${restaurantName} is confirmed! We're preparing it for ${fulfillment}.`;
+
+    await sendSms(phone, message);
+    console.log(`[Menu Orders] Order confirmation SMS sent to ${phone} for order #${orderNumber}`);
+  } catch (err) {
+    console.error('[Menu Orders] Failed to send order confirmation SMS:', err);
+  }
 }

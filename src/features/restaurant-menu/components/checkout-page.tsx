@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   MenuAuthSidebar,
@@ -477,6 +477,7 @@ export default function RestaurantMenuCheckoutPage({
   });
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const isNavigatingToSuccess = useRef(false);
   const [couponCodeInput, setCouponCodeInput] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
@@ -1313,6 +1314,7 @@ export default function RestaurantMenuCheckoutPage({
     }
     successParams.set('payment', paymentMethod);
 
+    isNavigatingToSuccess.current = true;
     clearCart();
 
     const successQuery = successParams.toString();
@@ -1488,7 +1490,7 @@ export default function RestaurantMenuCheckoutPage({
     return <div className="min-h-screen bg-white" />;
   }
 
-  if (!items.length && !clientSecret) {
+  if (!items.length && !clientSecret && !isNavigatingToSuccess.current) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-stone-50 px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-md text-center">

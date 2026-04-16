@@ -8,12 +8,13 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json().catch(() => null)) as
-      | { restaurantId?: string; email?: string; password?: string }
+      | { restaurantId?: string; email?: string; phone?: string; password?: string }
       | null;
 
     const customer = await signInMenuCustomer({
       restaurantId: body?.restaurantId || '',
-      email: body?.email || '',
+      email: body?.email || undefined,
+      phone: body?.phone || undefined,
       password: body?.password || '',
     });
 

@@ -45,6 +45,29 @@ const GET_CUSTOMER_BY_EMAIL = `
   }
 `;
 
+const GET_CUSTOMER_BY_PHONE = `
+  query GetCustomerByPhone($restaurant_id: uuid!, $phone: String!) {
+    customers(
+      where: {
+        restaurant_id: { _eq: $restaurant_id }
+        phone: { _eq: $phone }
+        is_deleted: { _eq: false }
+      }
+      order_by: [{ created_at: asc }]
+      limit: 5
+    ) {
+      customer_id
+      restaurant_id
+      email
+      phone
+      display_name
+      password_hash
+      is_guest
+      is_deleted
+    }
+  }
+`;
+
 const GET_CUSTOMER_BY_ID = `
   query GetCustomerById($customer_id: uuid!) {
     customers_by_pk(customer_id: $customer_id) {
@@ -277,6 +300,10 @@ interface GetCustomerByEmailResponse {
   customers?: CustomerRecord[];
 }
 
+interface GetCustomerByPhoneResponse {
+  customers?: CustomerRecord[];
+}
+
 interface GetCustomerByIdResponse {
   customers_by_pk?: CustomerRecord | null;
 }
@@ -400,19 +427,32 @@ export async function signUpMenuCustomer(
 export async function signInMenuCustomer({
   restaurantId,
   email,
+  phone,
   password,
 }: {
   restaurantId: string;
-  email: string;
+  email?: string;
+  phone?: string;
   password: string;
 }) {
   const normalizedRestaurantId = requireRestaurantId(restaurantId);
-  const normalizedEmail = requireEmail(email);
   const normalizedPassword = requirePassword(password, false);
-  const customer = await findCustomerByEmail(normalizedRestaurantId, normalizedEmail);
+
+  let customer: CustomerRecord | null = null;
+  const credentialLabel = phone ? 'phone number or password' : 'email or password';
+
+  if (phone) {
+    const normalizedPhone = requirePhone(phone);
+    customer = await findCustomerByPhone(normalizedRestaurantId, normalizedPhone);
+  } else if (email) {
+    const normalizedEmail = requireEmail(email);
+    customer = await findCustomerByEmail(normalizedRestaurantId, normalizedEmail);
+  } else {
+    throw new MenuCustomerAuthError(400, 'Email or phone number is required.');
+  }
 
   if (!customer || customer.is_guest === true || !text(customer.password_hash)) {
-    throw new MenuCustomerAuthError(401, 'Invalid email or password.');
+    throw new MenuCustomerAuthError(401, `Invalid ${credentialLabel}.`);
   }
 
   const passwordMatches = bcrypt.compareSync(
@@ -420,7 +460,7 @@ export async function signInMenuCustomer({
     customer.password_hash || '',
   );
   if (!passwordMatches) {
-    throw new MenuCustomerAuthError(401, 'Invalid email or password.');
+    throw new MenuCustomerAuthError(401, `Invalid ${credentialLabel}.`);
   }
 
   return toMenuCustomerSession(customer);
@@ -759,6 +799,20 @@ async function findCustomerByEmail(restaurantId: string, email: string) {
   const candidates = Array.isArray(data.customers) ? data.customers : [];
   return candidates.find((candidate) => candidate?.is_deleted !== true) || null;
 }
+
+async function findCustomerByPhone(restaurantId: string, phone: string) {
+  const data = await adminGraphqlRequest<GetCustomerByPhoneResponse>(
+    GET_CUSTOMER_BY_PHONE,
+    {
+      restaurant_id: restaurantId,
+      phone,
+    },
+  );
+
+  const candidates = Array.isArray(data.customers) ? data.customers : [];
+  return candidates.find((candidate) => candidate?.is_deleted !== true) || null;
+}
+
 
 async function findCustomerById(customerId: string) {
   const data = await adminGraphqlRequest<GetCustomerByIdResponse>(

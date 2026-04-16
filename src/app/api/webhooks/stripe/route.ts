@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/server/stripe';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
-import { sendInvoiceForOrder } from '@/lib/server/order-invoice';
+import { sendInvoiceForOrder, sendOrderConfirmationSms } from '@/lib/server/order-invoice';
 import { syncPayoutBatchByTransferEvent } from '@/lib/server/restaurant-payouts';
 import { creditOrderLoyaltyPoints } from '@/features/restaurant-menu/lib/server/menu-orders';
 
@@ -88,6 +88,9 @@ export async function POST(request: NextRequest) {
         } catch (emailError) {
           console.error('[Stripe Webhook] Order confirmation email failed:', emailError);
         }
+        sendOrderConfirmationSms(orderId).catch((smsErr) =>
+          console.error('[Stripe Webhook] Order confirmation SMS failed:', smsErr),
+        );
       }
     }
   }

@@ -36,6 +36,7 @@ export default function Hero(props: HeroProps) {
     imageObjectFit = 'cover',
     minimalImages,
     sideBySideImages,
+    slider,
     features = [],
     layout = 'centered-large',
     bgColor = '#ffffff',
@@ -116,6 +117,7 @@ export default function Hero(props: HeroProps) {
     previewMode === 'mobile',
   );
   const [videoLoadFailed, setVideoLoadFailed] = useState(false);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
   if (process.env.NODE_ENV === 'development') {
     console.log('Hero component props:', {
@@ -507,6 +509,25 @@ export default function Hero(props: HeroProps) {
     setVideoLoadFailed(false);
   }, [activeVideoUrl]);
 
+  // Slider auto-play effect
+  useEffect(() => {
+    if (!slider?.images || slider.images.length <= 1) {
+      return;
+    }
+
+    const autoPlay = slider.autoPlay !== false; // default true
+    if (!autoPlay) {
+      return;
+    }
+
+    const interval = slider.interval || 5000; // default 5 seconds
+    const timerId = setInterval(() => {
+      setActiveSlideIndex((prev) => (prev + 1) % slider.images.length);
+    }, interval);
+
+    return () => clearInterval(timerId);
+  }, [slider]);
+
   const resolveGlobalButtonStyle = (
     variant: HeroButtonVariant,
     fallbackVariant: 'primary' | 'secondary',
@@ -669,6 +690,52 @@ export default function Hero(props: HeroProps) {
       {renderButtons()}
     </div>
   );
+
+  const renderSlider = () => {
+    if (!slider?.images || slider.images.length === 0) {
+      return null;
+    }
+
+    const sliderImages = slider.images;
+    const showDots = slider.showDots !== false && sliderImages.length > 1; // default true
+
+    return (
+      <div className={`${styles.sliderContainer} ${styles.motionDecor}`} style={getMotionStyle(260)}>
+        <div className={styles.sliderTrack}>
+          {sliderImages.map((img, index) => (
+            <img
+              key={`${img.url}-${index}`}
+              src={img.url}
+              alt={img.alt || `Slide ${index + 1}`}
+              width={1440}
+              height={900}
+              loading={index === 0 ? 'eager' : 'lazy'}
+              fetchPriority={index === 0 ? 'high' : 'auto'}
+              decoding="async"
+              className={`${styles.sliderImage} ${index === activeSlideIndex ? styles.sliderImageActive : ''}`}
+              style={{
+                opacity: index === activeSlideIndex ? 1 : 0,
+                transition: 'opacity 0.6s ease-in-out',
+              }}
+            />
+          ))}
+        </div>
+        {showDots && (
+          <div className={styles.sliderDots}>
+            {sliderImages.map((_, index) => (
+              <button
+                key={index}
+                type="button"
+                aria-label={`Go to slide ${index + 1}`}
+                className={`${styles.sliderDot} ${index === activeSlideIndex ? styles.sliderDotActive : ''}`}
+                onClick={() => setActiveSlideIndex(index)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderImage = () => {
     if (!activeImage) return null;
@@ -962,6 +1029,13 @@ export default function Hero(props: HeroProps) {
           </div>
         );
 
+      case 'slider':
+        return (
+          <div className={styles.sliderContentOverlay}>
+            {renderContent(getAlignedContentClass())}
+          </div>
+        );
+
       case 'default':
       default:
         return renderDefaultLayout();
@@ -993,6 +1067,11 @@ export default function Hero(props: HeroProps) {
 
   return (
     <section ref={heroRef} className={heroClass} style={heroStyle}>
+      {layout === 'slider' && slider?.images && slider.images.length > 0 ? (
+        <div className={styles.sliderLayout} aria-hidden="true">
+          {renderSlider()}
+        </div>
+      ) : null}
       {showVideoBackground ? (
         <div className={styles.videoContainer} aria-hidden="true">
           <video

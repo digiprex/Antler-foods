@@ -21,6 +21,9 @@ const GET_GIFT_CARD_BY_CODE = `
       expiry_date
       email
       current_balance
+      total_redeemed
+      initial_value
+      status
     }
   }
 `;
@@ -34,6 +37,9 @@ interface GiftCardRecord {
   expiry_date?: string | null;
   email?: string | null;
   current_balance?: number | string | null;
+  total_redeemed?: number | string | null;
+  initial_value?: number | string | null;
+  status?: string | null;
 }
 
 interface GetGiftCardByCodeResponse {
@@ -45,6 +51,9 @@ export interface MenuGiftCardOffer {
   code: string;
   email: string;
   currentBalance: number;
+  totalRedeemed: number;
+  initialValue: number;
+  status: string;
   expiryDate: string;
 }
 
@@ -83,7 +92,19 @@ export async function validateMenuGiftCardCode({
     throw new Error('This gift card does not belong to this restaurant.');
   }
 
-  if (!record.is_active) {
+  // Check status for better error messages
+  const cardStatus = trimText(record.status) || 'active';
+
+  if (!record.is_active || cardStatus !== 'active') {
+    if (cardStatus === 'depleted' || record.current_balance === 0) {
+      throw new Error('This gift card has been fully redeemed. Balance: $0.00');
+    }
+    if (cardStatus === 'expired') {
+      throw new Error('This gift card has expired.');
+    }
+    if (cardStatus === 'cancelled') {
+      throw new Error('This gift card has been deactivated. Please contact support.');
+    }
     throw new Error('This gift card is inactive.');
   }
 
@@ -108,11 +129,18 @@ export async function validateMenuGiftCardCode({
     throw new Error('Enter a valid gift card code.');
   }
 
+  const totalRedeemed = currency(record.total_redeemed);
+  const initialValue = currency(record.initial_value);
+  const status = trimText(record.status) || 'active';
+
   return {
     giftCardId,
     code: resolvedCode,
     email: recordEmail,
     currentBalance,
+    totalRedeemed,
+    initialValue,
+    status,
     expiryDate: expiryDate.toISOString(),
   } satisfies MenuGiftCardOffer;
 }
@@ -178,4 +206,79 @@ function parseDate(value: string | null | undefined) {
 
 export function formatGiftCardBalance(value: number) {
   return formatPrice(roundCurrency(value));
+}
+
+const UPDATE_GIFT_CARD_BALANCE = `
+  mutation UpdateGiftCardBalance(
+    $gift_card_id: uuid!
+    $new_balance: numeric!
+    $new_total_redeemed: numeric!
+    $is_active: Boolean!
+    $status: String!
+  ) {
+    update_gift_cards_by_pk(
+      pk_columns: { gift_card_id: $gift_card_id }
+      _set: {
+        current_balance: $new_balance
+        total_redeemed: $new_total_redeemed
+        is_active: $is_active
+        status: $status
+        updated_at: "now()"
+      }
+    ) {
+      gift_card_id
+      current_balance
+      total_redeemed
+      is_active
+      status
+    }
+  }
+`;
+
+export async function deductGiftCardBalance({
+  giftCardId,
+  amountUsed,
+  currentBalance,
+  currentTotalRedeemed = 0,
+}: {
+  giftCardId: string;
+  amountUsed: number;
+  currentBalance: number;
+  currentTotalRedeemed?: number;
+}): Promise<{
+  newBalance: number;
+  newTotalRedeemed: number;
+  status: string;
+  isActive: boolean;
+}> {
+  const newBalance = roundCurrency(currentBalance - amountUsed);
+  const newTotalRedeemed = roundCurrency(currentTotalRedeemed + amountUsed);
+
+  if (newBalance < 0) {
+    throw new Error('Insufficient gift card balance.');
+  }
+
+  // Determine new status based on balance
+  let newStatus = 'active';
+  let isActive = true;
+
+  if (newBalance === 0) {
+    newStatus = 'depleted';
+    isActive = false;
+  }
+
+  await adminGraphqlRequest(UPDATE_GIFT_CARD_BALANCE, {
+    gift_card_id: giftCardId,
+    new_balance: newBalance,
+    new_total_redeemed: newTotalRedeemed,
+    is_active: isActive,
+    status: newStatus,
+  });
+
+  return {
+    newBalance,
+    newTotalRedeemed,
+    status: newStatus,
+    isActive
+  };
 }

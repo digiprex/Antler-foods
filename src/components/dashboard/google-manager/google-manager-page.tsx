@@ -702,71 +702,62 @@ export function GoogleManagerPage() {
   }
 
   return (
-    <section className="space-y-6">
-      <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.05)] sm:p-7">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-          <div className="space-y-3">
-            <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-700">
-              Google Workspace
+    <section className="space-y-5">
+      <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/30 p-6 shadow-sm sm:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent shadow-lg shadow-accent/30">
+                <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                  Google Manager
+                </h1>
+                <p className="text-sm text-slate-500">{restaurant.name}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-[26px] font-semibold tracking-tight text-slate-950">
-                Google Manager
-              </h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                Manage Google Business Profile OAuth, live listing details, business
-                reviews, and replies without removing the existing Google Places
-                fallback already used in Antler.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <InfoChip label="Restaurant" value={restaurant.name} />
-              <InfoChip
-                label="Source"
-                value={
-                  isBusinessConnected
-                    ? 'Business Profile'
-                    : isOauthConnected
-                      ? 'OAuth connected'
-                      : 'Places fallback'
-                }
-              />
-              <InfoChip
-                label="Mode"
-                value={isBusinessConnected ? 'Live publish + reply' : 'Read-only fallback'}
-              />
-            </div>
+            {(isBusinessConnected || isOauthConnected) && (
+              <div className="inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent"></span>
+                {isBusinessConnected ? 'Live Connected' : 'OAuth Active'}
+              </div>
+            )}
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2.5">
             {googleMapsUrl ? (
               <a
                 href={googleMapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
               >
-                Open Google
+                <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                View on Maps
               </a>
             ) : null}
             <button
               type="button"
               onClick={() => void launchGoogleConnection()}
               disabled={isLaunchingGoogleConnect}
-              className="inline-flex items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isLaunchingGoogleConnect
-                ? 'Redirecting...'
-                : isOauthConnected
-                  ? 'Reconnect Google'
-                  : 'Login with Google'}
+              {isLaunchingGoogleConnect ? 'Connecting...' : isOauthConnected ? 'Reconnect' : 'Connect Google'}
             </button>
             <button
               type="button"
               onClick={() => void loadGoogleManager({ silent: true })}
               disabled={isRefreshing || isLoading}
-              className="inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_-22px_rgba(16,185,129,0.7)] transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-60"
             >
+              <svg className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
               {loadButtonLabel}
             </button>
           </div>
@@ -776,15 +767,11 @@ export function GoogleManagerPage() {
       {authNotice ? (
         <Banner
           tone={authNotice === 'oauth_error' ? 'error' : 'success'}
-          title={
-            authNotice === 'oauth_error'
-              ? 'Google Business connection failed'
-              : 'Google Business connected'
-          }
+          title={authNotice === 'oauth_error' ? 'Connection failed' : 'Connected successfully'}
           message={
             authNotice === 'oauth_error'
-              ? authNoticeMessage || 'Google did not complete the OAuth flow.'
-              : 'Google OAuth is connected. Select the Business Profile location to switch this page to live owner-managed data.'
+              ? authNoticeMessage || 'Unable to complete OAuth flow.'
+              : 'Select a Business Profile location to continue.'
           }
         />
       ) : null}
@@ -792,58 +779,68 @@ export function GoogleManagerPage() {
       {businessError && !isBusinessConnected && !placesProfile ? (
         <Banner
           tone="warning"
-          title="Business Profile not active yet"
-          message={`${businessError} The page is still trying to use the existing Google Places fallback so the current flow stays available.`}
+          title="Using fallback mode"
+          message="Google Places data is being used instead."
         />
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          label="Listing"
-          value={summaryProfileLabel}
-          valueClassName="text-[18px] leading-7"
-          helper={
-            isBusinessConnected
-              ? 'Live Google Business Profile location'
-              : isOauthConnected
-                ? 'Google OAuth connected, location pending'
-                : 'Existing Google Places fallback'
-          }
-        />
-        <SummaryCard
-          label="Average rating"
-          value={summaryRating != null ? summaryRating.toFixed(1) : 'N/A'}
-          helper={`${summaryReviewCount || 0} reviews available`}
-        />
-        <SummaryCard
-          label="Category"
-          value={businessProfile?.primaryCategory || placesProfile?.primary_type || 'Unavailable'}
-          valueClassName="text-[18px] leading-7"
-          helper="Current Google business type"
-        />
-        <SummaryCard
-          label="Reference"
-          value={summaryReference}
-          valueClassName="font-mono text-sm leading-6 break-all"
-          helper={
-            isBusinessConnected
-              ? 'Selected Google Business location'
-              : 'Current Google place reference'
-          }
-        />
-      </div>
+      {isBusinessConnected ? (
+        <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-4">
+          <SummaryCard
+            label="Location"
+            value={summaryProfileLabel}
+            icon={
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            }
+          />
+          <SummaryCard
+            label="Rating"
+            value={summaryRating != null ? summaryRating.toFixed(1) : 'N/A'}
+            subValue={`${summaryReviewCount || 0} reviews`}
+            icon={
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+            }
+          />
+          <SummaryCard
+            label="Category"
+            value={businessProfile?.primaryCategory || 'Not set'}
+            icon={
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+            }
+          />
+          <SummaryCard
+            label="Status"
+            value="Live"
+            subValue="Fully Connected"
+            icon={
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            }
+          />
+        </div>
+      ) : null}
 
-      <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-        <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-4">
-          <TabButton label="Google Business Info" active={activeTab === 'info'} onClick={() => setActiveTab('info')} />
-          <TabButton label="Google Reviews" active={activeTab === 'reviews'} onClick={() => setActiveTab('reviews')} />
+      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex gap-1 border-b border-slate-100 p-1.5">
+          <TabButton label="Business Info" active={activeTab === 'info'} onClick={() => setActiveTab('info')} />
+          <TabButton label="Reviews" active={activeTab === 'reviews'} onClick={() => setActiveTab('reviews')} />
           <TabButton label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
         </div>
 
         {isLoading ? (
-          <div className="flex items-center gap-3 px-2 py-16 text-sm text-slate-500">
-            <PurpleDotSpinner size="sm" />
-            <span>Loading Google manager...</span>
+          <div className="flex min-h-[280px] items-center justify-center py-16">
+            <div className="text-center">
+              <PurpleDotSpinner size="sm" />
+              <p className="mt-3 text-sm text-slate-500">Loading...</p>
+            </div>
           </div>
         ) : pageError && !businessProfile && !placesProfile && !isOauthConnected ? (
           <EmptyState title="Unable to load Google manager" message={pageError} />
@@ -926,29 +923,42 @@ function GoogleBusinessProfileEditor({
   isSavingProfile: boolean;
 }) {
   return (
-    <div className="space-y-6 pt-6">
-      <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-        This restaurant is connected through Google Business Profile OAuth. Changes published here are sent to Google and reviews can be replied to from this workspace.
+    <div className="space-y-6 p-6">
+      <div className="flex items-center gap-2 text-sm text-purple-700">
+        <span className="flex h-2 w-2 rounded-full bg-accent"></span>
+        <span className="font-medium">Live editing enabled</span>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
-        <section className="rounded-[24px] border border-slate-200 bg-white p-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                Live Business Profile
-              </div>
-              <h2 className="mt-2 text-[24px] font-semibold tracking-tight text-slate-950">
-                {profile.title || 'Google Business Profile'}
+              <h2 className="text-xl font-bold text-slate-900">
+                {profile.title || 'Business Profile'}
               </h2>
+              <p className="mt-1 text-sm text-slate-500">Edit your Google listing</p>
             </div>
             <button
               type="button"
               onClick={onPublish}
               disabled={isSavingProfile}
-              className="inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSavingProfile ? 'Publishing...' : 'Publish to Google'}
+              {isSavingProfile ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Publishing...
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Publish
+                </>
+              )}
             </button>
           </div>
 
@@ -966,10 +976,10 @@ function GoogleBusinessProfileEditor({
           </div>
 
           <div className="mt-6">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+            <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
               Address
             </div>
-            <div className="mt-3 grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField label="Address line 1" value={editableProfile.addressLine1} onChange={(value) => onEditableProfileChange({ ...editableProfile, addressLine1: value })} />
               <FormField label="Address line 2" value={editableProfile.addressLine2} onChange={(value) => onEditableProfileChange({ ...editableProfile, addressLine2: value })} />
               <FormField label="City" value={editableProfile.locality} onChange={(value) => onEditableProfileChange({ ...editableProfile, locality: value })} />
@@ -979,10 +989,10 @@ function GoogleBusinessProfileEditor({
           </div>
 
           <div className="mt-6">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-              Action Links
+            <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
+              Links
             </div>
-            <div className="mt-3 grid gap-4">
+            <div className="grid gap-4">
               <FormField label="Food ordering link" value={editableProfile.menuUrl} onChange={(value) => onEditableProfileChange({ ...editableProfile, menuUrl: value })} />
               <FormField label="Takeout link" value={editableProfile.takeoutUrl} onChange={(value) => onEditableProfileChange({ ...editableProfile, takeoutUrl: value })} />
               <FormField label="Delivery link" value={editableProfile.deliveryUrl} onChange={(value) => onEditableProfileChange({ ...editableProfile, deliveryUrl: value })} />
@@ -991,60 +1001,51 @@ function GoogleBusinessProfileEditor({
         </section>
 
         <div className="space-y-4">
-          <section className="rounded-[24px] border border-slate-200 bg-white p-5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-              Snapshot
-            </div>
-            <div className="mt-4 space-y-3 text-sm text-slate-700">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+            <h3 className="text-sm font-semibold text-slate-900">Details</h3>
+            <div className="mt-4 space-y-3 text-sm">
               <DetailRow label="Category" value={profile.primaryCategory} />
-              <DetailRow label="Open status" value={formatGoogleLabel(profile.openState)} />
+              <DetailRow label="Status" value={formatGoogleLabel(profile.openState)} />
               <DetailRow label="Store code" value={profile.storeCode} />
               <DetailRow label="Language" value={profile.languageCode} />
-              <DetailRow label="Place ID" value={profile.placeId} mono />
             </div>
           </section>
 
-          <section className="rounded-[24px] border border-slate-200 bg-white p-5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-              Hours
-            </div>
-            <div className="mt-4 space-y-2 text-sm text-slate-700">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+            <h3 className="text-sm font-semibold text-slate-900">Hours</h3>
+            <div className="mt-4 space-y-2 text-xs">
               {profile.regularHours.length ? (
                 profile.regularHours.map((entry) => (
-                  <div key={entry} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                  <div key={entry} className="rounded-lg bg-slate-50 px-3 py-2 text-slate-700">
                     {entry}
                   </div>
                 ))
               ) : (
-                <p className="text-slate-500">Google did not return weekday hours.</p>
+                <p className="text-slate-500">No hours available</p>
               )}
             </div>
           </section>
 
-          <section className="rounded-[24px] border border-slate-200 bg-white p-5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-              Attributes
-            </div>
-            <div className="mt-4 space-y-2 text-sm text-slate-700">
-              {profile.attributes.length ? (
-                profile.attributes.map((attribute) => (
+          {profile.attributes.length > 0 && (
+            <section className="rounded-2xl border border-slate-200 bg-white p-5">
+              <h3 className="text-sm font-semibold text-slate-900">Attributes</h3>
+              <div className="mt-4 space-y-2 text-xs">
+                {profile.attributes.slice(0, 5).map((attribute) => (
                   <div
                     key={attribute.attributeId || attribute.displayName || `${attribute.value}-${attribute.displayName}`}
-                    className="flex items-start justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+                    className="flex items-center justify-between gap-4 rounded-lg bg-slate-50 px-3 py-2"
                   >
                     <span className="font-medium text-slate-900">
                       {attribute.displayName || attribute.attributeId || 'Attribute'}
                     </span>
-                    <span className="text-right text-slate-600">
+                    <span className="text-slate-600">
                       {attribute.value || 'Not set'}
                     </span>
                   </div>
-                ))
-              ) : (
-                <p className="text-slate-500">No attributes were returned by Google.</p>
-              )}
-            </div>
-          </section>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>
@@ -1063,56 +1064,71 @@ function GoogleBusinessLocationSelector({
   selectingLocationKey: string | null;
 }) {
   return (
-    <div className="space-y-6 pt-6">
-      <div className="rounded-[24px] border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
-        Google OAuth is connected. Select the exact Business Profile location for this restaurant to unlock live profile publishing and review replies.
+    <div className="space-y-6 p-6">
+      <div className="flex items-center gap-2 text-sm text-blue-700">
+        <svg className="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span className="font-medium">Select a location to enable live editing</span>
       </div>
 
       {accountLocations.length ? (
         <div className="space-y-4">
           {accountLocations.map((group) => (
-            <section key={group.account.name} className="rounded-[24px] border border-slate-200 bg-white p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
+            <section key={group.account.name} className="rounded-2xl border border-slate-200 bg-white p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-950">{group.account.accountName}</h2>
-                  <p className="text-sm text-slate-500">{formatGoogleLabel(group.account.type)} account</p>
+                  <h2 className="text-base font-semibold text-slate-900">{group.account.accountName}</h2>
+                  <p className="text-xs text-slate-500">{formatGoogleLabel(group.account.type)} • {group.locations.length} locations</p>
                 </div>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">
-                  {group.locations.length} locations
-                </span>
               </div>
 
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 space-y-2.5">
                 {group.locations.map((location) => {
                   const key = `${group.account.name}:${location.name}`;
                   const isSelected = selectedLocationName === location.name;
 
                   return (
-                    <div key={location.name} className="flex flex-col gap-4 rounded-[20px] border border-slate-200 bg-slate-50 p-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div key={location.name} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 lg:flex-row lg:items-center lg:justify-between">
                       <div className="space-y-1">
-                        <div className="text-base font-semibold text-slate-950">
-                          {location.title || 'Untitled Google location'}
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-semibold text-slate-900">
+                            {location.title || 'Untitled location'}
+                          </div>
+                          {isSelected && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
+                              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                              Active
+                            </span>
+                          )}
                         </div>
-                        <div className="text-sm text-slate-600">
-                          {location.placeId ? `Place ID: ${location.placeId}` : 'Place ID unavailable'}
-                        </div>
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                          {location.languageCode || 'Language unavailable'}
-                          {location.storeCode ? ` • Store code ${location.storeCode}` : ''}
+                        <div className="text-xs text-slate-500">
+                          {location.placeId || 'No Place ID'}
+                          {location.languageCode && ` • ${location.languageCode}`}
+                          {location.storeCode && ` • ${location.storeCode}`}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => onSelect(group.account.name, location.name)}
-                        disabled={Boolean(selectingLocationKey)}
-                        className={`inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-                          isSelected
-                            ? 'border border-emerald-300 bg-emerald-50 text-emerald-700'
-                            : 'bg-emerald-500 text-white hover:bg-emerald-600'
-                        } disabled:cursor-not-allowed disabled:opacity-60`}
-                      >
-                        {selectingLocationKey === key ? 'Saving...' : isSelected ? 'Selected' : 'Use this location'}
-                      </button>
+                      {!isSelected && (
+                        <button
+                          type="button"
+                          onClick={() => onSelect(group.account.name, location.name)}
+                          disabled={Boolean(selectingLocationKey)}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {selectingLocationKey === key ? (
+                            <>
+                              <svg className="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              Connecting...
+                            </>
+                          ) : (
+                            'Select Location'
+                          )}
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -1136,47 +1152,105 @@ function GooglePlacesFallbackInfo({
   onConnect,
   isLaunchingGoogleConnect,
 }: {
-  profile: GooglePlaceProfile;
+  profile: GooglePlaceProfile | null;
   placesError: string | null;
   onConnect: () => void;
   isLaunchingGoogleConnect: boolean;
 }) {
   return (
-    <div className="space-y-6 pt-6">
-      <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-        Google Business Profile OAuth is not connected yet. You are still seeing the existing Google Places data already used in Antler. Connect Google to enable publish and review replies.
-      </div>
-
-      {placesError ? <Banner tone="warning" title="Places fallback warning" message={placesError} /> : null}
-
-      <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-2">
-            <h2 className="text-[24px] font-semibold tracking-tight text-slate-950">
-              {profile.name || 'Google listing'}
-            </h2>
-            <p className="max-w-3xl text-sm leading-6 text-slate-600">
-              {profile.formatted_address || 'Address not available'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onConnect}
-            disabled={isLaunchingGoogleConnect}
-            className="inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isLaunchingGoogleConnect ? 'Redirecting...' : 'Connect Google Business'}
-          </button>
+    <div className="flex min-h-[480px] items-center justify-center p-6">
+      <div className="max-w-2xl text-center">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-accent/10 to-purple-100">
+          <svg className="h-10 w-10 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
         </div>
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <InfoCard label="Title" value={profile.name} />
-        <InfoCard label="Phone Number" value={profile.phone_number} />
-        <InfoCard label="Website" value={profile.website_url} href={profile.website_url} />
-        <InfoCard label="Address" value={profile.formatted_address} />
-        <InfoCard label="Business Status" value={formatGoogleLabel(profile.business_status)} />
-        <InfoCard label="Primary Type" value={profile.primary_type} />
+        <h2 className="text-2xl font-bold text-slate-900">
+          Connect Your Google Business
+        </h2>
+        <p className="mt-3 text-sm text-slate-600">
+          Link your Google Business Profile to manage your listing, respond to reviews, and keep your information up to date.
+        </p>
+
+        <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50/50 p-6 text-left">
+          <h3 className="text-sm font-semibold text-slate-900">Unlock these features:</h3>
+          <div className="mt-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
+                <svg className="h-3 w-3 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-slate-900">Manage your business profile</div>
+                <div className="text-xs text-slate-600">Edit hours, phone, website, and description</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
+                <svg className="h-3 w-3 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-slate-900">Reply to customer reviews</div>
+                <div className="text-xs text-slate-600">Respond directly to Google reviews as the owner</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
+                <svg className="h-3 w-3 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-slate-900">Live updates</div>
+                <div className="text-xs text-slate-600">Changes sync instantly to Google Maps and Search</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {profile?.name && (
+          <div className="mt-6 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm">
+            <div className="flex items-center justify-center gap-2 text-purple-900">
+              <svg className="h-4 w-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="font-medium">We found: {profile.name}</span>
+            </div>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={onConnect}
+          disabled={isLaunchingGoogleConnect}
+          className="mt-8 inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isLaunchingGoogleConnect ? (
+            <>
+              <svg className="h-5 w-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Connecting...
+            </>
+          ) : (
+            <>
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              Connect Google Business
+            </>
+          )}
+        </button>
+
+        {placesError && (
+          <p className="mt-4 text-xs text-slate-500">
+            Note: Unable to load business preview
+          </p>
+        )}
       </div>
     </div>
   );
@@ -1207,9 +1281,9 @@ function GoogleBusinessReviewsTab({
   }
 
   return (
-    <div className="space-y-4 pt-6">
+    <div className="space-y-4 p-6">
       {reviews.map((review) => (
-        <article key={review.name} className="rounded-[24px] border border-slate-200 bg-white p-5">
+        <article key={review.name} className="rounded-2xl border border-slate-200 bg-white p-5">
           <div className="flex items-start gap-4">
             <ReviewAvatar name={review.reviewerName} avatarUrl={review.reviewerProfilePhotoUrl} />
             <div className="min-w-0 flex-1 space-y-3">
@@ -1230,42 +1304,59 @@ function GoogleBusinessReviewsTab({
               </p>
 
               {review.reviewReply?.comment ? (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                  <div className="font-semibold">Current owner reply</div>
-                  <div className="mt-1 leading-6">{review.reviewReply.comment}</div>
-                  <div className="mt-2 text-xs uppercase tracking-[0.16em] text-emerald-700">
-                    Updated {formatDateTime(review.reviewReply.updateTime)}
+                <div className="rounded-xl border border-purple-200 bg-purple-50 px-4 py-3">
+                  <div className="text-xs font-medium text-purple-900">Your reply</div>
+                  <div className="mt-2 text-sm text-purple-800">{review.reviewReply.comment}</div>
+                  <div className="mt-2 text-xs text-purple-600">
+                    {formatDateTime(review.reviewReply.updateTime)}
                   </div>
                 </div>
               ) : null}
 
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 <textarea
                   value={replyDrafts[review.name] || ''}
                   onChange={(event) => onReplyDraftChange(review.name, event.target.value)}
-                  rows={4}
+                  rows={3}
                   placeholder="Write your reply..."
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-accent focus:ring-2 focus:ring-purple-100"
                 />
                 <div className="flex flex-wrap gap-2">
-                  {review.reviewerGoogleMapsUri ? (
-                    <a
-                      href={review.reviewerGoogleMapsUri}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                    >
-                      Open on Google
-                    </a>
-                  ) : null}
                   <button
                     type="button"
                     onClick={() => onSubmitReply(review.name)}
                     disabled={replyingReviewName === review.name}
-                    className="inline-flex items-center rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {replyingReviewName === review.name ? 'Publishing...' : 'Submit reply'}
+                    {replyingReviewName === review.name ? (
+                      <>
+                        <svg className="h-3.5 w-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                        Send Reply
+                      </>
+                    )}
                   </button>
+                  {review.reviewerGoogleMapsUri && (
+                    <a
+                      href={review.reviewerGoogleMapsUri}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      View
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -1286,62 +1377,52 @@ function GooglePlacesFallbackReviews({
   isOauthConnected: boolean;
 }) {
   return (
-    <div className="space-y-6 pt-6">
-      <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-        {isOauthConnected
-          ? 'OAuth is connected, but no Business Profile location is selected yet. These are still public Google Places reviews.'
-          : 'These are public Google Places reviews. Connect and select a Business Profile location to reply as the business owner.'}
-      </div>
-
-      {placesError ? (
-        <EmptyState title="Unable to load reviews" message={placesError} />
-      ) : reviews.length ? (
-        <div className="space-y-4">
-          {reviews.map((review) => (
-            <article
-              key={review.external_review_id || `${review.author_name}-${review.published_at}`}
-              className="rounded-[24px] border border-slate-200 bg-white p-5"
-            >
-              <div className="flex items-start gap-4">
-                <ReviewAvatar name={review.author_name} avatarUrl={review.avatar_url} />
-                <div className="min-w-0 flex-1 space-y-3">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-950">
-                        {review.author_name || 'Google user'}
-                      </h3>
-                      <ReviewStars rating={review.rating} />
-                    </div>
-                    <div className="text-sm text-slate-500">
-                      {formatDateTime(review.published_at)}
-                    </div>
-                  </div>
-
-                  <p className="text-sm leading-7 text-slate-700">
-                    {review.review_text || 'No written comment was included in this review.'}
-                  </p>
-
-                  {review.review_url ? (
-                    <a
-                      href={review.review_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                    >
-                      Open on Google
-                    </a>
-                  ) : null}
-                </div>
-              </div>
-            </article>
-          ))}
+    <div className="flex min-h-[480px] items-center justify-center p-6">
+      <div className="max-w-md text-center">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-accent/10 to-purple-100">
+          <svg className="h-10 w-10 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
         </div>
-      ) : (
-        <EmptyState
-          title="No reviews found"
-          message="Google did not return any public reviews for the linked place."
-        />
-      )}
+
+        <h2 className="text-xl font-bold text-slate-900">
+          {isOauthConnected ? 'Select a Location to View Reviews' : 'Connect to Manage Reviews'}
+        </h2>
+        <p className="mt-3 text-sm text-slate-600">
+          {isOauthConnected
+            ? 'Choose your Business Profile location to view and reply to customer reviews.'
+            : 'Connect your Google Business Profile to view reviews and respond as the business owner.'}
+        </p>
+
+        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+          <div className="space-y-3 text-sm text-slate-700">
+            <div className="flex items-center gap-2">
+              <svg className="h-4 w-4 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>View all customer reviews</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <svg className="h-4 w-4 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>Reply as business owner</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <svg className="h-4 w-4 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>Engage with customers</span>
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-6 text-xs text-slate-500">
+          {isOauthConnected
+            ? 'Go to Business Info tab to select your location'
+            : 'Connect your account to unlock review management'}
+        </p>
+      </div>
     </div>
   );
 }
@@ -1361,74 +1442,127 @@ function GoogleBusinessSettingsTab({
   onConnect: () => void;
   isLaunchingGoogleConnect: boolean;
 }) {
+  const isConnected = connectionData?.connected;
+  const hasLocation = connectionData?.hasSelectedLocation;
+
   return (
-    <div className="space-y-6 pt-6">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="space-y-6 p-6">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <SettingsCard
-          label="OAuth"
-          value={connectionData?.connected ? 'Connected' : 'Not connected'}
-          helper="Google Business Profile owner authentication"
+          label="Connection Status"
+          value={isConnected ? 'Connected' : 'Not Connected'}
+          helper={isConnected ? 'OAuth active' : 'Connect to get started'}
         />
-        <SettingsCard
-          label="Selected location"
-          value={connectionData?.connection?.googleLocationTitle || 'Not selected yet'}
-          helper="The Business Profile location mapped to this restaurant"
-        />
-        <SettingsCard
-          label="Data source"
-          value={businessProfile ? 'Business Profile' : 'Places fallback'}
-          helper="The source currently powering this page"
-        />
-        <SettingsCard
-          label="Google place ID"
-          value={businessProfile?.placeId || placesProfile?.place_id || 'Unavailable'}
-          helper="Used by the fallback Places flow"
-          mono
-        />
+        {isConnected && (
+          <SettingsCard
+            label="Selected Location"
+            value={connectionData?.connection?.googleLocationTitle || 'Not selected'}
+            helper={hasLocation ? 'Active location' : 'Choose a location'}
+          />
+        )}
+        {businessProfile && (
+          <SettingsCard
+            label="Data Source"
+            value="Live Business Profile"
+            helper="Real-time Google data"
+          />
+        )}
       </div>
 
       {businessError ? (
-        <Banner tone="warning" title="Business Profile issue" message={businessError} />
+        <Banner tone="warning" title="Connection Issue" message={businessError} />
       ) : null}
 
-      <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 p-5">
-        <h2 className="text-lg font-semibold text-slate-950">
-          Google Business Profile connection
-        </h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <SettingsListCard
-            title="Already active"
-            items={[
-              'Google Places profile fetch',
-              'Public reviews fallback',
-              'Google place ID based flows',
-            ]}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <h3 className="text-base font-semibold text-slate-900">
+          Connection Status
+        </h3>
+        <div className="mt-4 space-y-3">
+          <StatusItem
+            label="Google OAuth"
+            status={isConnected ? 'connected' : 'disconnected'}
+            description={isConnected ? 'Account linked successfully' : 'Not connected yet'}
           />
-          <SettingsListCard
-            title="Live owner-managed features"
-            items={[
-              connectionData?.connected ? 'OAuth is connected' : 'OAuth is not connected yet',
-              connectionData?.hasSelectedLocation
-                ? 'Business Profile location is selected'
-                : 'Business Profile location still needs selection',
-              businessProfile
-                ? 'Publish and review reply are available'
-                : 'Publish/reply activate after location selection',
-            ]}
+          <StatusItem
+            label="Business Location"
+            status={hasLocation ? 'connected' : 'disconnected'}
+            description={hasLocation ? 'Location selected and active' : 'Select a location to continue'}
+          />
+          <StatusItem
+            label="Live Management"
+            status={businessProfile ? 'connected' : 'disconnected'}
+            description={businessProfile ? 'Full editing and reply enabled' : 'Connect to unlock features'}
           />
         </div>
 
-        <div className="mt-5">
-          <button
-            type="button"
-            onClick={onConnect}
-            disabled={isLaunchingGoogleConnect}
-            className="inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isLaunchingGoogleConnect ? 'Redirecting...' : 'Connect Google Business'}
-          </button>
+        {!isConnected && (
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={onConnect}
+              disabled={isLaunchingGoogleConnect}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isLaunchingGoogleConnect ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  Connect Google Business
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StatusItem({
+  label,
+  status,
+  description,
+}: {
+  label: string;
+  status: 'connected' | 'disconnected';
+  description: string;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-center gap-3">
+        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+          status === 'connected' ? 'bg-purple-100' : 'bg-slate-200'
+        }`}>
+          {status === 'connected' ? (
+            <svg className="h-4 w-4 text-accent" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          ) : (
+            <svg className="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          )}
+        </div>
+        <div>
+          <div className="text-sm font-medium text-slate-900">{label}</div>
+          <div className="text-xs text-slate-500">{description}</div>
         </div>
       </div>
+      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+        status === 'connected'
+          ? 'bg-purple-100 text-purple-700'
+          : 'bg-slate-200 text-slate-600'
+      }`}>
+        {status === 'connected' ? 'Active' : 'Inactive'}
+      </span>
     </div>
   );
 }
@@ -1457,17 +1591,48 @@ function Banner({
   title: string;
   message: string;
 }) {
-  const toneClasses =
-    tone === 'success'
-      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-      : tone === 'warning'
-        ? 'border-amber-200 bg-amber-50 text-amber-800'
-        : 'border-rose-200 bg-rose-50 text-rose-800';
+  const config = {
+    success: {
+      bg: 'bg-purple-50',
+      border: 'border-purple-200',
+      text: 'text-purple-900',
+      icon: (
+        <svg className="h-5 w-5 text-accent" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+        </svg>
+      ),
+    },
+    warning: {
+      bg: 'bg-amber-50',
+      border: 'border-amber-200',
+      text: 'text-amber-900',
+      icon: (
+        <svg className="h-5 w-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+      ),
+    },
+    error: {
+      bg: 'bg-rose-50',
+      border: 'border-rose-200',
+      text: 'text-rose-900',
+      icon: (
+        <svg className="h-5 w-5 text-rose-500" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+        </svg>
+      ),
+    },
+  }[tone];
 
   return (
-    <div className={`rounded-[24px] border p-4 ${toneClasses}`}>
-      <div className="font-semibold">{title}</div>
-      <div className="mt-1 text-sm leading-6">{message}</div>
+    <div className={`rounded-2xl border ${config.border} ${config.bg} p-4`}>
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5">{config.icon}</div>
+        <div className="flex-1">
+          <div className={`font-medium ${config.text}`}>{title}</div>
+          <div className={`mt-1 text-sm ${config.text} opacity-80`}>{message}</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1483,13 +1648,13 @@ function FormField({
 }) {
   return (
     <label className="block">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+      <div className="mb-2 text-xs font-medium text-slate-700">
         {label}
       </div>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-accent focus:ring-2 focus:ring-purple-100"
       />
     </label>
   );
@@ -1508,14 +1673,14 @@ function TextAreaField({
 }) {
   return (
     <label className={className || ''}>
-      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+      <div className="mb-2 text-xs font-medium text-slate-700">
         {label}
       </div>
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        rows={5}
-        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+        rows={4}
+        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-accent focus:ring-2 focus:ring-purple-100"
       />
     </label>
   );
@@ -1531,12 +1696,12 @@ function DetailRow({
   mono?: boolean;
 }) {
   return (
-    <div className="space-y-1">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+    <div className="flex items-center justify-between gap-2">
+      <div className="text-xs text-slate-500">
         {label}
       </div>
-      <div className={`break-words text-sm text-slate-900 ${mono ? 'font-mono leading-6' : 'leading-6'}`}>
-        {value || 'Unavailable'}
+      <div className={`break-words text-right text-xs font-medium text-slate-900 ${mono ? 'font-mono' : ''}`}>
+        {value || 'N/A'}
       </div>
     </div>
   );
@@ -1572,10 +1737,10 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+      className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
         active
-          ? 'bg-emerald-100 text-emerald-700'
-          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          ? 'bg-accent text-white shadow-sm'
+          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
       }`}
     >
       {label}
@@ -1586,66 +1751,36 @@ function TabButton({
 function SummaryCard({
   label,
   value,
-  helper,
-  valueClassName,
+  icon,
+  subValue,
 }: {
   label: string;
   value: string;
-  helper: string;
-  valueClassName?: string;
+  icon?: React.ReactNode;
+  subValue?: string;
 }) {
   return (
-    <div className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-        {label}
-      </div>
-      <div className={`mt-3 font-semibold tracking-tight text-slate-950 ${valueClassName || 'text-[24px]'}`}>
-        {value}
-      </div>
-      <div className="mt-2 text-sm leading-6 text-slate-600">{helper}</div>
-    </div>
-  );
-}
-
-function InfoChip({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700">
-      <span className="font-semibold uppercase tracking-[0.14em] text-slate-500">
-        {label}
-      </span>
-      <span className="font-medium text-slate-900">{value}</span>
-    </div>
-  );
-}
-
-function InfoCard({
-  label,
-  value,
-  href,
-}: {
-  label: string;
-  value: string | null | undefined;
-  href?: string | null;
-}) {
-  const content = value || 'Unavailable';
-
-  return (
-    <div className="rounded-[20px] border border-slate-200 bg-white p-5">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-        {label}
-      </div>
-      <div className="mt-3 text-base font-medium leading-7 text-slate-900">
-        {href && value ? (
-          <a href={href} target="_blank" rel="noopener noreferrer" className="break-words text-blue-600 hover:text-blue-700">
-            {content}
-          </a>
-        ) : (
-          <span className="break-words">{content}</span>
+    <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-medium uppercase tracking-wider text-slate-500">
+          {label}
+        </div>
+        {icon && (
+          <div className="rounded-lg bg-slate-100 p-2 text-slate-600 transition group-hover:bg-purple-100 group-hover:text-accent">
+            {icon}
+          </div>
         )}
       </div>
+      <div className="mt-3 truncate text-lg font-semibold text-slate-900">
+        {value}
+      </div>
+      {subValue && (
+        <div className="mt-1 text-xs text-slate-500">{subValue}</div>
+      )}
     </div>
   );
 }
+
 
 function ReviewAvatar({
   name,
@@ -1661,7 +1796,7 @@ function ReviewAvatar({
   const initial = (name || 'G').trim().charAt(0).toUpperCase();
 
   return (
-    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-lg font-semibold text-white">
+    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-lg font-semibold text-white">
       {initial}
     </div>
   );
@@ -1691,27 +1826,6 @@ function SettingsCard({
   );
 }
 
-function SettingsListCard({
-  title,
-  items,
-}: {
-  title: string;
-  items: string[];
-}) {
-  return (
-    <div className="rounded-[20px] border border-slate-200 bg-white p-5">
-      <div className="text-sm font-semibold text-slate-950">{title}</div>
-      <div className="mt-3 space-y-2">
-        {items.map((item) => (
-          <div key={item} className="flex items-start gap-2 text-sm text-slate-700">
-            <span className="mt-1 h-2 w-2 rounded-full bg-emerald-500" />
-            <span>{item}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function EmptyState({
   title,
@@ -1721,10 +1835,15 @@ function EmptyState({
   message: string;
 }) {
   return (
-    <div className="flex min-h-[320px] items-center justify-center px-4 py-10">
-      <div className="max-w-xl rounded-[24px] border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
-        <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
-        <p className="mt-3 text-sm leading-7 text-slate-600">{message}</p>
+    <div className="flex min-h-[280px] items-center justify-center px-4 py-10">
+      <div className="max-w-md text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100">
+          <svg className="h-6 w-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+          </svg>
+        </div>
+        <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+        <p className="mt-2 text-sm text-slate-600">{message}</p>
       </div>
     </div>
   );

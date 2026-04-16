@@ -13,6 +13,8 @@ const GIFT_CARD_FIELDS = `
   code
   is_active
   current_balance
+  total_redeemed
+  status
   customer_id
   email
 `;
@@ -42,6 +44,8 @@ const INSERT_GIFT_CARD = `
     $is_active: Boolean!
     $is_deleted: Boolean!
     $customer_id: uuid
+    $total_redeemed: numeric
+    $status: String
   ) {
     insert_gift_cards_one(
       object: {
@@ -54,6 +58,8 @@ const INSERT_GIFT_CARD = `
         is_active: $is_active
         is_deleted: $is_deleted
         customer_id: $customer_id
+        total_redeemed: $total_redeemed
+        status: $status
       }
     ) {
       ${GIFT_CARD_FIELDS}
@@ -94,6 +100,8 @@ type GiftCardPayload = {
   is_active: boolean;
   is_deleted: boolean;
   customer_id: string | null;
+  total_redeemed: number;
+  status: string;
 };
 
 interface GiftCardsResponse {
@@ -191,6 +199,8 @@ function parseGiftCardPayload(raw: Record<string, unknown>) {
     return { error: 'Expiry date must be a valid date and time.' };
   }
 
+  const totalRedeemed = initialValue - currentBalance;
+
   const payload: GiftCardPayload = {
     restaurant_id: restaurantId,
     code,
@@ -201,6 +211,8 @@ function parseGiftCardPayload(raw: Record<string, unknown>) {
     is_active: isActive,
     is_deleted: false,
     customer_id: customerIdRaw || null,
+    total_redeemed: totalRedeemed,
+    status: 'active',
   };
 
   return { payload };

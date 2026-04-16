@@ -51,6 +51,7 @@ const GET_EMAIL_LOGS = `
       where: {
         restaurant_id: { _eq: $restaurant_id }
         is_deleted: { _eq: false }
+        template_key: { _nlike: "sms_%" }
       }
       order_by: { created_at: desc }
       limit: 200

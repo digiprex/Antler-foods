@@ -38,6 +38,22 @@ interface Coupon {
   end_date: string | null;
 }
 
+interface EmailLog {
+  email_log_id: string;
+  campaign_id: string | null;
+  template_key: string;
+  customer_id: string | null;
+  recipient_email: string;
+  recipient_name: string | null;
+  subject: string;
+  status: string;
+  error_message: string | null;
+  trigger: string;
+  opened_at: string | null;
+  clicked_at: string | null;
+  created_at: string;
+}
+
 interface CampaignsFormProps {
   restaurantId: string;
   restaurantName: string;
@@ -129,6 +145,16 @@ const AUDIENCE_OPTIONS = [
   { value: 'ordered_last_90', label: 'Ordered Last 90 Days' },
 ];
 
+const TEMPLATE_NAMES: Record<string, string> = Object.fromEntries(
+  PREDEFINED_TEMPLATES.map((t) => [t.key, t.name]),
+);
+
+const TRIGGER_LABELS: Record<string, { label: string; cls: string }> = {
+  manual: { label: 'Manual', cls: 'bg-gray-100 text-gray-600' },
+  scheduled: { label: 'Scheduled', cls: 'bg-purple-50 text-purple-700' },
+  auto_signup: { label: 'Sign-up', cls: 'bg-blue-50 text-blue-700' },
+};
+
 function isScheduledInFuture(date: string, time: string): boolean {
   if (!date) return false;
   const dateTime = time ? `${date}T${time}` : `${date}T23:59`;
@@ -161,6 +187,11 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
   const [restaurantEmail, setRestaurantEmail] = useState<string | null>(null);
   const [restaurantPhone, setRestaurantPhone] = useState<string | null>(null);
   const [restaurantAddress, setRestaurantAddress] = useState<string | null>(null);
+  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
+
+  // Active tab: 'templates' or 'logs'
+  const [activeTab, setActiveTab] = useState<'templates' | 'logs'>('templates');
+  const [logFilter, setLogFilter] = useState<'all' | 'sent' | 'failed' | 'opened' | 'clicked' | 'scheduled'>('all');
 
   // Configure popup key for manual campaigns (audience + date/time + send)
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
@@ -195,6 +226,7 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to load');
       setStoredCampaigns(data.campaigns || []);
+      setEmailLogs(data.email_logs || []);
       setRestaurantEmail(data.restaurant_email || null);
       setRestaurantPhone(data.restaurant_phone || null);
       setRestaurantAddress(data.restaurant_address || null);
@@ -575,6 +607,24 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
     }).catch(() => showToast('error', 'Failed to save schedule'));
   };
 
+  // ── Logs filtering ──
+  const filteredLogs = emailLogs.filter((l) => {
+    if (logFilter === 'sent') return l.status === 'sent';
+    if (logFilter === 'failed') return l.status === 'failed';
+    if (logFilter === 'opened') return !!l.opened_at;
+    if (logFilter === 'clicked') return !!l.clicked_at;
+    return true;
+  });
+  const sortedLogs = [...filteredLogs].sort((a, b) =>
+    (b.created_at || '').localeCompare(a.created_at || ''),
+  );
+  const sentLogCount = emailLogs.filter((l) => l.status === 'sent').length;
+  const failedLogCount = emailLogs.filter((l) => l.status === 'failed').length;
+  const openedLogCount = emailLogs.filter((l) => !!l.opened_at).length;
+  const clickedLogCount = emailLogs.filter((l) => !!l.clicked_at).length;
+  const scheduledCampaigns = storedCampaigns.filter((c) => c.status === 'scheduled');
+  const scheduledCount = scheduledCampaigns.length;
+
   // ── Preview modal template ──
   const previewTemplate = previewKey
     ? PREDEFINED_TEMPLATES.find((t) => t.key === previewKey) || null
@@ -611,10 +661,43 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
         </div>
       )}
 
+      {/* Tab switcher: Templates | Sent Messages */}
+      <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1 w-fit">
+        <button
+          type="button"
+          onClick={() => setActiveTab('templates')}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-medium transition ${
+            activeTab === 'templates'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Templates
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('logs')}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-medium transition ${
+            activeTab === 'logs'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Sent Messages
+          <span
+            className={`inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold min-w-[18px] ${
+              activeTab === 'logs' ? 'bg-purple-100 text-purple-700' : 'bg-gray-200 text-gray-500'
+            }`}
+          >
+            {emailLogs.length}
+          </span>
+        </button>
+      </div>
+
       {/* ────────────────────────────────────────────────────────────────── */}
-      {/* TABLE 1 — Campaign Templates                                      */}
+      {/* TAB: Campaign Templates                                            */}
       {/* ────────────────────────────────────────────────────────────────── */}
-      <div>
+      {activeTab === 'templates' && <div>
         <div className="mb-3">
           <h2 className="text-base font-semibold text-gray-900">Campaign Templates</h2>
           <p className="text-xs text-gray-500 mt-0.5">
@@ -726,7 +809,214 @@ export default function CampaignsForm({ restaurantId, restaurantName }: Campaign
           </div>
 
         </div>
-      </div>
+      </div>}
+
+      {/* ────────────────────────────────────────────────────────────────── */}
+      {/* TAB: Sent Messages (Logs)                                          */}
+      {/* ────────────────────────────────────────────────────────────────── */}
+      {activeTab === 'logs' && (
+        <div className="space-y-4">
+          {/* Log filter tabs */}
+          <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1 w-fit">
+            {([
+              { key: 'all' as const, label: 'All', count: emailLogs.length },
+              { key: 'sent' as const, label: 'Sent', count: sentLogCount },
+              { key: 'failed' as const, label: 'Failed', count: failedLogCount },
+              { key: 'opened' as const, label: 'Opened', count: openedLogCount },
+              { key: 'clicked' as const, label: 'Clicked', count: clickedLogCount },
+              { key: 'scheduled' as const, label: 'Scheduled', count: scheduledCount },
+            ]).map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setLogFilter(t.key)}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-medium transition ${
+                  logFilter === t.key
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {t.label}
+                <span
+                  className={`inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold min-w-[18px] ${
+                    logFilter === t.key ? 'bg-purple-100 text-purple-700' : 'bg-gray-200 text-gray-500'
+                  }`}
+                >
+                  {t.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Scheduled campaigns view */}
+          {logFilter === 'scheduled' ? (
+            scheduledCampaigns.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 py-16">
+                <svg className="h-14 w-14 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="mt-4 text-sm font-medium text-gray-500">No scheduled campaigns</p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Schedule campaigns from the Templates tab.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100 bg-gray-50/60">
+                        <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Template</th>
+                        <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Subject</th>
+                        <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden sm:table-cell">Audience</th>
+                        <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Scheduled For</th>
+                        <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {scheduledCampaigns.map((c) => {
+                        const templateName = TEMPLATE_NAMES[c.template_key] || c.template_key;
+                        const audienceLabel = AUDIENCE_OPTIONS.find((a) => a.value === c.audience)?.label || c.audience;
+                        const scheduleStr = c.scheduled_date
+                          ? `${c.scheduled_date}${c.scheduled_time ? ` at ${c.scheduled_time}` : ''}`
+                          : '—';
+
+                        return (
+                          <tr key={c.campaign_id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-5 py-3.5">
+                              <p className="font-medium text-gray-900 text-sm">{templateName}</p>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <p className="text-xs text-gray-600 truncate max-w-[200px]">{c.subject}</p>
+                            </td>
+                            <td className="px-5 py-3.5 hidden sm:table-cell">
+                              <span className="text-xs text-gray-600">{audienceLabel}</span>
+                            </td>
+                            <td className="px-5 py-3.5 text-xs text-gray-700 whitespace-nowrap">
+                              {scheduleStr}
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2.5 py-0.5 text-[11px] font-semibold text-purple-700">
+                                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Scheduled
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
+          ) : sortedLogs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 py-16">
+              <svg className="h-14 w-14 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+              </svg>
+              <p className="mt-4 text-sm font-medium text-gray-500">
+                {logFilter === 'failed' ? 'No failed emails' : logFilter === 'opened' ? 'No opened emails' : logFilter === 'clicked' ? 'No clicked emails' : 'No emails sent yet'}
+              </p>
+              <p className="mt-1 text-xs text-gray-400">
+                Enable and send templates from the Templates tab.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/60">
+                      <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Recipient</th>
+                      <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Template</th>
+                      <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden sm:table-cell">Trigger</th>
+                      <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
+                      <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 hidden md:table-cell">Engagement</th>
+                      <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {sortedLogs.map((log) => {
+                      const templateName = TEMPLATE_NAMES[log.template_key] || log.template_key;
+                      const isFailed = log.status === 'failed';
+                      const trigger = TRIGGER_LABELS[log.trigger] || TRIGGER_LABELS.manual;
+
+                      return (
+                        <tr key={log.email_log_id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-5 py-3.5">
+                            <p className="font-medium text-gray-900 text-sm truncate max-w-[180px]">
+                              {log.recipient_name || log.recipient_email}
+                            </p>
+                            {log.recipient_name && (
+                              <p className="text-[11px] text-gray-400 truncate max-w-[180px]">{log.recipient_email}</p>
+                            )}
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <span className="text-xs text-gray-700 font-medium">{templateName}</span>
+                            {log.subject && (
+                              <p className="text-[11px] text-gray-400 truncate max-w-[160px] mt-0.5">{log.subject}</p>
+                            )}
+                          </td>
+                          <td className="px-5 py-3.5 hidden sm:table-cell">
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${trigger.cls}`}>
+                              {trigger.label}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            {isFailed ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-700" title={log.error_message || ''}>
+                                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Failed
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-0.5 text-[11px] font-semibold text-green-700">
+                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                                Sent
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-5 py-3.5 hidden md:table-cell">
+                            <div className="flex flex-col gap-1">
+                              {log.opened_at ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] text-green-600 font-medium">
+                                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                    <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                                  </svg>
+                                  Opened
+                                </span>
+                              ) : (
+                                <span className="text-[11px] text-gray-400">Not opened</span>
+                              )}
+                              {log.clicked_at ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] text-blue-600 font-medium">
+                                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
+                                  </svg>
+                                  Clicked
+                                </span>
+                              ) : null}
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5 text-gray-500 text-xs whitespace-nowrap">
+                            {formatDateTime(log.created_at)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ────────────────────────────────────────────────────────────────── */}
       {/* Configure Popup                                                    */}

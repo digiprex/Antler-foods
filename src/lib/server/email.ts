@@ -1292,7 +1292,7 @@ export async function sendCampaignEmail(
 
   const ctaBlock = data.ctaText && data.ctaUrl
     ? `<div style="text-align:center;margin:28px 0;">
-        <a href="${data.ctaUrl}" style="display:inline-block;padding:14px 32px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;">${data.ctaText}</a>
+        <a href="${data.ctaUrl}" style="display:inline-block;padding:14px 32px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;">${data.ctaText}</a>
       </div>`
     : '';
 

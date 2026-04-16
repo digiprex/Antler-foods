@@ -11,12 +11,13 @@ import { isTwilioConfigured, sendSms } from '@/lib/server/twilio';
 // Welcome-email helpers
 // ---------------------------------------------------------------------------
 
-const GET_WELCOME_CAMPAIGN = `
-  query GetWelcomeCampaign($restaurant_id: uuid!) {
-    campaigns(
+const GET_WELCOME_CAMPAIGNS_ENABLED = `
+  query GetWelcomeCampaignsEnabled($restaurant_id: uuid!) {
+    email: campaigns(
       where: {
         restaurant_id: { _eq: $restaurant_id }
         template_key: { _eq: "welcome_email" }
+        type: { _eq: "email" }
         enabled: { _eq: true }
         is_deleted: { _eq: false }
       }
@@ -26,6 +27,18 @@ const GET_WELCOME_CAMPAIGN = `
       subject
       heading
       body
+    }
+    sms: campaigns(
+      where: {
+        restaurant_id: { _eq: $restaurant_id }
+        template_key: { _eq: "sms_welcome" }
+        type: { _eq: "sms" }
+        enabled: { _eq: true }
+        is_deleted: { _eq: false }
+      }
+      limit: 1
+    ) {
+      campaign_id
     }
   }
 `;
@@ -107,6 +120,7 @@ async function sendWelcomeEmail(
   restaurantId: string,
   customerEmail: string,
   customerName: string | null,
+  campaign?: { campaign_id: string; subject?: string; heading?: string; body?: string } | null,
 ) {
   try {
     const rest = await getRestaurantInfo(restaurantId);
@@ -118,12 +132,6 @@ async function sendWelcomeEmail(
     const restaurantAddress = [rest.address, rest.city, rest.state, rest.postal_code]
       .filter(Boolean)
       .join(', ') || null;
-
-    // Try to use a custom campaign template if the restaurant has one
-    const campaignData = await adminGraphqlRequest<any>(GET_WELCOME_CAMPAIGN, {
-      restaurant_id: restaurantId,
-    });
-    const campaign = campaignData.campaigns?.[0];
 
     const siteUrl = getRestaurantSiteUrl(rest);
     const subject = campaign?.subject || `Welcome to ${restaurantName}!`;
@@ -241,7 +249,7 @@ export async function POST(request: NextRequest) {
       password: body?.password || '',
     });
 
-    // Fire-and-forget: send welcome email and SMS
+    // Fire-and-forget: send welcome email and SMS only if campaign is enabled
     const restaurantId = (body?.restaurantId || '').trim();
     const email = (body?.email || '').trim();
     const phone = (body?.phone || '').trim();
@@ -249,12 +257,27 @@ export async function POST(request: NextRequest) {
     const lastName = (body?.lastName || '').trim();
     const customerName = [firstName, lastName].filter(Boolean).join(' ') || null;
 
-    if (restaurantId && email) {
-      sendWelcomeEmail(restaurantId, email, customerName);
-    }
+    if (restaurantId && (email || phone)) {
+      // Check which welcome campaigns are enabled for this restaurant
+      adminGraphqlRequest<{
+        email: Array<{ campaign_id: string; subject?: string; heading?: string; body?: string }>;
+        sms: Array<{ campaign_id: string }>;
+      }>(GET_WELCOME_CAMPAIGNS_ENABLED, { restaurant_id: restaurantId })
+        .then((campaignData) => {
+          const emailCampaign = campaignData.email?.[0] ?? null;
+          const smsCampaignEnabled = (campaignData.sms?.length ?? 0) > 0;
 
-    if (restaurantId && phone) {
-      sendWelcomeSms(restaurantId, phone, customerName);
+          if (email && emailCampaign) {
+            sendWelcomeEmail(restaurantId, email, customerName, emailCampaign);
+          }
+
+          if (phone && smsCampaignEnabled) {
+            sendWelcomeSms(restaurantId, phone, customerName);
+          }
+        })
+        .catch((err) => {
+          console.error('[Menu Auth] Failed to check welcome campaign status:', err);
+        });
     }
 
     return NextResponse.json({

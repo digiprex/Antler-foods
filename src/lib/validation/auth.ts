@@ -7,6 +7,11 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+export const phoneLoginSchema = z.object({
+  phone: z.string().min(1, "Phone number is required").regex(phoneRegex, "Enter a valid phone number"),
+  password: z.string().min(1, "Password is required"),
+});
+
 export const forgotPasswordSchema = z.object({
   email: z.string().min(1, "Email is required").email("Enter a valid email"),
 });
@@ -49,6 +54,7 @@ export const resetPasswordSchema = z
   });
 
 export type LoginFormValues = z.infer<typeof loginSchema>;
+export type PhoneLoginFormValues = z.infer<typeof phoneLoginSchema>;
 export type SignupFormValues = z.infer<typeof signupSchema>;
 export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;

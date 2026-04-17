@@ -127,9 +127,9 @@ export function MenuSignupForm({
         body: JSON.stringify({
           restaurantId: resolvedRestaurantId,
           firstName: values.firstName,
-          lastName: values.lastName,
-          email: values.email,
-          phone: `${phoneCountryCode}${values.phone.trim()}`,
+          lastName: values.lastName || '',
+          email: values.email || '',
+          phone: values.phone?.trim() ? `${phoneCountryCode}${values.phone.trim()}` : '',
           password: values.password,
         }),
       });
@@ -181,7 +181,7 @@ export function MenuSignupForm({
           />
           <MenuAuthInput
             type="text"
-            label="Last name"
+            label="Last name (optional)"
             placeholder="Enter your last name"
             autoComplete="family-name"
             error={errors.lastName?.message}
@@ -197,6 +197,8 @@ export function MenuSignupForm({
           error={errors.email?.message}
           {...register('email')}
         />
+
+        <p className="text-xs text-slate-400">At least one of email or phone is required</p>
 
         <div className="space-y-2">
           <label className="block text-sm font-semibold tracking-[-0.01em] text-slate-700">

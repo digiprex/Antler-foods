@@ -24,13 +24,19 @@ export const signupSchema = z
       .max(50, "First name is too long"),
     lastName: z
       .string()
-      .min(1, "Last name is required")
-      .max(50, "Last name is too long"),
-    email: z.string().min(1, "Email is required").email("Enter a valid email"),
+      .max(50, "Last name is too long")
+      .optional()
+      .or(z.literal("")),
+    email: z
+      .string()
+      .email("Enter a valid email")
+      .optional()
+      .or(z.literal("")),
     phone: z
       .string()
-      .min(1, "Phone number is required")
-      .regex(phoneRegex, "Enter a valid phone number"),
+      .regex(phoneRegex, "Enter a valid phone number")
+      .optional()
+      .or(z.literal("")),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters long"),
@@ -39,6 +45,10 @@ export const signupSchema = z
   .refine((values) => values.password === values.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
+  })
+  .refine((values) => (values.email && values.email.trim()) || (values.phone && values.phone.trim()), {
+    message: "Email or phone number is required",
+    path: ["email"],
   });
 
 export const resetPasswordSchema = z

@@ -723,11 +723,11 @@ export default function DynamicForm({
 
         <button
           type="submit"
-          disabled={submitting || isPreview}
-          className="inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-semibold shadow-lg transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-          style={submitButtonStyle}
+          disabled={submitting || isPreview || submitSuccess}
+          className="inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-semibold shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          style={submitSuccess ? { ...submitButtonStyle, backgroundColor: '#16a34a', borderColor: '#16a34a', color: '#ffffff', opacity: 1 } : submitButtonStyle}
         >
-          {isPreview ? displayConfig.buttonText || 'Submit Request' : submitting ? 'Submitting...' : displayConfig.buttonText || 'Submit Request'}
+          {isPreview ? displayConfig.buttonText || 'Submit Request' : submitSuccess ? 'Submitted Successfully!' : submitting ? 'Submitting...' : displayConfig.buttonText || 'Submit Request'}
         </button>
       </form>
     </div>

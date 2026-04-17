@@ -218,6 +218,128 @@ form submission system.
 }
 
 /**
+ * Sends a confirmation email to the customer after a form submission.
+ */
+export interface FormSubmissionConfirmationEmailData {
+  formTitle: string;
+  restaurantName: string;
+  restaurantEmail?: string | null;
+  restaurantPhone?: string | null;
+  submissionData: Record<string, any>;
+  submittedAt: string;
+}
+
+export async function sendFormSubmissionConfirmationEmail(
+  to: string,
+  data: FormSubmissionConfirmationEmailData,
+): Promise<void> {
+  const transporter = createTransporter();
+
+  const submissionHtml = Object.entries(data.submissionData)
+    .map(([key, value]) => {
+      const formattedKey = key
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, (str) => str.toUpperCase())
+        .trim();
+      return `
+        <tr>
+          <td style="padding:10px 0;border-bottom:1px solid #e7e5e4;font-size:14px;font-weight:600;color:#1e293b;width:40%;vertical-align:top;">
+            ${formattedKey}
+          </td>
+          <td style="padding:10px 0;border-bottom:1px solid #e7e5e4;font-size:14px;color:#1e293b;">
+            ${value || '<span style="color:#78716c;font-style:italic;">Not provided</span>'}
+          </td>
+        </tr>`;
+    })
+    .join('');
+
+  const contactParts: string[] = [];
+  if (data.restaurantEmail) contactParts.push(`<a href="mailto:${data.restaurantEmail}" style="color:#7c3aed;text-decoration:none;">${data.restaurantEmail}</a>`);
+  if (data.restaurantPhone) contactParts.push(`<a href="tel:${data.restaurantPhone}" style="color:#7c3aed;text-decoration:none;">${data.restaurantPhone}</a>`);
+
+  const contactBlock = contactParts.length > 0
+    ? `<p style="margin:16px 0 0;font-size:14px;color:#374151;">You can reach us at: ${contactParts.join(' or ')}</p>`
+    : '';
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:20px;">
+    <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+      <div style="padding:32px 28px;">
+        <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111827;">Thank You for Your Submission!</h1>
+        <p style="margin:0 0 20px;font-size:14px;color:#6b7280;">${data.restaurantName}</p>
+        <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#374151;">
+          We have received your <strong>${data.formTitle.toLowerCase()}</strong> and our team will review it shortly. We'll get back to you as soon as possible.
+        </p>
+
+        <div style="background:#f9fafb;border-radius:8px;padding:20px;margin-bottom:20px;">
+          <h2 style="margin:0 0 12px;font-size:16px;font-weight:600;color:#111827;">Your Submission Details</h2>
+          <table style="width:100%;border-collapse:collapse;">
+            <tbody>
+              ${submissionHtml}
+            </tbody>
+          </table>
+          <p style="margin:12px 0 0;font-size:12px;color:#9ca3af;">Submitted on ${new Date(data.submittedAt).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })} at ${new Date(data.submittedAt).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}</p>
+        </div>
+
+        ${contactBlock}
+      </div>
+      <div style="background:#f9fafb;padding:20px 28px;border-top:1px solid #e5e7eb;">
+        <p style="margin:0;font-size:13px;color:#6b7280;text-align:center;">
+          Sent by ${data.restaurantName}
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const textContactParts: string[] = [];
+  if (data.restaurantEmail) textContactParts.push(data.restaurantEmail);
+  if (data.restaurantPhone) textContactParts.push(data.restaurantPhone);
+
+  const textContent = [
+    `Thank You for Your Submission!`,
+    '',
+    `We have received your ${data.formTitle.toLowerCase()} and our team will review it shortly. We'll get back to you as soon as possible.`,
+    '',
+    'Your Submission Details:',
+    '================================================================',
+    ...Object.entries(data.submissionData).map(([key, value]) => {
+      const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase()).trim();
+      return `${formattedKey}: ${value || 'Not provided'}`;
+    }),
+    '================================================================',
+    '',
+    `Submitted on ${new Date(data.submittedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date(data.submittedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`,
+    '',
+    textContactParts.length > 0 ? `Contact us: ${textContactParts.join(' | ')}` : '',
+    '',
+    `Sent by ${data.restaurantName}`,
+  ].filter((l) => l !== undefined).join('\n');
+
+  await transporter.sendMail({
+    from: DEFAULT_FROM,
+    to,
+    subject: `We've Received Your ${data.formTitle}${data.restaurantName ? ` - ${data.restaurantName}` : ''}`,
+    text: textContent,
+    html: htmlContent,
+  });
+
+  console.log(`Form submission confirmation email sent to ${to}`);
+}
+
+/**
  * Sends a gift card creation email to the recipient.
  */
 export async function sendGiftCardEmail(

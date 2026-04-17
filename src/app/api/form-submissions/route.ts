@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGraphqlRequest } from '@/lib/server/api-auth';
-import { sendFormSubmissionEmail } from '@/lib/server/email';
+import { sendFormSubmissionEmail, sendFormSubmissionConfirmationEmail } from '@/lib/server/email';
 
 /**
  * GraphQL query to get form details
@@ -30,6 +30,8 @@ const GET_RESTAURANT_INFO = `
     restaurants_by_pk(restaurant_id: $restaurant_id) {
       poc_email
       name
+      email
+      phone_number
     }
   }
 `;
@@ -176,13 +178,15 @@ export async function POST(request: NextRequest) {
     // Fetch restaurant POC email and name
     let pocEmail = email; // Default to submitter's email as fallback
     let restaurantName = ''; // Restaurant name for email
+    let restaurantEmail: string | null = null;
+    let restaurantPhone: string | null = null;
     let formTitle = form_title || 'Form Submission';
 
     try {
       console.log('[Form Submissions API] Fetching restaurant info for:', restaurant_id);
       const restaurantResult = await adminGraphqlRequest(GET_RESTAURANT_INFO, { restaurant_id });
       const restaurant = (restaurantResult as any).restaurants_by_pk;
-      
+
       if (restaurant) {
         if (restaurant.poc_email) {
           pocEmail = restaurant.poc_email;
@@ -190,11 +194,14 @@ export async function POST(request: NextRequest) {
         } else {
           console.log('[Form Submissions API] No POC email found, using submitter email:', pocEmail);
         }
-        
+
         if (restaurant.name) {
           restaurantName = restaurant.name;
           console.log('[Form Submissions API] Restaurant name:', restaurantName);
         }
+
+        restaurantEmail = restaurant.email || null;
+        restaurantPhone = restaurant.phone_number || null;
       }
     } catch (restaurantError) {
       console.error('Error fetching restaurant info:', restaurantError);
@@ -246,36 +253,49 @@ export async function POST(request: NextRequest) {
     const submission = (result as any).insert_form_submissions_one;
     console.log('[Form Submissions API] Submission created:', submission);
 
-    // Send email notification to POC email from the submission record
-    try {
-      const emailRecipient = submission.poc_email;
-      console.log('[Form Submissions API] Sending email notification to:', emailRecipient);
-      
-      await sendFormSubmissionEmail(emailRecipient, {
+    // Send POC notification to restaurant owner email and poc_email (deduped)
+    const pocRecipients = new Set<string>();
+    if (restaurantEmail) pocRecipients.add(restaurantEmail.trim().toLowerCase());
+    if (pocEmail && pocEmail !== email) pocRecipients.add(pocEmail.trim().toLowerCase());
+
+    const emailData = {
+      formTitle,
+      restaurantName,
+      submissionData: data,
+      submittedAt: submission.created_at,
+    };
+
+    for (const recipient of pocRecipients) {
+      sendFormSubmissionEmail(recipient, emailData)
+        .then(() => {
+          console.log(`[Form Submissions API] POC email sent to ${recipient}`);
+        })
+        .catch((err) => {
+          console.error(`[Form Submissions API] Failed to send POC email to ${recipient}:`, err);
+        });
+    }
+
+    // Update mail_sent status
+    if (pocRecipients.size > 0) {
+      adminGraphqlRequest(UPDATE_MAIL_SENT_STATUS, {
+        form_submission_id: submission.form_submission_id,
+      }).catch((err) => {
+        console.error('Failed to update mail_sent status:', err);
+      });
+    }
+
+    // Send confirmation email to customer (fire-and-forget)
+    if (email) {
+      sendFormSubmissionConfirmationEmail(email, {
         formTitle,
-        restaurantName,
+        restaurantName: restaurantName || 'Restaurant',
+        restaurantEmail,
+        restaurantPhone,
         submissionData: data,
         submittedAt: submission.created_at,
+      }).catch((err) => {
+        console.error('[Form Submissions API] Failed to send customer confirmation email:', err);
       });
-      
-      console.log('[Form Submissions API] Email notification sent successfully');
-      
-      // Update mail_sent status to true
-      try {
-        await adminGraphqlRequest(UPDATE_MAIL_SENT_STATUS, {
-          form_submission_id: submission.form_submission_id
-        });
-        console.log('[Form Submissions API] Mail sent status updated to true');
-      } catch (updateError) {
-        console.error('Failed to update mail_sent status:', updateError);
-        // Don't fail the request if status update fails
-      }
-      
-    } catch (emailError) {
-      // Log email error but don't fail the request
-      console.error('Failed to send form submission email:', emailError);
-      // Email failure shouldn't prevent the submission from being recorded
-      // mail_sent remains false in database
     }
 
     return NextResponse.json({

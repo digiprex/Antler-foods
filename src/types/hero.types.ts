@@ -35,6 +35,13 @@ export interface HeroImage {
   position?: 'left' | 'right' | 'center' | 'background';
 }
 
+export interface HeroSliderConfig {
+  images: HeroImage[];
+  autoPlay?: boolean;
+  interval?: number; // milliseconds, default 5000
+  showDots?: boolean; // show navigation dots, default true
+}
+
 export interface MinimalHeroImages {
   primary?: HeroImage;
   secondaryTop?: HeroImage;
@@ -77,6 +84,7 @@ export interface HeroConfig extends SectionStyleConfig {
   imageObjectFit?: HeroImageObjectFit;
   minimalImages?: MinimalHeroImages;
   sideBySideImages?: SideBySideHeroImages;
+  slider?: HeroSliderConfig;
   
   // Features/Benefits
   features?: HeroFeature[];
@@ -93,7 +101,8 @@ export interface HeroConfig extends SectionStyleConfig {
     | 'offset'               // Image top, text below centered
     | 'full-height'          // Full viewport height
     | 'with-features'        // Hero with feature cards below
-    | 'image-collage';       // Text with stacked/overlapping images
+    | 'image-collage'        // Text with stacked/overlapping images
+    | 'slider';              // Full-width image slider with content overlay
   
   // Styling
   bgColor?: string;

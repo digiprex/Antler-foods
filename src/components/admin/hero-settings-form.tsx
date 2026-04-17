@@ -51,7 +51,8 @@ type MediaFieldType =
   | 'minimal_image_secondary_bottom'
   | 'side_by_side_image_left'
   | 'side_by_side_image_center'
-  | 'side_by_side_image_right';
+  | 'side_by_side_image_right'
+  | 'slider_image';
 type PreviewViewport = 'desktop' | 'mobile';
 
 interface HeroSettingsFormProps {
@@ -1386,6 +1387,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
   // Gallery modal state
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [currentMediaField, setCurrentMediaField] = useState<MediaFieldType | null>(null);
+  const [currentSliderImageIndex, setCurrentSliderImageIndex] = useState<number | null>(null);
 
   const sectionStyleDefaults = useMemo(
     () => getSectionStyleDefaults(globalStyles),
@@ -1625,8 +1627,70 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
   const getEffectiveSideBySideImage = (slot: SideBySideImageSlotKey) =>
     formConfig?.sideBySideImages?.[slot] || formConfig?.image;
 
-  const openGalleryModal = (fieldType: MediaFieldType) => {
+  const addSliderImage = () => {
+    if (!formConfig) return;
+
+    setFormConfig((prev) => {
+      if (!prev) return prev;
+
+      const currentSlider = prev.slider || { images: [], autoPlay: true, interval: 5000, showDots: true };
+      const newImage: HeroImage = {
+        url: '',
+        alt: `Slide ${currentSlider.images.length + 1}`,
+      };
+
+      return {
+        ...prev,
+        slider: {
+          ...currentSlider,
+          images: [...currentSlider.images, newImage],
+        },
+      };
+    });
+  };
+
+  const updateSliderImage = (index: number, imageValue: HeroImage) => {
+    if (!formConfig) return;
+
+    setFormConfig((prev) => {
+      if (!prev || !prev.slider) return prev;
+
+      const updatedImages = [...prev.slider.images];
+      updatedImages[index] = imageValue;
+
+      return {
+        ...prev,
+        slider: {
+          ...prev.slider,
+          images: updatedImages,
+        },
+      };
+    });
+  };
+
+  const removeSliderImage = (index: number) => {
+    if (!formConfig) return;
+
+    setFormConfig((prev) => {
+      if (!prev || !prev.slider) return prev;
+
+      const updatedImages = prev.slider.images.filter((_, i) => i !== index);
+
+      return {
+        ...prev,
+        slider: {
+          ...prev.slider,
+          images: updatedImages,
+        },
+      };
+    });
+  };
+
+  const openGalleryModal = (fieldType: MediaFieldType, sliderIndex?: number) => {
     setCurrentMediaField(fieldType);
+    if (fieldType === 'slider_image' && sliderIndex !== undefined) {
+      setCurrentSliderImageIndex(sliderIndex);
+    }
     setShowGalleryModal(true);
   };
 
@@ -1670,10 +1734,21 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
         });
         break;
       }
+      case 'slider_image': {
+        if (currentSliderImageIndex !== null && formConfig.slider) {
+          const currentImage = formConfig.slider.images[currentSliderImageIndex];
+          updateSliderImage(currentSliderImageIndex, {
+            url: imageUrl,
+            alt: currentImage?.alt || `Slide ${currentSliderImageIndex + 1}`,
+          });
+        }
+        break;
+      }
     }
 
     setShowGalleryModal(false);
     setCurrentMediaField(null);
+    setCurrentSliderImageIndex(null);
   };
 
 
@@ -1715,6 +1790,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
   const isDefaultLayout = (formConfig.layout || 'default') === 'default';
   const isMinimalLayout = (formConfig.layout || 'default') === 'minimal';
   const isSideBySideLayout = (formConfig.layout || 'default') === 'side-by-side';
+  const isSliderLayout = (formConfig.layout || 'default') === 'slider';
 
   return (
     <>
@@ -2452,6 +2528,208 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
                   </div>
                 )}
 
+                {/* Slider Layout Configuration */}
+                {isSliderLayout && (
+                  <div className="space-y-6">
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+                      <div className="flex items-start gap-3">
+                        <svg className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                        </svg>
+                        <div>
+                          <h3 className="text-sm font-semibold text-blue-900">Slider Layout</h3>
+                          <p className="mt-1 text-sm text-blue-700">
+                            Add multiple images that will auto-rotate. Requires at least 2 images for the slider to work.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Slider Configuration Controls */}
+                    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                      <h3 className="mb-4 text-sm font-semibold text-gray-900">Slider Settings</h3>
+
+                      <div className="space-y-4">
+                        {/* Auto-play Toggle */}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Auto-play</label>
+                            <p className="text-xs text-gray-500">Automatically rotate slides</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={formConfig.slider?.autoPlay !== false}
+                            onChange={(e) => {
+                              const currentSlider = formConfig.slider || { images: [], autoPlay: true, interval: 5000, showDots: true };
+                              updateConfig({
+                                slider: {
+                                  ...currentSlider,
+                                  autoPlay: e.target.checked,
+                                },
+                              });
+                            }}
+                            className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+
+                        {/* Interval Setting */}
+                        <div>
+                          <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                            Slide Interval (seconds)
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="30"
+                            value={(formConfig.slider?.interval || 5000) / 1000}
+                            onChange={(e) => {
+                              const currentSlider = formConfig.slider || { images: [], autoPlay: true, interval: 5000, showDots: true };
+                              updateConfig({
+                                slider: {
+                                  ...currentSlider,
+                                  interval: Math.max(1000, parseInt(e.target.value) * 1000 || 5000),
+                                },
+                              });
+                            }}
+                            className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                          />
+                        </div>
+
+                        {/* Show Dots Toggle */}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Show Navigation Dots</label>
+                            <p className="text-xs text-gray-500">Display dots to navigate between slides</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={formConfig.slider?.showDots !== false}
+                            onChange={(e) => {
+                              const currentSlider = formConfig.slider || { images: [], autoPlay: true, interval: 5000, showDots: true };
+                              updateConfig({
+                                slider: {
+                                  ...currentSlider,
+                                  showDots: e.target.checked,
+                                },
+                              });
+                            }}
+                            className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Slider Images */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-gray-900">Slider Images</h3>
+                        <button
+                          type="button"
+                          onClick={addSliderImage}
+                          disabled={!restaurantId}
+                          className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                          </svg>
+                          Add Slide
+                        </button>
+                      </div>
+
+                      {formConfig.slider?.images && formConfig.slider.images.length > 0 ? (
+                        <div className="space-y-4">
+                          {formConfig.slider.images.map((image, index) => (
+                            <div key={index} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                              <div className="mb-3 flex items-start justify-between gap-3">
+                                <div>
+                                  <h3 className="text-sm font-semibold text-gray-900">Slide {index + 1}</h3>
+                                  <p className="mt-1 text-xs text-gray-500">Image for slider position {index + 1}</p>
+                                </div>
+                                <span className="inline-flex rounded-full bg-purple-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-purple-700">
+                                  Slide {index + 1}
+                                </span>
+                              </div>
+
+                              {image.url ? (
+                                <div
+                                  className={`overflow-hidden border border-gray-200 ${
+                                    heroImagePreviewFrameStyle ? '' : 'rounded-lg'
+                                  }`}
+                                  style={heroImagePreviewFrameStyle}
+                                >
+                                  <img
+                                    src={image.url}
+                                    alt={image.alt || `Slide ${index + 1}`}
+                                    className="h-40 w-full object-cover"
+                                    style={heroImagePreviewStyle}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500">
+                                  No image selected
+                                </div>
+                              )}
+
+                              <div className="mt-3 flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => openGalleryModal('slider_image', index)}
+                                  disabled={!restaurantId}
+                                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                                  </svg>
+                                  {image.url ? 'Change Image' : 'Choose Image'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeSliderImage(index)}
+                                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                                >
+                                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                  </svg>
+                                  Remove
+                                </button>
+                              </div>
+
+                              {image.url ? (
+                                <div className="mt-3">
+                                  <label className="mb-1.5 flex items-baseline justify-between text-sm font-medium text-gray-700">
+                                    <span>Alt Text</span>
+                                    <span className="text-xs font-normal text-gray-500">Per-image accessibility label</span>
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={image.alt || ''}
+                                    onChange={(e) =>
+                                      updateSliderImage(index, {
+                                        url: image.url,
+                                        alt: e.target.value || `Slide ${index + 1}`,
+                                      })
+                                    }
+                                    className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20"
+                                    placeholder={`Slide ${index + 1} description`}
+                                  />
+                                </div>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+                          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                          </svg>
+                          <p className="mt-2 text-sm text-gray-600">No slider images yet</p>
+                          <p className="mt-1 text-xs text-gray-500">Click "Add Slide" to add images to your slider</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {mediaFields.showBackgroundVideo && (
                   <div>
                     {!formConfig.videoUrl && (
@@ -2833,6 +3111,7 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
         onClose={() => {
           setShowGalleryModal(false);
           setCurrentMediaField(null);
+          setCurrentSliderImageIndex(null);
         }}
         onSelect={handleSelectImage}
         restaurantId={restaurantId}
@@ -2853,6 +3132,8 @@ export default function HeroSettingsForm({ pageId, templateId, isNewSection }: H
             ? 'Select Center Image'
             : currentMediaField === 'side_by_side_image_right'
             ? 'Select Right Image'
+            : currentMediaField === 'slider_image'
+            ? `Select Slider Image ${currentSliderImageIndex !== null ? currentSliderImageIndex + 1 : ''}`
             : 'Select Shared Background Image'
         }
         description={

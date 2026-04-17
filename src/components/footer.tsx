@@ -150,8 +150,18 @@ export default function Footer(props: FooterProps) {
         setNewsletterStatus('success');
         setNewsletterMessage(data.message || 'Successfully subscribed to newsletter!');
         setNewsletterEmail('');
-        
+
         // Clear success message after 5 seconds
+        setTimeout(() => {
+          setNewsletterStatus('idle');
+          setNewsletterMessage('');
+        }, 5000);
+      } else if (response.status === 409) {
+        // Already subscribed — treat as success
+        setNewsletterStatus('success');
+        setNewsletterMessage('You are already subscribed!');
+        setNewsletterEmail('');
+
         setTimeout(() => {
           setNewsletterStatus('idle');
           setNewsletterMessage('');
@@ -159,7 +169,7 @@ export default function Footer(props: FooterProps) {
       } else {
         setNewsletterStatus('error');
         setNewsletterMessage(data.error || 'Failed to subscribe. Please try again.');
-        
+
         // Clear error message after 5 seconds
         setTimeout(() => {
           setNewsletterStatus('idle');
@@ -409,12 +419,14 @@ export default function Footer(props: FooterProps) {
                 type="submit"
                 className={styles.newsletterButtonCentered}
                 disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
-                style={{
-                  backgroundColor: newsletterStatus === 'success' ? '#10b981' : undefined,
-                  cursor: newsletterStatus === 'success' ? 'default' : undefined,
-                }}
+                style={newsletterStatus === 'success' ? {
+                  backgroundColor: '#16a34a',
+                  borderColor: '#16a34a',
+                  color: '#ffffff',
+                  cursor: 'default',
+                } : undefined}
               >
-                {newsletterStatus === 'loading' ? 'Subscribing...' : newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
+                {newsletterStatus === 'loading' ? 'Subscribing...' : newsletterStatus === 'success' ? (newsletterMessage === 'You are already subscribed!' ? 'Already Subscribed!' : 'Subscribed Successfully!') : 'Subscribe'}
               </button>
             </form>
           </div>
@@ -634,12 +646,14 @@ export default function Footer(props: FooterProps) {
                 type="submit"
                 className={styles.newsletterButton}
                 disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
-                style={{
-                  backgroundColor: newsletterStatus === 'success' ? '#10b981' : undefined,
-                  cursor: newsletterStatus === 'success' ? 'default' : undefined,
-                }}
+                style={newsletterStatus === 'success' ? {
+                  backgroundColor: '#16a34a',
+                  borderColor: '#16a34a',
+                  color: '#ffffff',
+                  cursor: 'default',
+                } : undefined}
               >
-                {newsletterStatus === 'loading' ? 'Subscribing...' : newsletterStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
+                {newsletterStatus === 'loading' ? 'Subscribing...' : newsletterStatus === 'success' ? (newsletterMessage === 'You are already subscribed!' ? 'Already Subscribed!' : 'Subscribed Successfully!') : 'Subscribe'}
               </button>
             </form>
           </div>

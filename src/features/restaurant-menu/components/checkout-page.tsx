@@ -2942,36 +2942,38 @@ export default function RestaurantMenuCheckoutPage({
                       />
                     </div>
                   </div>
-                  <div className="space-y-2.5 pt-1">
-                    <label className="flex items-center gap-3 text-sm text-stone-600">
-                      <input
-                        type="checkbox"
-                        checked={contactFields.emailOptIn}
-                        onChange={(e) =>
-                          setContactFields((prev) => ({
-                            ...prev,
-                            emailOptIn: e.target.checked,
-                          }))
-                        }
-                        className="h-4 w-4 rounded border-stone-300 accent-slate-900"
-                      />
-                      Get promotional emails from {data.restaurant.name}
-                    </label>
-                    <label className="flex items-center gap-3 text-sm text-stone-600">
-                      <input
-                        type="checkbox"
-                        checked={contactFields.smsOptIn}
-                        onChange={(e) =>
-                          setContactFields((prev) => ({
-                            ...prev,
-                            smsOptIn: e.target.checked,
-                          }))
-                        }
-                        className="h-4 w-4 rounded border-stone-300 accent-slate-900"
-                      />
-                      Get promotional texts from {data.restaurant.name}
-                    </label>
-                  </div>
+                  {!hasCustomerSession && (
+                    <div className="space-y-2.5 pt-1">
+                      <label className="flex items-center gap-3 text-sm text-stone-600">
+                        <input
+                          type="checkbox"
+                          checked={contactFields.emailOptIn}
+                          onChange={(e) =>
+                            setContactFields((prev) => ({
+                              ...prev,
+                              emailOptIn: e.target.checked,
+                            }))
+                          }
+                          className="h-4 w-4 rounded border-stone-300 accent-slate-900"
+                        />
+                        Get promotional emails from {data.restaurant.name}
+                      </label>
+                      <label className="flex items-center gap-3 text-sm text-stone-600">
+                        <input
+                          type="checkbox"
+                          checked={contactFields.smsOptIn}
+                          onChange={(e) =>
+                            setContactFields((prev) => ({
+                              ...prev,
+                              smsOptIn: e.target.checked,
+                            }))
+                          }
+                          className="h-4 w-4 rounded border-stone-300 accent-slate-900"
+                        />
+                        Get promotional texts from {data.restaurant.name}
+                      </label>
+                    </div>
+                  )}
                 </div>
               </div>
             </section>

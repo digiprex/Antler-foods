@@ -6,6 +6,7 @@ import {
   type UberWebhookPayload,
 } from '@/lib/server/delivery/uber-direct';
 import { sendOrderDeliveryTrackingEmail, sendOrderDeliveredReviewEmail, sendOrderDeliveryStatusEmail } from '@/lib/server/email';
+import { isTwilioConfigured, sendSms } from '@/lib/server/twilio';
 
 const UPDATE_DELIVERY_STATUS = `
   mutation UpdateDeliveryStatus(
@@ -71,6 +72,7 @@ const GET_ORDER_BY_DELIVERY_ID = `
       order_id
       order_number
       contact_email
+      contact_phone
       contact_first_name
       contact_last_name
       restaurant_id
@@ -425,6 +427,18 @@ export async function POST(request: NextRequest) {
           });
           emailSentType = 'delivered';
           console.log('[Uber Webhook] Delivered review email sent successfully');
+
+          // Send delivered SMS with feedback link
+          const contactPhone = normalizeText(order.contact_phone);
+          if (contactPhone && isTwilioConfigured()) {
+            const smsGreeting = customerName ? `Hi ${customerName}, your` : 'Your';
+            const smsBody = feedbackUrl
+              ? `${smsGreeting} order #${orderNumber} from ${restaurantName} has been delivered! We'd love your feedback: ${feedbackUrl}`
+              : `${smsGreeting} order #${orderNumber} from ${restaurantName} has been delivered! Thank you for ordering.`;
+            sendSms(contactPhone, smsBody).catch((smsErr) =>
+              console.error('[Uber Webhook] Delivered SMS failed:', smsErr),
+            );
+          }
         } else if (mappedStatus.deliveryStatus === 'cancelled') {
           if (order.delivery_dispatch_status === 'cancelled') {
             console.log('[Uber Webhook] Skipping duplicate cancelled email for order:', orderNumber);

@@ -391,6 +391,44 @@
           }
         ]
       }
+    },
+    {
+      "id": "slider",
+      "name": "Slider",
+      "description": "Full-width image slider with auto-play and content overlay",
+      "defaults": {
+        "minHeight": "680px",
+        "textColor": "#ffffff",
+        "overlayOpacity": 0.4,
+        "textAlign": "center",
+        "mobileTextAlign": "center",
+        "useWhiteTextWithBackground": true
+      },
+      "imageHandling": "standard",
+      "mediaCapabilities": {
+        "showHeroImage": false,
+        "showBackgroundVideo": false,
+        "showBackgroundImage": false
+      },
+      "features": [
+        "Multiple images with smooth transitions",
+        "Auto-play with configurable interval",
+        "Optional dot navigation controls",
+        "Content overlay with text",
+        "Fully responsive on all devices"
+      ],
+      "preview": {
+        "type": "flex",
+        "direction": "column",
+        "justify": "center",
+        "align": "center",
+        "fullHeight": true,
+        "elements": [
+          { "type": "slider-background", "width": "full", "height": "full" },
+          { "type": "content", "width": "8", "height": "6", "align": "center", "overlay": true },
+          { "type": "slider-dots", "width": "3", "height": "0.5" }
+        ]
+      }
     }
   ]
 }

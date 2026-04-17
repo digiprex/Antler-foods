@@ -1272,3 +1272,153 @@
     @include mobile-layout;
   }
 }
+
+// Slider Layout (new standalone layout)
+.sliderLayout {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.sliderOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--hero-overlay-color, #000000);
+  opacity: var(--hero-overlay-opacity, 0.3);
+  z-index: 2;
+}
+
+.sliderContentOverlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: var(--hero-layout-min-height, inherit);
+}
+
+// Slider styles
+.sliderContainer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sliderTrack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.sliderImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  object-fit: var(--hero-image-object-fit, cover);
+  border-radius: var(--hero-image-border-radius, 0);
+  border: none;
+  background: transparent;
+  transition: opacity 0.6s ease-in-out;
+}
+
+.sliderImageActive {
+  z-index: 1;
+}
+
+.sliderDots {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+.sliderDot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.8);
+    transform: scale(1.2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 2px;
+  }
+}
+
+.sliderDotActive {
+  background: #ffffff;
+  width: 24px;
+  border-radius: 999px;
+}
+
+// Slider specific overrides for different layouts
+.splitImage .sliderContainer,
+.offsetImage .sliderContainer {
+  background: transparent;
+  box-shadow: none;
+}
+
+.splitImage .sliderImage {
+  height: 100%;
+  min-height: 100%;
+  background: transparent;
+  box-shadow: none;
+}
+
+.offsetImage .sliderImage {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+@media (max-width: 968px) {
+  .sliderImage {
+    min-height: clamp(280px, 68vw, 420px);
+  }
+
+  .sliderDots {
+    bottom: 1rem;
+  }
+
+  .splitImage .sliderImage,
+  .mainContent .sliderImage {
+    min-height: clamp(280px, 68vw, 420px);
+  }
+
+  .offsetImage .sliderImage {
+    height: 100%;
+    min-height: 100%;
+  }
+}

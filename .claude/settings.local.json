@@ -79,7 +79,9 @@
       "Bash(mv menu-csv-import-modal-new.tsx menu-csv-import-modal.tsx)",
       "Bash(del menu-csv-import-modal.tsx)",
       "Bash(ren menu-csv-import-modal-new.tsx menu-csv-import-modal.tsx)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "WebFetch(domain:www.gotabless.com)",
+      "WebFetch(domain:gotabless.com)"
     ]
   }
 }

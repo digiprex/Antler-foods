@@ -4,14 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useSignInEmailPassword } from '@nhost/react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import {
-  loginSchema,
-  phoneLoginSchema,
-  type LoginFormValues,
-  type PhoneLoginFormValues,
-} from '@/lib/validation/auth';
 import { DEFAULT_AUTH_REDIRECT, getRoleDashboardRoute } from '@/lib/auth/routes';
 import { getUserRole } from '@/lib/auth/get-user-role';
 import { isNhostConfigured, nhost } from '@/lib/nhost';
@@ -26,40 +18,20 @@ import {
 import { MenuAuthInput } from '@/features/restaurant-menu/components/menu-auth-input';
 import type { MenuCustomerProfile } from '@/features/restaurant-menu/lib/customer-profile';
 
-const PHONE_COUNTRY_CODES = [
-  { code: '+1', label: 'US/CA +1' },
-  { code: '+44', label: 'UK +44' },
-  { code: '+91', label: 'IN +91' },
-  { code: '+61', label: 'AU +61' },
-  { code: '+33', label: 'FR +33' },
-  { code: '+49', label: 'DE +49' },
-  { code: '+81', label: 'JP +81' },
-  { code: '+86', label: 'CN +86' },
-  { code: '+52', label: 'MX +52' },
-  { code: '+55', label: 'BR +55' },
-  { code: '+34', label: 'ES +34' },
-  { code: '+39', label: 'IT +39' },
-  { code: '+82', label: 'KR +82' },
-  { code: '+31', label: 'NL +31' },
-  { code: '+46', label: 'SE +46' },
-  { code: '+47', label: 'NO +47' },
-  { code: '+41', label: 'CH +41' },
-  { code: '+65', label: 'SG +65' },
-  { code: '+971', label: 'AE +971' },
-  { code: '+966', label: 'SA +966' },
-  { code: '+234', label: 'NG +234' },
-  { code: '+27', label: 'ZA +27' },
-  { code: '+254', label: 'KE +254' },
-  { code: '+63', label: 'PH +63' },
-  { code: '+60', label: 'MY +60' },
-  { code: '+66', label: 'TH +66' },
-  { code: '+62', label: 'ID +62' },
-  { code: '+64', label: 'NZ +64' },
-  { code: '+353', label: 'IE +353' },
-  { code: '+48', label: 'PL +48' },
-];
+const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+const PHONE_REGEX = /^\+?[0-9()\-\s]{7,20}$/;
 
-type LoginMode = 'email' | 'phone';
+function detectInputType(value: string): 'email' | 'phone' | 'unknown' {
+  const trimmed = value.trim();
+  if (!trimmed) return 'unknown';
+  if (EMAIL_REGEX.test(trimmed)) return 'email';
+  if (PHONE_REGEX.test(trimmed)) return 'phone';
+  // If it contains @ it's likely an email being typed
+  if (trimmed.includes('@')) return 'email';
+  // If it starts with + or is mostly digits, treat as phone
+  if (/^\+/.test(trimmed) || /^[0-9()\-\s]{3,}$/.test(trimmed)) return 'phone';
+  return 'unknown';
+}
 
 interface MenuLoginFormProps {
   restaurantId?: string | null;
@@ -80,30 +52,41 @@ export function MenuLoginForm({
   const nextPath = resolveCustomerNextPath(searchParams.get('next'));
   const resolvedRestaurantId = resolveCustomerRestaurantId(searchParams, restaurantId);
   const [formError, setFormError] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loginMode, setLoginMode] = useState<LoginMode>('email');
-  const [phoneCountryCode, setPhoneCountryCode] = useState('+1');
+  const [identity, setIdentity] = useState('');
+  const [password, setPassword] = useState('');
   const { signInEmailPassword } = useSignInEmailPassword();
 
-  const emailForm = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
-  });
+  const detectedType = detectInputType(identity);
 
-  const phoneForm = useForm<PhoneLoginFormValues>({
-    resolver: zodResolver(phoneLoginSchema),
-    defaultValues: { phone: '', password: '' },
-  });
-
-  const switchMode = (mode: LoginMode) => {
-    setLoginMode(mode);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setFormError(null);
-  };
+    setFieldError(null);
 
-  const handleEmailLogin = async ({ email, password }: LoginFormValues) => {
-    setFormError(null);
+    const trimmedIdentity = identity.trim();
+    const trimmedPassword = password.trim();
 
-    if (!resolvedRestaurantId) {
+    if (!trimmedIdentity) {
+      setFieldError('Email or phone number is required.');
+      return;
+    }
+
+    if (!trimmedPassword) {
+      setFormError('Password is required.');
+      return;
+    }
+
+    const type = detectInputType(trimmedIdentity);
+
+    if (type === 'unknown') {
+      setFieldError('Enter a valid email address or phone number.');
+      return;
+    }
+
+    // Nhost admin/owner login (email only, no restaurantId)
+    if (!resolvedRestaurantId && type === 'email') {
       if (!isNhostConfigured) {
         setFormError('Restaurant context is missing. Return to the menu and try again.');
         return;
@@ -111,7 +94,7 @@ export function MenuLoginForm({
 
       setIsSubmitting(true);
       try {
-        const result = await signInEmailPassword(email, password);
+        const result = await signInEmailPassword(trimmedIdentity, trimmedPassword);
 
         if (result.error) {
           setFormError(result.error.message ?? 'Unable to sign in. Please try again.');
@@ -132,46 +115,6 @@ export function MenuLoginForm({
       return;
     }
 
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch('/api/menu-auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({
-          restaurantId: resolvedRestaurantId,
-          email,
-          password,
-        }),
-      });
-
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string; customer?: MenuCustomerProfile }
-        | null;
-
-      if (!response.ok || !payload?.customer) {
-        setFormError(payload?.error ?? 'Unable to sign in. Please try again.');
-        return;
-      }
-
-      if (onAuthenticatedUser) {
-        onAuthenticatedUser(payload.customer);
-        return;
-      }
-
-      const destination =
-        nextPath === pathname ? CUSTOMER_DEFAULT_AUTH_REDIRECT : nextPath;
-      router.replace(destination);
-      router.refresh();
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handlePhoneLogin = async ({ phone, password }: PhoneLoginFormValues) => {
-    setFormError(null);
-
     if (!resolvedRestaurantId) {
       setFormError('Restaurant context is missing. Return to the menu and try again.');
       return;
@@ -180,16 +123,22 @@ export function MenuLoginForm({
     setIsSubmitting(true);
 
     try {
-      const fullPhone = `${phoneCountryCode}${phone.trim()}`;
+      const body: Record<string, string> = {
+        restaurantId: resolvedRestaurantId,
+        password: trimmedPassword,
+      };
+
+      if (type === 'email') {
+        body.email = trimmedIdentity;
+      } else {
+        body.phone = trimmedIdentity;
+      }
+
       const response = await fetch('/api/menu-auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({
-          restaurantId: resolvedRestaurantId,
-          phone: fullPhone,
-          password,
-        }),
+        body: JSON.stringify(body),
       });
 
       const payload = (await response.json().catch(() => null)) as
@@ -228,156 +177,73 @@ export function MenuLoginForm({
 
   return (
     <div className="space-y-6">
-      <div className="flex rounded-2xl border border-slate-200 bg-slate-50/80 p-1 shadow-sm">
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="login-identity" className="block text-sm font-semibold tracking-[-0.01em] text-slate-700">
+              Email or phone number
+            </label>
+            <input
+              id="login-identity"
+              type="text"
+              value={identity}
+              onChange={(e) => { setIdentity(e.target.value); setFieldError(null); setFormError(null); }}
+              placeholder="Enter your email or phone number"
+              autoComplete="username"
+              className={`menu-auth-input w-full ${fieldError ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' : ''}`}
+            />
+            {fieldError ? (
+              <p className="text-xs font-semibold text-red-600">{fieldError}</p>
+            ) : identity.trim() && detectedType === 'phone' ? (
+              <p className="text-xs text-slate-400">
+                Signing in with phone number — include your country code (e.g. +1, +44, +91)
+              </p>
+            ) : identity.trim() && detectedType === 'email' ? (
+              <p className="text-xs text-slate-400">
+                Signing in with email
+              </p>
+            ) : null}
+          </div>
+          <MenuAuthInput
+            type="password"
+            label="Password"
+            placeholder="Enter your password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); setFormError(null); }}
+          />
+        </div>
+
+        <div className="flex justify-end">
+          {onRequestForgotPassword ? (
+            <button
+              type="button"
+              onClick={onRequestForgotPassword}
+              className="menu-auth-link text-sm"
+            >
+              Forgot password?
+            </button>
+          ) : (
+            <Link href={forgotPasswordHref} className="menu-auth-link text-sm">
+              Forgot password?
+            </Link>
+          )}
+        </div>
+
+        {formError ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-900 shadow-sm">
+            {formError}
+          </div>
+        ) : null}
+
         <button
-          type="button"
-          onClick={() => switchMode('email')}
-          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
-            loginMode === 'email'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
+          type="submit"
+          className="menu-auth-primary-btn w-full"
+          disabled={isSubmitting}
         >
-          Email
+          {isSubmitting ? 'Signing in...' : 'Sign In'}
         </button>
-        <button
-          type="button"
-          onClick={() => switchMode('phone')}
-          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
-            loginMode === 'phone'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Phone
-        </button>
-      </div>
-
-      {loginMode === 'email' ? (
-        <form onSubmit={emailForm.handleSubmit(handleEmailLogin)} className="space-y-5" noValidate>
-          <div className="space-y-4">
-            <MenuAuthInput
-              type="email"
-              label="Email address"
-              placeholder="Enter your email"
-              autoComplete="email"
-              error={emailForm.formState.errors.email?.message}
-              {...emailForm.register('email')}
-            />
-            <MenuAuthInput
-              type="password"
-              label="Password"
-              placeholder="Enter your password"
-              autoComplete="current-password"
-              error={emailForm.formState.errors.password?.message}
-              {...emailForm.register('password')}
-            />
-          </div>
-
-          <div className="flex justify-end">
-            {onRequestForgotPassword ? (
-              <button
-                type="button"
-                onClick={onRequestForgotPassword}
-                className="menu-auth-link text-sm"
-              >
-                Forgot password?
-              </button>
-            ) : (
-              <Link href={forgotPasswordHref} className="menu-auth-link text-sm">
-                Forgot password?
-              </Link>
-            )}
-          </div>
-
-          {formError ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-900 shadow-sm">
-              {formError}
-            </div>
-          ) : null}
-
-          <button
-            type="submit"
-            className="menu-auth-primary-btn w-full"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-      ) : (
-        <form onSubmit={phoneForm.handleSubmit(handlePhoneLogin)} className="space-y-5" noValidate>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold tracking-[-0.01em] text-slate-700">
-                Phone number
-              </label>
-              <div className="flex gap-2">
-                <select
-                  value={phoneCountryCode}
-                  onChange={(e) => setPhoneCountryCode(e.target.value)}
-                  className="menu-auth-input w-[120px] shrink-0"
-                >
-                  {PHONE_COUNTRY_CODES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="tel"
-                  placeholder="(555) 555-5555"
-                  autoComplete="tel-national"
-                  className={`menu-auth-input flex-1 ${phoneForm.formState.errors.phone ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' : ''}`}
-                  {...phoneForm.register('phone')}
-                />
-              </div>
-              {phoneForm.formState.errors.phone?.message ? (
-                <p className="text-xs font-semibold text-red-600">
-                  {phoneForm.formState.errors.phone.message}
-                </p>
-              ) : null}
-            </div>
-            <MenuAuthInput
-              type="password"
-              label="Password"
-              placeholder="Enter your password"
-              autoComplete="current-password"
-              error={phoneForm.formState.errors.password?.message}
-              {...phoneForm.register('password')}
-            />
-          </div>
-
-          <div className="flex justify-end">
-            {onRequestForgotPassword ? (
-              <button
-                type="button"
-                onClick={onRequestForgotPassword}
-                className="menu-auth-link text-sm"
-              >
-                Forgot password?
-              </button>
-            ) : (
-              <Link href={forgotPasswordHref} className="menu-auth-link text-sm">
-                Forgot password?
-              </Link>
-            )}
-          </div>
-
-          {formError ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-900 shadow-sm">
-              {formError}
-            </div>
-          ) : null}
-
-          <button
-            type="submit"
-            className="menu-auth-primary-btn w-full"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-      )}
+      </form>
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-center text-sm text-slate-700 shadow-sm">
         <p>

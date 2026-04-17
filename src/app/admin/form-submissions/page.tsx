@@ -38,6 +38,13 @@ function FormSubmissionsContent() {
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
+  // Filters
+  const [filterType, setFilterType] = useState('all');
+  const [filterMailSent, setFilterMailSent] = useState('all');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
   useEffect(() => {
     if (restaurantId) {
       fetchSubmissions();
@@ -67,6 +74,47 @@ function FormSubmissionsContent() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Derive unique form types for filter dropdown
+  const uniqueTypes = Array.from(new Set(submissions.map((s) => s.type))).sort();
+
+  // Apply filters
+  const filteredSubmissions = submissions.filter((s) => {
+    if (filterType !== 'all' && s.type !== filterType) return false;
+    if (filterMailSent === 'sent' && !s.mail_sent) return false;
+    if (filterMailSent === 'not_sent' && s.mail_sent) return false;
+    if (filterDateFrom) {
+      const from = new Date(filterDateFrom);
+      from.setHours(0, 0, 0, 0);
+      if (new Date(s.created_at) < from) return false;
+    }
+    if (filterDateTo) {
+      const to = new Date(filterDateTo);
+      to.setHours(23, 59, 59, 999);
+      if (new Date(s.created_at) > to) return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      const fieldsStr = Object.values(s.fields || {}).join(' ').toLowerCase();
+      if (
+        !s.type.toLowerCase().includes(q) &&
+        !s.email.toLowerCase().includes(q) &&
+        !s.poc_email.toLowerCase().includes(q) &&
+        !fieldsStr.includes(q)
+      ) return false;
+    }
+    return true;
+  });
+
+  const hasActiveFilters = filterType !== 'all' || filterMailSent !== 'all' || filterDateFrom || filterDateTo || searchQuery.trim();
+
+  const clearFilters = () => {
+    setFilterType('all');
+    setFilterMailSent('all');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    setSearchQuery('');
   };
 
   const formatDate = (dateString: string) => {
@@ -158,6 +206,96 @@ function FormSubmissionsContent() {
           </div>
         )}
 
+        {/* Filters */}
+        {!loading && submissions.length > 0 && (
+          <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-end gap-3">
+              {/* Search */}
+              <div className="flex-1 min-w-[200px]">
+                <label className="mb-1 block text-xs font-medium text-gray-500">Search</label>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by email, type, or fields..."
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                />
+              </div>
+
+              {/* Type Filter */}
+              <div className="min-w-[160px]">
+                <label className="mb-1 block text-xs font-medium text-gray-500">Form Type</label>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                >
+                  <option value="all">All Types</option>
+                  {uniqueTypes.map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Mail Sent Filter */}
+              <div className="min-w-[140px]">
+                <label className="mb-1 block text-xs font-medium text-gray-500">Mail Status</label>
+                <select
+                  value={filterMailSent}
+                  onChange={(e) => setFilterMailSent(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                >
+                  <option value="all">All</option>
+                  <option value="sent">Sent</option>
+                  <option value="not_sent">Not Sent</option>
+                </select>
+              </div>
+
+              {/* Date From */}
+              <div className="min-w-[150px]">
+                <label className="mb-1 block text-xs font-medium text-gray-500">From</label>
+                <input
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                />
+              </div>
+
+              {/* Date To */}
+              <div className="min-w-[150px]">
+                <label className="mb-1 block text-xs font-medium text-gray-500">To</label>
+                <input
+                  type="date"
+                  value={filterDateTo}
+                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                />
+              </div>
+
+              {/* Clear Filters */}
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Result count */}
+            {hasActiveFilters && (
+              <p className="mt-3 text-xs text-gray-500">
+                Showing {filteredSubmissions.length} of {submissions.length} submissions
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Loading State */}
         {loading ? (
           <div className="flex items-center justify-center min-h-[400px]">
@@ -166,7 +304,7 @@ function FormSubmissionsContent() {
               <p className="text-sm font-medium text-gray-700">Loading submissions...</p>
             </div>
           </div>
-        ) : submissions.length === 0 ? (
+        ) : filteredSubmissions.length === 0 ? (
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             <div className="p-12 text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-purple-300 bg-purple-50">
@@ -174,10 +312,27 @@ function FormSubmissionsContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6" />
                 </svg>
               </div>
-              <h3 className="mb-2 text-lg font-semibold text-gray-900">No Submissions Yet</h3>
-              <p className="text-sm text-gray-600">
-                Form submissions will appear here when users submit your forms.
-              </p>
+              {hasActiveFilters ? (
+                <>
+                  <h3 className="mb-2 text-lg font-semibold text-gray-900">No Matching Submissions</h3>
+                  <p className="text-sm text-gray-600">
+                    No submissions match your current filters.
+                  </p>
+                  <button
+                    onClick={clearFilters}
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:from-purple-700 hover:to-purple-800"
+                  >
+                    Clear Filters
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h3 className="mb-2 text-lg font-semibold text-gray-900">No Submissions Yet</h3>
+                  <p className="text-sm text-gray-600">
+                    Form submissions will appear here when users submit your forms.
+                  </p>
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -204,7 +359,7 @@ function FormSubmissionsContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {submissions.map((submission) => (
+                  {filteredSubmissions.map((submission) => (
                     <tr key={submission.form_submission_id} className="transition-colors hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <span className="font-medium text-gray-900">{submission.type}</span>

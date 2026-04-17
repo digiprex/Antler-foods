@@ -67,6 +67,17 @@ const GET_NAVBAR_CONFIG = `
       name
       url_slug
     }
+    blog_posts_aggregate(
+      where: {
+        restaurant_id: {_eq: $restaurant_id},
+        status: {_eq: "published"},
+        is_deleted: {_eq: false}
+      }
+    ) {
+      aggregate {
+        count
+      }
+    }
   }
 `;
 
@@ -219,6 +230,12 @@ export async function GET(request: Request) {
       label: page.name,
       href: `/${page.url_slug}`,
     }));
+
+    // Append "Blogs" link if restaurant has any published blog posts
+    const blogPostCount = (data as any).blog_posts_aggregate?.aggregate?.count || 0;
+    if (blogPostCount > 0) {
+      rawNavItems.push({ label: 'Blogs', href: '/blogs' });
+    }
 
     // Apply stored order if available
     const template0 = (data as any).templates?.[0];

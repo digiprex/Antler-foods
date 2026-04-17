@@ -378,6 +378,10 @@ export default function Navbar({
   const handleMenuCartClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
 
+    if (isSidebarOpen) {
+      setIsSidebarOpen(false);
+    }
+
     if (pathname.startsWith('/menu')) {
       window.dispatchEvent(new CustomEvent(MENU_CART_OPEN_EVENT));
       return;
@@ -705,14 +709,15 @@ export default function Navbar({
           {forceHamburgerMenu ? (
             <div className={styles.menuPageActions}>
               {!hasMountedMenuProfile ? (
-                <>
-                  <a href="/login" className={styles.menuAuthLink}>
-                    Sign In
+                <div className={styles.menuAuthGroup}>
+                  <a href="/login" className={styles.menuAuthGroupLeft}>
+                    Sign in
                   </a>
-                  <a href="/signup" className={styles.menuAuthLink}>
-                    Sign Up
+                  <span className={styles.menuAuthGroupDivider} />
+                  <a href="/signup" className={styles.menuAuthGroupRight}>
+                    Sign up
                   </a>
-                </>
+                </div>
               ) : null}
               <div id="menu-navbar-auth-slot" className={styles.menuProfileSlot} />
               <a
@@ -824,7 +829,6 @@ export default function Navbar({
           </button>
 
           <div className={styles.sidebarHeader}>
-            <div className={styles.sidebarBrand}>{brandDisplay}</div>
             <p className={styles.sidebarLabel}>Navigation</p>
           </div>
 
@@ -843,14 +847,15 @@ export default function Navbar({
           {forceHamburgerMenu && (
             <div className={styles.sidebarActions}>
               {!hasMountedMenuProfile ? (
-                <>
-                  <a href="/login" className={styles.sidebarActionLink}>
-                    Sign In
+                <div className={styles.sidebarAuthGroup}>
+                  <a href="/login" onClick={() => setIsSidebarOpen(false)} className={styles.sidebarAuthGroupLeft}>
+                    Sign in
                   </a>
-                  <a href="/signup" className={styles.sidebarActionLink}>
-                    Sign Up
+                  <span className={styles.sidebarAuthGroupDivider} />
+                  <a href="/signup" onClick={() => setIsSidebarOpen(false)} className={styles.sidebarAuthGroupRight}>
+                    Sign up
                   </a>
-                </>
+                </div>
               ) : null}
               <a
                 href="/menu?cart=open"

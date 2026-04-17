@@ -351,10 +351,10 @@ interface MenuCustomerSessionPayload {
 
 interface CustomerIdentityInput {
   restaurantId: string;
-  email: string;
+  email?: string;
   firstName: string;
-  lastName: string;
-  phone: string;
+  lastName?: string;
+  phone?: string;
   emailOptIn?: boolean;
   smsOptIn?: boolean;
 }
@@ -385,26 +385,45 @@ export async function signUpMenuCustomer(
   input: CustomerIdentityInput & { password: string },
 ) {
   const restaurantId = requireRestaurantId(input.restaurantId);
-  const email = requireEmail(input.email);
   const password = requirePassword(input.password);
-  const phone = requirePhone(input.phone);
-  const displayName = requireDisplayName(input.firstName, input.lastName, email);
-  const existing = await findCustomerByEmail(restaurantId, email);
 
-  if (existing && existing.is_guest !== true) {
+  const email = text(input.email) ? requireEmail(input.email!) : null;
+  const phone = text(input.phone) ? requirePhone(input.phone!) : null;
+
+  if (!email && !phone) {
+    throw new MenuCustomerAuthError(400, 'Email or phone number is required.');
+  }
+
+  const displayName = requireDisplayName(input.firstName, input.lastName || '', email || '');
+
+  const [existingByEmail, existingByPhone] = await Promise.all([
+    email ? findCustomerByEmail(restaurantId, email) : null,
+    phone ? findCustomerByPhone(restaurantId, phone) : null,
+  ]);
+
+  if (existingByEmail && existingByEmail.is_guest !== true) {
     throw new MenuCustomerAuthError(
       409,
       'An account with this email already exists for this restaurant.',
     );
   }
 
+  if (existingByPhone && existingByPhone.is_guest !== true && existingByPhone.customer_id !== existingByEmail?.customer_id) {
+    throw new MenuCustomerAuthError(
+      409,
+      'An account with this phone number already exists for this restaurant.',
+    );
+  }
+
+  const existing = existingByEmail || existingByPhone;
+
   const passwordHash = bcrypt.hashSync(password, 10);
 
   if (existing) {
     return toMenuCustomerSession(
       await updateCustomer(existing.customer_id || '', {
-        email,
-        phone,
+        email: email || existing.email || '',
+        phone: phone || existing.phone || '',
         displayName,
         passwordHash,
         isGuest: false,
@@ -417,8 +436,8 @@ export async function signUpMenuCustomer(
   return toMenuCustomerSession(
     await insertCustomer({
       restaurantId,
-      email,
-      phone,
+      email: email || '',
+      phone: phone || '',
       displayName,
       passwordHash,
       isGuest: false,
@@ -472,9 +491,9 @@ export async function signInMenuCustomer({
 
 export async function continueAsGuestMenuCustomer(input: CustomerIdentityInput) {
   const restaurantId = requireRestaurantId(input.restaurantId);
-  const email = requireEmail(input.email);
-  const phone = requirePhone(input.phone);
-  const displayName = requireDisplayName(input.firstName, input.lastName, email);
+  const email = requireEmail(input.email || '');
+  const phone = requirePhone(input.phone || '');
+  const displayName = requireDisplayName(input.firstName, input.lastName || '', email);
   const emailOptIn = input.emailOptIn !== false;
   const smsOptIn = input.smsOptIn !== false;
   const existing = await findCustomerByEmail(restaurantId, email);
@@ -1242,11 +1261,7 @@ function requireDisplayName(firstName: string, lastName: string, email: string) 
     throw new MenuCustomerAuthError(400, 'First name is required.');
   }
 
-  if (!normalizedLastName) {
-    throw new MenuCustomerAuthError(400, 'Last name is required.');
-  }
-
-  return `${normalizedFirstName} ${normalizedLastName}`.trim() || email;
+  return [normalizedFirstName, normalizedLastName].filter(Boolean).join(' ') || email;
 }
 
 function requireAppOrigin(value: string) {

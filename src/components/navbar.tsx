@@ -829,7 +829,6 @@ export default function Navbar({
           </button>
 
           <div className={styles.sidebarHeader}>
-            <div className={styles.sidebarBrand}>{brandDisplay}</div>
             <p className={styles.sidebarLabel}>Navigation</p>
           </div>
 

@@ -70,6 +70,8 @@ export function MenuSignupForm({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [phoneCountryCode, setPhoneCountryCode] = useState('+1');
+  const [emailOptIn, setEmailOptIn] = useState(true);
+  const [smsOptIn, setSmsOptIn] = useState(true);
 
   useEffect(() => {
     return () => {
@@ -131,6 +133,8 @@ export function MenuSignupForm({
           email: values.email || '',
           phone: values.phone?.trim() ? `${phoneCountryCode}${values.phone.trim()}` : '',
           password: values.password,
+          emailOptIn,
+          smsOptIn,
         }),
       });
 
@@ -246,6 +250,27 @@ export function MenuSignupForm({
           error={errors.confirmPassword?.message}
           {...register('confirmPassword')}
         />
+
+        <div className="space-y-2.5">
+          <label className="flex items-center gap-3 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              checked={emailOptIn}
+              onChange={(e) => setEmailOptIn(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 accent-slate-900"
+            />
+            Opt in for promotional emails
+          </label>
+          <label className="flex items-center gap-3 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              checked={smsOptIn}
+              onChange={(e) => setSmsOptIn(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 accent-slate-900"
+            />
+            Opt in for promotional SMS
+          </label>
+        </div>
 
         <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-xs leading-6 text-slate-600 shadow-sm">
           Password must be at least 8 characters and should include a mix of letters and numbers.

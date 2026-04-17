@@ -237,6 +237,8 @@ export async function POST(request: NextRequest) {
           lastName?: string;
           phone?: string;
           password?: string;
+          emailOptIn?: boolean;
+          smsOptIn?: boolean;
         }
       | null;
 
@@ -247,6 +249,8 @@ export async function POST(request: NextRequest) {
       lastName: body?.lastName || '',
       phone: body?.phone || '',
       password: body?.password || '',
+      emailOptIn: body?.emailOptIn !== false,
+      smsOptIn: body?.smsOptIn !== false,
     });
 
     // Fire-and-forget: send welcome email and SMS only if campaign is enabled

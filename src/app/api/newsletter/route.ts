@@ -29,10 +29,11 @@ interface CheckExistingResponse {
  * GraphQL query to check for existing subscription
  */
 const CHECK_EXISTING_SUBSCRIPTION = `
-  query CheckExistingSubscription($email: String!) {
+  query CheckExistingSubscription($email: String!, $restaurant_id: uuid!) {
     newsletter_submissions(
       where: {
         email: { _eq: $email }
+        restaurant_id: { _eq: $restaurant_id }
       }
     ) {
       id
@@ -115,27 +116,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if email already exists
+    // Check if email already exists for this restaurant
     const existingData = await adminGraphqlRequest<CheckExistingResponse>(CHECK_EXISTING_SUBSCRIPTION, {
       email: body.email,
+      restaurant_id: body.restaurant_id,
     });
 
     if (existingData.newsletter_submissions && existingData.newsletter_submissions.length > 0) {
       const existing = existingData.newsletter_submissions[0];
-      
-      // If email exists and is not deleted, check if it's for the same restaurant
+
+      // If email exists for this restaurant and is not deleted, it's a duplicate
       if (!existing.is_deleted) {
-        if (existing.restaurant_id === body.restaurant_id) {
-          return NextResponse.json(
-            { success: false, error: 'This email is already subscribed to this restaurant' },
-            { status: 409 }
-          );
-        } else {
-          return NextResponse.json(
-            { success: false, error: 'This email is already subscribed to another restaurant' },
-            { status: 409 }
-          );
-        }
+        return NextResponse.json(
+          { success: false, error: 'This email is already subscribed' },
+          { status: 409 }
+        );
       } else {
         // Email exists but is deleted, update it
         const updateResult = await adminGraphqlRequest<{update_newsletter_submissions: {returning: Array<{id: string; email: string; restaurant_id: string; created_at: string}>}}>(UPDATE_NEWSLETTER, {

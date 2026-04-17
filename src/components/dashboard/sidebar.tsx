@@ -222,6 +222,14 @@ export function Sidebar({
         },
         {
           href: buildRestaurantScopedHref(
+            `/admin/blog-posts`,
+            selectedRestaurant,
+          ),
+          label: 'Blog Posts',
+          icon: <BlogIcon />,
+        },
+        {
+          href: buildRestaurantScopedHref(
             `/admin/campaigns`,
             selectedRestaurant,
           ),
@@ -1096,6 +1104,23 @@ function NewsletterIcon() {
       strokeLinejoin="round"
     >
       <path d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+    </svg>
+  );
+}
+
+function BlogIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-6 w-6"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
     </svg>
   );
 }

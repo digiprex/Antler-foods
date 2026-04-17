@@ -763,6 +763,7 @@ function EditModal({
   const [formEmail, setFormEmail] = useState(form.email);
   const [fields, setFields] = useState<any[]>(form.fields || []);
   const [selectedField, setSelectedField] = useState<any | null>(null);
+  const [optionsDraft, setOptionsDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -809,6 +810,20 @@ function EditModal({
       setSelectedField({ ...selectedField, ...updates });
     }
   };
+
+  useEffect(() => {
+    if (
+      selectedField &&
+      (selectedField.type === 'select' ||
+        selectedField.type === 'radio' ||
+        selectedField.type === 'checkbox')
+    ) {
+      setOptionsDraft(selectedField.options?.join('\n') || '');
+      return;
+    }
+
+    setOptionsDraft('');
+  }, [selectedField?.id, selectedField?.type]);
 
   const removeField = (fieldId: string) => {
     setFields(fields.filter((field) => field.id !== fieldId));
@@ -1139,14 +1154,17 @@ function EditModal({
                             Options (one per line)
                           </label>
                           <textarea
-                            value={selectedField.options?.join('\n') || ''}
-                            onChange={(e) =>
+                            value={optionsDraft}
+                            onChange={(e) => {
+                              const nextValue = e.target.value;
+                              setOptionsDraft(nextValue);
                               updateField(selectedField.id, {
-                                options: e.target.value
+                                options: nextValue
                                   .split('\n')
                                   .filter((opt) => opt.trim()),
-                              })
-                            }
+                              });
+                            }}
+                            onKeyDown={(e) => e.stopPropagation()}
                             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
                             rows={4}
                             placeholder="Option 1&#10;Option 2&#10;Option 3"

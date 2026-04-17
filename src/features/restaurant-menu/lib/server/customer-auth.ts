@@ -79,6 +79,8 @@ const GET_CUSTOMER_BY_ID = `
       password_hash
       is_guest
       is_deleted
+      email_opt_in
+      sms_opt_in
     }
   }
 `;
@@ -279,6 +281,8 @@ interface CustomerRecord {
   password_hash?: string | null;
   is_guest?: boolean | null;
   is_deleted?: boolean | null;
+  email_opt_in?: boolean | null;
+  sms_opt_in?: boolean | null;
 }
 
 interface RestaurantRecord {
@@ -587,6 +591,23 @@ export async function changeMenuCustomerPassword({
   const updated = await updateCustomerPassword(customerId, newHash);
 
   return toMenuCustomerSession(updated);
+}
+
+export async function getMenuCustomerOptIn(customerId: string): Promise<{
+  emailOptIn: boolean;
+  smsOptIn: boolean;
+}> {
+  if (!UUID_REGEX.test(customerId)) {
+    throw new MenuCustomerAuthError(400, 'Invalid customer id.');
+  }
+  const customer = await findCustomerById(customerId);
+  if (!customer || customer.is_deleted === true) {
+    throw new MenuCustomerAuthError(404, 'Customer account not found.');
+  }
+  return {
+    emailOptIn: customer.email_opt_in !== false,
+    smsOptIn: customer.sms_opt_in !== false,
+  };
 }
 
 export async function updateMenuCustomerOptIn(
@@ -1253,4 +1274,229 @@ function parseIsoDate(value: unknown) {
 
 function text(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+// ---------------------------------------------------------------------------
+// OTP – Change Email / Phone
+// ---------------------------------------------------------------------------
+
+const OTP_TTL_MINUTES = 10;
+
+interface OtpPayload {
+  v: 1;
+  /** customer id */
+  sub: string;
+  /** restaurant id */
+  rid: string;
+  /** 'email' or 'phone' */
+  kind: 'email' | 'phone';
+  /** the new value being verified */
+  target: string;
+  /** SHA-256 hex of the 6-digit code */
+  hash: string;
+  /** expiry timestamp (ms) */
+  exp: number;
+}
+
+function generateOtpCode(): string {
+  const buf = randomBytes(4);
+  const num = buf.readUInt32BE(0) % 1_000_000;
+  return num.toString().padStart(6, '0');
+}
+
+function hashOtp(code: string): string {
+  return createHash('sha256').update(code).digest('hex');
+}
+
+function signOtpToken(payload: OtpPayload): string {
+  const encoded = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+  const sig = createHmac('sha256', resolveSessionSecret())
+    .update(encoded)
+    .digest('base64url');
+  return `${encoded}.${sig}`;
+}
+
+function verifyOtpToken(token: string): OtpPayload | null {
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+
+  const [encoded, providedSig] = parts;
+  const expectedSig = createHmac('sha256', resolveSessionSecret())
+    .update(encoded)
+    .digest('base64url');
+
+  const a = Buffer.from(providedSig, 'utf8');
+  const b = Buffer.from(expectedSig, 'utf8');
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+
+  try {
+    const payload = JSON.parse(
+      Buffer.from(encoded, 'base64url').toString('utf8'),
+    ) as OtpPayload;
+    if (payload.v !== 1 || !payload.sub || !payload.rid || !payload.hash || !payload.exp) {
+      return null;
+    }
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Generates a 6-digit OTP, returns a signed token that embeds the hash.
+ * The caller is responsible for sending the code via email/SMS.
+ */
+export async function generateContactOtp({
+  customerId,
+  restaurantId,
+  kind,
+  newValue,
+}: {
+  customerId: string;
+  restaurantId: string;
+  kind: 'email' | 'phone';
+  newValue: string;
+}): Promise<{ code: string; otpToken: string }> {
+  if (!UUID_REGEX.test(customerId)) {
+    throw new MenuCustomerAuthError(400, 'Invalid customer id.');
+  }
+
+  const customer = await findCustomerById(customerId);
+  if (!customer || customer.is_deleted === true) {
+    throw new MenuCustomerAuthError(404, 'Customer account not found.');
+  }
+  if (customer.restaurant_id !== restaurantId) {
+    throw new MenuCustomerAuthError(403, 'Not authorized.');
+  }
+  if (customer.is_guest === true) {
+    throw new MenuCustomerAuthError(400, 'Guest accounts cannot change contact details.');
+  }
+
+  let normalizedValue: string;
+  if (kind === 'email') {
+    normalizedValue = requireEmail(newValue);
+    // Check uniqueness within the same restaurant
+    const existing = await findCustomerByEmail(restaurantId, normalizedValue);
+    if (existing && existing.customer_id !== customerId) {
+      throw new MenuCustomerAuthError(409, 'This email is already in use by another account.');
+    }
+  } else {
+    normalizedValue = requirePhone(newValue);
+    const existing = await findCustomerByPhone(restaurantId, normalizedValue);
+    if (existing && existing.customer_id !== customerId) {
+      throw new MenuCustomerAuthError(409, 'This phone number is already in use by another account.');
+    }
+  }
+
+  const code = generateOtpCode();
+  const otpToken = signOtpToken({
+    v: 1,
+    sub: customerId,
+    rid: restaurantId,
+    kind,
+    target: normalizedValue,
+    hash: hashOtp(code),
+    exp: Date.now() + OTP_TTL_MINUTES * 60 * 1000,
+  });
+
+  return { code, otpToken };
+}
+
+const UPDATE_CUSTOMER_EMAIL = `
+  mutation UpdateCustomerEmail($customer_id: uuid!, $email: String!) {
+    update_customers_by_pk(
+      pk_columns: { customer_id: $customer_id }
+      _set: { email: $email }
+    ) {
+      customer_id
+      restaurant_id
+      email
+      phone
+      display_name
+      password_hash
+      is_guest
+      is_deleted
+    }
+  }
+`;
+
+const UPDATE_CUSTOMER_PHONE = `
+  mutation UpdateCustomerPhone($customer_id: uuid!, $phone: String) {
+    update_customers_by_pk(
+      pk_columns: { customer_id: $customer_id }
+      _set: { phone: $phone }
+    ) {
+      customer_id
+      restaurant_id
+      email
+      phone
+      display_name
+      password_hash
+      is_guest
+      is_deleted
+    }
+  }
+`;
+
+/**
+ * Verifies the OTP code against the signed token and updates the contact field.
+ * Returns a refreshed session.
+ */
+export async function verifyOtpAndUpdateContact({
+  customerId,
+  restaurantId,
+  otpToken,
+  code,
+}: {
+  customerId: string;
+  restaurantId: string;
+  otpToken: string;
+  code: string;
+}): Promise<MenuCustomerSession> {
+  if (!UUID_REGEX.test(customerId)) {
+    throw new MenuCustomerAuthError(400, 'Invalid customer id.');
+  }
+
+  const payload = verifyOtpToken(otpToken);
+  if (!payload) {
+    throw new MenuCustomerAuthError(400, 'Invalid or expired verification code.');
+  }
+  if (payload.sub !== customerId || payload.rid !== restaurantId) {
+    throw new MenuCustomerAuthError(403, 'Verification does not match your account.');
+  }
+  if (Date.now() > payload.exp) {
+    throw new MenuCustomerAuthError(400, 'Verification code has expired. Please request a new one.');
+  }
+
+  const normalizedCode = text(code);
+  if (!normalizedCode || normalizedCode.length !== 6) {
+    throw new MenuCustomerAuthError(400, 'Enter the 6-digit verification code.');
+  }
+
+  if (hashOtp(normalizedCode) !== payload.hash) {
+    throw new MenuCustomerAuthError(400, 'Incorrect verification code.');
+  }
+
+  let updated: CustomerRecord;
+  if (payload.kind === 'email') {
+    const data = await adminGraphqlRequest<UpdateCustomerResponse>(
+      UPDATE_CUSTOMER_EMAIL,
+      { customer_id: customerId, email: payload.target },
+    );
+    if (!data.update_customers_by_pk) {
+      throw new MenuCustomerAuthError(404, 'Customer not found.');
+    }
+    updated = data.update_customers_by_pk;
+  } else {
+    const data = await adminGraphqlRequest<UpdateCustomerResponse>(
+      UPDATE_CUSTOMER_PHONE,
+      { customer_id: customerId, phone: payload.target },
+    );
+    if (!data.update_customers_by_pk) {
+      throw new MenuCustomerAuthError(404, 'Customer not found.');
+    }
+    updated = data.update_customers_by_pk;
+  }
+
+  return toMenuCustomerSession(updated);
 }

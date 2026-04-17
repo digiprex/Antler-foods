@@ -217,7 +217,7 @@ const DELETE_CAMPAIGN = `
 const GET_ALL_CUSTOMERS_SMS = `
   query GetAllCustomersSms($restaurant_id: uuid!) {
     customers(
-      where: { restaurant_id: { _eq: $restaurant_id }, is_deleted: { _eq: false } }
+      where: { restaurant_id: { _eq: $restaurant_id }, is_deleted: { _eq: false }, sms_opt_in: { _eq: true } }
     ) {
       customer_id
       phone
@@ -249,6 +249,7 @@ const GET_ORDERED_CUSTOMERS_SMS = `
         restaurant_id: { _eq: $restaurant_id }
         is_deleted: { _eq: false }
         created_at: { _gte: $since }
+        customer: { sms_opt_in: { _eq: true } }
       }
       distinct_on: customer_id
     ) {

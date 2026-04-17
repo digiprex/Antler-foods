@@ -61,6 +61,25 @@ export default function CustomerProfilePage({
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isFormDirty, setIsFormDirty] = useState(false);
 
+  // Opt-in preferences
+  const [emailOptIn, setEmailOptIn] = useState(true);
+  const [smsOptIn, setSmsOptIn] = useState(true);
+  const [isLoadingOptIn, setIsLoadingOptIn] = useState(false);
+  const [isSavingOptIn, setIsSavingOptIn] = useState(false);
+  const [optInMessage, setOptInMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // OTP change contact state
+  const [otpModal, setOtpModal] = useState<{
+    kind: 'email' | 'phone';
+    step: 'input' | 'verify';
+  } | null>(null);
+  const [otpNewValue, setOtpNewValue] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpToken, setOtpToken] = useState('');
+  const [otpSentVia, setOtpSentVia] = useState<'email' | 'phone' | null>(null);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpMessage, setOtpMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   // Tab state
   const [activeTab, setActiveTab] = useState<'profile' | 'addresses' | 'password'>('profile');
 
@@ -281,6 +300,59 @@ export default function CustomerProfilePage({
     setIsFormDirty(false);
   }, [customerProfile]);
 
+  // Fetch opt-in preferences
+  useEffect(() => {
+    if (!hasCustomerSession || customerProfile?.isGuest) return;
+    setIsLoadingOptIn(true);
+    fetch('/api/menu-auth/opt-in', { credentials: 'same-origin' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success) {
+          setEmailOptIn(data.emailOptIn !== false);
+          setSmsOptIn(data.smsOptIn !== false);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingOptIn(false));
+  }, [hasCustomerSession, customerProfile?.isGuest]);
+
+  const handleOptInToggle = async (field: 'email' | 'sms', newVal: boolean) => {
+    const nextEmail = field === 'email' ? newVal : emailOptIn;
+    const nextSms = field === 'sms' ? newVal : smsOptIn;
+
+    // Optimistic update
+    if (field === 'email') setEmailOptIn(newVal);
+    else setSmsOptIn(newVal);
+
+    setIsSavingOptIn(true);
+    setOptInMessage(null);
+
+    try {
+      const res = await fetch('/api/menu-auth/opt-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ emailOptIn: nextEmail, smsOptIn: nextSms }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        // Revert
+        if (field === 'email') setEmailOptIn(!newVal);
+        else setSmsOptIn(!newVal);
+        setOptInMessage({ type: 'error', text: data?.error || 'Failed to update preference.' });
+      }
+    } catch {
+      // Revert
+      if (field === 'email') setEmailOptIn(!newVal);
+      else setSmsOptIn(!newVal);
+      setOptInMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
+    } finally {
+      setIsSavingOptIn(false);
+    }
+  };
+
   // Navbar auth slot detection
   useEffect(() => {
     const syncNavbarAuthSlot = () => {
@@ -439,6 +511,89 @@ export default function CustomerProfilePage({
       setPasswordMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
     } finally {
       setIsChangingPassword(false);
+    }
+  };
+
+  const openOtpModal = (kind: 'email' | 'phone') => {
+    setOtpModal({ kind, step: 'input' });
+    setOtpNewValue('');
+    setOtpCode('');
+    setOtpToken('');
+    setOtpSentVia(null);
+    setOtpMessage(null);
+  };
+
+  const closeOtpModal = () => {
+    setOtpModal(null);
+    setOtpNewValue('');
+    setOtpCode('');
+    setOtpToken('');
+    setOtpSentVia(null);
+    setOtpMessage(null);
+  };
+
+  const handleSendOtp = async () => {
+    if (!otpModal || !otpNewValue.trim()) return;
+    setOtpLoading(true);
+    setOtpMessage(null);
+
+    try {
+      const res = await fetch('/api/menu-auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ kind: otpModal.kind, newValue: otpNewValue.trim() }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setOtpMessage({ type: 'error', text: data?.error || 'Failed to send verification code.' });
+        return;
+      }
+
+      setOtpToken(data.otpToken);
+      setOtpSentVia(data.sentVia || otpModal.kind);
+      setOtpModal({ ...otpModal, step: 'verify' });
+    } catch {
+      setOtpMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode.trim() || !otpToken) return;
+    setOtpLoading(true);
+    setOtpMessage(null);
+
+    try {
+      const res = await fetch('/api/menu-auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ otpToken, code: otpCode.trim() }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setOtpMessage({ type: 'error', text: data?.error || 'Verification failed.' });
+        return;
+      }
+
+      await refresh();
+      closeOtpModal();
+      setSaveMessage({
+        type: 'success',
+        text: otpModal?.kind === 'email'
+          ? 'Email address updated successfully.'
+          : 'Phone number updated successfully.',
+      });
+    } catch {
+      setOtpMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -1020,14 +1175,23 @@ export default function CustomerProfilePage({
                 >
                   Email
                 </label>
-                <input
-                  id="profile-email"
-                  type="email"
-                  value={customerProfile?.email || ''}
-                  disabled
-                  className="h-12 w-full rounded-[14px] border border-slate-100 bg-slate-100 px-4 text-sm text-slate-500 outline-none"
-                />
-                <p className="mt-1.5 text-xs text-slate-400">Email cannot be changed.</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="profile-email"
+                    type="email"
+                    value={customerProfile?.email || ''}
+                    disabled
+                    className="h-12 w-full rounded-[14px] border border-slate-100 bg-slate-100 px-4 text-sm text-slate-500 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openOtpModal('email')}
+                    className="h-12 shrink-0 rounded-[14px] border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    Change
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-slate-400">Verified via OTP before updating.</p>
               </div>
 
               <div className="mt-4">
@@ -1037,16 +1201,227 @@ export default function CustomerProfilePage({
                 >
                   Phone number
                 </label>
-                <input
-                  id="profile-phone"
-                  type="tel"
-                  value={phone}
-                  onChange={handleFieldChange(setPhone)}
-                  className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
-                  placeholder="+1 234 567 8900"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    id="profile-phone"
+                    type="tel"
+                    value={phone}
+                    disabled
+                    className="h-12 w-full rounded-[14px] border border-slate-100 bg-slate-100 px-4 text-sm text-slate-500 outline-none"
+                    placeholder="+1 234 567 8900"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openOtpModal('phone')}
+                    className="h-12 shrink-0 rounded-[14px] border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    Change
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-slate-400">Verified via OTP before updating.</p>
               </div>
 
+              {/* Communication Preferences */}
+              <div className="mt-8">
+                <h3 className="text-sm font-semibold text-slate-950">Communication preferences</h3>
+                <p className="mt-1 text-xs text-slate-500">Choose how you&apos;d like to receive updates and promotions.</p>
+
+                {isLoadingOptIn ? (
+                  <div className="mt-4 space-y-3">
+                    <div className="h-12 w-full animate-pulse rounded-[14px] bg-slate-100" />
+                    <div className="h-12 w-full animate-pulse rounded-[14px] bg-slate-100" />
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {/* Email opt-in */}
+                    <div className="flex items-center justify-between rounded-[14px] border border-slate-200 bg-slate-50 px-4 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-900">Email notifications</p>
+                        <p className="mt-0.5 text-xs text-slate-500">Receive order updates, promotions, and offers via email.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleOptInToggle('email', !emailOptIn)}
+                        disabled={isSavingOptIn}
+                        className="relative ml-3 inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 disabled:cursor-default disabled:opacity-70"
+                        style={{ backgroundColor: emailOptIn ? '#0f172a' : '#cbd5e1' }}
+                      >
+                        <span
+                          className="inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200"
+                          style={{ transform: emailOptIn ? 'translateX(22px)' : 'translateX(4px)' }}
+                        />
+                      </button>
+                    </div>
+
+                    {/* SMS opt-in */}
+                    <div className="flex items-center justify-between rounded-[14px] border border-slate-200 bg-slate-50 px-4 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-900">SMS notifications</p>
+                        <p className="mt-0.5 text-xs text-slate-500">Receive order updates, promotions, and offers via text message.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleOptInToggle('sms', !smsOptIn)}
+                        disabled={isSavingOptIn}
+                        className="relative ml-3 inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 disabled:cursor-default disabled:opacity-70"
+                        style={{ backgroundColor: smsOptIn ? '#0f172a' : '#cbd5e1' }}
+                      >
+                        <span
+                          className="inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200"
+                          style={{ transform: smsOptIn ? 'translateX(22px)' : 'translateX(4px)' }}
+                        />
+                      </button>
+                    </div>
+
+                    {optInMessage ? (
+                      <div
+                        className={`rounded-[12px] border px-3.5 py-2.5 text-sm ${
+                          optInMessage.type === 'success'
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            : 'border-red-200 bg-red-50 text-red-700'
+                        }`}
+                      >
+                        {optInMessage.text}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+
+              {/* OTP Change Modal */}
+              {otpModal ? (
+                <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                  <div className="relative mx-4 w-full max-w-md rounded-2xl border border-stone-200 bg-white shadow-2xl">
+                    {/* Modal header */}
+                    <div className="flex items-center justify-between border-b border-stone-200 px-6 py-4">
+                      <h3 className="text-base font-semibold text-slate-950">
+                        Change {otpModal.kind === 'email' ? 'email address' : 'phone number'}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={closeOtpModal}
+                        className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Modal body */}
+                    <div className="px-6 py-5">
+                      {otpModal.step === 'input' ? (
+                        <div className="space-y-4">
+                          <p className="text-sm text-slate-600">
+                            Enter your new {otpModal.kind === 'email' ? 'email address' : 'phone number'}. We will send a verification code to confirm the change.
+                          </p>
+                          <div>
+                            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                              New {otpModal.kind === 'email' ? 'email' : 'phone number'}
+                            </label>
+                            <input
+                              type={otpModal.kind === 'email' ? 'email' : 'tel'}
+                              value={otpNewValue}
+                              onChange={(e) => { setOtpNewValue(e.target.value); setOtpMessage(null); }}
+                              placeholder={otpModal.kind === 'email' ? 'new@email.com' : '+1 234 567 8900'}
+                              className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
+                              autoFocus
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <p className="text-sm text-slate-600">
+                            Enter the 6-digit code sent to{' '}
+                            <strong className="text-slate-900">
+                              {otpSentVia === 'email' && otpModal.kind === 'phone'
+                                ? customerProfile?.email
+                                : otpNewValue}
+                            </strong>
+                            {otpSentVia === 'email' && otpModal.kind === 'phone'
+                              ? ' (SMS not available, code sent to your email)'
+                              : ''}
+                            .
+                          </p>
+                          <div>
+                            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                              Verification code
+                            </label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={6}
+                              value={otpCode}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                setOtpCode(val);
+                                setOtpMessage(null);
+                              }}
+                              placeholder="000000"
+                              className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-4 text-center text-lg font-semibold tracking-[6px] text-slate-950 outline-none transition placeholder:tracking-[6px] placeholder:text-slate-300 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
+                              autoFocus
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOtpModal({ ...otpModal, step: 'input' });
+                              setOtpCode('');
+                              setOtpToken('');
+                              setOtpMessage(null);
+                            }}
+                            className="text-xs font-medium text-slate-500 underline transition hover:text-slate-700"
+                          >
+                            Didn&apos;t receive a code? Go back
+                          </button>
+                        </div>
+                      )}
+
+                      {otpMessage ? (
+                        <div
+                          className={`mt-4 rounded-[12px] border px-3.5 py-2.5 text-sm ${
+                            otpMessage.type === 'success'
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : 'border-red-200 bg-red-50 text-red-700'
+                          }`}
+                        >
+                          {otpMessage.text}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* Modal footer */}
+                    <div className="flex items-center justify-end gap-2 border-t border-stone-200 px-6 py-4">
+                      <button
+                        type="button"
+                        onClick={closeOtpModal}
+                        className="h-11 rounded-[12px] px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+                      >
+                        Cancel
+                      </button>
+                      {otpModal.step === 'input' ? (
+                        <button
+                          type="button"
+                          onClick={handleSendOtp}
+                          disabled={otpLoading || !otpNewValue.trim()}
+                          className="h-11 rounded-[12px] bg-slate-900 px-6 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {otpLoading ? 'Sending...' : 'Send code'}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleVerifyOtp}
+                          disabled={otpLoading || otpCode.length !== 6}
+                          className="h-11 rounded-[12px] bg-slate-900 px-6 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {otpLoading ? 'Verifying...' : 'Verify & update'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
 
               {saveMessage ? (
                 <div

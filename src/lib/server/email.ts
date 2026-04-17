@@ -1380,6 +1380,85 @@ export async function sendCampaignEmail(
   });
 }
 
+// ---------------------------------------------------------------------------
+// OTP Verification Email
+// ---------------------------------------------------------------------------
+
+export interface OtpVerificationEmailData {
+  code: string;
+  kind: 'email' | 'phone';
+  newValue: string;
+  customerName?: string | null;
+  restaurantName?: string | null;
+  expiresInMinutes: number;
+}
+
+export async function sendOtpVerificationEmail(
+  to: string,
+  data: OtpVerificationEmailData,
+): Promise<void> {
+  const transporter = createTransporter();
+  const accountLabel = data.restaurantName || 'Online Ordering';
+  const customerLabel = data.customerName?.trim() || 'there';
+  const changeLabel = data.kind === 'email' ? 'email address' : 'phone number';
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fafaf9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e7e5e4;overflow:hidden;">
+      <div style="padding:32px 24px;border-bottom:1px solid #e7e5e4;">
+        <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;color:#0f172a;">Verify Your New ${data.kind === 'email' ? 'Email' : 'Phone Number'}</h1>
+        <p style="margin:0;font-size:13px;color:#78716c;">${accountLabel}</p>
+      </div>
+      <div style="padding:24px;">
+        <p style="margin:0 0 16px;font-size:14px;color:#1e293b;">
+          Hi ${customerLabel},
+        </p>
+        <p style="margin:0 0 20px;font-size:14px;color:#1e293b;">
+          You requested to change your ${changeLabel} to <strong>${data.newValue}</strong>. Use the code below to verify this change.
+        </p>
+        <div style="text-align:center;margin:24px 0;">
+          <div style="display:inline-block;padding:16px 32px;background:#f1f5f9;border-radius:12px;border:2px dashed #cbd5e1;">
+            <span style="font-size:32px;font-weight:700;letter-spacing:8px;color:#0f172a;font-family:monospace;">${data.code}</span>
+          </div>
+        </div>
+        <p style="margin:0 0 8px;font-size:13px;color:#78716c;">
+          This code expires in ${data.expiresInMinutes} minutes.
+        </p>
+        <p style="margin:20px 0 0;font-size:13px;color:#78716c;">If you did not request this change, you can safely ignore this email.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const textContent = `
+Verify your new ${changeLabel}
+
+${accountLabel}
+
+Hi ${customerLabel},
+
+You requested to change your ${changeLabel} to ${data.newValue}.
+
+Your verification code is: ${data.code}
+
+This code expires in ${data.expiresInMinutes} minutes.
+If you did not request this change, you can safely ignore this email.
+  `.trim();
+
+  await transporter.sendMail({
+    from: DEFAULT_FROM,
+    to,
+    subject: `Your verification code: ${data.code} - ${accountLabel}`,
+    text: textContent,
+    html: htmlContent,
+  });
+}
+
 export async function verifyEmailConfig(): Promise<boolean> {
   try {
     const transporter = createTransporter();

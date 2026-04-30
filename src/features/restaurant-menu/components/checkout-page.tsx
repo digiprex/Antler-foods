@@ -517,6 +517,7 @@ export default function RestaurantMenuCheckoutPage({
     null,
   );
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [estimatedStateTax, setEstimatedStateTax] = useState(0);
   const [pendingOrderData, setPendingOrderData] = useState<{
     orderId: string;
     orderNumber: string;
@@ -1162,6 +1163,70 @@ export default function RestaurantMenuCheckoutPage({
     subtotal,
   ]);
 
+  // Estimate state tax via Stripe Tax
+  const deliveryFeeForTax = fulfillmentMode === 'delivery' ? (deliveryQuote?.deliveryFee ?? 0) : 0;
+  useEffect(() => {
+    if (!restaurantId || items.length === 0) {
+      setEstimatedStateTax(0);
+      return;
+    }
+
+    if (fulfillmentMode === 'delivery' && !deliveryAddressData.postalCode) {
+      setEstimatedStateTax(0);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      const payload: Record<string, unknown> = {
+        restaurantId,
+        fulfillmentType: fulfillmentMode,
+        items: items.map((item) => ({
+          itemId: item.itemId,
+          quantity: item.quantity,
+          basePrice: item.basePrice,
+          selectedAddOns: item.selectedAddOns.map((a) => ({ price: a.price })),
+        })),
+        deliveryFee: deliveryFeeForTax,
+      };
+
+      if (fulfillmentMode === 'delivery' && deliveryAddressData.postalCode) {
+        payload.deliveryAddress = {
+          addressLine1: deliveryAddressData.addressLine1 || '',
+          city: deliveryAddressData.city || '',
+          state: deliveryAddressData.state || '',
+          postalCode: deliveryAddressData.postalCode,
+          countryCode: deliveryAddressData.countryCode || 'US',
+        };
+      }
+
+      fetch('/api/menu-orders/estimate-tax', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      })
+        .then((res) => res.json())
+        .then((resData) => {
+          if (!controller.signal.aborted) {
+            setEstimatedStateTax(
+              typeof resData?.stateTax === 'number' ? resData.stateTax : 0,
+            );
+          }
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) {
+            setEstimatedStateTax(0);
+          }
+        });
+    }, 500);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [restaurantId, items, fulfillmentMode, deliveryAddressData, deliveryFeeForTax]);
+
   const handleDeliveryAddressChange = (nextAddress: string) => {
     const normalizedAddress = trimDeliveryAddressText(nextAddress);
     setIsEditingDeliveryAddress(true);
@@ -1461,6 +1526,7 @@ export default function RestaurantMenuCheckoutPage({
           orderId?: string;
           orderNumber?: string;
           total?: number;
+          stateTax?: number;
         };
       } | null;
 
@@ -1473,10 +1539,11 @@ export default function RestaurantMenuCheckoutPage({
 
       if (payload?.clientSecret) {
         setClientSecret(payload.clientSecret);
+        const orderStateTax = payload.order?.stateTax ?? 0;
         setPendingOrderData({
           orderId: payload.order?.orderId || '',
           orderNumber: payload.order?.orderNumber || '',
-          total: payload.order?.total ?? 0,
+          total: (payload.order?.total ?? 0) + orderStateTax,
         });
       } else {
         navigateToSuccess(payload?.order?.orderNumber, payload?.order?.total);
@@ -1558,7 +1625,8 @@ export default function RestaurantMenuCheckoutPage({
     subtotal +
       deliveryFeeAmount +
       effectiveTipAmount +
-      taxAmount -
+      taxAmount +
+      estimatedStateTax -
       discountAmount -
       loyaltyDiscountAmount,
   );
@@ -1929,10 +1997,14 @@ export default function RestaurantMenuCheckoutPage({
           ) : null}
           {taxAmount > 0 ? (
             <div className="flex items-center justify-between gap-4">
-              <span>Service Fee ({taxRate}%)</span>
+              <span>Service Fee{taxRate > 0 ? ` (${taxRate}%)` : ''}</span>
               <span className="font-medium">{formatPrice(taxAmount)}</span>
             </div>
           ) : null}
+          <div className="flex items-center justify-between gap-4">
+            <span>State Tax</span>
+            <span className="font-medium">{formatPrice(estimatedStateTax)}</span>
+          </div>
           <div className="flex items-center justify-between gap-4">
             <span>Tip</span>
             <span className="font-medium">

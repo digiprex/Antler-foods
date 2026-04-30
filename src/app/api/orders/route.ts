@@ -132,8 +132,9 @@ const GET_ORDERS_QUERY = `
       contact_phone
       scheduled_for
       service_fee
+      state_tax
       tip_total
-        discount_total 
+        discount_total
       delivery_fee_total
       restaurant_payout_amount
       payout_status

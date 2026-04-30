@@ -12,13 +12,29 @@ import {
   creditOrderLoyaltyPoints,
 } from '@/features/restaurant-menu/lib/server/menu-orders';
 import { getRestaurantStripeAccountByRestaurantId } from '@/lib/server/restaurant-stripe-accounts';
-import { getStripe } from '@/lib/server/stripe';
+import { getStripe, calculateStripeTax } from '@/lib/server/stripe';
 import { sendInvoiceForOrder, sendOrderConfirmationSms } from '@/lib/server/order-invoice';
 
 const GET_RESTAURANT_PAYMENT_METADATA = `
   query GetRestaurantPaymentMetadata($restaurant_id: uuid!) {
     restaurants_by_pk(restaurant_id: $restaurant_id) {
       name
+      address
+      city
+      state
+      postal_code
+      country
+    }
+  }
+`;
+
+const UPDATE_ORDER_STATE_TAX = `
+  mutation UpdateOrderStateTax($order_id: uuid!, $state_tax: numeric!, $cart_total: numeric!) {
+    update_orders_by_pk(
+      pk_columns: { order_id: $order_id }
+      _set: { state_tax: $state_tax, cart_total: $cart_total }
+    ) {
+      order_id
     }
   }
 `;
@@ -237,11 +253,24 @@ export async function POST(request: NextRequest) {
       order_number: result.orderNumber,
     };
 
+    let restaurantAddr: {
+      address?: string | null;
+      city?: string | null;
+      state?: string | null;
+      postal_code?: string | null;
+      country?: string | null;
+    } | null = null;
+
     try {
       const [restaurantData, stripeAccount] = await Promise.all([
         adminGraphqlRequest<{
           restaurants_by_pk?: {
             name?: string | null;
+            address?: string | null;
+            city?: string | null;
+            state?: string | null;
+            postal_code?: string | null;
+            country?: string | null;
           } | null;
         }>(GET_RESTAURANT_PAYMENT_METADATA, {
           restaurant_id: restaurantId,
@@ -249,6 +278,7 @@ export async function POST(request: NextRequest) {
         getRestaurantStripeAccountByRestaurantId(restaurantId),
       ]);
 
+      restaurantAddr = restaurantData.restaurants_by_pk || null;
       const restaurantName = trimMetadataValue(
         restaurantData.restaurants_by_pk?.name,
       );
@@ -268,8 +298,80 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Calculate state tax via Stripe Tax
+    let stateTaxAmount = 0;
+    try {
+      const deliveryData = body?.deliveryAddressData;
+      const fulfillment = body?.fulfillmentType || 'pickup';
+      let customerAddress: {
+        line1?: string;
+        city?: string;
+        state?: string;
+        postalCode?: string;
+        country?: string;
+      } | undefined;
+
+      if (fulfillment === 'delivery' && deliveryData?.postalCode) {
+        customerAddress = {
+          line1: deliveryData.addressLine1 || deliveryData.formattedAddress || '',
+          city: deliveryData.city || '',
+          state: deliveryData.state || '',
+          postalCode: deliveryData.postalCode,
+          country: deliveryData.countryCode || 'US',
+        };
+      } else if (restaurantAddr?.postal_code) {
+        customerAddress = {
+          line1: restaurantAddr.address || '',
+          city: restaurantAddr.city || '',
+          state: restaurantAddr.state || '',
+          postalCode: restaurantAddr.postal_code,
+          country: restaurantAddr.country || 'US',
+        };
+      }
+
+      if (customerAddress?.postalCode) {
+        const cartItems = body?.items || [];
+        const lineItems = cartItems.map((item) => {
+          const addOnsTotal = (item.selectedAddOns || []).reduce(
+            (sum, addon) => sum + (addon.price || 0),
+            0,
+          );
+          const unitPrice = (item.basePrice || 0) + addOnsTotal;
+          return {
+            amount: Math.round(unitPrice * (item.quantity || 1) * 100),
+            reference: item.itemId || item.key || undefined,
+          };
+        });
+
+        const deliveryFeeCents =
+          fulfillment === 'delivery' && body?.deliveryQuote?.deliveryFee
+            ? Math.round(body.deliveryQuote.deliveryFee * 100)
+            : 0;
+
+        const taxResult = await calculateStripeTax({
+          lineItems,
+          customerAddress,
+          shippingCost: deliveryFeeCents > 0 ? deliveryFeeCents : undefined,
+        });
+
+        if (taxResult && !taxResult.error && taxResult.taxAmount > 0) {
+          stateTaxAmount = taxResult.taxAmount;
+          const updatedTotal = Math.round((result.total + stateTaxAmount) * 100) / 100;
+          await adminGraphqlRequest(UPDATE_ORDER_STATE_TAX, {
+            order_id: result.orderId,
+            state_tax: stateTaxAmount,
+            cart_total: updatedTotal,
+          });
+        }
+      }
+    } catch (taxError) {
+      console.error('[Menu Orders] Stripe state tax calculation failed:', taxError);
+    }
+
+    const chargeAmount = Math.round((result.total + stateTaxAmount) * 100);
+
     const paymentIntent = await getStripe().paymentIntents.create({
-      amount: Math.round(result.total * 100),
+      amount: chargeAmount,
       currency: 'usd',
       metadata,
       automatic_payment_methods: { enabled: true },
@@ -280,7 +382,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: `Order ${result.orderNumber} created. Complete payment to confirm.`,
-      order: result,
+      order: { ...result, stateTax: stateTaxAmount },
       clientSecret: paymentIntent.client_secret,
     });
   } catch (error) {

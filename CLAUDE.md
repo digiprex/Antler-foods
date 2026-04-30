@@ -6,24 +6,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev          # Dev server on port 1000
-npm run build        # Production build (runs clean-next prebuild script)
+npm run build        # Production build (prebuild cleans .next via scripts/clean-next.mjs)
 npm run lint         # ESLint (Next.js core-web-vitals + TypeScript)
 npm start            # Start production server
+npm run cron:local   # Local cron simulator — hits /api/cron/order-status every minute
 ```
 
 No test framework is configured.
 
 ## Architecture
 
-**Next.js 14 App Router** multi-tenant restaurant platform. Each restaurant is identified by domain, resolved via middleware (`src/middleware.ts`) using `resolveRestaurantIdByDomain()`.
+**Next.js 14 App Router** multi-tenant restaurant platform. Each restaurant is an isolated tenant identified by domain.
+
+**Middleware** (`src/middleware.ts`) tags `/admin/` and `/dashboard/` routes with an `x-admin-route` header so the root layout can skip expensive metadata lookups. It does not resolve restaurants — that happens downstream.
+
+**Restaurant context resolution** — three paths depending on route type:
+- **Public pages:** Domain → `resolveRestaurantIdByDomain()` in `src/lib/server/domain-resolver.ts` (in-memory cache, 5-min TTL)
+- **Admin dashboard:** Extracted from path slug `/dashboard/admin/restaurants/{id-name-slug}/...` via `parseRestaurantScopeFromPath()`, with `?restaurant_id=` query param fallback
+- **API routes:** Dynamic param `/api/restaurants/[restaurantId]/...` or `?restaurant_id=` query param, validated via `requireRestaurantAccess()`
 
 **Backend:** Nhost (Hasura GraphQL + auth + storage). Two query modes:
 - Client-side: `fetchGraphQL()` from `src/lib/graphql/client.ts` with bearer token
 - Server-side: `adminGraphqlRequest()` from `src/lib/server/api-auth.ts` with hasura-admin-secret
 
-All GraphQL queries live in `src/lib/graphql/queries.ts`.
+All GraphQL queries live in `src/lib/graphql/queries.ts` as exported constants with typed interfaces. Some queries have V1/V2 variants to handle schema evolution.
 
-**Auth:** Dual auth systems — Nhost for admin/owner users, custom JWT for menu customers (`src/features/restaurant-menu/lib/server/`). Tab-session isolation via sessionStorage (not localStorage). RBAC roles: admin, manager, owner, client, user. Route protection in `src/lib/auth/routes.ts`.
+**Auth:** Dual auth systems — Nhost for admin/owner users, custom JWT for menu customers (`src/features/restaurant-menu/lib/server/`). Tab-session isolation via sessionStorage (not localStorage). RBAC roles: admin, manager, owner, client, user. Route protection in `src/lib/auth/routes.ts`. Role `client` maps to `owner` for routing purposes.
+
+**Provider wrapping:** Root layout wraps everything in `NhostProvider` (via `src/app/providers.tsx`). No other global context providers.
+
+**Admin layout chain:** `src/app/admin/layout.tsx` → `AdminShell` (Suspense boundary) → `DashboardLayout` (client component that enforces Nhost auth, resolves role, manages restaurant selection state, renders sidebar/topbar).
 
 **Path alias:** `@/*` maps to `src/*`.
 
@@ -31,21 +43,28 @@ All GraphQL queries live in `src/lib/graphql/queries.ts`.
 
 - `src/app/(public)/` — Public auth pages (login, signup, password reset)
 - `src/app/admin/` — Admin dashboard (~40 pages: menu, orders, settings, analytics, page builder)
-- `src/app/api/` — ~50 API routes (auth, config endpoints, media, external integrations)
-- `src/app/[slug]/` — Dynamic restaurant pages
-- `src/features/restaurant-menu/` — Feature module: menu UI, cart context (localStorage-persisted), customer auth
+- `src/app/api/` — API routes (auth, config endpoints, media, external integrations)
+- `src/app/[slug]/` — Dynamic restaurant pages (rendered via `page-client.tsx` section switch)
+- `src/features/restaurant-menu/` — Feature module: menu UI, cart context, customer auth, checkout, order history
+- `src/components/dashboard/` — Dashboard layout (sidebar, topbar, auth enforcement)
 - `src/components/admin/` — Admin form components
-- `src/components/` — Shared UI: custom-section-renderer.tsx is the core dynamic layout engine (~1000 lines)
-- `src/lib/server/` — Server-only code (API auth, email via Nodemailer, domain resolver, analytics)
+- `src/components/` — Shared UI: `custom-section-renderer.tsx` is the core dynamic layout engine (~1000 lines)
+- `src/lib/server/` — Server-only code (API auth, email via Nodemailer, domain resolver, analytics, delivery)
 - `src/lib/section-style.ts` — Dynamic style generation for restaurant sections (~1000 lines)
 - `src/data/` — JSON layout definitions for hero, menu, custom sections, etc.
 - `src/hooks/use-*-config.ts` — Config fetcher hooks (hero, menu, navbar, footer, gallery)
 
 ## Patterns
 
+**API route conventions:** Protected routes follow this pattern:
+1. Call `requireRestaurantAccess(request, restaurantId)` or `requireAuthenticatedUser(request)` from `src/lib/server/api-auth.ts`
+2. Throw `RouteError(status, message)` for HTTP errors — caught and returned as JSON
+3. Use `adminGraphqlRequest<T>()` for Hasura queries
+4. Return `{ success: boolean, data?: T, error?: string }` envelope
+
 **Config hooks:** Each restaurant section (hero, menu, navbar, footer, gallery) has a `use*Config` hook that fetches via `/api/*-config` REST routes, which in turn query Nhost GraphQL.
 
-**Dynamic sections:** Restaurant pages are composed of configurable sections. Layout definitions come from JSON files in `src/data/`. Styles are generated dynamically via `getSectionContainerStyles()` and similar functions in `src/lib/section-style.ts`.
+**Dynamic sections:** Restaurant pages are composed of configurable sections. Layout definitions come from JSON files in `src/data/`. The `page-client.tsx` renders sections by switching on `template.category`, sorted by `order_index`. Styles are generated dynamically via `getSectionContainerStyles()` and similar functions in `src/lib/section-style.ts`.
 
 **Cart state:** React Context + localStorage (`restaurant-menu-cart-v1`) with cross-tab sync via custom events (`restaurant-menu-cart-updated`). Hydration guard to prevent SSR mismatches.
 
@@ -57,57 +76,34 @@ Tailwind CSS + SCSS modules. Custom Tailwind colors: `surface`, `ink`, `accent`,
 
 ## Integrations
 
-**Stripe:** Payment processing via `src/lib/server/stripe.ts`. Webhook handler at `src/app/api/webhooks/stripe/route.ts` verifies events with `STRIPE_WEBHOOK_SECRET`.
+**Stripe:** Payment processing via `src/lib/server/stripe.ts`. Connect accounts for per-restaurant payouts (`src/lib/server/restaurant-stripe-accounts.ts`). Webhook handlers at `src/app/api/webhooks/stripe/` and `stripe-connect/`.
 
 **Vercel Domains:** Dynamic domain management (`src/lib/server/vercel-domains.ts`) and deploy hooks (`src/lib/server/vercel-deploy.ts`) for multi-tenant domain provisioning.
 
-**AI Content Generation:** Fallback chain: Amazon Bedrock → OpenAI → Vertex AI. Each provider is tried only when the previous one errors. Used for footer content (`src/app/api/generate-footer-content/route.ts`) and website initialization (`src/app/api/restaurants/[restaurantId]/initialize-website/route.ts`).
+**AI Content Generation:** Fallback chain: Amazon Bedrock → OpenAI → Vertex AI. Each provider is tried only when the previous one errors.
 
-**Google Maps:** Location autocomplete via `src/hooks/useGooglePlacesAutocomplete.ts`.
+**Google:** Maps autocomplete (`src/hooks/useGooglePlacesAutocomplete.ts`), Business Profile integration (reviews, photos, social links) via `src/app/api/google/` and `src/app/api/restaurants/[restaurantId]/google-business/`.
 
-**Google Business:** Place matching, reviews, photos import, and social links extraction via `src/app/api/google/` routes.
+**Delivery:** DoorDash Drive and Uber Direct clients in `src/lib/server/delivery/`.
+
+**Communications:** Email via Nodemailer (`src/lib/server/email.ts`), SMS via Twilio (`src/lib/server/twilio.ts`).
 
 ## Environment
 
-Core required variables:
+See `.env.example` for complete variable documentation. Core required:
+
 ```bash
-# Nhost backend
-NEXT_PUBLIC_NHOST_SUBDOMAIN=
+NEXT_PUBLIC_NHOST_SUBDOMAIN=     # Nhost backend
 NEXT_PUBLIC_NHOST_REGION=
 HASURA_ADMIN_SECRET=
-
-# Menu customer auth
-MENU_CUSTOMER_SESSION_SECRET=
+MENU_CUSTOMER_SESSION_SECRET=    # Customer JWT auth
 MENU_CUSTOMER_PASSWORD_RESET_SECRET=
-
-# Stripe payments
-STRIPE_SECRET_KEY=
+STRIPE_SECRET_KEY=               # Payments
 STRIPE_WEBHOOK_SECRET=
-
-# Google services
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
-GOOGLE_SERVICE_ACCOUNT_EMAIL=
-GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
-GOOGLE_ANALYTICS_ACCOUNT_ID=
-
-# Analytics (Umami)
-UMAMI_URL=
-UMAMI_API_TOKEN=
-NEXT_PUBLIC_UMAMI_SCRIPT_URL=
-
-# Optional: Vercel domain/deploy automation
-VERCEL_API_TOKEN=
-VERCEL_PROJECT_ID=
-VERCEL_TEAM_ID=
-VERCEL_DEPLOY_HOOK_URL=
-
-# Optional: AWS Bedrock for AI content
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_REGION=
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY= # Google services
 ```
 
-See `.env.example` and `.env.local.example` for complete documentation. Auth storage prefix: `antler-foods`.
+Auth storage prefix: `antler-foods`.
 
 ## Notable Config
 

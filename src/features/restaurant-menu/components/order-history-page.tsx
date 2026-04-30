@@ -25,6 +25,7 @@ interface OrderHistoryOrder {
   paymentStatus: string;
   subtotal: number;
   serviceFee: number;
+  stateTax: number;
   tipTotal: number;
   discountTotal: number;
   deliveryFee: number | null;
@@ -519,6 +520,12 @@ function OrderDetailModal({
                   <span>{formatPrice(order.serviceFee)}</span>
                 </div>
               ) : null}
+              {order.stateTax > 0 ? (
+                <div className="flex justify-between text-slate-600">
+                  <span>State Tax</span>
+                  <span>{formatPrice(order.stateTax)}</span>
+                </div>
+              ) : null}
               {order.tipTotal > 0 ? (
                 <div className="flex justify-between text-slate-600">
                   <span>Tip</span>
@@ -821,6 +828,7 @@ export default function OrderHistoryPage({
       deliveryFee: order.deliveryFee,
       tip: order.tipTotal,
       tax: order.serviceFee,
+      stateTax: order.stateTax,
       offerApplied: null,
       couponCode: '',
       giftCardCode: '',

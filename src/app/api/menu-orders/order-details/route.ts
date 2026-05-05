@@ -27,6 +27,7 @@ const GET_ORDER_BY_NUMBER = `
       contact_phone
       scheduled_for
       service_fee
+      state_tax
       tip_total
       discount_total
       delivery_fee_total

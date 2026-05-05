@@ -29,6 +29,7 @@ const GET_CUSTOMER_ORDERS = `
       payment_status
       sub_total
       service_fee
+      state_tax
       tip_total
       discount_total
       cart_total
@@ -107,6 +108,7 @@ interface OrderRecord {
   payment_status?: string | null;
   sub_total?: number | string | null;
   service_fee?: number | string | null;
+  state_tax?: number | string | null;
   tip_total?: number | string | null;
   discount_total?: number | string | null;
   cart_total?: number | string | null;
@@ -327,6 +329,7 @@ export async function GET(request: NextRequest) {
         paymentStatus: text(order.payment_status) || 'pending',
         subtotal: numberValue(order.sub_total),
         serviceFee: numberValue(order.service_fee),
+        stateTax: numberValue(order.state_tax),
         tipTotal: numberValue(order.tip_total),
         discountTotal: numberValue(order.discount_total),
         deliveryFee,

@@ -44,6 +44,7 @@ export interface InvoiceData {
   deliveryFee: number | null;
   tip: number | null;
   tax: number | null;
+  stateTax?: number | null;
   offerApplied: InvoiceOffer | null;
   couponCode: string;
   giftCardCode: string;
@@ -276,6 +277,11 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   if (typeof data.tax === 'number' && data.tax > 0) {
     doc.text('Service Fee', 14, y);
     doc.text(fmt(data.tax), pageWidth - 14, y, { align: 'right' });
+    y += 6;
+  }
+  if (typeof data.stateTax === 'number' && data.stateTax > 0) {
+    doc.text('State Tax', 14, y);
+    doc.text(fmt(data.stateTax), pageWidth - 14, y, { align: 'right' });
     y += 6;
   }
 

@@ -24,6 +24,7 @@ const GET_ORDER_FOR_INVOICE = `
       contact_phone
       scheduled_for
       service_fee
+      state_tax
       tip_total
       discount_total
       loyalty_discount

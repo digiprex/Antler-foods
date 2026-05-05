@@ -43,6 +43,7 @@ interface OrderData {
   contact_phone: string | null;
   scheduled_for: string | null;
   service_fee: number | null;
+  state_tax: number | null;
   tip_total: number | null;
   discount_total: number | null;
   delivery_fee: number | null;
@@ -220,6 +221,7 @@ export default function MenuCheckoutSuccessContent() {
   const offerApplied = order?.offer_applied ?? null;
   const tip = order?.tip_total ?? null;
   const tax = order?.service_fee ?? null;
+  const stateTax = order?.state_tax ?? null;
   const paymentMethod = order?.payment_method || searchParams?.get('payment') || '';
   const schedule = searchParams?.get('schedule') || '';
   const placedAt = formatDate(order?.placed_at ?? null);
@@ -702,6 +704,12 @@ export default function MenuCheckoutSuccessContent() {
                       <tr>
                         <td className="px-5 py-2.5 text-slate-600">Service Fee</td>
                         <td className="px-5 py-2.5 text-right font-medium text-slate-950">{formatPrice(tax)}</td>
+                      </tr>
+                  ) : null}
+                  {typeof stateTax === 'number' && stateTax > 0 ? (
+                      <tr>
+                        <td className="px-5 py-2.5 text-slate-600">State Tax</td>
+                        <td className="px-5 py-2.5 text-right font-medium text-slate-950">{formatPrice(stateTax)}</td>
                       </tr>
                   ) : null}
                   {typeof total === 'number' ? (

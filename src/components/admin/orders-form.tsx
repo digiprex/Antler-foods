@@ -346,6 +346,10 @@ Subtotal: ${formatCurrency(order.sub_total)}`;
       receiptContent += `\nService Fee: ${formatCurrency(order.service_fee)}`;
     }
 
+    if (order.state_tax != null && order.state_tax > 0) {
+      receiptContent += `\nState Tax: ${formatCurrency(order.state_tax)}`;
+    }
+
     if (order.tip_total != null && order.tip_total > 0) {
       receiptContent += `\nTip: ${formatCurrency(order.tip_total)}`;
     }
@@ -600,6 +604,15 @@ Generated on: ${new Date().toLocaleString()}
         <div class="total-line">
             <span>Service Fee:</span>
             <span>${formatCurrency(order.service_fee)}</span>
+        </div>`
+            : ''
+        }
+        ${
+          order.state_tax != null && order.state_tax > 0
+            ? `
+        <div class="total-line">
+            <span>State Tax:</span>
+            <span>${formatCurrency(order.state_tax)}</span>
         </div>`
             : ''
         }
@@ -1794,6 +1807,15 @@ Generated on: ${new Date().toLocaleString()}
                                 <span className="text-gray-600">Service Fee:</span>
                                 <span className="font-medium text-gray-900">
                                   {formatCurrency(selectedOrder.service_fee)}
+                                </span>
+                              </div>
+                            )}
+                          {selectedOrder.state_tax != null &&
+                            selectedOrder.state_tax > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">State Tax:</span>
+                                <span className="font-medium text-gray-900">
+                                  {formatCurrency(selectedOrder.state_tax)}
                                 </span>
                               </div>
                             )}
